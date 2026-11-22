@@ -66,3 +66,23 @@ table.autosummary td:first-child {
 table.autosummary td:first-child code {
   white-space: normal;
 }
+
+/* Previews (docs/_ext/gf_preview.py): captured at scale 2 and shown at half
+   size; never wider than the column. */
+figure.gf-preview {
+  margin: 1rem 0;
+}
+
+figure.gf-preview img {
+  max-width: 100%;
+  height: auto;
+}
+
+figure.gf-preview figcaption {
+  font-size: 0.875rem;
+  color: var(--pst-color-text-muted);
+}
+
+.gf-page-source {
+  margin-top: 1rem;
+}

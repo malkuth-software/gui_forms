@@ -8,10 +8,9 @@
 // C# and C++ callers share one implementation. The renderer-free drawing
 // library (GUIForms::Drawing) stays renderer-free.
 //
-// Provisional, numbered 0.8 of the drawing seam as a placeholder: the
-// integrator assigns the real number in fold order. Outside the sealed
-// drawing ABI 1.0; its names and status values may still change. The C
-// ABI is unchanged; C callers keep recorder_execute.
+// Provisional, in the drawing ABI's 1.1 (GD_ABI_VERSION_1_1), outside the
+// sealed drawing ABI 1.0; its names and status values may still change. The C ABI is
+// unchanged; C callers keep recorder_execute.
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/drawing/bitmap/bitmap.hpp"

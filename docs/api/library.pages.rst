@@ -57,7 +57,7 @@ Related types
 
 .. cpp:class:: PageContent
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    The content a presenter attaches to a page; for :cpp:class:`PageView <gui_forms::PageView>`, the page's control subtree. The set owns the content of every page in it: ``take`` moves the content out with its record, ``put`` moves it in, and removing a page or destroying the set destroys it. A page may have no content until its presenter supplies it (late content). The derived type is the presenter's; the set only destroys it.
 
@@ -65,7 +65,7 @@ Related types
 
 .. cpp:struct:: PageId final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    A page's stable identity: the application's string, unique within one set (docking uses the panel's identity). It is never a position; positions are :cpp:class:`PagePosition <gui_forms::PagePosition>` values in the current order and change on every reorder.
 
@@ -75,7 +75,7 @@ Related types
 
 .. cpp:struct:: PagePlacement final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    Where an inserted or put page goes. :cpp:func:`end_of_group <gui_forms::PagePlacement::end_of_group>` appends it to its own group (the pinned group for a pinned page, the ordinary pages otherwise); :cpp:func:`at <gui_forms::PagePlacement::at>` names the position it occupies after the edit, which must lie inside its group.
 
@@ -96,7 +96,7 @@ Related types
 
 .. cpp:struct:: PagePosition final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    A position in a set's current order, counted from 0 at the first pinned page (or the first page when nothing is pinned).
 
@@ -106,7 +106,7 @@ Related types
 
 .. cpp:struct:: PageRecord final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    The descriptive fields of one page. The presenter decides how they look: ``title`` may carry a mnemonic marker, ``image_key`` names an image in the presenter's image list (empty: none).
 
@@ -132,7 +132,7 @@ Related types
 
 .. cpp:struct:: PageSelectingEvent final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    Raised before a requested selection changes. Setting ``cancel`` keeps the current selection; later handlers still run and see the flag.
 
@@ -150,7 +150,7 @@ Related types
 
 .. cpp:struct:: PageSelectionChange final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    Raised after the selected page changed. Inside a batch, ``old_page`` is the selection when the batch began and ``cause`` the cause of its last change.
 
@@ -166,7 +166,7 @@ Related types
 
 .. cpp:class:: PageSetBatch final
 
-   ``#include <gui_forms/pages/page_set/page_set.hpp>``
+   ``#include <gui_forms/pages/page_set/page_set.hpp>`` (:src:`source <include/gui_forms/pages/page_set/page_set.hpp>`)
 
    Groups edits into one publication. Constructing it opens a batch on the set; :cpp:func:`close <gui_forms::PageSetBatch::close>` or destruction closes it. Closing the outermost batch publishes one ``pages_changed`` when any edit applied and one ``selected_page_changed`` when the selection ends on a different page than it began. Edits inside a batch still apply one at a time: a refused edit leaves the earlier ones in place. The set must outlive the scope. A handler that throws while :cpp:func:`close <gui_forms::PageSetBatch::close>` publishes hands its exception to close's caller. While the destructor publishes, the exception is contained there (a destructor publishes without throwing, house style section 2) and is lost; there is no error channel to report it on, so call :cpp:func:`close <gui_forms::PageSetBatch::close>` where a handler may throw. Either way the batch's edits stand, the batch is closed, the set stays consistent and usable, and the notifications of that publication not yet emitted are dropped, as for any handler exception.
 
@@ -184,7 +184,7 @@ Related types
 
 .. cpp:struct:: PageSetChange final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    Raised after pages entered, left, moved or changed. Each flag says whether any edit since the last publication changed that aspect.
 
@@ -216,7 +216,7 @@ Related types
 
 .. cpp:struct:: PageSetLimits final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    .. cpp:member:: constexpr std::size_t default_capacity
 
@@ -230,7 +230,7 @@ Related types
 
 .. cpp:struct:: PageSetOptions final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    .. cpp:member:: PageSelectionFallback fallback
 
@@ -248,7 +248,7 @@ Related types
 
 .. cpp:struct:: PageTakeResult final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    The result of ``PageSet::take``: on success the page with its content; on a refusal an empty page and the reason.
 
@@ -262,7 +262,7 @@ Related types
 
 .. cpp:struct:: TakenPage final
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    A page out of any set: its record and its content, moved together. A default-constructed or moved-from :cpp:class:`TakenPage <gui_forms::TakenPage>` is empty (an empty id and no content).
 
@@ -277,7 +277,7 @@ Enumerations
 
 .. cpp:enum-class:: PageEditStatus
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    .. cpp:enumerator:: applied
 
@@ -309,7 +309,7 @@ Enumerations
 
 .. cpp:enum-class:: PagePlacement::Kind
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    .. cpp:enumerator:: end_of_group
 
@@ -319,7 +319,7 @@ Enumerations
 
 .. cpp:enum-class:: PageSelectionCause
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    .. cpp:enumerator:: programmatic
 
@@ -337,7 +337,7 @@ Enumerations
 
 .. cpp:enum-class:: PageSelectionFallback
 
-   ``#include <gui_forms/pages/types/page_set_types.hpp>``
+   ``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
    .. cpp:enumerator:: neighbour
 
@@ -347,7 +347,7 @@ Enumerations
 
 .. cpp:enum-class:: PageSet::Notification::Kind
 
-   ``#include <gui_forms/pages/page_set/page_set.hpp>``
+   ``#include <gui_forms/pages/page_set/page_set.hpp>`` (:src:`source <include/gui_forms/pages/page_set/page_set.hpp>`)
 
    .. cpp:enumerator:: pages
 
@@ -358,6 +358,6 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/pages/types/page_set_types.hpp>``
+``#include <gui_forms/pages/types/page_set_types.hpp>`` (:src:`source <include/gui_forms/pages/types/page_set_types.hpp>`)
 
 .. cpp:function:: constexpr bool page_edit_succeeded(PageEditStatus status) noexcept

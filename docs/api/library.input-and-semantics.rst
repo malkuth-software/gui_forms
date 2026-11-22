@@ -117,7 +117,7 @@ Types
 
 .. cpp:struct:: ContextMenuRequest final
 
-   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>`` (:src:`source <include/gui_forms/events/mouse_events/mouse_events.hpp>`)
 
    A request for a context menu, raised on the control under the pointer (or the focused control for a keyboard request) and then on each ancestor until a handler sets ``handled``. ``location`` is in the control's coordinates and ``window_position`` in the window's; a keyboard request has no pointer position and carries the control's own origin, so the control chooses its anchor (its selection, its keyboard item).
 
@@ -135,7 +135,7 @@ Types
 
 .. cpp:struct:: DragAnnouncementRequest final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    The announce callback's record: the owner points ``text`` at storage that stays valid until the callback returns (the tracker copies it, cut to the engine's 256 bytes at a character boundary). Empty text keeps the last announcement. A target withdrawn from inside a callback is announced with the next frame: that request's reason is target_withdrawn, ``withdrawn`` names it and ``frame`` is the new frame, so the text covers both.
 
@@ -153,7 +153,7 @@ Types
 
 .. cpp:struct:: DragAutoScroll final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    Auto-scroll while dragging: within ``band`` of an edge of ``viewport`` (the window's coordinates; empty: off) the tracker asks the owner to scroll, faster the deeper the pointer is, ``speed`` at and beyond the edge (drag_auto_scroll_velocity). Pointer sessions only.
 
@@ -171,7 +171,7 @@ Types
 
 .. cpp:struct:: DragAutoScrollStep final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    The scroll callback's record: the owner scrolls its content by ``requested`` (logical units; positive moves the view right and down, so the content moves left and up) and writes in ``applied`` how far it did (less at the content's end; zero there). An applied step plans again with the content moved; a step applying nothing on both axes stops auto-scroll until the pointer moves.
 
@@ -183,7 +183,7 @@ Types
 
 .. cpp:struct:: DragBinaryData final
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    DragBinaryData owns a bounded byte payload and explicit format identifier.
 
@@ -195,7 +195,7 @@ Types
 
 .. cpp:struct:: DragDispatchResult final
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    DragDispatchResult projects the final handled and selected-effect outcome of one routed drag turn.
 
@@ -215,7 +215,7 @@ Types
 
 .. cpp:struct:: DragEvent final
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    DragEvent carries phase, geometry, allowed/proposed effects, typed payload, and mutable handled/result state through preview/target/bubble routing.
 
@@ -251,7 +251,7 @@ Types
 
 .. cpp:struct:: DragFileListData final
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    DragFileListData owns a bounded list of local path strings without implying remote discovery.
 
@@ -261,7 +261,7 @@ Types
 
 .. cpp:struct:: DragInteraction final
 
-   ``#include <gui_forms/events/drag_events/drag_events.hpp>``
+   ``#include <gui_forms/events/drag_events/drag_events.hpp>`` (:src:`source <include/gui_forms/events/drag_events/drag_events.hpp>`)
 
    One drag interaction. ``candidate`` is the client's token for the selected drop candidate (an index into its own table) when ``has_candidate``; ``value`` is a continuous drag's value when ``has_value``; an end that restores carries neither (zero and false). ``pointer`` is in the window's coordinates (the virtual pointer for a keyboard drag). ``end`` is none except in drag_dropped and drag_ended.
 
@@ -287,7 +287,7 @@ Types
 
 .. cpp:struct:: DragInteractionEvents final
 
-   ``#include <gui_forms/events/drag_events/drag_events.hpp>``
+   ``#include <gui_forms/events/drag_events/drag_events.hpp>`` (:src:`source <include/gui_forms/events/drag_events/drag_events.hpp>`)
 
    The four events of a drag client, held by the control and raised by the window's drag engine on the window's thread. The control exposes each by its schema name.
 
@@ -303,7 +303,7 @@ Types
 
 .. cpp:struct:: DragLimits final
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    DragLimits bounds payload bytes, path count, path length, and advertised format count before foreign drag data enters retained routing.
 
@@ -335,7 +335,7 @@ Types
 
 .. cpp:struct:: DragPlacement final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    A placement: the subject's top-left kept inside ``bounds`` (with the subject's size; empty bounds use the window's client area), moved only on the axes ``axis_lock`` leaves, on ``grid`` from bounds' origin when the grid is on. The grid is on when ``grid_by_default`` is true, and the reverse while the modifiers ``grid_toggle`` are held (none: no toggle); a grid with a zero side is off on that axis. Targets: the owner writes them into ``targets`` (borrowed for the plan call). With ``snap_radius`` zero a target is hit when it contains the pointer; above zero the nearest target within that distance of the subject's centre (zero inside, the grab kept) attracts it, a magnet, and holds it until the centre is farther than ``release_radius`` (hysteresis against flicker; zero: the snap radius; otherwise at least the snap radius). A nearer target within the snap radius takes over at once. Of overlapping or equidistant targets the earlier one wins. While the modifiers ``targets_suppressed_by`` are held (none: never) no target is hit. A release off every target places the subject (free) when ``free_drop``, and is rejected otherwise; without targets ``free_drop`` must be true.
 
@@ -373,7 +373,7 @@ Types
 
 .. cpp:struct:: DragPlan final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    The plan callback's record: the tracker fills the inputs, the owner the rest. Only the terms of ``kind`` are read (placement, value or reorder); the others keep their initial values. key, press, source, mode, epoch: the drag (inputs). press is where the pointer was pressed, or the subject's centre for the keyboard; source the subject's rectangle; both move with the content when an auto-scroll step plans again. epoch is 1 at the first plan and one more at each later one. travel: the pointer's travel from the press when the plan is made (input; zero for the keyboard). auto_scroll: read for pointer sessions; replanned each step. container: borrowed for the call; the rules' drop_candidate condition names it while a session runs (null: none). updates: on_release or live (DragUpdates); read at every plan, so a replan keeps it only if the owner sets it again. settles: asks for a settling phase after the end (the owner animates and calls finish_settling). refused: the owner has nothing to drag now; the session ends rejected.
 
@@ -417,7 +417,7 @@ Types
 
 .. cpp:struct:: DragReorder final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    A reorder: the items' rectangles in display order along ``axis`` (borrowed for the plan call) and the dragged item's index. The frame's ``target`` is the slot the subject would take (DragHit::slot); moving it later shifts the items between by its extent, the engine's list rule.
 
@@ -433,7 +433,7 @@ Types
 
 .. cpp:struct:: DragStart final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    What starts a drag. ``subject``: the control dragged (borrowed for the call; null: the owner); it holds the pointer capture, so its pointer events must reach pointer(). ``key``: the owner's name for what is dragged. ``source``: the subject's rectangle in the window's coordinates (none: the subject's bounds; the keyboard always uses them). ``threshold``: the press travel before the drag starts, zero or more (pointer only).
 
@@ -451,7 +451,7 @@ Types
 
 .. cpp:struct:: DragTarget final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    One drop target, in the window's coordinates. ``id`` is the owner's name for it (reported in DragTrackerFrame::target, and what withdraw_target takes); ``group`` is its keyboard group, below maximum_drag_target_groups.
 
@@ -465,7 +465,7 @@ Types
 
 .. cpp:struct:: DragTextData final
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    DragTextData owns one validated UTF-8 text payload.
 
@@ -475,7 +475,7 @@ Types
 
 .. cpp:class:: DragTracker final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
 
    .. rubric:: Construction
@@ -538,7 +538,7 @@ Types
 
 .. cpp:struct:: DragTrackerCallbacks final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    The named callbacks. plan and finished are required; the rest are optional (auto-scroll is off without scroll; a live plan without update changes nothing live). Each is read when it is called, so a change takes effect at the next call. update follows the move's preview, under the same reentrancy rules (it may cancel or withdraw a target).
 
@@ -558,7 +558,7 @@ Types
 
 .. cpp:struct:: DragTrackerFrame final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    One frame of a session, for preview and finished. key, epoch, mode, pointer, modifiers: the drag now (pointer is where a pointer would be in a keyboard session). hit: what the plan selects. target: the target's id (target) or the slot's index (slot). landing: the target's bounds or the slot's landing rectangle. point: the placement's top-left. value: the value. end: none while running; how it ended in finished. animate: finished only; the session settles until finish_settling. live: the session's plan is live (DragUpdates::live): update applies this frame, and finished's restores what the updates changed.
 
@@ -604,7 +604,7 @@ Types
 
 .. cpp:struct:: DragTrackerStatistics final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    The tracker's counters (AGENTS.md: structured instrumentation). withdrawn: targets withdrawn while dragging; deferred_replans: those whose replan waited for the next event (withdrawn inside a callback). scroll_ticks: auto-scroll frames; scroll_steps: frames that scrolled; scroll_stops: frames that applied nothing (the content's end). live_updates: update calls (live sessions only).
 
@@ -640,7 +640,7 @@ Types
 
 .. cpp:struct:: DragValue final
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    A value: clamp(origin_value + scale * travel along ``axis``, minimum, maximum), rounded to ``step`` above minimum when step is positive. ``scale`` is value units per logical unit, negative when the value grows as the pointer moves left or up. The keyboard's arrows step by keyboard_step (Ctrl ten times, Shift a tenth).
 
@@ -668,7 +668,7 @@ Types
 
 .. cpp:struct:: KeyBinding final
 
-   ``#include <gui_forms/events/key_commands/key_commands.hpp>``
+   ``#include <gui_forms/events/key_commands/key_commands.hpp>`` (:src:`source <include/gui_forms/events/key_commands/key_commands.hpp>`)
 
    The chords that invoke one command: at most two (Ctrl+F6 and its macOS equivalent, say). Either may be empty; a binding with both empty leaves the command without keys.
 
@@ -685,7 +685,7 @@ Types
 
 .. cpp:class:: KeyBindings final
 
-   ``#include <gui_forms/events/key_commands/key_commands.hpp>``
+   ``#include <gui_forms/events/key_commands/key_commands.hpp>`` (:src:`source <include/gui_forms/events/key_commands/key_commands.hpp>`)
 
    The keys of an application's named keyboard commands (owner decision DK-44, review R3): one object shared by every window of the application, floating windows included (Window::set_key_bindings), so a rebinding made in one window holds in all of them. The host's defaults seed it once, when the first host session attaches (later sessions leave it as it is); the application's rebindings stay over them. Until a host seeds it, the defaults are the PC convention's. Execution: the UI thread of the windows sharing it; not synchronized.
 
@@ -730,7 +730,7 @@ Types
 
 .. cpp:struct:: KeyChord final
 
-   ``#include <gui_forms/events/key_commands/key_commands.hpp>``
+   ``#include <gui_forms/events/key_commands/key_commands.hpp>`` (:src:`source <include/gui_forms/events/key_commands/key_commands.hpp>`)
 
    One key with the exact modifiers held: Ctrl+F4 is {PhysicalKey::f4, Modifier::control}. A chord whose key is 0 is no chord (an unused slot of a binding); it has no modifiers and matches no event.
 
@@ -749,7 +749,7 @@ Types
 
 .. cpp:struct:: KeyEvent
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    KeyEvent carries logical/physical key identity, modifier and repeat state, key direction, and mutable handled state through preview/target/bubble routing.
 
@@ -779,7 +779,7 @@ Types
 
 .. cpp:struct:: KeyEventArgs final
 
-   ``#include <gui_forms/events/key_events/key_events.hpp>``
+   ``#include <gui_forms/events/key_events/key_events.hpp>`` (:src:`source <include/gui_forms/events/key_events/key_events.hpp>`)
 
    One key down or up as Windows Forms' KeyEventArgs gives it. key_code is the Windows Forms Keys code (Windows virtual-key numbering, the same on every host: key_code_from_physical_key), physical_key the USB HID usage the host reported (PhysicalKey), scan_code the host's own hardware code (a Windows scan code, 0xE000 added for an extended key; an X11 keycode; an AppKit keyCode; zero when the host gave none or the key was released by deactivation). repeat marks an auto-repeated down. A handler sets handled to end the key's route; suppress_key_press also drops the text the key produces (it implies handled).
 
@@ -805,7 +805,7 @@ Types
 
 .. cpp:class:: KeyMap final
 
-   ``#include <gui_forms/events/key_commands/key_commands.hpp>``
+   ``#include <gui_forms/events/key_commands/key_commands.hpp>`` (:src:`source <include/gui_forms/events/key_commands/key_commands.hpp>`)
 
    One binding per KeyCommand: a value, copied whole. A key event matches a command when it is a key-down (a repeat included) of one of the command's chords with exactly that chord's modifiers. Two commands may share a chord; the control asking decides which it means. A map made with no arguments leaves every command without keys.
 
@@ -828,7 +828,7 @@ Types
 
 .. cpp:struct:: KeyPressEventArgs final
 
-   ``#include <gui_forms/events/key_events/key_events.hpp>``
+   ``#include <gui_forms/events/key_events/key_events.hpp>`` (:src:`source <include/gui_forms/events/key_events/key_events.hpp>`)
 
    Windows Forms' KeyPressEventArgs for committed text input: text is what the input produced (UTF-8; one character for a typed key, several for a committed composition or a paste the host sends as text), key_char its one Unicode scalar value when it holds exactly one, else zero. A handler sets handled to keep the text from the control.
 
@@ -842,7 +842,7 @@ Types
 
 .. cpp:struct:: KeyStateChange final
 
-   ``#include <gui_forms/events/key_events/key_events.hpp>``
+   ``#include <gui_forms/events/key_events/key_events.hpp>`` (:src:`source <include/gui_forms/events/key_events/key_events.hpp>`)
 
    A physical key going down or up, raw: raised once per press and once per release (never for an auto-repeat), before any route can consume the key and whatever control has the focus, so that a game can keep key state without text input or focus in the way. down is false for a release; released_by_deactivation marks the releases the window makes when it loses activation (the host's own key-up never arrives then).
 
@@ -864,7 +864,7 @@ Types
 
 .. cpp:struct:: MouseEventArgs final
 
-   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>`` (:src:`source <include/gui_forms/events/mouse_events/mouse_events.hpp>`)
 
    One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields. The WinForms members: the button (Button; none for a move or wheel without one), the click count the host reported for the press (Clicks: 1, 2 for the second press of a double-click, and so on; a release carries its press's count; 0 for a move or wheel), the position in the control's own coordinates (Location) and in the window's, the wheel delta (Delta; logical pixels or lines, positive away from the user and to the right) and the modifiers held. handled is HandledMouseEventArgs.Handled: a raiser that sets it ends the pointer event's route at its target, so no ancestor's bubble handler sees it (the subscribers still run when the raiser calls its base); it suppresses nothing else. suppress_click, set by a MouseUp raiser or its override, cancels the release's Click and MouseClick (DoubleClick and MouseDoubleClick on a double-click's second press) and the activation (the owner's input order, rule 3); elsewhere it is ignored. The rest have no WinForms counterpart: what the pointer did (action; enter and leave reach no MouseEventArgs), the host's pointer identity (pointer_id; one for the mouse), the route phase the raiser runs in (phase; target for the raisers), what wheel_delta counts (wheel_unit) and the event's place in a scroll gesture (wheel_phase). timestamp_nanoseconds is when the host took the event (PointerEvent: FrameClock nanoseconds, monotonic, the same clock on every host), so a fling's speed is measured between events and not by when a handler runs. The hosts report no touch or pen data yet, so the record carries none.
 
@@ -912,7 +912,7 @@ Types
 
 .. cpp:struct:: PhysicalKey final
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    PhysicalKey preserves host-independent scan position, extended-key state, and location for shortcut and compatibility logic.
 
@@ -1188,7 +1188,7 @@ Types
 
 .. cpp:struct:: PointerEvent
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    PointerEvent is the mutable routed pointer record: device phase, window/local coordinates, buttons, modifiers, wheel deltas, click count, capture request, and handled state.
 
@@ -1236,7 +1236,7 @@ Types
 
 .. cpp:struct:: PointerLocation final
 
-   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>`` (:src:`source <include/gui_forms/events/mouse_events/mouse_events.hpp>`)
 
    Where the pointer is, as a window last saw it: the position of the last pointer event the window dispatched, which is the event being dispatched while its raisers run. MouseEnter and MouseLeave carry no arguments (Windows Forms' EventArgs), so their handlers read the crossing here: on_mouse_leave and on_mouse_enter run during the move that crossed (the leave first, then the enter, both at that move's position), and the window's own leave raises on_mouse_leave at the position the host reported for it. location is in the asking control's coordinates (the window's when the window is asked), window_position in the window's; inside is false once the pointer has left the window, and before the window has seen a pointer event (all zero then). A detached control reports all zero.
 
@@ -1250,7 +1250,7 @@ Types
 
 .. cpp:struct:: PreviewKeyDownEventArgs final
 
-   ``#include <gui_forms/events/key_events/key_events.hpp>``
+   ``#include <gui_forms/events/key_events/key_events.hpp>`` (:src:`source <include/gui_forms/events/key_events/key_events.hpp>`)
 
    Windows Forms' PreviewKeyDownEventArgs: raised on the focused control before anything else sees a key down. A handler sets is_input_key to keep the key from dialog processing (Tab, Enter, Escape, mnemonics), so that the control receives it as an ordinary key.
 
@@ -1270,7 +1270,7 @@ Types
 
 .. cpp:struct:: RelativePointerEnded final
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    The owner's relative_pointer_ended record. reason: the trigger that ended the mode (only the first is reported).
 
@@ -1282,7 +1282,7 @@ Types
 
 .. cpp:struct:: RelativePointerEventArgs final
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    One sample, raised on the owner (Control::relative_pointer). delta: the motion in logical units (unaccelerated counts scaled to logical units when ``unaccelerated``), sub-unit precision kept; zero for a button or wheel sample. position: the pointer in the owner's coordinates (a locked pointer's virtual position). button: a button sample's button. wheel_delta and wheel_unit: a wheel sample's, as PointerEvent carries them. timestamp_nanoseconds: the host's time for the sample (PointerEvent::timestamp_nanoseconds). handled: set by a handler; it ends nothing, and is read by the C ABI's caller.
 
@@ -1322,7 +1322,7 @@ Types
 
 .. cpp:struct:: RelativePointerGrant final
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    What a request got. mode: the mode in force. raw: deltas are unaccelerated. cursor_hidden: the pointer is hidden. host_relative: the host delivers deltas itself; false when the window derives them from positions (so they stop at the screen's edge, and are accelerated).
 
@@ -1349,7 +1349,7 @@ Types
 
 .. cpp:struct:: RelativePointerRequest final
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    What a request asks for. mode: see above (confined unless asked: confinement before a hard lock). hide_cursor: hides the pointer in confined mode (locked always hides it; free never does). raw_motion: unaccelerated deltas where the host has them (the grant says whether it does). until_release: accepted only while a button is held on the owner, and ended by that button's release, so the mode never outlasts the user's own press.
 
@@ -1367,7 +1367,7 @@ Types
 
 .. cpp:struct:: RelativePointerSnapshot final
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    The window's relative pointer state and counters (AGENTS.md: structured instrumentation). samples counts every sample raised; suspensions the times a release region suspended the mode.
 
@@ -1401,7 +1401,7 @@ Types
 
 .. cpp:struct:: RelativePointerSupport final
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    What the window's host can do (from its HostCapabilities; a window with no host derives deltas from the positions it is handed and can do nothing else).
 
@@ -1429,7 +1429,7 @@ Types
 
 .. cpp:struct:: SemanticDescriptor final
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    SemanticDescriptor is a control-authored accessibility recipe: role, labels, optional numeric range, state bits, actions, exposure, and descendant policy.
 
@@ -1499,7 +1499,7 @@ Types
 
 .. cpp:struct:: SemanticNode final
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    SemanticNode is the immutable snapshot form of one exposed control, with exact runtime/stable identity, bounds, values, states, actions, and children.
 
@@ -1575,7 +1575,7 @@ Types
 
 .. cpp:struct:: SemanticSnapshot final
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    SemanticSnapshot is an immutable generation-tagged forest of exact retained accessibility nodes with counted topology.
 
@@ -1596,7 +1596,7 @@ Types
 
 .. cpp:struct:: SemanticTextGrapheme final
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    One grapheme of a text node's layout: its UTF-8 range in the node's value, the index of its visual line in SemanticTextLayout::lines, and its box. A line break is not a grapheme of any line.
 
@@ -1610,7 +1610,7 @@ Types
 
 .. cpp:struct:: SemanticTextLayout final
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    The layout of a text node (owner decision A-T1, 12.13), built only when a host asks through Window::semantic_text_layout. Lines and graphemes are in text order. ``word_starts`` are the offsets at which the control's own word rule stops (its Ctrl+Left and Ctrl+Right), ascending: 0, each word start, and the end of the text; empty for empty text. Sentences are not reported (A-T2).
 
@@ -1631,7 +1631,7 @@ Types
 
 .. cpp:struct:: SemanticTextLine final
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    One visual line of a text node's layout: the UTF-8 range of the node's value it shows (without the line break that ends it) and its box. Boxes are in window client coordinates, as node bounds are, and may lie outside the node's bounds when the text is scrolled.
 
@@ -1643,7 +1643,7 @@ Types
 
 .. cpp:struct:: SemanticTextSelection final
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    The selection and caret of a node's text (owner decision A-T1, 12.13), as UTF-8 byte offsets into the node's value, on grapheme boundaries; with nothing selected the anchor and the caret are the same offset.
 
@@ -1655,7 +1655,7 @@ Types
 
 .. cpp:struct:: TextInputEvent
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    TextInputEvent owns UTF-8 text or composition payload plus replacement range and mutable handled state.
 
@@ -1678,7 +1678,7 @@ Enumerations
 
 .. cpp:enum-class:: ContextRequestOrigin
 
-   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+   ``#include <gui_forms/events/mouse_events/mouse_events.hpp>`` (:src:`source <include/gui_forms/events/mouse_events/mouse_events.hpp>`)
 
    .. cpp:enumerator:: pointer
 
@@ -1688,7 +1688,7 @@ Enumerations
 
 .. cpp:enum-class:: DragAction
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: enter
 
@@ -1702,7 +1702,7 @@ Enumerations
 
 .. cpp:enum-class:: DragAnnouncementReason
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: frame
 
@@ -1712,7 +1712,7 @@ Enumerations
 
 .. cpp:enum-class:: DragAxis
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: x
 
@@ -1722,7 +1722,7 @@ Enumerations
 
 .. cpp:enum-class:: DragAxisLock
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1736,7 +1736,7 @@ Enumerations
 
 .. cpp:enum-class:: DragEffect
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1750,7 +1750,7 @@ Enumerations
 
 .. cpp:enum-class:: DragEnd
 
-   ``#include <gui_forms/events/drag_events/drag_events.hpp>``
+   ``#include <gui_forms/events/drag_events/drag_events.hpp>`` (:src:`source <include/gui_forms/events/drag_events/drag_events.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1774,7 +1774,7 @@ Enumerations
 
 .. cpp:enum-class:: DragHit
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1790,7 +1790,7 @@ Enumerations
 
 .. cpp:enum-class:: DragInputMode
 
-   ``#include <gui_forms/events/drag_events/drag_events.hpp>``
+   ``#include <gui_forms/events/drag_events/drag_events.hpp>`` (:src:`source <include/gui_forms/events/drag_events/drag_events.hpp>`)
 
    .. cpp:enumerator:: pointer
 
@@ -1800,7 +1800,7 @@ Enumerations
 
 .. cpp:enum-class:: DragKind
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: placement
 
@@ -1812,7 +1812,7 @@ Enumerations
 
 .. cpp:enum-class:: DragPhase
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: idle
 
@@ -1828,7 +1828,7 @@ Enumerations
 
 .. cpp:enum-class:: DragPlanFault
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1842,7 +1842,7 @@ Enumerations
 
 .. cpp:enum-class:: DragStartResult
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: armed
 
@@ -1860,7 +1860,7 @@ Enumerations
 
 .. cpp:enum-class:: DragUpdates
 
-   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+   ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
    .. cpp:enumerator:: on_release
 
@@ -1870,7 +1870,7 @@ Enumerations
 
 .. cpp:enum-class:: EventPhase
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: preview
 
@@ -1882,7 +1882,7 @@ Enumerations
 
 .. cpp:enum-class:: KeyAction
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: down
 
@@ -1892,7 +1892,7 @@ Enumerations
 
 .. cpp:enum-class:: KeyCommand
 
-   ``#include <gui_forms/events/key_commands/key_commands.hpp>``
+   ``#include <gui_forms/events/key_commands/key_commands.hpp>`` (:src:`source <include/gui_forms/events/key_commands/key_commands.hpp>`)
 
    .. cpp:enumerator:: close_document
 
@@ -1932,7 +1932,7 @@ Enumerations
 
 .. cpp:enum-class:: Modifier
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1948,7 +1948,7 @@ Enumerations
 
 .. cpp:enum-class:: PointerAction
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: move
 
@@ -1966,7 +1966,7 @@ Enumerations
 
 .. cpp:enum-class:: PointerButton
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1980,7 +1980,7 @@ Enumerations
 
 .. cpp:enum-class:: RelativePointerEnd
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    .. cpp:enumerator:: released
 
@@ -2002,7 +2002,7 @@ Enumerations
 
 .. cpp:enum-class:: RelativePointerMode
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    .. cpp:enumerator:: free
 
@@ -2014,7 +2014,7 @@ Enumerations
 
 .. cpp:enum-class:: RelativePointerResult
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    .. cpp:enumerator:: granted
 
@@ -2032,7 +2032,7 @@ Enumerations
 
 .. cpp:enum-class:: RelativePointerSampleKind
 
-   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+   ``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
    .. cpp:enumerator:: motion
 
@@ -2046,7 +2046,7 @@ Enumerations
 
 .. cpp:enum-class:: SemanticAction
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    .. cpp:enumerator:: focus
 
@@ -2074,7 +2074,7 @@ Enumerations
 
 .. cpp:enum-class:: SemanticOrientation
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    .. cpp:enumerator:: horizontal
 
@@ -2084,7 +2084,7 @@ Enumerations
 
 .. cpp:enum-class:: SemanticRole
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    .. cpp:enumerator:: generic
 
@@ -2202,7 +2202,7 @@ Enumerations
 
 .. cpp:enum-class:: SemanticState
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2238,7 +2238,7 @@ Enumerations
 
 .. cpp:enum-class:: SemanticTextResult
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    .. cpp:enumerator:: done
 
@@ -2256,7 +2256,7 @@ Enumerations
 
 .. cpp:enum-class:: SemanticTextUnit
 
-   ``#include <gui_forms/semantics/types/semantic_types.hpp>``
+   ``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
    .. cpp:enumerator:: character
 
@@ -2272,7 +2272,7 @@ Enumerations
 
 .. cpp:enum-class:: WheelDeltaUnit
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: lines
 
@@ -2282,7 +2282,7 @@ Enumerations
 
 .. cpp:enum-class:: WheelPhase
 
-   ``#include <gui_forms/events/input_events/input_events.hpp>``
+   ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2303,7 +2303,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>``
+``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
 
 .. cpp:function:: bool drag_end_commits(DragEnd end) noexcept
 
@@ -2339,7 +2339,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/events/input_events/input_events.hpp>``
+``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
 
 .. cpp:function:: constexpr bool has_modifier(Modifier modifiers, Modifier requested) noexcept
 
@@ -2349,7 +2349,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/events/key_commands/key_commands.hpp>``
+``#include <gui_forms/events/key_commands/key_commands.hpp>`` (:src:`source <include/gui_forms/events/key_commands/key_commands.hpp>`)
 
 .. cpp:function:: std::string_view key_command_name(KeyCommand command) noexcept
 
@@ -2365,7 +2365,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/events/key_events/key_events.hpp>``
+``#include <gui_forms/events/key_events/key_events.hpp>`` (:src:`source <include/gui_forms/events/key_events/key_events.hpp>`)
 
 .. cpp:function:: std::uint32_t key_code_from_physical_key(std::uint32_t physical_key) noexcept
 
@@ -2385,7 +2385,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/events/mouse_events/mouse_events.hpp>``
+``#include <gui_forms/events/mouse_events/mouse_events.hpp>`` (:src:`source <include/gui_forms/events/mouse_events/mouse_events.hpp>`)
 
 .. cpp:function:: inline PointerEvent pointer_event_of(const MouseEventArgs& arguments) noexcept
 
@@ -2397,7 +2397,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>``
+``#include <gui_forms/events/relative_pointer/relative_pointer.hpp>`` (:src:`source <include/gui_forms/events/relative_pointer/relative_pointer.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_pointer_release_regions
 
@@ -2405,7 +2405,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/semantics/types/semantic_types.hpp>``
+``#include <gui_forms/semantics/types/semantic_types.hpp>`` (:src:`source <include/gui_forms/semantics/types/semantic_types.hpp>`)
 
 .. cpp:function:: constexpr SemanticRole semantic_role_fallback(SemanticRole role) noexcept
 

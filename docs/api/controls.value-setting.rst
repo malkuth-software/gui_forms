@@ -339,7 +339,7 @@ Related types
 
 .. cpp:struct:: CheckBox::Parts final
 
-   ``#include <gui_forms/controls/check_box.hpp>``
+   ``#include <gui_forms/controls/check_box.hpp>`` (:src:`source <include/gui_forms/controls/check_box.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -361,7 +361,7 @@ Related types
 
 .. cpp:struct:: CheckBox::States final
 
-   ``#include <gui_forms/controls/check_box.hpp>``
+   ``#include <gui_forms/controls/check_box.hpp>`` (:src:`source <include/gui_forms/controls/check_box.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -389,7 +389,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckBoxAppearanceStyleCapability
 
-   ``#include <gui_forms/controls/check_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/check_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/check_box_capabilities.hpp>`)
 
    Normal or button (Appearance): only the visual projection changes. Outside the enumeration throws std::invalid_argument.
 
@@ -406,7 +406,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckBoxAutoCheckCapability
 
-   ``#include <gui_forms/controls/check_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/check_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/check_box_capabilities.hpp>`)
 
    Whether activation advances the check state (AutoCheck).
 
@@ -423,7 +423,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckBoxCapabilities : public CheckBoxCheckStateCapability<Declaring>, public CheckBoxCheckedCapability<Declaring>, public CheckBoxThreeStateCapability<Declaring>, public CheckBoxAutoCheckCapability<Declaring>, public CheckBoxAppearanceStyleCapability<Declaring>, public CheckBoxIndicatorStyleCapability<Declaring>
 
-   ``#include <gui_forms/controls/check_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/check_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/check_box_capabilities.hpp>`)
 
    Every CheckBox capability, in the order the declaring class takes them.
 
@@ -458,7 +458,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckBoxCheckedCapability
 
-   ``#include <gui_forms/controls/check_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/check_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/check_box_capabilities.hpp>`)
 
    Whether the box is checked (Checked); a view onto check_state: a write sets checked or unchecked.
 
@@ -475,7 +475,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckBoxCheckStateCapability
 
-   ``#include <gui_forms/controls/check_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/check_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/check_box_capabilities.hpp>`)
 
    Unchecked, checked or indeterminate (CheckState); a view onto the check state. Indeterminate becomes checked unless three_state. A change raises check_state_changed, then checked_changed when checked changes. Outside the enumeration throws std::invalid_argument.
 
@@ -492,7 +492,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckBoxIndicatorStyleCapability
 
-   ``#include <gui_forms/controls/check_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/check_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/check_box_capabilities.hpp>`)
 
    How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
 
@@ -509,7 +509,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CheckBoxThreeStateCapability
 
-   ``#include <gui_forms/controls/check_box_capabilities.hpp>``
+   ``#include <gui_forms/controls/check_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/check_box_capabilities.hpp>`)
 
    Whether the box also takes the indeterminate state (ThreeState); clearing it turns an indeterminate box checked.
 
@@ -526,7 +526,7 @@ Related types
 
 .. cpp:struct:: ColorPicker::Parts final
 
-   ``#include <gui_forms/controls/color_picker.hpp>``
+   ``#include <gui_forms/controls/color_picker.hpp>`` (:src:`source <include/gui_forms/controls/color_picker.hpp>`)
 
    .. cpp:member:: PartGeometry region
 
@@ -550,7 +550,7 @@ Related types
 
 .. cpp:struct:: ColorPicker::States final
 
-   ``#include <gui_forms/controls/color_picker.hpp>``
+   ``#include <gui_forms/controls/color_picker.hpp>`` (:src:`source <include/gui_forms/controls/color_picker.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -570,7 +570,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorPickerAlphaEnabledCapability
 
-   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/color_picker_capabilities.hpp>`)
 
    Whether the alpha track is shown and the alpha can be picked; hiding it leaves the value's alpha as it is.
 
@@ -587,7 +587,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorPickerCapabilities : public ColorPickerValueCapability<Declaring>, public ColorPickerAlphaEnabledCapability<Declaring>
 
-   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/color_picker_capabilities.hpp>`)
 
    Every ColorPicker capability, in the order the declaring class takes them.
 
@@ -606,7 +606,7 @@ Related types
 
 .. cpp:struct:: ColorPickerHsv final
 
-   ``#include <gui_forms/controls/color_picker.hpp>``
+   ``#include <gui_forms/controls/color_picker.hpp>`` (:src:`source <include/gui_forms/controls/color_picker.hpp>`)
 
    A colour in hue, saturation and brightness (HSV): hue in degrees [0, 360), saturation and brightness in [0, 1].
 
@@ -620,7 +620,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorPickerValueCapability
 
-   ``#include <gui_forms/controls/color_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/color_picker_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/color_picker_capabilities.hpp>`)
 
    The picked colour; a change raises value_changed. Picking writes it; a program's write moves the thumbs (the hue is kept when the colour is grey).
 
@@ -637,7 +637,7 @@ Related types
 
 .. cpp:struct:: ColorValueEditor::Parts final
 
-   ``#include <gui_forms/controls/color_value_editor.hpp>``
+   ``#include <gui_forms/controls/color_value_editor.hpp>`` (:src:`source <include/gui_forms/controls/color_value_editor.hpp>`)
 
    Stage T1 anatomy, as dot members.
 
@@ -651,7 +651,7 @@ Related types
 
 .. cpp:struct:: ColorValueEditor::States final
 
-   ``#include <gui_forms/controls/color_value_editor.hpp>``
+   ``#include <gui_forms/controls/color_value_editor.hpp>`` (:src:`source <include/gui_forms/controls/color_value_editor.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -675,7 +675,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorValueEditorCapabilities : public ColorValueEditorValueCapability<Declaring>, public ColorValueEditorSwatchWidthCapability<Declaring>
 
-   ``#include <gui_forms/controls/color_value_editor_capabilities.hpp>``
+   ``#include <gui_forms/controls/color_value_editor_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/color_value_editor_capabilities.hpp>`)
 
    Every ColorValueEditor capability, in the order the declaring class takes them.
 
@@ -694,7 +694,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorValueEditorSwatchWidthCapability
 
-   ``#include <gui_forms/controls/color_value_editor_capabilities.hpp>``
+   ``#include <gui_forms/controls/color_value_editor_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/color_value_editor_capabilities.hpp>`)
 
    The width of the colour swatch before the text, 12 to 96 (std::invalid_argument otherwise).
 
@@ -711,7 +711,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorValueEditorValueCapability
 
-   ``#include <gui_forms/controls/color_value_editor_capabilities.hpp>``
+   ``#include <gui_forms/controls/color_value_editor_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/color_value_editor_capabilities.hpp>`)
 
    The edited colour; a view, since committing the text moves it and an equal write still restores the text and the normal status. A write raises no event.
 
@@ -728,7 +728,7 @@ Related types
 
 .. cpp:struct:: Dial::Parts final
 
-   ``#include <gui_forms/controls/dial.hpp>``
+   ``#include <gui_forms/controls/dial.hpp>`` (:src:`source <include/gui_forms/controls/dial.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts). The arcs publish the square their circle is inscribed in, the needle the square inside the knob it turns in; ``value_arc`` is absent without show_arc or at the minimum.
 
@@ -750,7 +750,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DialCapabilities : public DialTickFrequencyCapability<Declaring>, public DialShowArcCapability<Declaring>
 
-   ``#include <gui_forms/controls/dial_capabilities.hpp>``
+   ``#include <gui_forms/controls/dial_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/dial_capabilities.hpp>`)
 
    Every Dial capability, in the order the declaring class takes them.
 
@@ -769,7 +769,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DialShowArcCapability
 
-   ``#include <gui_forms/controls/dial_capabilities.hpp>``
+   ``#include <gui_forms/controls/dial_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/dial_capabilities.hpp>`)
 
    Whether the scale lights the arc from the minimum to the value.
 
@@ -786,7 +786,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DialTickFrequencyCapability
 
-   ``#include <gui_forms/controls/dial_capabilities.hpp>``
+   ``#include <gui_forms/controls/dial_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/dial_capabilities.hpp>`)
 
    Distance in value units between scale marks; zero draws none. Negative or not finite throws std::invalid_argument.
 
@@ -803,7 +803,7 @@ Related types
 
 .. cpp:struct:: DomainUpDown::Parts final
 
-   ``#include <gui_forms/controls/domain_up_down.hpp>``
+   ``#include <gui_forms/controls/domain_up_down.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down.hpp>`)
 
    Stage T1 anatomy, as dot members.
 
@@ -827,7 +827,7 @@ Related types
 
 .. cpp:struct:: DomainUpDown::States final
 
-   ``#include <gui_forms/controls/domain_up_down.hpp>``
+   ``#include <gui_forms/controls/domain_up_down.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -853,7 +853,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DomainUpDownButtonWidthCapability
 
-   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down_capabilities.hpp>`)
 
    The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
 
@@ -870,7 +870,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DomainUpDownCapabilities : public DomainUpDownSelectedIndexCapability<Declaring>, public DomainUpDownTextCapability<Declaring>, public DomainUpDownWrapCapability<Declaring>, public DomainUpDownReadOnlyCapability<Declaring>, public DomainUpDownSortedCapability<Declaring>, public DomainUpDownButtonWidthCapability<Declaring>
 
-   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down_capabilities.hpp>`)
 
    Every DomainUpDown capability, in the order the declaring class takes them.
 
@@ -905,7 +905,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DomainUpDownReadOnlyCapability
 
-   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down_capabilities.hpp>`)
 
    Whether typing is refused (ReadOnly): a typed character then selects the next item that starts with it. A change clears the editor's undo history.
 
@@ -920,7 +920,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DomainUpDownSelectedIndexCapability
 
-   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down_capabilities.hpp>`)
 
    The selected item (SelectedIndex), or none when the text equals no item; a view onto the selection the text follows. A write selects an item and shows its text, or clears the selection and keeps the text, and raises selected_index_changed. An index past the end throws std::out_of_range.
 
@@ -937,7 +937,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DomainUpDownSortedCapability
 
-   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down_capabilities.hpp>`)
 
    Whether the items are kept sorted (Sorted): ASCII case folded, then byte order. Turning it on sorts them and re-matches the selection.
 
@@ -952,7 +952,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DomainUpDownTextCapability
 
-   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down_capabilities.hpp>`)
 
    The field's text (Text); a view onto the editor. A write sets the editor's text and re-matches the selection to it. Allowed on a read-only field: read-only stops typing, not the program.
 
@@ -969,7 +969,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DomainUpDownWrapCapability
 
-   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/domain_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/domain_up_down_capabilities.hpp>`)
 
    Stepping past either end continues at the other while wrap is on (Wrap).
 
@@ -984,7 +984,7 @@ Related types
 
 .. cpp:struct:: FlagsValueEditor::Parts final
 
-   ``#include <gui_forms/controls/flags_value_editor.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor.hpp>`` (:src:`source <include/gui_forms/controls/flags_value_editor.hpp>`)
 
    Stage T1 anatomy, as dot members.
 
@@ -1006,7 +1006,7 @@ Related types
 
 .. cpp:struct:: FlagsValueEditor::States final
 
-   ``#include <gui_forms/controls/flags_value_editor.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor.hpp>`` (:src:`source <include/gui_forms/controls/flags_value_editor.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -1034,7 +1034,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlagsValueEditorCapabilities : public FlagsValueEditorDescriptorCapability<Declaring>, public FlagsValueEditorValueCapability<Declaring>, public FlagsValueEditorDroppedDownCapability<Declaring>, public FlagsValueEditorOverlayWidthCapability<Declaring>
 
-   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/flags_value_editor_capabilities.hpp>`)
 
    Every FlagsValueEditor capability, in the order the declaring class takes them.
 
@@ -1061,7 +1061,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlagsValueEditorDescriptorCapability
 
-   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/flags_value_editor_capabilities.hpp>`)
 
    The flags enumeration the editor offers; a view, since the form properties rebuild it. It must be a valid flags descriptor with at least one positive single-bit choice that can represent the current value (std::invalid_argument otherwise); a change normalizes the value and reopens an open list.
 
@@ -1078,7 +1078,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlagsValueEditorDroppedDownCapability
 
-   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/flags_value_editor_capabilities.hpp>`)
 
    Whether the list of flags is open; a view, since the list closes itself. A write opens or closes it and raises drop_down_changed.
 
@@ -1095,7 +1095,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlagsValueEditorOverlayWidthCapability
 
-   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/flags_value_editor_capabilities.hpp>`)
 
    The width of the list of flags, 80 to 1024 (std::invalid_argument otherwise); a change reopens an open list.
 
@@ -1112,7 +1112,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FlagsValueEditorValueCapability
 
-   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>``
+   ``#include <gui_forms/controls/flags_value_editor_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/flags_value_editor_capabilities.hpp>`)
 
    The checked flags, normalized against descriptor; a view, since the list's checks move it. A value the descriptor cannot represent throws std::invalid_argument.
 
@@ -1129,7 +1129,7 @@ Related types
 
 .. cpp:struct:: InstrumentFieldChange final
 
-   ``#include <gui_forms/instrument/instrument_types.hpp>``
+   ``#include <gui_forms/instrument/instrument_types.hpp>`` (:src:`source <include/gui_forms/instrument/instrument_types.hpp>`)
 
    InstrumentFieldChange carries stable module and field identities, previous/current text, and whether the transition is a committed edit.
 
@@ -1147,7 +1147,7 @@ Related types
 
 .. cpp:struct:: InstrumentFieldSpec final
 
-   ``#include <gui_forms/instrument/instrument_types.hpp>``
+   ``#include <gui_forms/instrument/instrument_types.hpp>`` (:src:`source <include/gui_forms/instrument/instrument_types.hpp>`)
 
    InstrumentFieldSpec is caller-owned field identity, label, current value, editor family, choices, validation, proportional width, and required-state configuration.
 
@@ -1175,7 +1175,7 @@ Related types
 
 .. cpp:struct:: InstrumentModuleMoveRequest final
 
-   ``#include <gui_forms/instrument/instrument_types.hpp>``
+   ``#include <gui_forms/instrument/instrument_types.hpp>`` (:src:`source <include/gui_forms/instrument/instrument_types.hpp>`)
 
    InstrumentModuleMoveRequest carries stable module identity, previous index, and bounded requested index; the consumer remains ordering authority.
 
@@ -1189,7 +1189,7 @@ Related types
 
 .. cpp:struct:: InstrumentModuleRequest final
 
-   ``#include <gui_forms/instrument/instrument_types.hpp>``
+   ``#include <gui_forms/instrument/instrument_types.hpp>`` (:src:`source <include/gui_forms/instrument/instrument_types.hpp>`)
 
    InstrumentModuleRequest identifies the module for a caller-authorized action such as removal.
 
@@ -1199,7 +1199,7 @@ Related types
 
 .. cpp:struct:: InstrumentModuleSpec final
 
-   ``#include <gui_forms/instrument/instrument_types.hpp>``
+   ``#include <gui_forms/instrument/instrument_types.hpp>`` (:src:`source <include/gui_forms/instrument/instrument_types.hpp>`)
 
    InstrumentModuleSpec is the authoritative caller model for one stable named module, its fields, status/state, priority, enablement, and removal policy.
 
@@ -1229,7 +1229,7 @@ Related types
 
 .. cpp:struct:: InstrumentModuleToggle final
 
-   ``#include <gui_forms/instrument/instrument_types.hpp>``
+   ``#include <gui_forms/instrument/instrument_types.hpp>`` (:src:`source <include/gui_forms/instrument/instrument_types.hpp>`)
 
    InstrumentModuleToggle carries stable module identity and the committed enabled state.
 
@@ -1241,7 +1241,7 @@ Related types
 
 .. cpp:struct:: NumericUpDown::Parts final
 
-   ``#include <gui_forms/controls/numeric_up_down.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down.hpp>`)
 
    Stage T1 anatomy, as dot members.
 
@@ -1265,7 +1265,7 @@ Related types
 
 .. cpp:struct:: NumericUpDown::States final
 
-   ``#include <gui_forms/controls/numeric_up_down.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -1289,7 +1289,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownButtonWidthCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    The width of the arrow buttons, 12 to 64 (std::out_of_range otherwise).
 
@@ -1306,7 +1306,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownCapabilities : public NumericUpDownValueCapability<Declaring>, public NumericUpDownMinimumCapability<Declaring>, public NumericUpDownMaximumCapability<Declaring>, public NumericUpDownIncrementCapability<Declaring>, public NumericUpDownDecimalPlacesCapability<Declaring>, public NumericUpDownHexadecimalCapability<Declaring>, public NumericUpDownButtonWidthCapability<Declaring>, public NumericUpDownScrubCapability<Declaring>, public NumericUpDownThousandsSeparatorCapability<Declaring>, public NumericUpDownTextAlignmentCapability<Declaring>
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    Every NumericUpDown capability, in the order the declaring class takes them.
 
@@ -1357,7 +1357,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownDecimalPlacesCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    How many decimal places the editor shows (DecimalPlaces), at most 12 (std::invalid_argument). Any decimal places turn hexadecimal off.
 
@@ -1372,7 +1372,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownHexadecimalCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    Whether the editor shows the value in hexadecimal (Hexadecimal); turning it on sets decimal_places to zero.
 
@@ -1387,7 +1387,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownIncrementCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    How far one step moves the value (Increment); it must be finite and positive, or std::invalid_argument is thrown.
 
@@ -1404,7 +1404,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownMaximumCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    The highest value (Maximum). A maximum below minimum lowers minimum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
 
@@ -1421,7 +1421,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownMinimumCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    The lowest value (Minimum). A minimum above maximum raises maximum to it, and value is clamped into the range (raising value_changed), in that order. A value that is not finite throws std::invalid_argument.
 
@@ -1438,7 +1438,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownScrubCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    Whether a press and sideways drag on the unfocused field scrubs the value (the shared scrub gesture, value bar study 3.2), a click still focusing the field with its text selected. Off by default: the field then edits as a TextBox does.
 
@@ -1455,7 +1455,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownTextAlignmentCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    Where the editor's text sits (TextAlign): start, center or end.
 
@@ -1472,7 +1472,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownThousandsSeparatorCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    Whether the editor groups the integer digits in threes with the locale's group separator (ThousandsSeparator); typed group separators are accepted either way. No effect in hexadecimal.
 
@@ -1489,7 +1489,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NumericUpDownValueCapability
 
-   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_capabilities.hpp>`)
 
    The current value (Value), within minimum and maximum; anything else, or a value that is not finite, throws std::out_of_range. A change shows it in the editor and raises value_changed.
 
@@ -1506,7 +1506,7 @@ Related types
 
 .. cpp:struct:: PropertyConversionContext final
 
-   ``#include <gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>``
+   ``#include <gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>`` (:src:`source <include/gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>`)
 
    PropertyConversionContext is an inspector-local culture label, decimal/group separator policy, and grouping flag. It never mutates process locale, so two grids can format independently and deterministic tests remain stable.
 
@@ -1528,7 +1528,7 @@ Related types
 
 .. cpp:struct:: PropertyEditorBinding final
 
-   ``#include <gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>``
+   ``#include <gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>`` (:src:`source <include/gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>`)
 
    PropertyEditorBinding bundles one unparented retained control with nonpublishing synchronization and tokenized commit/failure connection functions. PropertyList assumes ownership only after the registry validates all required seams.
 
@@ -1544,7 +1544,7 @@ Related types
 
 .. cpp:struct:: PropertyEditorInputError final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyEditorInputError carries the exact attempted text and a user-facing validation message from a retained editor.
 
@@ -1556,7 +1556,7 @@ Related types
 
 .. cpp:class:: PropertyEditorRegistry final
 
-   ``#include <gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>``
+   ``#include <gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>`` (:src:`source <include/gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>`)
 
    PropertyEditorRegistry is an instance-owned canonical service map from explicit editor names or value-kind defaults to retained-control factories. It validates returned ownership and synchronization seams, honors read-only policy, and supplies default numeric, flags, and color editors without a global mutable table.
 
@@ -1595,7 +1595,7 @@ Related types
 
 .. cpp:struct:: PropertyEditorRequest final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyEditorRequest is the complete immutable input to an editor factory: stable control identity, property path, inert descriptor, typed value, writeability, and top-level/compound position.
 
@@ -1615,7 +1615,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyGridCapabilities : public PropertyGridPropertySortCapability<Declaring>, public PropertyGridConverterRegistryCapability<Declaring>, public PropertyGridEditorRegistryCapability<Declaring>
 
-   ``#include <gui_forms/controls/property_grid_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_grid_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_grid_capabilities.hpp>`)
 
    Every PropertyGrid capability, in the order the declaring class takes them.
 
@@ -1638,7 +1638,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyGridConverterRegistryCapability
 
-   ``#include <gui_forms/controls/property_grid_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_grid_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_grid_capabilities.hpp>`)
 
    The value converters the grid's editors use; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
 
@@ -1655,7 +1655,7 @@ Related types
 
 .. cpp:struct:: PropertyGridEditError final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyGridEditError carries exact property path, attempted representation, and failure message after a rejected or rolled-back edit.
 
@@ -1669,7 +1669,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyGridEditorRegistryCapability
 
-   ``#include <gui_forms/controls/property_grid_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_grid_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_grid_capabilities.hpp>`)
 
    The editors the grid installs per property type; a view onto the projection. Never null (std::invalid_argument); a change rebuilds the rows.
 
@@ -1686,7 +1686,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyGridPropertySortCapability
 
-   ``#include <gui_forms/controls/property_grid_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_grid_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_grid_capabilities.hpp>`)
 
    How the rows are ordered (PropertySort): grouped by category (the default) or alphabetical; a view onto the grid's projection. A change rebuilds the rows.
 
@@ -1703,7 +1703,7 @@ Related types
 
 .. cpp:struct:: PropertyGridValueChange final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyGridValueChange is the post-transaction typed publication for a property edit or reset, including authoritative origin.
 
@@ -1723,7 +1723,7 @@ Related types
 
 .. cpp:struct:: PropertyGroupChange final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyGroupChange carries stable group identity and committed disclosure state.
 
@@ -1735,7 +1735,7 @@ Related types
 
 .. cpp:struct:: PropertyGroupSpec final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyGroupSpec is a stable titled collection of PropertyRowSpec records plus retained expanded state.
 
@@ -1753,7 +1753,7 @@ Related types
 
 .. cpp:struct:: PropertyList::Item final
 
-   ``#include <gui_forms/controls/property_list.hpp>``
+   ``#include <gui_forms/controls/property_list.hpp>`` (:src:`source <include/gui_forms/controls/property_list.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -1767,7 +1767,7 @@ Related types
 
 .. cpp:struct:: PropertyList::ItemParts final
 
-   ``#include <gui_forms/controls/property_list.hpp>``
+   ``#include <gui_forms/controls/property_list.hpp>`` (:src:`source <include/gui_forms/controls/property_list.hpp>`)
 
    .. cpp:member:: PartGeometry group_header
 
@@ -1791,7 +1791,7 @@ Related types
 
 .. cpp:struct:: PropertyList::ItemStates final
 
-   ``#include <gui_forms/controls/property_list.hpp>``
+   ``#include <gui_forms/controls/property_list.hpp>`` (:src:`source <include/gui_forms/controls/property_list.hpp>`)
 
    .. cpp:member:: bool open
 
@@ -1809,7 +1809,7 @@ Related types
 
 .. cpp:struct:: PropertyList::Parts final
 
-   ``#include <gui_forms/controls/property_list.hpp>``
+   ``#include <gui_forms/controls/property_list.hpp>`` (:src:`source <include/gui_forms/controls/property_list.hpp>`)
 
    Stage T1 anatomy, as dot members.
 
@@ -1821,7 +1821,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyListCapabilities : public PropertyListHeaderHeightCapability<Declaring>, public PropertyListLabelWidthCapability<Declaring>, public PropertyListFontCapability<Declaring>, public PropertyListRowHeightCapability<Declaring>, public PropertyListScrollOffsetCapability<Declaring>
 
-   ``#include <gui_forms/controls/property_list_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_list_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_list_capabilities.hpp>`)
 
    Every PropertyList capability, in the order the declaring class takes them.
 
@@ -1852,7 +1852,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyListFontCapability
 
-   ``#include <gui_forms/controls/property_list_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_list_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_list_capabilities.hpp>`)
 
    The rows' font (Font); a view onto the list's typography, which follows the theme until written. A write marks the font as set from code, passes it to the editors and re-lays out; an invalid FontSpec throws std::invalid_argument.
 
@@ -1869,7 +1869,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyListHeaderHeightCapability
 
-   ``#include <gui_forms/controls/property_list_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_list_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_list_capabilities.hpp>`)
 
    The header content's height, 0 to 4096 (std::invalid_argument otherwise; nonzero needs header content); a view onto the list's layout. A change re-lays out the rows.
 
@@ -1886,7 +1886,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyListLabelWidthCapability
 
-   ``#include <gui_forms/controls/property_list_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_list_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_list_capabilities.hpp>`)
 
    The label column's width, 40 to 320 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
 
@@ -1903,7 +1903,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyListRowHeightCapability
 
-   ``#include <gui_forms/controls/property_list_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_list_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_list_capabilities.hpp>`)
 
    Each row's height, above 0 and at most 4096 (std::invalid_argument otherwise); a view onto the list's layout. A change re-lays out the rows.
 
@@ -1920,7 +1920,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PropertyListScrollOffsetCapability
 
-   ``#include <gui_forms/controls/property_list_capabilities.hpp>``
+   ``#include <gui_forms/controls/property_list_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/property_list_capabilities.hpp>`)
 
    How far the rows are scrolled; a view onto the list's scroll state. A write is clamped to the content's overflow; a value that is not finite throws std::invalid_argument.
 
@@ -1937,7 +1937,7 @@ Related types
 
 .. cpp:struct:: PropertyResetRequest final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyResetRequest identifies the stable authored row whose reset action the consumer must authorize.
 
@@ -1947,7 +1947,7 @@ Related types
 
 .. cpp:struct:: PropertyRowExpansionChange final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyRowExpansionChange carries stable row identity and committed expanded state.
 
@@ -1959,7 +1959,7 @@ Related types
 
 .. cpp:struct:: PropertyRowSpec final
 
-   ``#include <gui_forms/inspection/property_row_spec/property_row_spec.hpp>``
+   ``#include <gui_forms/inspection/property_row_spec/property_row_spec.hpp>`` (:src:`source <include/gui_forms/inspection/property_row_spec/property_row_spec.hpp>`)
 
    PropertyRowSpec is the authored settings-row model: stable identity; name/value/description; stock editor/choices; validation; parent/depth disclosure; enable/required state; and reset capability.
 
@@ -2012,7 +2012,7 @@ Related types
 
 .. cpp:struct:: PropertyValueChange final
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    PropertyValueChange carries stable authored row identity, previous/current text, and whether the transition is committed.
 
@@ -2028,7 +2028,7 @@ Related types
 
 .. cpp:struct:: PropertyValueConverter final
 
-   ``#include <gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>``
+   ``#include <gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>`` (:src:`source <include/gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>`)
 
    PropertyValueConverter is a renderer-neutral pair of formatting/parsing callbacks with optional context-aware variants. Formatting does not imply editability, and parsing still passes through descriptor conversion and value-tree validation.
 
@@ -2052,7 +2052,7 @@ Related types
 
 .. cpp:class:: PropertyValueConverterRegistry final
 
-   ``#include <gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>``
+   ``#include <gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>`` (:src:`source <include/gui_forms/inspection/property_value_converter_registry/property_value_converter_registry.hpp>`)
 
    PropertyValueConverterRegistry is an instance-owned deterministic service map from canonical names and BindingValueKind defaults to validated format/parse pairs. It bounds names and text, supports local conversion context, admits nullable/standard values, and has no process-global mutable descriptor table.
 
@@ -2110,7 +2110,7 @@ Related types
 
 .. cpp:struct:: RadioButton::Parts final
 
-   ``#include <gui_forms/controls/radio_button.hpp>``
+   ``#include <gui_forms/controls/radio_button.hpp>`` (:src:`source <include/gui_forms/controls/radio_button.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -2130,7 +2130,7 @@ Related types
 
 .. cpp:struct:: RadioButton::States final
 
-   ``#include <gui_forms/controls/radio_button.hpp>``
+   ``#include <gui_forms/controls/radio_button.hpp>`` (:src:`source <include/gui_forms/controls/radio_button.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -2156,7 +2156,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RadioButtonAutoCheckCapability
 
-   ``#include <gui_forms/controls/radio_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/radio_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/radio_button_capabilities.hpp>`)
 
    Whether activation checks the button (AutoCheck).
 
@@ -2173,7 +2173,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RadioButtonCapabilities : public RadioButtonCheckedCapability<Declaring>, public RadioButtonGroupNameCapability<Declaring>, public RadioButtonAutoCheckCapability<Declaring>, public RadioButtonIndicatorStyleCapability<Declaring>
 
-   ``#include <gui_forms/controls/radio_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/radio_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/radio_button_capabilities.hpp>`)
 
    Every RadioButton capability, in the order the declaring class takes them.
 
@@ -2200,7 +2200,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RadioButtonCheckedCapability
 
-   ``#include <gui_forms/controls/radio_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/radio_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/radio_button_capabilities.hpp>`)
 
    Whether the button is selected within its group (Checked); a view onto the check. Checking it clears the checked sibling of the same group_name first; a change raises checked_changed.
 
@@ -2217,7 +2217,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RadioButtonGroupNameCapability
 
-   ``#include <gui_forms/controls/radio_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/radio_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/radio_button_capabilities.hpp>`)
 
    The exclusion group among the parent's radio buttons (GroupName); empty is the parent's own group. A checked button that joins a group clears that group's checked sibling.
 
@@ -2232,7 +2232,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RadioButtonIndicatorStyleCapability
 
-   ``#include <gui_forms/controls/radio_button_capabilities.hpp>``
+   ``#include <gui_forms/controls/radio_button_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/radio_button_capabilities.hpp>`)
 
    How the choice mark draws: classic, modern or toggle (std::invalid_argument outside them).
 
@@ -2249,7 +2249,7 @@ Related types
 
 .. cpp:struct:: RangeControl::Parts final
 
-   ``#include <gui_forms/controls/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control.hpp>`` (:src:`source <include/gui_forms/controls/range_control.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -2261,7 +2261,7 @@ Related types
 
 .. cpp:struct:: RangeControl::States final
 
-   ``#include <gui_forms/controls/range_control.hpp>``
+   ``#include <gui_forms/controls/range_control.hpp>`` (:src:`source <include/gui_forms/controls/range_control.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -2277,7 +2277,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RangeControlCapabilities : public RangeControlValueCapability<Declaring>, public RangeControlMinimumCapability<Declaring>, public RangeControlMaximumCapability<Declaring>, public RangeControlSmallChangeCapability<Declaring>, public RangeControlLargeChangeCapability<Declaring>, public RangeControlOrientationCapability<Declaring>
 
-   ``#include <gui_forms/controls/range_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/range_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/range_control_capabilities.hpp>`)
 
    Every RangeControl capability, in the order the declaring class takes them.
 
@@ -2312,7 +2312,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RangeControlLargeChangeCapability
 
-   ``#include <gui_forms/controls/range_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/range_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/range_control_capabilities.hpp>`)
 
    How far a track click or Page Up/Down moves the value (LargeChange); positive and finite, else std::invalid_argument.
 
@@ -2329,7 +2329,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RangeControlMaximumCapability
 
-   ``#include <gui_forms/controls/range_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/range_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/range_control_capabilities.hpp>`)
 
    The upper bound (Maximum); a view onto the range: a write is set_range(minimum, incoming), so it must stay above the minimum.
 
@@ -2346,7 +2346,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RangeControlMinimumCapability
 
-   ``#include <gui_forms/controls/range_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/range_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/range_control_capabilities.hpp>`)
 
    The lower bound (Minimum); a view onto the range: a write is set_range(incoming, maximum), so it must stay below the maximum.
 
@@ -2363,7 +2363,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RangeControlOrientationCapability
 
-   ``#include <gui_forms/controls/range_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/range_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/range_control_capabilities.hpp>`)
 
    Horizontal or vertical (Orientation).
 
@@ -2380,7 +2380,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RangeControlSmallChangeCapability
 
-   ``#include <gui_forms/controls/range_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/range_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/range_control_capabilities.hpp>`)
 
    How far an arrow key or button moves the value (SmallChange); positive and finite, else std::invalid_argument.
 
@@ -2397,7 +2397,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RangeControlValueCapability
 
-   ``#include <gui_forms/controls/range_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/range_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/range_control_capabilities.hpp>`)
 
    The current value (Value), within minimum and maximum; a view onto the range's value. Outside them throws std::out_of_range, a non-finite value std::invalid_argument; a bound Value may refuse it. A change raises value_changed.
 
@@ -2414,7 +2414,7 @@ Related types
 
 .. cpp:struct:: RangeScrollEvent final
 
-   ``#include <gui_forms/controls/range_control_values.hpp>``
+   ``#include <gui_forms/controls/range_control_values.hpp>`` (:src:`source <include/gui_forms/controls/range_control_values.hpp>`)
 
    RangeScrollEvent is the typed transition payload shared by interactive range controls. It records the old value, committed new value, and the exact pointer, keyboard, command, or programmatic reason.
 
@@ -2430,7 +2430,7 @@ Related types
 
 .. cpp:class:: ScrubGlow final
 
-   ``#include <gui_forms/controls/numeric_up_down_effects.hpp>``
+   ``#include <gui_forms/controls/numeric_up_down_effects.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_effects.hpp>`)
 
    The scrub glow: an edge inside the field in the frame's primary colour and a faint tint in its secondary, both at an opacity that follows the transition (smoothed). Nothing at transition 0. It keeps no state.
 
@@ -2449,7 +2449,7 @@ Related types
 
 .. cpp:struct:: ToggleSwitch::Parts final
 
-   ``#include <gui_forms/controls/toggle_switch.hpp>``
+   ``#include <gui_forms/controls/toggle_switch.hpp>`` (:src:`source <include/gui_forms/controls/toggle_switch.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``track`` is the rounded ground, ``thumb`` the knob at its start (off) or end (on), ``label`` the text, ``state`` the state text (absent when empty) and ``focus`` the cue around the whole control.
 
@@ -2469,7 +2469,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToggleSwitchCapabilities : public ToggleSwitchCheckedCapability<Declaring>, public ToggleSwitchOnTextCapability<Declaring>, public ToggleSwitchOffTextCapability<Declaring>
 
-   ``#include <gui_forms/controls/toggle_switch_capabilities.hpp>``
+   ``#include <gui_forms/controls/toggle_switch_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/toggle_switch_capabilities.hpp>`)
 
    Every ToggleSwitch capability, in the order the declaring class takes them.
 
@@ -2492,7 +2492,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToggleSwitchCheckedCapability
 
-   ``#include <gui_forms/controls/toggle_switch_capabilities.hpp>``
+   ``#include <gui_forms/controls/toggle_switch_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/toggle_switch_capabilities.hpp>`)
 
    Whether the switch is on; a change raises checked_changed. Activation (a click, Space, the press action) turns it over before clicked is raised.
 
@@ -2507,7 +2507,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToggleSwitchOffTextCapability
 
-   ``#include <gui_forms/controls/toggle_switch_capabilities.hpp>``
+   ``#include <gui_forms/controls/toggle_switch_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/toggle_switch_capabilities.hpp>`)
 
    The state text shown after the label while the switch is off, such as "Off"; empty for none. Must be valid UTF-8 (std::invalid_argument).
 
@@ -2522,7 +2522,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToggleSwitchOnTextCapability
 
-   ``#include <gui_forms/controls/toggle_switch_capabilities.hpp>``
+   ``#include <gui_forms/controls/toggle_switch_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/toggle_switch_capabilities.hpp>`)
 
    The state text shown after the label while the switch is on, such as "On"; empty for none. Must be valid UTF-8 (std::invalid_argument).
 
@@ -2537,7 +2537,7 @@ Related types
 
 .. cpp:struct:: TrackBar::Parts final
 
-   ``#include <gui_forms/controls/track_bar.hpp>``
+   ``#include <gui_forms/controls/track_bar.hpp>`` (:src:`source <include/gui_forms/controls/track_bar.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -2557,7 +2557,7 @@ Related types
 
 .. cpp:struct:: TrackBar::States final
 
-   ``#include <gui_forms/controls/track_bar.hpp>``
+   ``#include <gui_forms/controls/track_bar.hpp>`` (:src:`source <include/gui_forms/controls/track_bar.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -2577,7 +2577,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TrackBarCapabilities : public TrackBarTickFrequencyCapability<Declaring>, public TrackBarShowTicksCapability<Declaring>, public TrackBarVisualStyleChoiceCapability<Declaring>, public TrackBarThumbExtentCapability<Declaring>
 
-   ``#include <gui_forms/controls/track_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/track_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/track_bar_capabilities.hpp>`)
 
    Every TrackBar capability, in the order the declaring class takes them.
 
@@ -2604,7 +2604,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TrackBarShowTicksCapability
 
-   ``#include <gui_forms/controls/track_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/track_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/track_bar_capabilities.hpp>`)
 
    Whether the tick marks draw.
 
@@ -2621,7 +2621,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TrackBarThumbExtentCapability
 
-   ``#include <gui_forms/controls/track_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/track_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/track_bar_capabilities.hpp>`)
 
    The thumb's side in pixels; 0 (the default) takes the visual style's (14 classic, 12 filled, 8 compact). Finite and between 0 and 64, else std::invalid_argument.
 
@@ -2638,7 +2638,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TrackBarTickFrequencyCapability
 
-   ``#include <gui_forms/controls/track_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/track_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/track_bar_capabilities.hpp>`)
 
    Distance in value units between tick marks; positive and finite, else std::invalid_argument.
 
@@ -2655,7 +2655,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TrackBarVisualStyleChoiceCapability
 
-   ``#include <gui_forms/controls/track_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/track_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/track_bar_capabilities.hpp>`)
 
    How the rail and thumb draw: classic ticks, a filled rail or a compact rail.
 
@@ -2672,7 +2672,7 @@ Related types
 
 .. cpp:struct:: UnitFormat final
 
-   ``#include <gui_forms/controls/value_bar_values.hpp>``
+   ``#include <gui_forms/controls/value_bar_values.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_values.hpp>`)
 
    A unit's formatting and parsing (study 3.2): the suffix its values are shown with (``display``, whose factor also scales a typed expression that names no unit at all), every suffix it accepts, and whether a space separates the number from the shown suffix ("1.50 m", but "50%" and "90°"). The views are static storage.
 
@@ -2690,7 +2690,7 @@ Related types
 
 .. cpp:struct:: UnitSuffix final
 
-   ``#include <gui_forms/controls/value_bar_values.hpp>``
+   ``#include <gui_forms/controls/value_bar_values.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_values.hpp>`)
 
    One suffix a unit may be typed with: one typed ``suffix`` is ``factor`` base units.
 
@@ -2704,7 +2704,7 @@ Related types
 
 .. cpp:struct:: ValueBar::Parts final
 
-   ``#include <gui_forms/controls/value_bar.hpp>``
+   ``#include <gui_forms/controls/value_bar.hpp>`` (:src:`source <include/gui_forms/controls/value_bar.hpp>`)
 
    The anatomy, as dot members (see Control::Parts).
 
@@ -2736,7 +2736,7 @@ Related types
 
 .. cpp:struct:: ValueBar::States final
 
-   ``#include <gui_forms/controls/value_bar.hpp>``
+   ``#include <gui_forms/controls/value_bar.hpp>`` (:src:`source <include/gui_forms/controls/value_bar.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -2760,7 +2760,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarCapabilities : public ValueBarSoftMinimumCapability<Declaring>, public ValueBarSoftMaximumCapability<Declaring>, public ValueBarSnapStepCapability<Declaring>, public ValueBarPrecisionCapability<Declaring>, public ValueBarUnitCapability<Declaring>, public ValueBarDefaultValueCapability<Declaring>, public ValueBarPresentationCapability<Declaring>, public ValueBarLabelCapability<Declaring>, public ValueBarScrubRateCapability<Declaring>
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    Every ValueBar capability, in the order the declaring class takes them.
 
@@ -2807,7 +2807,7 @@ Related types
 
 .. cpp:struct:: ValueBarContrast final
 
-   ``#include <gui_forms/controls/value_bar.hpp>``
+   ``#include <gui_forms/controls/value_bar.hpp>`` (:src:`source <include/gui_forms/controls/value_bar.hpp>`)
 
    The two halves of a ValueBar's label for its contrast check (the value bar study, section 3.6): the ratio of the label's text over the track and of its fill text over the fill, against ``minimum`` (4.5:1, 7:1 in high contrast). A ratio of 0 was not measured (a face holding an image).
 
@@ -2823,7 +2823,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarDefaultValueCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    The value Backspace resets to, clamped into the hard range when applied. Non-finite throws std::invalid_argument.
 
@@ -2840,7 +2840,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarLabelCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    The name shown at the bar's start, its value at the end (Blender's "Samples 64"); empty centres the value.
 
@@ -2855,7 +2855,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarPrecisionCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    The decimals the value shows, 0 to maximum_value_bar_precision (12); outside throws std::invalid_argument.
 
@@ -2872,7 +2872,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarPresentationCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    The fill style (a slider: the value's proportion of the soft range as a fill under the text) or the field style (a number field: step arrows at both ends while hovered).
 
@@ -2889,7 +2889,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarScrubRateCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    Value units per logical unit of scrub travel, or none for the soft range over the bar's width. Not positive and finite throws std::invalid_argument.
 
@@ -2904,7 +2904,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarSnapStepCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    Ctrl's snapping grid while scrubbing, from the soft minimum, or none for the small change. Not positive and finite throws std::invalid_argument.
 
@@ -2919,7 +2919,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarSoftMaximumCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    The high end of the scrub and fill range, or none for the hard maximum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
@@ -2934,7 +2934,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarSoftMinimumCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    The low end of the scrub and fill range, or none for the hard minimum; held within the hard range when used. Non-finite throws std::invalid_argument.
 
@@ -2949,7 +2949,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ValueBarUnitCapability
 
-   ``#include <gui_forms/controls/value_bar_capabilities.hpp>``
+   ``#include <gui_forms/controls/value_bar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_capabilities.hpp>`)
 
    The unit the value is shown and typed in (ValueUnit); the value is held in the unit's base.
 
@@ -2969,7 +2969,7 @@ Enumerations
 
 .. cpp:enum-class:: CheckBoxAppearance
 
-   ``#include <gui_forms/controls/check_box_values.hpp>``
+   ``#include <gui_forms/controls/check_box_values.hpp>`` (:src:`source <include/gui_forms/controls/check_box_values.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -2979,7 +2979,7 @@ Enumerations
 
 .. cpp:enum-class:: CheckState
 
-   ``#include <gui_forms/controls/check_box_values.hpp>``
+   ``#include <gui_forms/controls/check_box_values.hpp>`` (:src:`source <include/gui_forms/controls/check_box_values.hpp>`)
 
    .. cpp:enumerator:: unchecked
 
@@ -2991,7 +2991,7 @@ Enumerations
 
 .. cpp:enum-class:: ColorPickerPart
 
-   ``#include <gui_forms/controls/color_picker.hpp>``
+   ``#include <gui_forms/controls/color_picker.hpp>`` (:src:`source <include/gui_forms/controls/color_picker.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3005,7 +3005,7 @@ Enumerations
 
 .. cpp:enum-class:: InstrumentFieldEditor
 
-   ``#include <gui_forms/instrument/instrument_types.hpp>``
+   ``#include <gui_forms/instrument/instrument_types.hpp>`` (:src:`source <include/gui_forms/instrument/instrument_types.hpp>`)
 
    .. cpp:enumerator:: choice
 
@@ -3015,7 +3015,7 @@ Enumerations
 
 .. cpp:enum-class:: InstrumentModuleState
 
-   ``#include <gui_forms/instrument/instrument_types.hpp>``
+   ``#include <gui_forms/instrument/instrument_types.hpp>`` (:src:`source <include/gui_forms/instrument/instrument_types.hpp>`)
 
    .. cpp:enumerator:: live
 
@@ -3029,7 +3029,7 @@ Enumerations
 
 .. cpp:enum-class:: Orientation
 
-   ``#include <gui_forms/controls/range_control_values.hpp>``
+   ``#include <gui_forms/controls/range_control_values.hpp>`` (:src:`source <include/gui_forms/controls/range_control_values.hpp>`)
 
    .. cpp:enumerator:: horizontal
 
@@ -3039,7 +3039,7 @@ Enumerations
 
 .. cpp:enum-class:: PropertyEditorKind
 
-   ``#include <gui_forms/inspection/types/property_editor_kind/property_editor_kind.hpp>``
+   ``#include <gui_forms/inspection/types/property_editor_kind/property_editor_kind.hpp>`` (:src:`source <include/gui_forms/inspection/types/property_editor_kind/property_editor_kind.hpp>`)
 
    .. cpp:enumerator:: read_only
 
@@ -3055,7 +3055,7 @@ Enumerations
 
 .. cpp:enum-class:: PropertySort
 
-   ``#include <gui_forms/inspection/inspection_types.hpp>``
+   ``#include <gui_forms/inspection/inspection_types.hpp>`` (:src:`source <include/gui_forms/inspection/inspection_types.hpp>`)
 
    .. cpp:enumerator:: categorized
 
@@ -3065,7 +3065,7 @@ Enumerations
 
 .. cpp:enum-class:: RangeAction
 
-   ``#include <gui_forms/controls/range_control_values.hpp>``
+   ``#include <gui_forms/controls/range_control_values.hpp>`` (:src:`source <include/gui_forms/controls/range_control_values.hpp>`)
 
    .. cpp:enumerator:: small_decrement
 
@@ -3087,7 +3087,7 @@ Enumerations
 
 .. cpp:enum-class:: TrackBarVisualStyle
 
-   ``#include <gui_forms/controls/track_bar_values.hpp>``
+   ``#include <gui_forms/controls/track_bar_values.hpp>`` (:src:`source <include/gui_forms/controls/track_bar_values.hpp>`)
 
    .. cpp:enumerator:: classic
 
@@ -3099,7 +3099,7 @@ Enumerations
 
 .. cpp:enum-class:: ValueBarStyle
 
-   ``#include <gui_forms/controls/value_bar_values.hpp>``
+   ``#include <gui_forms/controls/value_bar_values.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_values.hpp>`)
 
    .. cpp:enumerator:: fill
 
@@ -3109,7 +3109,7 @@ Enumerations
 
 .. cpp:enum-class:: ValueTextDefect
 
-   ``#include <gui_forms/controls/value_bar_values.hpp>``
+   ``#include <gui_forms/controls/value_bar_values.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_values.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3139,7 +3139,7 @@ Enumerations
 
 .. cpp:enum-class:: ValueUnit
 
-   ``#include <gui_forms/controls/value_bar_values.hpp>``
+   ``#include <gui_forms/controls/value_bar_values.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_values.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3156,7 +3156,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/numeric_up_down.hpp>``
+``#include <gui_forms/controls/numeric_up_down.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down.hpp>`)
 
 .. cpp:var:: constexpr FrameInterval scrub_glow_rise
 
@@ -3168,7 +3168,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/numeric_up_down_effects.hpp>``
+``#include <gui_forms/controls/numeric_up_down_effects.hpp>`` (:src:`source <include/gui_forms/controls/numeric_up_down_effects.hpp>`)
 
 .. cpp:function:: void register_numeric_up_down_effects(EffectRegistry& registry)
 
@@ -3176,7 +3176,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/toggle_switch.hpp>``
+``#include <gui_forms/controls/toggle_switch.hpp>`` (:src:`source <include/gui_forms/controls/toggle_switch.hpp>`)
 
 .. cpp:var:: constexpr FrameInterval toggle_switch_thumb_duration
 
@@ -3184,7 +3184,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/value_bar_values.hpp>``
+``#include <gui_forms/controls/value_bar_values.hpp>`` (:src:`source <include/gui_forms/controls/value_bar_values.hpp>`)
 
 .. cpp:function:: const UnitFormat& unit_format(ValueUnit unit) noexcept
 
@@ -3210,6 +3210,6 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>``
+``#include <gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>`` (:src:`source <include/gui_forms/inspection/property_editor_registry/property_editor_registry.hpp>`)
 
 .. cpp:type:: PropertyEditorFactory = std::function<std::optional<PropertyEditorBinding>(const PropertyEditorRequest&)>

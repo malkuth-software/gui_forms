@@ -10,11 +10,13 @@ open the same controls to other languages.
 
 [![CI](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml/badge.svg)](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml) [![Docs](https://app.readthedocs.org/projects/gui-forms/badge/?version=latest)](https://gui-forms.readthedocs.io/) [![Release](https://img.shields.io/github/v/release/malkuth-software/gui_forms?display_name=tag)](https://github.com/malkuth-software/gui_forms/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg) ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)
 
-- **Status:** 0.5, the ABI and API seal, is done, and the package version
-  is 0.6 (C ABI 1.3). Work is now towards 1.0 (backend): the library, its
-  C ABI and its C# bindings. See the
+<!-- numbers:start -->
+- **Status:** the package version is 0.6 (C ABI 1.5, host protocol 15,
+  drawing ABI 1.0). 1.0 is next: the library, its C ABI and its C#
+  bindings, declared once its stability conditions hold. See the
   [release notes](https://gui-forms.readthedocs.io/en/latest/release/index.html)
   and the [roadmap](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.html).
+<!-- numbers:end -->
 - **Rendering:** CPU only, by design, with no GPU backend. One
   text engine (STXlib's font reader, shaper, hinter and text layout) with
   bundled fonts draws the same string identically on every platform.
@@ -51,6 +53,7 @@ toolkit.
 
 A minimal program against the installed SDK:
 
+<!-- numbers:start -->
 ```cmake
 cmake_minimum_required(VERSION 3.25)
 project(hello LANGUAGES CXX)
@@ -58,6 +61,7 @@ find_package(GUIForms 0.6 CONFIG REQUIRED)
 add_executable(hello main.cpp)
 target_link_libraries(hello PRIVATE GUIForms::Application)
 ```
+<!-- numbers:end -->
 
 ```cpp
 #include <gui_forms/application.hpp>
@@ -266,8 +270,8 @@ goes further: a form document, a model and an event handler.
 CI must pass on every platform. C++ follows the
 [house style](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
 run `python3 -B tools/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz`
-before you push. See the
-[contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
+and the other checks that [`AGENTS.md`](AGENTS.md) lists before you push. See
+the [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
 
 ## License
 

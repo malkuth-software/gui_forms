@@ -23,6 +23,8 @@ class Method:
     signature: str
     access: str = "public"
     comment: str = ""
+    # The header line the declaration starts on; 0 when not known.
+    line: int = 0
 
 
 @dataclass
@@ -30,6 +32,8 @@ class Declaration:
     """A data member, constant or type alias, with its leading comment."""
     text: str
     comment: str = ""
+    # The header line the declaration starts on; 0 when not known.
+    line: int = 0
 
 
 @dataclass
@@ -320,8 +324,11 @@ def assigned_before_call(head: str) -> bool:
     return False
 
 
-def declared_members(body: str, kind: str) -> tuple[list[Method], list[Declaration]]:
+def declared_members(body: str, kind: str, first_line: int = 1) -> tuple[list[Method], list[Declaration]]:
     """Return the methods and public declarations made directly in a body.
+
+    ``first_line`` is the header line the body's first line is on; each
+    method and declaration records the line its text starts on.
 
     A contiguous ``//`` comment block immediately above a declaration, or a
     ``//`` comment at the end of its last line, is kept as its comment.
@@ -341,7 +348,8 @@ def declared_members(body: str, kind: str) -> tuple[list[Method], list[Declarati
     in_initializer = False
     methods: list[Method] = []
     declarations_found: list[Declaration] = []
-    for original_line, clean_line in zip(body.splitlines(), clean.splitlines()):
+    start_line = first_line
+    for offset, (original_line, clean_line) in enumerate(zip(body.splitlines(), clean.splitlines())):
         stripped = clean_line.strip()
         original = original_line.strip()
         if in_initializer:
@@ -351,7 +359,7 @@ def declared_members(body: str, kind: str) -> tuple[list[Method], list[Declarati
             joined = " ".join(clean_buffer)
             if joined.count("{") <= joined.count("}") and joined.rstrip().endswith(";"):
                 record_declaration(normalize_signature(" ".join(buffer)), clean_line, access,
-                                   pending_comment or trailing, methods, declarations_found)
+                                   pending_comment or trailing, methods, declarations_found, start_line)
                 buffer.clear()
                 clean_buffer.clear()
                 pending_comment = ""
@@ -377,6 +385,7 @@ def declared_members(body: str, kind: str) -> tuple[list[Method], list[Declarati
             if not buffer:
                 pending_comment = comment_text(comment)
                 comment.clear()
+                start_line = first_line + offset
             code, trailing = split_trailing_comment(original_line)
             buffer.append(code.strip())
             clean_buffer.append(stripped)
@@ -388,7 +397,7 @@ def declared_members(body: str, kind: str) -> tuple[list[Method], list[Declarati
             if ends_at_depth_zero(" ".join(clean_buffer)):
                 pending_comment = pending_comment or trailing
                 record_declaration(normalize_signature(" ".join(buffer)), clean_line, access,
-                                   pending_comment, methods, declarations_found)
+                                   pending_comment, methods, declarations_found, start_line)
                 buffer.clear()
                 clean_buffer.clear()
                 pending_comment = ""
@@ -410,7 +419,7 @@ def declared_members(body: str, kind: str) -> tuple[list[Method], list[Declarati
 
 
 def record_declaration(candidate: str, clean_line: str, access: str, comment: str,
-                       methods: list[Method], found: list[Declaration]) -> None:
+                       methods: list[Method], found: list[Declaration], line: int = 0) -> None:
     is_friend = re.search(r"\bfriend\b", candidate.split("(", 1)[0]) is not None
     is_function_object = candidate.startswith("std::function<")
     function_pointer = re.search(r"\(\s*\*\s*[A-Za-z_]\w*\s*\)\s*\(", candidate) is not None
@@ -418,24 +427,24 @@ def record_declaration(candidate: str, clean_line: str, access: str, comment: st
     if is_friend:
         name = method_name(re.sub(r"^.*?\bfriend\s+", "", head), "")
         if name and "(" in head:
-            methods.append(Method(name, head.rstrip("; "), "friend", comment))
+            methods.append(Method(name, head.rstrip("; "), "friend", comment, line))
         return
     if NON_MEMBER_PREFIXES.match(head) and not head.startswith("using "):
         return
     if head.startswith("using "):
         if access == "public" and "=" in head:
-            found.append(Declaration(head.rstrip("; "), comment))
+            found.append(Declaration(head.rstrip("; "), comment, line))
         return
     if ("(" in head and not is_function_object and not function_pointer
             and not assigned_before_call(head)):
         name = method_name(head, "")
         if name:
-            methods.append(Method(name, head.rstrip("; "), access, comment))
+            methods.append(Method(name, head.rstrip("; "), access, comment, line))
         return
     if access == "public" and not NON_FIELD_PREFIXES.match(candidate):
         declaration = candidate.rstrip("; ").strip()
         if is_field(declaration) or function_pointer:
-            found.append(Declaration(declaration, comment))
+            found.append(Declaration(declaration, comment, line))
 
 
 def scopes(clean: str) -> list[tuple[int, int, str, str]]:
@@ -547,7 +556,8 @@ def declarations() -> tuple[list[TypeRecord], list[EnumRecord], list[HeaderScope
                 continue
             line = text.count("\n", 0, match.start()) + 1
             namespace, owner = enclosing(match.start(), ranges)
-            methods, fields = declared_members(text[match.end():end], match.group(1))
+            methods, fields = declared_members(text[match.end():end], match.group(1),
+                                               text.count("\n", 0, match.end()) + 1)
             head = template_prefix(clean, match.start()) + normalize_signature(
                 clean[match.start():match.end() - 1])
             types.append(TypeRecord(
@@ -592,7 +602,8 @@ def declarations() -> tuple[list[TypeRecord], list[EnumRecord], list[HeaderScope
             if owner:
                 continue
             full = "::".join(part for part in (namespace, name) if part)
-            functions, scope_declarations = declared_members(text[start:end], "namespace")
+            functions, scope_declarations = declared_members(text[start:end], "namespace",
+                                                             text.count("\n", 0, start) + 1)
             functions = [function for function in functions
                          if not re.search(r"\boperator\b", function.signature)]
             if functions or scope_declarations:
@@ -605,3 +616,60 @@ def is_public(header: str, namespace: str) -> bool:
         return False
     return not any(part.endswith("detail") for part in namespace.split("::"))
 
+
+
+def declared_name(text: str) -> str:
+    """The name a data member, constant or alias declares, or "" when none is
+    read: ``X`` of ``using X = ...``, ``value`` of ``int value{3}``."""
+    alias = re.match(r"^using\s+([A-Za-z_]\w*)\s*=", text)
+    if alias is not None:
+        return alias.group(1)
+    head = re.split(r"[{=\[]", text, maxsplit=1)[0].strip()
+    pointer = re.search(r"\(\s*(?:GF_CALL\s*)?\*\s*([A-Za-z_]\w*)\s*\)", head)
+    if pointer is not None:
+        return pointer.group(1)
+    names = re.findall(r"[A-Za-z_]\w*", head)
+    return names[-1] if names else ""
+
+
+def source_locations(types: list[TypeRecord], enums: list[EnumRecord],
+                     header_scopes: list[HeaderScope]) -> dict[str, tuple[str, int]]:
+    """Each public declaration's qualified name, as Sphinx's C++ domain names
+    it (``gui_forms::Button::click``), mapped to its header and line.
+
+    The site's source links (docs/conf.py, linkcode_resolve) are made from it
+    at build time, so no generated page carries a line number. Overloads
+    share a name; the first declaration read wins. Declarations without a
+    known line are left out.
+    """
+    found: dict[str, tuple[str, int]] = {}
+
+    def add(name: str, header: str, line: int) -> None:
+        if name and line > 0:
+            found.setdefault(name, (header, line))
+
+    for record in types:
+        if not is_public(record.header, record.namespace):
+            continue
+        owner = record.qualified_name
+        add(owner, record.header, record.line)
+        for method in record.methods:
+            if method.access == "public":
+                add(f"{owner}::{method.name}", record.header, method.line)
+        for item in record.fields:
+            name = declared_name(item.text)
+            if name:
+                add(f"{owner}::{name}", record.header, item.line)
+    for enum in enums:
+        if not is_public(enum.header, enum.namespace):
+            continue
+        qualified = "::".join(part for part in (enum.namespace, enum.owner, enum.name) if part)
+        add(qualified, enum.header, enum.line)
+    for scope in header_scopes:
+        for function in scope.functions:
+            add("::".join(part for part in (scope.namespace, function.name) if part), scope.header, function.line)
+        for item in scope.declarations:
+            name = declared_name(item.text)
+            if name:
+                add("::".join(part for part in (scope.namespace, name) if part), scope.header, item.line)
+    return found
