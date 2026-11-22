@@ -57,6 +57,12 @@ namespace gui_forms {
 // power. Without the bake, and in forced high contrast, the theme's lens
 // is drawn.
 //
+// A lit jewel may sparkle (lamp_sparkle, owner 2026-11-22): now and then a
+// small glint swells and fades in one of its crown's facets
+// (engine_light::lamp_sparkle_glints), seeded by its stable id, slow, well
+// under three flashes a second, and never under reduced motion. Its frames
+// run only while a sparkling lamp is lit in a window.
+//
 // A lamp may instead be a pinpoint (lamp_style, owner 2026-11-21): a tiny
 // accent light for status, 6 units across with no bezel and the legend
 // close beside it: a bright core in the lamp's colour with its glow, from
@@ -78,6 +84,13 @@ public:
     // Whether a warm-up or cool-down is running, or the lamp is failing
     // (its flicker's frames run for as long as it fails).
     [[nodiscard]] bool changing() const noexcept;
+    // Whether the sparkle's frames run (lamp_sparkle set, lit and not
+    // failing, in a window, outside reduced motion), and its glints as the
+    // last frame left them (all of strength 0 when it does not run).
+    [[nodiscard]] bool sparkling() const noexcept;
+    [[nodiscard]] engine_light::LampGlints glints() const noexcept {
+        return glints_;
+    }
     // Whether the lens is composited from its bake now: light_planes names
     // one that the window's resources hold, outside forced high contrast.
     [[nodiscard]] bool light_planes_shown() const;
@@ -104,6 +117,7 @@ public:
 
 protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
+    void on_attached_to_window() override;
     void on_detached_from_window() noexcept override;
 
 private:
@@ -113,6 +127,14 @@ private:
         std::weak_ptr<IndicatorLamp> lamp;
         AnimationTickResult operator()(FrameTime now) const;
     };
+    // The sparkle's frames, observing the lamp as ChangeTick does.
+    struct SparkleTick final {
+        std::weak_ptr<IndicatorLamp> lamp;
+        AnimationTickResult operator()(FrameTime now) const;
+    };
+    // The sparkle's frame interval: 25 a second, ample for a glint that
+    // swells and fades over engine_light::lamp_sparkle_glint_seconds.
+    static constexpr FrameInterval sparkle_interval = std::chrono::milliseconds(40);
 
     // Where the parts lie in the client area: the bezel at the start, the
     // lens inside it and the legend after it.
@@ -144,6 +166,14 @@ private:
     // cool-down timed by the timer's clock.
     void begin_change();
     AnimationTickResult advance(FrameTime now);
+    // Whether the sparkle may run now, and its seed (the fault seed's
+    // twin, so the glints repeat run to run).
+    [[nodiscard]] bool sparkle_runs() const noexcept;
+    [[nodiscard]] std::uint32_t sparkle_seed() const noexcept;
+    // Starts the sparkle's frames where it may run, else stops them and
+    // clears the glints.
+    void update_sparkle();
+    AnimationTickResult advance_sparkle(FrameTime now);
 
     double power_{};
     // The lit state the lens shows while it is lit or cooling (on, error
@@ -154,13 +184,17 @@ private:
     stxlib::Optional<FrameTime> changed_at_{};
     double cooling_from_{};
     AnimationTimer change_timer_;
+    // The sparkle: its frames, its first frame and its glints now.
+    AnimationTimer sparkle_timer_;
+    stxlib::Optional<FrameTime> sparkle_since_{};
+    engine_light::LampGlints glints_{};
     // The baked lens's last composite, kept between paints; released when
     // the lamp leaves its window.
     engine_light::LightPlaneRaster baked_lens_{};
     // property_codemod begin IndicatorLamp (tools/property_families/indicator_lamp.json; generated, do not edit)
 public:
     // IndicatorLamp's property table: Control's entries, then its own.
-    static constexpr std::size_t indicator_lamp_property_count = Control::control_property_count + 5U;
+    static constexpr std::size_t indicator_lamp_property_count = Control::control_property_count + 6U;
     [[nodiscard]] static const std::array<PropertyEntry, indicator_lamp_property_count>& indicator_lamp_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -170,6 +204,7 @@ private:
     friend struct IndicatorLampLightPlanesCapability<IndicatorLamp>;
     friend struct IndicatorLampLampColorCapability<IndicatorLamp>;
     friend struct IndicatorLampLampStyleCapability<IndicatorLamp>;
+    friend struct IndicatorLampLampSparkleCapability<IndicatorLamp>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(state)& cell, IndicatorLampState& incoming);
     void written(const decltype(state)& cell);
@@ -181,6 +216,8 @@ private:
     void written(const decltype(lamp_color)& cell);
     void prepare_write(const decltype(lamp_style)& cell, IndicatorLampStyle& incoming);
     void written(const decltype(lamp_style)& cell);
+    void prepare_write(const decltype(lamp_sparkle)& cell, bool& incoming);
+    void written(const decltype(lamp_sparkle)& cell);
     // property_codemod end IndicatorLamp
 };
 

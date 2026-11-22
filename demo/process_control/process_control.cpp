@@ -194,20 +194,22 @@ void LampKey::on_paint(Painter& painter, Rect local_damage) {
 
 namespace {
 
-// The status lamps, in the dialog's order.
+// The status lamps, in the dialog's order. The amber lamp sparkles
+// (IndicatorLamp::lamp_sparkle; owner, 2026-11-22: lit amber looked dull).
 struct StatusLamp final {
     std::string_view id{};
     std::string_view legend{};
     std::string_view name{};
     Color colour{};
     IndicatorLampState initial{};
+    bool sparkle{};
 };
 
 constexpr std::array<StatusLamp, 3> status_lamps{{
     {.id = "process.status.pump-ready", .legend = "PUMP READY", .name = "Pump ready", .colour = lamp_green_srgb,
      .initial = IndicatorLampState::on},
     {.id = "process.status.heating", .legend = "HEATING", .name = "Heating", .colour = lamp_amber_srgb,
-     .initial = IndicatorLampState::on},
+     .initial = IndicatorLampState::on, .sparkle = true},
     {.id = "process.status.fault", .legend = "FAULT", .name = "Fault", .colour = lamp_red_srgb,
      .initial = IndicatorLampState::fault},
 }};
@@ -320,6 +322,7 @@ void ProcessControlRoot::build_dialog() {
         (*lamp).fore_color = stxlib::Optional<Color>::of(enamel_ink);
         (*lamp).light_planes = std::string(engine_light::jewel_lamp_bake);
         (*lamp).lamp_color = stxlib::Optional<Color>::of(choice.colour);
+        (*lamp).lamp_sparkle = choice.sparkle;
         (*lamp).state = choice.initial;
         add_at(*dialog, lamp, Rect{29.0, 138.0 + 29.0 * static_cast<double>(index), 220.0, 14.0});
         lamps_[index] = lamp;

@@ -92,6 +92,19 @@ struct IndicatorLampLampStyleCapability {
     }
 };
 
+// Whether the lit jewel sparkles as a string of Christmas lights does (engine_light::lamp_sparkle_glints): now and then a small glint swells and fades in one of the crown's facets, slow and seeded by the stable id so every run repeats, well under three flashes a second, and none under reduced motion. Only a lens composited from a jewel's bake, or a pinpoint, sparkles, while it is on or showing an error; a failing lamp flickers instead.
+template <typename Declaring>
+struct IndicatorLampLampSparkleCapability {
+    PropertyCell<bool, IndicatorLampLampSparkleCapability<Declaring>> lamp_sparkle{};
+
+    static void assign(IndicatorLampLampSparkleCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.lamp_sparkle), incoming);
+        if (!capability.lamp_sparkle.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.lamp_sparkle));
+    }
+};
+
 // IndicatorLampState as a property value; defined beside IndicatorLamp's table.
 template <>
 struct PropertyValueTraits<IndicatorLampState> {
@@ -114,6 +127,7 @@ struct IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Dec
                                    public IndicatorLampTextCapability<Declaring>,
                                    public IndicatorLampLightPlanesCapability<Declaring>,
                                    public IndicatorLampLampColorCapability<Declaring>,
-                                   public IndicatorLampLampStyleCapability<Declaring> {};
+                                   public IndicatorLampLampStyleCapability<Declaring>,
+                                   public IndicatorLampLampSparkleCapability<Declaring> {};
 
 } // namespace gui_forms

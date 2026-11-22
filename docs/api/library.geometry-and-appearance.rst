@@ -242,6 +242,8 @@ Types
      - A lamp's colour, linear RGB at unit power.
    * - :cpp:class:`LampDrive <gui_forms::engine_light::LampDrive>`
      - A lamp as composited: its colour and its power (0 off, 1 the baked unit; the strike envelope passes through, lamp_power).
+   * - :cpp:class:`LampGlint <gui_forms::engine_light::LampGlint>`
+     - One glint: its centre in the dot's radii from the dot's centre (x right, y down) and its strength now, 0 for none.
    * - :cpp:class:`LentImageVariants <gui_forms::LentImageVariants>`
      - The variants lent for one bake, by fill layer; null where none is lent.
    * - :cpp:class:`LightComposite <gui_forms::engine_light::LightComposite>`
@@ -3544,6 +3546,20 @@ Types
 
    .. cpp:member:: double power
 
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LampGlint final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
+
+   One glint: its centre in the dot's radii from the dot's centre (x right, y down) and its strength now, 0 for none.
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: double strength
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: LentImageVariants final
@@ -3560,7 +3576,7 @@ Types
 
    ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
-   The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1). ``filter`` is a coloured face over the bake (dialog_demo.cpp, lamp_light): the room's light crosses it twice, in and out, and a lamp's once, so an unlit coloured lamp shows its tint; white, the default, leaves the bake as baked. ``shape`` lays it out.
+   The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1). ``filter`` is a coloured face over the bake (dialog_demo.cpp, lamp_light): the room's light crosses it twice, in and out, and a lamp's once, so an unlit coloured lamp shows its tint; white, the default, leaves the bake as baked. ``shape`` lays it out. ``glints`` (lamp_sparkle_glints) sparkle a jewel or a pinpoint's dot, each a soft point of light, whitened from the first drive's colour and scaled by its power (at most 1), added over the toned jewel; a whole bake shows none.
 
    .. cpp:member:: double room
 
@@ -3579,6 +3595,8 @@ Types
    .. cpp:member:: LightShape shape
 
       Default: ``{LightShape::whole}``.
+
+   .. cpp:member:: LampGlints glints
 
 .. cpp:namespace:: gui_forms::engine_light
 
@@ -3632,6 +3650,10 @@ Types
    .. cpp:function:: std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes, LampDrive drive, const LightComposite& settings, DeviceExtent extent, DeviceScale scale)
 
       The composite of ``planes`` over ``extent`` device pixels at ``scale``, every lamp driven by ``drive``: the kept raster when the bake, drive, settings, extent and scale are those it was made with, else a new one, then kept. Null, and nothing kept, when ``planes`` is null, the extent is empty, or no raster of that extent and scale can be made (PartRaster::create). Throws std::bad_alloc when a new raster cannot be stored (what was kept stays).
+
+   .. cpp:function:: std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes, const std::shared_ptr<const LightPlanes>& down, LampDrive drive, const LightComposite& settings, DeviceExtent extent, DeviceScale scale)
+
+      As above for a key with a pressed bake: ``down`` is mixed in by settings.press_mix (composite_light_planes), and a null ``down`` is ``planes``. A change of either bake makes a new composite.
 
    .. cpp:function:: void release() noexcept
 
@@ -5267,6 +5289,10 @@ Types
    A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, the composite's settings (its shape, such as a jewel lamp seen through a dot, and its face filter), and the composite its control keeps between paints. See PartPaint::light_planes.
 
    .. cpp:member:: std::shared_ptr<const engine_light::LightPlanes> planes
+
+   .. cpp:member:: std::shared_ptr<const engine_light::LightPlanes> down
+
+      A key's pressed bake, mixed in by settings.press_mix; empty: ``planes``.
 
    .. cpp:member:: engine_light::LampDrive drive
 
@@ -7024,7 +7050,7 @@ Types
 
    .. cpp:function:: bool paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const
 
-      Paints ``tiles.finish`` over ``tiles.area`` of ``control`` from the window's world finish tiles (EnginePartTable::finish_tile; cp31): - The finish is evaluated at world device pixels, at the window's scale times the zoom, on the lattice of finish_tile_side-pixel tiles through world (0, 0) (snapped to the nearest device pixel, so tiles land on whole pixels). Each tile is the kernel at those pixels, so adjacent tiles join exactly: no period, and no seam. - A tile not held is queued for an idle frame and its place left bare; once the queue is painted the window repaints the area (the record ``tiles.key`` names). Panning reuses the tiles held; a new zoom or scale names new tiles, painted again in idle frames. - Cost: one draw_part_raster per tile meeting the area, inside one save, clip_rect and restore; nothing is painted inside the paint. Draws nothing and returns false for a control in no window, an empty or non-finite area, anchor or zoom, or no finish; otherwise returns whether every tile was held. Not reentrant, as paint is not.
+      Paints ``tiles.finish`` over ``tiles.area`` of ``control`` from the window's world finish tiles (EnginePartTable::finish_tile; cp31): - The finish is evaluated at world device pixels, at the window's scale times the zoom, on the lattice of finish_tile_side-pixel tiles through world (0, 0) (snapped to the nearest device pixel, so tiles land on whole pixels). Each tile is the kernel at those pixels, so adjacent tiles join exactly: no period, and no seam. Each raster carries an apron of the world beyond its square (finish_tile_apron), drawn over the edge of the tile before it, so no edge composited short (resampled, antialiased or rounded to the other pixel) shows the surface beneath. - A tile not held is queued for an idle frame and its place left bare; once the queue is painted the window repaints the area (the record ``tiles.key`` names). Panning reuses the tiles held; a new zoom or scale names new tiles, painted again in idle frames. - Cost: one draw_part_raster per tile meeting the area, inside one save, clip_rect and restore; nothing is painted inside the paint. Draws nothing and returns false for a control in no window, an empty or non-finite area, anchor or zoom, or no finish; otherwise returns whether every tile was held. Not reentrant, as paint is not.
 
    .. cpp:function:: PartHitRegion hit_region(const Control& control, const PartPaint& part) const noexcept
 
@@ -10156,9 +10182,17 @@ Functions, constants and aliases
 
    The bake ``name`` as shipped with the library (assets/light_planes/ <name>.gflp, compiled into Core): its store's bytes, static storage, or empty for a name not shipped. The shipped bakes are the study's dialog keys (dialog_ok_up, dialog_ok_down, dialog_cancel_up, dialog_cancel_down) and its indicator jewels (indicator_backed_up, indicator_clear_up).
 
+.. cpp:function:: bool same_lamp_glints(const LampGlints& left, const LampGlints& right) noexcept
+
+   Whether two sets of glints are the same, member by member.
+
+.. cpp:function:: LampGlints lamp_sparkle_glints(std::uint32_t seed, double seconds) noexcept
+
+   The glints of the sparkle seeded ``seed`` at ``seconds`` since it began: each stream's glint now, strength 0 where it has none, and none at all for a time that is not finite and positive.
+
 .. cpp:function:: LampColour jewel_filter(LampColour colour) noexcept
 
-   A jewel lamp's face filter for a lamp of ``colour`` (IndicatorLamp's and RadioButton's lamp look): the colour scaled to a largest channel of 1, mixed 60% from white, so an unlit jewel is tinted glass and a lit one glows in its colour.
+   A jewel lamp's face filter for a lamp of ``colour`` (IndicatorLamp's and RadioButton's lamp look): the colour scaled to a largest channel of 1, mixed 60% from white, so an unlit jewel is tinted glass and a lit one glows in its colour. Only a neutral colour gives clear glass: the study's colours are filters over a white-hot lamp, and its white (lamp_white) is warm, so a white jewel is faintly warm.
 
 .. cpp:function:: std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& down, std::span<const LampDrive> drives, const LightComposite& settings, LightPlaneRect rect, const PartRasterView& destination) noexcept
 
@@ -10249,6 +10283,32 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double pinpoint_core_share
 
    Value: ``1.0 / 3.0``.
+
+.. cpp:var:: constexpr std::size_t lamp_sparkle_streams
+
+   -- the lamp's sparkle (owner, 2026-11-22) ----------------------------------------- A lit jewel may sparkle as a string of Christmas lights does: now and then a small glint catches in one of the crown's facets, swells and fades. It is slow, small and deterministic: lamp_sparkle_streams streams each hold at most one glint in a slot of lamp_sparkle_slot_seconds (the second stream's slots half a slot later), chosen by a hash of the seed and the slot: a glint in 55% of slots, starting anywhere it fits, lasting lamp_sparkle_glint_seconds and swelling and fading as sin², at 60% to 100% strength, in one of eight facets round the crown (its centre between 30% and 70% of the dot's radius out). So at most two glints a slot, some 1.7 a second and about 0.9 on average, well under three flashes a second (WCAG 2.3.1), each over a few device pixels. The same seed and time always give the same glints, so captures and tests repeat. The caller leaves the glints out under reduced motion. Value: ``2U``.
+
+.. cpp:var:: constexpr double lamp_sparkle_slot_seconds
+
+   Value: ``1.2``.
+
+.. cpp:var:: constexpr double lamp_sparkle_glint_seconds
+
+   Value: ``0.4``.
+
+.. cpp:var:: constexpr double lamp_sparkle_gain
+
+   A glint's peak light, added to the toned jewel, and its core's spread as a share of the dot's radius (at least lamp_sparkle_least_spread device pixels). Value: ``0.9``.
+
+.. cpp:var:: constexpr double lamp_sparkle_spread_share
+
+   Value: ``0.07``.
+
+.. cpp:var:: constexpr double lamp_sparkle_least_spread
+
+   Value: ``0.6``.
+
+.. cpp:type:: LampGlints = std::array<LampGlint, lamp_sparkle_streams>
 
 .. cpp:var:: constexpr double jewel_lamp_power
 
@@ -10408,9 +10468,17 @@ Functions, constants and aliases
 
    World finish tiles (cp31; the node canvas's finish texture): squares of finish_tile_side device pixels of a surface finish evaluated at world device pixels (engine_primitives::paint_world_finish), so that held tiles join with no seam. A tile is named by its finish, the display scale its raster is drawn at, the kernel's scale (device pixels per world unit: the display scale times the canvas's zoom), and its column and row on the lattice of tiles through the world's origin: tile (c, r) covers world device pixels [c * side, (c + 1) * side) by [r * side, (r + 1) * side). A paint takes the tiles held and queues the rest; idle frames paint them (EnginePartTable::generate_finish_tiles). Value: ``128U``.
 
+.. cpp:var:: constexpr std::uint32_t finish_tile_apron
+
+   The world pixels a tile's raster carries beyond its square on every side (owner, 2026-11-22: a grid showed where tiles met): its raster is finish_tile_raster_side pixels square, its first pixel world pixel (c * side - apron, r * side - apron), and neighbours overlap by twice the apron. Drawn in order, each tile covers the edge of the one before with the same world pixels, so a tile edge that is not composited whole (a raster resampled at another scale, whose edge pixels read transparent texels beyond it; an antialiased edge between device pixels; a corner rounded to the other pixel) never shows the surface beneath. Value: ``2U``.
+
+.. cpp:var:: constexpr std::uint32_t finish_tile_raster_side
+
+   Value: ``finish_tile_side + 2U * finish_tile_apron``.
+
 .. cpp:var:: constexpr std::size_t finish_tile_budget_bytes
 
-   The most bytes of finish tiles one window keeps: 512 tiles of 64 KiB, a 2900-pixel square of one layer. The least recently used tile is evicted first, never one the latest paint used: a tile that finds no room is not held (counted as a refusal) and its place stays bare. A proposed default. Value: ``32U * 1024U * 1024U``.
+   The most bytes of finish tiles one window keeps: about 480 tiles of 68 KiB (finish_tile_raster_side squared), a 2800-pixel square of one layer. The least recently used tile is evicted first, never one the latest paint used: a tile that finds no room is not held (counted as a refusal) and its place stays bare. A proposed default. Value: ``32U * 1024U * 1024U``.
 
 .. cpp:var:: constexpr std::size_t maximum_queued_finish_tiles
 

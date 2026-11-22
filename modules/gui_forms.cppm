@@ -1022,6 +1022,7 @@ using gui_forms::ImageVisualState;
 using gui_forms::IndicatorLamp;
 using gui_forms::IndicatorLampCapabilities;
 using gui_forms::IndicatorLampLampColorCapability;
+using gui_forms::IndicatorLampLampSparkleCapability;
 using gui_forms::IndicatorLampLampStyleCapability;
 using gui_forms::IndicatorLampLightPlanesCapability;
 using gui_forms::IndicatorLampState;

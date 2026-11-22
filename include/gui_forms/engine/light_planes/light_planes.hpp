@@ -6,6 +6,7 @@
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
 
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
@@ -196,18 +197,64 @@ enum class LightShape : std::uint8_t { whole, jewel, pinpoint };
 inline constexpr double jewel_rim_share = 2.0 / 14.0;
 inline constexpr double pinpoint_core_share = 1.0 / 3.0;
 
+// -- the lamp's sparkle (owner, 2026-11-22) -----------------------------------------
+//
+// A lit jewel may sparkle as a string of Christmas lights does: now and
+// then a small glint catches in one of the crown's facets, swells and
+// fades. It is slow, small and deterministic: lamp_sparkle_streams streams
+// each hold at most one glint in a slot of lamp_sparkle_slot_seconds (the
+// second stream's slots half a slot later), chosen by a hash of the seed
+// and the slot: a glint in 55% of slots, starting anywhere it fits, lasting
+// lamp_sparkle_glint_seconds and swelling and fading as sin², at 60% to
+// 100% strength, in one of eight facets round the crown (its centre
+// between 30% and 70% of the dot's radius out). So at most two glints a
+// slot, some 1.7 a second and about 0.9 on average, well under three
+// flashes a second (WCAG 2.3.1), each over a few device pixels. The same
+// seed and time always give the same glints, so captures and tests repeat.
+// The caller leaves the glints out under reduced motion.
+inline constexpr std::size_t lamp_sparkle_streams = 2U;
+inline constexpr double lamp_sparkle_slot_seconds = 1.2;
+inline constexpr double lamp_sparkle_glint_seconds = 0.4;
+// A glint's peak light, added to the toned jewel, and its core's spread
+// as a share of the dot's radius (at least lamp_sparkle_least_spread
+// device pixels).
+inline constexpr double lamp_sparkle_gain = 0.9;
+inline constexpr double lamp_sparkle_spread_share = 0.07;
+inline constexpr double lamp_sparkle_least_spread = 0.6;
+
+// One glint: its centre in the dot's radii from the dot's centre (x right,
+// y down) and its strength now, 0 for none.
+struct GUI_FORMS_API LampGlint final {
+    double x{};
+    double y{};
+    double strength{};
+};
+using LampGlints = std::array<LampGlint, lamp_sparkle_streams>;
+// Whether two sets of glints are the same, member by member.
+[[nodiscard]] GUI_FORMS_API bool same_lamp_glints(const LampGlints& left, const LampGlints& right) noexcept;
+
+// The glints of the sparkle seeded `seed` at `seconds` since it began:
+// each stream's glint now, strength 0 where it has none, and none at all
+// for a time that is not finite and positive.
+[[nodiscard]] GUI_FORMS_API LampGlints lamp_sparkle_glints(std::uint32_t seed, double seconds) noexcept;
+
 // The composite's settings, defaulting to the owner's panel_lamps choices:
 // the room at gain 1 and the tone's exposure 1.3. `press_mix` mixes the up
 // bake (0) toward the down bake (1). `filter` is a coloured face over the
 // bake (dialog_demo.cpp, lamp_light): the room's light crosses it twice,
 // in and out, and a lamp's once, so an unlit coloured lamp shows its tint;
 // white, the default, leaves the bake as baked. `shape` lays it out.
+// `glints` (lamp_sparkle_glints) sparkle a jewel or a pinpoint's dot, each
+// a soft point of light, whitened from the first drive's colour and scaled
+// by its power (at most 1), added over the toned jewel; a whole bake shows
+// none.
 struct GUI_FORMS_API LightComposite final {
     double room{1.0};
     double exposure{1.3};
     double press_mix{};
     LampColour filter{1.0, 1.0, 1.0};
     LightShape shape{LightShape::whole};
+    LampGlints glints{};
 };
 
 // A jewel lamp's face filter for a lamp of `colour` (IndicatorLamp's and

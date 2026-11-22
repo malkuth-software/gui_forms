@@ -86,12 +86,24 @@ gui_forms::IndicatorLamp
          6 units across with no bezel and the legend 4 units after it. A
          pinpoint lights and warms up as a lens does, but never shows a bake.
 
+      **lamp_sparkle** : ``bool``, default false
+         Whether the lit jewel sparkles as a string of Christmas lights does:
+         now and then a small glint swells and fades in one of the crown's
+         facets (``engine_light::lamp_sparkle_glints``), seeded by the stable id,
+         well under three flashes a second, and none under reduced motion. Only
+         a jewel's bake or a pinpoint sparkles, while on or showing an error.
+
       **power** : ``double``, read-only
          How lit the lens is now, from 0 to 1: the warm-up's or cool-down's
          current power, or the state's settled one.
 
       **changing** : ``bool``, read-only
          Whether a warm-up or cool-down is running, or the lamp is failing.
+
+      **sparkling** : ``bool``, read-only
+         Whether the sparkle's frames run; :cpp:func:`glints <gui_forms::IndicatorLamp::glints>` gives its glints now.
+
+      **glints** : ``engine_light::LampGlints``, read-only
 
       **light_planes_shown** : ``bool``, read-only
          Whether the lens is composited from its bake now.
@@ -196,6 +208,14 @@ gui_forms::IndicatorLamp
       6 units across with no bezel and the legend 4 units after it. A
       pinpoint lights and warms up as a lens does, but never shows a bake.
 
+   .. cpp:member:: bool lamp_sparkle
+
+      Whether the lit jewel sparkles as a string of Christmas lights does:
+      now and then a small glint swells and fades in one of the crown's
+      facets (``engine_light::lamp_sparkle_glints``), seeded by the stable id,
+      well under three flashes a second, and none under reduced motion. Only
+      a jewel's bake or a pinpoint sparkles, while on or showing an error.
+
    .. cpp:function:: double power() const noexcept
 
       How lit the lens is now, from 0 to 1: the warm-up's or cool-down's
@@ -204,6 +224,12 @@ gui_forms::IndicatorLamp
    .. cpp:function:: bool changing() const noexcept
 
       Whether a warm-up or cool-down is running, or the lamp is failing.
+
+   .. cpp:function:: bool sparkling() const noexcept
+
+      Whether the sparkle's frames run; :cpp:func:`glints <gui_forms::IndicatorLamp::glints>` gives its glints now.
+
+   .. cpp:function:: engine_light::LampGlints glints() const noexcept
 
    .. cpp:function:: bool light_planes_shown() const
 
@@ -239,6 +265,10 @@ gui_forms::IndicatorLamp
 
       *Protected.*
 
+   .. cpp:function:: void on_attached_to_window() override
+
+      *Protected.*
+
    .. cpp:function:: void on_detached_from_window() noexcept override
 
       *Protected.*
@@ -247,11 +277,11 @@ gui_forms::IndicatorLamp
 
    .. cpp:member:: constexpr std::size_t indicator_lamp_property_count
 
-      IndicatorLamp's property table: Control's entries, then its own. Default: ``Control::control_property_count + 5U``.
+      IndicatorLamp's property table: Control's entries, then its own. Default: ``Control::control_property_count + 6U``.
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 6 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 7 unclassified; 13 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -268,7 +298,15 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 4 su
      - supported
    * - property
      - GUI.Forms-only
+     - ``glints``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``lamp_color``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``lamp_sparkle``
      - unclassified (untested)
    * - property
      - GUI.Forms-only
@@ -285,6 +323,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 4 su
    * - property
      - GUI.Forms-only
      - ``power``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``sparkling``
      - supported
    * - property
      - GUI.Forms-only
