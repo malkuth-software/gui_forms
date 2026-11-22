@@ -168,7 +168,11 @@ SheetColour colour_of(const code_highlight::TokenKind kind) noexcept {
     }
 }
 
-CodeSheet::CodeSheet(StableId stable_id) : Control(std::move(stable_id)) {}
+CodeSheet::CodeSheet(StableId stable_id) : Control(std::move(stable_id)) {
+    // The sheet handles the touchpad's pinch (on_gesture): its window asks
+    // the host for gestures.
+    set_gesture_input(true);
+}
 
 bool CodeSheet::load_source(const std::string_view name, const std::string_view source) {
     if (source.size() > maximum_source_bytes) return false;
