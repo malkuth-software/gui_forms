@@ -37,20 +37,29 @@ namespace gui_forms {
 //
 // A lamp may show baked light (skeudoindustrial surfaces): its lens is
 // then composited from the bake its light_planes property names, read
-// through its window's resources (ApplicationResources::
-// set_light_plane_directory), with every lamp of the bake lit in
-// lamp_color at the warm-up's power, so one bake serves every colour. The
-// bake carries the lens's whole look, its body included: the lens takes the
-// bake's aspect (the largest such rectangle in the client area without a
-// legend, else in the bezel's square), and the bezel gives way. Without the
-// bake, and in forced high contrast, the theme's lens is drawn.
+// through its window's resources (the bakes the library ships, such as
+// engine_light::jewel_lamp_bake, or a directory's:
+// ApplicationResources::set_light_plane_directory), with every lamp of the
+// bake lit in lamp_color at the warm-up's power, so one bake serves every
+// colour. The bake carries the lens's whole look, its body included: the
+// lens takes the bake's aspect (the largest such rectangle in the client
+// area without a legend, else in the bezel's square), and the bezel gives
+// way. A bake seen through a dot (its aperture above 0, as the shipped
+// indicator jewels) is the owner's jewel lamp (engine_light::LightShape::
+// jewel): the faceted crown with its filament through a dark-rimmed hole,
+// tinted glass in the lamp's colour while dark, lit at the study's jewel
+// power. Without the bake, and in forced high contrast, the theme's lens
+// is drawn.
 //
 // A lamp may instead be a pinpoint (lamp_style, owner 2026-11-21): a tiny
-// accent light for status, a dot 6 units across with no bezel and the
-// legend close beside it, lit and warmed up as a lens is, and styled by a
-// theme as `indicator-lamp::part(lens):state(pinpoint)`. It never shows a
-// bake. A radio choice drawn with lamps is a RadioButton's lamp look
-// (ChoiceIndicatorStyle::lamp), not a lamp: a lamp is never clicked.
+// accent light for status, 6 units across with no bezel and the legend
+// close beside it: a bright core in the lamp's colour with its glow, from
+// the jewel lamp's light (its bake named, else the shipped jewel;
+// engine_light::LightShape::pinpoint), warmed up as a lens is. In forced
+// high contrast, or where no bake is held, the theme draws it as
+// `indicator-lamp::part(lens):state(pinpoint)`. A radio choice drawn with
+// lamps is a RadioButton's lamp look (ChoiceIndicatorStyle::lamp), not a
+// lamp: a lamp is never clicked.
 class GUI_FORMS_API IndicatorLamp final : public Control, public IndicatorLampCapabilities<IndicatorLamp> {
 public:
     explicit IndicatorLamp(StableId stable_id, std::string text = {});

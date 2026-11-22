@@ -1,7 +1,7 @@
 #pragma once
 
 // The Gallery's capture staging from the shared command line
-// (program_options.hpp): --page, --reveal, --open-menu and --scheme, applied
+// (program_options.hpp): --page, --reveal, --open-menu, --check and --scheme, applied
 // to the Gallery window after make_gallery and before the host shows it, so
 // the first presented (and captured) frame shows them. Every host's Gallery
 // main calls this one function, so the options mean the same on Windows,
@@ -18,7 +18,7 @@
 namespace gui_forms::gallery {
 
 // Applies the staging options of `program` to `window` in this order: page,
-// reveal, menu, colour scheme. Returns false after printing the refused
+// reveal, menu, check box, colour scheme. Returns false after printing the refused
 // option to stderr; the window then keeps the staging applied before it, and
 // main exits 2 without showing it.
 [[nodiscard]] inline bool apply_gallery_staging(const demo::ProgramOptions& program, Window& window) {
@@ -40,6 +40,10 @@ namespace gui_forms::gallery {
             std::fprintf(stderr, "cannot open Gallery menu: %s\n", request.c_str());
             return false;
         }
+    }
+    if (!program.check.empty() && !check_gallery_control(window, program.check)) {
+        std::fprintf(stderr, "cannot check Gallery control: %s\n", program.check.c_str());
+        return false;
     }
     if (!program.scheme.empty()) {
         // parse_program_options admits only "light" and "dark".

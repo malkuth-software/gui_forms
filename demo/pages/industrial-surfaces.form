@@ -1,27 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The Gallery's industrial-surfaces page (skeudoindustrial surfaces,
-   phase 5; notes:planning/SKEUDOINDUSTRIAL_SURFACES.md): the surface
-   finishes, lit keys composited from baked light planes, and the
-   industrial theme over the GOST paints on a few stock controls.
-   gui_forms_add_form() compiles this document into
-   industrial-surfaces_form.hpp at build time.
+   phase 5; notes:planning/SKEUDOINDUSTRIAL_SURFACES.md), rebuilt around
+   the owner's process-control dialog (owner, 2026-11-22: "your lamps are
+   not my lamps"; notes:experiments/industrial-surfaces/demo.html and the
+   owner's reference render). gui_forms_add_form() compiles this document
+   into industrial-surfaces_form.hpp at build time.
 
    gallery.industrial-surfaces.document is a declared boundary only: the
    page moves its children into the shell's page body (a 1000 x 660 design
    surface), where each is placed by its bounds in design coordinates.
-   The swatches' looks are the gallery theme's `finish-*` classes
-   (demo/themes/gallery/gallery.theme.css), so each finish, colour, seed
-   and grain is one line there. The swatches are small because a bake
-   has a budget: past it (a hammertone past about 22,000 device pixels, a
-   glint past about 10,000) the built-in look draws instead, so at 3x the
-   hammertone and the glints show that. Beside the glints, two procedural
-   patterns, carbon fibre and brushed metal (the theme's `pattern-*`
-   classes). The preview's feed choice is a radio group drawn with lamps
-   (indicator-style="lamp": the row takes the click, the lamp shows the
-   choice), and its coolant flow lamp a pinpoint. Behaviour stays in the page
-   (src/controls/gallery/pages/industrial-surfaces.cpp): the lit keys,
-   which it places inside gallery.industrial.keys, the Lamps check box,
-   and the check box that puts the industrial theme on the preview. -->
+
+   The dialog is the study's 500 x 310 body at the study's places: the
+   blasted enamel and its heavier title band (the gallery theme's
+   `blasted-enamel` classes, demo/themes/gallery/gallery.theme.css), the
+   study's ivory type, the three status lamps as jewels through dots
+   (centred 36 units in, 145, 174 and 203 down, 14 units across), and the
+   CANCEL and OK keys lit from the shipped bakes (120 x 52.5 at 228 and
+   360 across, 237.5 down). The page (src/controls/gallery/pages/
+   industrial-surfaces.cpp) names each lamp's bake and colour and keeps
+   the behaviour: the Lamps check box, the industrial theme check box,
+   Start and Stop, and Coolant. A lamp is never clicked.
+
+   Beside it, the industrial theme over the GOST paints on a few stock
+   controls, with the lamp radio choice (indicator-style="lamp": the row
+   takes the click, the jewel shows the choice) and the coolant flow
+   pinpoint; below, the carbon fibre swatch. -->
 <scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.industrial-surfaces.document"
     design-size="1000 660">
 
@@ -30,192 +33,134 @@
       classes="heading page-title"
       bounds="24 18 620 34"/>
   <label id="gallery.industrial-surfaces.lead"
-      text="Paint and metal finishes painted per device pixel, keys lit by baked light, and GOST machine-tool paints."
+      text="The owner's process-control dialog: blasted enamel, jewel status lamps and keys lit by baked light."
       classes="muted body"
       bounds="26 52 920 24"/>
 
-  <scaled-group-box id="gallery.industrial.finishes"
-      text="Finishes · one light from the upper left, no tile and no seam"
-      classes="paper group-caption"
-      design-size="950 232"
-      bounds="24 88 950 232">
-    <panel id="gallery.industrial.finish.dusty-matte"
-        classes="finish-dusty-matte"
-        bounds="20 40 72 48"/>
-    <label id="gallery.industrial.finish.dusty-matte.caption"
-        text="Dusty matte"
-        classes="muted note"
-        bounds="20 92 100 16"/>
-    <panel id="gallery.industrial.finish.orange-peel"
-        classes="finish-orange-peel"
-        bounds="134 40 72 48"/>
-    <label id="gallery.industrial.finish.orange-peel.caption"
-        text="Orange peel"
-        classes="muted note"
-        bounds="134 92 100 16"/>
-    <panel id="gallery.industrial.finish.hammertone"
-        classes="finish-hammertone"
-        bounds="248 40 72 48"/>
-    <label id="gallery.industrial.finish.hammertone.caption"
-        text="Hammertone"
-        classes="muted note"
-        bounds="248 92 100 16"/>
-    <panel id="gallery.industrial.finish.wrinkle"
-        classes="finish-wrinkle"
-        bounds="362 40 72 48"/>
-    <label id="gallery.industrial.finish.wrinkle.caption"
-        text="Wrinkle"
-        classes="muted note"
-        bounds="362 92 100 16"/>
-    <panel id="gallery.industrial.finish.bead-blast"
-        classes="finish-bead-blast"
-        bounds="476 40 72 48"/>
-    <label id="gallery.industrial.finish.bead-blast.caption"
-        text="Bead blast"
-        classes="muted note"
-        bounds="476 92 100 16"/>
-    <panel id="gallery.industrial.finish.sand-cast"
-        classes="finish-sand-cast"
-        bounds="590 40 72 48"/>
-    <label id="gallery.industrial.finish.sand-cast.caption"
-        text="Sand cast"
-        classes="muted note"
-        bounds="590 92 100 16"/>
-    <panel id="gallery.industrial.finish.flat"
-        classes="finish-flat"
-        bounds="704 40 72 48"/>
-    <label id="gallery.industrial.finish.flat.caption"
-        text="Flat"
-        classes="muted note"
-        bounds="704 92 100 16"/>
-    <panel id="gallery.industrial.finish.cloth-weave"
-        classes="finish-cloth-weave"
-        bounds="818 40 72 48"/>
-    <label id="gallery.industrial.finish.cloth-weave.caption"
-        text="Cloth weave"
-        classes="muted note"
-        bounds="818 92 100 16"/>
-
-    <panel id="gallery.industrial.glint.bead-blast"
-        classes="finish-bead-blast-glint"
-        bounds="20 124 60 40"/>
-    <label id="gallery.industrial.glint.bead-blast.caption"
-        text="Bead-blast glint"
-        classes="muted note"
-        bounds="20 168 100 16"/>
-    <panel id="gallery.industrial.glint.sand-blast"
-        classes="finish-sand-blast-glint"
-        bounds="134 124 60 40"/>
-    <label id="gallery.industrial.glint.sand-blast.caption"
-        text="Sand-blast glint"
-        classes="muted note"
-        bounds="134 168 100 16"/>
-    <panel id="gallery.industrial.glint.iridescent"
-        classes="finish-iridescent-glint"
-        bounds="248 124 60 40"/>
-    <label id="gallery.industrial.glint.iridescent.caption"
-        text="Iridescent glint"
-        classes="muted note"
-        bounds="248 168 100 16"/>
-    <panel id="gallery.industrial.glint.coarse-grit"
-        classes="finish-coarse-grit-glint"
-        bounds="362 124 60 40"/>
-    <label id="gallery.industrial.glint.coarse-grit.caption"
-        text="Coarse-grit glint"
-        classes="muted note"
-        bounds="362 168 100 16"/>
-    <panel id="gallery.industrial.glint.painted-sand"
-        classes="finish-painted-sand-glint"
-        bounds="476 124 60 40"/>
-    <label id="gallery.industrial.glint.painted-sand.caption"
-        text="Painted-sand glint"
-        classes="muted note"
-        bounds="476 168 100 16"/>
-    <panel id="gallery.industrial.pattern.carbon-fibre"
-        classes="pattern-carbon-fibre"
-        bounds="590 124 60 40"/>
-    <label id="gallery.industrial.pattern.carbon-fibre.caption"
-        text="Carbon fibre"
-        classes="muted note"
-        bounds="590 168 100 16"/>
-    <panel id="gallery.industrial.pattern.brushed-metal"
-        classes="pattern-brushed-metal"
-        bounds="704 124 60 40"/>
-    <label id="gallery.industrial.pattern.brushed-metal.caption"
-        text="Brushed metal"
-        classes="muted note"
-        bounds="704 168 100 16"/>
-    <label id="gallery.industrial.glint.note"
-        text="The glints are blasted metal drawn from its facets' glints; they stand still and cost some eight times a finish."
-        classes="muted note"
-        bounds="818 120 124 104"/>
-  </scaled-group-box>
-
-  <scaled-group-box id="gallery.industrial.lit-keys"
-      text="Lit keys · baked light planes composited at run time"
-      classes="paper group-caption"
-      design-size="470 316"
-      bounds="24 332 470 316">
-    <panel id="gallery.industrial.keys"
-        bounds="16 36 438 196"/>
-    <check-box id="gallery.industrial.lamps"
-        text="Lamps on"
-        indicator-style="toggle"
-        bounds="16 242 200 24"/>
-    <label id="gallery.industrial.bakes"
-        text=""
-        classes="muted note"
-        bounds="16 272 438 36"/>
-  </scaled-group-box>
+  <panel id="gallery.industrial.dialog"
+      classes="blasted-enamel"
+      bounds="24 88 500 310">
+    <panel id="gallery.industrial.dialog.title-band"
+        classes="blasted-enamel-heavy"
+        bounds="0 0 500 39"/>
+    <label id="gallery.industrial.dialog.title"
+        text="PROCESS CONTROL"
+        classes="enamel-ink dialog-title"
+        bounds="17 8 320 24"/>
+    <label id="gallery.industrial.dialog.heading"
+        text="START TRANSFER"
+        classes="enamel-ink dialog-heading"
+        bounds="24 62 440 30"/>
+    <label id="gallery.industrial.dialog.subtitle"
+        text="PUMP TO RESERVE TANK"
+        classes="enamel-ink dialog-subtitle"
+        bounds="24 95 440 18"/>
+    <indicator-lamp id="gallery.industrial.status.pump-ready"
+        text="PUMP READY"
+        classes="enamel-ink"
+        accessible-name="Pump ready"
+        state="on"
+        bounds="29 138 220 14"/>
+    <indicator-lamp id="gallery.industrial.status.heating"
+        text="HEATING"
+        classes="enamel-ink"
+        accessible-name="Heating"
+        state="on"
+        bounds="29 167 220 14"/>
+    <indicator-lamp id="gallery.industrial.status.fault"
+        text="FAULT"
+        classes="enamel-ink"
+        accessible-name="Fault"
+        state="error"
+        bounds="29 196 220 14"/>
+    <indicator-lamp id="gallery.industrial.key.cancel"
+        accessible-name="CANCEL key"
+        state="on"
+        bounds="228 237 120 53"/>
+    <indicator-lamp id="gallery.industrial.key.ok"
+        accessible-name="OK key"
+        state="on"
+        bounds="360 237 120 53"/>
+  </panel>
 
   <scaled-group-box id="gallery.industrial.preview"
       text="Industrial theme · GOST machine-tool paints"
       classes="paper group-caption"
-      design-size="466 316"
-      bounds="508 332 466 316">
+      design-size="436 310"
+      bounds="540 88 436 310">
     <check-box id="gallery.industrial.theme"
         text="The industrial theme on this group"
-        bounds="16 40 320 24"/>
+        bounds="16 36 320 24"/>
     <button id="gallery.industrial.preview.start"
         text="Start"
-        bounds="16 84 120 32"/>
+        bounds="16 72 110 30"/>
     <button id="gallery.industrial.preview.stop"
         text="Stop"
-        bounds="150 84 120 32"/>
+        bounds="136 72 110 30"/>
     <button id="gallery.industrial.preview.erase"
         text="Erase program"
         danger="true"
-        bounds="284 84 166 32"/>
-    <indicator-lamp id="gallery.industrial.preview.running"
-        text="Running"
-        bounds="284 132 166 24"/>
-    <indicator-lamp id="gallery.industrial.preview.fault"
-        text="Fault"
-        state="error"
-        bounds="284 166 166 24"/>
-    <indicator-lamp id="gallery.industrial.preview.coolant-lamp"
-        text="Coolant flow"
-        state="on"
-        lamp-style="pinpoint"
-        bounds="284 196 166 24"/>
+        bounds="256 72 164 30"/>
     <check-box id="gallery.industrial.preview.coolant"
         text="Coolant"
         checked="true"
-        bounds="16 132 200 24"/>
+        bounds="16 116 200 24"/>
+    <indicator-lamp id="gallery.industrial.preview.running"
+        text="Running"
+        bounds="256 116 164 24"/>
     <radio-button id="gallery.industrial.preview.manual"
         text="Manual feed"
         group-name="gallery-industrial-feed"
         indicator-style="lamp"
         checked="true"
-        bounds="16 166 200 24"/>
+        bounds="16 148 200 24"/>
+    <indicator-lamp id="gallery.industrial.preview.fault"
+        text="Fault"
+        state="error"
+        bounds="256 148 164 24"/>
     <radio-button id="gallery.industrial.preview.automatic"
         text="Automatic feed"
         group-name="gallery-industrial-feed"
         indicator-style="lamp"
-        bounds="16 196 200 24"/>
+        bounds="16 180 200 24"/>
+    <indicator-lamp id="gallery.industrial.preview.coolant-lamp"
+        text="Coolant flow"
+        state="on"
+        lamp-style="pinpoint"
+        bounds="256 180 164 24"/>
     <label id="gallery.industrial.preview.state"
         text=""
         classes="muted note"
-        bounds="16 236 434 64"/>
+        bounds="16 216 404 80"/>
+  </scaled-group-box>
+
+  <scaled-group-box id="gallery.industrial.carbon"
+      text="Carbon fibre · a seeded twill that tiles"
+      classes="paper group-caption"
+      design-size="500 238"
+      bounds="24 410 500 238">
+    <panel id="gallery.industrial.pattern.carbon-fibre"
+        classes="pattern-carbon-fibre"
+        bounds="16 36 240 150"/>
+    <label id="gallery.industrial.pattern.carbon-fibre.caption"
+        text="Fine strands in each tow, and a sparse glint where a tow floats over."
+        classes="muted note"
+        bounds="272 36 200 150"/>
+  </scaled-group-box>
+
+  <scaled-group-box id="gallery.industrial.lamps-group"
+      text="Lamps · lit from baked light, never clicked"
+      classes="paper group-caption"
+      design-size="436 238"
+      bounds="540 410 436 238">
+    <check-box id="gallery.industrial.lamps"
+        text="Lamps on"
+        indicator-style="toggle"
+        checked="true"
+        bounds="16 36 200 24"/>
+    <label id="gallery.industrial.lamps.note"
+        text="The check box switches the dialog's status lamps and its OK key; CANCEL stays lit. The bakes ship with the library."
+        classes="muted note"
+        bounds="16 72 404 60"/>
   </scaled-group-box>
 </scaled-panel>

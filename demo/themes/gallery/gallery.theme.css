@@ -96,46 +96,33 @@
 .navigation-paper::part(face) { background: #e8e8e6; }
 .status-strip::part(face) { background: #ebebe9; }
 
-/* The industrial-surfaces page's swatches (skeudoindustrial surfaces,
-   phase 5): one finish each, in the GOST machine-tool paints (ГОСТ
-   22133-86's colorimetry; demo/themes/gost_paints/SOURCES.md). These are
-   the page's visual choices, not rulings: each paint is one property here
-   and each finish, seed and grain one rule below. A finish paints the
-   same in light and dark. */
+/* The industrial-surfaces page (owner, 2026-11-22: "your lamps are not my
+   lamps"; restored from the owner's process-control dialog,
+   notes:experiments/industrial-surfaces/demo.html). The dialog's body is
+   the blasted enamel over ГОСТ 397 (ГОСТ 22133-86's colorimetry;
+   demo/themes/gost_paints/SOURCES.md), its title band the heavier coat
+   over ГОСТ 832, both at the study's seed 11 over the fitted presets'
+   metal, lit from the dialog's upper left; its type is the study's ivory.
+   A glint is far past the bake budget on a panel this size, so it is
+   painted from the window's world finish tiles. The carbon fibre swatch
+   is a twill of 4px tows (one 16px repeat per tile). A finish and a
+   pattern paint the same in light and dark. */
 :root {
-  --swatch-teal: #4d676d;        /* GOST 397, blue-green */
-  --swatch-grey-green: #80948a;  /* GOST 365 */
-  --swatch-pale-mint: #b4c4b2;   /* GOST 319 */
-  --swatch-white-night: #b9bbae; /* GOST 858, here the dust */
-  --swatch-dark-grey: #656f74;   /* GOST 832 */
-  --swatch-grey-silver: #8d9695; /* GOST 810 */
-  --swatch-orange: #e0783a;      /* GOST 121 */
-  --swatch-flake: #bdb6a8;       /* hammertone's aluminium flake */
-  --swatch-warp: #8a6f4a;
-  --swatch-weft: #c8b98f;
-  --swatch-metal: #a3a3a3;       /* a glint's metal, as the fitted presets */
-  --swatch-resin: #1c1d20;       /* carbon fibre's resin, the tows in shade */
-  --swatch-sheen: #6a6e75;       /* the light the tows across catch */
-  --swatch-steel: #b9bcc1;
-  --swatch-steel-streak: #8e9298;
+  color-roles: enamel-ink from ink-on-paper;
+  enamel-ink: #ccc7ac on #4d676d;
+  --enamel-body: #4d676d;   /* ГОСТ 397, blue-green */
+  --enamel-band: #656f74;   /* ГОСТ 832, dark grey */
+  --enamel-metal: #a3a3a3;  /* the blast's metal, as the fitted presets */
+  --swatch-resin: #1c1d20;  /* carbon fibre's resin, the tows in shade */
+  --swatch-sheen: #6a6e75;  /* the light the tows across catch */
 }
-.finish-dusty-matte::part(face) { background: finish(dusty-matte, var(--swatch-teal), var(--swatch-white-night), 7); }
-.finish-orange-peel::part(face) { background: finish(orange-peel, var(--swatch-pale-mint), var(--swatch-grey-green), 7); }
-.finish-hammertone::part(face) { background: finish(hammertone, var(--swatch-teal), var(--swatch-flake), 11); }
-.finish-wrinkle::part(face) { background: finish(wrinkle, var(--swatch-dark-grey), var(--swatch-flake), 7); }
-.finish-bead-blast::part(face) { background: finish(bead-blast, var(--swatch-grey-silver), var(--swatch-metal), 7); }
-.finish-sand-cast::part(face) { background: finish(sand-cast, var(--swatch-grey-green), var(--swatch-white-night), 7); }
-.finish-flat::part(face) { background: finish(flat, var(--swatch-orange), var(--swatch-orange)); }
-.finish-cloth-weave::part(face) { background: finish(cloth-weave, var(--swatch-warp), var(--swatch-weft), 11, 2); }
-.finish-bead-blast-glint::part(face) { background: finish(bead-blast-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
-.finish-sand-blast-glint::part(face) { background: finish(sand-blast-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
-.finish-iridescent-glint::part(face) { background: finish(iridescent-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
-.finish-coarse-grit-glint::part(face) { background: finish(coarse-grit-glint, var(--swatch-grey-silver), var(--swatch-metal), 5); }
-.finish-painted-sand-glint::part(face) { background: finish(painted-sand-glint, var(--swatch-teal), var(--swatch-metal), 5); }
-/* The procedural patterns beside the finishes: carbon fibre, a twill of
-   4px tows (one 16px repeat per tile), and brushed metal for comparison. */
+.blasted-enamel::part(face) { background: finish(blasted-enamel-glint, var(--enamel-body), var(--enamel-metal), 11); }
+.blasted-enamel-heavy::part(face) { background: finish(blasted-enamel-heavy-glint, var(--enamel-band), var(--enamel-metal), 11); }
+.enamel-ink { color: role(enamel-ink); }
+.dialog-title { font-family: control; font-size: 13px; font-weight: 400; letter-spacing: 1px; }
+.dialog-heading { font-family: control; font-size: 18px; font-weight: 400; letter-spacing: 1px; }
+.dialog-subtitle { font-family: control; font-size: 10px; font-weight: 400; letter-spacing: 0.5px; }
 .pattern-carbon-fibre::part(face) { background: pattern(carbon-fibre, var(--swatch-resin), var(--swatch-sheen), 16px); }
-.pattern-brushed-metal::part(face) { background: pattern(brushed-metal, var(--swatch-steel), var(--swatch-steel-streak), 64px); }
 
 /* The dark variant: the same roles and grounds, each a dark paper with a
    light ink, in the order of the light rules above. The grounds keep
@@ -148,6 +135,7 @@
     muted-ink-on-paper: #9eacb9 on #1f252b;
     success-on-paper: #63c494 on #1f252b;
     ink-on-soft-paper: #d6dee6 on #1f252b;
+    enamel-ink: #ccc7ac on #4d676d;
     command-link-ink-on-paper: #74b4ee on #1f252b;
   }
   .paper::part(face) { background: #252523; }

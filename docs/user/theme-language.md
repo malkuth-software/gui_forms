@@ -507,10 +507,15 @@ dust's), `flat` (the paint as a plain solid) and `cloth-weave` (a plain
 weave; the paint is the warp's colour and the second the weft's). The
 glints are blasted metal drawn from its facets' glints rather than its
 relief: `bead-blast-glint`, `sand-blast-glint`, `iridescent-glint`,
-`coarse-grit-glint` and `painted-sand-glint` (the sand blast under a thin
-coat of the paint); for a glint the second colour is the metal's (the
-fitted presets used #a3a3a3 to #a6a5a7). A glint costs some eight times a
-finish, and a part too large for it falls back to its built-in look. The
+`coarse-grit-glint`, `painted-sand-glint` (the sand blast under a thin
+coat of the paint), and the owner's blasted enamel, `blasted-enamel-glint`
+and `blasted-enamel-heavy-glint` (the study's process-control dialog: the
+sand blast under a thinner and a heavier coat, lit from a lamp above the
+part's upper left, so the sheen falls away from that corner whatever the
+part's size); for a glint the second colour is the metal's (the fitted
+presets used #a3a3a3 to #a6a5a7). A glint costs some eight times a finish;
+a part too large to bake with it is painted from the finish's world tiles
+instead, anchored at the part's corner. The
 seed, a whole number from 0 to 2147483647 (7 by default), chooses the
 noise; the grain, a number from 0.5 to 4 (1 by default), scales every
 feature. A finish layer, like a pattern, takes no position, size or

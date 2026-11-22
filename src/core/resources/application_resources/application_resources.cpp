@@ -325,9 +325,8 @@ ImageLoadResult ApplicationResources::replace_png(ImageId image, std::span<const
 
 void ApplicationResources::set_light_plane_directory(std::filesystem::path directory) {
     require_access("light-plane directory");
-    std::unique_ptr<engine_light::LightPlaneCache> made{};
-    if (!directory.empty()) made = std::make_unique<engine_light::LightPlaneCache>(std::move(directory));
-    light_planes_ = std::move(made);
+    // An empty directory still reads the shipped bakes.
+    light_planes_ = std::make_unique<engine_light::LightPlaneCache>(std::move(directory));
     // Any window may show a part composited from the old directory's bakes,
     // and a bake's presence changes the part's aspect: every sharing window
     // lays out and repaints (cp31 follow-up; a repaint alone left the
@@ -375,7 +374,8 @@ void ApplicationResources::adopt_locale(HostLocale locale) {
 
 std::shared_ptr<const engine_light::LightPlanes> ApplicationResources::lend_light_planes(std::string_view name) {
     require_access("light-plane read");
-    if (!light_planes_) return nullptr;
+    // The shipped bakes are read on first use, with no directory set.
+    if (!light_planes_) light_planes_ = std::make_unique<engine_light::LightPlaneCache>(std::filesystem::path{});
     std::shared_ptr<const engine_light::LightPlanes> lent = (*light_planes_).lend(name);
     return lent;
 }

@@ -265,6 +265,10 @@ private:
     void borrow_part_backplane(const PartPaint& part, PartPaintRun& run) const;
     // The raster baked or taken from the record, or the built-in fallback.
     void bake_part(const PartPaint& part, PartPaintRun& run) const;
+    // A refused part of one finish, from the window's world finish tiles
+    // over its built-in recipe.
+    void paint_tiled_finish(Painter& painter, const Control& control, const PartPaint& part,
+                            const PartPaintRun& run) const;
     // Draws what the stages decided; reads the run only.
     void draw_part_paint(Painter& painter, const Control& control, const PartPaint& part,
                          const PartPaintRun& run) const;

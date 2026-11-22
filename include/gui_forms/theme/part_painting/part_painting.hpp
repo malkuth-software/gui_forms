@@ -163,12 +163,14 @@ struct GUI_FORMS_API PartProfile final {
 };
 
 // A part composited from baked light planes (skeudoindustrial surfaces;
-// engine/light_planes): the bake, the one drive every lamp of it takes, and
-// the composite its control keeps between paints. See
-// PartPaint::light_planes.
+// engine/light_planes): the bake, the one drive every lamp of it takes, the
+// composite's settings (its shape, such as a jewel lamp seen through a dot,
+// and its face filter), and the composite its control keeps between
+// paints. See PartPaint::light_planes.
 struct GUI_FORMS_API PartLightPlanes final {
     std::shared_ptr<const engine_light::LightPlanes> planes{};
     engine_light::LampDrive drive{};
+    engine_light::LightComposite settings{};
     // The control's kept composite (a member of the control), borrowed for
     // the call; with none the part takes its recipe.
     engine_light::LightPlaneRaster* raster{};

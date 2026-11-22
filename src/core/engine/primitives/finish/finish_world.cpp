@@ -11,7 +11,11 @@ std::size_t paint_world_finish(const FinishFill& fill, double scale, std::int64_
     const FinishRect surface{-origin_x - finish_world_reach, -origin_y - finish_world_reach, side, side};
     const FinishRect whole{0, 0, static_cast<std::int64_t>(destination.extent.width),
                            static_cast<std::int64_t>(destination.extent.height)};
-    const std::size_t written = paint_finish(fill, scale, surface, whole, destination, scratch);
+    // The room's origin is the world's, reach pixels from the kernel's
+    // surface, so a glint lit as the study's dialog is keeps its light over
+    // the world's upper left (an anchored panel's own corner).
+    const std::size_t written =
+        paint_finish_in_room(fill, scale, surface, whole, destination, scratch, finish_world_reach, finish_world_reach);
     return written;
 }
 

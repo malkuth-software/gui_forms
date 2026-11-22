@@ -247,7 +247,7 @@ Types
    * - :cpp:class:`LightComposite <gui_forms::engine_light::LightComposite>`
      - The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3.
    * - :cpp:class:`LightPlaneCache <gui_forms::engine_light::LightPlaneCache>`
-     - The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again.
+     - The bakes in one directory, then the shipped ones, each read the first time it is asked for and kept: ``<directory>/<name>.f32`` (the baker's float planes), else ``<directory>/<name>.gflp`` (a store), else the shipped store of that name (shipped_light_plane_store).
    * - :cpp:class:`LightPlaneRaster <gui_forms::engine_light::LightPlaneRaster>`
      - -- a part's kept composite ----------------------------------------------------------------- A part composited from a bake (PartPaint::light_planes, such as IndicatorLamp's lens) keeps its last composite in one of these, owned by the part's control, so that a repaint with nothing changed (a lamp repainted for a neighbour's damage) draws the kept raster again instead of compositing.
    * - :cpp:class:`LightPlaneRect <gui_forms::engine_light::LightPlaneRect>`
@@ -353,7 +353,7 @@ Types
    * - :cpp:class:`PartKey <gui_forms::PartKey>`
      - A painted part's identity from frame to frame (T2 GIVEN H3-1), which lets the engine keep a record for it: its states and when it entered them, its transitions, its preparation and its cached raster.
    * - :cpp:class:`PartLightPlanes <gui_forms::PartLightPlanes>`
-     - A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints.
+     - A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, the composite's settings (its shape, such as a jewel lamp seen through a dot, and its face filter), and the composite its control keeps between paints.
    * - :cpp:class:`PartMotion <gui_forms::PartMotion>`
      - A part's running transitions (E7; T2 plan, "How motion is driven").
    * - :cpp:class:`PartPaint <gui_forms::PartPaint>`
@@ -3560,7 +3560,7 @@ Types
 
    ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
-   The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1).
+   The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1). ``filter`` is a coloured face over the bake (dialog_demo.cpp, lamp_light): the room's light crosses it twice, in and out, and a lamp's once, so an unlit coloured lamp shows its tint; white, the default, leaves the bake as baked. ``shape`` lays it out.
 
    .. cpp:member:: double room
 
@@ -3572,13 +3572,21 @@ Types
 
    .. cpp:member:: double press_mix
 
+   .. cpp:member:: LampColour filter
+
+      Default: ``{1.0, 1.0, 1.0}``.
+
+   .. cpp:member:: LightShape shape
+
+      Default: ``{LightShape::whole}``.
+
 .. cpp:namespace:: gui_forms::engine_light
 
 .. cpp:class:: LightPlaneCache final
 
    ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
-   The bakes in one directory, each read the first time it is asked for (``<directory>/<name>.f32``) and kept: a missing or defective file is remembered and not read again. Names are lower-case letters, digits and '_' (the baker's stems, such as dialog_ok_up), so a name never leaves the directory. One thread: the UI thread that asks.
+   The bakes in one directory, then the shipped ones, each read the first time it is asked for and kept: ``<directory>/<name>.f32`` (the baker's float planes), else ``<directory>/<name>.gflp`` (a store), else the shipped store of that name (shipped_light_plane_store). A name found nowhere, or a defective file, is remembered and not read again. Names are lower-case letters, digits and '_' (the baker's stems, such as dialog_ok_up), so a name never leaves the directory. An empty directory reads the shipped bakes alone. One thread: the UI thread that asks.
 
 
    .. rubric:: Construction
@@ -3590,7 +3598,7 @@ Types
 
    .. cpp:function:: std::size_t reads() const noexcept
 
-      Files read so far (each at most once).
+      Bakes read so far, from a file or the shipped stores (each at most once).
 
 
    .. rubric:: Methods
@@ -3651,7 +3659,7 @@ Types
 
    ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
-   One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers. Rows run top to bottom, pixels left to right.
+   One bake's planes, ``width`` × ``height`` pixels: - ``room``: the room's light, three floats a pixel (red, green, blue), premultiplied by coverage; - ``lamps``: ``lamp_count`` planes of the same shape, one after another, each lamp alone at unit white power; - ``coverage``: one float a pixel in [0, 1], the share of the pixel the key covers. Rows run top to bottom, pixels left to right. - ``aperture``: for a bake seen through a round hole in its panel (the study's indicator jewel, whose crown shows through a dot), the hole's radius as a share of the bake's half-width, centred; 0 for a bake shown whole (a key). LightShape::jewel and LightShape::pinpoint read it.
 
    .. cpp:member:: std::uint32_t width
 
@@ -3664,6 +3672,8 @@ Types
    .. cpp:member:: std::vector<float> lamps
 
    .. cpp:member:: std::vector<float> coverage
+
+   .. cpp:member:: double aperture
 
 .. cpp:namespace:: gui_forms
 
@@ -5254,11 +5264,13 @@ Types
 
    ``#include <gui_forms/theme/part_painting/part_painting.hpp>`` (:src:`source <include/gui_forms/theme/part_painting/part_painting.hpp>`)
 
-   A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, and the composite its control keeps between paints. See PartPaint::light_planes.
+   A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, the composite's settings (its shape, such as a jewel lamp seen through a dot, and its face filter), and the composite its control keeps between paints. See PartPaint::light_planes.
 
    .. cpp:member:: std::shared_ptr<const engine_light::LightPlanes> planes
 
    .. cpp:member:: engine_light::LampDrive drive
+
+   .. cpp:member:: engine_light::LightComposite settings
 
    .. cpp:member:: engine_light::LightPlaneRaster* raster
 
@@ -8283,6 +8295,10 @@ Enumerations
 
    .. cpp:enumerator:: painted_sand
 
+   .. cpp:enumerator:: blasted_enamel
+
+   .. cpp:enumerator:: blasted_enamel_heavy
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: GradientCorner
@@ -8408,6 +8424,24 @@ Enumerations
    .. cpp:enumerator:: not_finite
 
    .. cpp:enumerator:: coverage_out_of_range
+
+   .. cpp:enumerator:: not_a_store
+
+   .. cpp:enumerator:: unsupported_version
+
+   .. cpp:enumerator:: aperture_out_of_range
+
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:enum-class:: LightShape
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
+
+   .. cpp:enumerator:: whole
+
+   .. cpp:enumerator:: jewel
+
+   .. cpp:enumerator:: pinpoint
 
 .. cpp:namespace:: gui_forms
 
@@ -10114,9 +10148,21 @@ Functions, constants and aliases
 
    Reads the study's bake file (lamp_keys.cpp, write_buffers): three little-endian int32 (width, height, lamp count), then the room plane, each lamp's plane and the coverage plane as little-endian IEEE binary32. The whole buffer is validated before ``planes`` is replaced; on a defect ``planes`` is left as it was. Throws std::bad_alloc when the planes cannot be stored (``planes`` left as it was).
 
+.. cpp:function:: LightPlanesDefect read_light_plane_store(std::span<const std::byte> bytes, LightPlanes& planes)
+
+   Reads a shipped bake's store (tools/industrial_surfaces/ pack_light_planes.py): "GFLP", then little-endian uint32 version, width, height and lamp count, float32 aperture, and then the room plane, each lamp's plane and the coverage plane as IEEE binary16, one grey value a pixel, premultiplied by coverage as baked. Each grey value is read into all three channels of ``planes``. The whole buffer is validated before ``planes`` is replaced (as read_light_planes, and the store's own defects: not_a_store, unsupported_version, aperture_out_of_range); on a defect ``planes`` is left as it was. Throws std::bad_alloc when the planes cannot be stored (``planes`` left as it was).
+
+.. cpp:function:: std::span<const std::byte> shipped_light_plane_store(std::string_view name) noexcept
+
+   The bake ``name`` as shipped with the library (assets/light_planes/ <name>.gflp, compiled into Core): its store's bytes, static storage, or empty for a name not shipped. The shipped bakes are the study's dialog keys (dialog_ok_up, dialog_ok_down, dialog_cancel_up, dialog_cancel_down) and its indicator jewels (indicator_backed_up, indicator_clear_up).
+
+.. cpp:function:: LampColour jewel_filter(LampColour colour) noexcept
+
+   A jewel lamp's face filter for a lamp of ``colour`` (IndicatorLamp's and RadioButton's lamp look): the colour scaled to a largest channel of 1, mixed 60% from white, so an unlit jewel is tinted glass and a lit one glows in its colour.
+
 .. cpp:function:: std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& down, std::span<const LampDrive> drives, const LightComposite& settings, LightPlaneRect rect, const PartRasterView& destination) noexcept
 
-   Composites ``up`` and ``down`` (the same bake for a key that is not pressed) with one drive per lamp over ``rect`` in ``destination`` (premultiplied BGRA8), writing every pixel of ``rect`` inside the destination: the key's pixels with their coverage as alpha, transparent where it covers nothing. The planes are sampled bilinearly in linear, premultiplied light, so a 240-pixel bake shown 180 units wide (the owner's choice) is filtered before it is toned; a rectangle the bake's own size reads each plane pixel exactly. Returns the pixels written; none when the two bakes' shapes or lamp counts differ, ``drives`` holds fewer than the lamp count, ``rect`` is empty or its far edge overflows, or ``destination``'s shape does not fit its buffer (validate_raster_view).
+   Composites ``up`` and ``down`` (the same bake for a key that is not pressed) with one drive per lamp over ``rect`` in ``destination`` (premultiplied BGRA8), writing every pixel of ``rect`` inside the destination: the key's pixels with their coverage as alpha, transparent where it covers nothing. A jewel or pinpoint shape (LightComposite::shape) reads ``up`` alone, its 3 × 3 samples a pixel each toned and then averaged, as the study's place_indicator does; its halo takes the first drive's colour and power. The planes are sampled bilinearly in linear, premultiplied light, so a 240-pixel bake shown 180 units wide (the owner's choice) is filtered before it is toned; a rectangle the bake's own size reads each plane pixel exactly. Returns the pixels written; none when the two bakes' shapes or lamp counts differ, ``drives`` holds fewer than the lamp count, ``rect`` is empty or its far edge overflows, or ``destination``'s shape does not fit its buffer (validate_raster_view).
 
 .. cpp:function:: double lamp_power(bool on, double seconds, bool reduced_motion) noexcept
 
@@ -10172,6 +10218,10 @@ Functions, constants and aliases
 
    Value: ``{0.15, 0.85, 1.0}``.
 
+.. cpp:var:: constexpr double indicator_jewel_aperture
+
+   The study's indicator jewel's hole (lamp_keys.cpp, make_indicator: a 0.19-unit hole in a view of ±2.6 · tan(9.5°) units), as a share of the bake's half-width: 0.19 / (2.6 · tan 9.5°). Value: ``0.43669047278549333``.
+
 .. cpp:var:: constexpr std::uint32_t maximum_light_plane_side
 
    The largest bake read: a side of 2048 pixels (the baker's own clamp) and eight lamps. Value: ``2048U``.
@@ -10179,6 +10229,26 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::uint32_t maximum_light_plane_lamps
 
    Value: ``8U``.
+
+.. cpp:var:: constexpr std::uint32_t light_plane_store_version
+
+   The shipped store's version (pack_light_planes.py writes it). Value: ``1U``.
+
+.. cpp:var:: constexpr std::string_view jewel_lamp_bake
+
+   The jewel lamp's bake: the study's backed jewel (a mirror behind a clear faceted crown), the owner's status lamps (panel_lamps.html, demo.html). Value: ``"indicator_backed_up"``.
+
+.. cpp:var:: constexpr double jewel_rim_share
+
+   Value: ``2.0 / 14.0``.
+
+.. cpp:var:: constexpr double pinpoint_core_share
+
+   Value: ``1.0 / 3.0``.
+
+.. cpp:var:: constexpr double jewel_lamp_power
+
+   The power the study's dialog drives its jewels at (demo.html, INDICATORS: 1.6): a lamp's power from 0 to 1 is scaled by it for a jewel or a pinpoint. Value: ``1.6``.
 
 .. cpp:var:: constexpr double lamp_strike_seconds
 

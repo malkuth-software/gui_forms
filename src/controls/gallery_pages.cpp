@@ -11,6 +11,7 @@
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
+#include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/list_view_values.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
@@ -489,6 +490,17 @@ bool open_gallery_menu(Window& window, std::string_view stable_id, std::string_v
         return opened;
     }
     return false;
+}
+
+bool check_gallery_control(Window& window, std::string_view stable_id) {
+    const std::shared_ptr<PageContext> context = retained_page_context(window);
+    if (!context || (*context).selected_page >= (*context).pages.size()) return false;
+    const Control::Ptr target = find_gallery_control((*context).pages[(*context).selected_page], stable_id);
+    const std::shared_ptr<CheckBox> box = std::dynamic_pointer_cast<CheckBox>(target);
+    if (!box) return false;
+    (*box).checked = true;
+    window.perform_layout();
+    return true;
 }
 
 std::string_view selected_gallery_page(const Window& window) {

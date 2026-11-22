@@ -29,11 +29,21 @@
 //     tone(v) = 1 − e^(−1.3 v)
 //
 // and a key's press is the up and down bakes mixed. Nothing here decides
-// where lamps live (a control, a part, or both: an open owner decision);
-// this is the machinery any of them would composite with. The planes come
-// from shipped bakes, read on first use (LightPlaneCache); whether the
-// baker (BFFT, stx_conv) is needed at run time is also open, so nothing
-// here bakes.
+// where lamps live; this is the machinery any of them composites with.
+//
+// The bakes ship with the library (owner, 2026-11-22: "baking must happen
+// on the client at launch time, or ship in a compact format, and the baker
+// must be re-runnable"). The baker (tools/industrial_surfaces/lamp_keys.cpp)
+// needs GUI.Drawing's raster for its legends, which Core does not link, and
+// costs about 0.8 CPU seconds a dialog key at 240 pixels (the study's bake
+// study, 3.21 s for the four), so a first-use bake is not affordable at
+// launch. Instead each bake is stored grey, its lamps summed and its planes
+// in binary16 (read_light_plane_store; tools/industrial_surfaces/
+// pack_light_planes.py, which measured CIEDE2000 0.84 at worst on the keys
+// and 1.24 on 0.17% of the jewels' pixels against the float bakes), 755 KB
+// for the six shipped bakes against 4.1 MB, and compiled into Core
+// (shipped_light_plane_store). The CMake target gui_forms_light_planes
+// runs the baker and the packer again into assets/light_planes.
 //
 // Tinting after the bake is exact for light that reaches the eye after one
 // interaction with the tinted material: the result is linear in the
@@ -76,6 +86,10 @@ inline constexpr LampColour lamp_cyan{0.15, 0.85, 1.0};
 // - `coverage`: one float a pixel in [0, 1], the share of the pixel the
 //   key covers.
 // Rows run top to bottom, pixels left to right.
+// - `aperture`: for a bake seen through a round hole in its panel (the
+//   study's indicator jewel, whose crown shows through a dot), the hole's
+//   radius as a share of the bake's half-width, centred; 0 for a bake shown
+//   whole (a key). LightShape::jewel and LightShape::pinpoint read it.
 struct GUI_FORMS_API LightPlanes final {
     std::uint32_t width{};
     std::uint32_t height{};
@@ -83,7 +97,13 @@ struct GUI_FORMS_API LightPlanes final {
     std::vector<float> room;
     std::vector<float> lamps;
     std::vector<float> coverage;
+    double aperture{};
 };
+
+// The study's indicator jewel's hole (lamp_keys.cpp, make_indicator: a
+// 0.19-unit hole in a view of ±2.6 · tan(9.5°) units), as a share of the
+// bake's half-width: 0.19 / (2.6 · tan 9.5°).
+inline constexpr double indicator_jewel_aperture = 0.43669047278549333;
 
 // The largest bake read: a side of 2048 pixels (the baker's own clamp) and
 // eight lamps.
@@ -108,6 +128,12 @@ enum class LightPlanesDefect : std::uint8_t {
     not_finite,
     // A coverage outside [0, 1].
     coverage_out_of_range,
+    // A store (read_light_plane_store) that does not begin "GFLP".
+    not_a_store,
+    // A store of a version this library does not read.
+    unsupported_version,
+    // A store's aperture outside [0, 1] or not finite.
+    aperture_out_of_range,
 };
 
 // Reads the study's bake file (lamp_keys.cpp, write_buffers): three
@@ -118,6 +144,33 @@ enum class LightPlanesDefect : std::uint8_t {
 // be stored (`planes` left as it was).
 [[nodiscard]] GUI_FORMS_API LightPlanesDefect read_light_planes(std::span<const std::byte> bytes, LightPlanes& planes);
 
+// The shipped store's version (pack_light_planes.py writes it).
+inline constexpr std::uint32_t light_plane_store_version = 1U;
+
+// Reads a shipped bake's store (tools/industrial_surfaces/
+// pack_light_planes.py): "GFLP", then little-endian uint32 version,
+// width, height and lamp count, float32 aperture, and then the room plane,
+// each lamp's plane and the coverage plane as IEEE binary16, one grey
+// value a pixel, premultiplied by coverage as baked. Each grey value is
+// read into all three channels of `planes`. The whole buffer is validated
+// before `planes` is replaced (as read_light_planes, and the store's own
+// defects: not_a_store, unsupported_version, aperture_out_of_range); on a
+// defect `planes` is left as it was. Throws std::bad_alloc when the planes
+// cannot be stored (`planes` left as it was).
+[[nodiscard]] GUI_FORMS_API LightPlanesDefect read_light_plane_store(std::span<const std::byte> bytes,
+                                                                     LightPlanes& planes);
+
+// The bake `name` as shipped with the library (assets/light_planes/
+// <name>.gflp, compiled into Core): its store's bytes, static storage, or
+// empty for a name not shipped. The shipped bakes are the study's dialog
+// keys (dialog_ok_up, dialog_ok_down, dialog_cancel_up, dialog_cancel_down)
+// and its indicator jewels (indicator_backed_up, indicator_clear_up).
+[[nodiscard]] GUI_FORMS_API std::span<const std::byte> shipped_light_plane_store(std::string_view name) noexcept;
+
+// The jewel lamp's bake: the study's backed jewel (a mirror behind a clear
+// faceted crown), the owner's status lamps (panel_lamps.html, demo.html).
+inline constexpr std::string_view jewel_lamp_bake = "indicator_backed_up";
+
 // A lamp as composited: its colour and its power (0 off, 1 the baked
 // unit; the strike envelope passes through, lamp_power).
 struct GUI_FORMS_API LampDrive final {
@@ -125,14 +178,48 @@ struct GUI_FORMS_API LampDrive final {
     double power{};
 };
 
+// How a bake is laid over its rectangle:
+// - whole: stretched over it (a key, a caption);
+// - jewel: the study's status lamp (demo.html and dialog_demo.cpp,
+//   place_indicator): the jewel's crown seen through a round dot in the
+//   panel, the bake's central disc of `aperture` (else its whole width)
+//   drawn in the rectangle's inscribed circle less a dark rim, the rim the
+//   panel's shadowed edge round the hole (jewel_rim_share of the radius,
+//   darkened 85% toward 0.004 in linear light); transparent outside it;
+// - pinpoint: a status accent (owner, 2026-11-21): the same crown through a
+//   dot pinpoint_core_share of the rectangle's half side, no rim and no
+//   bezel, with the study's halo (place_indicator's: 0.22 · power ·
+//   colour · e^(−b² / (1.2 r²)), b the distance past 0.6 r) lighting
+//   round it in the lamp's colour, all inside the rectangle.
+enum class LightShape : std::uint8_t { whole, jewel, pinpoint };
+
+inline constexpr double jewel_rim_share = 2.0 / 14.0;
+inline constexpr double pinpoint_core_share = 1.0 / 3.0;
+
 // The composite's settings, defaulting to the owner's panel_lamps choices:
 // the room at gain 1 and the tone's exposure 1.3. `press_mix` mixes the up
-// bake (0) toward the down bake (1).
+// bake (0) toward the down bake (1). `filter` is a coloured face over the
+// bake (dialog_demo.cpp, lamp_light): the room's light crosses it twice,
+// in and out, and a lamp's once, so an unlit coloured lamp shows its tint;
+// white, the default, leaves the bake as baked. `shape` lays it out.
 struct GUI_FORMS_API LightComposite final {
     double room{1.0};
     double exposure{1.3};
     double press_mix{};
+    LampColour filter{1.0, 1.0, 1.0};
+    LightShape shape{LightShape::whole};
 };
+
+// A jewel lamp's face filter for a lamp of `colour` (IndicatorLamp's and
+// RadioButton's lamp look): the colour scaled to a largest channel of 1,
+// mixed 60% from white, so an unlit jewel is tinted glass and a lit one
+// glows in its colour.
+[[nodiscard]] GUI_FORMS_API LampColour jewel_filter(LampColour colour) noexcept;
+
+// The power the study's dialog drives its jewels at (demo.html,
+// INDICATORS: 1.6): a lamp's power from 0 to 1 is scaled by it for a jewel
+// or a pinpoint.
+inline constexpr double jewel_lamp_power = 1.6;
 
 // A rectangle of device pixels the planes are stretched over.
 struct GUI_FORMS_API LightPlaneRect final {
@@ -146,7 +233,10 @@ struct GUI_FORMS_API LightPlaneRect final {
 // with one drive per lamp over `rect` in `destination` (premultiplied
 // BGRA8), writing every pixel of `rect` inside the destination: the key's
 // pixels with their coverage as alpha, transparent where it covers
-// nothing. The planes are sampled bilinearly in linear, premultiplied
+// nothing. A jewel or pinpoint shape (LightComposite::shape) reads `up`
+// alone, its 3 × 3 samples a pixel each toned and then averaged, as the
+// study's place_indicator does; its halo takes the first drive's colour
+// and power. The planes are sampled bilinearly in linear, premultiplied
 // light, so a 240-pixel bake shown 180 units wide (the owner's choice)
 // is filtered before it is toned; a rectangle the bake's own size reads
 // each plane pixel exactly. Returns the pixels written; none when the two
@@ -276,11 +366,14 @@ private:
 // leaves its directory.
 [[nodiscard]] GUI_FORMS_API bool light_plane_name_valid(std::string_view name) noexcept;
 
-// The bakes in one directory, each read the first time it is asked for
-// (`<directory>/<name>.f32`) and kept: a missing or defective file is
-// remembered and not read again. Names are lower-case letters, digits and
-// '_' (the baker's stems, such as dialog_ok_up), so a name never leaves the
-// directory. One thread: the UI thread that asks.
+// The bakes in one directory, then the shipped ones, each read the first
+// time it is asked for and kept: `<directory>/<name>.f32` (the baker's
+// float planes), else `<directory>/<name>.gflp` (a store), else the
+// shipped store of that name (shipped_light_plane_store). A name found
+// nowhere, or a defective file, is remembered and not read again. Names
+// are lower-case letters, digits and '_' (the baker's stems, such as
+// dialog_ok_up), so a name never leaves the directory. An empty directory
+// reads the shipped bakes alone. One thread: the UI thread that asks.
 class GUI_FORMS_API LightPlaneCache final {
 public:
     explicit LightPlaneCache(FilePath directory);
@@ -289,7 +382,8 @@ public:
     // name is not one. Throws std::bad_alloc when a read's storage cannot
     // be had (nothing is remembered then).
     [[nodiscard]] std::shared_ptr<const LightPlanes> lend(std::string_view name);
-    // Files read so far (each at most once).
+    // Bakes read so far, from a file or the shipped stores (each at most
+    // once).
     [[nodiscard]] std::size_t reads() const noexcept { return reads_; }
     // The defect of the last read of `name`; none for a name not read.
     [[nodiscard]] LightPlanesDefect defect(std::string_view name) const noexcept;

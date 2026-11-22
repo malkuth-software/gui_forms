@@ -415,7 +415,8 @@ std::size_t paint_rows(const FinishFill& fill, double scale, FinishRect surface,
 // speck sizes (logical units), the Beckmann slope spread, the facet
 // tolerance (in slope), the diffuse and specular weights, the blast's
 // mottle, the oxide film's iridescence, and the paint coat's share and its
-// own slope spread.
+// own slope spread; and, for a preset lit as the study's process-control
+// dialog is, where its light and eye stand (`in_room`).
 struct GlintConstants final {
     double grain{};
     double speck{};
@@ -427,10 +428,33 @@ struct GlintConstants final {
     double iridescence{};
     double film{};
     double film_alpha{};
+    bool in_room{};
 };
+
+// The study's process-control dialog (demo.html, dialog.html,
+// dialog_demo.cpp: a 500 × 310 logical body) lights its paint from a lamp
+// above its upper left, 0.2 of the width across and 0.05 of the height
+// down, and sees it from above its centre, in logical units from the
+// body's origin. A preset `in_room` keeps them there whatever the
+// surface's size: a fixed lamp in the room, so a larger panel shows the
+// same sheen falling away from the upper left. The port's other presets
+// keep the light and eye above the surface's centre.
+constexpr double dialog_light_x = 100.0;
+constexpr double dialog_light_y = 15.5;
+constexpr double dialog_eye_x = 250.0;
+constexpr double dialog_eye_y = 155.0;
 
 constexpr GlintConstants glint_constants_of(GlintPreset preset) noexcept {
     switch (preset) {
+    // The owner's paint (demo.html and tools/body_study.mjs: the dialog's
+    // body): the painted sand under a thinner coat (film 0.55, so (1 −
+    // film)² ≈ 20% of the blast's glints show through it, against the
+    // preset's 9%) with specular 1.6, lit as the dialog is. Its heavy coat,
+    // the dialog's title band, is the same at film 0.85.
+    case GlintPreset::blasted_enamel:
+        return GlintConstants{0.05, 0.75, 0.42, 0.034, 0.9, 1.6, 0.05, 0.0, 0.55, 0.3, true};
+    case GlintPreset::blasted_enamel_heavy:
+        return GlintConstants{0.05, 0.75, 0.42, 0.034, 0.9, 1.6, 0.05, 0.0, 0.85, 0.3, true};
     case GlintPreset::bead_blast: return GlintConstants{0.05, 0.75, 0.32, 0.03, 0.79, 0.57, 0.05, 0.0, 0.0, 0.3};
     case GlintPreset::sand_blast: return GlintConstants{0.05, 0.75, 0.42, 0.034, 0.46, 1.23, 0.06, 0.0, 0.0, 0.3};
     case GlintPreset::iridescent: return GlintConstants{0.10, 1.4, 0.4, 0.034, 0.37, 2.82, 0.06, 0.27, 0.0, 0.3};
@@ -463,8 +487,10 @@ struct GlintState final {
     Linear metal{};
     Linear paint{};
     double specular{};
-    double centre_x{};
-    double centre_y{};
+    double light_x{};
+    double light_y{};
+    double eye_x{};
+    double eye_y{};
 };
 
 // A facet density and the hue seed of its glints.
@@ -665,11 +691,11 @@ double glint_tone(double v) noexcept {
 // device pixels per logical unit, written as opaque BGRA.
 void shade_glint(const GlintState& state, double x, double y, double k, double grain, std::uint8_t* pixel) noexcept {
     const GlintConstants& constants = state.constants;
-    const double lx = state.centre_x - x / k;
-    const double ly = state.centre_y - y / k;
+    const double lx = state.light_x - x / k;
+    const double ly = state.light_y - y / k;
     const double lz = glint_light_height;
-    const double vx = state.centre_x - x / k;
-    const double vy = state.centre_y - y / k;
+    const double vx = state.eye_x - x / k;
+    const double vy = state.eye_y - y / k;
     const double vz = glint_eye_height;
     const double li = 1.0 / std::sqrt(lx * lx + ly * ly + lz * lz);
     const double vi = 1.0 / std::sqrt(vx * vx + vy * vy + vz * vz);
@@ -736,9 +762,11 @@ void shade_glint(const GlintState& state, double x, double y, double k, double g
 }
 
 // The glint over `area`: the preset and colours read once, then each
-// pixel on its own.
+// pixel on its own. `scene_x` and `scene_y` are where the room's origin
+// lies, in device pixels from the surface's origin (an in-room preset's
+// light and eye are placed from it).
 std::size_t paint_glints(const FinishFill& fill, double scale, FinishRect surface, FinishRect area,
-                         const PartRasterView& destination) noexcept {
+                         const PartRasterView& destination, std::int64_t scene_x, std::int64_t scene_y) noexcept {
     GlintState state{};
     state.constants = glint_constants_of(fill.glint);
     state.sigma2 = state.constants.alpha * state.constants.alpha;
@@ -748,8 +776,19 @@ std::size_t paint_glints(const FinishFill& fill, double scale, FinishRect surfac
     state.metal = linear_of(fill.secondary);
     state.paint = linear_of(fill.paint);
     state.specular = state.constants.specular * fill.gloss;
-    state.centre_x = static_cast<double>(surface.width) * 0.5 / scale;
-    state.centre_y = static_cast<double>(surface.height) * 0.5 / scale;
+    if (state.constants.in_room) {
+        const double room_x = static_cast<double>(scene_x) / scale;
+        const double room_y = static_cast<double>(scene_y) / scale;
+        state.light_x = room_x + dialog_light_x;
+        state.light_y = room_y + dialog_light_y;
+        state.eye_x = room_x + dialog_eye_x;
+        state.eye_y = room_y + dialog_eye_y;
+    } else {
+        state.light_x = static_cast<double>(surface.width) * 0.5 / scale;
+        state.light_y = static_cast<double>(surface.height) * 0.5 / scale;
+        state.eye_x = state.light_x;
+        state.eye_y = state.light_y;
+    }
     for (std::int64_t y = area.y; y < area.y + area.height; ++y) {
         const std::size_t row_start = static_cast<std::size_t>(y) * destination.row_bytes;
         std::uint8_t* pixel =
@@ -774,6 +813,13 @@ void reserve_finish_scratch(FinishScratch& scratch, std::uint32_t width) {
 
 std::size_t paint_finish(const FinishFill& fill, double scale, FinishRect surface, FinishRect damage,
                          const PartRasterView& destination, FinishScratch& scratch) noexcept {
+    const std::size_t written = paint_finish_in_room(fill, scale, surface, damage, destination, scratch, 0, 0);
+    return written;
+}
+
+std::size_t paint_finish_in_room(const FinishFill& fill, double scale, FinishRect surface, FinishRect damage,
+                                 const PartRasterView& destination, FinishScratch& scratch, std::int64_t room_x,
+                                 std::int64_t room_y) noexcept {
     const FinishRect area = clipped(surface, damage, destination.extent);
     if (area.width == 0 || area.height == 0) return 0U;
     const std::size_t needed = static_cast<std::size_t>(area.width) + 1U;
@@ -793,7 +839,7 @@ std::size_t paint_finish(const FinishFill& fill, double scale, FinishRect surfac
     case FinishKind::flat: return paint_rows<FinishKind::flat>(fill, scale, surface, area, destination, scratch);
     case FinishKind::cloth_weave:
         return paint_rows<FinishKind::cloth_weave>(fill, scale, surface, area, destination, scratch);
-    case FinishKind::glint: return paint_glints(fill, scale, surface, area, destination);
+    case FinishKind::glint: return paint_glints(fill, scale, surface, area, destination, room_x, room_y);
     }
     // A kind outside the enumeration is never accepted
     // (valid_surface_material): the flat finish, the paint as a solid.

@@ -10,6 +10,7 @@
 #include <fstream>
 #include <iterator>
 #include <limits>
+#include <string>
 #include <utility>
 
 // Identical bytes on every host: no fused multiply-add (engine_math.cpp).
@@ -24,6 +25,16 @@ namespace gui_forms::engine_light {
 namespace {
 
 constexpr std::size_t header_bytes = 12U;
+
+// One shipped store: its name and its bytes (static storage).
+struct ShippedStore final {
+    std::string_view name{};
+    std::span<const unsigned char> bytes{};
+};
+
+// The shipped stores, generated from assets/light_planes at build time
+// (cmake/embed_light_planes.cmake): shipped_stores, by name.
+#include "shipped_light_planes.inc"
 
 std::uint32_t little_endian_word(std::span<const std::byte> bytes, std::size_t at) noexcept {
     const std::uint32_t b0 = static_cast<std::uint32_t>(bytes[at]);
@@ -98,18 +109,21 @@ struct Light final {
     double coverage{};
 };
 
-Light light_at(const LightPlanes& planes, std::size_t pixel, std::span<const LampDrive> drives, double room) noexcept {
+Light light_at(const LightPlanes& planes, std::size_t pixel, std::span<const LampDrive> drives, double room,
+               LampColour filter) noexcept {
     const std::size_t at = pixel * 3U;
     const std::size_t plane = static_cast<std::size_t>(planes.width) * planes.height * 3U;
-    double red = room * static_cast<double>(planes.room[at]);
-    double green = room * static_cast<double>(planes.room[at + 1U]);
-    double blue = room * static_cast<double>(planes.room[at + 2U]);
+    // The room's light crosses the face's filter twice, a lamp's once
+    // (dialog_demo.cpp, lamp_light); a white filter changes nothing.
+    double red = (room * (filter.red * filter.red)) * static_cast<double>(planes.room[at]);
+    double green = (room * (filter.green * filter.green)) * static_cast<double>(planes.room[at + 1U]);
+    double blue = (room * (filter.blue * filter.blue)) * static_cast<double>(planes.room[at + 2U]);
     for (std::size_t lamp = 0U; lamp < planes.lamp_count; ++lamp) {
         const LampDrive& drive = drives[lamp];
         const std::size_t start = lamp * plane + at;
-        red = red + (drive.colour.red * drive.power) * static_cast<double>(planes.lamps[start]);
-        green = green + (drive.colour.green * drive.power) * static_cast<double>(planes.lamps[start + 1U]);
-        blue = blue + (drive.colour.blue * drive.power) * static_cast<double>(planes.lamps[start + 2U]);
+        red = red + (drive.colour.red * filter.red * drive.power) * static_cast<double>(planes.lamps[start]);
+        green = green + (drive.colour.green * filter.green * drive.power) * static_cast<double>(planes.lamps[start + 1U]);
+        blue = blue + (drive.colour.blue * filter.blue * drive.power) * static_cast<double>(planes.lamps[start + 2U]);
     }
     const Light light{red, green, blue, static_cast<double>(planes.coverage[pixel])};
     return light;
@@ -145,16 +159,76 @@ Light mix(Light a, Light b, double t) noexcept {
 }
 
 // The bake's light at (column, row) taps, bilinearly.
-Light sample(const LightPlanes& planes, Tap column, Tap row, std::span<const LampDrive> drives, double room) noexcept {
+Light sample(const LightPlanes& planes, Tap column, Tap row, std::span<const LampDrive> drives, double room,
+             LampColour filter) noexcept {
     const std::size_t width = planes.width;
-    const Light top_left = light_at(planes, row.first * width + column.first, drives, room);
-    const Light top_right = light_at(planes, row.first * width + column.second, drives, room);
-    const Light bottom_left = light_at(planes, row.second * width + column.first, drives, room);
-    const Light bottom_right = light_at(planes, row.second * width + column.second, drives, room);
+    const Light top_left = light_at(planes, row.first * width + column.first, drives, room, filter);
+    const Light top_right = light_at(planes, row.first * width + column.second, drives, room, filter);
+    const Light bottom_left = light_at(planes, row.second * width + column.first, drives, room, filter);
+    const Light bottom_right = light_at(planes, row.second * width + column.second, drives, room, filter);
     const Light top = mix(top_left, top_right, column.weight);
     const Light bottom = mix(bottom_left, bottom_right, column.weight);
     const Light both = mix(top, bottom, row.weight);
     return both;
+}
+
+// The tap at a continuous bake position `position` (pixel centres at
+// whole numbers plus one half), clamped to the bake's `side`.
+Tap tap_at_position(double position, std::uint32_t side) noexcept {
+    const double centred = position - 0.5;
+    const double last = static_cast<double>(side) - 1.0;
+    const double clamped = centred < 0.0 ? 0.0 : (centred > last ? last : centred);
+    const double first = std::floor(clamped);
+    const std::size_t lower = static_cast<std::size_t>(first);
+    const std::size_t upper = std::min(lower + 1U, static_cast<std::size_t>(side) - 1U);
+    const Tap tap{lower, upper, clamped - first};
+    return tap;
+}
+
+// One binary16 value (IEEE half precision) as a float, exactly: its bits
+// rebuilt as a binary32's, a subnormal as its mantissa times 2^−24. An
+// infinity or a NaN comes back as such (refused by the caller).
+float half_to_float(std::uint16_t half) noexcept {
+    const std::uint32_t sign = static_cast<std::uint32_t>(half & 0x8000U) << 16U;
+    const std::uint32_t exponent = (static_cast<std::uint32_t>(half) >> 10U) & 0x1fU;
+    const std::uint32_t mantissa = static_cast<std::uint32_t>(half) & 0x3ffU;
+    if (exponent == 0U) {
+        // 0 or a subnormal: mantissa × 2^−24, exact in binary32.
+        const float magnitude = static_cast<float>(mantissa) * 5.9604644775390625e-8F;
+        const float value = sign != 0U ? -magnitude : magnitude;
+        return value;
+    }
+    if (exponent == 0x1fU) {
+        const std::uint32_t special = sign | 0x7f800000U | (mantissa << 13U);
+        return std::bit_cast<float>(special);
+    }
+    const std::uint32_t bits = sign | ((exponent - 15U + 127U) << 23U) | (mantissa << 13U);
+    return std::bit_cast<float>(bits);
+}
+
+std::uint16_t little_endian_half(std::span<const std::byte> bytes, std::size_t at) noexcept {
+    const std::uint32_t b0 = static_cast<std::uint32_t>(bytes[at]);
+    const std::uint32_t b1 = static_cast<std::uint32_t>(bytes[at + 1U]);
+    return static_cast<std::uint16_t>(b0 | (b1 << 8U));
+}
+
+// The store's header: "GFLP", version, width, height, lamp count and
+// aperture.
+constexpr std::size_t store_header_bytes = 24U;
+
+// Reads `count` grey binary16 values from byte `at` into every third float
+// of `out` starting at `channel_start`, `stride` floats apart (3 for a
+// colour plane, filling all three channels; 1 for coverage). False at the
+// first value that is not finite.
+bool read_grey_plane(std::span<const std::byte> bytes, std::size_t at, std::size_t count, std::vector<float>& out,
+                     std::size_t out_start, std::size_t stride) noexcept {
+    for (std::size_t index = 0U; index < count; ++index) {
+        const float value = half_to_float(little_endian_half(bytes, at + index * 2U));
+        if (!std::isfinite(value)) return false;
+        const std::size_t to = out_start + index * stride;
+        for (std::size_t channel = 0U; channel < stride; ++channel) out[to + channel] = value;
+    }
+    return true;
 }
 
 // A straight sRGB byte premultiplied by an alpha byte, rounded.
@@ -192,8 +266,136 @@ bool same_drive(LampDrive a, LampDrive b) noexcept {
 }
 
 bool same_settings(const LightComposite& a, const LightComposite& b) noexcept {
-    const bool same = a.room == b.room && a.exposure == b.exposure && a.press_mix == b.press_mix;
+    const bool same = a.room == b.room && a.exposure == b.exposure && a.press_mix == b.press_mix &&
+                      a.filter.red == b.filter.red && a.filter.green == b.filter.green &&
+                      a.filter.blue == b.filter.blue && a.shape == b.shape;
     return same;
+}
+
+// The toned light of the bake's pixel at continuous position (bx, by):
+// bilinear in linear premultiplied light, then unpremultiplied and toned
+// per channel.
+struct Toned final {
+    double red{};
+    double green{};
+    double blue{};
+};
+
+Toned toned_at(const LightPlanes& planes, double bx, double by, std::span<const LampDrive> drives,
+               const LightComposite& settings) noexcept {
+    const Tap column = tap_at_position(bx, planes.width);
+    const Tap row = tap_at_position(by, planes.height);
+    const Light light = sample(planes, column, row, drives, settings.room, settings.filter);
+    const double cover = light.coverage < 0.0 ? 0.0 : (light.coverage > 1.0 ? 1.0 : light.coverage);
+    const double inverse = cover > 1e-6 ? 1.0 / cover : 0.0;
+    const double exposure = settings.exposure;
+    const Toned toned{1.0 - engine_exponential(-(light.red * inverse) * exposure),
+                      1.0 - engine_exponential(-(light.green * inverse) * exposure),
+                      1.0 - engine_exponential(-(light.blue * inverse) * exposure)};
+    return toned;
+}
+
+double clamped_unit(double value) noexcept {
+    const double clamped = value < 0.0 ? 0.0 : (value > 1.0 ? 1.0 : value);
+    return clamped;
+}
+
+// A straight linear colour at `alpha` as a premultiplied BGRA8 pixel,
+// through the finishes' sRGB table.
+void store_linear(std::uint8_t* pixel, double red, double green, double blue, double alpha) noexcept {
+    const double cover = clamped_unit(alpha);
+    const std::uint32_t alpha_byte = static_cast<std::uint32_t>(std::floor(cover * 255.0 + 0.5));
+    pixel[0] = premultiplied(engine_primitives::encode_linear(blue), alpha_byte);
+    pixel[1] = premultiplied(engine_primitives::encode_linear(green), alpha_byte);
+    pixel[2] = premultiplied(engine_primitives::encode_linear(red), alpha_byte);
+    pixel[3] = static_cast<std::uint8_t>(alpha_byte);
+}
+
+// The jewel's dark rim's linear light and its share (demo.html,
+// drawIndicator: the panel round the hole darkened 85% toward 0.004).
+constexpr double jewel_rim_light = 0.004;
+constexpr double jewel_rim_strength = 0.85;
+// The pinpoint's halo (dialog_demo.cpp, place_indicator): its strength and
+// where it begins, as a share of the dot's radius, and its spread.
+constexpr double pinpoint_halo_strength = 0.22;
+constexpr double pinpoint_halo_start = 0.6;
+constexpr double pinpoint_halo_spread = 1.2;
+
+// The jewel or pinpoint over `rect` (LightShape::jewel, pinpoint): the
+// bake's central disc of its aperture seen through a dot, as the study's
+// place_indicator samples it (3 × 3 a pixel, each toned, then averaged),
+// with the jewel's rim or the pinpoint's halo. Writes [x0, x1) × [y0, y1)
+// of `destination`; the caller has validated both.
+void composite_dot(const LightPlanes& planes, std::span<const LampDrive> drives, const LightComposite& settings,
+                   LightPlaneRect rect, const PartRasterView& destination, std::int64_t x0, std::int64_t y0,
+                   std::int64_t x1, std::int64_t y1) noexcept {
+    const bool pinpoint = settings.shape == LightShape::pinpoint;
+    const double half = static_cast<double>(std::min(rect.width, rect.height)) * 0.5;
+    const double centre_x = static_cast<double>(rect.width) * 0.5;
+    const double centre_y = static_cast<double>(rect.height) * 0.5;
+    const double rim = pinpoint ? 0.0 : half * jewel_rim_share;
+    const double radius = pinpoint ? half * pinpoint_core_share : half - rim;
+    const double aperture = planes.aperture > 0.0 ? planes.aperture : 1.0;
+    const double hole = aperture * static_cast<double>(planes.width) * 0.5;
+    const double step = radius > 0.0 ? hole / radius : 0.0;
+    const double bake_centre_x = static_cast<double>(planes.width) * 0.5;
+    const double bake_centre_y = static_cast<double>(planes.height) * 0.5;
+    const LampDrive halo_drive = drives.empty() ? LampDrive{} : drives[0];
+    const double spread = pinpoint_halo_spread * radius * radius;
+    for (std::int64_t y = y0; y < y1; ++y) {
+        const std::size_t row_start = static_cast<std::size_t>(y) * destination.row_bytes;
+        std::uint8_t* pixel =
+            destination.pixels.data() + row_start + static_cast<std::size_t>(x0) * part_raster_bytes_per_pixel;
+        const double oy = static_cast<double>(y - rect.y) + 0.5 - centre_y;
+        for (std::int64_t x = x0; x < x1; ++x) {
+            const double ox = static_cast<double>(x - rect.x) + 0.5 - centre_x;
+            const double d = std::sqrt(ox * ox + oy * oy);
+            const double inside = clamped_unit(radius + 0.5 - d);
+            double red = 0.0;
+            double green = 0.0;
+            double blue = 0.0;
+            if (inside > 0.0) {
+                for (int j = 0; j < 3; ++j) {
+                    for (int i = 0; i < 3; ++i) {
+                        const double sx = bake_centre_x + (ox - 0.5 + (static_cast<double>(i) + 0.5) / 3.0) * step;
+                        const double sy = bake_centre_y + (oy - 0.5 + (static_cast<double>(j) + 0.5) / 3.0) * step;
+                        const Toned toned = toned_at(planes, sx, sy, drives, settings);
+                        red = red + toned.red / 9.0;
+                        green = green + toned.green / 9.0;
+                        blue = blue + toned.blue / 9.0;
+                    }
+                }
+            }
+            // What lies under the jewel: the rim (a dark layer) or the halo
+            // (the lamp's light), each premultiplied, then the jewel over it.
+            double under_red = 0.0;
+            double under_green = 0.0;
+            double under_blue = 0.0;
+            double under_alpha = 0.0;
+            if (pinpoint) {
+                const double beyond = std::max(0.0, d - radius * pinpoint_halo_start);
+                const double halo = spread > 0.0 ? pinpoint_halo_strength * engine_exponential(-(beyond * beyond) / spread) : 0.0;
+                const double power = halo_drive.power * halo;
+                under_red = clamped_unit(power * halo_drive.colour.red * settings.filter.red);
+                under_green = clamped_unit(power * halo_drive.colour.green * settings.filter.green);
+                under_blue = clamped_unit(power * halo_drive.colour.blue * settings.filter.blue);
+                under_alpha = std::max({under_red, under_green, under_blue});
+            } else {
+                const double ring = clamped_unit(radius + rim - d) - clamped_unit(radius - d);
+                under_alpha = jewel_rim_strength * ring;
+                under_red = jewel_rim_light * under_alpha;
+                under_green = under_red;
+                under_blue = under_red;
+            }
+            const double alpha = inside + under_alpha * (1.0 - inside);
+            const double inverse = alpha > 1e-9 ? 1.0 / alpha : 0.0;
+            const double out_red = (red * inside + under_red * (1.0 - inside)) * inverse;
+            const double out_green = (green * inside + under_green * (1.0 - inside)) * inverse;
+            const double out_blue = (blue * inside + under_blue * (1.0 - inside)) * inverse;
+            store_linear(pixel, out_red, out_green, out_blue, alpha);
+            pixel = pixel + part_raster_bytes_per_pixel;
+        }
+    }
 }
 
 } // namespace
@@ -220,6 +422,63 @@ LightPlanesDefect read_light_planes(std::span<const std::byte> bytes, LightPlane
     return LightPlanesDefect::none;
 }
 
+LightPlanesDefect read_light_plane_store(std::span<const std::byte> bytes, LightPlanes& planes) {
+    if (bytes.size() < store_header_bytes) return LightPlanesDefect::short_header;
+    const bool magic = bytes[0] == std::byte{'G'} && bytes[1] == std::byte{'F'} && bytes[2] == std::byte{'L'} &&
+                       bytes[3] == std::byte{'P'};
+    if (!magic) return LightPlanesDefect::not_a_store;
+    if (little_endian_word(bytes, 4U) != light_plane_store_version) return LightPlanesDefect::unsupported_version;
+    const std::uint32_t width = little_endian_word(bytes, 8U);
+    const std::uint32_t height = little_endian_word(bytes, 12U);
+    const std::uint32_t lamps = little_endian_word(bytes, 16U);
+    const double aperture = static_cast<double>(little_endian_float(bytes, 20U));
+    if (width == 0U || height == 0U) return LightPlanesDefect::empty_size;
+    if (width > maximum_light_plane_side || height > maximum_light_plane_side) return LightPlanesDefect::too_large;
+    if (lamps > maximum_light_plane_lamps) return LightPlanesDefect::too_many_lamps;
+    if (!std::isfinite(aperture) || aperture < 0.0 || aperture > 1.0) return LightPlanesDefect::aperture_out_of_range;
+    // At most 2048² pixels of ten planes: well within std::size_t.
+    const std::size_t pixels = static_cast<std::size_t>(width) * height;
+    const std::size_t values = pixels * (2U + static_cast<std::size_t>(lamps));
+    if (bytes.size() != store_header_bytes + values * 2U) return LightPlanesDefect::length_mismatch;
+    LightPlanes read{};
+    read.width = width;
+    read.height = height;
+    read.lamp_count = lamps;
+    read.aperture = aperture;
+    read.room.resize(pixels * 3U);
+    read.lamps.resize(pixels * 3U * lamps);
+    read.coverage.resize(pixels);
+    std::size_t at = store_header_bytes;
+    if (!read_grey_plane(bytes, at, pixels, read.room, 0U, 3U)) return LightPlanesDefect::not_finite;
+    at = at + pixels * 2U;
+    for (std::uint32_t lamp = 0U; lamp < lamps; ++lamp) {
+        const std::size_t start = static_cast<std::size_t>(lamp) * pixels * 3U;
+        if (!read_grey_plane(bytes, at, pixels, read.lamps, start, 3U)) return LightPlanesDefect::not_finite;
+        at = at + pixels * 2U;
+    }
+    if (!read_grey_plane(bytes, at, pixels, read.coverage, 0U, 1U)) return LightPlanesDefect::not_finite;
+    if (!coverage_in_range(read.coverage)) return LightPlanesDefect::coverage_out_of_range;
+    planes = std::move(read);
+    return LightPlanesDefect::none;
+}
+
+std::span<const std::byte> shipped_light_plane_store(std::string_view name) noexcept {
+    for (const ShippedStore& store : shipped_stores) {
+        if (store.name == name) return std::as_bytes(store.bytes);
+    }
+    return {};
+}
+
+LampColour jewel_filter(LampColour colour) noexcept {
+    const double largest = std::max({colour.red, colour.green, colour.blue});
+    if (!(largest > 0.0) || !std::isfinite(largest)) return LampColour{1.0, 1.0, 1.0};
+    constexpr double share = 0.6;
+    const LampColour filter{(1.0 - share) + share * clamped_unit(colour.red / largest),
+                            (1.0 - share) + share * clamped_unit(colour.green / largest),
+                            (1.0 - share) + share * clamped_unit(colour.blue / largest)};
+    return filter;
+}
+
 std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& down, std::span<const LampDrive> drives,
                                    const LightComposite& settings, LightPlaneRect rect,
                                    const PartRasterView& destination) noexcept {
@@ -238,6 +497,11 @@ std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& dow
     const std::int64_t x1 = std::min<std::int64_t>(rect.x + rect.width, destination.extent.width);
     const std::int64_t y1 = std::min<std::int64_t>(rect.y + rect.height, destination.extent.height);
     if (x1 <= x0 || y1 <= y0) return 0U;
+    if (settings.shape != LightShape::whole) {
+        composite_dot(up, drives, settings, rect, destination, x0, y0, x1, y1);
+        const std::size_t dotted = static_cast<std::size_t>(x1 - x0) * static_cast<std::size_t>(y1 - y0);
+        return dotted;
+    }
     // Chosen once: whether the down bake is read at all.
     const double press = settings.press_mix;
     const bool pressed = press != 0.0;
@@ -249,8 +513,8 @@ std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& dow
             destination.pixels.data() + row_start + static_cast<std::size_t>(x0) * part_raster_bytes_per_pixel;
         for (std::int64_t x = x0; x < x1; ++x) {
             const Tap column = tap_at(x - rect.x, rect.width, up.width);
-            Light light = sample(up, column, row, drives, settings.room);
-            if (pressed) light = mix(light, sample(down, column, row, drives, settings.room), press);
+            Light light = sample(up, column, row, drives, settings.room, settings.filter);
+            if (pressed) light = mix(light, sample(down, column, row, drives, settings.room, settings.filter), press);
             const double cover = light.coverage < 0.0 ? 0.0 : (light.coverage > 1.0 ? 1.0 : light.coverage);
             const double inverse = cover > 1e-6 ? 1.0 / cover : 0.0;
             const double red = 1.0 - engine_exponential(-(light.red * inverse) * exposure);
@@ -366,6 +630,18 @@ bool light_plane_name_valid(std::string_view name) noexcept {
 
 LightPlaneCache::LightPlaneCache(std::filesystem::path directory) : directory_(std::move(directory)) {}
 
+namespace {
+
+// The whole file at `path`, or nothing when it cannot be opened.
+bool read_file(const std::filesystem::path& path, std::vector<char>& text) {
+    std::ifstream file(path, std::ios::binary);
+    if (!file) return false;
+    text.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    return true;
+}
+
+} // namespace
+
 std::shared_ptr<const LightPlanes> LightPlaneCache::lend(std::string_view name) {
     if (!light_plane_name_valid(name)) return nullptr;
     for (const CachedBake& bake : bakes_) {
@@ -374,17 +650,19 @@ std::shared_ptr<const LightPlanes> LightPlaneCache::lend(std::string_view name) 
     CachedBake bake{};
     bake.name = std::string(name);
     reads_ = reads_ + 1U;
-    const std::filesystem::path path = directory_ / (bake.name + ".f32");
-    std::ifstream file(path, std::ios::binary);
-    if (!file) {
-        bake.defect = LightPlanesDefect::unreadable;
-        bakes_.push_back(std::move(bake));
-        return nullptr;
-    }
-    const std::vector<char> text((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-    const std::span<const std::byte> bytes(reinterpret_cast<const std::byte*>(text.data()), text.size());
     std::shared_ptr<LightPlanes> planes = std::make_shared<LightPlanes>();
-    bake.defect = read_light_planes(bytes, *planes);
+    std::vector<char> text{};
+    // The directory's float planes, then its store, then the shipped store.
+    if (!directory_.empty() && read_file(directory_ / (bake.name + ".f32"), text)) {
+        const std::span<const std::byte> bytes(reinterpret_cast<const std::byte*>(text.data()), text.size());
+        bake.defect = read_light_planes(bytes, *planes);
+    } else if (!directory_.empty() && read_file(directory_ / (bake.name + ".gflp"), text)) {
+        const std::span<const std::byte> bytes(reinterpret_cast<const std::byte*>(text.data()), text.size());
+        bake.defect = read_light_plane_store(bytes, *planes);
+    } else {
+        const std::span<const std::byte> shipped = shipped_light_plane_store(name);
+        bake.defect = shipped.empty() ? LightPlanesDefect::unreadable : read_light_plane_store(shipped, *planes);
+    }
     if (bake.defect == LightPlanesDefect::none) bake.planes = std::move(planes);
     std::shared_ptr<const LightPlanes> lent = bake.planes;
     bakes_.push_back(std::move(bake));

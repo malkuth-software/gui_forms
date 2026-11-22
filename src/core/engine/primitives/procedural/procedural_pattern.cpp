@@ -509,17 +509,34 @@ void generate_hatch(const ProceduralFill& fill, const PatternInputs& inputs, con
 // A pixel's weight about the ground, in 2^16: its tow's light (the tow
 // across catches carbon_across_level, the tow down carbon_down_level)
 // times its rounded profile across the tow and along the float, plus its
-// tow's fibre streak and its crossing's tone. The weight lies within
-// [−0.09, 0.75] of the full contrast, so it never leaves [−65536, 65536].
+// tow's fibre streaks and its crossing's tone. Second pass (owner,
+// 2026-11-22: finer strands, more texture within each tow, sparse
+// glints): each tow holds carbon_fibres_per_tow fine fibres and
+// carbon_bundles_per_tow bundles of them, each with its own seeded streak,
+// and about one crossing in ten (carbon_glint_threshold) where the tow
+// across floats over lights one of its inner fibres as a glint, brightest
+// at the middle of the float. The weight lies within [−0.13, 0.99] of the
+// full contrast, so it never leaves [−65536, 65536].
 constexpr double carbon_repeat_length = 16.0;
 constexpr std::uint32_t carbon_tows_per_repeat = 4U;
-constexpr std::uint32_t carbon_fibres_per_tow = 6U;
+constexpr std::uint32_t carbon_fibres_per_tow = 16U;
+constexpr std::uint32_t carbon_bundles_per_tow = 3U;
 constexpr std::int64_t carbon_across_level = 41943;      // 0.64
 constexpr std::int64_t carbon_down_level = 18350;        // 0.28
 constexpr std::int64_t carbon_edge_floor = 16384;        // 0.25 of the light at a tow's edge
 constexpr std::int64_t carbon_end_floor = 26214;         // 0.40 of it where a float dives under
-constexpr std::int64_t carbon_streak_amplitude = 4588;   // ± 0.07
+constexpr std::int64_t carbon_streak_amplitude = 3277;   // ± 0.05, each fine fibre
+constexpr std::int64_t carbon_bundle_amplitude = 2621;   // ± 0.04, each bundle of fibres
 constexpr std::int64_t carbon_crossing_amplitude = 2621; // ± 0.04
+constexpr std::int64_t carbon_glint_level = 14418;       // 0.22 at the float's middle
+// A crossing glints when its hash (16 bits) falls below 65536 / 10; the
+// glinting fibre is one of the tow's inner half (never its edge fibres, so
+// a tow stays rounded: darker at its edges than at its middle).
+constexpr std::uint32_t carbon_glint_threshold = 6554U;
+constexpr std::uint32_t carbon_glint_first_fibre = carbon_fibres_per_tow / 4U;
+constexpr std::uint32_t carbon_glint_fibre_span = carbon_fibres_per_tow / 2U;
+// No glint at a crossing.
+constexpr std::int32_t carbon_no_glint = -1;
 
 // A tow's rounded profile across its width at `fraction` (in [0, 65535]):
 // the edge floor at its edges, rising as 1 − t² to 1 at its middle, where
@@ -543,14 +560,23 @@ std::int32_t carbon_along_profile(std::uint32_t position) noexcept {
     return static_cast<std::int32_t>(profile);
 }
 
-// The fibre streak at `fraction` across tow `tow` under `key`: one of
-// carbon_fibres_per_tow seeded fibres across the tow, within
-// ± carbon_streak_amplitude.
-std::int32_t carbon_streak(std::uint32_t key, std::uint32_t tow, std::uint32_t fraction) noexcept {
+// Which of carbon_fibres_per_tow fibres lies at `fraction` across a tow.
+std::uint32_t carbon_fibre_index(std::uint32_t fraction) noexcept {
     const std::uint32_t fibre = (fraction * carbon_fibres_per_tow) >> 16U;
-    const std::uint32_t hashed = mix(key ^ mix(tow * carbon_fibres_per_tow + fibre + golden)) >> 16U;
-    const std::int64_t streak = ((static_cast<std::int64_t>(hashed) - 32768) * carbon_streak_amplitude) >> 15;
-    return static_cast<std::int32_t>(streak);
+    return fibre;
+}
+
+// The fibre streaks at `fraction` across tow `tow` under `key`: its fine
+// fibre's, within ± carbon_streak_amplitude, plus its bundle's, within
+// ± carbon_bundle_amplitude.
+std::int32_t carbon_streak(std::uint32_t key, std::uint32_t tow, std::uint32_t fraction) noexcept {
+    const std::uint32_t fibre = carbon_fibre_index(fraction);
+    const std::uint32_t bundle = (fraction * carbon_bundles_per_tow) >> 16U;
+    const std::uint32_t fine = mix(key ^ mix(tow * carbon_fibres_per_tow + fibre + golden)) >> 16U;
+    const std::uint32_t coarse = mix((key + golden) ^ mix(tow * carbon_bundles_per_tow + bundle + golden)) >> 16U;
+    const std::int64_t fine_streak = ((static_cast<std::int64_t>(fine) - 32768) * carbon_streak_amplitude) >> 15;
+    const std::int64_t bundle_streak = ((static_cast<std::int64_t>(coarse) - 32768) * carbon_bundle_amplitude) >> 15;
+    return static_cast<std::int32_t>(fine_streak + bundle_streak);
 }
 
 // Where the carbon fibre's terms lie in the scratch's weave_terms, for a
@@ -558,8 +584,10 @@ std::int32_t carbon_streak(std::uint32_t key, std::uint32_t tow, std::uint32_t f
 // profile across a tow down the tile, the profiles along a float of a tow
 // across it (its first tow, then `width` more for its second) and the
 // streak of a tow down it; per pixel row, the same for the other
-// direction; then each tow column's first pixel column (tows + 1 entries,
-// the last the width), and each crossing's tone, row-major by tow row.
+// direction, and the fibre index of a tow across it; then each tow
+// column's first pixel column (tows + 1 entries, the last the width), each
+// crossing's tone, row-major by tow row, and each crossing's glinting
+// fibre (carbon_no_glint for none), in the same order.
 struct WeaveLayout final {
     std::size_t column_across{};
     std::size_t column_along{};
@@ -567,8 +595,10 @@ struct WeaveLayout final {
     std::size_t row_across{};
     std::size_t row_along{};
     std::size_t row_streak{};
+    std::size_t row_fibre{};
     std::size_t column_runs{};
     std::size_t crossings{};
+    std::size_t glints{};
     std::size_t total{};
 };
 
@@ -580,9 +610,11 @@ WeaveLayout weave_layout(std::uint32_t width, std::uint32_t height, std::uint32_
     layout.row_across = layout.column_streak + width;
     layout.row_along = layout.row_across + height;
     layout.row_streak = layout.row_along + 2U * std::size_t{height};
-    layout.column_runs = layout.row_streak + height;
+    layout.row_fibre = layout.row_streak + height;
+    layout.column_runs = layout.row_fibre + height;
     layout.crossings = layout.column_runs + tows + 1U;
-    layout.total = layout.crossings + std::size_t{tows} * tows;
+    layout.glints = layout.crossings + std::size_t{tows} * tows;
+    layout.total = layout.glints + std::size_t{tows} * tows;
     return layout;
 }
 
@@ -632,7 +664,21 @@ void generate_carbon_fibre(const ProceduralFill& fill, const PatternInputs& inpu
             const std::uint32_t hashed = mix(crossing_key ^ mix(column ^ mix(row + golden))) >> 16U;
             const std::int64_t tone = ((static_cast<std::int64_t>(hashed) - 32768) * carbon_crossing_amplitude) >> 15;
             terms[layout.crossings + std::size_t{row} * tows + column] = static_cast<std::int32_t>(tone);
+            // Only where the tow across floats over: the tow down stays near
+            // the ground, as the sheen is anisotropic.
+            const std::uint32_t chance = mix((crossing_key + golden) ^ mix(row ^ mix(column + golden))) >> 16U;
+            const bool across_over = ((column + row) & 3U) >= 2U;
+            std::int32_t glint = carbon_no_glint;
+            if (across_over && chance < carbon_glint_threshold) {
+                glint = static_cast<std::int32_t>(carbon_glint_first_fibre + chance % carbon_glint_fibre_span);
+            }
+            terms[layout.glints + std::size_t{row} * tows + column] = glint;
         }
+    }
+    // Each pixel row's fibre in its tow across, for the glints.
+    for (std::uint32_t y = 0U; y < inputs.height; ++y) {
+        const std::uint32_t fraction = static_cast<std::uint32_t>(centre_position(y, inputs.height, tows) & fraction_mask);
+        terms[layout.row_fibre + y] = static_cast<std::int32_t>(carbon_fibre_index(fraction));
     }
     for (std::uint32_t y = 0U; y < inputs.height; ++y) {
         const std::uint32_t row_tow = static_cast<std::uint32_t>(centre_position(y, inputs.height, tows) >> 16U);
@@ -656,10 +702,16 @@ void generate_carbon_fibre(const ProceduralFill& fill, const PatternInputs& inpu
                 continue;
             }
             // The tow across the tile floats over, in tow `phase` − 2 of its float.
+            // Its glint, if this row is the crossing's glinting fibre, is
+            // decided once per row and crossing: a level the float's profile
+            // along it shapes.
             const std::size_t along_column = layout.column_along + std::size_t{phase - 2U} * inputs.width;
+            const std::int32_t glinting = terms[layout.glints + std::size_t{row_tow} * tows + column_tow];
+            const std::int64_t glint = glinting == terms[layout.row_fibre + y] ? carbon_glint_level : 0;
             for (std::uint32_t x = start; x < end; ++x) {
                 const std::int64_t shade = (lit_row * terms[along_column + x]) >> 16;
-                const std::int64_t weight = shade + row_streak + crossing;
+                const std::int64_t sparkle = (glint * terms[along_column + x]) >> 16;
+                const std::int64_t weight = shade + row_streak + crossing + sparkle;
                 const std::int32_t scaled = scaled_weight(weight, inputs.strength);
                 store_channels(pixel_at(destination, x, y), mix_channels(inputs.ground, inputs.figure, scaled));
             }

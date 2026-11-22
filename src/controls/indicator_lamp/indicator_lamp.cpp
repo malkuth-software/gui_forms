@@ -159,10 +159,15 @@ bool IndicatorLamp::changing() const noexcept {
 }
 
 std::shared_ptr<const engine_light::LightPlanes> IndicatorLamp::shown_bake() const {
-    const std::string& name = light_planes.read();
+    // A pinpoint is the jewel lamp's light (owner, 2026-11-21: the same
+    // light model as the jewel lamps), its bake named or else the shipped
+    // jewel; a lens shows a bake only when one is named.
+    const bool pinpoint = lamp_style.read() == IndicatorLampStyle::pinpoint;
+    const std::string& named = light_planes.read();
+    const std::string_view name = !named.empty() ? std::string_view(named)
+                                  : pinpoint      ? engine_light::jewel_lamp_bake
+                                                  : std::string_view{};
     if (name.empty()) return nullptr;
-    // A pinpoint is the theme's dot; a bake is a lens's whole look.
-    if (lamp_style.read() == IndicatorLampStyle::pinpoint) return nullptr;
     const SurfaceRoot* const root = attached_surface_root();
     if (root == nullptr) return nullptr;
     if (part_visual_context(*this, base_anatomy_states()).high_contrast) return nullptr;
@@ -199,9 +204,9 @@ bool IndicatorLamp::reduced_motion() const noexcept {
 // the bezel is legend_bezel_side, or the client height when that is less.
 // A baked lens is the bake's aspect fitted in the client area without a
 // legend, else in the bezel's square, and the bezel is the same rectangle.
-// A pinpoint is a pinpoint_side dot (less where the client area is
-// smaller) at the start, centred down, with no bezel (empty) and the
-// legend pinpoint_gap after it.
+// A pinpoint is a pinpoint_side square (less where the client area is
+// smaller) at the start, centred down, holding its point of light and its
+// glow, with no bezel (empty) and the legend pinpoint_gap after it.
 IndicatorLamp::Placement IndicatorLamp::placement(const engine_light::LightPlanes* bake) const {
     const Rect client = client_rectangle();
     Placement placed;
@@ -314,7 +319,7 @@ void IndicatorLamp::paint_theme_lens(Painter& painter, const Placement& placed, 
 }
 
 // One part, the lens, lit by the bake at the current power (0 shows the
-// lamp dark in the room's light). It carries the lit states and family
+// lamp dark in the room's light, a jewel's glass tinted in its colour). It carries the lit states and family
 // while lit, so that the recipe that stands in for a bake that cannot be
 // shown (no raster of its size) still tells lit from dark.
 void IndicatorLamp::paint_baked_lens(Painter& painter, const Placement& placed, AnatomyStateSet states,
@@ -324,9 +329,24 @@ void IndicatorLamp::paint_baked_lens(Painter& painter, const Placement& placed, 
                    .states = lit_now ? with_lit_state(states, lit_state_) : states,
                    .family = lit_now ? lit_family(lit_state_) : ControlVisualRole::choice};
     lens.key.set(PartKey{"lens", {}, {}});
-    const double power = lit_now ? std::min(1.0, power_) : 0.0;
+    // A jewel (a bake seen through a dot) or a pinpoint is the study's
+    // status lamp: tinted glass in the lamp's colour when dark, driven at
+    // the study's jewel power when lit. A key's bake is shown whole, as
+    // baked.
+    engine_light::LightComposite settings{};
+    if (lamp_style.read() == IndicatorLampStyle::pinpoint) {
+        settings.shape = engine_light::LightShape::pinpoint;
+    } else if ((*bake).aperture > 0.0) {
+        settings.shape = engine_light::LightShape::jewel;
+    }
+    const engine_light::LampColour colour = lit_colour();
+    const bool jewel = settings.shape != engine_light::LightShape::whole;
+    if (jewel) settings.filter = engine_light::jewel_filter(colour);
+    const double gain = jewel ? engine_light::jewel_lamp_power : 1.0;
+    const double power = lit_now ? std::min(1.0, power_) * gain : 0.0;
     lens.light_planes.set(PartLightPlanes{.planes = std::move(bake),
-                                        .drive = engine_light::LampDrive{lit_colour(), power},
+                                        .drive = engine_light::LampDrive{colour, power},
+                                        .settings = settings,
                                         .raster = &baked_lens_});
     paint_part(painter, *this, lens);
 }

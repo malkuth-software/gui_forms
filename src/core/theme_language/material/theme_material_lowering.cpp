@@ -279,7 +279,7 @@ struct NamedFinish final {
     GlintPreset glint{GlintPreset::sand_blast};
 };
 
-constexpr std::array<NamedFinish, 13> finish_names{{
+constexpr std::array<NamedFinish, 15> finish_names{{
     {.name = "dusty-matte", .kind = FinishKind::dusty_matte},
     {.name = "orange-peel", .kind = FinishKind::orange_peel},
     {.name = "hammertone", .kind = FinishKind::hammertone},
@@ -293,6 +293,8 @@ constexpr std::array<NamedFinish, 13> finish_names{{
     {.name = "iridescent-glint", .kind = FinishKind::glint, .glint = GlintPreset::iridescent},
     {.name = "coarse-grit-glint", .kind = FinishKind::glint, .glint = GlintPreset::coarse_grit},
     {.name = "painted-sand-glint", .kind = FinishKind::glint, .glint = GlintPreset::painted_sand},
+    {.name = "blasted-enamel-glint", .kind = FinishKind::glint, .glint = GlintPreset::blasted_enamel},
+    {.name = "blasted-enamel-heavy-glint", .kind = FinishKind::glint, .glint = GlintPreset::blasted_enamel_heavy},
 }};
 
 constexpr std::string_view finish_function_name = "finish";

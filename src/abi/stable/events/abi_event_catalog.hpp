@@ -537,12 +537,14 @@ struct EnumerationChoices<FontRole> {
 template <>
 struct EnumerationChoices<GlintPreset> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 5> choices{{
+    static constexpr std::array<EnumerationChoice, 7> choices{{
         {"bead_blast", static_cast<std::int64_t>(GlintPreset::bead_blast)},
         {"sand_blast", static_cast<std::int64_t>(GlintPreset::sand_blast)},
         {"iridescent", static_cast<std::int64_t>(GlintPreset::iridescent)},
         {"coarse_grit", static_cast<std::int64_t>(GlintPreset::coarse_grit)},
         {"painted_sand", static_cast<std::int64_t>(GlintPreset::painted_sand)},
+        {"blasted_enamel", static_cast<std::int64_t>(GlintPreset::blasted_enamel)},
+        {"blasted_enamel_heavy", static_cast<std::int64_t>(GlintPreset::blasted_enamel_heavy)},
     }};
 };
 
