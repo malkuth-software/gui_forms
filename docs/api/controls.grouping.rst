@@ -40,9 +40,9 @@ Panels, group boxes, cards, tabs and expandable sections.
    * - :cpp:class:`TabPage <gui_forms::TabPage>`
      - One page of a tab control, with the caption shown on its tab.
    * - :cpp:class:`Wizard <gui_forms::Wizard>`
-     - Guided sequence of WizardPage children shown one at a time, with the page's title and description, a step indicator, Back, Next or Finish and Cancel, and a cancellable page_changing.
+     - A wizard: a guided sequence of pages shown one at a time, with a header, an optional step indicator, and Back, Next (Finish on the last page) and Cancel buttons.
    * - :cpp:class:`WizardPage <gui_forms::WizardPage>`
-     - One page of a Wizard: a Panel with the title and description the wizard shows and can_advance, the gate on its Next button.
+     - One page of a :cpp:class:`Wizard <gui_forms::Wizard>`: a panel whose controls are the page's content, with the title and description the wizard shows, and the page's validation gate.
 
 .. toctree::
    :hidden:

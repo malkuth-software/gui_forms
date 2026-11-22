@@ -11,29 +11,45 @@ gui_forms::FormLayout
 
    ``#include <gui_forms/controls/form_layout.hpp>``
 
-   Panel of labelled rows: a caption column sized to the widest caption (or a fixed width) beside a column of controls, with captions naming their controls.
+   A form of labelled rows: a caption column beside a column of controls.
+
+   Each row is as tall as its control (or its caption, if taller), or as the
+   height :cpp:func:`add_row <gui_forms::FormLayout::add_row>` gave it. The caption column is as wide as the widest
+   caption, or :cpp:member:`caption_width <gui_forms::FormLayout::caption_width>` when set; the controls take the rest of the
+   width. The captions are :cpp:class:`Label <gui_forms::Label>` children the layout makes and owns, and
+   each names its control to assistive technology: it becomes the control's
+   accessible name when the control has none of its own. Use a :cpp:class:`GridPanel <gui_forms::GridPanel>` for
+   a free grid, and a :cpp:class:`PropertyGrid <gui_forms::PropertyGrid>` to edit an object's properties.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **caption_width** : ``double``
-         The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
+      **caption_width** : ``double``, default ``0``
+         The caption column's width in logical units, or 0 for the widest
+         caption's. A value that is not finite or outside 0 to 4096 throws
+         ``std::invalid_argument``.
 
-      **caption_alignment** : ``HorizontalAlignment``
-         Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
+      **caption_alignment** : ``HorizontalAlignment``, default ``HorizontalAlignment::start``
+         Where each caption sits in the caption column: at its start, centre, or
+         end (beside the control).
 
-      **row_spacing** : ``double``
-         The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+      **row_spacing** : ``double``, default ``6``
+         The space between rows in logical units, from 0 to 256; outside that
+         range or not finite throws ``std::invalid_argument``.
 
-      **column_spacing** : ``double``
-         The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+      **column_spacing** : ``double``, default ``8``
+         The space between the caption column and the controls in logical units,
+         from 0 to 256; outside that range or not finite throws
+         ``std::invalid_argument``.
 
       **row_count** : ``std::size_t``, read-only
+         The number of rows, empty rows included.
 
       **used_caption_width** : ``double``, read-only
          The caption column's width at the last layout.
@@ -53,15 +69,32 @@ gui_forms::FormLayout
       :widths: 35 65
 
       * - :cpp:func:`add_row <gui_forms::FormLayout::add_row>`
-        - Appends a row: a caption made here (stable ID ``<control's ID>.caption``) and ``control``, both added as children.
+        - Appends a row: a caption made here, with the stable ID ``<control's ID>.caption``, and the control, both added as children.
       * - :cpp:func:`remove_row <gui_forms::FormLayout::remove_row>`
-        - Removes the row holding ``control``, its caption and the control; false when no row holds it.
+        - Removes the row holding a control, with its caption and the control; false when no row holds it.
       * - :cpp:func:`forget_empty_rows <gui_forms::FormLayout::forget_empty_rows>`
-        - Removes every empty row and its caption; returns how many.
+        - Removes every empty row and its caption, and returns how many.
       * - :cpp:func:`caption_of <gui_forms::FormLayout::caption_of>`
-        - The caption of the row holding ``control``, or null.
+        - The caption of the row holding a control, or null.
       * - :cpp:func:`form_layout_property_entries <gui_forms::FormLayout::form_layout_property_entries>`
         -  
+
+   .. seealso::
+
+      :cpp:class:`GridPanel <gui_forms::GridPanel>`
+         Rows and columns of any controls.
+
+      :cpp:class:`PropertyGrid <gui_forms::PropertyGrid>`
+         An object's properties, edited in place.
+
+   .. rubric:: Notes
+
+   Children added with ``add_child`` rather than :cpp:func:`add_row <gui_forms::FormLayout::add_row>` are not rows: they
+   keep their own requested bounds. A row's control removed other than by
+   :cpp:func:`remove_row <gui_forms::FormLayout::remove_row>` (by ``remove_child``, or by its disposal) leaves an empty row,
+   which takes no space until :cpp:func:`remove_row <gui_forms::FormLayout::remove_row>` of that control or
+   :cpp:func:`forget_empty_rows <gui_forms::FormLayout::forget_empty_rows>` drops it. A row whose control is hidden takes no space
+   either, and comes back when the control is shown.
 
 
    .. rubric:: Construction
@@ -73,21 +106,29 @@ gui_forms::FormLayout
 
    .. cpp:member:: double caption_width
 
-      The caption column's width in logical units, or 0 for the widest caption's; finite and 0 to 4096 (std::invalid_argument otherwise).
+      The caption column's width in logical units, or 0 for the widest
+      caption's. A value that is not finite or outside 0 to 4096 throws
+      ``std::invalid_argument``.
 
    .. cpp:member:: HorizontalAlignment caption_alignment
 
-      Where each caption sits in the caption column: at its start (the default), centre or end (beside the control).
+      Where each caption sits in the caption column: at its start, centre, or
+      end (beside the control).
 
    .. cpp:member:: double row_spacing
 
-      The space between rows in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+      The space between rows in logical units, from 0 to 256; outside that
+      range or not finite throws ``std::invalid_argument``.
 
    .. cpp:member:: double column_spacing
 
-      The space between the caption column and the controls in logical units; finite and 0 to 256 (std::invalid_argument otherwise).
+      The space between the caption column and the controls in logical units,
+      from 0 to 256; outside that range or not finite throws
+      ``std::invalid_argument``.
 
    .. cpp:function:: std::size_t row_count() const noexcept
+
+      The number of rows, empty rows included.
 
    .. cpp:function:: double used_caption_width() const noexcept
 
@@ -98,19 +139,24 @@ gui_forms::FormLayout
 
    .. cpp:function:: std::shared_ptr<Label> add_row(std::string caption, Control::Ptr control, double height = 0.0)
 
-      Appends a row: a caption made here (stable ID ``<control's ID>.caption``) and ``control``, both added as children. ``height`` is the row's height in logical units, or 0 for the control's measured height. Throws std::invalid_argument, changing nothing, for a null control, one with a parent, or a negative or non-finite height. Returns the caption.
+      Appends a row: a caption made here, with the stable ID
+      ``<control's ID>.caption``, and the control, both added as children. A
+      height of 0 (the default) takes the control's measured height. A null
+      control, one with a parent, or a negative or non-finite height throws
+      ``std::invalid_argument`` and changes nothing. Returns the caption.
 
    .. cpp:function:: bool remove_row(const Control& control)
 
-      Removes the row holding ``control``, its caption and the control; false when no row holds it.
+      Removes the row holding a control, with its caption and the control;
+      false when no row holds it.
 
    .. cpp:function:: std::size_t forget_empty_rows()
 
-      Removes every empty row and its caption; returns how many.
+      Removes every empty row and its caption, and returns how many.
 
    .. cpp:function:: std::shared_ptr<Label> caption_of(const Control& control) const
 
-      The caption of the row holding ``control``, or null.
+      The caption of the row holding a control, or null.
 
    .. cpp:function:: static const std::array<PropertyEntry, form_layout_property_count>& form_layout_property_entries() noexcept
 

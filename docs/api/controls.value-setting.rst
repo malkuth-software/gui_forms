@@ -28,7 +28,7 @@ Check boxes, radio buttons, ranges, numeric and colour editors, property grids a
    * - :cpp:class:`DomainUpDown <gui_forms::DomainUpDown>`
      - A text field with up and down buttons that steps through a list of strings.
    * - :cpp:class:`ColorPicker <gui_forms::ColorPicker>`
-     - Colour picker with a saturation-brightness field, a hue track, an optional alpha track and a swatch, picked by pointer drags or the keyboard.
+     - A colour picker: a saturation and brightness field for the current hue, a vertical hue track, an optional alpha track and a swatch of the value.
    * - :cpp:class:`ColorValueEditor <gui_forms::ColorValueEditor>`
      - A colour field: a swatch beside a text box that edits the colour as hexadecimal text.
    * - :cpp:class:`FlagsValueEditor <gui_forms::FlagsValueEditor>`

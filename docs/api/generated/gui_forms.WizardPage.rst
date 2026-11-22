@@ -11,24 +11,31 @@ gui_forms::WizardPage
 
    ``#include <gui_forms/controls/wizard_page.hpp>``
 
-   One page of a Wizard: a Panel with the title and description the wizard shows and can_advance, the gate on its Next button.
+   One page of a :cpp:class:`Wizard <gui_forms::Wizard>`: a panel whose controls are the page's content, with the title and description the wizard shows, and the page's validation gate.
+
+   While the page is shown, :cpp:member:`can_advance <gui_forms::WizardPage::can_advance>` enables or disables the wizard's Next
+   (or Finish) button, so the page can hold the user until its fields are
+   valid. A :cpp:class:`WizardPage <gui_forms::WizardPage>` outside a :cpp:class:`Wizard <gui_forms::Wizard>` is an ordinary :cpp:class:`Panel <gui_forms::Panel>`.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
    :Properties:
 
-      **title** : ``std::string``
-         The page's title, shown in the wizard's header and as its step's name. Must be valid UTF-8 (std::invalid_argument).
+      **title** : ``std::string``, default empty
+         The page's title, shown in the wizard's header and as its step's name.
+         It is localizable; invalid UTF-8 throws ``std::invalid_argument``.
 
-      **description** : ``std::string``
-         The line under the title in the wizard's header; empty for none. Must be valid UTF-8 (std::invalid_argument).
+      **description** : ``std::string``, default empty
+         The line under the title in the wizard's header; empty for none. It is
+         localizable; invalid UTF-8 throws ``std::invalid_argument``.
 
-      **can_advance** : ``bool``
-         Whether Next (or Finish) is available on this page: the page's validation gate.
+      **can_advance** : ``bool``, default ``true``
+         Whether Next (or Finish) is available on this page.
 
    :Inherited:
 
@@ -47,6 +54,11 @@ gui_forms::WizardPage
       * - :cpp:func:`wizard_page_property_entries <gui_forms::WizardPage::wizard_page_property_entries>`
         -  
 
+   .. seealso::
+
+      :cpp:class:`Wizard <gui_forms::Wizard>`
+         The sequence the page belongs to.
+
 
    .. rubric:: Construction
 
@@ -57,15 +69,17 @@ gui_forms::WizardPage
 
    .. cpp:member:: std::string title
 
-      The page's title, shown in the wizard's header and as its step's name. Must be valid UTF-8 (std::invalid_argument).
+      The page's title, shown in the wizard's header and as its step's name.
+      It is localizable; invalid UTF-8 throws ``std::invalid_argument``.
 
    .. cpp:member:: std::string description
 
-      The line under the title in the wizard's header; empty for none. Must be valid UTF-8 (std::invalid_argument).
+      The line under the title in the wizard's header; empty for none. It is
+      localizable; invalid UTF-8 throws ``std::invalid_argument``.
 
    .. cpp:member:: bool can_advance
 
-      Whether Next (or Finish) is available on this page: the page's validation gate.
+      Whether Next (or Finish) is available on this page.
 
 
    .. rubric:: Methods

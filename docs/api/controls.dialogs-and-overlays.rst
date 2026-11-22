@@ -24,7 +24,7 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
    * - :cpp:class:`ModalLayer <gui_forms::ModalLayer>`
      - An in-window modal layer: any control shown as a modal panel inside its owner's window, without a native window.
    * - :cpp:class:`AboutDialog <gui_forms::AboutDialog>`
-     - An application's About box: a TaskDialog preset with the information icon, the product and version, description and copyright, credits behind an expander, and OK.
+     - An application's About box: the information icon, the product and version as the heading, the description and copyright, the credits behind an expander, and OK.
    * - :cpp:class:`FolderBrowserDialog <gui_forms::FolderBrowserDialog>`
      - The host's dialog for choosing a folder.
    * - :cpp:class:`ColorDialog <gui_forms::ColorDialog>`
