@@ -1,13 +1,16 @@
 #include "interpolation.hpp"
 
-#include <stx_conv/conv.hpp>
+#include <stxlib/conv.hpp>
 
 #include <algorithm>
 #include <cmath>
+#include <functional>
 #include <limits>
 #include <new>
 #include <optional>
 #include <stdexcept>
+#include <utility>
+#include <vector>
 
 namespace gui_forms::interpolation {
 namespace {
@@ -51,33 +54,173 @@ void clamp_written(std::span<double> samples, std::size_t count, std::size_t str
     }
 }
 
-stx_conv::Sampling engine_sampling(Sampling sampling) noexcept {
-    if (sampling == Sampling::pixel_area) return stx_conv::Sampling::pixel_area;
-    return stx_conv::Sampling::nodal;
+// True when the two spans share an element; std::less orders pointers into
+// different arrays.
+bool spans_overlap(std::span<const double> first, std::span<const double> second) noexcept {
+    const std::less<const double*> before{};
+    const bool apart = !before(first.data(), second.data() + second.size()) ||
+                       !before(second.data(), first.data() + first.size());
+    return !apart;
 }
 
-// The engine's refusals after this seam's own validation. Sample refusals
-// remain possible when the range reaches past the engine's sample limit
-// (1e100). An unprepared profile cannot follow a successful compile; it is
-// grouped with the tolerance fallback.
-Status from_engine(stx_conv::Status status) noexcept {
-    switch (status) {
-    case stx_conv::Status::ok:
-        return Status::ok;
-    case stx_conv::Status::invalid_shape:
+stxlib::conv::Mode engine_mode(Sampling sampling) noexcept {
+    if (sampling == Sampling::pixel_area) return stxlib::conv::Mode::canon;
+    return stxlib::conv::Mode::preview;
+}
+
+// The engine's refusals after this seam's own validation. invalid_argument
+// and limit_exceeded are shapes the engine takes no further (more nodes than
+// it holds, a canon reduction past 340 : 1); unsupported and anything else
+// cannot follow this seam's checks and are grouped as numerical_failure.
+Status from_engine(const stxlib::OperationStatus& status) noexcept {
+    if (status.succeeded()) return Status::ok;
+    const stxlib::ErrorRecord* const record = status.error();
+    if (record == nullptr) return Status::numerical_failure;
+    switch ((*record).kind()) {
+    case stxlib::ErrorKind::invalid_argument:
+    case stxlib::ErrorKind::limit_exceeded:
         return Status::invalid_shape;
-    case stx_conv::Status::insufficient_storage:
-        return Status::insufficient_storage;
-    case stx_conv::Status::overlap:
-        return Status::overlap;
-    case stx_conv::Status::nonfinite_input:
-    case stx_conv::Status::input_out_of_range:
+    case stxlib::ErrorKind::out_of_range:
         return Status::sample_out_of_range;
-    case stx_conv::Status::unprepared_profile:
-    case stx_conv::Status::numerical_failure:
+    case stxlib::ErrorKind::out_of_memory:
+        return Status::out_of_memory;
+    default:
         return Status::numerical_failure;
     }
-    return Status::numerical_failure;
+}
+
+// A set of lines laid out in one span: line `l`, node `i`, lane `j` is
+// samples[l * line_stride + i * node_stride + j]. Every line has `nodes`
+// nodes; the extents have been checked.
+struct SourceLines final {
+    std::span<const double> samples{};
+    std::size_t lines = 0;
+    std::size_t nodes = 0;
+    std::size_t node_stride = 0;
+    std::size_t line_stride = 0;
+};
+struct TargetLines final {
+    std::span<double> samples{};
+    std::size_t nodes = 0;
+    std::size_t node_stride = 0;
+    std::size_t line_stride = 0;
+};
+
+// The span one line of `source` occupies.
+std::span<const double> source_line(const SourceLines& source, std::size_t line, std::size_t lanes) noexcept {
+    const std::size_t first = line * source.line_stride;
+    const std::size_t extent = (source.nodes - 1) * source.node_stride + lanes;
+    return source.samples.subspan(first, extent);
+}
+
+std::span<double> target_line(const TargetLines& target, std::size_t line, std::size_t lanes) noexcept {
+    const std::size_t first = line * target.line_stride;
+    const std::size_t extent = (target.nodes - 1) * target.node_stride + lanes;
+    return target.samples.subspan(first, extent);
+}
+
+// Each line copied node for node (source and target have the same nodes).
+void copy_lines(const SourceLines& source, const TargetLines& target, std::size_t lanes) noexcept {
+    for (std::size_t line = 0; line < source.lines; ++line) {
+        const std::span<const double> from = source_line(source, line, lanes);
+        const std::span<double> to = target_line(target, line, lanes);
+        for (std::size_t node = 0; node < target.nodes; ++node) {
+            for (std::size_t lane = 0; lane < lanes; ++lane) {
+                to[node * target.node_stride + lane] = from[node * source.node_stride + lane];
+            }
+        }
+    }
+}
+
+// Each line's single node spread over every target node.
+void spread_lines(const SourceLines& source, const TargetLines& target, std::size_t lanes) noexcept {
+    for (std::size_t line = 0; line < source.lines; ++line) {
+        const std::span<const double> from = source_line(source, line, lanes);
+        const std::span<double> to = target_line(target, line, lanes);
+        for (std::size_t node = 0; node < target.nodes; ++node) {
+            for (std::size_t lane = 0; lane < lanes; ++lane) to[node * target.node_stride + lane] = from[lane];
+        }
+    }
+}
+
+// How the engine's field reaches each target line.
+struct LineRequest final {
+    stxlib::conv::Mode mode = stxlib::conv::Mode::canon;
+    // Not empty: one position per target node, evaluated at those (the
+    // same positions for every line); the mode is then unused.
+    std::span<const double> positions{};
+};
+
+// The field compiled from one source line (the field copies it, so the
+// target line may overlap it), and the target line as the engine's samples.
+Status compile_line(stxlib::conv::LineField& field, const SourceLines& source, std::size_t line,
+                    std::size_t lanes) noexcept {
+    const std::span<const double> from = source_line(source, line, lanes);
+    const stxlib::conv::LineSamples samples{stxlib::View<double>(from.data(), from.size()), source.nodes, lanes,
+                                            source.node_stride};
+    const Status compiled = from_engine(field.compile(samples));
+    return compiled;
+}
+
+stxlib::conv::MutableLineSamples engine_target(const TargetLines& target, std::size_t line,
+                                               std::size_t lanes) noexcept {
+    const std::span<double> to = target_line(target, line, lanes);
+    const stxlib::conv::MutableLineSamples out{stxlib::MutableView<double>(to.data(), to.size()), target.nodes, lanes,
+                                               target.node_stride};
+    return out;
+}
+
+// Every line compiled into `field` and transferred by the mode. Stops at the
+// first failure.
+Status transfer_lines(stxlib::conv::LineField& field, const SourceLines& source, const TargetLines& target,
+                      std::size_t lanes, stxlib::conv::Mode mode) noexcept {
+    for (std::size_t line = 0; line < source.lines; ++line) {
+        const Status compiled = compile_line(field, source, line, lanes);
+        if (compiled != Status::ok) return compiled;
+        const Status result = from_engine(stxlib::conv::transfer(field, mode, engine_target(target, line, lanes)));
+        if (result != Status::ok) return result;
+    }
+    return Status::ok;
+}
+
+// Every line compiled into `field` and evaluated at the positions.
+Status transfer_line_points(stxlib::conv::LineField& field, const SourceLines& source, const TargetLines& target,
+                            std::size_t lanes, std::span<const double> positions) noexcept {
+    const stxlib::View<double> at(positions.data(), positions.size());
+    for (std::size_t line = 0; line < source.lines; ++line) {
+        const Status compiled = compile_line(field, source, line, lanes);
+        if (compiled != Status::ok) return compiled;
+        const Status result = from_engine(stxlib::conv::transfer_points(field, at, engine_target(target, line, lanes)));
+        if (result != Status::ok) return result;
+    }
+    return Status::ok;
+}
+
+// Every line through one field of `source.nodes` (>= 2) nodes, made once and
+// compiled for each line.
+Status engine_lines(const SourceLines& source, const TargetLines& target, std::size_t lanes,
+                    const LineRequest& request) noexcept {
+    stxlib::OperationResult<stxlib::conv::LineField> made =
+        stxlib::conv::LineField::make(source.nodes, lanes, stxlib::conv::FieldOptions{});
+    if (made.failed()) return from_engine(made.status());
+    stxlib::conv::LineField field = std::move(made).take_value();
+    if (!request.positions.empty()) {
+        const Status at_points = transfer_line_points(field, source, target, lanes, request.positions);
+        return at_points;
+    }
+    const Status transferred = transfer_lines(field, source, target, lanes, request.mode);
+    return transferred;
+}
+
+// The lines resampled: a one-node source spread, else the engine.
+Status resample_lines(const SourceLines& source, const TargetLines& target, std::size_t lanes,
+                      const LineRequest& request) noexcept {
+    if (source.nodes == 1) {
+        spread_lines(source, target, lanes);
+        return Status::ok;
+    }
+    const Status result = engine_lines(source, target, lanes, request);
+    return result;
 }
 
 // The validated extents of one line call.
@@ -90,6 +233,10 @@ struct LineExtents final {
 // allocated or written, and records the spans the engine may touch.
 Status check_line(const SourceLine& source, const TargetLine& target, ValueRange range, LineExtents& extents) noexcept {
     if (source.length == 0 || target.length == 0 || source.lanes == 0) return Status::invalid_shape;
+    if (source.lanes > stxlib::conv::max_line_lanes) return Status::invalid_shape;
+    if (source.length > stxlib::conv::max_line_nodes || target.length > stxlib::conv::max_line_nodes) {
+        return Status::invalid_shape;
+    }
     if (source.node_stride < source.lanes || target.node_stride < source.lanes) return Status::invalid_shape;
     if (!range_valid(range)) return Status::invalid_range;
     const std::optional<std::size_t> source_needed = required_elements(source.length, source.node_stride, source.lanes);
@@ -106,41 +253,31 @@ Status check_line(const SourceLine& source, const TargetLine& target, ValueRange
     return Status::ok;
 }
 
-// Compiles the source and evaluates one plan into the target. Allocates the
-// profile and workspace, so it may throw bad_alloc; callers catch.
-Status evaluate_line(const SourceLine& source, const LineExtents& extents, const stx_conv::LinePlan64& plan,
-                     std::size_t target_node_stride) {
-    stx_conv::Profile64 profile(source.length, source.lanes);
-    stx_conv::LineWorkspace64 workspace(source.length, source.lanes);
-    const stx_conv::LineInput64 input{extents.source, source.node_stride};
-    const stx_conv::Status compiled = stx_conv::compile(input, profile, workspace);
-    if (compiled != stx_conv::Status::ok) return from_engine(compiled);
-    const stx_conv::LineOutput64 output{extents.target, target_node_stride};
-    const stx_conv::Status evaluated = stx_conv::evaluate(profile, plan, output);
-    return from_engine(evaluated);
+// The one line of a line call, as lines.
+SourceLines one_source_line(const SourceLine& source, const LineExtents& extents) noexcept {
+    const SourceLines lines{extents.source, 1, source.length, source.node_stride, 0};
+    return lines;
+}
+
+TargetLines one_target_line(const TargetLine& target, const LineExtents& extents) noexcept {
+    const TargetLines lines{extents.target, target.length, target.node_stride, 0};
+    return lines;
 }
 
 } // namespace
 
-// The engine's constructors throw invalid_argument and length_error (for
-// lengths past its limit, 4e8 nodes) and bad_alloc; this boundary turns them
-// into statuses, so nothing above it sees an exception.
+// The engine reports failures as statuses and never throws; a refusal from it
+// comes before anything is written to the target.
 Status resample_line(const SourceLine& source, const TargetLine& target, Sampling sampling, ValueRange range) noexcept {
     LineExtents extents{};
     const Status checked = check_line(source, target, range, extents);
     if (checked != Status::ok) return checked;
-    try {
-        const stx_conv::LinePlan64 plan(source.length, target.length, engine_sampling(sampling));
-        const Status result = evaluate_line(source, extents, plan, target.node_stride);
-        if (result == Status::ok) clamp_written(extents.target, target.length, target.node_stride, source.lanes, range);
-        return result;
-    } catch (const std::bad_alloc&) {
-        return Status::out_of_memory;
-    } catch (const std::length_error&) {
-        return Status::invalid_shape;
-    } catch (const std::invalid_argument&) {
-        return Status::invalid_shape;
-    }
+    LineRequest request{};
+    request.mode = engine_mode(sampling);
+    const Status result =
+        resample_lines(one_source_line(source, extents), one_target_line(target, extents), source.lanes, request);
+    if (result == Status::ok) clamp_written(extents.target, target.length, target.node_stride, source.lanes, range);
+    return result;
 }
 
 Status interpolate_line_at(const SourceLine& source, std::span<const double> positions, const TargetLine& target,
@@ -153,25 +290,23 @@ Status interpolate_line_at(const SourceLine& source, std::span<const double> pos
     for (const double position : positions) {
         if (!(position >= 0.0 && position <= last_node)) return Status::position_out_of_range;
     }
-    try {
-        const stx_conv::LinePlan64 plan = stx_conv::LinePlan64::points(source.length, positions);
-        const Status result = evaluate_line(source, extents, plan, target.node_stride);
-        if (result == Status::ok) clamp_written(extents.target, target.length, target.node_stride, source.lanes, range);
-        return result;
-    } catch (const std::bad_alloc&) {
-        return Status::out_of_memory;
-    } catch (const std::length_error&) {
-        return Status::invalid_shape;
-    } catch (const std::invalid_argument&) {
-        return Status::invalid_shape;
-    }
+    LineRequest request{};
+    request.positions = positions;
+    const Status result =
+        resample_lines(one_source_line(source, extents), one_target_line(target, extents), source.lanes, request);
+    if (result == Status::ok) clamp_written(extents.target, target.length, target.node_stride, source.lanes, range);
+    return result;
 }
 
+// Rows, then columns. The working copy holds the rows at the target's width
+// (target.width x source.height pixels, rows packed); its allocation is the
+// only one besides the engine's, and a failure of it is out_of_memory.
 Status resample_image(const SourceImage& source, const TargetImage& target, Sampling sampling,
                       ValueRange range) noexcept {
     if (source.width == 0 || source.height == 0 || source.channels == 0 || target.width == 0 || target.height == 0) {
         return Status::invalid_shape;
     }
+    if (source.channels > stxlib::conv::max_line_lanes) return Status::invalid_shape;
     // A row is width x channels elements, overflow-checked.
     const std::optional<std::size_t> source_row = required_elements(source.width, source.channels, source.channels);
     const std::optional<std::size_t> target_row = required_elements(target.width, source.channels, source.channels);
@@ -180,32 +315,45 @@ Status resample_image(const SourceImage& source, const TargetImage& target, Samp
     if (!range_valid(range)) return Status::invalid_range;
     const std::optional<std::size_t> source_needed = required_elements(source.height, source.row_stride, *source_row);
     const std::optional<std::size_t> target_needed = required_elements(target.height, target.row_stride, *target_row);
-    if (!source_needed.has_value() || !target_needed.has_value()) return Status::invalid_shape;
+    const std::optional<std::size_t> working_needed = required_elements(source.height, *target_row, *target_row);
+    if (!source_needed.has_value() || !target_needed.has_value() || !working_needed.has_value()) {
+        return Status::invalid_shape;
+    }
     if (source.samples.size() < *source_needed || target.samples.size() < *target_needed) {
         return Status::insufficient_storage;
     }
     const std::span<const double> source_samples = source.samples.first(*source_needed);
     const std::span<double> target_samples = target.samples.first(*target_needed);
+    if (spans_overlap(source_samples, target_samples)) return Status::overlap;
     if (!samples_in_range(source_samples, source.height, source.row_stride, *source_row, range)) {
         return Status::sample_out_of_range;
     }
+    std::vector<double> working;
     try {
-        const stx_conv::ImagePlan64 plan(source.width, source.height, target.width, target.height,
-                                         engine_sampling(sampling));
-        stx_conv::ImageWorkspace64 workspace(plan, source.channels);
-        const stx_conv::ImageInput64 input{source_samples, source.row_stride};
-        const stx_conv::ImageOutput64 output{target_samples, target.row_stride};
-        const stx_conv::Status resized = stx_conv::resize(plan, input, output, workspace);
-        const Status result = from_engine(resized);
-        if (result == Status::ok) clamp_written(target_samples, target.height, target.row_stride, *target_row, range);
-        return result;
+        working.resize(*working_needed);
     } catch (const std::bad_alloc&) {
         return Status::out_of_memory;
     } catch (const std::length_error&) {
-        return Status::invalid_shape;
-    } catch (const std::invalid_argument&) {
-        return Status::invalid_shape;
+        return Status::out_of_memory;
     }
+    const std::size_t channels = source.channels;
+    LineRequest request{};
+    request.mode = engine_mode(sampling);
+    // The rows: source.height lines of source.width pixels to target.width.
+    const SourceLines rows_from{source_samples, source.height, source.width, channels, source.row_stride};
+    const TargetLines rows_to{working, target.width, channels, *target_row};
+    // The columns: target.width lines of source.height pixels to target.height.
+    const SourceLines columns_from{working, target.width, source.height, *target_row, channels};
+    const TargetLines columns_to{target_samples, target.height, target.row_stride, channels};
+    Status rows = Status::ok;
+    if (source.width == target.width) copy_lines(rows_from, rows_to, channels);
+    else rows = resample_lines(rows_from, rows_to, channels, request);
+    if (rows != Status::ok) return rows;
+    Status columns = Status::ok;
+    if (source.height == target.height) copy_lines(columns_from, columns_to, channels);
+    else columns = resample_lines(columns_from, columns_to, channels, request);
+    if (columns == Status::ok) clamp_written(target_samples, target.height, target.row_stride, *target_row, range);
+    return columns;
 }
 
 } // namespace gui_forms::interpolation

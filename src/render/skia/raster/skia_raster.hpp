@@ -310,7 +310,7 @@ public:
     // maximum_paint_transform_depth or inside a refused one. Each drew
     // nothing.
     [[nodiscard]] std::uint64_t transform_refusals() const noexcept;
-    // Part rasters area-resampled (stx_conv, pixel area) to the map's
+    // Part rasters area-resampled (stxlib::conv, canon) to the map's
     // minimum scale before a draw through a non-translating map.
     [[nodiscard]] std::uint64_t transformed_resamples() const noexcept;
 

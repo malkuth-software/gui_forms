@@ -26,7 +26,6 @@
 #include "../../../core/display/group_effect/group_effect.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "../../../core/theme/theme/material_layers.hpp"
-#include "../../../core/interpolation/interpolation.hpp"
 #include "../../../core/types/painter/text_turn.hpp"
 
 #include "include/core/SkCanvas.h"
@@ -49,6 +48,7 @@
 #include "include/effects/SkShaderMaskFilter.h"
 #include "include/effects/SkGradient.h"
 
+#include <stxlib/conv.hpp>
 #include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
@@ -436,23 +436,66 @@ struct KeptTextEqual final {
 }
 
 // draw_image below 1x (owner, 2026-11-11, audit P11): neither mipmaps nor an
-// area filter of Skia's; the image is resampled through the interpolation
-// seam (stx_conv, pixel-area on each axis) to the device size it is drawn at,
-// and that copy is drawn instead. A source larger than this many pixels is
-// drawn directly: its binary64 working copy (32 bytes a pixel) would cost
-// more than the draw is worth.
+// area filter of Skia's; the image is resampled through stxlib::conv (the
+// CONV field and its canon transfer over each pixel's footprint) to the
+// device size it is drawn at, and that copy is drawn instead. A source
+// larger than this many pixels is drawn directly, as the cost of its field
+// would outweigh the draw.
 constexpr std::size_t maximum_resampled_source_pixels = 1024U * 1024U;
 
-// One premultiplied channel in [0, 1] quantized once to a byte.
-std::uint8_t channel_byte(double value) noexcept {
-    const double scaled = std::round(std::clamp(value, 0.0, 1.0) * 255.0);
-    return static_cast<std::uint8_t>(scaled);
+// The field takes straight alpha and the renderer keeps premultiplied BGRA.
+// straight_scale[a] turns a premultiplied channel of alpha a back to
+// straight (255 / a), and 0 for a = 0, whose colour the field does not read.
+struct StraightScale final {
+    double by_alpha[256]{};
+};
+
+StraightScale make_straight_scale() noexcept {
+    StraightScale scale{};
+    for (std::size_t alpha = 1U; alpha < 256U; ++alpha) scale.by_alpha[alpha] = 255.0 / static_cast<double>(alpha);
+    return scale;
+}
+
+// Premultiplied BGRA rows (`pixels`) to packed straight RGBA: each colour
+// c of alpha a becomes round(c 255 / a), at most 255.
+void straight_rgba_from_premultiplied_bgra(const SkPixmap& pixels, std::span<stxlib::u8> straight) noexcept {
+    const StraightScale scale = make_straight_scale();
+    const std::size_t width = static_cast<std::size_t>(pixels.width());
+    const std::size_t height = static_cast<std::size_t>(pixels.height());
+    for (std::size_t y = 0U; y < height; ++y) {
+        const std::uint8_t* const row = static_cast<const std::uint8_t*>(pixels.addr(0, static_cast<int>(y)));
+        stxlib::u8* const out = straight.data() + y * width * 4U;
+        for (std::size_t x = 0U; x < width; ++x) {
+            const std::uint8_t* const pixel = row + x * 4U;
+            const double by = scale.by_alpha[pixel[3]];
+            out[x * 4U] = static_cast<stxlib::u8>(std::min(255.0, std::round(static_cast<double>(pixel[2]) * by)));
+            out[x * 4U + 1U] = static_cast<stxlib::u8>(std::min(255.0, std::round(static_cast<double>(pixel[1]) * by)));
+            out[x * 4U + 2U] = static_cast<stxlib::u8>(std::min(255.0, std::round(static_cast<double>(pixel[0]) * by)));
+            out[x * 4U + 3U] = pixel[3];
+        }
+    }
+}
+
+// Packed straight RGBA (`count` pixels) to premultiplied BGRA: each colour c
+// of alpha a becomes round(c a / 255).
+void premultiplied_bgra_from_straight_rgba(std::span<const stxlib::u8> straight, std::size_t count,
+                                           std::uint8_t* const bytes) noexcept {
+    for (std::size_t pixel = 0U; pixel < count; ++pixel) {
+        const stxlib::u8* const in = straight.data() + pixel * 4U;
+        const double alpha = static_cast<double>(in[3]) / 255.0;
+        bytes[pixel * 4U] = static_cast<std::uint8_t>(std::round(static_cast<double>(in[2]) * alpha));
+        bytes[pixel * 4U + 1U] = static_cast<std::uint8_t>(std::round(static_cast<double>(in[1]) * alpha));
+        bytes[pixel * 4U + 2U] = static_cast<std::uint8_t>(std::round(static_cast<double>(in[0]) * alpha));
+        bytes[pixel * 4U + 3U] = in[3];
+    }
 }
 
 // `source` (premultiplied BGRA, 8 bits a channel) resampled to `width` x
 // `height` pixels, each no larger than the source's: null when the source
-// has no readable pixels, is too large (maximum_resampled_source_pixels), or
-// the seam refuses. Allocates its working copies once and releases them.
+// has no readable pixels, has a side of one pixel (a field needs two), is
+// too large (maximum_resampled_source_pixels), or the engine refuses. The
+// field, its workspace and the straight copies are made once here and
+// released on return.
 sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int height) {
     // stx_skia's peekPixels returns the pixmap, empty when the pixels are
     // not readable in place.
@@ -469,40 +512,36 @@ sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int
     const std::size_t source_height = static_cast<std::size_t>(pixels.height());
     const std::size_t target_width = static_cast<std::size_t>(width);
     const std::size_t target_height = static_cast<std::size_t>(height);
-    if (source_width == 0U || source_height == 0U || source_width * source_height > maximum_resampled_source_pixels ||
+    if (source_width < 2U || source_height < 2U || source_width * source_height > maximum_resampled_source_pixels ||
         target_width == 0U || target_height == 0U || target_width > source_width || target_height > source_height) {
         return nullptr;
     }
-    constexpr std::size_t channels = 4U;
-    // Source and target samples, row-major, the channels in BGRA order.
-    std::vector<double> source_samples(source_width * source_height * channels);
-    std::vector<double> target_samples(target_width * target_height * channels);
-    for (std::size_t y = 0U; y < source_height; ++y) {
-        const std::uint8_t* const row = static_cast<const std::uint8_t*>(pixels.addr(0, static_cast<int>(y)));
-        double* const out = source_samples.data() + y * source_width * channels;
-        for (std::size_t index = 0U; index < source_width * channels; ++index) {
-            out[index] = static_cast<double>(row[index]) / 255.0;
-        }
-    }
-    const interpolation::SourceImage from{source_samples, source_width, source_height, channels,
-                                          source_width * channels};
-    const interpolation::TargetImage to{target_samples, target_width, target_height, target_width * channels};
-    const interpolation::Status status =
-        interpolation::resample_image(from, to, interpolation::Sampling::pixel_area, interpolation::ValueRange{});
-    if (status != interpolation::Status::ok) return nullptr;
+    constexpr std::size_t channels = stxlib::conv::channels;
+    std::vector<stxlib::u8> straight_source(source_width * source_height * channels);
+    std::vector<stxlib::u8> straight_target(target_width * target_height * channels);
+    straight_rgba_from_premultiplied_bgra(pixels, straight_source);
+    stxlib::OperationResult<stxlib::conv::Field> made =
+        stxlib::conv::Field::make(source_width, source_height, stxlib::conv::FieldOptions{});
+    if (made.failed()) return nullptr;
+    stxlib::conv::Field field = std::move(made).take_value();
+    const stxlib::conv::Rgba8Image image{stxlib::View<stxlib::u8>(straight_source.data(), straight_source.size()),
+                                         source_width, source_height, source_width * channels};
+    if (field.compile(image).failed()) return nullptr;
+    stxlib::OperationResult<stxlib::conv::Workspace> workspace_made = stxlib::conv::Workspace::make();
+    if (workspace_made.failed()) return nullptr;
+    stxlib::conv::Workspace workspace = std::move(workspace_made).take_value();
+    const stxlib::conv::MutableRgba8Image destination{
+        stxlib::MutableView<stxlib::u8>(straight_target.data(), straight_target.size()), target_width, target_height,
+        target_width * channels};
+    const stxlib::conv::AxisMap map{target_width, target_height};
+    const stxlib::conv::Region whole{0U, 0U, target_width, target_height};
+    const stxlib::OperationStatus transferred =
+        stxlib::conv::transfer(field, map, stxlib::conv::Mode::canon, destination, whole, workspace);
+    if (transferred.failed()) return nullptr;
     const std::size_t row_bytes = target_width * channels;
     sk_sp<SkData> data = SkData::MakeUninitialized(row_bytes * target_height);
     std::uint8_t* const bytes = static_cast<std::uint8_t*>((*data).writable_data());
-    for (std::size_t pixel = 0U; pixel < target_width * target_height; ++pixel) {
-        const std::size_t at = pixel * channels;
-        const double alpha = target_samples[at + 3U];
-        // The seam clamps each channel alone; colour above alpha is clamped
-        // to it, keeping the copy premultiplied.
-        bytes[at] = channel_byte(std::min(target_samples[at], alpha));
-        bytes[at + 1U] = channel_byte(std::min(target_samples[at + 1U], alpha));
-        bytes[at + 2U] = channel_byte(std::min(target_samples[at + 2U], alpha));
-        bytes[at + 3U] = channel_byte(alpha);
-    }
+    premultiplied_bgra_from_straight_rgba(straight_target, target_width * target_height, bytes);
     const SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kPremul_SkAlphaType,
                                                SkColorSpace::MakeSRGB());
     sk_sp<SkImage> result = SkImages::RasterFromData(info, std::move(data), row_bytes);

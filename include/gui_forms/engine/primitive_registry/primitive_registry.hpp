@@ -192,7 +192,7 @@ enum class ParameterAssignment : std::uint8_t {
 // `images` are borrowed for the call that receives the target; a caller that
 // keeps a target clears them.
 //
-// Image faces (owner, 2026-10-22: stx_conv prepares face sizes; nothing
+// Image faces (owner, 2026-10-22: CONV prepares face sizes; nothing
 // resamples inside a bake). A primitive with image fills names the sized
 // variants it needs (EnginePrimitive::image_variants); the engine prepares
 // each once, through the internal interpolation seam, keeps it in its

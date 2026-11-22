@@ -11,7 +11,7 @@
 
 // A material's image fill (owner, 2026-10-22: supported, never used by a
 // stock theme). The bake only composites: the image is prepared ahead as a
-// variant of the part's device size (owner, 2026-10-22: stx_conv prepares
+// variant of the part's device size (owner, 2026-10-22: CONV prepares
 // face sizes; image_variant.hpp makes them), and each destination pixel
 // takes the variant pixel its centre falls on. This file says which variant
 // a fill needs and how its pixels map onto the destination.

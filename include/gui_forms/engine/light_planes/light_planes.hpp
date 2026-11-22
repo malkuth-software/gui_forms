@@ -32,7 +32,7 @@
 // where lamps live (a control, a part, or both: an open owner decision);
 // this is the machinery any of them would composite with. The planes come
 // from shipped bakes, read on first use (LightPlaneCache); whether the
-// baker (BFFT, stx_conv) is needed at run time is also open, so nothing
+// baker (BFFT, stxlib::conv) is needed at run time is also open, so nothing
 // here bakes.
 //
 // Tinting after the bake is exact for light that reaches the eye after one
