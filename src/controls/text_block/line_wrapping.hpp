@@ -4,6 +4,7 @@
 // the text's lines at a width, from its line-break opportunities.
 
 #include "gui_forms/control.hpp"
+#include "gui_forms/layout/types/layout_types.hpp"
 
 #include <cstddef>
 #include <span>
@@ -47,36 +48,22 @@ struct ControlRunWidth final {
     }
 };
 
-// Fills `lines` with `text` wrapped greedily at `width`, as CSS fills lines:
-// each line takes the longest run up to a break opportunity that fits, a run
-// with no opportunity inside it that is wider than the line overflows on a
-// line of its own (`overflow-wrap: normal`), and a mandatory opportunity (a
-// line end) always ends the line, an empty one included. `opportunities`
-// holds the opportunity after each byte of `text`; when its length differs,
-// the text is one line. `measure` (ControlRunWidth or a test's) gives a
-// run's width; each candidate is measured whole, so a line of w words costs
-// w measurements. `lines` is cleared first and its storage reused; `Line`
-// is WrappedLine or a record with the same three fields in order.
+// Wraps one segment of `text` greedily: the bytes from `begin` to `finish`,
+// where `finish` follows a mandatory opportunity or is the text's end and no
+// mandatory opportunity lies inside. Appends the segment's lines (at least
+// one) to `lines`; the rules are wrap_lines_greedy's.
 template <typename Line, typename Measure>
-void wrap_lines_greedy(std::string_view text, std::span<const LineBreakOpportunity> opportunities, double width,
-                       const Measure& measure, std::vector<Line>& lines) {
-    lines.clear();
-    const std::size_t size = text.size();
-    if (size == 0U) return;
-    if (opportunities.size() != size) {
-        const std::size_t end = wrapped_content_end(text, 0U, size);
-        lines.push_back(Line{0U, end, measure(text.substr(0U, end))});
-        return;
-    }
-    std::size_t line_begin = 0U;
+void wrap_segment_greedy(std::string_view text, std::span<const LineBreakOpportunity> opportunities,
+                         std::size_t begin, std::size_t finish, double width, const Measure& measure,
+                         std::vector<Line>& lines) {
+    std::size_t line_begin = begin;
     bool has_fit = false;
     Line fitted{};
-    std::size_t fitted_next = 0U;
-    for (std::size_t position = 1U; position <= size; ++position) {
-        const bool last = position == size;
+    std::size_t fitted_next = begin;
+    for (std::size_t position = begin + 1U; position <= finish; ++position) {
+        const bool last = position == finish;
         const LineBreakOpportunity opportunity = opportunities[position - 1U];
-        const bool forced = opportunity == LineBreakOpportunity::mandatory;
-        if (!last && !forced && opportunity != LineBreakOpportunity::allowed) continue;
+        if (!last && opportunity != LineBreakOpportunity::allowed) continue;
         const std::size_t end = wrapped_content_end(text, line_begin, position);
         const double run = measure(text.substr(line_begin, end - line_begin));
         if (!has_fit || run <= width + wrap_fit_tolerance) {
@@ -91,13 +78,59 @@ void wrap_lines_greedy(std::string_view text, std::span<const LineBreakOpportuni
             fitted = Line{line_begin, next_end, next_run};
             fitted_next = position;
         }
-        if (forced && !last) {
-            lines.push_back(fitted);
-            line_begin = position;
-            has_fit = false;
-        }
     }
     if (has_fit) lines.push_back(fitted);
+}
+
+// Fills `lines` with `text` wrapped greedily at `width`, as CSS fills lines:
+// each line takes the longest run up to a break opportunity that fits, a run
+// with no opportunity inside it that is wider than the line overflows on a
+// line of its own (`overflow-wrap: normal`), and a mandatory opportunity (a
+// line end) always ends the line, an empty one included. `opportunities`
+// holds the opportunity after each byte of `text`; when its length differs,
+// the text is one line. `measure` (ControlRunWidth or a test's) gives a
+// run's width. Between mandatory opportunities each candidate is measured
+// whole, so a line of w words costs w measurements.
+//
+// At an unbounded width (practical_unbounded_extent or more, what a
+// max-content measure passes) each segment between mandatory opportunities
+// is measured once first; when it takes at most half the width it is the
+// segment's one line. The candidate loop gives the same line unless a
+// prefix of the run is wider than the line, that is wider than the whole
+// run by half the width (5e8 units), which the rest of the run's advances
+// and kerning cannot take back. Measuring every candidate there made one
+// long paragraph cost quadratic shaping (A-gf-controls-13-F2). Any other
+// segment takes the candidate loop, unchanged. `lines` is cleared
+// first and its storage reused; `Line` is WrappedLine or a record with the
+// same three fields in order.
+template <typename Line, typename Measure>
+void wrap_lines_greedy(std::string_view text, std::span<const LineBreakOpportunity> opportunities, double width,
+                       const Measure& measure, std::vector<Line>& lines) {
+    lines.clear();
+    const std::size_t size = text.size();
+    if (size == 0U) return;
+    if (opportunities.size() != size) {
+        const std::size_t end = wrapped_content_end(text, 0U, size);
+        lines.push_back(Line{0U, end, measure(text.substr(0U, end))});
+        return;
+    }
+    const bool unbounded = width >= practical_unbounded_extent;
+    std::size_t begin = 0U;
+    while (begin < size) {
+        std::size_t finish = begin + 1U;
+        while (finish < size && opportunities[finish - 1U] != LineBreakOpportunity::mandatory) ++finish;
+        if (unbounded) {
+            const std::size_t end = wrapped_content_end(text, begin, finish);
+            const double run = measure(text.substr(begin, end - begin));
+            if (run <= width * 0.5) {
+                lines.push_back(Line{begin, end, run});
+                begin = finish;
+                continue;
+            }
+        }
+        wrap_segment_greedy(text, opportunities, begin, finish, width, measure, lines);
+        begin = finish;
+    }
 }
 
 } // namespace gui_forms::line_wrapping_detail
