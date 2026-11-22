@@ -396,6 +396,11 @@ Since pull request #484:
   around the process-control dialog, and `gui_forms_process_control` shows
   the same dialog as a program of its own. Carbon fibre has finer strands
   and sparse glints.
+- Touch: `gui_forms_touch_start`, a demonstrator in the style of a tiled
+  start screen: groups of live tiles on a surface that pans, with wheel,
+  drag, click and keyboard working now, and launch animations. Its input
+  runs through the touch seams (tap, flick, press-and-hold, inertia and
+  overscroll), which touch input fills in.
 - Ribbon: groups compact automatically after their authored layouts, first
   by image size and then by rows (up to three), before collapsing. A held
   tab shows the pressed dent. A checked command or a selected gallery item
