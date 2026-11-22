@@ -169,6 +169,12 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_generate_library_docs.py
           python3 -B -m unittest discover -s tools -p test_flatten_control_headers.py
           python3 tools/generate_library_docs.py --check
+          # The documentation's one table of numbers (docs/conf.py): the README's
+          # version, ABI and platform lines from it, its source links and the
+          # preview plumbing (tools/capture_previews.py, docs/_ext/gf_preview.py).
+          python3 -B -m unittest discover -s tools -p test_docs_numbers.py
+          python3 -B -m unittest discover -s tools -p test_capture_previews.py
+          python3 -B tools/readme_numbers.py --check
           python3 -B ../template_harness/harness/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz stx_fontpack
           python3 -B -m unittest discover -s tools -p test_ci_build.py
           python3 -B -m unittest discover -s tools -p test_ci_docs_only.py
