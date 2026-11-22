@@ -841,6 +841,7 @@ __ZGVZN9gui_forms17NodeLinkConnected*
 __ZGVZN9gui_forms17ObjectDetailsCell*
 __ZGVZN9gui_forms17ObjectDetailsSort*
 __ZGVZN9gui_forms17PartRasterRequest*
+__ZGVZN9gui_forms17PieSliceSelection*
 __ZGVZN9gui_forms17PlotHeatmapSeries*
 __ZGVZN9gui_forms17PresentationState*
 __ZGVZN9gui_forms17PrimitiveRegistry*
@@ -957,6 +958,7 @@ __ZGVZN9gui_forms18PaintLeaseSnapshot*
 __ZGVZN9gui_forms18ParagraphGlyphRuns*
 __ZGVZN9gui_forms18PartGeometryBuffer*
 __ZGVZN9gui_forms18PartRasterInterior*
+__ZGVZN9gui_forms18PieSliceActivation*
 __ZGVZN9gui_forms18PlotAnnotationItem*
 __ZGVZN9gui_forms18PreparedFontSource*
 __ZGVZN9gui_forms18PreparedTextLayout*
@@ -1633,6 +1635,8 @@ __ZGVZN9gui_forms8LinkFlow*
 __ZGVZN9gui_forms8ListView*
 __ZGVZN9gui_forms8NodeSpec*
 __ZGVZN9gui_forms8PageView*
+__ZGVZN9gui_forms8PieChart*
+__ZGVZN9gui_forms8PieSlice*
 __ZGVZN9gui_forms8PlotView*
 __ZGVZN9gui_forms8Splitter*
 __ZGVZN9gui_forms8StableId*
@@ -2530,6 +2534,7 @@ __ZGVZNK9gui_forms17NodeLinkConnected*
 __ZGVZNK9gui_forms17ObjectDetailsCell*
 __ZGVZNK9gui_forms17ObjectDetailsSort*
 __ZGVZNK9gui_forms17PartRasterRequest*
+__ZGVZNK9gui_forms17PieSliceSelection*
 __ZGVZNK9gui_forms17PlotHeatmapSeries*
 __ZGVZNK9gui_forms17PresentationState*
 __ZGVZNK9gui_forms17PrimitiveRegistry*
@@ -2646,6 +2651,7 @@ __ZGVZNK9gui_forms18PaintLeaseSnapshot*
 __ZGVZNK9gui_forms18ParagraphGlyphRuns*
 __ZGVZNK9gui_forms18PartGeometryBuffer*
 __ZGVZNK9gui_forms18PartRasterInterior*
+__ZGVZNK9gui_forms18PieSliceActivation*
 __ZGVZNK9gui_forms18PlotAnnotationItem*
 __ZGVZNK9gui_forms18PreparedFontSource*
 __ZGVZNK9gui_forms18PreparedTextLayout*
@@ -3322,6 +3328,8 @@ __ZGVZNK9gui_forms8LinkFlow*
 __ZGVZNK9gui_forms8ListView*
 __ZGVZNK9gui_forms8NodeSpec*
 __ZGVZNK9gui_forms8PageView*
+__ZGVZNK9gui_forms8PieChart*
+__ZGVZNK9gui_forms8PieSlice*
 __ZGVZNK9gui_forms8PlotView*
 __ZGVZNK9gui_forms8Splitter*
 __ZGVZNK9gui_forms8StableId*
@@ -4543,6 +4551,7 @@ __ZN9gui_forms17NodeLinkConnected*
 __ZN9gui_forms17ObjectDetailsCell*
 __ZN9gui_forms17ObjectDetailsSort*
 __ZN9gui_forms17PartRasterRequest*
+__ZN9gui_forms17PieSliceSelection*
 __ZN9gui_forms17PlotHeatmapSeries*
 __ZN9gui_forms17PresentationState*
 __ZN9gui_forms17PrimitiveRegistry*
@@ -4745,6 +4754,7 @@ __ZN9gui_forms18PaintLeaseSnapshot*
 __ZN9gui_forms18ParagraphGlyphRuns*
 __ZN9gui_forms18PartGeometryBuffer*
 __ZN9gui_forms18PartRasterInterior*
+__ZN9gui_forms18PieSliceActivation*
 __ZN9gui_forms18PlotAnnotationItem*
 __ZN9gui_forms18PreparedFontSource*
 __ZN9gui_forms18PreparedTextLayout*
@@ -6653,6 +6663,8 @@ __ZN9gui_forms8LinkFlow*
 __ZN9gui_forms8ListView*
 __ZN9gui_forms8NodeSpec*
 __ZN9gui_forms8PageView*
+__ZN9gui_forms8PieChart*
+__ZN9gui_forms8PieSlice*
 __ZN9gui_forms8PlotView*
 __ZN9gui_forms8Splitter*
 __ZN9gui_forms8StableId*
@@ -7614,6 +7626,7 @@ __ZNK[RO]9gui_forms17NodeLinkConnected*
 __ZNK[RO]9gui_forms17ObjectDetailsCell*
 __ZNK[RO]9gui_forms17ObjectDetailsSort*
 __ZNK[RO]9gui_forms17PartRasterRequest*
+__ZNK[RO]9gui_forms17PieSliceSelection*
 __ZNK[RO]9gui_forms17PlotHeatmapSeries*
 __ZNK[RO]9gui_forms17PresentationState*
 __ZNK[RO]9gui_forms17PrimitiveRegistry*
@@ -7730,6 +7743,7 @@ __ZNK[RO]9gui_forms18PaintLeaseSnapshot*
 __ZNK[RO]9gui_forms18ParagraphGlyphRuns*
 __ZNK[RO]9gui_forms18PartGeometryBuffer*
 __ZNK[RO]9gui_forms18PartRasterInterior*
+__ZNK[RO]9gui_forms18PieSliceActivation*
 __ZNK[RO]9gui_forms18PlotAnnotationItem*
 __ZNK[RO]9gui_forms18PreparedFontSource*
 __ZNK[RO]9gui_forms18PreparedTextLayout*
@@ -8406,6 +8420,8 @@ __ZNK[RO]9gui_forms8LinkFlow*
 __ZNK[RO]9gui_forms8ListView*
 __ZNK[RO]9gui_forms8NodeSpec*
 __ZNK[RO]9gui_forms8PageView*
+__ZNK[RO]9gui_forms8PieChart*
+__ZNK[RO]9gui_forms8PieSlice*
 __ZNK[RO]9gui_forms8PlotView*
 __ZNK[RO]9gui_forms8Splitter*
 __ZNK[RO]9gui_forms8StableId*
@@ -9303,6 +9319,7 @@ __ZN[KRO]9gui_forms17NodeLinkConnected*
 __ZN[KRO]9gui_forms17ObjectDetailsCell*
 __ZN[KRO]9gui_forms17ObjectDetailsSort*
 __ZN[KRO]9gui_forms17PartRasterRequest*
+__ZN[KRO]9gui_forms17PieSliceSelection*
 __ZN[KRO]9gui_forms17PlotHeatmapSeries*
 __ZN[KRO]9gui_forms17PresentationState*
 __ZN[KRO]9gui_forms17PrimitiveRegistry*
@@ -9419,6 +9436,7 @@ __ZN[KRO]9gui_forms18PaintLeaseSnapshot*
 __ZN[KRO]9gui_forms18ParagraphGlyphRuns*
 __ZN[KRO]9gui_forms18PartGeometryBuffer*
 __ZN[KRO]9gui_forms18PartRasterInterior*
+__ZN[KRO]9gui_forms18PieSliceActivation*
 __ZN[KRO]9gui_forms18PlotAnnotationItem*
 __ZN[KRO]9gui_forms18PreparedFontSource*
 __ZN[KRO]9gui_forms18PreparedTextLayout*
@@ -10095,6 +10113,8 @@ __ZN[KRO]9gui_forms8LinkFlow*
 __ZN[KRO]9gui_forms8ListView*
 __ZN[KRO]9gui_forms8NodeSpec*
 __ZN[KRO]9gui_forms8PageView*
+__ZN[KRO]9gui_forms8PieChart*
+__ZN[KRO]9gui_forms8PieSlice*
 __ZN[KRO]9gui_forms8PlotView*
 __ZN[KRO]9gui_forms8Splitter*
 __ZN[KRO]9gui_forms8StableId*
@@ -10992,6 +11012,7 @@ __ZT[VIST]N9gui_forms17NodeLinkConnected*E
 __ZT[VIST]N9gui_forms17ObjectDetailsCell*E
 __ZT[VIST]N9gui_forms17ObjectDetailsSort*E
 __ZT[VIST]N9gui_forms17PartRasterRequest*E
+__ZT[VIST]N9gui_forms17PieSliceSelection*E
 __ZT[VIST]N9gui_forms17PlotHeatmapSeries*E
 __ZT[VIST]N9gui_forms17PresentationState*E
 __ZT[VIST]N9gui_forms17PrimitiveRegistry*E
@@ -11108,6 +11129,7 @@ __ZT[VIST]N9gui_forms18PaintLeaseSnapshot*E
 __ZT[VIST]N9gui_forms18ParagraphGlyphRuns*E
 __ZT[VIST]N9gui_forms18PartGeometryBuffer*E
 __ZT[VIST]N9gui_forms18PartRasterInterior*E
+__ZT[VIST]N9gui_forms18PieSliceActivation*E
 __ZT[VIST]N9gui_forms18PlotAnnotationItem*E
 __ZT[VIST]N9gui_forms18PreparedFontSource*E
 __ZT[VIST]N9gui_forms18PreparedTextLayout*E
@@ -11784,6 +11806,8 @@ __ZT[VIST]N9gui_forms8LinkFlow*E
 __ZT[VIST]N9gui_forms8ListView*E
 __ZT[VIST]N9gui_forms8NodeSpec*E
 __ZT[VIST]N9gui_forms8PageView*E
+__ZT[VIST]N9gui_forms8PieChart*E
+__ZT[VIST]N9gui_forms8PieSlice*E
 __ZT[VIST]N9gui_forms8PlotView*E
 __ZT[VIST]N9gui_forms8Splitter*E
 __ZT[VIST]N9gui_forms8StableId*E
@@ -12681,6 +12705,7 @@ __ZT[hvc]*9gui_forms17NodeLinkConnected*
 __ZT[hvc]*9gui_forms17ObjectDetailsCell*
 __ZT[hvc]*9gui_forms17ObjectDetailsSort*
 __ZT[hvc]*9gui_forms17PartRasterRequest*
+__ZT[hvc]*9gui_forms17PieSliceSelection*
 __ZT[hvc]*9gui_forms17PlotHeatmapSeries*
 __ZT[hvc]*9gui_forms17PresentationState*
 __ZT[hvc]*9gui_forms17PrimitiveRegistry*
@@ -12797,6 +12822,7 @@ __ZT[hvc]*9gui_forms18PaintLeaseSnapshot*
 __ZT[hvc]*9gui_forms18ParagraphGlyphRuns*
 __ZT[hvc]*9gui_forms18PartGeometryBuffer*
 __ZT[hvc]*9gui_forms18PartRasterInterior*
+__ZT[hvc]*9gui_forms18PieSliceActivation*
 __ZT[hvc]*9gui_forms18PlotAnnotationItem*
 __ZT[hvc]*9gui_forms18PreparedFontSource*
 __ZT[hvc]*9gui_forms18PreparedTextLayout*
@@ -13473,6 +13499,8 @@ __ZT[hvc]*9gui_forms8LinkFlow*
 __ZT[hvc]*9gui_forms8ListView*
 __ZT[hvc]*9gui_forms8NodeSpec*
 __ZT[hvc]*9gui_forms8PageView*
+__ZT[hvc]*9gui_forms8PieChart*
+__ZT[hvc]*9gui_forms8PieSlice*
 __ZT[hvc]*9gui_forms8PlotView*
 __ZT[hvc]*9gui_forms8Splitter*
 __ZT[hvc]*9gui_forms8StableId*
@@ -14370,6 +14398,7 @@ __ZZN9gui_forms17NodeLinkConnected*
 __ZZN9gui_forms17ObjectDetailsCell*
 __ZZN9gui_forms17ObjectDetailsSort*
 __ZZN9gui_forms17PartRasterRequest*
+__ZZN9gui_forms17PieSliceSelection*
 __ZZN9gui_forms17PlotHeatmapSeries*
 __ZZN9gui_forms17PresentationState*
 __ZZN9gui_forms17PrimitiveRegistry*
@@ -14486,6 +14515,7 @@ __ZZN9gui_forms18PaintLeaseSnapshot*
 __ZZN9gui_forms18ParagraphGlyphRuns*
 __ZZN9gui_forms18PartGeometryBuffer*
 __ZZN9gui_forms18PartRasterInterior*
+__ZZN9gui_forms18PieSliceActivation*
 __ZZN9gui_forms18PlotAnnotationItem*
 __ZZN9gui_forms18PreparedFontSource*
 __ZZN9gui_forms18PreparedTextLayout*
@@ -15162,6 +15192,8 @@ __ZZN9gui_forms8LinkFlow*
 __ZZN9gui_forms8ListView*
 __ZZN9gui_forms8NodeSpec*
 __ZZN9gui_forms8PageView*
+__ZZN9gui_forms8PieChart*
+__ZZN9gui_forms8PieSlice*
 __ZZN9gui_forms8PlotView*
 __ZZN9gui_forms8Splitter*
 __ZZN9gui_forms8StableId*
@@ -16059,6 +16091,7 @@ __ZZNK9gui_forms17NodeLinkConnected*
 __ZZNK9gui_forms17ObjectDetailsCell*
 __ZZNK9gui_forms17ObjectDetailsSort*
 __ZZNK9gui_forms17PartRasterRequest*
+__ZZNK9gui_forms17PieSliceSelection*
 __ZZNK9gui_forms17PlotHeatmapSeries*
 __ZZNK9gui_forms17PresentationState*
 __ZZNK9gui_forms17PrimitiveRegistry*
@@ -16175,6 +16208,7 @@ __ZZNK9gui_forms18PaintLeaseSnapshot*
 __ZZNK9gui_forms18ParagraphGlyphRuns*
 __ZZNK9gui_forms18PartGeometryBuffer*
 __ZZNK9gui_forms18PartRasterInterior*
+__ZZNK9gui_forms18PieSliceActivation*
 __ZZNK9gui_forms18PlotAnnotationItem*
 __ZZNK9gui_forms18PreparedFontSource*
 __ZZNK9gui_forms18PreparedTextLayout*
@@ -16851,6 +16885,8 @@ __ZZNK9gui_forms8LinkFlow*
 __ZZNK9gui_forms8ListView*
 __ZZNK9gui_forms8NodeSpec*
 __ZZNK9gui_forms8PageView*
+__ZZNK9gui_forms8PieChart*
+__ZZNK9gui_forms8PieSlice*
 __ZZNK9gui_forms8PlotView*
 __ZZNK9gui_forms8Splitter*
 __ZZNK9gui_forms8StableId*

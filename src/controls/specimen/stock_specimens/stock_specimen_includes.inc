@@ -26,6 +26,7 @@
 #include "gui_forms/controls/sweep_scope.hpp"
 #include "gui_forms/controls/sparkline.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/pie_chart.hpp"
 #include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"

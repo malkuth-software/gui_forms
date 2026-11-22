@@ -1,6 +1,7 @@
 {
   "description": "Direct drawing calls under src/controls/ (tools/paint_census.py); the stage T4 gate is zero stock calls. The census may only fall. Effect-canvas calls (effect_calls) are the effect engine's sanctioned path and are not stock calls.",
   "drawing_methods": [
+    "clip_path",
     "clip_rounded_rect_corners",
     "draw_baked_surface_material",
     "draw_box_shadow",
@@ -17,6 +18,8 @@
     "draw_prepared_text",
     "draw_retained_box_shadow",
     "draw_retained_text_utf8",
+    "draw_rotated_glyph_runs",
+    "draw_rotated_text_utf8",
     "draw_surface_material",
     "draw_text_runs",
     "draw_text_utf8",
@@ -24,18 +27,24 @@
     "fill_band",
     "fill_checker",
     "fill_conic_gradient",
+    "fill_focal_radial_gradient",
     "fill_grid_pattern",
+    "fill_hatch",
     "fill_image_pattern",
     "fill_linear_gradient",
     "fill_linear_gradient_spread",
+    "fill_path",
     "fill_polygon",
     "fill_radial_gradient",
+    "fill_radial_gradient_spread",
     "fill_rect",
     "fill_rects",
     "fill_rects_each",
     "fill_rounded_rect",
     "fill_rounded_rect_corners",
+    "image_draw_opacity",
     "opaque_live_surface_cover",
+    "stroke_path",
     "stroke_polyline",
     "stroke_rect",
     "stroke_rounded_rect",
@@ -52,22 +61,23 @@
     "panel/material_panel/material_panel.cpp": "authored material: MaterialPanel paints the material its application gives it, as content (owner decision, 2026-11-03)",
     "panel/picture_box/picture_box.cpp": "draws application content (owner decision T4-4, 2026-11-01); only its frame and background go through the theme",
     "panel/text_box/text_box_decorations.cpp": "content paint (owner ruling, 2026-11-09): the backgrounds and underlines of a TextBox's styled runs are application content authored by the producer (a syntax highlighter, a spell checker), like the text itself, not chrome; the inks a decoration takes from the theme still resolve through the theme",
+    "plots/pie_chart/pie_chart.cpp": "draws application content: the slices, in the colours the application gives or the theme's series colours (as plot_engine and metrics_view, owner decision T4-4); its plot field, legend, swatches' wells, labels and focus cue go through the theme",
     "plots/plot_view/plot_engine.cpp": "draws application content: plotted markers and legend swatches in the series colours the application gives (as metrics_view, owner decision T4-4). Pending review: the zoom and selection boxes (four calls) are chrome in the recipe's focus colour and should move to a theme part",
     "raster_canvas/raster_canvas.cpp": "draws the application's raster (RasterCanvas), not chrome",
     "specimen/stock_specimens/stock_specimens.cpp": "the DrawingSurface stock specimen's sample picture (paint_sample_drawing): application content painted through the specimen's own paint handler, not chrome, as drawing_surface/drawing_surface.cpp (integrator, cp29 block 3; on the T4-4 precedent, for the owner to confirm)"
   },
   "totals": {
     "exempt": {
-      "files": 12,
-      "calls": 41
+      "files": 13,
+      "calls": 42
     },
     "demo": {
       "files": 2,
       "calls": 12
     },
     "effect": {
-      "files": 3,
-      "calls": 23
+      "files": 4,
+      "calls": 27
     }
   },
   "files": {
@@ -104,6 +114,11 @@
       "calls": 0,
       "effect_calls": 3
     },
+    "interaction_cues/interaction_cue_effects.cpp": {
+      "category": "stock",
+      "calls": 0,
+      "effect_calls": 4
+    },
     "link_flow/link_flow_effects.cpp": {
       "category": "stock",
       "calls": 0,
@@ -124,6 +139,10 @@
     "panel/text_box/text_box_decorations.cpp": {
       "category": "exempt",
       "calls": 3
+    },
+    "plots/pie_chart/pie_chart.cpp": {
+      "category": "exempt",
+      "calls": 1
     },
     "plots/plot_view/plot_engine.cpp": {
       "category": "exempt",

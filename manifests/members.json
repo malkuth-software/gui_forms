@@ -1313,6 +1313,24 @@
       {"kind": "method", "winforms": null, "gui_forms": "x_range", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "y_range", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"}
     ]},
+    {"type": "PieChart", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/instruments_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "doughnut_radius", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "label_style", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "legend_visible", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "realized_slices", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/pie_chart_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "selected_id", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/instruments_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "slices", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/instruments_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "start_angle", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "total", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/pie_chart_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "selection_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/pie_chart_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "slice_activated", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/pie_chart_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "index_of", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/pie_chart_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "on_font_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "pie_chart_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "set_slice_value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/pie_chart_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "share", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/pie_chart_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "slice_at", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/pie_chart_tests.cpp"}
+    ]},
     {"type": "Plot3DView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/abi/events/gf_abi_event_fields.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "camera", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/abi/events/gf_abi_event_fields.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "hover", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -1952,7 +1970,7 @@
       {"kind": "event", "winforms": null, "gui_forms": "item_activated", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "selection_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "sort_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "check_state", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "check_state", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/tree-and-object-views_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "ensure_visible", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/kept_layout_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "expand_subtree", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "index_of", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/hostile_handlers/hostile_handlers_tests.cpp"},

@@ -26,6 +26,7 @@
     {"sweep_scope", "Information display", Size{240.0, 80.0}, "Sweep scope", &make_sweep_scope, nullptr, ""},
     {"sparkline", "Information display", Size{224.0, 48.0}, "Sparkline", &make_sparkline, nullptr, ""},
     {"plot_view", "Information display", Size{340.0, 200.0}, "Plot view", &make_plot_view, nullptr, ""},
+    {"pie_chart", "Information display", Size{320.0, 200.0}, "Pie chart", &make_pie_chart, nullptr, ""},
     {"plot3d_view", "Information display", Size{340.0, 260.0}, "3D plot", &make_plot3d_view, nullptr, ""},
     {"plot_axis_item", "Information display", Size{340.0, 200.0}, "Plot axis item", &make_plot_axis_item, nullptr, ""},
     {"plot_series_item", "Information display", Size{340.0, 200.0}, "Plot series item", &make_plot_series_item, nullptr, ""},

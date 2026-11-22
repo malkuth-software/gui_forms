@@ -97,6 +97,7 @@
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/pie_chart.hpp"
 #include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
@@ -166,7 +167,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 155> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -192,6 +193,7 @@ inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
     {"sweep_scope", "SweepScope", "gui_forms/controls/sweep_scope.hpp", &add_catalog_type<SweepScope>, CatalogConstruction::stable_id},
     {"sparkline", "Sparkline", "gui_forms/controls/sparkline.hpp", &add_catalog_type<Sparkline>, CatalogConstruction::stable_id},
     {"plot_view", "PlotView", "gui_forms/controls/plot_view.hpp", &add_catalog_type<PlotView>, CatalogConstruction::stable_id},
+    {"pie_chart", "PieChart", "gui_forms/controls/pie_chart.hpp", &add_catalog_type<PieChart>, CatalogConstruction::stable_id},
     {"plot3d_view", "Plot3DView", "gui_forms/controls/plot3d_view.hpp", &add_catalog_type<Plot3DView>, CatalogConstruction::stable_id},
     {"plot_axis_item", "PlotAxisItem", "gui_forms/controls/plot_axis_item.hpp", &add_catalog_type<PlotAxisItem>, CatalogConstruction::stable_id},
     {"plot_series_item", "PlotSeriesItem", "gui_forms/controls/plot_series_item.hpp", &add_catalog_type<PlotSeriesItem>, CatalogConstruction::stable_id},

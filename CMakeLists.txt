@@ -1408,6 +1408,7 @@ add_library(gui_forms_controls STATIC
     src/controls/plots/plot_series_item/plot_series_item_custom.cpp
     src/controls/plots/plot_annotation_item/plot_annotation_item.cpp
     src/controls/plots/plot_view/plot_engine.cpp
+    src/controls/plots/pie_chart/pie_chart.cpp
     src/controls/plots/plot_view/plot_view.cpp
     src/controls/plots/plot_view/plot_view_live.cpp
     src/controls/plots/plot_view/plot_view_links.cpp

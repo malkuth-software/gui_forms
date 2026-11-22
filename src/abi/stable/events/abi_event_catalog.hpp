@@ -96,6 +96,7 @@
 #include "gui_forms/controls/page_strip.hpp"
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/pie_chart.hpp"
 #include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/controls/plot_view.hpp"
@@ -1523,6 +1524,8 @@ void read_field(EventFields& fields, std::string_view name, PageId& value);
 void append_field(EventFields& fields, std::string_view name, const PageInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const PagePinRequest& value);
 void read_field(EventFields& fields, std::string_view name, PagePinRequest& value);
+void append_field(EventFields& fields, std::string_view name, const PieSliceActivation& value);
+void append_field(EventFields& fields, std::string_view name, const PieSliceSelection& value);
 void append_field(EventFields& fields, std::string_view name, const PlotHandleMove& value);
 void append_field(EventFields& fields, std::string_view name, const PlotPointPick& value);
 void append_field(EventFields& fields, std::string_view name, const PlotQuery& value);
@@ -3137,6 +3140,19 @@ inline void read_field(EventFields& fields, std::string_view name, PagePinReques
     read_field(fields, "page", value.page);
     read_field(fields, "pinned", value.pinned);
     read_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PieSliceActivation& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "slice_id", value.slice_id);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PieSliceSelection& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "previous_id", value.previous_id);
+    append_field(fields, "current_id", value.current_id);
     fields.leave(prefix);
 }
 
@@ -6771,6 +6787,15 @@ inline SubscriptionToken connect_node_canvas_selection_changed(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_pie_chart_selection_changed(Component& source, const EventSink& sink) {
+    PieChart* typed = dynamic_cast<PieChart*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_plot_view_selection_changed(Component& source, const EventSink& sink) {
     PlotView* typed = dynamic_cast<PlotView*>(&source);
     if (typed == nullptr) {
@@ -6804,6 +6829,15 @@ inline SubscriptionToken connect_virtual_rows_view_selection_changed(Component& 
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_pie_chart_slice_activated(Component& source, const EventSink& sink) {
+    PieChart* typed = dynamic_cast<PieChart*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).slice_activated(), sink);
     return token;
 }
 
@@ -7361,7 +7395,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 384> event_connectors{{
+inline constexpr std::array<EventConnector, 386> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7681,10 +7715,12 @@ inline constexpr std::array<EventConnector, 384> event_connectors{{
     {"selection_changed", "DataGridView", &connect_data_grid_view_selection_changed},
     {"selection_changed", "ListView", &connect_list_view_selection_changed},
     {"selection_changed", "NodeCanvas", &connect_node_canvas_selection_changed},
+    {"selection_changed", "PieChart", &connect_pie_chart_selection_changed},
     {"selection_changed", "PlotView", &connect_plot_view_selection_changed},
     {"selection_changed", "RibbonGallery", &connect_ribbon_gallery_selection_changed},
     {"selection_changed", "TreeListView", &connect_tree_list_view_selection_changed},
     {"selection_changed", "VirtualRowsView", &connect_virtual_rows_view_selection_changed},
+    {"slice_activated", "PieChart", &connect_pie_chart_slice_activated},
     {"sort_changed", "TreeListView", &connect_tree_list_view_sort_changed},
     {"sort_compare", "DataGridView", &connect_data_grid_view_sort_compare},
     {"sort_requested", "ObjectView", &connect_object_view_sort_requested},

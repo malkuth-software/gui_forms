@@ -633,6 +633,35 @@ Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `sho
 | `handle_moved` | `PlotHandleMove` |
 | `handle_committed` | `PlotHandleMove` |
 
+## `pie_chart` (PieChart, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `plot` | plot |  |  |
+| `legend` | legend |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `slice`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `slice` | series |  |  |
+| `slice_label` | label |  |  |
+| `legend_swatch` | well |  |  |
+| `legend_label` | legend_entry |  |  |
+
+Item states: `hot`, `selected`, `focus_visible`, `disabled`.
+
+Properties beyond every control's: `doughnut_radius` (number), `label_style` (enumeration), `legend_visible` (boolean), `start_angle` (number).
+
+| Interaction | Payload |
+|---|---|
+| `selection_changed` | `PieSliceSelection` |
+| `slice_activated` | `PieSliceActivation` |
+
 ## `plot3d_view` (Plot3DView, control)
 
 | Part | Role | Reuses | Own states |

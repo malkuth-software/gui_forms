@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 202> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -126,6 +126,8 @@ inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
     {"PageDragStart", "page: text, press_point: point, pointer: point, claimed: boolean"},
     {"PageInvocation", "page: text, cause: enumeration"},
     {"PagePinRequest", "page: text, pinned: boolean, handled: boolean"},
+    {"PieSliceActivation", "slice_id: text"},
+    {"PieSliceSelection", "previous_id: text optional, current_id: text optional"},
     {"PlotHandleMove", "id: unsigned_integer, x: number, y: number, end: enumeration"},
     {"PlotPointPick", "series: unsigned_integer, element: unsigned_integer, x: number, y: number"},
     {"PlotQuery", "present: boolean, x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},

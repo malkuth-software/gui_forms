@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2378 | 3 | 370 | 4136 | 2495 |
+| 2388 | 3 | 370 | 4142 | 2511 |
 
 ## GUI.Forms types
 
@@ -41,6 +41,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `SweepScope` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
 | `Sparkline` | GUI.Forms-only | 6 | 0 | 0 | 4 | 10 |
 | `PlotView` | GUI.Forms-only | 24 | 0 | 0 | 11 | 35 |
+| `PieChart` | GUI.Forms-only | 10 | 0 | 0 | 6 | 16 |
 | `Plot3DView` | GUI.Forms-only | 14 | 0 | 0 | 11 | 25 |
 | `PlotAxisItem` | GUI.Forms-only | 2 | 0 | 0 | 8 | 10 |
 | `PlotSeriesItem` | GUI.Forms-only | 9 | 0 | 0 | 20 | 29 |
@@ -313,5 +314,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 963 |
+| `untested` | 969 |
 | `w-open` | 5 |

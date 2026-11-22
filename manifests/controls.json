@@ -284,6 +284,17 @@
       "doc": "api/generated/gui_forms.PlotView.rst"
     },
     {
+      "id": "pie_chart",
+      "type": "PieChart",
+      "header": "gui_forms/controls/pie_chart.hpp",
+      "category": "Information display",
+      "purpose": "Pie and doughnut chart from the plots package: slices kept by stable ID in theme series colours, share labels inside or outside, a legend, selection by click or keyboard and a list for accessibility.",
+      "winforms": "GUI.Forms-only",
+      "status": "provisional",
+      "gallery_page": "instruments",
+      "doc": "api/generated/gui_forms.PieChart.rst"
+    },
+    {
       "id": "plot3d_view",
       "type": "Plot3DView",
       "header": "gui_forms/controls/plot3d_view.hpp",
