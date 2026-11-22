@@ -14,7 +14,6 @@ int main(int argc, char** argv) {
     options.initial_size = {1320.0, 840.0};
     options.minimum_size = {1040.0, 720.0};
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     return gui_forms::host::run_windows(
         gui_forms::typography_scale_lab::make_typography_scale_lab(),
         std::move(options));

@@ -120,12 +120,22 @@ option(GUI_FORMS_ENABLE_MACOS_HOST "Build the native AppKit host" ${APPLE})
 option(GUI_FORMS_ENABLE_WINDOWS_HOST "Build the native Win32 host" ${WIN32})
 option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
        "Enable bounded transactional DIB frames in the Windows development host" OFF)
-# A-gf-host-03-F6: the GUI_FORMS_WINDOWS_AUTOMATION variable counts only in
-# a program that called host::accept_automation_environment, and only when
-# this is on. CI packages the tree it tested, so it stays on there; the
-# opt-in keeps a shipped program closed to the variable.
-option(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT
-       "Let a Windows program that opts in (host::accept_automation_environment) turn on automation from GUI_FORMS_WINDOWS_AUTOMATION=1" ON)
+# The automation and MCP (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
+# rulings 3 and 17): GUI_FORMS_MCP builds the capability, on by default; a
+# launch with --mcp (or GUI_FORMS_MCP=1) or --mcp-script turns it on for that
+# run. The transport needs STXlib's stx_mcp (the stxlib::mcp target); without
+# it --mcp says so and the program runs without MCP. The test controls
+# (suspend_input) are on in the debug and test presets only. The Windows
+# WM_COPYDATA channel and the X11 --automation flag that came before are
+# retired.
+option(GUI_FORMS_MCP "Build the automation and MCP capability (turned on per launch with --mcp)" ON)
+# A Debug build has them by default; a Release build (every shipped program)
+# only when asked, as the test-cache job of the test configuration does.
+set(_gf_mcp_test_controls_default OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(_gf_mcp_test_controls_default ON)
+endif()
+option(GUI_FORMS_MCP_TEST_CONTROLS "Build the automation's test controls (suspend_input)" ${_gf_mcp_test_controls_default})
 option(GUI_FORMS_ENABLE_LINUX_HOST "Build the native X11 host with the private CPU renderer" OFF)
 option(GUI_FORMS_ENABLE_WAYLAND_PRESENT "Build the Wayland wl_shm presentation path (no Wayland host yet)" OFF)
 # The browser host (owner decisions, 2026-11-15): Emscripten only, through
@@ -488,6 +498,7 @@ add_custom_command(
 
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
+    src/core/host/session/session_directory.cpp
     src/core/build_profile/build_profile.cpp
     src/core/application/native_popup.cpp
     src/core/application/transient_window.cpp
@@ -1231,6 +1242,9 @@ add_library(gui_forms_controls STATIC
     src/controls/collections/choice_group.cpp
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp
+    src/controls/commands/command_directory/command_directory.cpp
+    src/controls/automation/marks/automation_marks.cpp
+    src/controls/automation/tools/automation_tools.cpp
     src/controls/commands/command_binding/command_binding.cpp
     src/controls/rules/rule/rule.cpp
     src/controls/rules/rule_set/rule_set.cpp
@@ -2126,9 +2140,6 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     target_compile_definitions(gui_forms_host_windows PRIVATE
         ${GUI_FORMS_WINDOWS_DEFINITIONS}
     )
-    if(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
-        target_compile_definitions(gui_forms_host_windows PRIVATE GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT=1)
-    endif()
     if(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
         target_sources(gui_forms_host_windows PRIVATE
             $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
@@ -2176,12 +2187,37 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     # is part of the C ABI library on Windows (one module, owner decision
     # 2026-11-15, "Fold it in"): cmake/CAbi.cmake compiles it with the
     # library's objects and exports its Win32 names.
-    add_executable(gui_forms_windows_probe
-        tools/windows_automation_probe.cpp
-    )
-    target_compile_definitions(gui_forms_windows_probe PRIVATE
-        ${GUI_FORMS_WINDOWS_DEFINITIONS}
-    )
+endif()
+
+# The automation core (src/controls/automation; stage G1) in the controls
+# library, and its run and MCP transport (src/runtime/automation; stage G2)
+# in the Application library of every desktop host.
+if(GUI_FORMS_MCP)
+    target_sources(gui_forms_controls PRIVATE
+        src/controls/automation/control/automation_control.cpp
+        src/controls/automation/core/automation_arguments.cpp
+        src/controls/automation/core/automation_outline.cpp
+        src/controls/automation/core/automation_input.cpp
+        src/controls/automation/core/automation_reads.cpp
+        src/controls/automation/core/automation_core.cpp
+        src/controls/automation/presenter/stock_presenter.cpp)
+    target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP=1)
+    if(GUI_FORMS_MCP_TEST_CONTROLS)
+        target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP_TEST_CONTROLS=1)
+    endif()
+    if(TARGET gui_forms_application AND NOT GUI_FORMS_HIGH_INTEGRITY)
+        target_sources(gui_forms_application PRIVATE
+            src/runtime/automation/automation_run.cpp
+            src/runtime/automation/automation_script.cpp
+            src/runtime/automation/mcp_transport.cpp)
+        target_compile_definitions(gui_forms_application PRIVATE GUI_FORMS_MCP_BUILT=1)
+        if(TARGET stxlib::mcp)
+            target_link_libraries(gui_forms_application PRIVATE stxlib::mcp)
+            target_compile_definitions(gui_forms_application PRIVATE GUI_FORMS_MCP_TRANSPORT=1)
+        else()
+            message(STATUS "GUI_FORMS_MCP: stxlib::mcp not found; --mcp reports no transport in this build")
+        endif()
+    endif()
 endif()
 
 # Every archive the Application library holds
@@ -2921,7 +2957,7 @@ if(GUI_FORMS_BUILD_GALLERY)
                         WINE_BINARY=${GUI_FORMS_WINE_EXECUTABLE}
                         ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_windows_wine_smoke.sh
                         ${CMAKE_CURRENT_BINARY_DIR}
-                    DEPENDS gui_forms_gallery_windows gui_forms_windows_probe
+                    DEPENDS gui_forms_gallery_windows
                     USES_TERMINAL
                     VERBATIM
                 )
@@ -2930,7 +2966,7 @@ if(GUI_FORMS_BUILD_GALLERY)
                         WINE_BINARY=${GUI_FORMS_WINE_EXECUTABLE}
                         ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_windows_gallery_services_smoke.sh
                         ${CMAKE_CURRENT_BINARY_DIR}
-                    DEPENDS gui_forms_gallery_windows gui_forms_windows_probe
+                    DEPENDS gui_forms_gallery_windows
                     USES_TERMINAL
                     VERBATIM
                 )

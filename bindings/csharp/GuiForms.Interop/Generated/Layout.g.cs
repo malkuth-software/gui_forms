@@ -1761,6 +1761,83 @@ public static unsafe class Layout
             failures += expect(output, "gf_list_view_table.sort_items offset", (long)((byte*)&value.sort_items - start), 176);
         }
         {
+            gf_automation_tool_call value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_automation_tool_call size", sizeof(gf_automation_tool_call), 80);
+            failures += expect(output, "gf_automation_tool_call.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_automation_tool_call.reserved offset", (long)((byte*)&value.reserved - start), 4);
+            failures += expect(output, "gf_automation_tool_call.arguments_json offset", (long)((byte*)&value.arguments_json - start), 8);
+            failures += expect(output, "gf_automation_tool_call.client_name offset", (long)((byte*)&value.client_name - start), 24);
+            failures += expect(output, "gf_automation_tool_call.model_name offset", (long)((byte*)&value.model_name - start), 40);
+            failures += expect(output, "gf_automation_tool_call.window_id offset", (long)((byte*)&value.window_id - start), 56);
+            failures += expect(output, "gf_automation_tool_call.reply offset", (long)((byte*)&value.reply - start), 72);
+        }
+        {
+            gf_automation_tool value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_automation_tool size", sizeof(gf_automation_tool), 104);
+            failures += expect(output, "gf_automation_tool.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_automation_tool.access offset", (long)((byte*)&value.access - start), 4);
+            failures += expect(output, "gf_automation_tool.flags offset", (long)((byte*)&value.flags - start), 8);
+            failures += expect(output, "gf_automation_tool.reserved offset", (long)((byte*)&value.reserved - start), 12);
+            failures += expect(output, "gf_automation_tool.name offset", (long)((byte*)&value.name - start), 16);
+            failures += expect(output, "gf_automation_tool.title offset", (long)((byte*)&value.title - start), 32);
+            failures += expect(output, "gf_automation_tool.description offset", (long)((byte*)&value.description - start), 48);
+            failures += expect(output, "gf_automation_tool.input_schema offset", (long)((byte*)&value.input_schema - start), 64);
+            failures += expect(output, "gf_automation_tool.context offset", (long)((byte*)&value.context - start), 80);
+            failures += expect(output, "gf_automation_tool.call offset", (long)((byte*)&value.call - start), 88);
+            failures += expect(output, "gf_automation_tool.release offset", (long)((byte*)&value.release - start), 96);
+        }
+        {
+            gf_automation_inspect_call value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_automation_inspect_call size", sizeof(gf_automation_inspect_call), 64);
+            failures += expect(output, "gf_automation_inspect_call.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_automation_inspect_call.reserved offset", (long)((byte*)&value.reserved - start), 4);
+            failures += expect(output, "gf_automation_inspect_call.window_id offset", (long)((byte*)&value.window_id - start), 8);
+            failures += expect(output, "gf_automation_inspect_call.node_id offset", (long)((byte*)&value.node_id - start), 24);
+            failures += expect(output, "gf_automation_inspect_call.arguments_json offset", (long)((byte*)&value.arguments_json - start), 40);
+            failures += expect(output, "gf_automation_inspect_call.text offset", (long)((byte*)&value.text - start), 56);
+        }
+        {
+            gf_automation_inspect_section value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_automation_inspect_section size", sizeof(gf_automation_inspect_section), 64);
+            failures += expect(output, "gf_automation_inspect_section.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_automation_inspect_section.reserved offset", (long)((byte*)&value.reserved - start), 4);
+            failures += expect(output, "gf_automation_inspect_section.name offset", (long)((byte*)&value.name - start), 8);
+            failures += expect(output, "gf_automation_inspect_section.description offset", (long)((byte*)&value.description - start), 24);
+            failures += expect(output, "gf_automation_inspect_section.context offset", (long)((byte*)&value.context - start), 40);
+            failures += expect(output, "gf_automation_inspect_section.inspect offset", (long)((byte*)&value.inspect - start), 48);
+            failures += expect(output, "gf_automation_inspect_section.release offset", (long)((byte*)&value.release - start), 56);
+        }
+        {
+            gf_automation_table value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_automation_table size", sizeof(gf_automation_table), 160);
+            failures += expect(output, "gf_automation_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_automation_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
+            failures += expect(output, "gf_automation_table.capability_built offset", (long)((byte*)&value.capability_built - start), 8);
+            failures += expect(output, "gf_automation_table.set_window_drivable offset", (long)((byte*)&value.set_window_drivable - start), 16);
+            failures += expect(output, "gf_automation_table.set_window_destructive offset", (long)((byte*)&value.set_window_destructive - start), 24);
+            failures += expect(output, "gf_automation_table.set_action_destructive offset", (long)((byte*)&value.set_action_destructive - start), 32);
+            failures += expect(output, "gf_automation_table.set_command_hidden offset", (long)((byte*)&value.set_command_hidden - start), 40);
+            failures += expect(output, "gf_automation_table.require_user_step offset", (long)((byte*)&value.require_user_step - start), 48);
+            failures += expect(output, "gf_automation_table.complete_user_step offset", (long)((byte*)&value.complete_user_step - start), 56);
+            failures += expect(output, "gf_automation_table.user_step_pending offset", (long)((byte*)&value.user_step_pending - start), 64);
+            failures += expect(output, "gf_automation_table.set_clipboard_readable offset", (long)((byte*)&value.set_clipboard_readable - start), 72);
+            failures += expect(output, "gf_automation_table.set_identity offset", (long)((byte*)&value.set_identity - start), 80);
+            failures += expect(output, "gf_automation_table.register_tool offset", (long)((byte*)&value.register_tool - start), 88);
+            failures += expect(output, "gf_automation_table.unregister_tool offset", (long)((byte*)&value.unregister_tool - start), 96);
+            failures += expect(output, "gf_automation_table.reply_text offset", (long)((byte*)&value.reply_text - start), 104);
+            failures += expect(output, "gf_automation_table.reply_structured offset", (long)((byte*)&value.reply_structured - start), 112);
+            failures += expect(output, "gf_automation_table.reply_image offset", (long)((byte*)&value.reply_image - start), 120);
+            failures += expect(output, "gf_automation_table.reply_fail offset", (long)((byte*)&value.reply_fail - start), 128);
+            failures += expect(output, "gf_automation_table.register_inspect_section offset", (long)((byte*)&value.register_inspect_section - start), 136);
+            failures += expect(output, "gf_automation_table.unregister_inspect_section offset", (long)((byte*)&value.unregister_inspect_section - start), 144);
+            failures += expect(output, "gf_automation_table.inspect_append offset", (long)((byte*)&value.inspect_append - start), 152);
+        }
+        {
             gf_windows_paint_endpoint_table value = default;
             byte* start = (byte*)&value;
             failures += expect(output, "gf_windows_paint_endpoint_table size", sizeof(gf_windows_paint_endpoint_table), 104);

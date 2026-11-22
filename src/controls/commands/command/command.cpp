@@ -2,6 +2,7 @@
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "../command_directory/command_directory.hpp"
 
 #include <array>
 #include <stdexcept>
@@ -18,6 +19,12 @@ Command::Command(std::string stable_id, std::string text)
         throw std::invalid_argument("Command identity and text must be valid UTF-8");
     }
     state_.text = std::move(text);
+    // Offered to a model as a tool while it lives (command_directory.hpp).
+    detail::note_command(*this);
+}
+
+Command::~Command() {
+    detail::forget_command(*this);
 }
 
 void Command::on_dispose() noexcept {

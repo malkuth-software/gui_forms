@@ -3,7 +3,10 @@
 // Shared command-line contract for the GUI.Forms demonstration programs
 // (Gallery, Correspondence and the labs) on every host:
 //
-//   --automation        Windows: enable the WM_COPYDATA automation channel.
+//   --mcp, --model-directed, --mcp-script <file>
+//                       The library's automation (MCP) arguments: accepted and
+//                       left to the library, which reads the process's own
+//                       arguments (gui_forms/automation/marks/automation_marks.hpp).
 //   --smoke-test        The packaged-program proof, shaped like PlaySuite's:
 //                       the program runs normally, a UI timer closes the
 //                       window once a frame has been presented, the host
@@ -82,7 +85,6 @@
 namespace gui_forms::demo {
 
 struct ProgramOptions final {
-    bool automation{};
     bool smoke_test{};
     // --headless: the Gallery's offscreen capture, with no host window.
     bool headless{};
@@ -102,7 +104,7 @@ struct ProgramOptions final {
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
-                 "usage: %s [--automation] [--smoke-test] [--capture <path.png>] [--headless] "
+                 "usage: %s [--mcp] [--mcp-script <file.jsonl>] [--smoke-test] [--capture <path.png>] [--headless] "
                  "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]\n"
                  "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]]\n"
                  "       [--theme <name|built-in|path.css>]\n",
@@ -158,8 +160,10 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
     const std::size_t argument_count = arguments.size();
     for (std::size_t index = 0U; index < argument_count; ++index) {
         const std::string_view argument = arguments[index];
-        if (argument == "--automation") {
-            options.automation = true;
+        // The automation's arguments are the library's (automation_marks.hpp).
+        if (argument == "--mcp" || argument == "--model-directed") continue;
+        if (argument == "--mcp-script") {
+            ++index;
             continue;
         }
         if (argument == "--smoke-test") {
@@ -246,7 +250,7 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
 
 // Copies the portable capture fields into any host option struct that carries
 // them (MacHostOptions, WindowsHostOptions, LinuxHostOptions). Host-specific
-// fields such as automation_enabled are set by the main that owns them.
+// fields are set by the main that owns them.
 // The capture size into a host's options: the macOS and Linux hosts hold an
 // stxlib::Optional (D15), the Windows host a std::optional for now.
 inline void assign_capture_size(stxlib::Optional<Size>& target, const std::optional<Size>& size) {

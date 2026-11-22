@@ -47,7 +47,7 @@
         "macos-arm64",
         "windows-x64"
       ],
-      "automation_flag": "--automation",
+      "automation_flag": "--mcp",
       "smoke": {
         "extra_arguments": []
       },
@@ -131,7 +131,7 @@
         "macos-arm64",
         "windows-x64"
       ],
-      "automation_flag": "--automation",
+      "automation_flag": "--mcp",
       "smoke": {
         "extra_arguments": []
       },

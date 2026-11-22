@@ -414,15 +414,15 @@ with the change that needs it.
   manifests record. Requires Python 3.14.
   `python tools/windows_toolchain.py restore`
 
-`gui_forms_windows_probe`
-: The automation client built from `tools/windows_automation_probe.cpp` with
-  every Windows host build. It sends one command (`snapshot`, `click <id>`,
-  `activate <id>`, `capture [path]`, `close`, `list` and others) to a running
-  program started with `--automation`.
-  `wine gui_forms_windows_probe.exe click gallery.checkbox`
+`tools/mcp_client.py`
+: A small MCP client over a program's standard input and output: it starts a
+  GUI.Forms program with `--mcp`, says initialize and calls the automation's
+  tools (`snapshot`, `act`, `pointer`, `keyboard`, `capture`, ...). The
+  contention fuzzer drives programs with it. A program can also run a script
+  of the same calls by itself: `--mcp-script <file.jsonl>`.
 
 `tools/run_windows_wine_smoke.sh`, `tools/run_windows_gallery_text_smoke.sh`, `tools/run_windows_gallery_services_smoke.sh`
-: Run a Windows build of the gallery under Wine through the probe and assert
+: Run a Windows build of the gallery under Wine with an automation script and assert
   on the structured log; see [Windows builds and Wine](../building/index.md#windows-builds-and-wine).
   They need `wine` (`WINE_BINARY`, default `/opt/homebrew/bin/wine`) and
   `rg`. The plain and text smokes accept `GUI_FORMS_EVIDENCE_DIR` to redirect

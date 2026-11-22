@@ -2,6 +2,7 @@
 #include "splashscreen_surface.hpp"
 #include "../surface_root/access/surface_lifetime_access.hpp"
 #include "../surface_root/access/surface_application_access.hpp"
+#include "../host/session/session_directory.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include "gui_forms/application/user_themes/user_themes.hpp"
@@ -210,6 +211,12 @@ void attach_application_window(SurfaceRoot& model, const std::shared_ptr<Applica
     // The first window of the run is ready: a splashscreen shown before
     // Application::create hands over to it (its later windows find none).
     hand_over_splashscreen();
+    // The automation joins the window (session_directory.hpp), when a run
+    // installed its hook; nothing otherwise.
+    if (state) {
+        const ApplicationWindowHandle handle = ApplicationHandleAccess::make(state);
+        notify_window_ready(model, (*state).stable_id, handle);
+    }
 }
 
 void revoke_window_state(ApplicationWindowState& state) noexcept {
