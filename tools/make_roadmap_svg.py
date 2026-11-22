@@ -25,7 +25,13 @@ OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / "docs/_static/roadmap.s
 
 WIDTH = 1240
 
+# The current series is labelled with the package version, which no one
+# types: CURRENT stands for it, and current_version() reads it.
+CURRENT = "current"
+
 # (version, name, kind, items). kind: shipped, stage, stable, after.
+# One 1.0 (owner, 2026-11-21): the current series leads to it, and the tools
+# follow it as 1.x releases.
 STAGES = [
     ("0.1", "Shipped", "shipped", [
         "Retained core, CPU painting",
@@ -59,24 +65,25 @@ STAGES = [
         "Form and theme languages",
         "Smooth scrolling",
     ]),
-    ("1.0", "Backend", "stage", [
+    (CURRENT, "Backend", "stage", [
         "In progress",
-        "C ABI additions, keys to focus",
-        "Theming and the look integration",
-        "Final controls, help system",
+        "STXlib text stack, embedded font pack",
+        "Content surfaces and hosted content",
+        "Drawing ABI sealed, C ABI additions",
         "C# bindings",
-    ]),
-    ("Tools", "Designers", "after", [
-        "Conversion program",
-        "Visual editor and interface builder",
-        "Visual Studio integration",
     ]),
     ("1.0", "Stable", "stable", [
         "Same traces on every host",
         "Native accessibility tested",
         "Reproducible packages, SBOM",
-        "Docs generated from the control manifest",
+        "Every member classified in the manifest",
         "API frozen",
+    ]),
+    ("1.x", "Tools", "after", [
+        "Theme editor",
+        "WYSIWYG designer",
+        "Visual Studio integration",
+        "Windows Forms conversion program",
     ]),
 ]
 
@@ -101,6 +108,19 @@ def subset_font(path: Path, characters: str) -> str:
     return base64.b64encode(buffer.getvalue()).decode()
 
 
+def current_version() -> str:
+    """The package version, major.minor, from CMake's project(GUIForms VERSION ...)."""
+    text = (ROOT / "CMakeLists.txt").read_text(encoding="utf-8")
+    match = re.search(r"project\(GUIForms VERSION (\d+)\.(\d+)", text)
+    if match is None:
+        raise SystemExit("CMakeLists.txt: no project(GUIForms VERSION ...)")
+    return f"{match.group(1)}.{match.group(2)}"
+
+
+def stage_label(version: str) -> str:
+    return current_version() if version == CURRENT else version
+
+
 def esc(text: str) -> str:
     return html.escape(text, quote=True)
 
@@ -115,7 +135,7 @@ def main() -> None:
     out: list[str] = []
     out.append(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {WIDTH} {height}" width="{WIDTH}" height="{height}" role="img" aria-labelledby="t d">')
     out.append('<title id="t">GUI.Forms releases toward 1.0</title>')
-    description = ", then ".join(f"{version} {name}" for version, name, _, _ in STAGES)
+    description = ", then ".join(f"{stage_label(version)} {name}" for version, name, _, _ in STAGES)
     out.append(f'<desc id="d">{esc(description)}.</desc>')
     out.append('<defs><style>'
                '@font-face{font-family:"PR";src:url(data:font/ttf;base64,@@REGULAR@@) format("truetype");font-weight:400}'
@@ -138,7 +158,7 @@ def main() -> None:
         ink = "#4a3208" if kind == "stable" else "#ffffff"
         out.append('<polygon points="' + " ".join(f"{px:.1f},{py:.1f}" for px, py in points) + f'" fill="{fill}" stroke="#ffffff" stroke-width="2.5" stroke-linejoin="round"/>')
         cx = x + left_notch / 2 + (chevron_w - notch) / 2
-        out.append(f'<text x="{cx:.1f}" y="{y + 25}" text-anchor="middle" font-size="20" font-weight="700" fill="{ink}">{esc(version)}</text>')
+        out.append(f'<text x="{cx:.1f}" y="{y + 25}" text-anchor="middle" font-size="20" font-weight="700" fill="{ink}">{esc(stage_label(version))}</text>')
         out.append(f'<text x="{cx:.1f}" y="{y + 43}" text-anchor="middle" font-size="13" fill="{ink}">{esc(name)}</text>')
     out.append("</svg>")
     document = "\n".join(out)
