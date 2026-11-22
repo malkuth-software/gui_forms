@@ -378,6 +378,13 @@ public:
     [[nodiscard]] std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes,
                                                               LampDrive drive, const LightComposite& settings,
                                                               DeviceExtent extent, DeviceScale scale);
+    // As above for a key with a pressed bake: `down` is mixed in by
+    // settings.press_mix (composite_light_planes), and a null `down` is
+    // `planes`. A change of either bake makes a new composite.
+    [[nodiscard]] std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes,
+                                                              const std::shared_ptr<const LightPlanes>& down,
+                                                              LampDrive drive, const LightComposite& settings,
+                                                              DeviceExtent extent, DeviceScale scale);
     // Releases the kept raster and bake (a control leaving its window).
     void release() noexcept;
     // Composites made so far: one for each change of the inputs.
@@ -385,6 +392,7 @@ public:
 
 private:
     std::shared_ptr<const LightPlanes> planes_{};
+    std::shared_ptr<const LightPlanes> down_{};
     std::shared_ptr<const PartRaster> raster_{};
     LampDrive drive_{};
     LightComposite settings_{};

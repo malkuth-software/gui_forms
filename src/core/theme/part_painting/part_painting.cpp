@@ -1543,7 +1543,7 @@ bool paint_light_plane_part(Painter& painter, const Control& control, const Part
     }
     const DeviceExtent extent{static_cast<std::uint32_t>(device_width), static_cast<std::uint32_t>(device_height)};
     const std::shared_ptr<const PartRaster> raster =
-        (*light.raster).composite(light.planes, light.drive, light.settings, extent, DeviceScale{scale});
+        (*light.raster).composite(light.planes, light.down, light.drive, light.settings, extent, DeviceScale{scale});
     if (!raster) return false;
     if (clips.empty()) {
         draw_light_plane_raster(painter, part, raster);

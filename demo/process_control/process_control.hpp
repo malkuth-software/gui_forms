@@ -1,5 +1,8 @@
 #pragma once
 
+#include "gui_forms/controls/button.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window.hpp"
 
@@ -21,9 +24,9 @@
 // - its three status lamps, jewels lit from the shipped indicator bake,
 //   each switched off, on, error or fault (failing: it flickers and
 //   stutters, steady under reduced motion) from the side strip;
-// - its CANCEL and OK keys, buttons the program's theme draws from the
-//   shipped key bakes (`primitive: light-map`), pressed while held, OK lit
-//   with the status lamps and CANCEL always;
+// - its CANCEL and OK keys (LampKey), drawn from the shipped key bakes,
+//   each lit only while held, the lamp and the press moved by the engine's
+//   motion;
 // - the lamp radio row (RadioButton's lamp look) with its colour set at run
 //   time, and the coolant flow pinpoint.
 // The program's theme is one sheet set on the root (Control::
@@ -58,9 +61,82 @@ inline constexpr std::array<EnamelPaint, 3> enamel_paints{{
 // The study's seed.
 inline constexpr std::uint32_t study_seed = 11U;
 
+// A held key's lamp power: the bakes' unit (demo.html drives both keys'
+// lamps at 1).
+inline constexpr double key_lit_power = 1.0;
+
+// When a LampKey's lamp is lit, as the study lights its two keys
+// (notes:experiments/industrial-surfaces: demo.html, dialog.html,
+// dialog_demo.cpp, lampWhenHeld).
+enum class LampKeyLighting {
+    // Lit only while held, and only while the lamps are on: the study's OK.
+    while_held,
+    // Lit throughout, whatever the Lamps toggle says: the study's CANCEL
+    // (owner, 2026-11-22: CANCEL is supposed to stay lit).
+    always,
+};
+
+// A dialog key drawn from a shipped key bake (<stem>_up and <stem>_down,
+// engine_light::LightPlanes), its lamp and its press moved by the engine's
+// motion (owner, 2026-11-22: OK must not sit at constant full light).
+//
+// A while_held key rests with the room's light alone, its lamp off; held
+// (pointer or Space/Enter), the lamp strikes (key_strike_floor, then full
+// over lamp_strike_seconds) and the key goes down (key_press_duration);
+// released, the key comes up and the lamp cools over lamp_cool_seconds.
+// An always key keeps its lamp at key_lit_power and only goes down and up.
+// Hover, focus and the default key leave the lamp as it is, as in the study
+// (focus shows the theme's focus cue). Reduced motion and an occluded
+// window jump to the end (the motion clock). With the lamps switched off
+// (set_lamps_enabled) a while_held key presses but does not light.
+//
+// The face is composited by the key's own LightPlaneRaster through
+// PartPaint::light_planes, as IndicatorLamp composites its bake: the
+// light-map theme primitive cannot animate a key this size within the
+// frame budget. Where the bake cannot be lent, or in forced high contrast,
+// the theme's button is drawn instead.
+class LampKey final : public Button {
+public:
+    // A key drawn from the shipped bakes <stem>_up and <stem>_down, its
+    // lamps in `lamp_colour` (sRGB), lit as `lighting` says.
+    LampKey(StableId id, std::string_view stem, Color lamp_colour, LampKeyLighting lighting);
+
+    // Whether the lamp lights while held (the strip's Lamps toggle).
+    void set_lamps_enabled(bool enabled);
+    // The lamp's power now (key_lit_power when lit, else 0) and how far the
+    // key is down (0 to 1), as the last frame left them.
+    [[nodiscard]] double lamp_power() const noexcept { return lamp_.current(); }
+    [[nodiscard]] double press_share() const noexcept { return press_.current(); }
+
+    void on_paint(Painter& painter, Rect local_damage) override;
+    void on_focus_changed(bool focused) override;
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+    void on_key_down(KeyEventArgs& arguments) override;
+    void on_key_up(KeyEventArgs& arguments) override;
+    void on_detached_from_window() noexcept override;
+
+private:
+    // Moves the lamp and the press toward what the key's held state asks
+    // for; a target already set leaves its move running.
+    void follow_press();
+
+    std::string up_name_;
+    std::string down_name_;
+    Color lamp_colour_;
+    LampKeyLighting lighting_;
+    bool lamps_enabled_{true};
+    MotionValue lamp_;
+    MotionValue press_;
+    engine_light::LightPlaneRaster raster_{};
+};
+
 // The program's theme sheet for the paint at `paint` (an index into
-// enamel_paints, wrapped) and `seed`: the enamel and title band classes and
-// the lit keys.
+// enamel_paints, wrapped) and `seed`: the enamel and title band classes.
 [[nodiscard]] std::string process_control_sheet(std::size_t paint, std::uint32_t seed);
 
 // The demonstrator's window, laid out and themed.

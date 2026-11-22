@@ -8,12 +8,16 @@
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/radio_button.hpp"
+#include "gui_forms/engine/light_planes/light_planes.hpp"
+#include "gui_forms/engine/motion_value/motion_value.hpp"
 #include "gui_forms/event/event/event.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/window/window.hpp"
 
 #include <array>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -38,8 +42,157 @@ constexpr Color lamp_blue_srgb = Color::rgba(89, 161, 255);
 // The study's ivory type over the enamel, and the strip's ink.
 constexpr Color enamel_ink = Color::rgba(204, 199, 172);
 constexpr Color strip_ink = Color::rgba(32, 36, 38);
-// The class that puts a lit key's lamps out (process_control_sheet).
-constexpr std::string_view lamp_off_class = "lamp-off";
+// The keys' lamp colours: CANCEL's red lamps, OK's green (the light-map
+// rules the Gallery's page uses).
+constexpr Color key_cancel_lamp = Color::rgba(255, 97, 56);
+constexpr Color key_ok_lamp = Color::rgba(111, 255, 137);
+// The strike (lamp_keys.html, powerAt): a lamp switched on shows 40% at
+// once and rises linearly to full over engine_light::lamp_strike_seconds.
+constexpr double key_strike_floor = 0.4;
+// The press (lamp_keys.html: 70 ms, easing out).
+constexpr FrameInterval key_press_duration = std::chrono::milliseconds(70);
+// A motion value's extent for a share from 0 to 1, so that its settled
+// condition (a fraction of a device pixel over the extent) is a fine share.
+constexpr double share_extent = 256.0;
+
+[[nodiscard]] FrameInterval seconds_interval(double seconds) noexcept {
+    const FrameInterval interval =
+        std::chrono::duration_cast<FrameInterval>(std::chrono::duration<double>(seconds));
+    return interval;
+}
+
+} // namespace
+
+LampKey::LampKey(StableId id, std::string_view stem, Color lamp_colour, LampKeyLighting lighting)
+    : Button(std::move(id)), up_name_(std::string(stem) + "_up"), down_name_(std::string(stem) + "_down"),
+      lamp_colour_(lamp_colour), lighting_(lighting),
+      lamp_(*this, MotionCurve::timed(key_press_duration, MotionEasing::linear),
+            lighting == LampKeyLighting::always ? key_lit_power : 0.0),
+      press_(*this, MotionCurve::timed(key_press_duration, MotionEasing::exponential_approach)) {
+    static_cast<void>(lamp_.set_extent(share_extent));
+    static_cast<void>(press_.set_extent(share_extent));
+    lamp_.set_invalidation(Dirty::paint);
+    press_.set_invalidation(Dirty::paint);
+}
+
+void LampKey::set_lamps_enabled(bool enabled) {
+    lamps_enabled_ = enabled;
+    follow_press();
+}
+
+void LampKey::on_focus_changed(bool focused) {
+    Button::on_focus_changed(focused);
+    follow_press();
+}
+
+void LampKey::on_mouse_down(MouseEventArgs& arguments) {
+    Button::on_mouse_down(arguments);
+    follow_press();
+}
+
+void LampKey::on_mouse_up(MouseEventArgs& arguments) {
+    Button::on_mouse_up(arguments);
+    follow_press();
+}
+
+void LampKey::on_mouse_move(MouseEventArgs& arguments) {
+    Button::on_mouse_move(arguments);
+    follow_press();
+}
+
+void LampKey::on_mouse_leave() {
+    Button::on_mouse_leave();
+    follow_press();
+}
+
+void LampKey::on_key_down(KeyEventArgs& arguments) {
+    Button::on_key_down(arguments);
+    follow_press();
+}
+
+void LampKey::on_key_up(KeyEventArgs& arguments) {
+    Button::on_key_up(arguments);
+    follow_press();
+}
+
+void LampKey::on_detached_from_window() noexcept {
+    Button::on_detached_from_window();
+    lamp_.finish();
+    press_.finish();
+    raster_.release();
+}
+
+void LampKey::follow_press() {
+    const bool held = pressed_visual() && effectively_enabled();
+    const double press_target = held ? 1.0 : 0.0;
+    if (press_.target() != press_target) static_cast<void>(press_.animate_to(press_target));
+    bool lit = false;
+    switch (lighting_) {
+    case LampKeyLighting::always:
+        lit = true;
+        break;
+    case LampKeyLighting::while_held:
+    default:
+        lit = held && lamps_enabled_;
+        break;
+    }
+    const double lamp_target = lit ? key_lit_power : 0.0;
+    if (lamp_.target() == lamp_target) return;
+    if (lamp_target > 0.0) {
+        // Struck: 40% at once, then full, linearly.
+        const double floor = key_strike_floor * lamp_target;
+        if (lamp_.current() < floor) lamp_.jump_to(floor);
+        lamp_.set_curve(MotionCurve::timed(seconds_interval(engine_light::lamp_strike_seconds), MotionEasing::linear));
+    } else {
+        lamp_.set_curve(
+            MotionCurve::timed(seconds_interval(engine_light::lamp_cool_seconds), MotionEasing::exponential_approach));
+    }
+    static_cast<void>(lamp_.animate_to(lamp_target));
+    invalidate(Dirty::paint);
+}
+
+void LampKey::on_paint(Painter& painter, Rect local_damage) {
+    const SurfaceRoot* const root = attached_surface_root();
+    std::shared_ptr<const engine_light::LightPlanes> up{};
+    std::shared_ptr<const engine_light::LightPlanes> down{};
+    if (root != nullptr) {
+        const std::shared_ptr<ApplicationResources> resources = (*root).resources();
+        if (resources) {
+            up = (*resources).lend_light_planes(up_name_);
+            down = (*resources).lend_light_planes(down_name_);
+        }
+    }
+    if (!up) {
+        Button::on_paint(painter, local_damage);
+        return;
+    }
+    const Rect bounds = local_bounds();
+    const AnatomyStateSet states = anatomy_states();
+    const engine_light::LampDrive drive{engine_light::lamp_colour_from_srgb(lamp_colour_), lamp_.current()};
+    engine_light::LightComposite settings{};
+    settings.press_mix = press_.current();
+    PartPaint face;
+    face.family = ControlVisualRole::button;
+    face.role = PartRole::face;
+    face.bounds = bounds;
+    face.states = states;
+    face.key.set(PartKey{"face", {}, {}});
+    face.light_planes.set(PartLightPlanes{.planes = std::move(up),
+                                          .down = std::move(down),
+                                          .drive = drive,
+                                          .settings = settings,
+                                          .raster = &raster_});
+    paint_part(painter, *this, face);
+    PartPaint focus;
+    focus.family = ControlVisualRole::button;
+    focus.role = PartRole::focus;
+    focus.bounds = bounds;
+    focus.states = states;
+    focus.key.set(PartKey{"focus", {}, {}});
+    paint_part(painter, *this, focus);
+}
+
+namespace {
 
 // The status lamps, in the dialog's order.
 struct StatusLamp final {
@@ -126,8 +279,8 @@ private:
     std::array<std::shared_ptr<IndicatorLamp>, 3> lamps_{};
     std::array<std::shared_ptr<Button>, 3> state_buttons_{};
     std::array<std::shared_ptr<RadioButton>, 2> radios_{};
-    std::shared_ptr<Button> ok_{};
-    std::shared_ptr<Button> cancel_{};
+    std::shared_ptr<LampKey> ok_{};
+    std::shared_ptr<LampKey> cancel_{};
     std::shared_ptr<Button> paint_button_{};
     std::shared_ptr<Label> seed_label_{};
     std::shared_ptr<Label> message_{};
@@ -172,15 +325,12 @@ void ProcessControlRoot::build_dialog() {
         lamps_[index] = lamp;
     }
     // The bakes carry the legends: the keys have no text, only their names.
-    cancel_ = make_control<Button>(StableId("process.key.cancel"));
+    cancel_ = make_control<LampKey>(StableId("process.key.cancel"), "dialog_cancel", key_cancel_lamp,
+                                       LampKeyLighting::always);
     (*cancel_).accessible_name = "Cancel";
-    static_cast<void>((*cancel_).add_class("lit-key"));
-    static_cast<void>((*cancel_).add_class("lit-cancel"));
     add_at(*dialog, cancel_, Rect{228.0, 237.0, 120.0, 53.0});
-    ok_ = make_control<Button>(StableId("process.key.ok"));
+    ok_ = make_control<LampKey>(StableId("process.key.ok"), "dialog_ok", key_ok_lamp, LampKeyLighting::while_held);
     (*ok_).accessible_name = "OK";
-    static_cast<void>((*ok_).add_class("lit-key"));
-    static_cast<void>((*ok_).add_class("lit-ok"));
     add_at(*dialog, ok_, Rect{360.0, 237.0, 120.0, 53.0});
     on((*ok_).clicked(), *this, &ProcessControlRoot::on_ok);
     on((*cancel_).clicked(), *this, &ProcessControlRoot::on_cancel);
@@ -297,11 +447,8 @@ void ProcessControlRoot::on_lamps_changed(bool on) {
         (*lamps_[index]).state = on ? status_lamps[index].initial : IndicatorLampState::off;
         show_state_button(index);
     }
-    if (on) {
-        static_cast<void>((*ok_).remove_class(lamp_off_class));
-    } else {
-        static_cast<void>((*ok_).add_class(lamp_off_class));
-    }
+    (*ok_).set_lamps_enabled(on);
+    (*cancel_).set_lamps_enabled(on);
 }
 
 void ProcessControlRoot::on_coolant_changed(bool on) {
@@ -329,13 +476,7 @@ std::string process_control_sheet(std::size_t paint, std::uint32_t seed) {
     sheet += ".blasted-enamel-heavy::part(face) { background: finish(blasted-enamel-heavy-glint, ";
     sheet += chosen.band;
     sheet += ", #a3a3a3, " + seed_text + "); }\n";
-    // The keys: each rule names the primitive, since a parameter cascades
-    // among the rules that select it.
-    sheet += ".lit-key::part(face) { primitive: light-map; lamp-power: 1; }\n";
-    sheet += ".lit-cancel::part(face) { primitive: light-map; bake: dialog-cancel; lamp-colour: #ff6138; }\n";
-    sheet += ".lit-ok::part(face) { primitive: light-map; bake: dialog-ok; lamp-colour: #6fff89; }\n";
-    sheet += ".lit-key.lamp-off::part(face) { primitive: light-map; lamp-power: 0; }\n";
-    sheet += ".lit-key:active::part(face) { primitive: light-map; press: 1; }\n";
+    // The keys draw their own bakes (LampKey): no rule here.
     return sheet;
 }
 

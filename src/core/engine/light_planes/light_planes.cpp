@@ -642,11 +642,20 @@ LampColour lamp_colour_from_srgb(Color colour) noexcept {
 std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_ptr<const LightPlanes>& planes,
                                                               LampDrive drive, const LightComposite& settings,
                                                               DeviceExtent extent, DeviceScale scale) {
+    const std::shared_ptr<const PartRaster> result = composite(planes, planes, drive, settings, extent, scale);
+    return result;
+}
+
+std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_ptr<const LightPlanes>& planes,
+                                                              const std::shared_ptr<const LightPlanes>& down,
+                                                              LampDrive drive, const LightComposite& settings,
+                                                              DeviceExtent extent, DeviceScale scale) {
     if (!planes || extent.width == 0U || extent.height == 0U) {
         release();
         return nullptr;
     }
-    const bool kept = raster_ && planes_ == planes && same_drive(drive_, drive) &&
+    const std::shared_ptr<const LightPlanes>& pressed = down ? down : planes;
+    const bool kept = raster_ && planes_ == planes && down_ == pressed && same_drive(drive_, drive) &&
                       same_settings(settings_, settings) && (*raster_).extent() == extent &&
                       (*raster_).scale() == scale;
     if (kept) return raster_;
@@ -659,9 +668,10 @@ std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_
     std::array<LampDrive, maximum_light_plane_lamps> drives{};
     drives.fill(drive);
     const LightPlaneRect rect{0, 0, static_cast<std::int64_t>(extent.width), static_cast<std::int64_t>(extent.height)};
-    static_cast<void>(composite_light_planes(*planes, *planes, drives, settings, rect, (*made).view()));
+    static_cast<void>(composite_light_planes(*planes, *pressed, drives, settings, rect, (*made).view()));
     (*made).record_opacity();
     planes_ = planes;
+    down_ = pressed;
     raster_ = made;
     drive_ = drive;
     settings_ = settings;
@@ -671,6 +681,7 @@ std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_
 
 void LightPlaneRaster::release() noexcept {
     planes_.reset();
+    down_.reset();
     raster_.reset();
 }
 
