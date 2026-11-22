@@ -374,3 +374,30 @@ Since pull request #484:
 - The installed-notices check requires `THIRD_PARTY_NOTICES.md` and still
   refuses GPL text.
 - The README's documentation badge points at Read the Docs' new host.
+
+### Checkpoint 36 (2026-11-22)
+- Menus: every menu surface opens a submenu after the pointer rests on its
+  row and closes it after the pointer rests elsewhere, with the safe
+  triangle toward the submenu. This now includes the ribbon's two-pane
+  application menu and ContextMenu separators. The menu delay is 300 ms on
+  every host (Windows' `SPI_GETMENUSHOWDELAY` is no longer read).
+- Tooltips: the wrap width follows the text, measured against a few
+  candidate widths. Short text stays on one line, and long text wraps
+  towards a golden-ratio box. Ribbon tooltips use the same rule.
+  `ToolTip::maximum_width` defaults to 2048.
+- Industrial surfaces: shipped compact light-map stores, jewel and
+  pinpoint lamp shapes, the blasted enamel finishes
+  (`finish(blasted-enamel-glint, …)`, `finish(blasted-enamel-heavy-glint,
+  …)`), and world-tile painting for finishes over the bake budget. The
+  `light_map` engine primitive draws lit, pressable keys from the bakes.
+  `RadioButton::lamp_color` sets the lamp colour, and
+  `IndicatorLampState::fault` makes a lamp flicker with a deterministic
+  failing-lamp pattern. The Gallery's Industrial surfaces page is rebuilt
+  around the process-control dialog, and `gui_forms_process_control` shows
+  the same dialog as a program of its own. Carbon fibre has finer strands
+  and sparse glints.
+- Ribbon: groups compact automatically after their authored layouts, first
+  by image size and then by rows (up to three), before collapsing. A held
+  tab shows the pressed dent. A checked command or a selected gallery item
+  stands in the gold dithered bulge (the `gold` parameter of `smooth_bulge`
+  and `dithered_bulge`). Split commands publish checked.
