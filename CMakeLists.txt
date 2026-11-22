@@ -627,6 +627,7 @@ add_library(gui_forms_core STATIC
     src/core/metrics/metrics/metrics.cpp
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
+    src/core/model_inspection/model_inspection.cpp
     src/core/window/inspection/window_visual_inspection.cpp
     src/core/allocation/statistics/allocation_statistics.cpp
     src/core/resources/image_registry/image_registry.cpp
@@ -684,6 +685,7 @@ add_library(gui_forms_core STATIC
     src/core/form_language/form_loader/form_loader.cpp
     src/core/form_language/form_loader/form_window_loader.cpp
     src/core/form_language/form_editor/form_editor.cpp
+    src/core/form_language/form_export/form_export.cpp
     src/core/form_language/form_generator/form_generator.cpp
     src/core/form_language/form_schema_export/form_schema_export.cpp
     src/core/theme_language/selector/theme_selector.cpp

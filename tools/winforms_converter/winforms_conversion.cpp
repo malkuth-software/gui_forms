@@ -482,6 +482,8 @@ private:
             subscription(statement);
             return;
         case DesignerStatementKind::unsubscription:
+            // A designer file only removes a handler it added; the form
+            // keeps none to remove.
             return;
         case DesignerStatementKind::call:
             call(statement);
