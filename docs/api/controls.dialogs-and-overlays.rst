@@ -36,7 +36,7 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
    * - :cpp:class:`SaveFileDialog <gui_forms::SaveFileDialog>`
      - The host's dialog for choosing where to save a file.
    * - :cpp:class:`BusinessCard <gui_forms::BusinessCard>`
-     - The program's business card, one for every GUI.Forms program: the identity's vendor, product, version and website on a flat themed card, lying on a page or held in the hand over the window; D held with a secondary press on the vendor name toggles the diagnostic overlay.
+     - The program's business card: its vendor, product and version, website and copyright, on a card drawn through the theme, lying in a page or held in the hand.
 
 .. toctree::
    :hidden:

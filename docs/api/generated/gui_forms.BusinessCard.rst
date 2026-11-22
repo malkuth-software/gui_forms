@@ -11,39 +11,66 @@ gui_forms::BusinessCard
 
    ``#include <gui_forms/components/business_card/business_card.hpp>``
 
-   The program's business card, one for every GUI.Forms program: the identity's vendor, product, version and website on a flat themed card, lying on a page or held in the hand over the window; D held with a secondary press on the vendor name toggles the diagnostic overlay.
+   The program's business card: its vendor, product and version, website and copyright, on a card drawn through the theme, lying in a page or held in the hand.
+
+   The card's text is the process's identity, set once with
+   ``set_program_identity``: the vendor large, a rule, the product and version,
+   the website, and in the hand the copyright. Lying in a page (a help page, an
+   About pane), it casts its shadow and rises a little under the pointer; a
+   click, Enter or Space asks to open it in the hand. In the hand, alone over
+   the dimmed window, it tilts toward the pointer, a click on the website asks
+   for the website, and Escape, its close mark or a click off the card puts it
+   away. Use an :cpp:class:`AboutDialog <gui_forms::AboutDialog>` for a standard About box with credits.
 
    *Status:* provisional.
 
    :Parameters:
 
       **stable_id** : ``StableId``
+         Identity of the control, unique within its window.
 
       **presentation** : ``BusinessCardPresentation``, default ``BusinessCardPresentation::page``
+         Where the card is shown: :cpp:enum:`BusinessCardPresentation <gui_forms::BusinessCardPresentation>` ``page`` (the
+         default) or ``hand``.
 
    :Properties:
 
       **presentation** : ``BusinessCardPresentation``, read-only
+         Where the card is shown.
 
       **last_website_request** : ``BusinessCardLinkOutcome``, read-only
+         What became of the last request for the website
+         (:cpp:enum:`BusinessCardLinkOutcome <gui_forms::BusinessCardLinkOutcome>`): none yet, answered by a handler, opened by
+         the host, unavailable (no open-URL capability, or no window), or
+         refused.
 
       **heading_band_bottom** : ``stxlib::Optional<double>``, read-only
-         The band's lower edge in this control's coordinates, or none without a rule in force.
+         The heading band's lower edge in this control's coordinates, or none
+         without a band rule in force.
 
       **turn_available** : ``bool``, read-only
-         The turn (hand): whether this card can show it (it is in a window and, at its last try, its host lent an offscreen renderer for the faces; a drag or Left and Right try again); the card's turn about its vertical axis in radians (0 face up at rest, pi face down) and about its horizontal axis (within plus or minus maximum_business_card_pitch); and whether it shows its front.
+         Whether this card can show its turn in the hand: it is in a window and
+         its host lent an offscreen renderer for the faces at its last try.
 
       **turn** : ``double``, read-only
+         The card's turn about its vertical axis in radians: 0 face up at rest,
+         pi face down.
 
       **pitch** : ``double``, read-only
+         The card's turn about its horizontal axis, within plus or minus
+         ``maximum_business_card_pitch``.
 
       **face_up** : ``bool``, read-only
+         Whether the card shows its front.
 
       **card_bounds** : ``Rect``, read-only
-         The card's stock, in this control's coordinates, before the tilt: the control keeps a margin around it for the shadow and the tilt.
+         The card's stock in this control's coordinates, before the tilt; the
+         control keeps a margin around it for the shadow and the tilt.
 
       **vendor_name_band** : ``Rect``, read-only
-         The band of the vendor name, in this control's coordinates, before the tilt: the gesture and the hot vendor name count there.
+         The band of the vendor name, before the tilt. :cpp:func:`website_band <gui_forms::BusinessCard::website_band>` is the
+         website line (empty without a website) and :cpp:func:`close_mark_bounds <gui_forms::BusinessCard::close_mark_bounds>` the close
+         mark (in the hand only).
 
       **website_band** : ``Rect``, read-only
          The website line (empty without a website) and the close mark (hand only; empty on the page), before the tilt.
@@ -51,10 +78,12 @@ gui_forms::BusinessCard
       **close_mark_bounds** : ``Rect``, read-only
 
       **tilt** : ``Point``, read-only
-         The face's offset toward the pointer, in logical units (the tilt): zero with the pointer away or under reduced motion.
+         The face's offset toward the pointer in logical units; zero with the
+         pointer away or under reduced motion.
 
       **remark** : ``std::string``, read-only
-         The newest remark around the card in the hand (empty while none is shown), and how many are shown.
+         The newest remark around the card in the hand, or empty;
+         :cpp:func:`remark_count <gui_forms::BusinessCard::remark_count>` counts those shown.
 
       **remark_count** : ``std::size_t``, read-only
 
@@ -63,13 +92,20 @@ gui_forms::BusinessCard
    :Events:
 
       **open_requested** : ``Event<BusinessCardRequest&>``
-         On the page: the card asked to be opened in the hand (a click, Enter or Space). Unhandled, the card calls show_business_card on its window.
+         Raised on the page when the card asks to be opened in the hand (a
+         click, Enter or Space). A handler that opens it itself sets the
+         request's ``handled``; unhandled, the card calls
+         ``show_business_card`` on its window.
 
       **put_away** : ``Event<>``
-         In the hand: the card was put away (Escape, its close mark, a click off it, or hide_business_card).
+         Raised in the hand when the card is put away: Escape, its close mark, a
+         click off it, or ``hide_business_card``.
 
       **website_requested** : ``Event<BusinessCardRequest&>``
-         The website was asked for (a click on it in the hand, or the press action there). A handler that opens it itself sets handled; unhandled, the card hands the address to its window's host (HostServices::open_url), where the host reports open_url.
+         Raised when the website is asked for (a click on it in the hand, or the
+         press action there). A handler that opens it itself sets ``handled``;
+         unhandled, the card hands the address to its window's host
+         (``HostServices::open_url``).
 
    :Inherited:
 
@@ -82,7 +118,43 @@ gui_forms::BusinessCard
       :widths: 35 65
 
       * - :cpp:func:`set_heading_band <gui_forms::BusinessCard::set_heading_band>`
-        - The heading band layout rule (page): the card lies under ``band``, a control of the same window drawn over the page above the card (a help book's heading band), so that a page scrolled up carries the card under the band rather than over it.
+        - Lays the card on the page under a band: a control of the same window drawn over the page above the card, such as a help book's heading band, so that a page scrolled up carries the card under the band.
+
+   .. seealso::
+
+      :cpp:class:`AboutDialog <gui_forms::AboutDialog>`
+         A standard About box.
+
+      :cpp:class:`WindowCapsule <gui_forms::WindowCapsule>`
+         The window controls whose help shows the card.
+
+   .. rubric:: Notes
+
+   ``set_program_identity`` validates the whole :cpp:class:`ProgramIdentity <gui_forms::ProgramIdentity>` before it
+   replaces the previous one: text that is not valid UTF-8, or a website that
+   is neither empty nor an ``https://`` address, throws
+   ``std::invalid_argument`` and leaves the identity as it was. Empty fields are
+   left off the card. A card already shown shows a new identity when it next
+   paints.
+
+   A program may also give the card remarks (``set_business_card_remark_source``):
+   while the pointer is over the card in the hand, the card asks for a remark
+   a moment after the pointer arrives and then every one to two and a half
+   seconds, and shows each around the card, never on it, rising and fading,
+   at most ``maximum_business_card_remarks`` at once and
+   ``maximum_business_card_remark`` bytes each.
+
+   ``set_diagnostic_overlay`` turns on, for every window without a setting of its
+   own, the invalidation outlines and a counters card at the top left of each
+   window's overlay plane; ``toggle_diagnostic_overlay`` turns it to the other
+   state.
+
+   To assistive technology the card is named "<vendor> business card", with
+   the credits in its description; its press action opens it (on the page) or
+   asks for the website (in the hand), and in the hand its close action puts
+   it away. A theme draws it in the card family: ``shadow``, ``stock``,
+   ``vendor_name``, ``rule``, ``product``, ``website``, ``copyright``,
+   ``remark``, ``close_mark`` and ``focus``.
 
 
    .. rubric:: Construction
@@ -94,29 +166,49 @@ gui_forms::BusinessCard
 
    .. cpp:function:: BusinessCardPresentation presentation() const noexcept
 
+      Where the card is shown.
+
    .. cpp:function:: BusinessCardLinkOutcome last_website_request() const noexcept
+
+      What became of the last request for the website
+      (:cpp:enum:`BusinessCardLinkOutcome <gui_forms::BusinessCardLinkOutcome>`): none yet, answered by a handler, opened by
+      the host, unavailable (no open-URL capability, or no window), or
+      refused.
 
    .. cpp:function:: stxlib::Optional<double> heading_band_bottom() const noexcept
 
-      The band's lower edge in this control's coordinates, or none without a rule in force.
+      The heading band's lower edge in this control's coordinates, or none
+      without a band rule in force.
 
    .. cpp:function:: bool turn_available() const
 
-      The turn (hand): whether this card can show it (it is in a window and, at its last try, its host lent an offscreen renderer for the faces; a drag or Left and Right try again); the card's turn about its vertical axis in radians (0 face up at rest, pi face down) and about its horizontal axis (within plus or minus maximum_business_card_pitch); and whether it shows its front.
+      Whether this card can show its turn in the hand: it is in a window and
+      its host lent an offscreen renderer for the faces at its last try.
 
    .. cpp:function:: double turn() const noexcept
 
+      The card's turn about its vertical axis in radians: 0 face up at rest,
+      pi face down.
+
    .. cpp:function:: double pitch() const noexcept
+
+      The card's turn about its horizontal axis, within plus or minus
+      ``maximum_business_card_pitch``.
 
    .. cpp:function:: bool face_up() const noexcept
 
+      Whether the card shows its front.
+
    .. cpp:function:: Rect card_bounds() const noexcept
 
-      The card's stock, in this control's coordinates, before the tilt: the control keeps a margin around it for the shadow and the tilt.
+      The card's stock in this control's coordinates, before the tilt; the
+      control keeps a margin around it for the shadow and the tilt.
 
    .. cpp:function:: Rect vendor_name_band() const noexcept
 
-      The band of the vendor name, in this control's coordinates, before the tilt: the gesture and the hot vendor name count there.
+      The band of the vendor name, before the tilt. :cpp:func:`website_band <gui_forms::BusinessCard::website_band>` is the
+      website line (empty without a website) and :cpp:func:`close_mark_bounds <gui_forms::BusinessCard::close_mark_bounds>` the close
+      mark (in the hand only).
 
    .. cpp:function:: Rect website_band() const noexcept
 
@@ -126,11 +218,13 @@ gui_forms::BusinessCard
 
    .. cpp:function:: Point tilt() const noexcept
 
-      The face's offset toward the pointer, in logical units (the tilt): zero with the pointer away or under reduced motion.
+      The face's offset toward the pointer in logical units; zero with the
+      pointer away or under reduced motion.
 
    .. cpp:function:: const std::string& remark() const& noexcept
 
-      The newest remark around the card in the hand (empty while none is shown), and how many are shown.
+      The newest remark around the card in the hand, or empty;
+      :cpp:func:`remark_count <gui_forms::BusinessCard::remark_count>` counts those shown.
 
    .. cpp:function:: std::size_t remark_count() const noexcept
 
@@ -141,22 +235,34 @@ gui_forms::BusinessCard
 
    .. cpp:function:: Event<BusinessCardRequest&>& open_requested() noexcept
 
-      On the page: the card asked to be opened in the hand (a click, Enter or Space). Unhandled, the card calls show_business_card on its window.
+      Raised on the page when the card asks to be opened in the hand (a
+      click, Enter or Space). A handler that opens it itself sets the
+      request's ``handled``; unhandled, the card calls
+      ``show_business_card`` on its window.
 
    .. cpp:function:: Event<>& put_away() noexcept
 
-      In the hand: the card was put away (Escape, its close mark, a click off it, or hide_business_card).
+      Raised in the hand when the card is put away: Escape, its close mark, a
+      click off it, or ``hide_business_card``.
 
    .. cpp:function:: Event<BusinessCardRequest&>& website_requested() noexcept
 
-      The website was asked for (a click on it in the hand, or the press action there). A handler that opens it itself sets handled; unhandled, the card hands the address to its window's host (HostServices::open_url), where the host reports open_url.
+      Raised when the website is asked for (a click on it in the hand, or the
+      press action there). A handler that opens it itself sets ``handled``;
+      unhandled, the card hands the address to its window's host
+      (``HostServices::open_url``).
 
 
    .. rubric:: Methods
 
    .. cpp:function:: void set_heading_band(const std::shared_ptr<const Control>& band)
 
-      The heading band layout rule (page): the card lies under ``band``, a control of the same window drawn over the page above the card (a help book's heading band), so that a page scrolled up carries the card under the band rather than over it. The card and its shadow are drawn, and take the pointer, only below the band's lower edge. The card observes the band and never keeps it alive: a band destroyed or in another window sets no rule. Null clears the rule. Ignored in the hand. UI thread.
+      Lays the card on the page under a band: a control of the same window
+      drawn over the page above the card, such as a help book's heading band,
+      so that a page scrolled up carries the card under the band. The card and
+      its shadow are drawn, and take the pointer, only below the band's lower
+      edge. The card observes the band and never keeps it alive; null clears
+      the rule. Ignored in the hand.
 
 
    .. rubric:: Extension points

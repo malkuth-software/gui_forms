@@ -28,7 +28,7 @@ Panels, group boxes, cards, tabs and expandable sections.
    * - :cpp:class:`UserControl <gui_forms::UserControl>`
      - A container for building your own reusable composite control.
    * - :cpp:class:`CompositeControl <gui_forms::CompositeControl>`
-     - A control described by a .control document, made only from its compiled definition, whose parts, properties, rules, children and events the definition declares.
+     - The control that runs a composite definition: a reusable control written as a ``.control`` document of child controls, properties, rules, commands, events and an optional look.
    * - :cpp:class:`TabControl <gui_forms::TabControl>`
      - A set of pages shown one at a time, chosen from a row of tabs.
    * - :cpp:class:`PageStrip <gui_forms::PageStrip>`
