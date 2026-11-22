@@ -49,6 +49,18 @@ add_extension : default ``true``
     character, as .NET's ``Path.HasExtension`` says.
 overwrite_prompt : default ``true``
     Whether the host asks before the user chooses a file that exists.
+check_file_exists : default ``false``
+    Whether the dialog accepts only a file that exists (Windows Forms'
+    ``CheckFileExists``). A refused name leaves the dialog open, or shows
+    it again, with the name kept.
+check_path_exists : default ``true``
+    Whether the dialog accepts only a name in a folder that exists (Windows
+    Forms' ``CheckPathExists``). macOS's save panel always requires one, so
+    ``false`` has no effect there.
+create_prompt : default ``false``
+    Whether the dialog asks before accepting a file that does not exist yet
+    (Windows Forms' ``CreatePrompt``). Answering No keeps the dialog open,
+    or shows it again.
 file_name
     The chosen path, or empty. Before the dialog is shown, a name written
     here is the one the dialog suggests.
@@ -61,8 +73,8 @@ Events
 ------
 file_ok
     Raised when the user accepts, before the dialog takes the path. The
-    payload's ``file_names`` holds the path, with `default_ext` already
-    added. Setting ``cancel`` keeps the old path and shows the dialog again
+    payload's ``file_names`` holds the path, with its extension already
+    added (see `add_extension`). Setting ``cancel`` keeps the old path and shows the dialog again
     with the same settings, where Windows Forms keeps its dialog open.
 
 Methods
@@ -86,11 +98,12 @@ Notes
 -----
 The hosts add the default extension themselves (Windows and X11 to a typed
 name without one, macOS as the type it allows when the filter names none),
-so it is sent to the host only while `add_extension` is on; the dialog adds
-it to a path the host returned without one. A path the addition would make
-longer than the dialog contract allows is kept as chosen. Windows Forms
-first tries the extension of the selected filter; GUI.Forms does not yet
-know which filter the user selected, so it uses `default_ext` alone.
+so it is sent to the host only while `add_extension` is on. The dialog adds
+an extension to a path the host returned without one: the first extension
+of the filter the user selected, as Windows Forms does, unless that filter
+is any file or the host did not say which was selected; then `default_ext`.
+A path the addition would make longer than the dialog contract allows is
+kept as chosen.
 
 A `file_ok` handler may dispose or destroy the dialog; `show_dialog` then
 returns ``cancel`` without touching it. A handler that cancels and destroys
@@ -98,11 +111,8 @@ the owner window also ends the call with ``cancel``. Each request has its
 own identity, unique in the process and shared with the other dialog
 components.
 
-Not yet supported: the filter index (the host request has no field for it),
-the prompt to create a file that does not exist, checking that the chosen
-directory exists (each host's save dialog chooses only existing
-directories), and opening the chosen file; GUI.Forms writes no files for
-the program.
+Not supported: opening the chosen file (Windows Forms' ``OpenFile``);
+GUI.Forms writes no files for the program.
 
 Examples
 --------

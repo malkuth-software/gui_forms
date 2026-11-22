@@ -135,6 +135,14 @@ realized_overlay_groups
     The open overlay's group and its parts, or nothing.
 realized_overlay_commands
     The open overlay's commands, their parts and states.
+quick_access_toolbar
+    The `QuickAccessToolbar` the ribbon hosts, or null; a child of the
+    ribbon while set. Its placement chooses where it shows: ``above_ribbon``
+    on the tab row after the File tab, taking at most half the row's free
+    width (commands that do not fit go to its overflow menu), or
+    ``below_ribbon`` on a row of its own under the plane. Setting null
+    removes it; it is detached, not disposed. Setting a toolbar another
+    parent holds throws `std::invalid_argument`.
 
 Events
 ------
@@ -197,6 +205,13 @@ tab_set_accent
 tab_shown
     Whether a tab shows now, by its modes and its set's availability. Throws
     `std::out_of_range` for a tab past the end.
+show_plane_popup
+    While the ribbon is minimized, opens the selected tab's plane in a
+    temporary popup below the tab row, over the document instead of pushing
+    it down; the tab's hosted controls move into it while it is open.
+    Returns false when not minimized, without a selected tab or a window, or
+    while disabled. `close_plane_popup` closes it, `plane_popup_open` says
+    whether it is open and `plane_popup` returns its content control.
 combo_box
     The `ComboBox` a combo box command holds. `numeric_up_down`, `check_box`
     and `text_box` return the other hosted controls. Each throws
@@ -205,6 +220,7 @@ combo_box
 See Also
 --------
 ToolStrip : A strip of records and hosted controls.
+QuickAccessToolbar : The toolbar the ribbon hosts on its tab row or below it.
 Command : The shared action a command carries.
 ContextMenu : The overlays the ribbon opens.
 
@@ -212,8 +228,12 @@ Notes
 -----
 Clicking the selected tab minimizes the command plane, and clicking it again
 shows it; clicking another tab selects it and shows the plane (owner
-decision 19). There is no minimize button. The minimized ribbon's temporary
-overlay comes in a later phase.
+decision 19). There is no minimize button. While minimized, clicking
+another tab selects it and opens the plane in a temporary popup over the
+document (`show_plane_popup`); clicking the selected tab pins the plane open
+again. A click outside the popup is consumed and only closes it (a click on
+a tab still acts); Escape closes it, and so does a command or launcher run
+from it.
 
 A large command shows a 32-unit icon over its label and fills the group's
 height; small and hosted commands take one of three rows, stacked in
@@ -347,10 +367,10 @@ or a definitive command closes it, a press on the File tab closes it, a
 press on a tab closes it and selects that tab, and it follows the window's
 size.
 
-Not yet: the Quick Access Toolbar, the minimized overlay, icons in the
-two-pane menu, right-to-left mirroring of the cycle, two-line large labels
-and ellipsized tab labels (decision 30 allows them; tabs past the row's end
-are clipped).
+Not yet: icons in the two-pane menu, right-to-left mirroring, two-line
+large labels and ellipsized tab labels (tabs past the row's end are
+clipped); in the minimized popup, collapsed groups' overlays, drop-down
+menus and keyboard stops (the popup's hosted controls take focus as usual).
 
 Examples
 --------
