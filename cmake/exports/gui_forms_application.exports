@@ -1100,6 +1100,7 @@ __ZGVZN9gui_forms19ThemeRequestContext*
 __ZGVZN9gui_forms19ThemeWindowBackdrop*
 __ZGVZN9gui_forms19ToolStripDropTarget*
 __ZGVZN9gui_forms19TreeExpansionChange*
+__ZGVZN9gui_forms19TreeListCheckChange*
 __ZGVZN9gui_forms19TreeSelectionChange*
 __ZGVZN9gui_forms19VirtualRowSelection*
 __ZGVZN9gui_forms19WindowBackdropGrant*
@@ -2788,6 +2789,7 @@ __ZGVZNK9gui_forms19ThemeRequestContext*
 __ZGVZNK9gui_forms19ThemeWindowBackdrop*
 __ZGVZNK9gui_forms19ToolStripDropTarget*
 __ZGVZNK9gui_forms19TreeExpansionChange*
+__ZGVZNK9gui_forms19TreeListCheckChange*
 __ZGVZNK9gui_forms19TreeSelectionChange*
 __ZGVZNK9gui_forms19VirtualRowSelection*
 __ZGVZNK9gui_forms19WindowBackdropGrant*
@@ -4998,6 +5000,7 @@ __ZN9gui_forms19ThemeRequestContext*
 __ZN9gui_forms19ThemeWindowBackdrop*
 __ZN9gui_forms19ToolStripDropTarget*
 __ZN9gui_forms19TreeExpansionChange*
+__ZN9gui_forms19TreeListCheckChange*
 __ZN9gui_forms19TreeSelectionChange*
 __ZN9gui_forms19VirtualRowSelection*
 __ZN9gui_forms19WindowBackdropGrant*
@@ -7870,6 +7873,7 @@ __ZNK[RO]9gui_forms19ThemeRequestContext*
 __ZNK[RO]9gui_forms19ThemeWindowBackdrop*
 __ZNK[RO]9gui_forms19ToolStripDropTarget*
 __ZNK[RO]9gui_forms19TreeExpansionChange*
+__ZNK[RO]9gui_forms19TreeListCheckChange*
 __ZNK[RO]9gui_forms19TreeSelectionChange*
 __ZNK[RO]9gui_forms19VirtualRowSelection*
 __ZNK[RO]9gui_forms19WindowBackdropGrant*
@@ -9558,6 +9562,7 @@ __ZN[KRO]9gui_forms19ThemeRequestContext*
 __ZN[KRO]9gui_forms19ThemeWindowBackdrop*
 __ZN[KRO]9gui_forms19ToolStripDropTarget*
 __ZN[KRO]9gui_forms19TreeExpansionChange*
+__ZN[KRO]9gui_forms19TreeListCheckChange*
 __ZN[KRO]9gui_forms19TreeSelectionChange*
 __ZN[KRO]9gui_forms19VirtualRowSelection*
 __ZN[KRO]9gui_forms19WindowBackdropGrant*
@@ -11246,6 +11251,7 @@ __ZT[VIST]N9gui_forms19ThemeRequestContext*E
 __ZT[VIST]N9gui_forms19ThemeWindowBackdrop*E
 __ZT[VIST]N9gui_forms19ToolStripDropTarget*E
 __ZT[VIST]N9gui_forms19TreeExpansionChange*E
+__ZT[VIST]N9gui_forms19TreeListCheckChange*E
 __ZT[VIST]N9gui_forms19TreeSelectionChange*E
 __ZT[VIST]N9gui_forms19VirtualRowSelection*E
 __ZT[VIST]N9gui_forms19WindowBackdropGrant*E
@@ -12934,6 +12940,7 @@ __ZT[hvc]*9gui_forms19ThemeRequestContext*
 __ZT[hvc]*9gui_forms19ThemeWindowBackdrop*
 __ZT[hvc]*9gui_forms19ToolStripDropTarget*
 __ZT[hvc]*9gui_forms19TreeExpansionChange*
+__ZT[hvc]*9gui_forms19TreeListCheckChange*
 __ZT[hvc]*9gui_forms19TreeSelectionChange*
 __ZT[hvc]*9gui_forms19VirtualRowSelection*
 __ZT[hvc]*9gui_forms19WindowBackdropGrant*
@@ -14622,6 +14629,7 @@ __ZZN9gui_forms19ThemeRequestContext*
 __ZZN9gui_forms19ThemeWindowBackdrop*
 __ZZN9gui_forms19ToolStripDropTarget*
 __ZZN9gui_forms19TreeExpansionChange*
+__ZZN9gui_forms19TreeListCheckChange*
 __ZZN9gui_forms19TreeSelectionChange*
 __ZZN9gui_forms19VirtualRowSelection*
 __ZZN9gui_forms19WindowBackdropGrant*
@@ -16310,6 +16318,7 @@ __ZZNK9gui_forms19ThemeRequestContext*
 __ZZNK9gui_forms19ThemeWindowBackdrop*
 __ZZNK9gui_forms19ToolStripDropTarget*
 __ZZNK9gui_forms19TreeExpansionChange*
+__ZZNK9gui_forms19TreeListCheckChange*
 __ZZNK9gui_forms19TreeSelectionChange*
 __ZZNK9gui_forms19VirtualRowSelection*
 __ZZNK9gui_forms19WindowBackdropGrant*

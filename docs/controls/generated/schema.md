@@ -1015,11 +1015,13 @@ Item system `row`:
 | `row` | region |  |  |
 | `row_face` | face |  |  |
 | `expander` | disclosure |  |  |
+| `check_well` | well |  |  |
+| `check` | indicator |  |  |
 | `icon` | icon |  |  |
 | `text` | content |  |  |
 | `row_focus` | focus |  |  |
 
-Item states: `selected`, `hot`, `current`, `open`, `closed`, `disabled`, `focus_visible`.
+Item states: `selected`, `hot`, `current`, `open`, `closed`, `disabled`, `focus_visible`, `checked`, `indeterminate`.
 
 Item system `cell`:
 
@@ -1042,7 +1044,7 @@ Item system `column`:
 
 Item states: `hot`, `pressed`, `captured`. Application-defined: `sorted_ascending`, `sorted_descending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `cascading_checks` (boolean), `check_boxes` (boolean).
 
 | Interaction | Payload |
 |---|---|
@@ -1052,6 +1054,7 @@ Properties beyond every control's: none.
 | `sort_changed` | `TreeListSortChange` |
 | `column_width_changed` | `TreeListColumnWidthChange` |
 | `column_moved` | `TreeListColumnMove` |
+| `check_state_changed` | `TreeListCheckChange` |
 
 ## `virtual_rows_view` (VirtualRowsView, control)
 

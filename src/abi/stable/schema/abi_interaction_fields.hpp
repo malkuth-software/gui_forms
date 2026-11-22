@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 199> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -180,6 +180,7 @@ inline constexpr std::array<InteractionFieldsEntry, 199> interaction_fields{{
     {"ToolTipEvent", "target_stable_id: text, item_id: text, text: text, shown: boolean, keyboard_initiated: boolean"},
     {"TreeExpansionChange", "stable_id: text, expanded: boolean"},
     {"TreeListActivation", "node_id: text"},
+    {"TreeListCheckChange", "node_id: text, check_state: enumeration"},
     {"TreeListColumnMove", "column: unsigned_integer, display_position: unsigned_integer"},
     {"TreeListColumnWidthChange", "column: unsigned_integer, width: number"},
     {"TreeListExpansionChange", "node_id: text, expanded: boolean"},

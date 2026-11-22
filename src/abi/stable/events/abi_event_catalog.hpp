@@ -1587,6 +1587,7 @@ void append_field(EventFields& fields, std::string_view name, const ToolStripMov
 void append_field(EventFields& fields, std::string_view name, const ToolTipEvent& value);
 void append_field(EventFields& fields, std::string_view name, const TreeExpansionChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListActivation& value);
+void append_field(EventFields& fields, std::string_view name, const TreeListCheckChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListColumnMove& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListColumnWidthChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListExpansionChange& value);
@@ -3700,6 +3701,13 @@ inline void append_field(EventFields& fields, std::string_view name, const TreeL
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const TreeListCheckChange& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "node_id", value.node_id);
+    append_field(fields, "check_state", value.check_state);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const TreeListColumnMove& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "column", value.column);
@@ -4362,6 +4370,15 @@ inline SubscriptionToken connect_image_list_changed(Component& source, const Eve
 
 inline SubscriptionToken connect_check_box_check_state_changed(Component& source, const EventSink& sink) {
     CheckBox* typed = dynamic_cast<CheckBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).check_state_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_tree_list_view_check_state_changed(Component& source, const EventSink& sink) {
+    TreeListView* typed = dynamic_cast<TreeListView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -7344,7 +7361,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 383> event_connectors{{
+inline constexpr std::array<EventConnector, 384> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7402,6 +7419,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"changed", "ChoiceGroup", &connect_choice_group_changed},
     {"changed", "ImageList", &connect_image_list_changed},
     {"check_state_changed", "CheckBox", &connect_check_box_check_state_changed},
+    {"check_state_changed", "TreeListView", &connect_tree_list_view_check_state_changed},
     {"checked_changed", "DateTimePicker", &connect_date_time_picker_checked_changed},
     {"checked_changed", "CheckBox", &connect_check_box_checked_changed},
     {"checked_changed", "RadioButton", &connect_radio_button_checked_changed},

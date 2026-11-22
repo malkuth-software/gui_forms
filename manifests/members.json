@@ -1930,6 +1930,8 @@
       {"kind": "method", "winforms": null, "gui_forms": "splice_virtual_items", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/list_view_tests.cpp"}
     ]},
     {"type": "TreeListView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/damage_rectangles_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "cascading_checks", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "check_boxes", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "column_order", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "columns", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "current_id", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/hostile_handlers/hostile_handlers_tests.cpp"},
@@ -1943,12 +1945,14 @@
       {"kind": "property", "winforms": null, "gui_forms": "sort_order", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "top_row", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/kept_layout_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "virtual_mode", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
+      {"kind": "event", "winforms": null, "gui_forms": "check_state_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "column_moved", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "column_width_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "expansion_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "item_activated", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "selection_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "sort_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "check_state", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "ensure_visible", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/kept_layout_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "expand_subtree", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "index_of", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/hostile_handlers/hostile_handlers_tests.cpp"},
@@ -1961,11 +1965,13 @@
       {"kind": "method", "winforms": null, "gui_forms": "row_node_id", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/tree-and-object-views_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "row_of", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_cell_text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "set_check_state", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_column_width", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/kept_layout_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_expanded", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_row_source", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/kept_layout_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_sort", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "splice_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"}
+      {"kind": "method", "winforms": null, "gui_forms": "splice_rows", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tree_list_view_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "tree_list_view_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "VirtualRowsView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_workload_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "announcement", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/virtual_rows_view_tests.cpp"},

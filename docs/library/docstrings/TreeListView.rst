@@ -64,6 +64,14 @@ image_list
     for a list that is not alive or belongs to another window.
 font
     The font of node, cell and header text.
+check_boxes
+    Whether each row shows its node's check box after the expander, as
+    Windows Forms' ``TreeView.CheckBoxes`` does. Off by default; the nodes'
+    `check_state` is kept either way.
+cascading_checks
+    Whether a check applies to the node's subtree, with each ancestor
+    checked or unchecked when all its children are and indeterminate
+    otherwise. On by default; turning it on does not recompute the states.
 realized_rows
     The visible rows' parts and states, in paint order.
 realized_cells
@@ -94,6 +102,12 @@ column_width_changed
 column_moved
     Raised when a header drag or `move_column` moves a column to a new
     display position.
+check_state_changed
+    Raised after a node's check state changes, by a click on its check box,
+    Space, the accessibility press of a row (with check boxes shown), or
+    `set_check_state`. A cascade raises it once per changed node, after
+    every state is set: the node, its descendants in the order given, then
+    its ancestors, nearest first.
 
 Methods
 -------
@@ -119,6 +133,13 @@ set_expanded
     alone. Throws `std::out_of_range` for an unknown node.
 expand_subtree
     Expands a node and every expandable node under it.
+check_state
+    A node's check state. Throws `std::out_of_range` for an unknown node.
+set_check_state
+    Sets a node's check state, cascading when `cascading_checks` is on. A
+    virtual view asks its row source (``set_row_check_state``). Throws
+    `std::out_of_range` for an unknown node and `std::invalid_argument` for
+    a state outside `CheckState` or an indeterminate write while cascading.
 row_of
     The row showing a node, or none when it is hidden or unknown.
 row_node_id

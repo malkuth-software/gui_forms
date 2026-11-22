@@ -68,12 +68,40 @@ struct TreeListViewSelectedIdCapability {
     }
 };
 
+// Whether each row shows its node's check box after the expander (Windows Forms' TreeView.CheckBoxes); check_state and set_check_state read and write the state.
+template <typename Declaring>
+struct TreeListViewCheckBoxesCapability {
+    PropertyCell<bool, TreeListViewCheckBoxesCapability<Declaring>> check_boxes{};
+
+    static void assign(TreeListViewCheckBoxesCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.check_boxes), incoming);
+        if (!capability.check_boxes.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.check_boxes));
+    }
+};
+
+// Whether a check applies to the node's subtree and its ancestors show checked, unchecked or indeterminate from their children; turning it on does not recompute the states.
+template <typename Declaring>
+struct TreeListViewCascadingChecksCapability {
+    PropertyCell<bool, TreeListViewCascadingChecksCapability<Declaring>> cascading_checks{true};
+
+    static void assign(TreeListViewCascadingChecksCapability& capability, bool incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.cascading_checks), incoming);
+        if (!capability.cascading_checks.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.cascading_checks));
+    }
+};
+
 // Every TreeListView capability, in the order the declaring class takes them.
 template <typename Declaring>
 struct TreeListViewCapabilities : public TreeListViewIndentationCapability<Declaring>,
                                   public TreeListViewImageListCapability<Declaring>,
                                   public FontCapability<Declaring>,
-                                  public TreeListViewSelectedIdCapability<Declaring> {
+                                  public TreeListViewSelectedIdCapability<Declaring>,
+                                  public TreeListViewCheckBoxesCapability<Declaring>,
+                                  public TreeListViewCascadingChecksCapability<Declaring> {
     TreeListViewCapabilities() : FontCapability<Declaring>(FontSpec{FontRole::content, 10.5, 400, false}) {}
 };
 

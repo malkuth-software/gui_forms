@@ -79,15 +79,16 @@
   </scaled-group-box>
 
   <scaled-group-box id="gallery.tree.tree-list-group"
-      text="TreeListView · the whole project as a tree with columns, sorted within siblings"
+      text="TreeListView · the whole project as a tree with columns and check boxes, sorted within siblings"
       design-size="930 300"
       bounds="24 918 930 300"
       classes="paper group-caption">
     <tree-list-view id="gallery.tree.tree-list"
         accessible-name="Project tree with details"
+        check-boxes="true"
         bounds="18 36 640 248"/>
     <label id="gallery.tree.tree-list.note"
-        text="Click a header to sort each folder's children; drag a header to move its column or a divider to resize. Left and Right collapse and expand; * expands a whole folder."
+        text="Click a header to sort each folder's children; drag a header to move its column or a divider to resize. Left and Right collapse and expand; * expands a whole folder. A check box checks its whole folder; a partly checked folder shows indeterminate."
         classes="muted note"
         text-wrapping="word"
         vertical-alignment="start"
