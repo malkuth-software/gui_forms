@@ -804,6 +804,16 @@ struct EnumerationChoices<MaterialReflectionSource> {
 };
 
 template <>
+struct EnumerationChoices<MenuStripFrameButton> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 3> choices{{
+        {"minimize", static_cast<std::int64_t>(MenuStripFrameButton::minimize)},
+        {"restore", static_cast<std::int64_t>(MenuStripFrameButton::restore)},
+        {"close", static_cast<std::int64_t>(MenuStripFrameButton::close)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<Modifier> {
     static constexpr bool flags = true;
     static constexpr std::array<EnumerationChoice, 5> choices{{
@@ -5315,6 +5325,15 @@ inline SubscriptionToken connect_binding_format(Component& source, const EventSi
     return token;
 }
 
+inline SubscriptionToken connect_menu_strip_frame_button_pressed(Component& source, const EventSink& sink) {
+    MenuStrip* typed = dynamic_cast<MenuStrip*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).frame_button_pressed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_node_canvas_graph_edited(Component& source, const EventSink& sink) {
     NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
     if (typed == nullptr) {
@@ -7297,7 +7316,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 381> event_connectors{{
+inline constexpr std::array<EventConnector, 382> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7462,6 +7481,7 @@ inline constexpr std::array<EventConnector, 381> event_connectors{{
     {"focus_observed", "Control", &connect_control_focus_observed},
     {"focused_control_changed", "Window", &connect_window_focused_control_changed},
     {"format", "Binding", &connect_binding_format},
+    {"frame_button_pressed", "MenuStrip", &connect_menu_strip_frame_button_pressed},
     {"graph_edited", "NodeCanvas", &connect_node_canvas_graph_edited},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
     {"handle_committed", "PlotView", &connect_plot_view_handle_committed},

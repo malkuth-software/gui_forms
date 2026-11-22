@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 198> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -102,6 +102,7 @@ inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"MaskValidation", "text: text, mask_completed: boolean, valid: boolean, message: text, cancel: boolean"},
     {"MasterDetailPresentationChange", "previous: enumeration, current: enumeration, automatic: boolean"},
     {"MenuItemInvocation", "menu_id: text, item_id: text, command_id: text, source_id: text"},
+    {"MenuStripFrameButton", "value: enumeration"},
     {"MenuStripInvocation", "menu_strip_id: text, top_level_id: text, item.menu_id: text, item.item_id: text, item.command_id: text, item.source_id: text"},
     {"ModalLayerClosingEvent", "result: enumeration, cancel: boolean"},
     {"MouseEventArgs", "button: enumeration, clicks: unsigned_integer, location: point, window_position: point, wheel_delta: point, modifiers: enumeration, action: enumeration, wheel_unit: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, suppress_click: boolean, wheel_phase: enumeration, timestamp_nanoseconds: unsigned_integer"},
