@@ -29,7 +29,7 @@ namespace {
 std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_state_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
         std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
-            "indicator_lamp_state", {{"off", 0}, {"on", 1}, {"error", 2}}, false});
+            "indicator_lamp_state", {{"off", 0}, {"on", 1}, {"error", 2}, {"fault", 3}}, false});
     return value;
 }
 
@@ -72,14 +72,18 @@ constexpr std::array<AnatomyState, 3> indicator_lamp_states{
 // "on" and "error" name the lit states for a theme's selectors
 // (`indicator-lamp::part(lens):state(on)`); off is neither. "pinpoint"
 // names the pinpoint style (`indicator-lamp::part(lens):state(pinpoint)`).
-constexpr std::array<CustomStateDeclaration, 3> indicator_lamp_custom_states{{
+// "fault" names the failing lamp, which takes "error" too, so a theme
+// without fault rules draws it as an error.
+constexpr std::array<CustomStateDeclaration, 4> indicator_lamp_custom_states{{
     {.name = "on"},
     {.name = "error"},
     {.name = "pinpoint"},
+    {.name = "fault"},
 }};
 constexpr CustomStateIndex on_state{0U};
 constexpr CustomStateIndex error_state{1U};
 constexpr CustomStateIndex pinpoint_state{2U};
+constexpr CustomStateIndex fault_state{3U};
 
 constexpr ControlAnatomy indicator_lamp_anatomy{
     .control_id = "indicator_lamp",
@@ -99,6 +103,10 @@ constexpr bool lit(IndicatorLampState state) noexcept {
 AnatomyStateSet with_lit_state(AnatomyStateSet states, IndicatorLampState state) noexcept {
     if (state == IndicatorLampState::on) states.insert(on_state);
     if (state == IndicatorLampState::error) states.insert(error_state);
+    if (state == IndicatorLampState::fault) {
+        states.insert(error_state);
+        states.insert(fault_state);
+    }
     return states;
 }
 
@@ -113,7 +121,7 @@ AnatomyStateSet with_style_state(AnatomyStateSet states, IndicatorLampStyle styl
 // them from the dark lens.
 ControlVisualRole lit_family(IndicatorLampState state) noexcept {
     const ControlVisualRole family =
-        state == IndicatorLampState::error ? ControlVisualRole::notice : ControlVisualRole::progress;
+        state == IndicatorLampState::on ? ControlVisualRole::progress : ControlVisualRole::notice;
     return family;
 }
 
@@ -148,6 +156,7 @@ std::string_view IndicatorLamp::state_name(IndicatorLampState value) noexcept {
     case IndicatorLampState::off: return "off";
     case IndicatorLampState::on: return "on";
     case IndicatorLampState::error: return "error";
+    case IndicatorLampState::fault: return "fault";
     }
     // A value outside the enumeration reads as off, as it is drawn.
     return "off";
@@ -183,10 +192,21 @@ bool IndicatorLamp::light_planes_shown() const {
 }
 
 engine_light::LampColour IndicatorLamp::lit_colour() const noexcept {
-    if (lit_state_ == IndicatorLampState::error) return engine_light::lamp_red;
+    if (lit_state_ == IndicatorLampState::error || lit_state_ == IndicatorLampState::fault) return engine_light::lamp_red;
     const Color* chosen = lamp_color.read().value();
     if (chosen != nullptr) return engine_light::lamp_colour_from_srgb(*chosen);
     return engine_light::lamp_amber;
+}
+
+std::uint32_t IndicatorLamp::fault_seed() const noexcept {
+    // FNV-1a over the stable id: a lamp fails the same way in every run,
+    // and two lamps fail differently.
+    std::uint32_t hash = 2166136261U;
+    for (const char character : stable_id().value()) {
+        hash = hash ^ static_cast<std::uint8_t>(character);
+        hash = hash * 16777619U;
+    }
+    return hash;
 }
 
 FontSpec IndicatorLamp::legend_font() const noexcept {
@@ -403,6 +423,8 @@ void IndicatorLamp::begin_change() {
     if (lit(shown)) lit_state_ = shown;
     const bool on = lit(shown);
     const bool at_once = reduced_motion() || attached_window() == nullptr || (!on && !(power_ > 0.0));
+    // A failing lamp keeps its timer for as long as it fails (advance),
+    // and starts from its strike as any lit lamp does.
     if (at_once) {
         power_ = engine_light::lamp_power(on, engine_light::lamp_strike_seconds, true);
         return;
@@ -420,11 +442,19 @@ AnimationTickResult IndicatorLamp::advance(FrameTime now) {
     const double seconds = std::chrono::duration<double>(now - started).count();
     const bool reduced = reduced_motion();
     const bool on = lit(state.read());
+    const bool failing = state.read() == IndicatorLampState::fault;
+    const double was = power_;
     power_ = on ? engine_light::lamp_power(true, seconds, reduced)
                 : engine_light::lamp_cooling_power(cooling_from_, seconds, reduced);
-    invalidate(Dirty::paint);
-    const bool ended = on ? engine_light::lamp_settled(seconds) : engine_light::lamp_cooled(seconds);
+    if (failing) power_ = power_ * engine_light::lamp_fault_flicker(seconds, fault_seed(), reduced);
+    // A failing lamp's timer runs while it fails; any other ends when the
+    // warm-up settles or the cool-down ends. Under reduced motion every
+    // lamp is steady at once.
+    const bool ended = failing ? false : (on ? engine_light::lamp_settled(seconds) : engine_light::lamp_cooled(seconds));
     if (ended || reduced) change_timer_.stop();
+    // A failing lamp holding steady between its dropouts repaints nothing.
+    if (power_ == was) return AnimationTickResult::unchanged;
+    invalidate(Dirty::paint);
     return AnimationTickResult::damaged;
 }
 
@@ -447,7 +477,7 @@ void IndicatorLamp::on_detached_from_window() noexcept {
 void IndicatorLamp::prepare_write(const decltype(state)&, IndicatorLampState& incoming) {
     require_mutable();
     const bool known = incoming == IndicatorLampState::off || incoming == IndicatorLampState::on ||
-                       incoming == IndicatorLampState::error;
+                       incoming == IndicatorLampState::error || incoming == IndicatorLampState::fault;
     if (!known) throw std::invalid_argument("IndicatorLamp state is outside IndicatorLampState");
 }
 
@@ -465,7 +495,7 @@ PropertyDescriptor indicator_lamp_state_descriptor() {
     descriptor.name = "state";
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Appearance";
-    descriptor.description = "Whether the lamp is off, on or showing an error.";
+    descriptor.description = "Whether the lamp is off, on, showing an error or failing.";
     descriptor.default_value = BindingValue{PropertyEnumValue{"indicator_lamp_state", "off", 0}};
     descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
     descriptor.enumeration = indicator_lamp_state_enum();

@@ -177,7 +177,8 @@ public:
         self.assertEqual(engine["budgets"]["operations_per_device_pixel"], 512)
         names = [primitive["name"] for primitive in engine["primitives"]]
         self.assertEqual(names, ["bulge", "dithered_bulge", "pill_plate", "gold_plate", "inset_well", "etched_divider",
-                                 "seam_line", "grip", "material", "overlay_shadow", "sheen", "glass"])
+                                 "seam_line", "grip", "material", "overlay_shadow", "sheen", "glass",
+                                 "light_map"])
         bulge = engine["primitives"][0]
         self.assertEqual(bulge["roles"], ["face"])
         amplitude = next(item for item in bulge["parameters"] if item["name"] == "amplitude")

@@ -4,6 +4,7 @@
 #include "industrial-surfaces_form.hpp"
 #include "industrial_theme_package.hpp"
 
+#include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/indicator_lamp.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
@@ -32,12 +33,18 @@ constexpr Color lamp_green_srgb = Color::rgba(111, 255, 137);
 constexpr Color lamp_amber_srgb = Color::rgba(255, 188, 80);
 constexpr Color lamp_red_srgb = Color::rgba(255, 97, 56);
 
-// Each of the dialog's lamps: its bake (shipped with the library,
+// The class that puts a lit key's lamps out (demo/themes/gallery/
+// gallery.theme.css, `.lit-key.lamp-off`).
+constexpr std::string_view lamp_off_class = "lamp-off";
+
+// Each of the dialog's status lamps: its bake (shipped with the library,
 // engine_light::shipped_light_plane_store) and its colour, as the study's
-// dialog has them. The status lamps are the jewel (indicator_backed_up,
-// seen through a dot); CANCEL is white plastic over red lamps, always lit,
-// and OK clear over a frosted back, lit by the Lamps check box with the
-// status lamps. FAULT is lit by its error state, which takes the red.
+// dialog has them: the jewel (indicator_backed_up, seen through a dot).
+// FAULT is failing (IndicatorLampState::fault), which takes the red. The
+// keys are buttons the gallery theme draws from the shipped key bakes
+// (`primitive: light-map`): CANCEL white plastic over red lamps, always
+// lit, and OK clear over a frosted back, lit by the Lamps check box with
+// the status lamps (the `lamp-off` class puts it out).
 struct DialogLamp final {
     std::string_view bake{};
     Color colour{};
@@ -114,16 +121,13 @@ void IndustrialSurfacesPage::mount_document(const std::shared_ptr<Surface>& body
 // Each dialog lamp names its bake and takes its colour; the bakes ship
 // with the library, so nothing is looked for on disk.
 void IndustrialSurfacesPage::light_dialog() {
-    const std::array<std::shared_ptr<IndicatorLamp>, 5> lamps{
-        document_.gallery_industrial_status_pump_ready, document_.gallery_industrial_status_heating,
-        document_.gallery_industrial_status_fault, document_.gallery_industrial_key_cancel,
-        document_.gallery_industrial_key_ok};
-    constexpr std::array<DialogLamp, 5> choices{{
+    const std::array<std::shared_ptr<IndicatorLamp>, 3> lamps{document_.gallery_industrial_status_pump_ready,
+                                                              document_.gallery_industrial_status_heating,
+                                                              document_.gallery_industrial_status_fault};
+    constexpr std::array<DialogLamp, 3> choices{{
         {.bake = "indicator_backed_up", .colour = lamp_green_srgb},
         {.bake = "indicator_backed_up", .colour = lamp_amber_srgb},
         {.bake = "indicator_backed_up", .colour = lamp_red_srgb},
-        {.bake = "dialog_cancel_up", .colour = lamp_red_srgb},
-        {.bake = "dialog_ok_up", .colour = lamp_green_srgb},
     }};
     for (std::size_t index = 0U; index < lamps.size(); ++index) {
         IndicatorLamp& lamp = *lamps[index];
@@ -135,8 +139,13 @@ void IndustrialSurfacesPage::light_dialog() {
 void IndustrialSurfacesPage::on_lamps_changed(bool on) {
     (*document_.gallery_industrial_status_pump_ready).state = on ? IndicatorLampState::on : IndicatorLampState::off;
     (*document_.gallery_industrial_status_heating).state = on ? IndicatorLampState::on : IndicatorLampState::off;
-    (*document_.gallery_industrial_status_fault).state = on ? IndicatorLampState::error : IndicatorLampState::off;
-    (*document_.gallery_industrial_key_ok).state = on ? IndicatorLampState::on : IndicatorLampState::off;
+    (*document_.gallery_industrial_status_fault).state = on ? IndicatorLampState::fault : IndicatorLampState::off;
+    Button& ok = *document_.gallery_industrial_key_ok;
+    if (on) {
+        static_cast<void>(ok.remove_class(lamp_off_class));
+    } else {
+        static_cast<void>(ok.add_class(lamp_off_class));
+    }
 }
 
 std::shared_ptr<const Theme> IndustrialSurfacesPage::build_industrial_theme(Window& window) {

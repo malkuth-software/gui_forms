@@ -13,16 +13,22 @@
 #include <span>
 #include <string>
 
+#include <cstdint>
+
 #include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
 // An indicator lamp (skeudoindustrial surfaces, follow-up 4): a round lens
-// in a bezel that shows a state, off, on or error, with an optional legend
+// in a bezel that shows a state, off, on, error or fault, with an optional legend
 // beside it. Every theme can show one: the default theme and the familiar
 // themes style its parts (`indicator-lamp::part(lens):state(on)`), and a
 // theme that does not draws it with its built-in recipes, the lit lens as a
-// progress fill (on) or a notice (error).
+// progress fill (on) or a notice (error or fault). A failing lamp (fault)
+// is lit in the error colour and flickers and stutters as a breaking lamp
+// does (engine_light::lamp_fault_flicker): seeded by its stable id so
+// every run repeats, under three flashes a second, and steady under
+// reduced motion.
 //
 // A lamp is never clickable and takes no focus: the pointer reaches what
 // lies beneath it. It lights only its own lens: the lit lens is drawn
@@ -32,8 +38,8 @@ namespace gui_forms {
 // few frames, and at once under reduced motion or outside a window.
 //
 // To assistive technology a lamp is static text named by its accessible
-// name or else its legend, with its state as the value ("on", "off" or
-// "error"), so the state never rests on colour alone.
+// name or else its legend, with its state as the value ("on", "off",
+// "error" or "fault"), so the state never rests on colour alone.
 //
 // A lamp may show baked light (skeudoindustrial surfaces): its lens is
 // then composited from the bake its light_planes property names, read
@@ -69,7 +75,8 @@ public:
     [[nodiscard]] double power() const noexcept {
         return power_;
     }
-    // Whether a warm-up or cool-down is running.
+    // Whether a warm-up or cool-down is running, or the lamp is failing
+    // (its flicker's frames run for as long as it fails).
     [[nodiscard]] bool changing() const noexcept;
     // Whether the lens is composited from its bake now: light_planes names
     // one that the window's resources hold, outside forced high contrast.
@@ -119,7 +126,7 @@ private:
     // The bake light_planes names, from the window's resources; null when
     // none is named or held, outside a window, or in forced high contrast.
     [[nodiscard]] std::shared_ptr<const engine_light::LightPlanes> shown_bake() const;
-    // The lit lamp's colour at unit power: lamp red for an error, else
+    // The lit lamp's colour at unit power: lamp red for an error or a fault, else
     // lamp_color, else lamp amber.
     [[nodiscard]] engine_light::LampColour lit_colour() const noexcept;
     // The lens drawn as the theme's: the dark lens, then the lit lens over
@@ -128,6 +135,9 @@ private:
     // The lens composited from `bake` at the current power.
     void paint_baked_lens(Painter& painter, const Placement& placed, AnatomyStateSet states,
                           std::shared_ptr<const engine_light::LightPlanes> bake);
+    // The failing lamp's seed (engine_light::lamp_fault_flicker): a hash
+    // of the stable id, so captures and tests repeat.
+    [[nodiscard]] std::uint32_t fault_seed() const noexcept;
     [[nodiscard]] FontSpec legend_font() const noexcept;
     [[nodiscard]] bool reduced_motion() const noexcept;
     // Starts the change to the state just written: at once, or a warm-up or
@@ -136,8 +146,8 @@ private:
     AnimationTickResult advance(FrameTime now);
 
     double power_{};
-    // The lit state the lens shows while it is lit or cooling (on or
-    // error); off only before the lamp is first lit.
+    // The lit state the lens shows while it is lit or cooling (on, error
+    // or fault); off only before the lamp is first lit.
     IndicatorLampState lit_state_{IndicatorLampState::off};
     // The change's first frame, taken from the timer's clock, and the power
     // a cool-down starts from.

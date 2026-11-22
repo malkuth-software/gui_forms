@@ -27,8 +27,19 @@ from world tiles, so no part passes a bake budget. The last image needs
 the study's reference render (--reference, by default the notes
 repository's dialog_demo_idle.png, 1000 x 620: the dialog at scale 2); it
 is skipped, with a note in the manifest, when that file is missing or is
-not an 8-bit PNG this tool reads. Then manifest.json lists each image, its
-command and its size.
+not an 8-bit PNG this tool reads.
+
+The process-control demonstrator (gui_forms_process_control, owner,
+2026-11-22: the same dialog as a program of its own, its keys drawn by the
+light-map primitive) is captured too, headless at its own size:
+
+    process-control-1x.png, process-control-2x.png
+    process-control-beside-study.png         its 2x window beside the
+                                             study's render
+
+skipped, with a note in the manifest, when the build holds no
+demonstrator. Then manifest.json lists each image, its command and its
+size.
 
     python3 tools/capture_theme_looks.py --build-dir <build> [--out <folder>] [--reference <png>]
 
@@ -64,6 +75,13 @@ GALLERY_PROGRAMS: tuple[str, ...] = (
     "GUI.Forms Gallery.app/Contents/MacOS/GUI.Forms Gallery",
     "gui_forms_gallery", "gui_forms_gallery.exe", "GUI.Forms Gallery.exe", "GUI.Forms Gallery",
 )
+DEMONSTRATOR: str = "process-control"
+DEMONSTRATOR_BESIDE_NAME: str = f"{DEMONSTRATOR}-beside-study.png"
+DEMONSTRATOR_BESIDE_SOURCE: str = f"{DEMONSTRATOR}-2x.png"
+DEMONSTRATOR_PROGRAMS: tuple[str, ...] = (
+    "GUI.Forms Process Control.app/Contents/MacOS/GUI.Forms Process Control",
+    "gui-forms-process-control", "GUI.Forms Process Control.exe", "GUI.Forms Process Control",
+)
 
 # A user sheet that retiles the page's carbon fibre swatch alone, over the
 # Gallery's own declaration (`!important`: a user sheet's ordinary
@@ -86,13 +104,13 @@ class Capture:
     command: list[str] = field(default_factory=list)
 
 
-def find_gallery(build_dir: Path) -> Path | None:
-    """The Gallery program in `build_dir`, searched to any depth."""
-    for relative in GALLERY_PROGRAMS:
+def find_program(build_dir: Path, programs: tuple[str, ...]) -> Path | None:
+    """The first of `programs` in `build_dir`, searched to any depth."""
+    for relative in programs:
         direct = build_dir / relative
         if direct.is_file():
             return direct
-    leaf_names = {Path(relative).name for relative in GALLERY_PROGRAMS}
+    leaf_names = {Path(relative).name for relative in programs}
     for candidate in sorted(build_dir.rglob("*")):
         if candidate.name in leaf_names and candidate.is_file():
             return candidate
@@ -135,12 +153,33 @@ def gallery_command(gallery: Path, capture: Capture, image: Path) -> list[str]:
     return command
 
 
-def run_capture(gallery: Path, capture: Capture, out: Path) -> dict[str, object]:
+def find_gallery(build_dir: Path) -> Path | None:
+    """The Gallery program in `build_dir`, searched to any depth."""
+    return find_program(build_dir, GALLERY_PROGRAMS)
+
+
+def demonstrator_command(program: Path, capture: Capture, image: Path) -> list[str]:
+    """The demonstrator's arguments for `capture`, writing `image`."""
+    command: list[str] = [str(program), "--capture", str(image), "--headless", "--scale", capture.scale]
+    return command
+
+
+def demonstrator_captures() -> list[Capture]:
+    """Every image the demonstrator makes, in order."""
+    captures: list[Capture] = [
+        Capture(name=f"{DEMONSTRATOR}-1x.png", scale="1", scheme="light"),
+        Capture(name=DEMONSTRATOR_BESIDE_SOURCE, scale="2", scheme="light"),
+    ]
+    return captures
+
+
+def run_capture(gallery: Path, capture: Capture, out: Path, demonstrator: bool = False) -> dict[str, object]:
     """Runs one capture; its manifest entry, with `ok` false on any failure."""
     image = out / capture.name
     if image.exists():
         image.unlink()
-    capture.command = gallery_command(gallery, capture, image)
+    capture.command = (demonstrator_command(gallery, capture, image) if demonstrator
+                       else gallery_command(gallery, capture, image))
     entry: dict[str, object] = {"image": capture.name, "command": capture.command, "ok": False}
     try:
         finished = subprocess.run(capture.command, capture_output=True, text=True, timeout=TIMEOUT_SECONDS,
@@ -300,19 +339,20 @@ def beside(left: Picture, right: Picture) -> Picture:
     return Picture(width=width, height=height, rows=rows)
 
 
-def make_beside(out: Path, reference: Path) -> dict[str, object]:
-    """The 2x page beside the study's render; its manifest entry."""
-    entry: dict[str, object] = {"image": BESIDE_NAME, "reference": str(reference), "ok": False}
-    page = read_png(out / BESIDE_SOURCE)
+def make_beside(out: Path, reference: Path, name: str = BESIDE_NAME,
+                source: str = BESIDE_SOURCE) -> dict[str, object]:
+    """The 2x capture `source` beside the study's render, as `name`; its manifest entry."""
+    entry: dict[str, object] = {"image": name, "reference": str(reference), "ok": False}
+    page = read_png(out / source)
     if page is None:
-        entry["error"] = f"{BESIDE_SOURCE} is missing or not a PNG this tool reads"
+        entry["error"] = f"{source} is missing or not a PNG this tool reads"
         return entry
     study = read_png(reference)
     if study is None:
         entry["skipped"] = True
         entry["error"] = "the study's reference render is missing or not a PNG this tool reads"
         return entry
-    image = out / BESIDE_NAME
+    image = out / name
     write_png(image, beside(page, study))
     entry["bytes"] = image.stat().st_size
     entry["ok"] = True
@@ -343,7 +383,23 @@ def main(arguments: list[str]) -> int:
     entries.append(side)
     side_status = f"{side.get('bytes', 0)} bytes" if side["ok"] else f"not made: {side.get('error', '')}"
     print(f"capture_theme_looks: {BESIDE_NAME}: {side_status}")
-    manifest = {"gallery": str(gallery), "page": PAGE, "theme": THEME, "images": entries}
+    demonstrator = find_program(options.build_dir, DEMONSTRATOR_PROGRAMS)
+    if demonstrator is None:
+        entries.append({"image": f"{DEMONSTRATOR}-*.png", "ok": False, "skipped": True,
+                        "error": f"no process-control demonstrator in {options.build_dir}"})
+        print("capture_theme_looks: process-control: skipped, no demonstrator in the build")
+    else:
+        for capture in demonstrator_captures():
+            entry = run_capture(demonstrator, capture, out, demonstrator=True)
+            entries.append(entry)
+            status = f"{entry.get('bytes', 0)} bytes" if entry["ok"] else f"FAILED: {entry.get('error', '')}"
+            print(f"capture_theme_looks: {capture.name}: {status}")
+        demonstrator_side = make_beside(out, options.reference, DEMONSTRATOR_BESIDE_NAME, DEMONSTRATOR_BESIDE_SOURCE)
+        entries.append(demonstrator_side)
+        print(f"capture_theme_looks: {DEMONSTRATOR_BESIDE_NAME}: "
+              f"{'made' if demonstrator_side['ok'] else 'not made: ' + str(demonstrator_side.get('error', ''))}")
+    manifest = {"gallery": str(gallery), "demonstrator": str(demonstrator) if demonstrator else "",
+                "page": PAGE, "theme": THEME, "images": entries}
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     failed = sum(1 for entry in entries if not entry["ok"] and not entry.get("skipped", False))
     return 1 if failed else 0

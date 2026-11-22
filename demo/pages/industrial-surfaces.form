@@ -14,12 +14,16 @@
    blasted enamel and its heavier title band (the gallery theme's
    `blasted-enamel` classes, demo/themes/gallery/gallery.theme.css), the
    study's ivory type, the three status lamps as jewels through dots
-   (centred 36 units in, 145, 174 and 203 down, 14 units across), and the
-   CANCEL and OK keys lit from the shipped bakes (120 x 52.5 at 228 and
-   360 across, 237.5 down). The page (src/controls/gallery/pages/
-   industrial-surfaces.cpp) names each lamp's bake and colour and keeps
-   the behaviour: the Lamps check box, the industrial theme check box,
-   Start and Stop, and Coolant. A lamp is never clicked.
+   (centred 36 units in, 145, 174 and 203 down, 14 units across; FAULT
+   failing, flickering as a breaking lamp does), and the CANCEL and OK
+   keys, buttons drawn from the shipped key bakes by the gallery theme's
+   light-map rules (`lit-key`; 120 x 52.5 at 228 and 360 across, 237.5
+   down), pressed while held. The bakes carry the keys' legends, so the
+   buttons have no text, only their accessible names. The page
+   (src/controls/gallery/pages/industrial-surfaces.cpp) names each status
+   lamp's bake and colour and keeps the behaviour: the Lamps check box,
+   the industrial theme check box, Start and Stop, and Coolant. A lamp is
+   never clicked.
 
    Beside it, the industrial theme over the GOST paints on a few stock
    controls, with the lamp radio choice (indicator-style="lamp": the row
@@ -71,15 +75,17 @@
         text="FAULT"
         classes="enamel-ink"
         accessible-name="Fault"
-        state="error"
+        state="fault"
         bounds="29 196 220 14"/>
-    <indicator-lamp id="gallery.industrial.key.cancel"
-        accessible-name="CANCEL key"
-        state="on"
+    <button id="gallery.industrial.key.cancel"
+        text=""
+        classes="lit-key lit-cancel"
+        accessible-name="Cancel"
         bounds="228 237 120 53"/>
-    <indicator-lamp id="gallery.industrial.key.ok"
-        accessible-name="OK key"
-        state="on"
+    <button id="gallery.industrial.key.ok"
+        text=""
+        classes="lit-key lit-ok"
+        accessible-name="OK"
         bounds="360 237 120 53"/>
   </panel>
 
@@ -159,7 +165,7 @@
         checked="true"
         bounds="16 36 200 24"/>
     <label id="gallery.industrial.lamps.note"
-        text="The check box switches the dialog's status lamps and its OK key; CANCEL stays lit. The bakes ship with the library."
+        text="The check box switches the dialog's status lamps and its OK key; CANCEL stays lit. FAULT is failing. The bakes ship with the library."
         classes="muted note"
         bounds="16 72 404 60"/>
   </scaled-group-box>

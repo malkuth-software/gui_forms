@@ -262,6 +262,26 @@ drawing primitive for the part and its parameters are then properties by
 their registered names (`primitive: bulge; amplitude: 0.5`); a rule declaring
 only material fields selects the `material` primitive.
 
+`primitive: light-map` draws a part from a baked light map the library
+ships: the room's light, the lamps' and the key's coverage, baked without
+colour, so the lamp colour is chosen when the part is drawn. `bake` is
+`dialog-ok` (clear over a frosted back) or `dialog-cancel` (white plastic
+over red lamps), each baked up and down; `lamp-colour` is the lamps'
+colour (its alpha scales their power), `lamp-power` their power from 0 to
+2 (1 as baked, 0 by default), `press` how far the key is down from 0 to 1,
+mixing the up bake toward the down one, and `room` the room light's gain
+from 0 to 2 (1 by default). The bake stretches over the part, its
+coverage as the part's alpha. None of these is animated, so a change of
+state switches the look at once. A parameter cascades among the rules
+that select the same primitive, so each rule names it. A pressable lit
+key, its lamps put out by a class:
+
+```css
+.lit-ok::part(face) { primitive: light-map; bake: dialog-ok; lamp-colour: #6fff89; lamp-power: 1; }
+.lit-ok.lamp-off::part(face) { primitive: light-map; lamp-power: 0; }
+.lit-ok:active::part(face) { primitive: light-map; press: 1; }
+```
+
 | Area | Properties |
 |---|---|
 | fills | `background-color`, `background-image` (linear, radial and conic gradients and their `repeating-` and `reflecting-` forms, images, `pattern()`, `finish()`), `background` (up to 8 layers), `background-blend-mode`, `background-size`, `background-repeat` (`repeat`, `no-repeat`, and the GUI.Forms additions `mirror` and `extend`), `background-position`, `gradient-dither` (`none`, `ordered`, `blue-noise`) |

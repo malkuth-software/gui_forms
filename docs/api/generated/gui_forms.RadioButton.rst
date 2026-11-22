@@ -69,6 +69,13 @@ gui_forms::RadioButton
          the lamp only shows which option is chosen. A theme styles it through
          the custom state ``lamp`` (``radio-button:checked::part(indicator):state(lamp)``).
 
+      **lamp_color** : ``stxlib::Optional<Color>``, default empty
+         The colour the lamp look's jewel lights in, as sRGB; lamp green when
+         empty. The jewel's light is baked without colour and tinted when it is
+         drawn (``engine_light::lamp_colour_from_srgb``), so any colour serves:
+         the unchosen jewel shows it as tinted glass, the chosen one glows in
+         it. It changes nothing for the other indicator styles.
+
       **parts** : ``Parts``, read-only
 
       **states** : ``States``, read-only
@@ -220,6 +227,14 @@ gui_forms::RadioButton
       the lamp only shows which option is chosen. A theme styles it through
       the custom state ``lamp`` (``radio-button:checked::part(indicator):state(lamp)``).
 
+   .. cpp:member:: stxlib::Optional<Color> lamp_color
+
+      The colour the lamp look's jewel lights in, as sRGB; lamp green when
+      empty. The jewel's light is baked without colour and tinted when it is
+      drawn (``engine_light::lamp_colour_from_srgb``), so any colour serves:
+      the unchosen jewel shows it as tinted glass, the chosen one glows in
+      it. It changes nothing for the other indicator styles.
+
    .. cpp:function:: Parts parts() const
 
    .. cpp:function:: States states() const
@@ -279,7 +294,7 @@ gui_forms::RadioButton
 
    .. cpp:member:: constexpr std::size_t radio_button_property_count
 
-      RadioButton's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 3U``.
+      RadioButton's property table: ButtonBase's entries, then its own. Default: ``ButtonBase::button_base_property_count + 4U``.
 
 .. rubric:: Windows Forms correspondence
 

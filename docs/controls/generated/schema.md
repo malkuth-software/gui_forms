@@ -67,6 +67,7 @@ Theme engine 0.3 (T2): the primitives a theme's rules may select, the atoms each
 | `overlay_shadow` | 0.2 | `shadow` | none | 512 | none |
 | `sheen` | 0.2 | `sheen` | none | 16 | `colour`, `width`, `rest` |
 | `glass` | 0.2 | `region`, `face`, `well`, `plot` | none | 48 | `blur`, `tint`, `corner`, `recipe`, `layers` |
+| `light_map` | 0.3 | `region`, `face`, `well`, `actuator` | none | 320 | `bake`, `lamp_colour`, `lamp_power`, `press`, `room` |
 
 Bounded expressions: at most 64 operations and a stack of 16, from `constant`, `input`, `state`, `parameter`, `negate`, `add`, `subtract`, `multiply`, `divide`, `minimum`, `maximum`, `less`, `less_equal`, `greater`, `greater_equal`, `equal`, `not_equal`, `clamp`, `mix`, `smoothstep`, `choose`.
 
@@ -431,7 +432,7 @@ Interactions beyond every control's: none.
 | `lens` | indicator |  |  |
 | `label` | label |  |  |
 
-States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`, `pinpoint`.
+States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`, `pinpoint`, `fault`.
 
 Properties beyond every control's: `lamp_color` (color), `lamp_style` (enumeration), `light_planes` (text), `state` (enumeration), `text` (text).
 
@@ -1335,7 +1336,7 @@ Properties beyond every control's: `check_state` (enumeration), `checked` (boole
 
 States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`. Application-defined: `lamp`.
 
-Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `group_name` (text), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
+Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `group_name` (text), `image` (image), `indicator_style` (enumeration), `lamp_color` (color), `text` (text), `text_alignment` (enumeration).
 
 | Interaction | Payload |
 |---|---|

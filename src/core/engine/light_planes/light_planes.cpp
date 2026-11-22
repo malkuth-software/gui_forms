@@ -7,6 +7,7 @@
 #include <array>
 #include <bit>
 #include <cmath>
+#include <cstdint>
 #include <fstream>
 #include <iterator>
 #include <limits>
@@ -547,6 +548,60 @@ double key_press_mix(double from, double to, double seconds, bool reduced_motion
     const double eased = 1.0 - (1.0 - u) * (1.0 - u);
     const double mixed = from + (to - from) * eased;
     return mixed;
+}
+
+namespace {
+
+// A 32-bit finaliser (MurmurHash3's) over the seed, the slot and a draw's
+// number: the fault's dice, the same on every host.
+std::uint32_t fault_hash(std::uint32_t seed, std::uint64_t slot, std::uint32_t draw) noexcept {
+    std::uint32_t h = seed ^ static_cast<std::uint32_t>(slot) ^ (static_cast<std::uint32_t>(slot >> 32U) * 0x9e3779b9U);
+    h = h ^ (draw * 0x85ebca6bU);
+    h = h ^ (h >> 16U);
+    h = h * 0x85ebca6bU;
+    h = h ^ (h >> 13U);
+    h = h * 0xc2b2ae35U;
+    h = h ^ (h >> 16U);
+    return h;
+}
+
+// A draw in [0, 1).
+double fault_unit(std::uint32_t seed, std::uint64_t slot, std::uint32_t draw) noexcept {
+    const double unit = static_cast<double>(fault_hash(seed, slot, draw)) / 4294967296.0;
+    return unit;
+}
+
+// The power factor the event of `slot` gives at `seconds` since the fault
+// began; 1 before it, after it, and for a slot with no event.
+double fault_event(std::uint32_t seed, std::uint64_t slot, double seconds) noexcept {
+    const double kind = fault_unit(seed, slot, 0U);
+    if (kind < 0.40) return 1.0;
+    const bool dropout = kind < 0.75;
+    const double start = static_cast<double>(slot) * lamp_fault_slot_seconds +
+                         lamp_fault_latest_start * fault_unit(seed, slot, 1U);
+    if (seconds < start) return 1.0;
+    const double low = dropout ? 0.03 + 0.07 * fault_unit(seed, slot, 2U) : 0.35 + 0.25 * fault_unit(seed, slot, 2U);
+    const double hold = dropout ? 0.05 + 0.13 * fault_unit(seed, slot, 3U) : 0.03 + 0.05 * fault_unit(seed, slot, 3U);
+    if (seconds < start + hold) return low;
+    const double constant = dropout ? 0.03 + 0.12 * fault_unit(seed, slot, 4U) : 0.02 + 0.04 * fault_unit(seed, slot, 4U);
+    const double caught = dropout ? 0.40 + 0.40 * fault_unit(seed, slot, 5U) : low;
+    const double since = seconds - (start + hold);
+    const double recovered = 1.0 - (1.0 - caught) * engine_exponential(-since / constant);
+    return recovered;
+}
+
+} // namespace
+
+double lamp_fault_flicker(double seconds, std::uint32_t seed, bool reduced_motion) noexcept {
+    if (reduced_motion || !std::isfinite(seconds) || !(seconds > 0.0)) return 1.0;
+    // Past 10^15 seconds (some 30 million years) the slot index nears the
+    // doubles' whole-number limit; a fault that old stays lit.
+    if (!(seconds < 1.0e15)) return 1.0;
+    const std::uint64_t slot = static_cast<std::uint64_t>(seconds / lamp_fault_slot_seconds);
+    const double here = fault_event(seed, slot, seconds);
+    const double before = slot > 0U ? fault_event(seed, slot - 1U, seconds) : 1.0;
+    const double power = std::min(here, before);
+    return power;
 }
 
 bool lamp_settled(double seconds) noexcept {

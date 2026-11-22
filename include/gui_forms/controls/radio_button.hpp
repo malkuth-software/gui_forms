@@ -71,7 +71,7 @@ private:
     // property_codemod begin RadioButton (tools/property_families/radio_button.json; generated, do not edit)
 public:
     // RadioButton's property table: ButtonBase's entries, then its own.
-    static constexpr std::size_t radio_button_property_count = ButtonBase::button_base_property_count + 3U;
+    static constexpr std::size_t radio_button_property_count = ButtonBase::button_base_property_count + 4U;
     [[nodiscard]] static const std::array<PropertyEntry, radio_button_property_count>& radio_button_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -86,6 +86,7 @@ private:
     friend struct RadioButtonGroupNameCapability<RadioButton>;
     friend struct RadioButtonAutoCheckCapability<RadioButton>;
     friend struct RadioButtonIndicatorStyleCapability<RadioButton>;
+    friend struct RadioButtonLampColorCapability<RadioButton>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void write_view(const decltype(checked)& cell, bool incoming);
     [[nodiscard]] bool read_view(const decltype(checked)& cell) const;
@@ -95,6 +96,8 @@ private:
     void written(const decltype(auto_check)& cell);
     void prepare_write(const decltype(indicator_style)& cell, ChoiceIndicatorStyle& incoming);
     void written(const decltype(indicator_style)& cell);
+    void prepare_write(const decltype(lamp_color)& cell, stxlib::Optional<Color>& incoming);
+    void written(const decltype(lamp_color)& cell);
     // property_codemod end RadioButton
 };
 

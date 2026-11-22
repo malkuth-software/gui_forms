@@ -586,6 +586,7 @@ add_library(gui_forms_core STATIC
     src/core/engine/primitives/procedural/procedural_pattern.cpp
     src/core/engine/primitives/light/sheen_primitive.cpp
     src/core/engine/primitives/light/glass_primitive.cpp
+    src/core/engine/primitives/light/light_map_primitive.cpp
     src/core/window/backplane/backplane_composite.cpp
     src/core/window/backdrop/window_backdrop_grant.cpp
     src/core/window/backdrop/backdrop_chain.cpp
@@ -2588,6 +2589,19 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_compositor_lab_model PUBLIC
         gui_forms_controls)
 
+    # The process-control demonstrator (owner, 2026-11-22; skeudoindustrial
+    # surfaces, phase 3): the owner's dialog built from the library's light
+    # maps, finishes and lamps (demo/process_control/process_control.hpp).
+    add_library(gui_forms_process_control_model STATIC
+        demo/process_control/process_control.cpp
+    )
+    target_include_directories(gui_forms_process_control_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo/process_control
+    )
+    target_link_libraries(gui_forms_process_control_model PUBLIC
+        gui_forms_controls)
+
     add_library(gui_forms_custom_chrome_lab_model STATIC
         demo/custom_chrome_lab.cpp
     )
@@ -2660,6 +2674,27 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Gallery"
         )
 
+
+        # The process-control demonstrator; the headless capture draws
+        # through OffscreenRaster, as the Gallery's does.
+        add_executable(gui_forms_process_control MACOSX_BUNDLE
+            src/host/macos/process_control_main.mm
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_process_control PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_process_control PRIVATE
+            gui_forms_process_control_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_process_control PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Process Control"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.process-control"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Process Control"
+        )
 
         add_executable(gui_forms_vsync_lab MACOSX_BUNDLE
             src/host/macos/vsync_lab_main.mm
@@ -2827,6 +2862,19 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_gallery_windows PROPERTIES
             OUTPUT_NAME "GUI.Forms Gallery"
+        )
+
+        add_executable(gui_forms_process_control_windows
+            src/host/windows/process_control_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_process_control_windows PRIVATE
+            gui_forms_process_control_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_process_control_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Process Control"
         )
 
         # The Gallery under Application::run, so menus open in Popup
@@ -3002,6 +3050,19 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_gallery_linux PROPERTIES
             OUTPUT_NAME "gui-forms-gallery"
+        )
+
+        add_executable(gui_forms_process_control_linux
+            src/host/linux/process_control_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_process_control_linux PRIVATE
+            gui_forms_process_control_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_process_control_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-process-control"
         )
 
         add_executable(gui_forms_compositor_lab_linux
@@ -3386,6 +3447,7 @@ set(gui_forms_font_programs)
 set(gui_forms_font_sources)
 foreach(gallery_program IN ITEMS
         gui_forms_gallery_windows
+        gui_forms_process_control_windows
         gui_forms_vsync_lab_windows
         gui_forms_visual_inspector_lab_windows
         gui_forms_layered_material_lab_windows
@@ -3396,6 +3458,7 @@ foreach(gallery_program IN ITEMS
         gui_forms_seam_proximity_lab_windows
         gui_forms_correspondence_windows
         gui_forms_gallery_linux
+        gui_forms_process_control_linux
         gui_forms_correspondence_linux)
     if(TARGET ${gallery_program})
         list(APPEND gui_forms_font_programs ${gallery_program})

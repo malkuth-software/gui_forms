@@ -10180,6 +10180,10 @@ Functions, constants and aliases
 
    Whether a lamp switched on ``seconds`` ago and a press begun ``seconds`` ago have settled: the frames after it change nothing.
 
+.. cpp:function:: double lamp_fault_flicker(double seconds, std::uint32_t seed, bool reduced_motion) noexcept
+
+   The fault's power factor, in (0, 1], ``seconds`` after the fault began, for ``seed`` (a lamp's own, so that two failing lamps fail differently). 1 at once and always under reduced motion: a steady lit lamp.
+
 .. cpp:function:: bool key_press_settled(double seconds) noexcept
 
 .. cpp:function:: bool lamp_cooled(double seconds) noexcept
@@ -10265,6 +10269,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double lamp_cool_seconds
 
    Value: ``0.12``.
+
+.. cpp:var:: constexpr double lamp_fault_slot_seconds
+
+   -- the failing lamp (owner, 2026-11-22) ------------------------------------------- A lamp in a fault flickers and stutters as a failing lamp does: irregular dropouts to near dark, short dim stutters, and uneven recoveries (the filament catching part way, then creeping back). It is deterministic: the same seed and the same time since the fault began always give the same power, so captures and tests repeat; nothing is drawn at random per frame. The timeline is cut into slots of lamp_fault_slot_seconds. Each slot holds at most one event, chosen by a hash of the seed and the slot's index: - none (40%): the lamp stays lit; - a dropout (35%): near dark (3% to 10%) for 50 to 180 ms, then back to a partial level (40% to 80%) at once and on to full with a time constant of 30 to 150 ms; - a dim stutter (25%): down to 35% to 60% for 30 to 80 ms, then back with a time constant of 20 to 60 ms. An event starts at most lamp_fault_latest_start into its slot, so two events start at least 0.6 − 0.08 = 0.52 s apart: any one second holds at most two, under the three flashes a second of the photosensitive seizure guidance (WCAG 2.3.1), small as the lamp is. A recovery may run into the next slot; the power is the lower of the two slots' events. Value: ``0.6``.
+
+.. cpp:var:: constexpr double lamp_fault_latest_start
+
+   Value: ``0.08``.
 
 .. cpp:var:: constexpr LitKeyBake dialog_key_study_bake
 

@@ -1,4 +1,4 @@
-An indicator lamp: a round lens in a bezel that shows off, on or error,
+An indicator lamp: a round lens in a bezel that shows off, on, error or fault,
 with an optional legend beside it, such as a coolant or fault lamp on a
 machine panel.
 
@@ -9,6 +9,16 @@ with its built-in recipes (a progress fill for on, a notice for error), so
 on, error and off stay distinct in any theme. A change of state warms the
 lens up or cools it down over a few frames, and at once under reduced
 motion.
+
+A failing lamp (``IndicatorLampState::fault``) lights in the error colour
+and flickers and stutters as a lamp breaking down does: irregular dropouts
+to near dark, short dim stutters and uneven recoveries
+(`engine_light::lamp_fault_flicker`). The flicker is seeded by the lamp's
+stable id, so every run and every capture repeats; it holds at most two
+dips in any second, under the three flashes a second of the
+photosensitive guidance; and under reduced motion the lamp is steadily
+lit. It takes the ``error`` state as well as ``fault``, so a theme without
+fault rules draws it as an error.
 
 A lamp can also show baked light: name a bake with `light_planes` and the
 lens is composited from it, read through the window's resources
@@ -27,7 +37,7 @@ text
 Properties
 ----------
 state : default ``IndicatorLampState::off``
-    Whether the lamp is off, on or showing an error.
+    Whether the lamp is off, on, showing an error or failing (fault).
 text : default empty
     The legend beside the lens. It names the lamp to assistive technology
     unless an accessible name is set. Invalid UTF-8 throws
@@ -45,7 +55,8 @@ lamp_color : default empty
     bake's lamp light at unit power (`engine_light::lamp_colour_from_srgb`),
     lamp amber when empty; without one it fills the lit lens over the
     theme's look as an authored colour, and not in forced high contrast.
-    An error always lights in the error colour (with a bake, lamp red).
+    An error or a fault always lights in the error colour (with a bake,
+    lamp red).
 lamp_style : default ``IndicatorLampStyle::lens``
     How the lamp draws: `IndicatorLampStyle::lens`, a lens in a bezel, or
     `IndicatorLampStyle::pinpoint`, a tiny accent light for status, a dot
@@ -57,7 +68,7 @@ power
     How lit the lens is now, from 0 to 1: the warm-up's or cool-down's
     current power, or the state's settled one.
 changing
-    Whether a warm-up or cool-down is running.
+    Whether a warm-up or cool-down is running, or the lamp is failing.
 
 See Also
 --------
@@ -70,12 +81,13 @@ lies beneath it. It lights only its own lens: the lit lens is drawn
 clipped to the lens, so its light reaches neither the bezel, the legend nor
 a neighbour. The parts are ``bezel`` (a well; none for a pinpoint),
 ``lens`` (an indicator) and ``label``; the custom states ``on`` and
-``error`` name the lit states, and ``pinpoint`` the pinpoint style. A
+``error`` name the lit states, ``fault`` the failing lamp (with
+``error``), and ``pinpoint`` the pinpoint style. A
 radio choice drawn with lamps is a `RadioButton` whose `indicator_style`
 is `ChoiceIndicatorStyle::lamp`, never a lamp. It
 publishes the accessibility role `static_text`, named by its accessible
-name or else its legend, with the state as its value (``off``, ``on`` or
-``error``), so the state never rests on colour alone. The warm-up is the
+name or else its legend, with the state as its value (``off``, ``on``,
+``error`` or ``fault``), so the state never rests on colour alone. The warm-up is the
 light planes' strike envelope (`engine_light::lamp_power`) and the
 cool-down `engine_light::lamp_cooling_power`. A baked lens is one part
 (`PartPaint::light_planes`), composited at the window's scale and kept
@@ -92,3 +104,6 @@ A fault lamp that lights red when a check fails:
        gf::make_control<gf::IndicatorLamp>(gf::StableId("panel.fault"), "Fault");
    (*fault).state = gf::IndicatorLampState::error;
    // fault->semantic_descriptor().value is "error"
+   // Failing as a breaking lamp does, steady under reduced motion:
+   (*fault).state = gf::IndicatorLampState::fault;
+   // fault->semantic_descriptor().value is "fault"

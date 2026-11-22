@@ -147,9 +147,9 @@ constexpr ControlAnatomy radio_button_anatomy{
 // is the 15-unit well less the ring on each side, as an IndicatorLamp's.
 constexpr double lamp_bezel_ring = 2.0;
 
-// The lamp look's jewel colour: the study's green lamp (panel_lamps.html,
-// PUMP READY in the dialog), lit for the chosen option and tinting the
-// glass of the others.
+// The lamp look's jewel colour where lamp_color is empty: the study's
+// green lamp (panel_lamps.html, PUMP READY in the dialog), lit for the
+// chosen option and tinting the glass of the others.
 constexpr engine_light::LampColour radio_lamp_colour = engine_light::lamp_green;
 
 // The lamp look's lens inside the well laid out at `laid_well`.
@@ -288,12 +288,17 @@ void RadioButton::on_paint(Painter& painter, Rect) {
         lamp_well.bounds = box;
         lamp_well.states = states;
         lamp_well.key.set(PartKey{"well", {}, {}});
+        // The bake is achromatic: the option's colour tints the glass and
+        // drives the lamp at run time (owner, 2026-11-22).
+        const Color* chosen = lamp_color.read().value();
+        const engine_light::LampColour colour =
+            chosen != nullptr ? engine_light::lamp_colour_from_srgb(*chosen) : radio_lamp_colour;
         engine_light::LightComposite settings{};
         settings.shape = engine_light::LightShape::jewel;
-        settings.filter = engine_light::jewel_filter(radio_lamp_colour);
+        settings.filter = engine_light::jewel_filter(colour);
         const double power = checked_ ? engine_light::jewel_lamp_power : 0.0;
         lamp_well.light_planes.set(PartLightPlanes{.planes = std::move(jewel),
-                                                   .drive = engine_light::LampDrive{radio_lamp_colour, power},
+                                                   .drive = engine_light::LampDrive{colour, power},
                                                    .settings = settings,
                                                    .raster = &lamp_raster_});
         paint_part(painter, *this, lamp_well);
@@ -463,10 +468,29 @@ const PropertyDescriptor& describe_radio_button_indicator_style() {
     return descriptor;
 }
 
+PropertyDescriptor radio_button_lamp_color_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "lamp_color";
+    descriptor.kind = BindingValueKind::color;
+    descriptor.category = "Appearance";
+    descriptor.description = "The colour the lamp look's jewel lights in.";
+    descriptor.default_value = BindingValue{};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.nullable = true;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_radio_button_lamp_color() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        radio_button_lamp_color_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 const std::array<PropertyEntry, RadioButton::radio_button_property_count>& RadioButton::radio_button_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 3U> own{{
+    static constexpr std::array<PropertyEntry, 4U> own{{
         {"checked", &describe_radio_button_checked,
          &read_cell_entry<RadioButton, decltype(&RadioButton::checked), &RadioButton::checked>,
          &write_cell_entry<RadioButton, decltype(&RadioButton::checked), &RadioButton::checked>,
@@ -480,6 +504,11 @@ const std::array<PropertyEntry, RadioButton::radio_button_property_count>& Radio
         {"indicator_style", &describe_radio_button_indicator_style,
          &read_cell_entry<RadioButton, decltype(&RadioButton::indicator_style), &RadioButton::indicator_style>,
          &write_cell_entry<RadioButton, decltype(&RadioButton::indicator_style), &RadioButton::indicator_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"lamp_color", &describe_radio_button_lamp_color,
+         &read_cell_entry<RadioButton, decltype(&RadioButton::lamp_color), &RadioButton::lamp_color>,
+         &write_cell_entry<RadioButton, decltype(&RadioButton::lamp_color), &RadioButton::lamp_color>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
@@ -513,6 +542,14 @@ void RadioButton::prepare_write(const decltype(indicator_style)&, ChoiceIndicato
 
 void RadioButton::written(const decltype(indicator_style)&) {
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void RadioButton::prepare_write(const decltype(lamp_color)&, stxlib::Optional<Color>&) {
+    require_mutable();
+}
+
+void RadioButton::written(const decltype(lamp_color)&) {
+    invalidate(Dirty::paint);
 }
 
 // property_codemod end RadioButton

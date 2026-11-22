@@ -124,6 +124,20 @@
 .dialog-subtitle { font-family: control; font-size: 10px; font-weight: 400; letter-spacing: 0.5px; }
 .pattern-carbon-fibre::part(face) { background: pattern(carbon-fibre, var(--swatch-resin), var(--swatch-sheen), 16px); }
 
+/* The dialog's keys (owner, 2026-11-22): buttons drawn from the light maps
+   the library ships (`primitive: light-map`), baked without colour and
+   tinted here with the study's lamp colours. CANCEL is white plastic over
+   red lamps, always lit; OK is clear over a frosted back, lit unless the
+   page puts it out (`lamp-off`). Held down, a key shows its pressed bake.
+   The bakes carry the legends, so the buttons have no text. A parameter
+   cascades among the rules that select the same primitive, so each rule
+   names it. */
+.lit-key::part(face) { primitive: light-map; lamp-power: 1; }
+.lit-cancel::part(face) { primitive: light-map; bake: dialog-cancel; lamp-colour: #ff6138; }
+.lit-ok::part(face) { primitive: light-map; bake: dialog-ok; lamp-colour: #6fff89; }
+.lit-key.lamp-off::part(face) { primitive: light-map; lamp-power: 0; }
+.lit-key:active::part(face) { primitive: light-map; press: 1; }
+
 /* The dark variant: the same roles and grounds, each a dark paper with a
    light ink, in the order of the light rules above. The grounds keep
    their light order of depth (the canvas darkest, the navigation paper
