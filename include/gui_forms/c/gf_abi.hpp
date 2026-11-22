@@ -654,6 +654,100 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_mdi_container(gf_object window_or_root, uint32_t container) const noexcept {
+        if (table_.struct_size < 176u || table_.set_mdi_container == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_mdi_container(window_or_root, container);
+        return called;
+    }
+
+    [[nodiscard]] gf_status mdi_container(gf_object window_or_root, uint32_t* container) const noexcept {
+        if (table_.struct_size < 184u || table_.mdi_container == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.mdi_container(window_or_root, container);
+        return called;
+    }
+
+    [[nodiscard]] gf_status mdi_child_count(gf_object window_or_root, uint64_t* count) const noexcept {
+        if (table_.struct_size < 192u || table_.mdi_child_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.mdi_child_count(window_or_root, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status mdi_child_at(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity,
+                                         uint64_t* required) const noexcept {
+        if (table_.struct_size < 200u || table_.mdi_child_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.mdi_child_at(window_or_root, index, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status active_mdi_child(gf_object window_or_root, char* buffer, uint64_t capacity,
+                                             uint64_t* required) const noexcept {
+        if (table_.struct_size < 208u || table_.active_mdi_child == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.active_mdi_child(window_or_root, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status activate_mdi_child(gf_object window_or_root, gf_utf8_view child,
+                                               uint32_t* activated) const noexcept {
+        if (table_.struct_size < 216u || table_.activate_mdi_child == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.activate_mdi_child(window_or_root, child, activated);
+        return called;
+    }
+
+    [[nodiscard]] gf_status layout_mdi(gf_object window_or_root, gf_mdi_layout layout,
+                                       uint32_t* arranged) const noexcept {
+        if (table_.struct_size < 224u || table_.layout_mdi == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.layout_mdi(window_or_root, layout, arranged);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_mdi_children_minimized_anchor_bottom(gf_object window_or_root,
+                                                                     uint32_t bottom) const noexcept {
+        if (table_.struct_size < 232u || table_.set_mdi_children_minimized_anchor_bottom == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_mdi_children_minimized_anchor_bottom(window_or_root, bottom);
+        return called;
+    }
+
+    [[nodiscard]] gf_status mdi_children_minimized_anchor_bottom(gf_object window_or_root,
+                                                                 uint32_t* bottom) const noexcept {
+        if (table_.struct_size < 240u || table_.mdi_children_minimized_anchor_bottom == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.mdi_children_minimized_anchor_bottom(window_or_root, bottom);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_main_menu_strip(gf_object window_or_root, gf_object strip) const noexcept {
+        if (table_.struct_size < 248u || table_.set_main_menu_strip == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_main_menu_strip(window_or_root, strip);
+        return called;
+    }
+
+    [[nodiscard]] gf_status main_menu_strip(gf_object window_or_root, gf_object* strip) const noexcept {
+        if (table_.struct_size < 256u || table_.main_menu_strip == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.main_menu_strip(window_or_root, strip);
+        return called;
+    }
+
 private:
     gf_windows_table table_;
 };
@@ -2798,6 +2892,85 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.set_floating_window_visibility(workspace, site, visibility);
+        return called;
+    }
+
+    [[nodiscard]] gf_status document_presentation(gf_object workspace,
+                                                  gf_dock_document_presentation* presentation) const noexcept {
+        if (table_.struct_size < 144u || table_.document_presentation == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.document_presentation(workspace, presentation);
+        return called;
+    }
+
+    [[nodiscard]] gf_status arrange_frames(gf_object workspace, gf_dock_frame_arrangement arrangement,
+                                           gf_dock_refusal* refusal) const noexcept {
+        if (table_.struct_size < 152u || table_.arrange_frames == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.arrange_frames(workspace, arrangement, refusal);
+        return called;
+    }
+
+    [[nodiscard]] gf_status frame_memory(gf_object workspace, gf_utf8_view document,
+                                         gf_dock_frame_memory* frame) const noexcept {
+        if (table_.struct_size < 160u || table_.frame_memory == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.frame_memory(workspace, document, frame);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_frame_icons_at_bottom(gf_object workspace, uint32_t bottom) const noexcept {
+        if (table_.struct_size < 168u || table_.set_frame_icons_at_bottom == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_frame_icons_at_bottom(workspace, bottom);
+        return called;
+    }
+
+    [[nodiscard]] gf_status area_document_count(gf_object workspace, uint64_t* count) const noexcept {
+        if (table_.struct_size < 176u || table_.area_document_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.area_document_count(workspace, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status area_document_at(gf_object workspace, uint64_t index, char* buffer, uint64_t capacity,
+                                             uint64_t* required) const noexcept {
+        if (table_.struct_size < 184u || table_.area_document_at == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.area_document_at(workspace, index, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status area_active_document(gf_object workspace, char* buffer, uint64_t capacity,
+                                                 uint64_t* required) const noexcept {
+        if (table_.struct_size < 192u || table_.area_active_document == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.area_active_document(workspace, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_panel_menu_strip(gf_object workspace, gf_utf8_view panel,
+                                                 gf_object strip) const noexcept {
+        if (table_.struct_size < 200u || table_.set_panel_menu_strip == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_panel_menu_strip(workspace, panel, strip);
+        return called;
+    }
+
+    [[nodiscard]] gf_status merged_document(gf_object workspace, char* buffer, uint64_t capacity,
+                                            uint64_t* required) const noexcept {
+        if (table_.struct_size < 208u || table_.merged_document == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.merged_document(workspace, buffer, capacity, required);
         return called;
     }
 

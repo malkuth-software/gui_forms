@@ -348,7 +348,7 @@ public unsafe struct gf_window_shaping
     public double corner_radius;
 }
 
-/// <summary>gf_windows_table (table, 168 bytes).</summary>
+/// <summary>gf_windows_table (table, 256 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -374,6 +374,17 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_window_shaping*, gf_status> shaping;
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point*, gf_logical_point*, uint*, gf_status> pointer_location;
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> show_business_card;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> set_mdi_container;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> mdi_container;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> mdi_child_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, byte*, ulong, ulong*, gf_status> mdi_child_at;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> active_mdi_child;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, uint*, gf_status> activate_mdi_child;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_mdi_layout, uint*, gf_status> layout_mdi;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> set_mdi_children_minimized_anchor_bottom;
+    public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> mdi_children_minimized_anchor_bottom;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> set_main_menu_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> main_menu_strip;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>
@@ -1446,7 +1457,7 @@ public unsafe struct gf_dock_panel
     public ulong reserved;
 }
 
-/// <summary>gf_dock_edit (extensible, 104 bytes).</summary>
+/// <summary>gf_dock_edit (extensible, 112 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_dock_edit
 {
@@ -1463,6 +1474,8 @@ public unsafe struct gf_dock_edit
     public gf_logical_rect frame;
     public gf_utf8_view panel;
     public ulong reserved;
+    public gf_dock_document_presentation presentation;
+    public gf_dock_frame_state frame_state;
 }
 
 /// <summary>gf_dock_location (extensible, 40 bytes).</summary>
@@ -1491,7 +1504,20 @@ public unsafe struct gf_dock_options
     public uint reserved;
 }
 
-/// <summary>gf_docking_table (table, 136 bytes).</summary>
+/// <summary>gf_dock_frame_memory (extensible, 56 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_dock_frame_memory
+{
+    public uint struct_size;
+    public uint present;
+    public gf_logical_rect bounds;
+    public gf_dock_frame_state state;
+    public uint icon_slot;
+    public uint order;
+    public uint reserved;
+}
+
+/// <summary>gf_docking_table (table, 208 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_docking_table
 {
@@ -1513,6 +1539,15 @@ public unsafe struct gf_docking_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_dock_panel*, gf_status> update_panel;
     public delegate* unmanaged[Cdecl]<gf_object, gf_dock_options*, gf_status> set_options;
     public delegate* unmanaged[Cdecl]<gf_object, uint, gf_dock_window_visibility, gf_status> set_floating_window_visibility;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_dock_document_presentation*, gf_status> document_presentation;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_dock_frame_arrangement, gf_dock_refusal*, gf_status> arrange_frames;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_dock_frame_memory*, gf_status> frame_memory;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> set_frame_icons_at_bottom;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> area_document_count;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong, byte*, ulong, ulong*, gf_status> area_document_at;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> area_active_document;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object, gf_status> set_panel_menu_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> merged_document;
 }
 
 /// <summary>gf_app_font_face (extensible, 32 bytes).</summary>

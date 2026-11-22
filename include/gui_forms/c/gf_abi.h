@@ -86,9 +86,17 @@ extern "C" {
  * POINTER_WARP), application font families (gf_app_font_face and the
  * fonts table's load_family and unload_family) and the presentation shim's
  * host capabilities (DIRECT_BUFFERS, HOST_SCROLL and
- * REFERENCE_PRESENTATION), additions only. */
+ * REFERENCE_PRESENTATION), additions only; 1.6 adds the multiple document
+ * interface (provisional: the integrator renumbers the minor in fold
+ * order): the docking table's frames presentation
+ * (gf_dock_document_presentation, gf_dock_frame_state,
+ * gf_dock_frame_arrangement, gf_dock_frame_memory, the edit kinds SET_DOCUMENT_PRESENTATION to
+ * SET_FRAME_ICON_SLOT with gf_dock_edit's 1.6 fields, and the docking slots
+ * marked since 1.6), the window's MDI slots (gf_mdi_layout and the windows
+ * table's slots marked since 1.6) and the window's mdi_child_activate
+ * interaction, additions only. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 5u
+#define GF_ABI_MINOR 6u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */
@@ -1147,7 +1155,9 @@ typedef struct gf_window_shaping {
  * interaction_count and interaction_at list them (active_changed,
  * backdrop_changed, dialog_result_changed, focused_control_changed,
  * help_requested, key_down, key_press, key_state_changed, key_up,
- * presentation_changed, theme_changed).
+ * presentation_changed, theme_changed, and since 1.6 mdi_child_activate,
+ * listed last: previous and current, the active MDI child's id before and
+ * after, absent when there was none or none is left).
  *
  * Key input (since 1.2). A window's key_down and key_up reach a subscriber
  * before the focused control (Windows Forms' KeyPreview), and every
@@ -1187,7 +1197,28 @@ typedef struct gf_window_shaping {
  * starts and at once during it, where the host applies that property;
  * window_properties reports which it does (a host without a taskbar or a
  * window icon reports those unsupported).
+ *
+ * The multiple document interface (since 1.6; DK decisions 60 to 63):
+ * Windows Forms' Form MDI surface over the window's docking document area.
+ * An MDI child is a document of the area, named by its panel id (the
+ * docking table's), never a second window. A dock workspace's main site
+ * binds the area while it is attached to the window, and unbinds it when it
+ * leaves; without an area the window has no children, and activating or
+ * arranging changes nothing (activated and arranged receive 0). The
+ * container and anchor settings are kept until an area binds, then given to
+ * it. Each MDI slot takes window_or_root, a window from create or a control
+ * in one; GF_STATUS_INVALID_STATE for a control not in a window,
+ * GF_STATUS_DISPOSED for a window disposed or whose run has ended. UI
+ * thread.
  */
+/* gf_mdi_layout (since 1.6): the arrangements layout_mdi offers (Windows
+ * Forms' MdiLayout). */
+typedef uint32_t gf_mdi_layout;
+#define GF_MDI_LAYOUT_CASCADE 0u
+#define GF_MDI_LAYOUT_TILE_HORIZONTAL 1u
+#define GF_MDI_LAYOUT_TILE_VERTICAL 2u
+#define GF_MDI_LAYOUT_ARRANGE_ICONS 3u
+
 typedef struct gf_windows_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1341,6 +1372,46 @@ typedef struct gf_windows_table {
      * window or in a sub-surface; GF_STATUS_DISPOSED for a window that has
      * been disposed or whose run has ended. */
     gf_status (GF_CALL* show_business_card)(gf_object window_or_root, uint32_t* shown);
+    /* Since 1.6: the multiple document interface (above). Whether the
+     * window is an MDI container (Form.IsMdiContainer): its document area
+     * shows its documents as frames rather than tabs. container is 0 or 1. */
+    gf_status (GF_CALL* set_mdi_container)(gf_object window_or_root, uint32_t container);
+    gf_status (GF_CALL* mdi_container)(gf_object window_or_root, uint32_t* container);
+    /* Since 1.6. The number of MDI children (Form.MdiChildren), and the id
+     * of the child at index, in tree and tab order, into the caller's
+     * buffer (required receives its size, also with
+     * GF_STATUS_BUFFER_TOO_SMALL; GF_STATUS_NOT_FOUND past the end). */
+    gf_status (GF_CALL* mdi_child_count)(gf_object window_or_root, uint64_t* count);
+    gf_status (GF_CALL* mdi_child_at)(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity,
+                                      uint64_t* required);
+    /* Since 1.6. The active child's id (Form.ActiveMdiChild), as
+     * mdi_child_at writes one; empty (required zero) when there is none. */
+    gf_status (GF_CALL* active_mdi_child)(gf_object window_or_root, char* buffer, uint64_t capacity,
+                                          uint64_t* required);
+    /* Since 1.6. Activates a child (Form.ActivateMdiChild): focus moves
+     * into it. activated (may be null) receives 1, or 0 for a child the
+     * area does not hold. */
+    gf_status (GF_CALL* activate_mdi_child)(gf_object window_or_root, gf_utf8_view child, uint32_t* activated);
+    /* Since 1.6. Arranges the children's frames (Form.LayoutMdi,
+     * gf_mdi_layout). arranged (may be null) receives 0 when there was
+     * nothing to arrange. A value outside gf_mdi_layout gives
+     * GF_STATUS_INVALID_ARGUMENT. */
+    gf_status (GF_CALL* layout_mdi)(gf_object window_or_root, gf_mdi_layout layout, uint32_t* arranged);
+    /* Since 1.6. Whether minimized children line the bottom of the area
+     * (1, the default) or its top (0)
+     * (Form.MdiChildrenMinimizedAnchorBottom). */
+    gf_status (GF_CALL* set_mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t bottom);
+    gf_status (GF_CALL* mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t* bottom);
+    /* Since 1.6. The window's main menu strip (Form.MainMenuStrip): the
+     * strip the active child's menu strip merges into (the docking table's
+     * set_panel_menu_strip), and whose end shows a maximized child's
+     * caption buttons. A menu_strip object or zero for none; another
+     * object gives GF_STATUS_WRONG_HANDLE_KIND. The window holds it
+     * weakly: the caller's reference keeps it. main_menu_strip gives a new
+     * reference the caller releases, or zero when none is set or it is
+     * gone. */
+    gf_status (GF_CALL* set_main_menu_strip)(gf_object window_or_root, gf_object strip);
+    gf_status (GF_CALL* main_menu_strip)(gf_object window_or_root, gf_object* strip);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -4308,6 +4379,35 @@ typedef uint32_t gf_dock_edit_kind;
 #define GF_DOCK_EDIT_SELECT 10u
 #define GF_DOCK_EDIT_SET_RATIO 11u
 #define GF_DOCK_EDIT_SET_FLOATING_FRAME 12u
+/* Since 1.6: the frames presentation (C++ DockEdit's frame edits). */
+#define GF_DOCK_EDIT_SET_DOCUMENT_PRESENTATION 13u
+#define GF_DOCK_EDIT_SET_FRAME_BOUNDS 14u
+#define GF_DOCK_EDIT_SET_FRAME_STATE 15u
+#define GF_DOCK_EDIT_SET_FRAME_ICON_SLOT 16u
+
+/* gf_dock_document_presentation (since 1.6): how the main site's document
+ * area shows its documents: as tabs in document stacks, or as overlapping
+ * document frames inside the area (a multiple document interface). */
+typedef uint32_t gf_dock_document_presentation;
+#define GF_DOCK_DOCUMENT_PRESENTATION_TABS 0u
+#define GF_DOCK_DOCUMENT_PRESENTATION_FRAMES 1u
+
+/* gf_dock_frame_state (since 1.6): a document frame at its bounds,
+ * minimized to an icon along an edge of the document area, or filling the
+ * area (Windows Forms' FormWindowState for an MDI child). */
+typedef uint32_t gf_dock_frame_state;
+#define GF_DOCK_FRAME_STATE_NORMAL 0u
+#define GF_DOCK_FRAME_STATE_MINIMIZED 1u
+#define GF_DOCK_FRAME_STATE_MAXIMIZED 2u
+
+/* gf_dock_frame_arrangement (since 1.6): how arrange_frames lays the
+ * frames out (Windows Forms' MdiLayout): cascade, tiled one above another,
+ * tiled side by side, or the minimized frames' icons numbered again. */
+typedef uint32_t gf_dock_frame_arrangement;
+#define GF_DOCK_FRAME_ARRANGEMENT_CASCADE 0u
+#define GF_DOCK_FRAME_ARRANGEMENT_TILE_HORIZONTAL 1u
+#define GF_DOCK_FRAME_ARRANGEMENT_TILE_VERTICAL 2u
+#define GF_DOCK_FRAME_ARRANGEMENT_ARRANGE_ICONS 3u
 
 /* gf_dock_refusal: why the layout refused an edit (C++ DockRefusalReason). */
 typedef uint32_t gf_dock_refusal;
@@ -4380,6 +4480,18 @@ typedef struct gf_dock_panel {
  * SHOW, CLOSE and SELECT panel; MOVE panel, index (within its stack);
  * SET_RATIO target_node (a split), ratio; SET_FLOATING_FRAME site, frame.
  * An index past the end appends.
+ *
+ * Since 1.6, the frames presentation's edits, which name a document docked
+ * in the main site's document area (the layout refuses another with
+ * NOT_PLACED or NOT_IN_MAIN_SITE), in either presentation, and which the
+ * user docking lock does not refuse: SET_DOCUMENT_PRESENTATION
+ * presentation; SET_FRAME_BOUNDS panel, frame (the frame's normal bounds in
+ * the document area's coordinates, positive size); SET_FRAME_STATE panel,
+ * frame_state (maximizing one frame restores a maximized other and
+ * activates the document; minimizing takes the first free icon slot);
+ * SET_FRAME_ICON_SLOT panel, index (the slot). SET_DOCUMENT_PRESENTATION
+ * and SET_FRAME_STATE read the 1.6 fields: a record shorter than the 1.6
+ * size gives GF_STATUS_INVALID_ARGUMENT for them.
  */
 typedef struct gf_dock_edit {
     uint32_t struct_size;
@@ -4395,6 +4507,9 @@ typedef struct gf_dock_edit {
     gf_logical_rect frame;
     gf_utf8_view panel;
     uint64_t reserved;
+    /* Since 1.6. */
+    gf_dock_document_presentation presentation;
+    gf_dock_frame_state frame_state;
 } gf_dock_edit;
 
 /*
@@ -4431,6 +4546,28 @@ typedef struct gf_dock_options {
     uint32_t area_background;
     uint32_t reserved;
 } gf_dock_options;
+
+/*
+ * A document's frame in the frames presentation (frame_memory, since 1.6;
+ * C++ DockFrameMemory), an output record: the caller sets struct_size to at
+ * least the 1.6 size. present is 1 when the document has a frame (it has
+ * shown as a frame, or the program placed one), else 0 with the other
+ * fields zero. bounds is the normal frame in the document area's
+ * coordinates, kept while the frame is minimized or maximized; state;
+ * icon_slot its place in the row of icons while minimized (0 first); order
+ * its place in the stack of frames (a higher order is in front; the area's
+ * frames are numbered from 1, back to front). A frame is kept while its
+ * document is elsewhere, so it comes back where it was.
+ */
+typedef struct gf_dock_frame_memory {
+    uint32_t struct_size;
+    uint32_t present;
+    gf_logical_rect bounds;
+    gf_dock_frame_state state;
+    uint32_t icon_slot;
+    uint32_t order;
+    uint32_t reserved;
+} gf_dock_frame_memory;
 
 typedef struct gf_docking_table {
     uint32_t struct_size;
@@ -4505,6 +4642,57 @@ typedef struct gf_docking_table {
      * site gives GF_STATUS_NOT_FOUND. */
     gf_status (GF_CALL* set_floating_window_visibility)(gf_object workspace, uint32_t site,
                                                         gf_dock_window_visibility visibility);
+    /* Since 1.6: the frames presentation and the multiple document
+     * interface (DK decisions 60 to 63). The main site realizes the
+     * frames; the workspace is the document area of the window its main
+     * site is attached to, which gives that window its MDI slots (the
+     * windows table's, since 1.6). The presentation and the frames are
+     * saved with the layout. Set the presentation and the frames with
+     * apply_edit's 1.6 kinds.
+     *
+     * The document area's presentation. */
+    gf_status (GF_CALL* document_presentation)(gf_object workspace, gf_dock_document_presentation* presentation);
+    /* Arranges the frames in the main site's document area as last laid
+     * out (gf_dock_frame_arrangement), as one program transaction: applied
+     * with nothing to change when there is no main site, no frame or no
+     * laid-out area. A refused arrangement gives GF_STATUS_INVALID_STATE
+     * and writes the reason into refusal (may be null), as apply_edit. */
+    gf_status (GF_CALL* arrange_frames)(gf_object workspace, gf_dock_frame_arrangement arrangement,
+                                        gf_dock_refusal* refusal);
+    /* A registered document's frame (gf_dock_frame_memory, at least the 1.6
+     * size); present 0 when it has none. */
+    gf_status (GF_CALL* frame_memory)(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame);
+    /* Whether minimized frames line the bottom of the area (1, the default)
+     * or its top (0); not saved with the layout. The bound window's
+     * set_mdi_children_minimized_anchor_bottom writes it too. */
+    gf_status (GF_CALL* set_frame_icons_at_bottom)(gf_object workspace, uint32_t bottom);
+    /* The number of documents in the main site's document area (the MDI
+     * children), whichever the presentation. */
+    gf_status (GF_CALL* area_document_count)(gf_object workspace, uint64_t* count);
+    /* The id of the document at index in the area, in tree and tab order,
+     * into the caller's buffer; required receives its size, also with
+     * GF_STATUS_BUFFER_TOO_SMALL. GF_STATUS_NOT_FOUND past the end. */
+    gf_status (GF_CALL* area_document_at)(gf_object workspace, uint64_t index, char* buffer, uint64_t capacity,
+                                          uint64_t* required);
+    /* The id of the area's active document (the most recently active one
+     * still in the area; else, with frames shown, the frontmost frame;
+     * else the selected document of the area's first stack), as
+     * area_document_at writes one; empty (required zero) when the area is
+     * empty. */
+    gf_status (GF_CALL* area_active_document)(gf_object workspace, char* buffer, uint64_t capacity,
+                                              uint64_t* required);
+    /* Gives a registered panel a menu strip (a menu_strip object; zero
+     * takes it away): while the panel's document is the area's active
+     * document, the strip's items merge into the main window's main menu
+     * strip (windows set_main_menu_strip) by their merge actions, and the
+     * merge is reverted when another document becomes active or the panel
+     * leaves (Windows Forms' MDI menu merging). The workspace holds the
+     * strip; it need not be shown. Another object than a menu strip gives
+     * GF_STATUS_WRONG_HANDLE_KIND. */
+    gf_status (GF_CALL* set_panel_menu_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip);
+    /* The id of the document whose menu strip is merged into the main menu
+     * strip, as area_active_document writes one; empty when none is. */
+    gf_status (GF_CALL* merged_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required);
 } gf_docking_table;
 
 /*

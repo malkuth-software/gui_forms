@@ -3986,6 +3986,7 @@ Properties beyond every control's: none.
 | `key_up` | `KeyEventArgs`, by reference |
 | `presentation_changed` | `PresentationSettings` |
 | `theme_changed` | `Theme` |
+| `mdi_child_activate` | `MdiChildActivation` |
 
 ## Composite controls
 

@@ -198,6 +198,8 @@ Types
      -  
    * - :cpp:class:`gf_dock_edit <gf_dock_edit>`
      -  
+   * - :cpp:class:`gf_dock_frame_memory <gf_dock_frame_memory>`
+     -  
    * - :cpp:class:`gf_dock_location <gf_dock_location>`
      -  
    * - :cpp:class:`gf_dock_navigator_class <gf_dock_navigator_class>`
@@ -1055,6 +1057,20 @@ Types
 
    .. cpp:function:: gf_status update_panel(gf_object workspace, const gf_dock_panel* panel) const noexcept
 
+   .. cpp:function:: gf_status document_presentation(gf_object workspace, gf_dock_document_presentation* presentation) const noexcept
+
+   .. cpp:function:: gf_status arrange_frames(gf_object workspace, gf_dock_frame_arrangement arrangement, gf_dock_refusal* refusal) const noexcept
+
+   .. cpp:function:: gf_status frame_memory(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame) const noexcept
+
+   .. cpp:function:: gf_status area_document_count(gf_object workspace, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status area_document_at(gf_object workspace, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status area_active_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status merged_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
    .. cpp:function:: gf_status set_panel_content(gf_object workspace, gf_utf8_view panel, gf_object content) const noexcept
 
    .. cpp:function:: gf_status set_panel_title(gf_object workspace, gf_utf8_view panel, gf_utf8_view title) const noexcept
@@ -1062,6 +1078,10 @@ Types
    .. cpp:function:: gf_status set_options(gf_object workspace, const gf_dock_options* options) const noexcept
 
    .. cpp:function:: gf_status set_floating_window_visibility(gf_object workspace, uint32_t site, gf_dock_window_visibility visibility) const noexcept
+
+   .. cpp:function:: gf_status set_frame_icons_at_bottom(gf_object workspace, uint32_t bottom) const noexcept
+
+   .. cpp:function:: gf_status set_panel_menu_strip(gf_object workspace, gf_utf8_view panel, gf_object strip) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -3179,6 +3199,30 @@ Types
 
    .. cpp:member:: uint64_t reserved
 
+   .. cpp:member:: gf_dock_document_presentation presentation
+
+   .. cpp:member:: gf_dock_frame_state frame_state
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dock_frame_memory
+
+   ``#include <gui_forms/c/gf_abi.h>``
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t present
+
+   .. cpp:member:: gf_logical_rect bounds
+
+   .. cpp:member:: gf_dock_frame_state state
+
+   .. cpp:member:: uint32_t icon_slot
+
+   .. cpp:member:: uint32_t order
+
+   .. cpp:member:: uint32_t reserved
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_dock_location
@@ -3313,6 +3357,24 @@ Types
    .. cpp:member:: gf_status (*set_options)(gf_object workspace, const gf_dock_options* options)
 
    .. cpp:member:: gf_status (*set_floating_window_visibility)(gf_object workspace, uint32_t site, gf_dock_window_visibility visibility)
+
+   .. cpp:member:: gf_status (*document_presentation)(gf_object workspace, gf_dock_document_presentation* presentation)
+
+   .. cpp:member:: gf_status (*arrange_frames)(gf_object workspace, gf_dock_frame_arrangement arrangement, gf_dock_refusal* refusal)
+
+   .. cpp:member:: gf_status (*frame_memory)(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame)
+
+   .. cpp:member:: gf_status (*set_frame_icons_at_bottom)(gf_object workspace, uint32_t bottom)
+
+   .. cpp:member:: gf_status (*area_document_count)(gf_object workspace, uint64_t* count)
+
+   .. cpp:member:: gf_status (*area_document_at)(gf_object workspace, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*area_active_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*set_panel_menu_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip)
+
+   .. cpp:member:: gf_status (*merged_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5477,6 +5539,28 @@ Types
 
    .. cpp:member:: gf_status (*show_business_card)(gf_object window_or_root, uint32_t* shown)
 
+   .. cpp:member:: gf_status (*set_mdi_container)(gf_object window_or_root, uint32_t container)
+
+   .. cpp:member:: gf_status (*mdi_container)(gf_object window_or_root, uint32_t* container)
+
+   .. cpp:member:: gf_status (*mdi_child_count)(gf_object window_or_root, uint64_t* count)
+
+   .. cpp:member:: gf_status (*mdi_child_at)(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*active_mdi_child)(gf_object window_or_root, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*activate_mdi_child)(gf_object window_or_root, gf_utf8_view child, uint32_t* activated)
+
+   .. cpp:member:: gf_status (*layout_mdi)(gf_object window_or_root, gf_mdi_layout layout, uint32_t* arranged)
+
+   .. cpp:member:: gf_status (*set_mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t bottom)
+
+   .. cpp:member:: gf_status (*mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t* bottom)
+
+   .. cpp:member:: gf_status (*set_main_menu_strip)(gf_object window_or_root, gf_object strip)
+
+   .. cpp:member:: gf_status (*main_menu_strip)(gf_object window_or_root, gf_object* strip)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -6346,6 +6430,28 @@ Types
 
    .. cpp:function:: gf_status show_business_card(gf_object window_or_root, uint32_t* shown) const noexcept
 
+   .. cpp:function:: gf_status mdi_container(gf_object window_or_root, uint32_t* container) const noexcept
+
+   .. cpp:function:: gf_status mdi_child_count(gf_object window_or_root, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status mdi_child_at(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status active_mdi_child(gf_object window_or_root, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status activate_mdi_child(gf_object window_or_root, gf_utf8_view child, uint32_t* activated) const noexcept
+
+   .. cpp:function:: gf_status layout_mdi(gf_object window_or_root, gf_mdi_layout layout, uint32_t* arranged) const noexcept
+
+   .. cpp:function:: gf_status mdi_children_minimized_anchor_bottom(gf_object window_or_root, uint32_t* bottom) const noexcept
+
+   .. cpp:function:: gf_status main_menu_strip(gf_object window_or_root, gf_object* strip) const noexcept
+
    .. cpp:function:: gf_status set_band_appearance(gf_object window, const gf_window_band_appearance* appearance) const noexcept
 
    .. cpp:function:: gf_status set_corner_preference(gf_object window, gf_window_corner_preference preference) const noexcept
+
+   .. cpp:function:: gf_status set_mdi_container(gf_object window_or_root, uint32_t container) const noexcept
+
+   .. cpp:function:: gf_status set_mdi_children_minimized_anchor_bottom(gf_object window_or_root, uint32_t bottom) const noexcept
+
+   .. cpp:function:: gf_status set_main_menu_strip(gf_object window_or_root, gf_object strip) const noexcept
