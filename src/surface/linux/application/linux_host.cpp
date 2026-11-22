@@ -1698,6 +1698,12 @@ void NativeWindow::event(XEvent &event) {
   }
   if (event.type == MapNotify || event.type == UnmapNotify) {
     visible = event.type == MapNotify;
+    // The first map sets the position later moves compare against. Without
+    // a window manager (Xvfb) a mapped window gets no ConfigureNotify until
+    // it is first moved or resized, so the first ConfigureNotify cannot be
+    // the baseline: it may be the move itself.
+    if (visible && !reported_root_position.has_value())
+      reported_root_position = root_position();
     static_cast<void>(dispatch(HostOcclusionEvent{!visible}));
     return;
   }
@@ -2463,16 +2469,24 @@ bool NativeWindow::reports_frame_moves() const noexcept {
   return takes_focus;
 }
 
-void NativeWindow::report_moved_to_model() {
-  if (closed || !reports_frame_moves())
-    return;
+std::optional<X11RootPosition> NativeWindow::root_position() const {
   int x{}, y{};
   ::Window child{};
   if (!XTranslateCoordinates(runtime.display, xid,
                              DefaultRootWindow(runtime.display), 0, 0, &x, &y,
                              &child))
-    return;
+    return std::nullopt;
   const X11RootPosition position{x, y};
+  return position;
+}
+
+void NativeWindow::report_moved_to_model() {
+  if (closed || !reports_frame_moves())
+    return;
+  const std::optional<X11RootPosition> read = root_position();
+  if (!read.has_value())
+    return;
+  const X11RootPosition position = *read;
   const bool moved = reported_root_position.has_value() &&
                      ((*reported_root_position).x != position.x ||
                       (*reported_root_position).y != position.y);
