@@ -1004,9 +1004,10 @@ std::vector<MenuStrip::Item> MenuStrip::realized_items() const {
 namespace {
 
 // The events MenuStrip adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 2> menu_strip_interactions{{
+constexpr std::array<InteractionDeclaration, 3> menu_strip_interactions{{
     {.name = "item_invoked", .payload = "MenuStripInvocation", .mutable_payload = false},
     {.name = "open_changed", .payload = "stxlib::Optional<std::size_t>", .mutable_payload = false},
+    {.name = "frame_button_pressed", .payload = "MenuStripFrameButton", .mutable_payload = false},
 }};
 
 } // namespace
