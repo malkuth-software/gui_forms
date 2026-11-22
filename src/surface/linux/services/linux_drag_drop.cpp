@@ -3,7 +3,6 @@
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
-#include <poll.h>
 #include <algorithm>
 #include <chrono>
 #include <cstring>
@@ -413,8 +412,21 @@ public:
       }
       if (phase_ == XdndPhase::ended)
         break;
-      pollfd descriptor{ConnectionNumber(runtime_.display), POLLIN, 0};
-      static_cast<void>(poll(&descriptor, 1, 25));
+      // The program keeps running under the drag, as under Windows'
+      // DoDragDrop: queued actions, timers, frames and paint each turn, then
+      // the run loop's wait, bounded by the wait for XdndFinished.
+      int limit = -1;
+      if (phase_ == XdndPhase::dropping) {
+        const long long remaining =
+            std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now())
+                .count();
+        const long long longest = std::chrono::milliseconds(finish_wait).count();
+        limit = static_cast<int>(std::clamp(remaining + 1LL, 0LL, longest));
+      }
+      const int wait = xdnd_drag_turn(runtime_, limit);
+      if (XPending(runtime_.display) > 0 || wait == 0)
+        continue;
+      runtime_.wait_for_work(wait);
     }
     return std::move(outcome_);
   }
@@ -647,6 +659,11 @@ DragEffect xdnd_requested_effect(unsigned state, DragEffect allowed) noexcept {
   return DragEffect::none;
 }
 
+int xdnd_drag_turn(Runtime &runtime, int maximum_wait) {
+  static_cast<void>(runtime.run_woken_work());
+  const RunWait serviced = runtime.service_windows(maximum_wait);
+  return serviced.milliseconds;
+}
 XdndDragOutcome run_xdnd_drag(NativeWindow &window, const HostDragSourceRequest &request) {
   XdndDragOutcome refused;
   refused.status = {HostServiceError::backend_failure};

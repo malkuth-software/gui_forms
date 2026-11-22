@@ -2357,14 +2357,9 @@ void Runtime::end_session() {
   for (std::size_t i = snapshot.size(); i > 0; --i)
     (*snapshot[i - 1]).close(HostCloseReason::session_end, true);
 }
-void Runtime::step(int maximum_wait) {
+bool Runtime::run_woken_work() {
   char bytes[128];
   while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
-  }
-  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
-    session_end_signalled = 0;
-    end_session();
-    return;
   }
   std::deque<Action> queued;
   {
@@ -2377,28 +2372,13 @@ void Runtime::step(int maximum_wait) {
       (*window).action(queued[i].kind);
   }
   accessibility_dispatch();
-  bool dispatched = !queued.empty();
-  // A bounded turn (audit N68): events left over stay queued, and the
-  // check at the end returns without waiting so the next turn takes them.
-  const std::chrono::steady_clock::time_point turn_start = std::chrono::steady_clock::now();
-  std::size_t turn_events = 0U;
-  while (XPending(display) > 0) {
-    dispatched = true;
-    XEvent event{};
-    XNextEvent(display, &event);
-    if (superseded_motion(display, event))
-      continue;
-    // One X event is the native callback of this loop: application code
-    // runs under it, so it goes through the fail-fast boundary.
-    gui_forms::detail::call_failing_fast("linux.x11_event", &Runtime::dispatch, *this, event);
-    turn_events = turn_events + 1U;
-    if (turn_events >= turn_event_limit)
-      break;
-    if (std::chrono::steady_clock::now() - turn_start >= turn_time_limit)
-      break;
-  }
+  const bool ran = !queued.empty();
+  return ran;
+}
+RunWait Runtime::service_windows(int maximum_wait) {
+  RunWait result{maximum_wait, false};
+  int &wait = result.milliseconds;
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
-  int wait = maximum_wait;
   const std::chrono::steady_clock::time_point now =
       std::chrono::steady_clock::now();
   for (std::size_t i = transfers.size(); i > 0; --i) {
@@ -2450,16 +2430,50 @@ void Runtime::step(int maximum_wait) {
     }
   }
   XFlush(display);
-  bool active = false;
   for (std::size_t i = 0; i < snapshot.size(); ++i)
     if (!(*snapshot[i]).closed)
-      active = true;
-  if (!active)
+      result.active = true;
+  return result;
+}
+void Runtime::wait_for_work(int milliseconds) {
+  accessibility_wait(ConnectionNumber(display), wake_pipe[0], milliseconds);
+}
+void Runtime::step(int maximum_wait) {
+  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
+    char bytes[128];
+    while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
+    }
+    session_end_signalled = 0;
+    end_session();
+    return;
+  }
+  bool dispatched = run_woken_work();
+  // A bounded turn (audit N68): events left over stay queued, and the
+  // check at the end returns without waiting so the next turn takes them.
+  const std::chrono::steady_clock::time_point turn_start = std::chrono::steady_clock::now();
+  std::size_t turn_events = 0U;
+  while (XPending(display) > 0) {
+    dispatched = true;
+    XEvent event{};
+    XNextEvent(display, &event);
+    if (superseded_motion(display, event))
+      continue;
+    // One X event is the native callback of this loop: application code
+    // runs under it, so it goes through the fail-fast boundary.
+    gui_forms::detail::call_failing_fast("linux.x11_event", &Runtime::dispatch, *this, event);
+    turn_events = turn_events + 1U;
+    if (turn_events >= turn_event_limit)
+      break;
+    if (std::chrono::steady_clock::now() - turn_start >= turn_time_limit)
+      break;
+  }
+  const RunWait serviced = service_windows(maximum_wait);
+  if (!serviced.active)
     return;
   // Closing callbacks can enqueue more work; the pipe keeps that work visible.
-  if (dispatched || XPending(display) > 0 || wait == 0)
+  if (dispatched || XPending(display) > 0 || serviced.milliseconds == 0)
     return;
-  accessibility_wait(ConnectionNumber(display), wake_pipe[0], wait);
+  wait_for_work(serviced.milliseconds);
 }
 HostDialogResult NativeWindow::dialog(const HostDialogRequest &request) {
   return retained_dialog(*this, request);

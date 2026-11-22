@@ -121,7 +121,6 @@ private:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 DragFileListData local_files(const std::vector<std::byte>& data);
-#if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // The XDND source (linux_drag_drop.cpp). Not compiled in a high-integrity
 // build (cmake/HighIntegrity.cmake).
 //
@@ -157,7 +156,12 @@ struct XdndDragOutcome final {
 // backend_failure when no button is held or the grab or the selection is
 // refused. UI thread.
 [[nodiscard]] XdndDragOutcome run_xdnd_drag(NativeWindow &window, const HostDragSourceRequest &request);
-#endif
+// One turn of the program's own work under a drag (run_xdnd_drag's loop):
+// the queued actions and accessibility work, then every window's timers,
+// frames and paint (Runtime::service_windows). Returns how long the loop
+// may wait for its next event: the earliest window deadline, bounded by
+// `maximum_wait` (negative for no bound). UI thread.
+[[nodiscard]] int xdnd_drag_turn(Runtime &runtime, int maximum_wait);
 #endif
 // A present's source: the raster's premultiplied BGRA8 pixels, row_bytes
 // apart, and the window's alpha mask, presented when present_alpha (a
@@ -612,6 +616,12 @@ struct SelectionTransfer final {
   std::size_t offset{};
   std::chrono::steady_clock::time_point deadline;
 };
+// How long a loop may wait after a turn, in milliseconds (negative: no
+// bound), and whether any window is still open (Runtime::service_windows).
+struct RunWait final {
+  int milliseconds{-1};
+  bool active{};
+};
 class Runtime final {
 public:
   Runtime();
@@ -623,6 +633,21 @@ public:
                                     HostWindowId window_id = {},
                                     bool initial = true);
   void step(int maximum_wait = -1);
+  // The parts of a turn a nested loop (the XDND source's drag) repeats so
+  // the program keeps running under it.
+  //
+  // Empties the wake pipe and runs the queued window actions and the
+  // accessibility bus's work; true when an action ran.
+  bool run_woken_work();
+  // Updates every window (its timers, frames, first show and paint) and
+  // returns how long the loop may then wait: the earliest of
+  // `maximum_wait` (negative for no bound), the selection transfers'
+  // deadlines, each window's next wake, first show deadline, live clock and
+  // overlay fade; and whether any window is still open.
+  RunWait service_windows(int maximum_wait);
+  // Waits at most `milliseconds` (negative: no bound) for an X event, the
+  // wake pipe or the accessibility bus.
+  void wait_for_work(int milliseconds);
   // Releases runtime windows that closed, between loop turns.
   void reclaim();
   // Reports application activation to the windowing after a turn's events:
