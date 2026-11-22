@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 #include "../../failure/fail_fast.hpp"
 #include "../../surface_root/access/surface_host_access.hpp"
+#include "drag_items.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -99,57 +100,18 @@ bool valid_monitor_set(const std::vector<HostMonitor>& monitors) {
 }
 
 bool valid_drag_event(const DragEvent& event) noexcept {
-    constexpr std::uint8_t known_effects =
-        static_cast<std::uint8_t>(DragEffect::copy) |
-        static_cast<std::uint8_t>(DragEffect::move) |
-        static_cast<std::uint8_t>(DragEffect::link);
-    const std::uint8_t effects = static_cast<std::uint8_t>(event.allowed_effects);
     if (event.session_id == 0 || !std::isfinite(event.position.x) ||
-        !std::isfinite(event.position.y) || (effects & ~known_effects) != 0 ||
-        event.accepted_effect != DragEffect::none ||
-        event.items.size() > DragLimits::maximum_items) {
+        !std::isfinite(event.position.y) ||
+        !detail::known_drag_effects(event.allowed_effects) ||
+        event.accepted_effect != DragEffect::none) {
         return false;
     }
     if (event.action != DragAction::leave &&
         (event.items.empty() || event.allowed_effects == DragEffect::none)) {
         return false;
     }
-    std::size_t total = 0;
-    for (const DragDataItem& item : event.items) {
-        bool valid = false;
-        if (const DragTextData* data = std::get_if<DragTextData>(&item)) {
-            valid = (*data).text_utf8.size() <=
-                        DragLimits::maximum_text_bytes &&
-                    (*data).text_utf8.find('\0') == std::string::npos &&
-                    valid_utf8((*data).text_utf8) &&
-                    add_drag_size(total, (*data).text_utf8.size());
-        } else if (const DragFileListData* data =
-                       std::get_if<DragFileListData>(&item)) {
-            valid = !(*data).paths_utf8.empty() &&
-                    (*data).paths_utf8.size() <= DragLimits::maximum_paths;
-            for (const std::string& path : (*data).paths_utf8) {
-                if (!valid || path.empty() ||
-                    path.size() > DragLimits::maximum_path_bytes ||
-                    path.find('\0') != std::string::npos ||
-                    !valid_utf8(path) || !add_drag_size(total, path.size())) {
-                    valid = false;
-                    break;
-                }
-            }
-        } else if (const DragBinaryData* data =
-                       std::get_if<DragBinaryData>(&item)) {
-            valid = !(*data).media_type.empty() &&
-                    (*data).media_type.size() <=
-                        DragLimits::maximum_media_type_bytes &&
-                    (*data).media_type.find('\0') == std::string::npos &&
-                    valid_utf8((*data).media_type) &&
-                    add_drag_size(total, (*data).bytes.size());
-        }
-        if (!valid) {
-            return false;
-        }
-    }
-    return true;
+    const bool valid = detail::valid_drag_items(event.items);
+    return valid;
 }
 
 // What a host event is refused with in lifecycle `phase` (none when it is
@@ -207,6 +169,61 @@ HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool 
     return HostDispatchError::invalid_lifecycle;
 }
 } // namespace
+
+namespace detail {
+
+bool known_drag_effects(DragEffect effects) noexcept {
+    constexpr std::uint8_t known =
+        static_cast<std::uint8_t>(DragEffect::copy) |
+        static_cast<std::uint8_t>(DragEffect::move) |
+        static_cast<std::uint8_t>(DragEffect::link);
+    const std::uint8_t bits = static_cast<std::uint8_t>(effects);
+    return (bits & ~known) == 0;
+}
+
+bool valid_drag_items(const std::vector<DragDataItem>& items) noexcept {
+    if (items.size() > DragLimits::maximum_items) {
+        return false;
+    }
+    std::size_t total = 0;
+    for (const DragDataItem& item : items) {
+        bool valid = false;
+        if (const DragTextData* data = std::get_if<DragTextData>(&item)) {
+            valid = (*data).text_utf8.size() <=
+                        DragLimits::maximum_text_bytes &&
+                    (*data).text_utf8.find('\0') == std::string::npos &&
+                    valid_utf8((*data).text_utf8) &&
+                    add_drag_size(total, (*data).text_utf8.size());
+        } else if (const DragFileListData* data =
+                       std::get_if<DragFileListData>(&item)) {
+            valid = !(*data).paths_utf8.empty() &&
+                    (*data).paths_utf8.size() <= DragLimits::maximum_paths;
+            for (const std::string& path : (*data).paths_utf8) {
+                if (!valid || path.empty() ||
+                    path.size() > DragLimits::maximum_path_bytes ||
+                    path.find('\0') != std::string::npos ||
+                    !valid_utf8(path) || !add_drag_size(total, path.size())) {
+                    valid = false;
+                    break;
+                }
+            }
+        } else if (const DragBinaryData* data =
+                       std::get_if<DragBinaryData>(&item)) {
+            valid = !(*data).media_type.empty() &&
+                    (*data).media_type.size() <=
+                        DragLimits::maximum_media_type_bytes &&
+                    (*data).media_type.find('\0') == std::string::npos &&
+                    valid_utf8((*data).media_type) &&
+                    add_drag_size(total, (*data).bytes.size());
+        }
+        if (!valid) {
+            return false;
+        }
+    }
+    return true;
+}
+
+} // namespace detail
 HostSession::HostSession(Window& window,
                          HostCapabilities capabilities,
                          HostServices* services)

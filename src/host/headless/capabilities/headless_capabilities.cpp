@@ -20,6 +20,9 @@ HostCapabilities headless_capabilities() {
                 HostCapability::clipboard |
                 HostCapability::clipboard_images |
                 HostCapability::typed_drag_destination |
+                // The reference host simulates a drag to other programs:
+                // tests end it (HeadlessHostServices::finish_drag_source).
+                HostCapability::typed_drag_source |
                 HostCapability::dialogs |
                 HostCapability::sound_cues |
                 HostCapability::notification_area |

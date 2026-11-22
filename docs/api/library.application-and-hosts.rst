@@ -119,6 +119,12 @@ Related types
      - HostDispatchResult carries handled/deferred/capacity/close/drag outcome plus portable rejection or callback-fault category.
    * - :cpp:class:`HostDisplayEvent <gui_forms::HostDisplayEvent>`
      - HostDisplayEvent carries a complete validated unique-primary monitor set after display topology change.
+   * - :cpp:class:`HostDragSourceEnd <gui_forms::HostDragSourceEnd>`
+     - How a drag to other programs ended (HostServices::drag_source_ended), raised once per started drag on the UI thread.
+   * - :cpp:class:`HostDragSourceRequest <gui_forms::HostDragSourceRequest>`
+     - A drag to other programs (capability typed_drag_source, HostServices::start_drag): what the drag carries and the effects the destination may choose.
+   * - :cpp:class:`HostDragSourceResult <gui_forms::HostDragSourceResult>`
+     - A started drag's identity, when ``status`` is accepted (zero otherwise).
    * - :cpp:class:`HostEvent <gui_forms::HostEvent>`
      - HostEvent binds nonzero monotonic sequence and caller-supplied monotonic timestamp to one portable lifecycle/input payload.
    * - :cpp:class:`HostEventClock <gui_forms::HostEventClock>`
@@ -1107,6 +1113,46 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostDragSourceEnd final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   How a drag to other programs ended (HostServices::drag_source_ended), raised once per started drag on the UI thread. ``performed_effect`` is the effect the destination took, one of the request's allowed effects, or none when the drag was cancelled (Escape, released over nothing, or refused by the destination). The program removes its own copy only on ``move``; a Windows shell destination that moves files itself (an optimized move) reports none, as it has already removed them.
+
+   .. cpp:member:: std::uint64_t session_id
+
+   .. cpp:member:: DragEffect performed_effect
+
+      Default: ``{DragEffect::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDragSourceRequest final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   A drag to other programs (capability typed_drag_source, HostServices::start_drag): what the drag carries and the effects the destination may choose. Each item becomes the platform's own format: a file list its file references (CF_HDROP, file URLs), text its Unicode text, and bytes the format its media type names ("image/png" the platform's PNG type). The same bounds as an inbound drag hold: 1 to DragLimits::maximum_items items within the total, UTF-8 throughout, no NUL. A file list names paths the platform can resolve (full paths).
+
+   .. cpp:member:: std::vector<DragDataItem> items
+
+   .. cpp:member:: DragEffect allowed_effects
+
+      Default: ``{DragEffect::copy}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDragSourceResult final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   A started drag's identity, when ``status`` is accepted (zero otherwise). The drag's end arrives later as a HostDragSourceEnd with this identity.
+
+   .. cpp:member:: HostServiceStatus status
+
+   .. cpp:member:: std::uint64_t session_id
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
@@ -1623,6 +1669,10 @@ Related types
 
       Validates zero through five seconds, commits the new policy, and clears prior cue history so old state cannot suppress the next cue.
 
+   .. cpp:function:: bool drag_source_active() const noexcept
+
+      Whether a drag from these services is running.
+
    .. cpp:function:: HostServicesSnapshot snapshot() const
 
       Returns capability, cursor/capture, service counts, sound policy, modal depth, rejection, and shutdown telemetry.
@@ -1633,6 +1683,10 @@ Related types
    .. cpp:function:: Event<const HostTrayIconEvent&>& tray_icon_events() noexcept
 
       Raised on the UI thread for each user action on a live tray icon.
+
+   .. cpp:function:: Event<const HostDragSourceEnd&>& drag_source_ended() noexcept
+
+      Raised on the UI thread once for each accepted start_drag.
 
    .. cpp:function:: Event<const HostDialogHelpEvent&>& dialog_help_requested() noexcept
 
@@ -1714,6 +1768,10 @@ Related types
       Capability notification_area_menus. Shows a native menu at the icon and returns when it closes, as show_dialog does.
 
    .. cpp:function:: bool tray_icon_live(HostTrayIconId icon_id) const noexcept
+
+   .. cpp:function:: HostDragSourceResult start_drag(const HostDragSourceRequest& request)
+
+      Starts a drag of ``request.items`` to other programs (capability typed_drag_source); the program's own windows are destinations too. Call it while handling a pointer press or move with a button held down, as the drag follows that button. Refused, starting nothing: unsupported without typed_drag_source; invalid_argument for items outside the bounds HostDragSourceRequest states or for allowed effects that are none or hold an unknown bit; modal_limit while another drag from these services runs; backend_failure when the platform refuses (no button held, no pointer event to start from). An accepted drag ends exactly once, through drag_source_ended. On Windows the drag runs a modal loop (DoDragDrop) and ends before start_drag returns; on macOS it ends later, from the run loop. The pointer's press is the platform's from the start: the window sees no release for it, and a control holding capture should end its own drag when the end arrives. UI thread.
 
    .. cpp:function:: bool publish_dialog_help(const HostDialogHelpEvent& event)
 
@@ -1862,6 +1920,12 @@ Related types
 
       Lets the concrete adapter release native resources after portable terminal state commits.
 
+   .. cpp:function:: virtual HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest& request)
+
+      *Protected.*
+
+      Starts the platform drag for start_drag, which has validated the request and assigned ``session_id``; the adapter reports its end through publish_drag_source_end. The default refuses as unsupported.
+
    .. cpp:function:: virtual HostServiceStatus add_tray_icon_impl(HostTrayIconId icon_id, const HostTrayIconRequest& request)
 
       *Protected.*
@@ -1909,6 +1973,12 @@ Related types
       *Protected.*
 
       Adapters report native tray events here, on the UI thread. Events for identities that are not live are dropped.
+
+   .. cpp:function:: void publish_drag_source_end(const HostDragSourceEnd& event)
+
+      *Protected.*
+
+      Adapters report the end of the drag start_drag_impl started here. Dropped off the UI thread and for an identity that is not the running drag's; a performed effect outside the drag's allowed effects is reported as none. Ends the drag before raising drag_source_ended, so a handler may start another.
 
    .. cpp:member:: constexpr std::size_t maximum_clipboard_text_bytes
 

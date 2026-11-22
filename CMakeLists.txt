@@ -2106,6 +2106,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         src/surface/windows/accessibility/windows_text_automation.cpp
         src/surface/windows/services/windows_clipboard_image.cpp
         src/surface/windows/services/windows_notify_icons.cpp
+        src/surface/windows/services/windows_drag_drop.cpp
         src/surface/windows/locale/windows_date_pattern.cpp
         src/surface/windows/locale/windows_locale.cpp
         src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp

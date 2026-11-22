@@ -397,6 +397,17 @@ protected:
         return gui_forms::host::detail::read_windows_clipboard_image(owner_);
     }
 
+    // A drag to other programs (windows_drag_drop.hpp): DoDragDrop runs its
+    // modal loop here, so the drag ends, and is reported, before this
+    // returns. The window's own drop target takes part like any other.
+    HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest& request) override {
+        const gui_forms::host::detail::WindowsDragOutcome outcome =
+            gui_forms::host::detail::run_windows_drag(request);
+        if (!outcome.status.accepted()) return outcome.status;
+        publish_drag_source_end(HostDragSourceEnd{session_id, outcome.performed_effect});
+        return {};
+    }
+
     HostServiceStatus write_clipboard_image_impl(HostImageView image) override {
         return gui_forms::host::detail::write_windows_clipboard_image(owner_, image);
     }

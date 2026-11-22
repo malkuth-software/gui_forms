@@ -118,6 +118,28 @@ using gui_forms::render::SkiaRaster;
 - (BOOL)answerAlertShowHelp:(NSAlert*)alert;
 @end
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// The source of a drag to other programs (HostServices::start_drag): it
+// offers the request's effects to every destination, inside the program or
+// outside, and reports the end to the services that started it. The
+// services hold it for the drag's length and detach it at shutdown, after
+// which an end reports nothing. Not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake).
+@interface GuiFormsDragSource : NSObject <NSDraggingSource>
+@property(nonatomic, assign) gui_forms::HostServices* services;
+@property(nonatomic, assign) std::uint64_t sessionId;
+@property(nonatomic, assign) NSDragOperation allowedOperations;
+- (NSDragOperation)draggingSession:(NSDraggingSession*)session
+    sourceOperationMaskForDraggingContext:(NSDraggingContext)context;
+- (void)draggingSession:(NSDraggingSession*)session
+           endedAtPoint:(NSPoint)screenPoint
+              operation:(NSDragOperation)operation;
+// The bodies of this class's native entries: each entry calls its answer
+// through the fail-fast boundary (call_failing_fast).
+- (void)answerDraggingSessionEndedWithOperation:(NSDragOperation)operation;
+@end
+#endif
+
 namespace {
 // The named targets the fail-fast boundary (call_failing_fast) calls for
 // GuiFormsAlertHelp's native entries: each sends the entry's answer message.
@@ -696,6 +718,59 @@ protected:
         }
         return {};
     }
+
+    // A drag to other programs: one dragging item per file, one for the
+    // text, one for each media-typed item, started from the pointer event
+    // AppKit is delivering (the press or the move start_drag is called
+    // from) through the window's view. AppKit then runs the drag from the
+    // run loop; GuiFormsDragSource reports its end.
+    HostServiceStatus start_drag_impl(std::uint64_t session_id,
+                                      const gui_forms::HostDragSourceRequest& request) override {
+        NSView* const view = backdrop_view_;
+        NSEvent* const event = [NSApp currentEvent];
+        if (view == nil || view.window == nil || event == nil || event.window != view.window ||
+            !drag_start_event(event.type)) {
+            return {HostServiceError::backend_failure};
+        }
+        NSMutableArray<NSDraggingItem*>* const items = [NSMutableArray array];
+        const NSPoint pointer = [view convertPoint:event.locationInWindow fromView:nil];
+        for (const DragDataItem& item : request.items) {
+            if (const DragFileListData* files = std::get_if<DragFileListData>(&item)) {
+                for (const std::string& path_utf8 : (*files).paths_utf8) {
+                    NSString* const path = native_string(path_utf8);
+                    if (path == nil) return {HostServiceError::invalid_argument};
+                    NSURL* const url = [NSURL fileURLWithPath:path];
+                    NSImage* const icon = [NSWorkspace.sharedWorkspace iconForFile:path];
+                    [items addObject:dragging_item(url, icon, pointer, items.count)];
+                }
+            } else if (const DragTextData* text = std::get_if<DragTextData>(&item)) {
+                NSString* const string = native_string((*text).text_utf8);
+                if (string == nil) return {HostServiceError::invalid_argument};
+                NSImage* const icon = [NSWorkspace.sharedWorkspace iconForContentType:UTTypePlainText];
+                [items addObject:dragging_item(string, icon, pointer, items.count)];
+            } else if (const DragBinaryData* binary = std::get_if<DragBinaryData>(&item)) {
+                NSPasteboardType const type = pasteboard_type((*binary).media_type);
+                if (type == nil) return {HostServiceError::invalid_argument};
+                NSData* const data = [NSData dataWithBytes:(*binary).bytes.data() length:(*binary).bytes.size()];
+                NSPasteboardItem* const written = [[NSPasteboardItem alloc] init];
+                if (![written setData:data forType:type]) return {HostServiceError::backend_failure};
+                UTType* const content = [UTType typeWithIdentifier:type];
+                NSImage* const icon = [NSWorkspace.sharedWorkspace
+                    iconForContentType:content != nil ? content : UTTypeData];
+                [items addObject:dragging_item(written, icon, pointer, items.count)];
+            }
+        }
+        if (items.count == 0) return {HostServiceError::invalid_argument};
+        GuiFormsDragSource* const source = [[GuiFormsDragSource alloc] init];
+        source.services = this;
+        source.sessionId = session_id;
+        source.allowedOperations = native_drag_operations(request.allowed_effects);
+        NSDraggingSession* const session = [view beginDraggingSessionWithItems:items event:event source:source];
+        if (session == nil) return {HostServiceError::backend_failure};
+        session.animatesToStartingPositionsOnCancelOrFail = YES;
+        drag_source_ = source;
+        return {};
+    }
 #endif
 
     HostServiceStatus warp_pointer_impl(gui_forms::Point position) override {
@@ -1087,6 +1162,11 @@ protected:
     }
 
     void shutdown_impl() noexcept override {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        // A drag still running ends without a report (HostServices::shutdown).
+        drag_source_.services = nullptr;
+        drag_source_ = nil;
+#endif
         status_items_.reset();
         for (const CursorEntry& entry : cursors_) {
             if ([NSCursor currentCursor] == entry.native) [[NSCursor arrowCursor] set];
@@ -1095,8 +1175,69 @@ protected:
         pasteboard_ = nil;
     }
 
+public:
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // GuiFormsDragSource's report of the drag's end.
+    void finish_drag(std::uint64_t session_id, gui_forms::DragEffect performed_effect) {
+        if (drag_source_ != nil && drag_source_.sessionId == session_id) {
+            drag_source_.services = nullptr;
+            drag_source_ = nil;
+        }
+        publish_drag_source_end(gui_forms::HostDragSourceEnd{session_id, performed_effect});
+    }
+#endif
+
 private:
     void forward_tray_event(const gui_forms::HostTrayIconEvent& event) { publish_tray_icon_event(event); }
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Whether AppKit can start a drag from an event of `type`: a press or a
+    // move with a button held.
+    static bool drag_start_event(NSEventType type) noexcept {
+        switch (type) {
+        case NSEventTypeLeftMouseDown:
+        case NSEventTypeLeftMouseDragged:
+        case NSEventTypeRightMouseDown:
+        case NSEventTypeRightMouseDragged:
+        case NSEventTypeOtherMouseDown:
+        case NSEventTypeOtherMouseDragged: return true;
+        default: return false;
+        }
+    }
+
+    static NSDragOperation native_drag_operations(gui_forms::DragEffect effects) noexcept {
+        NSDragOperation operations = NSDragOperationNone;
+        if (gui_forms::has_drag_effect(effects, gui_forms::DragEffect::copy)) operations |= NSDragOperationCopy;
+        if (gui_forms::has_drag_effect(effects, gui_forms::DragEffect::move)) operations |= NSDragOperationMove;
+        if (gui_forms::has_drag_effect(effects, gui_forms::DragEffect::link)) operations |= NSDragOperationLink;
+        return operations;
+    }
+
+    // The pasteboard type a media type names: PNG and TIFF by their AppKit
+    // types, another MIME type by the type identifier it maps to, and a name
+    // without a slash as a type identifier already (what an inbound drag
+    // reports). Nil when none applies.
+    static NSPasteboardType pasteboard_type(std::string_view media_type) {
+        if (media_type == "image/png") return NSPasteboardTypePNG;
+        if (media_type == "image/tiff") return NSPasteboardTypeTIFF;
+        NSString* const name = native_string(media_type);
+        if (name == nil) return nil;
+        if (media_type.find('/') == std::string_view::npos) return name;
+        UTType* const type = [UTType typeWithMIMEType:name];
+        return type == nil ? nil : type.identifier;
+    }
+
+    // A dragging item for `writer`, drawn as `icon` (32 points), each item
+    // stepped 4 points from the last so a group shows as a stack.
+    static NSDraggingItem* dragging_item(id<NSPasteboardWriting> writer, NSImage* icon, NSPoint pointer,
+                                         NSUInteger index) {
+        NSDraggingItem* const item = [[NSDraggingItem alloc] initWithPasteboardWriter:writer];
+        const CGFloat step = 4.0 * static_cast<CGFloat>(std::min<NSUInteger>(index, 8U));
+        const NSRect frame = NSMakeRect(pointer.x - 16.0 + step, pointer.y - 16.0 + step, 32.0, 32.0);
+        [item setDraggingFrame:frame contents:icon];
+        return item;
+    }
+#endif
 
     // Gives the pointer back: associated with the mouse, shown, and
     // AppKit's coalescing as it was. Cannot fail in a way that keeps it.
@@ -1181,6 +1322,11 @@ private:
     // The raster view of the window these services belong to; weak, so a
     // view that is gone applies nothing. Set once, by the view's init.
     __weak NSView* backdrop_view_{};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The running drag's source, held for the drag's length (nil when no
+    // drag runs).
+    __strong GuiFormsDragSource* drag_source_{};
+#endif
     // Relative pointer mode as applied (appkit_relative_pointer.hpp), the
     // NSCursor hide it balances, and AppKit's coalescing before it.
     gui_forms::host::detail::MacRelativePointerState relative_{};
@@ -1196,6 +1342,53 @@ private:
 };
 
 } // namespace
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GuiFormsDragSource's native entries.
+NSDragOperation run_drag_source_mask(GuiFormsDragSource* object) {
+    return object.allowedOperations;
+}
+
+void run_drag_source_ended(GuiFormsDragSource* object, NSDragOperation operation) {
+    [object answerDraggingSessionEndedWithOperation:operation];
+}
+
+// The one portable effect a destination performed, or none.
+gui_forms::DragEffect performed_drag_effect(NSDragOperation operation) noexcept {
+    if (operation == NSDragOperationCopy) return gui_forms::DragEffect::copy;
+    if (operation == NSDragOperationMove) return gui_forms::DragEffect::move;
+    if (operation == NSDragOperationLink) return gui_forms::DragEffect::link;
+    return gui_forms::DragEffect::none;
+}
+} // namespace
+
+@implementation GuiFormsDragSource
+- (NSDragOperation)draggingSession:(NSDraggingSession*)session
+    sourceOperationMaskForDraggingContext:(NSDraggingContext)context {
+    (void)session;
+    (void)context;
+    return gui_forms::detail::call_failing_fast(
+        "macos.drag_source.draggingSession:sourceOperationMaskForDraggingContext:", &run_drag_source_mask, self);
+}
+
+- (void)draggingSession:(NSDraggingSession*)session
+           endedAtPoint:(NSPoint)screenPoint
+              operation:(NSDragOperation)operation {
+    (void)session;
+    (void)screenPoint;
+    gui_forms::detail::call_failing_fast(
+        "macos.drag_source.draggingSession:endedAtPoint:operation:", &run_drag_source_ended, self, operation);
+}
+
+- (void)answerDraggingSessionEndedWithOperation:(NSDragOperation)operation {
+    AppKitHostServices* const services = dynamic_cast<AppKitHostServices*>(self.services);
+    if (services == nullptr) return;
+    (*services).finish_drag(self.sessionId, performed_drag_effect(operation));
+}
+@end
+#endif
 
 namespace gui_forms::host::detail {
 

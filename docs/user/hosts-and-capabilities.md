@@ -29,7 +29,7 @@ whole record for logs.
 | `pointer_capture` | synchronous capture routed to one control | yes | yes | yes |
 | `cursor` | portable cursor kinds applied natively | yes | yes | yes |
 | `clipboard`, `clipboard_images` | bounded UTF-8 text and premultiplied BGRA8 images | yes | yes | yes |
-| `typed_drag_destination` | inbound text, file-list and media-typed drops | yes | no | yes |
+| `typed_drag_destination` | inbound text, file-list and media-typed drops | yes | yes | yes |
 | `dialogs` | the five portable common-dialog request/result families | yes | yes | yes |
 | `sound_cues` | system alert sounds | yes | yes | yes |
 | `frame_capture` | encode the presented framebuffer as PNG | yes | yes | yes |
@@ -39,7 +39,7 @@ whole record for logs.
 | `menus` | native menu-bar publication | no | no | no |
 | `font_discovery` | host font enumeration | no, by design | no, by design | no, by design |
 | `accessibility` | native accessibility publication of the semantic tree, verified by client tests | yes | yes | yes |
-| `typed_drag_source` | outbound drag initiation | no | no | no |
+| `typed_drag_source` | drags to other programs (`HostServices::start_drag`) | yes | yes | no |
 | `runtime_windows` | owned windows opened and destroyed while the application runs | yes | yes | yes |
 | `window_frames` | window frames read and requested in desktop logical units, with a report for every move and resize | yes | yes | yes (the window manager decides) |
 | `screen_pointer` | the pointer's desktop position | yes | yes | yes |
@@ -269,6 +269,30 @@ is delivered by every native host (Windows `WM_MOUSEHWHEEL`, macOS
 `NSApplicationDidChangeScreenParametersNotification`, X11 on RandR's screen
 change notification where the build has libXrandr.
 
+## Drag and drop with other programs
+
+A drop from another program reaches the window as `DragEvent`s
+(`typed_drag_destination`): enter, over, then drop or leave, each carrying
+the drag's items as `DragFileListData`, `DragTextData` and `DragBinaryData`,
+and the effects the source allows. The window answers with one effect
+(copy, move or link) or none, and the platform shows it.
+
+| Host | Destination | Formats read | Source |
+|---|---|---|---|
+| macOS | the window's view (`NSDraggingDestination`) | file URLs, string, `public.data` | `NSDraggingSource`, items written as file URLs, strings and pasteboard types |
+| Windows | `RegisterDragDrop` (`IDropTarget`) | `CF_HDROP`, `CF_UNICODETEXT`, `PNG` | `DoDragDrop` (`IDropSource`, `IDataObject` offering `CF_HDROP`, `CF_UNICODETEXT` and media types) |
+| Linux X11 | XDND (versions up to 5) | `text/uri-list` (local files) | none |
+
+`HostServices::start_drag` starts a drag from the program
+(`typed_drag_source`), called while a pointer press or a move with a button
+held is being handled. Its end arrives once through `drag_source_ended`, with
+the effect the destination took (none when cancelled); the program removes
+its own copy only on `move`. On Windows the drag runs a modal loop and ends
+before `start_drag` returns; on macOS it ends later, from the run loop. The
+program's own windows are destinations too, so a drag can be dropped back
+into the window it started from. A high-integrity build compiles none of this
+and reports neither capability.
+
 ## Keyboard-command defaults
 
 Some keys differ by platform convention: closing a document is Ctrl+F4 on
@@ -361,7 +385,10 @@ Windows (Win32)
   reaches the focused control as composing text, which the control shows
   and each update replaces, and its result string as committed input; the
   system's own composition window is turned off and its candidate window is
-  placed below the caret. TSF is not used. OLE drag/drop and native menu publication are not implemented.
+  placed below the caret. TSF is not used. Drag and drop with other programs is
+  OLE's: the window is a drop target (`RegisterDragDrop`, with the shell's
+  drag image helper), and `start_drag` runs `DoDragDrop`. Native menu
+  publication is not implemented.
 
 Linux (X11)
 : `src/surface/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib

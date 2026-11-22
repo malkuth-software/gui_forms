@@ -85,6 +85,20 @@ public:
     // The addresses open_url accepted, oldest first; nothing is opened.
     [[nodiscard]] const std::vector<std::string>& opened_urls() const& noexcept { return opened_urls_; }
     const std::vector<std::string>& opened_urls() const&& = delete;
+    // The simulated drag to other programs: start_drag_impl keeps the
+    // request (drag_source_request, empty until a drag starts) and the
+    // drag runs until the test ends it with the effect a destination took
+    // (none for a cancelled drag), as the platform's end would. A test
+    // that drives a self-drag dispatches the request's items to the window
+    // as DragEvents between the two. The next start fails with
+    // backend_failure after fail_next_drag_source, as a platform with no
+    // button held would.
+    [[nodiscard]] const std::optional<HostDragSourceRequest>& drag_source_request() const& noexcept {
+        return drag_source_request_;
+    }
+    const std::optional<HostDragSourceRequest>& drag_source_request() const&& = delete;
+    void finish_drag_source(DragEffect performed_effect);
+    void fail_next_drag_source() noexcept { fail_next_drag_source_ = true; }
 
 protected:
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
@@ -96,6 +110,8 @@ protected:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     [[nodiscard]] HostServiceStatus open_url_impl(std::string_view url_utf8) override;
+    [[nodiscard]] HostServiceStatus start_drag_impl(std::uint64_t session_id,
+                                                    const HostDragSourceRequest& request) override;
 #endif
 #if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     [[nodiscard]] HostClipboardTextResult read_clipboard_text_impl() override;
@@ -134,6 +150,9 @@ private:
     HostRelativePointerRequest relative_pointer_request_{};
     std::optional<Point> last_pointer_warp_{};
     std::vector<std::string> opened_urls_{};
+    std::optional<HostDragSourceRequest> drag_source_request_{};
+    std::uint64_t drag_source_session_{};
+    bool fail_next_drag_source_{};
     // The clipboard's image; absent while it holds none.
     std::optional<HostImage> clipboard_image_;
     std::string clipboard_text_;

@@ -145,6 +145,28 @@ public:
         return tray_icon_events_;
     }
     [[nodiscard]] bool tray_icon_live(HostTrayIconId icon_id) const noexcept;
+    // Starts a drag of `request.items` to other programs (capability
+    // typed_drag_source); the program's own windows are destinations too.
+    // Call it while handling a pointer press or move with a button held
+    // down, as the drag follows that button. Refused, starting nothing:
+    // unsupported without typed_drag_source; invalid_argument for items
+    // outside the bounds HostDragSourceRequest states or for allowed
+    // effects that are none or hold an unknown bit; modal_limit while
+    // another drag from these services runs; backend_failure when the
+    // platform refuses (no button held, no pointer event to start from).
+    // An accepted drag ends exactly once, through drag_source_ended. On
+    // Windows the drag runs a modal loop (DoDragDrop) and ends before
+    // start_drag returns; on macOS it ends later, from the run loop. The
+    // pointer's press is the platform's from the start: the window sees no
+    // release for it, and a control holding capture should end its own
+    // drag when the end arrives. UI thread.
+    [[nodiscard]] HostDragSourceResult start_drag(const HostDragSourceRequest& request);
+    // Raised on the UI thread once for each accepted start_drag.
+    [[nodiscard]] Event<const HostDragSourceEnd&>& drag_source_ended() noexcept {
+        return drag_source_ended_;
+    }
+    // Whether a drag from these services is running.
+    [[nodiscard]] bool drag_source_active() const noexcept { return active_drag_source_ != 0U; }
     // Raised on the UI thread when the user asks for help in an open message
     // dialog (its Help button, or F1 where the host's dialog takes it), with
     // the dialog's request identity; the dialog stays open. Handlers run
@@ -232,6 +254,11 @@ protected:
     [[nodiscard]] virtual HostServiceStatus play_sound_cue_impl(
         const HostSoundCueRequest& request) = 0;
     virtual void shutdown_impl() noexcept {}
+    // Starts the platform drag for start_drag, which has validated the
+    // request and assigned `session_id`; the adapter reports its end through
+    // publish_drag_source_end. The default refuses as unsupported.
+    [[nodiscard]] virtual HostServiceStatus start_drag_impl(std::uint64_t session_id,
+                                                            const HostDragSourceRequest& request);
     // Tray adapters: called with a validated request and an identity the base
     // class assigned. The defaults refuse as unsupported.
     [[nodiscard]] virtual HostServiceStatus add_tray_icon_impl(
@@ -259,6 +286,12 @@ protected:
     // Adapters report native tray events here, on the UI thread. Events for
     // identities that are not live are dropped.
     void publish_tray_icon_event(const HostTrayIconEvent& event);
+    // Adapters report the end of the drag start_drag_impl started here.
+    // Dropped off the UI thread and for an identity that is not the running
+    // drag's; a performed effect outside the drag's allowed effects is
+    // reported as none. Ends the drag before raising drag_source_ended, so
+    // a handler may start another.
+    void publish_drag_source_end(const HostDragSourceEnd& event);
 
 private:
     friend class CursorHiddenLease;
@@ -291,6 +324,12 @@ private:
     std::uint64_t next_tray_icon_id_{1U};
     Event<const HostTrayIconEvent&> tray_icon_events_;
     Event<const HostDialogHelpEvent&> dialog_help_requested_;
+    // The running drag's identity and allowed effects (zero and none when
+    // no drag runs), and the identity the next drag takes.
+    std::uint64_t active_drag_source_{};
+    DragEffect active_drag_effects_{DragEffect::none};
+    std::uint64_t next_drag_source_{1U};
+    Event<const HostDragSourceEnd&> drag_source_ended_;
 };
 
 } // namespace gui_forms
