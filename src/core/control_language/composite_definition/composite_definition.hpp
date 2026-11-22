@@ -208,13 +208,14 @@ struct CompositeActionDefinition final {
     CompositeExpression value{};
 };
 
-// A child property bound to the composite's (`bind(self.<property>)`).
+// A child property bound to the composite's
+// (`<bind property="<child property>" to="self.<property>"/>`).
 struct CompositeChildBinding final {
     std::string child{};
     std::string property{};
     std::size_t source{};
     // Whether the child's changes flow back: its property's default
-    // direction, unless the document narrowed it with one_way.
+    // direction, unless the document narrowed it with mode="one-way".
     bool two_way{};
 };
 

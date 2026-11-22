@@ -79,7 +79,6 @@ using theme_language::ThemeDiagnostic;
 
 constexpr std::string_view slot_element = "slot";
 constexpr std::string_view span_element = "span";
-constexpr std::string_view bind_prefix = "bind(";
 constexpr std::string_view self_prefix = "self.";
 // The type of the children's wrapping root and of the slot.
 constexpr std::string_view slot_type = "user-control";
@@ -333,9 +332,13 @@ private:
     [[nodiscard]] const PropertyDescriptor* child_descriptor(std::string_view local_id,
                                                              std::string_view property) const noexcept;
     // Copies `element` (a form element inside <children>) into `made`
-    // with its local ID prefixed and its bound and `self.` attributes taken
-    // out into the definition.
+    // with its local ID prefixed, and its `bind` elements and `self.`
+    // attributes taken out into the definition.
     void copy_child(const XmlElement& element, XmlElement& made);
+    // One `bind` element of the child `local_id`, whose type is `own_type`
+    // (none when the schema lacks it), as a CompositeChildBinding.
+    void compile_binding(const XmlElement& element, const std::string& local_id,
+                         std::optional<std::size_t> own_type);
     void refuse(const ControlSource& where, const std::string& rule, std::string detail);
 
     const theme_language::ThemeSource& source_;
@@ -573,44 +576,6 @@ void DefinitionCompiler::copy_child(const XmlElement& element, XmlElement& made)
             continue;
         }
         const std::string property = composite_registered_name(attribute.name);
-        if (attribute.value.starts_with(bind_prefix)) {
-            // bind(self.<property>[, option]...), as the model checked it.
-            const std::string_view value = attribute.value;
-            const std::size_t close = value.rfind(')');
-            const std::string_view inside = value.substr(bind_prefix.size(), close - bind_prefix.size());
-            const std::size_t comma = inside.find(',');
-            std::string_view source_name = inside.substr(0U, comma);
-            while (!source_name.empty() && source_name.back() == ' ') source_name.remove_suffix(1U);
-            while (!source_name.empty() && source_name.front() == ' ') source_name.remove_prefix(1U);
-            const std::string_view options =
-                comma == std::string_view::npos ? std::string_view{} : inside.substr(comma + 1U);
-            const bool narrowed = options.find("one_way") != std::string_view::npos;
-            CompositeChildBinding binding{};
-            binding.child = local_id;
-            binding.property = property;
-            // The checker admits a base type's property too (any_property);
-            // the composite reads and writes its own by index, so a name it
-            // does not declare is refused, never compiled to index 0
-            // (A-gf-core-03-F1).
-            const std::string_view source_property = source_name.substr(self_prefix.size());
-            const std::optional<std::size_t> source_index = property_index(source_property);
-            if (!source_index) {
-                refuse(model_.source, property,
-                       "a binding to '" + std::string(source_property) + "', not a property the composite declares");
-                continue;
-            }
-            binding.source = *source_index;
-            const PropertyDescriptor* descriptor = nullptr;
-            if (own_type) {
-                for (const PropertyDescriptor& candidate : definition_.schema.types[*own_type].properties) {
-                    if (candidate.name == property) descriptor = &candidate;
-                }
-            }
-            binding.two_way = descriptor != nullptr &&
-                              (*descriptor).binding_direction == PropertyBindingDirection::two_way && !narrowed;
-            definition_.child_bindings.push_back(std::move(binding));
-            continue;
-        }
         if (attribute.value.find(self_prefix) != std::string::npos) {
             CompositeChildExpression expression{};
             expression.child = local_id;
@@ -624,6 +589,12 @@ void DefinitionCompiler::copy_child(const XmlElement& element, XmlElement& made)
         made.attributes.push_back(attribute);
     }
     for (const XmlElement& child : element.children) {
+        // A binding is the composite's to make; the children's form
+        // document holds none.
+        if (child.name == form_language::form_bind_type_name) {
+            compile_binding(child, local_id, own_type);
+            continue;
+        }
         XmlElement copied{};
         if (child.name == span_element) {
             copied = child;
@@ -632,6 +603,43 @@ void DefinitionCompiler::copy_child(const XmlElement& element, XmlElement& made)
         }
         made.children.push_back(std::move(copied));
     }
+}
+
+void DefinitionCompiler::compile_binding(const XmlElement& element, const std::string& local_id,
+                                         const std::optional<std::size_t> own_type) {
+    // <bind property="..." to="self.<property>" mode?="one-way" .../>, as
+    // the model checked it.
+    const XmlAttribute* const written_property = element.find_attribute(form_language::form_bind_property_attribute);
+    const XmlAttribute* const written_source = element.find_attribute(form_language::form_bind_source_attribute);
+    const XmlAttribute* const written_mode = element.find_attribute(form_language::form_bind_mode_attribute);
+    if (written_property == nullptr || written_source == nullptr) return;
+    const std::string property = composite_registered_name((*written_property).value);
+    const bool narrowed = written_mode != nullptr && (*written_mode).value == "one-way";
+    CompositeChildBinding binding{};
+    binding.child = local_id;
+    binding.property = property;
+    // The checker admits a base type's property too (any_property); the
+    // composite reads and writes its own by index, so a name it does not
+    // declare is refused, never compiled to index 0 (A-gf-core-03-F1).
+    const std::string_view source_name = (*written_source).value;
+    const std::string_view source_property =
+        source_name.starts_with(self_prefix) ? source_name.substr(self_prefix.size()) : std::string_view{};
+    const std::optional<std::size_t> source_index = property_index(source_property);
+    if (!source_index) {
+        refuse(model_.source, property,
+               "a binding to '" + std::string(source_property) + "', not a property the composite declares");
+        return;
+    }
+    binding.source = *source_index;
+    const PropertyDescriptor* descriptor = nullptr;
+    if (own_type) {
+        for (const PropertyDescriptor& candidate : definition_.schema.types[*own_type].properties) {
+            if (candidate.name == property) descriptor = &candidate;
+        }
+    }
+    binding.two_way =
+        descriptor != nullptr && (*descriptor).binding_direction == PropertyBindingDirection::two_way && !narrowed;
+    definition_.child_bindings.push_back(std::move(binding));
 }
 
 void DefinitionCompiler::compile_children() {
