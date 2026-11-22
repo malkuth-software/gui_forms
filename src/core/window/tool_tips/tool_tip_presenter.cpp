@@ -216,7 +216,7 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
     // has (the bubble swaps them with its own).
     ToolTipLines& lines = transient_lines_;
     lines.font = (*control).effective_font(tool_tip_font);
-    break_tool_tip_lines(*control, subject.text, settings.maximum_width, lines);
+    wrap_tool_tip_lines(*control, subject.text, settings.maximum_width, wrap_room(subject), lines);
 
     // Written into the recycled event's storage (raise returns it).
     ToolTipEvent change = std::move(spare_event_);
@@ -325,7 +325,8 @@ void ToolTipPresenter::prebake(const ToolTipSubject& subject) {
 
     // Broken and measured as open() will break them for this subject.
     bake_lines_.font = (*control).effective_font(tool_tip_font);
-    break_tool_tip_lines(*control, subject.text, window_.tool_tip_settings().maximum_width, bake_lines_);
+    wrap_tool_tip_lines(*control, subject.text, window_.tool_tip_settings().maximum_width, wrap_room(subject),
+                        bake_lines_);
     const Size face = tool_tip_face_size(bake_lines_);
     const bool shadow = native_popup_translucent(SurfaceApplicationAccess::application_window(window_), window_);
     const Insets outsets = shadow ? overlay_shadow_outsets(*transient_bubble_) : Insets{};
@@ -420,6 +421,18 @@ void ToolTipPresenter::replace(ToolTipOrigin origin, ToolTipSubject subject,
 // the same way without the client clamp, then kept inside the monitor's
 // work area (detail::desktop_placement), the window holding the face and
 // its shadow's outsets.
+// The width the work area of the monitor under the subject leaves for a
+// bubble, less a 4-unit inset each side; the client's width where the run
+// cannot say (no Popup windows: the bubble is then an overlay in the
+// client).
+double ToolTipPresenter::wrap_room(const ToolTipSubject& subject) {
+    const Point centre{subject.anchor.x + subject.anchor.width * 0.5, subject.anchor.y + subject.anchor.height * 0.5};
+    const stxlib::Optional<Rect> area = window_.popup_work_area(centre);
+    const double width = area.present() ? (*area.value()).width : window_.client_size().width;
+    const double room = width - 8.0;
+    return room;
+}
+
 bool ToolTipPresenter::position(Showing& showing) {
     const bool anchored = showing.origin != ToolTipOrigin::pointer;
     const Rect anchor = showing.subject.anchor;

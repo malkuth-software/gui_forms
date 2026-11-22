@@ -126,6 +126,14 @@ and fade; elsewhere it is a passive overlay. It takes no input either way.
 `Window::set_tool_tips_shown` and `Application::set_tool_tips_shown` turn
 tooltips off.
 
+A tooltip is as wide as its text needs. Text whose widest paragraph fits in
+24 ems of the tooltip's font stays on one line per paragraph. Longer text
+wraps to the width, chosen by measuring a few candidate widths, whose face
+comes nearest a golden-ratio box (width about 1.618 times the height). The
+width stays between a readable minimum of 16 ems and the work area, and below
+`ToolTipSettings::maximum_width` when the program sets one (2048 by default).
+The same rule sizes a `RibbonToolTip`'s description.
+
 A tooltip's colours are the theme's `tool-tip` family: every stock theme
 draws black text on a light plate. The bubble is not a child of the control
 it describes, so a `fore_color` or `back_color` set on the window, a panel or

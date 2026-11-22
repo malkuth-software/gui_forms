@@ -62,35 +62,6 @@ namespace {
     return stxlib::Optional<char32_t>::of(scalar);
 }
 
-// The settle timer is one-shot: it is disconnected when it fires, so its
-// interval is never reached.
-constexpr std::chrono::hours settle_interval{24};
-
-// The least time a pointer resting inside the aim triangle waits before the
-// row under it takes over, so that a zero menu show delay (open and close at
-// once) still lets the pointer cross other rows to its open submenu.
-constexpr std::chrono::milliseconds minimum_aim_rest{100};
-
-// Which side of the line from `from` to `to` the point `at` lies on: the z
-// component of the cross product of (to - from) and (at - from); 0 on the
-// line.
-[[nodiscard]] double side_of_line(const Point at, const Point from, const Point to) noexcept {
-    const double side = (to.x - from.x) * (at.y - from.y) - (to.y - from.y) * (at.x - from.x);
-    return side;
-}
-
-// Whether `at` lies in the triangle `a`, `b`, `c` or on its edges, whichever
-// way round its corners run.
-[[nodiscard]] bool triangle_holds(const Point at, const Point a, const Point b, const Point c) noexcept {
-    const double ab = side_of_line(at, a, b);
-    const double bc = side_of_line(at, b, c);
-    const double ca = side_of_line(at, c, a);
-    const bool negative = ab < 0.0 || bc < 0.0 || ca < 0.0;
-    const bool positive = ab > 0.0 || bc > 0.0 || ca > 0.0;
-    const bool inside = !(negative && positive);
-    return inside;
-}
-
 } // namespace
 
 struct ContextMenu::Impl final {
@@ -581,11 +552,11 @@ struct ContextMenu::Impl final {
             return side;
         }
 
+        // A separator takes moves too: resting on it closes a submenu
+        // another row of the panel opened, as resting on any other row does.
         void on_mouse_move(MouseEventArgs& arguments) override {
-            if (item_.kind != MenuItemKind::separator) {
-                impl_.pointer_moved(depth_, index_, arguments.window_position);
-                arguments.handled = true;
-            }
+            impl_.pointer_moved(depth_, index_, arguments.window_position);
+            arguments.handled = true;
             Control::on_mouse_move(arguments);
         }
 
@@ -1249,6 +1220,13 @@ struct ContextMenu::Impl final {
     // submenu opens, and a submenu of another row of the panel closes.
     void hover(std::size_t depth, std::size_t index) {
         cancel_settle();
+        if (depth >= panels.size() || index >= panels[depth].rows.size()) return;
+        // A separator never turns hot; resting on it only closes the
+        // submenu of another row.
+        if ((*panels[depth].items)[index].kind == MenuItemKind::separator) {
+            remove_panels_after(depth);
+            return;
+        }
         if (!mark_hot(depth, index)) return;
         const MenuSnapshot& item = (*panels[depth].items)[index];
         if (item.kind == MenuItemKind::submenu) {
@@ -1262,7 +1240,8 @@ struct ContextMenu::Impl final {
     //
     // A pointer move over a row turns the row hot at once; what the row
     // does to submenus waits for the pointer to rest there for the menu
-    // show delay (PointerSettings::menu_show_milliseconds, the platform's):
+    // show delay (PointerSettings::menu_show_milliseconds, 300 ms on every
+    // host unless the program sets another; menu_utilities.hpp):
     // a submenu row opens its submenu, and any row closes the submenu
     // another row of its panel opened. Event order: each move either
     // cancels the wait (the pointer is back on the open submenu's row, or
@@ -1327,13 +1306,7 @@ struct ContextMenu::Impl final {
     // nearer the parent (its left edge when it opened rightward, else its
     // right edge).
     [[nodiscard]] bool aiming_at_submenu(std::size_t depth, const Point from, const Point to) const noexcept {
-        const Rect parent = panels[depth].face;
-        const Rect child = panels[depth + 1U].face;
-        const bool rightward = child.x >= parent.x;
-        const double edge = rightward ? child.x : child.x + child.width;
-        const Point top{edge, child.y};
-        const Point bottom{edge, child.y + child.height};
-        const bool aiming = triangle_holds(to, from, top, bottom);
+        const bool aiming = aiming_at_submenu_face(panels[depth].face, panels[depth + 1U].face, from, to);
         return aiming;
     }
 
@@ -1347,7 +1320,7 @@ struct ContextMenu::Impl final {
     void schedule_settle(std::size_t depth, std::size_t index, const std::chrono::milliseconds delay) {
         cancel_settle();
         settle_target = SettleTarget{depth, index};
-        settle_timer = (*window).schedule_ui_timer(owner, settle_interval, FrameClock::now() + delay,
+        settle_timer = (*window).schedule_ui_timer(owner, menu_settle_interval, FrameClock::now() + delay,
                                                    SettleElapsed{this, destroyed, close_count});
     }
 
@@ -1365,6 +1338,7 @@ struct ContextMenu::Impl final {
         const Point at = owner_point(depth, window_position);
         const std::optional<PointerSample> from = last_pointer;
         last_pointer = PointerSample{at, depth};
+        ++pointer_moves;
         // In a panel deeper than the row waited on: the pointer reached the
         // submenu, which stays.
         if (settle_target && (*settle_target).depth < depth) cancel_settle();
@@ -1384,8 +1358,9 @@ struct ContextMenu::Impl final {
             return;
         }
         const bool waiting_here = settle_target && (*settle_target).depth == depth && (*settle_target).index == index;
-        if (!mark_hot(depth, index)) return;
         const MenuSnapshot& item = (*panels[depth].items)[index];
+        const bool separator = item.kind == MenuItemKind::separator;
+        if (!separator && !mark_hot(depth, index)) return;
         const bool opens = item.kind == MenuItemKind::submenu && !item.children.empty() && snapshot_enabled(item);
         if (!opens && !submenu_shown) {
             cancel_settle();
@@ -1634,6 +1609,11 @@ struct ContextMenu::Impl final {
     // The pointer's last move over a row; none until the first move of
     // each opening.
     std::optional<PointerSample> last_pointer;
+    // Counts pointer moves over the menu's rows, every opening together:
+    // a surface that opened the menu as its submenu (the ribbon's two-pane
+    // application menu) compares it across its own rest to tell that the
+    // pointer reached the submenu meanwhile (pointer_moves_over_rows).
+    std::uint64_t pointer_moves{};
     // The window's menu_opening, while the menu shows (both modes).
     SubscriptionToken other_menu_opening;
     bool open{};
@@ -1720,6 +1700,18 @@ void ContextMenu::set_root_navigation_handler(
 void ContextMenu::set_outside_pointer_handler(
     std::function<bool(const PointerEvent&)> handler) {
     (*impl_).outside_pointer_handler = std::move(handler);
+}
+
+std::uint64_t ContextMenu::pointer_moves_over_rows() const noexcept {
+    const std::uint64_t moves = impl_ ? (*impl_).pointer_moves : 0U;
+    return moves;
+}
+
+stxlib::Optional<Rect> ContextMenu::panel_face(const std::size_t depth) const noexcept {
+    stxlib::Optional<Rect> face{};
+    if (!impl_ || !(*impl_).open || depth >= (*impl_).panels.size()) return face;
+    face.set((*impl_).panels[depth].face);
+    return face;
 }
 
 void ContextMenu::on_dispose() noexcept {

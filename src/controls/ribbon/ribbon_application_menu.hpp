@@ -2,8 +2,10 @@
 
 #include "gui_forms/controls/ribbon.hpp"
 
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -25,6 +27,15 @@ namespace gui_forms {
 // that it may reach past the owner's edges, and the overlay instance is a
 // catcher that paints nothing, takes the outside presses and holds the
 // focus scope while the Popup has the keys.
+//
+// Its submenu rows follow the menu rule (owner, 2026-11-22; menu_utilities.hpp):
+// resting on a submenu row for the menu show delay opens its submenu,
+// resting on another row for the delay closes it, and a move from the open
+// submenu's row toward the submenu across other rows (the safe triangle)
+// leaves the rows as they are. The rest waits on the ribbon's window's
+// timer; a pointer that reaches the submenu meanwhile (the ribbon's menu
+// took a move over its rows), leaves every panel, or a key cancels it. A
+// press on a submenu row, Right, Enter and Space open at once.
 class RibbonApplicationMenu final : public Control {
 public:
     enum class Mode : std::uint8_t {
@@ -38,7 +49,10 @@ public:
 
     RibbonApplicationMenu(StableId stable_id, Ribbon& ribbon, Mode mode = Mode::whole);
 
-    void detach() noexcept { ribbon_ = nullptr; }
+    void detach() noexcept {
+        cancel_settle();
+        ribbon_ = nullptr;
+    }
     void set_mode(Mode mode);
     [[nodiscard]] Mode mode() const noexcept { return mode_; }
     // The panel's size for the ribbon's items now, in logical units.
@@ -70,6 +84,18 @@ public:
     // The row under the keyboard, as an index into layout().rows, or none.
     [[nodiscard]] std::optional<std::size_t> focus_row() const noexcept { return focus_row_; }
 
+    // The pointer moved to `local` (the panel's local coordinates): its own
+    // move, or one the ribbon's menu's layer took over the panel while a
+    // submenu shows and the panel shows whole in the client. The row under
+    // it turns hot and the menu rule runs.
+    void pointer_moved_at(Point local);
+    // A press or a release at `local` that the ribbon's menu's layer took
+    // over the panel (whole in the client, a submenu showing): handled as
+    // the panel's own. False, doing nothing, when `local` is outside the
+    // panel.
+    bool forwarded_press(Point local);
+    bool forwarded_release(Point local);
+
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_key_preview(KeyEvent& event) override;
@@ -89,9 +115,35 @@ protected:
     void on_mouse_leave() override;
 
 private:
+    // The settle timer's target: the menu, observed, and the wait's serial
+    // (a wait replaced or cancelled meanwhile is stale).
+    struct SettleElapsed final {
+        std::weak_ptr<Control> menu;
+        std::uint64_t serial{};
+        void operator()(FrameTime) const;
+    };
+
     void set_hot_row(std::optional<std::size_t> hot);
-    // The primary press: the catcher's, or the panel's.
-    void press(MouseEventArgs& arguments);
+    // The primary press at `local`: the catcher's, or the panel's.
+    void press(Point local);
+    // The primary release at `local`: a click is a release over a row.
+    void release(Point local);
+    // `arguments`' point in the panel's local coordinates.
+    [[nodiscard]] Point local_point(const MouseEventArgs& arguments) const;
+    // The menu show delay the ribbon's window reports now.
+    [[nodiscard]] std::chrono::milliseconds menu_show_delay() const;
+    // Whether `row` is an enabled submenu row with items.
+    [[nodiscard]] bool opens_submenu(const Row& row) const;
+    // Whether a move from `from` to `to` (owner client coordinates) heads
+    // for the open submenu (the safe triangle).
+    [[nodiscard]] bool aiming_at_submenu(const Layout& placed, Point from, Point to) const;
+    void cancel_settle() noexcept;
+    // Waits `delay` for the pointer to rest on `row`, replacing any wait.
+    void schedule_settle(std::size_t row, std::chrono::milliseconds delay);
+    void settle_elapsed(std::uint64_t serial);
+    // The pointer rested on `row`: its submenu opens, or the open submenu
+    // of another row closes.
+    void settle_on(std::size_t row);
     [[nodiscard]] bool ribbon_alive() const noexcept;
     // Whether the ribbon's menu shows a submenu of this panel's.
     [[nodiscard]] bool submenu_open() const noexcept;
@@ -110,6 +162,20 @@ private:
     std::optional<std::size_t> submenu_row_{};
     std::optional<std::size_t> hot_row_{};
     std::optional<std::size_t> focus_row_{};
+    // The row the pointer rests on, waiting for the menu show delay, and its
+    // timer (on the ribbon's window); none, and disconnected, while nothing
+    // waits. `settle_moves_` is the ribbon's menu's move count when the wait
+    // began, `settle_serial_` counts waits.
+    std::optional<std::size_t> settle_row_{};
+    FrameRequestToken settle_timer_{};
+    std::uint64_t settle_moves_{};
+    std::uint64_t settle_serial_{};
+    // The pointer's last move over the panel, in the owner's client
+    // coordinates, and the ribbon's menu's move count then (a move over the
+    // submenu since makes it no start for the safe triangle); none until a
+    // move, and after the pointer leaves.
+    std::optional<Point> last_pointer_{};
+    std::uint64_t last_pointer_moves_{};
 };
 
 } // namespace gui_forms

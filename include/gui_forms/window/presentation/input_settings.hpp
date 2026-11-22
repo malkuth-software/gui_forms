@@ -34,10 +34,13 @@ inline constexpr double default_hover_size = 4.0;
 inline constexpr double maximum_pointer_distance = 64.0;
 inline constexpr std::uint32_t maximum_hover_milliseconds = 10000U;
 // How long the pointer rests on a menu's submenu row before its submenu
-// opens, or on another row before an open submenu closes, where the host
-// reports none: Windows' own default for SPI_GETMENUSHOWDELAY. A
-// perceptual duration, in milliseconds; 0 opens and closes at once.
-inline constexpr std::uint32_t default_menu_show_milliseconds = 400U;
+// opens, or on another row before an open submenu closes: 300 ms on every
+// host, Windows included (owner, 2026-11-22: "feeling native and feeling
+// consistent are two different things"). No host reads a platform setting
+// for it (Windows' SPI_GETMENUSHOWDELAY is not read); a program may set
+// another through its presentation settings. A perceptual duration, in
+// milliseconds; 0 opens and closes at once.
+inline constexpr std::uint32_t default_menu_show_milliseconds = 300U;
 inline constexpr std::uint32_t maximum_menu_show_milliseconds = 10000U;
 
 // The pointer settings controls and the window read (the WinForms
@@ -55,9 +58,11 @@ inline constexpr std::uint32_t maximum_menu_show_milliseconds = 10000U;
 // - native_hover: the host reports hover itself (HostHoverEvent, Windows
 //   WM_MOUSEHOVER); the window's own hover timer then stays off.
 // - menu_show_milliseconds: how long the pointer rests on a menu row before
-//   its submenu opens, or before an open submenu of another row closes
-//   (Windows SPI_GETMENUSHOWDELAY; X11 and macOS publish none, so their
-//   hosts leave the default).
+//   its submenu opens, or before an open submenu of another row closes.
+//   GUI.Forms' own, the same on every host (default_menu_show_milliseconds,
+//   origin default_value); no host reports it, and a host's input settings
+//   report leaves the value the program set (Application or Window
+//   set_presentation_settings) as it is.
 struct GUI_FORMS_API PointerSettings final {
     double drag_width{default_drag_size};
     double drag_height{default_drag_size};

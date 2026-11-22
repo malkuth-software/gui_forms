@@ -142,14 +142,61 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     return true;
 }
 
+Point Ribbon::application_panel_origin(const Control& panel) const {
+    // The lifted panel sits at its face; the whole overlay at its own place
+    // in the client.
+    const bool lifted = application_lift_.lifted() && &panel == application_panel_.get();
+    const Rect origin = lifted ? application_face_ : panel.absolute_bounds();
+    const Point point{origin.x, origin.y};
+    return point;
+}
+
+stxlib::Optional<Rect> Ribbon::application_submenu_face() const noexcept {
+    stxlib::Optional<Rect> face{};
+    if (!overlay_ || !application_open_) return face;
+    face = (*overlay_).panel_face(0U);
+    return face;
+}
+
+std::uint64_t Ribbon::application_submenu_pointer_moves() const noexcept {
+    const std::uint64_t moves = overlay_ ? (*overlay_).pointer_moves_over_rows() : 0U;
+    return moves;
+}
+
+// The drop-down menu's pointer events outside its panels, while it shows a
+// two-pane submenu. Where the two-pane panel shows whole in the client the
+// menu's layer covers it: a move over the panel reaches the panel, which
+// follows the menu rule with it, and a press or release on the panel is the
+// panel's (taken: the submenu stays unless the panel closes it). Otherwise
+// a press dismisses the two-pane menu too (as choosing a command does), so
+// that a press away from both, the File tab's included, closes every menu,
+// and still closes the submenu (false).
+bool Ribbon::on_menu_outside_pointer(const PointerEvent& event) {
+    if (event.phase != EventPhase::target || !application_open_ || !application_overlay_open_) return false;
+    const bool press = event.action == PointerAction::down && event.button != PointerButton::none;
+    const bool release = event.action == PointerAction::up && event.button != PointerButton::none;
+    if (!application_lift_.lifted() && application_overlay_) {
+        const Control::Ptr panel = application_overlay_;
+        const Rect bounds = (*panel).absolute_bounds();
+        const Point local{event.position.x - bounds.x, event.position.y - bounds.y};
+        RibbonApplicationMenu& menu = *application_overlay_;
+        if (event.action == PointerAction::move) {
+            menu.pointer_moved_at(local);
+            return false;
+        }
+        if (press && event.button == PointerButton::primary && menu.forwarded_press(local)) return true;
+        if (release && event.button == PointerButton::primary && menu.forwarded_release(local)) return true;
+    }
+    if (press) application_submenu_invoked_ = true;
+    return false;
+}
+
 bool Ribbon::open_application_submenu(const MenuItemSpec& item, const Control& panel, Rect row, bool keyboard) {
     if (item.children.empty() || !overlay_) return false;
     const Control::Ptr invoker = application_overlay_;
     if (!invoker || attached_window() == nullptr) return false;
-    // The row in the owner's client coordinates: the lifted panel sits at
-    // its face; the whole overlay at its own place in the client.
-    const bool lifted = application_lift_.lifted() && &panel == application_panel_.get();
-    const Rect origin = lifted ? application_face_ : panel.absolute_bounds();
+    // The row in the owner's client coordinates.
+    const Point origin = application_panel_origin(panel);
     const Point at{origin.x + row.x + row.width, origin.y + row.y};
     if ((*overlay_).is_open()) (*overlay_).close();
     (*overlay_).set_items(item.children);

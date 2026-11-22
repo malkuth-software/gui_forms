@@ -70,10 +70,14 @@ gui_forms::ToolTip
          Whether tooltips also appear for disabled controls, for example to
          explain why a command is unavailable. Hidden controls never show them.
 
-      **maximum_width** : ``double``, default ``336.0``
-         The widest a tooltip's text may be before it wraps onto further lines.
-         It must be finite and between 80 and 2048, or ``std::invalid_argument`` is
-         thrown. Changing it reshapes a tooltip that is showing.
+      **maximum_width** : ``double``, default ``2048.0``
+         The widest a tooltip's text may wrap to. Below it the width follows the
+         text: text whose widest paragraph fits 24 ems of the tooltip's font
+         stays on one line per paragraph, and longer text wraps to the measured
+         width, no narrower than 16 ems, whose box comes nearest the golden ratio
+         (width about 1.618 times height), within the work area. It must be finite and between 80 and
+         2048, or ``std::invalid_argument`` is thrown. Changing it reshapes a
+         tooltip that is showing.
 
       **visible** : ``bool``, default ``false``, read-only
          Whether a tooltip of a control this tool tip set text on is showing.
@@ -240,9 +244,13 @@ gui_forms::ToolTip
 
    .. cpp:member:: double maximum_width
 
-      The widest a tooltip's text may be before it wraps onto further lines.
-      It must be finite and between 80 and 2048, or ``std::invalid_argument`` is
-      thrown. Changing it reshapes a tooltip that is showing.
+      The widest a tooltip's text may wrap to. Below it the width follows the
+      text: text whose widest paragraph fits 24 ems of the tooltip's font
+      stays on one line per paragraph, and longer text wraps to the measured
+      width, no narrower than 16 ems, whose box comes nearest the golden ratio
+      (width about 1.618 times height), within the work area. It must be finite and between 80 and
+      2048, or ``std::invalid_argument`` is thrown. Changing it reshapes a
+      tooltip that is showing.
 
    .. cpp:function:: bool visible() const
 

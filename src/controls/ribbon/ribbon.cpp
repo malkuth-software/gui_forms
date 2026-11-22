@@ -7,6 +7,7 @@
 #include "ribbon_scaling.hpp"
 
 #include "gui_forms/delegate.hpp"
+#include "gui_forms/detail/bound_member_function.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
@@ -62,23 +63,6 @@ std::string hosted_key(const RibbonCommandSpec& command) {
     return key;
 }
 
-// The drop-down menu's outside press while it shows a two-pane submenu: the
-// press dismisses the two-pane menu too (as choosing a command does), so a
-// press away from both, the File tab's included, closes every menu. The
-// flags are the ribbon's, which owns the menu; the press still closes the
-// submenu (false).
-struct TwoPaneOutsidePress final {
-    const bool* application_open{};
-    const bool* application_overlay_open{};
-    bool* dismiss_two_pane{};
-    bool operator()(const PointerEvent& event) const {
-        const bool press = event.phase == EventPhase::target && event.action == PointerAction::down &&
-                           event.button != PointerButton::none;
-        if (press && *application_open && *application_overlay_open) *dismiss_two_pane = true;
-        return false;
-    }
-};
-
 } // namespace
 
 // -- construction --------------------------------------------------------------
@@ -91,8 +75,8 @@ Ribbon::Ribbon(StableId ribbon_id) : Control(std::move(ribbon_id)) {
         *this, Delegate<const MenuItemInvocation&>::bind<Ribbon, &Ribbon::on_overlay_item_invoked>(*this));
     overlay_changed_ = (*overlay_).open_changed().subscribe(
         *this, Delegate<bool>::bind<Ribbon, &Ribbon::on_overlay_open_changed>(*this));
-    (*overlay_).set_outside_pointer_handler(
-        TwoPaneOutsidePress{&application_open_, &application_overlay_open_, &application_submenu_invoked_});
+    (*overlay_).set_outside_pointer_handler(detail::BoundMemberFunction<bool (Ribbon::*)(const PointerEvent&)>(
+        *this, &Ribbon::on_menu_outside_pointer));
 }
 
 // A live ribbon is disposed (closing its overlays) before it is destroyed;

@@ -1,18 +1,21 @@
 #include "ribbon_tool_tip_bubble.hpp"
 
+#include "../../core/window/tool_tips/tool_tip_width.hpp"
+
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
 #include <cstddef>
+#include <limits>
 #include <string_view>
 #include <utility>
 
 namespace gui_forms {
 namespace {
 
-// Bubble geometry in logical units at text scale 1: Office 2010's enhanced
-// tooltip is about 318 units wide with an 8-unit margin and a 32-unit image
-// beside the description.
+// Bubble geometry in logical units at text scale 1: an 8-unit margin and a
+// 32-unit image beside the description. The width follows the text by the
+// tooltip width rule (tool_tip_width.hpp), as every tooltip's does.
 constexpr double margin = 8.0;
 constexpr double image_side = 32.0;
 constexpr double image_gap = 8.0;
@@ -35,10 +38,11 @@ double line_height(const Control& measurer, FontSpec font) {
 // Greedy word wrap of `text` into lines no wider than `width`, honouring
 // newlines (a trailing newline ends in an empty line); a single word wider
 // than `width` keeps its own line. Appends to `lines` with bounds from (`x`,
-// `y`); returns the y below the last line. Each candidate line is measured
-// whole, in one buffer reused across words.
+// `y`), each as wide as `width`; returns the y below the last line and
+// raises `widest` to the widest line's measured width. Each candidate line
+// is measured whole, in one buffer reused across words.
 double wrap_text(const Control& measurer, std::string_view text, FontSpec font, double x, double y,
-                 double width, std::vector<RibbonToolTipLine>& lines) {
+                 double width, std::vector<RibbonToolTipLine>& lines, double& widest) {
     const double height = line_height(measurer, font);
     std::string candidate;
     std::size_t paragraph_start = 0U;
@@ -56,6 +60,7 @@ double wrap_text(const Control& measurer, std::string_view text, FontSpec font, 
             if (!candidate.empty()) candidate += ' ';
             candidate += word;
             if (!current.empty() && text_width(measurer, candidate, font) > width) {
+                widest = std::max(widest, text_width(measurer, current, font));
                 lines.push_back({Rect{x, y, width, height}, std::move(current)});
                 y += height;
                 current = std::string(word);
@@ -64,6 +69,7 @@ double wrap_text(const Control& measurer, std::string_view text, FontSpec font, 
             }
             word_start = word_end + 1U;
         }
+        widest = std::max(widest, text_width(measurer, current, font));
         lines.push_back({Rect{x, y, width, height}, std::move(current)});
         y += height;
         paragraph_start = paragraph_end + 1U;
@@ -71,80 +77,135 @@ double wrap_text(const Control& measurer, std::string_view text, FontSpec font, 
     return y;
 }
 
+// The widths of `text`'s paragraphs unwrapped: added to `total`, and
+// `widest` raised to the widest.
+void measure_paragraphs(const Control& measurer, std::string_view text, FontSpec font, double& total,
+                        double& widest) {
+    std::size_t paragraph_start = 0U;
+    while (paragraph_start <= text.size()) {
+        std::size_t paragraph_end = text.find('\n', paragraph_start);
+        if (paragraph_end == std::string_view::npos) paragraph_end = text.size();
+        const double width = text_width(measurer, text.substr(paragraph_start, paragraph_end - paragraph_start), font);
+        total += width;
+        widest = std::max(widest, width);
+        paragraph_start = paragraph_end + 1U;
+    }
+}
+
 } // namespace
 
 RibbonToolTipLayout layout_ribbon_tool_tip(const Control& measurer, const RibbonToolTipBubbleContent& content,
-                                           double maximum_width) {
+                                           double wrap_width) {
     const double scale = measurer.effective_text_scale();
     RibbonToolTipLayout result;
     result.title_font = measurer.effective_font({FontRole::control, 10.5, 700, false, 0.12});
     result.body_font = measurer.effective_font({FontRole::control, 10.5, 400, false, 0.12});
     const double inner = margin * scale;
-    const double face_width = std::max(maximum_width, minimum_text_width * scale + inner * 2.0);
+    const double wrap = std::max(wrap_width, minimum_text_width * scale);
+    const double image_offset = content.image.value != 0U ? (image_side + image_gap) * scale : 0.0;
     const double text_left = inner;
-    const double text_right = face_width - inner;
     double y = inner;
 
     // The title row: the title, then the shortcut in parentheses.
     const double title_height = line_height(measurer, result.title_font);
-    const double title_width =
-        std::min(text_width(measurer, content.title, result.title_font), text_right - text_left);
+    const double title_width = text_width(measurer, content.title, result.title_font);
     result.title = {text_left, y, title_width, title_height};
+    double used = title_width;
     if (!content.shortcut.empty()) {
         const double shortcut_x = text_left + title_width + shortcut_gap * scale;
-        const double shortcut_width =
-            std::max(0.0, std::min(text_width(measurer, content.shortcut, result.body_font), text_right - shortcut_x));
+        const double shortcut_width = text_width(measurer, content.shortcut, result.body_font);
         result.shortcut = {shortcut_x, y, shortcut_width, title_height};
+        used = title_width + shortcut_gap * scale + shortcut_width;
     }
     y += title_height;
 
-    // The description, beside the image when there is one.
+    // The description, wrapped at `wrap` beside the image when there is one.
     if (!content.description.empty() || content.image.value != 0U) {
         y += block_gap * scale;
-        double description_left = text_left;
-        if (content.image.value != 0U) {
-            result.image = {text_left, y, image_side * scale, image_side * scale};
-            description_left = text_left + (image_side + image_gap) * scale;
-        }
+        const double description_left = text_left + image_offset;
+        if (content.image.value != 0U) result.image = {text_left, y, image_side * scale, image_side * scale};
         double bottom = y;
+        double widest = 0.0;
         if (!content.description.empty()) {
-            bottom = wrap_text(measurer, content.description, result.body_font, description_left, y,
-                               std::max(1.0, text_right - description_left), result.description);
+            bottom = wrap_text(measurer, content.description, result.body_font, description_left, y, wrap,
+                               result.description, widest);
         }
+        used = std::max(used, image_offset + widest);
         y = std::max(bottom, result.image.empty() ? y : result.image.y + result.image.height);
     }
 
-    // Why the target is disabled.
+    // Why the target is disabled, wrapped as wide as the description's
+    // column reaches.
     if (!content.disabled_reason.empty()) {
         y += block_gap * scale;
-        y = wrap_text(measurer, content.disabled_reason, result.body_font, text_left, y,
-                      std::max(1.0, text_right - text_left), result.disabled_reason);
+        double widest = 0.0;
+        y = wrap_text(measurer, content.disabled_reason, result.body_font, text_left, y, wrap + image_offset,
+                      result.disabled_reason, widest);
+        used = std::max(used, widest);
     }
 
     // The help line under a rule.
     if (!content.help_line.empty()) {
         y += rule_gap * scale;
-        result.help_rule = {text_left, y, text_right - text_left, 1.0};
+        result.help_rule = {text_left, y, 0.0, 1.0};
         y += rule_gap * scale;
         const double help_height = line_height(measurer, result.body_font);
-        result.help_line = {text_left, y, text_right - text_left, help_height};
+        result.help_line = {text_left, y, 0.0, help_height};
+        used = std::max(used, text_width(measurer, content.help_line, result.body_font));
         y += help_height;
     }
     y += inner;
 
-    // A tooltip with only a short title is as wide as it needs.
-    double used = title_width + (content.shortcut.empty() ? 0.0 : shortcut_gap * scale + result.shortcut.width);
-    if (!result.description.empty() || !result.disabled_reason.empty() || !content.help_line.empty() ||
-        content.image.value != 0U) {
-        used = text_right - text_left;
+    // The face is as wide as its widest line, title row included.
+    const double text_block = used;
+    const double width = text_block + inner * 2.0;
+    result.title.width = std::min(result.title.width, text_block);
+    if (!result.shortcut.empty()) {
+        result.shortcut.width = std::max(0.0, std::min(result.shortcut.width, text_left + text_block - result.shortcut.x));
     }
-    const double width = std::min(face_width, used + inner * 2.0);
+    for (RibbonToolTipLine& line : result.description) line.bounds.width = text_block - image_offset;
+    for (RibbonToolTipLine& line : result.disabled_reason) line.bounds.width = text_block;
     result.face = {0.0, 0.0, width, y};
     result.shadow = result.face;
-    if (!result.help_rule.empty()) result.help_rule.width = width - inner * 2.0;
-    if (!result.help_line.empty()) result.help_line.width = width - inner * 2.0;
+    if (!content.help_line.empty()) {
+        result.help_rule.width = text_block;
+        result.help_line.width = text_block;
+    }
     result.size = {width, y};
     return result;
+}
+
+RibbonToolTipLayout fit_ribbon_tool_tip(const Control& measurer, const RibbonToolTipBubbleContent& content,
+                                        double cap, double room) {
+    const double scale = measurer.effective_text_scale();
+    const FontSpec body_font = measurer.effective_font({FontRole::control, 10.5, 400, false, 0.12});
+    const double inner = margin * scale;
+    const double image_offset = content.image.value != 0U ? (image_side + image_gap) * scale : 0.0;
+    const Size chrome{inner * 2.0 + image_offset, 0.0};
+    const detail::ToolTipWrapRange range = detail::tool_tip_wrap_range(body_font.size, cap, room - chrome.width);
+    detail::ToolTipWrapInput input{};
+    measure_paragraphs(measurer, content.description, body_font, input.total_width, input.widest_width);
+    measure_paragraphs(measurer, content.disabled_reason, body_font, input.total_width, input.widest_width);
+    input.line_height = line_height(measurer, body_font);
+    input.range = range;
+    // The face's height round the wrapped text: the title row, the gaps,
+    // the help line and the margins, measured from a layout at the one-line
+    // width less its wrapped lines.
+    RibbonToolTipLayout chosen = layout_ribbon_tool_tip(measurer, content, range.one_line);
+    const std::size_t wrapped = chosen.description.size() + chosen.disabled_reason.size();
+    input.chrome = {chrome.width, std::max(0.0, chosen.size.height - static_cast<double>(wrapped) * input.line_height)};
+    const detail::ToolTipWrapCandidates candidates = detail::tool_tip_wrap_candidates(input);
+    if (candidates.count == 1U && input.widest_width <= range.one_line) return chosen;
+    double chosen_error = std::numeric_limits<double>::infinity();
+    for (std::size_t index = 0U; index < candidates.count; ++index) {
+        RibbonToolTipLayout candidate = layout_ribbon_tool_tip(measurer, content, candidates.widths[index]);
+        const double error = detail::tool_tip_aspect_error(candidate.size);
+        if (error < chosen_error) {
+            chosen_error = error;
+            chosen = std::move(candidate);
+        }
+    }
+    return chosen;
 }
 
 RibbonToolTipBubble::RibbonToolTipBubble(StableId stable_id, RibbonToolTipBubbleContent content,
