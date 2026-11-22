@@ -266,7 +266,7 @@ Related types
 
 .. cpp:struct:: AppFontFace final
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    One face of a family to load: its bytes, which the registry shares (the application may drop its reference after the load), its weight (1 to 1000) and slant.
 
@@ -282,7 +282,7 @@ Related types
 
 .. cpp:struct:: AppFontFaceSource final
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    One face of a live family as a text engine registers it: the bytes and the owner that keeps them (the engine holds the owner for as long as its face lives, which is what defers an unload).
 
@@ -300,7 +300,7 @@ Related types
 
 .. cpp:class:: AppFontFamily final
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    The application's ownership of one loaded family. Move-only; destroying a handle that still holds a family unloads it. Only load_app_font_family makes a handle that holds one.
 
@@ -329,7 +329,7 @@ Related types
 
 .. cpp:struct:: AppFontLoad final
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    A load's answer: the validation (the first face refused, with face_index, or ``loaded``) and, when loaded, the handle.
 
@@ -343,7 +343,7 @@ Related types
 
 .. cpp:struct:: AppFontStatistics final
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    Counters (AGENTS.md: structured instrumentation), for the process. loads / refused_loads: load_app_font_family's answers; refused_uses: fonts admit_font changed; quarantines: families quarantined; unloads_released / unloads_deferred: unloads by outcome.
 
@@ -363,7 +363,7 @@ Related types
 
 .. cpp:struct:: AppFontValidation final
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    The checks' answer for one face: the status, and for table_missing or table_invalid the table's tag (big-endian, 'cmap' is 0x636D6170).
 
@@ -377,7 +377,7 @@ Related types
 
 .. cpp:struct:: DisplayByteOffset final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
 
    .. rubric:: Construction
@@ -390,7 +390,7 @@ Related types
 
 .. cpp:class:: DisplayMappingResult final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    A source position mapped to the display. One alternative per state (house form for results).
 
@@ -416,7 +416,7 @@ Related types
 
 .. cpp:struct:: DocumentMapSpan final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    .. cpp:member:: SourceByteRange source
 
@@ -432,7 +432,7 @@ Related types
 
 .. cpp:struct:: DocumentPage final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    Unique payload ownership; moves empty the former owner, including metadata. Producers check all capacity budgets before allocation; no source bytes are retained here. Consumer indexing/shaping workspaces have separate budgets.
 
@@ -460,7 +460,7 @@ Related types
 
 .. cpp:struct:: DocumentPageRequest final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    .. cpp:member:: DocumentRevision revision
 
@@ -474,7 +474,7 @@ Related types
 
 .. cpp:class:: DocumentRequestResult final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    A page request's result: the request the document side fulfils, or why there is none. One alternative per state (house form for results).
 
@@ -500,7 +500,7 @@ Related types
 
 .. cpp:struct:: DocumentRevision final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    .. cpp:member:: std::uint64_t document
 
@@ -510,7 +510,7 @@ Related types
 
 .. cpp:struct:: DocumentViewLimits final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    .. cpp:member:: constexpr std::uint64_t source_bytes
 
@@ -532,7 +532,7 @@ Related types
 
 .. cpp:struct:: DocumentViewport final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    .. cpp:member:: SourceByteOffset anchor
 
@@ -542,7 +542,7 @@ Related types
 
 .. cpp:class:: DocumentViewState final
 
-   ``#include <gui_forms/document_view/document_view_state/document_view_state.hpp>``
+   ``#include <gui_forms/document_view/document_view_state/document_view_state.hpp>`` (:src:`source <include/gui_forms/document_view/document_view_state/document_view_state.hpp>`)
 
    Single UI-owner thread. No locks, workers, callbacks, I/O, edits or layout. Tokens are scoped to this instance: never route them to another model. Before destruction, cancel/drain dispatch, complete workers and release their payloads. Neither a producer nor deferred work may retain a model borrow.
 
@@ -589,7 +589,7 @@ Related types
 
 .. cpp:class:: EncodedFontLease final
 
-   ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>``
+   ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>`` (:src:`source <include/gui_forms/prepared_text/layout/prepared_text_layout.hpp>`)
 
 
    .. rubric:: Construction
@@ -609,7 +609,7 @@ Related types
 
 .. cpp:struct:: FontFaceId final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    FontFaceId is the ordered nonzero identity shared across shaping and raster registries.
 
@@ -626,7 +626,7 @@ Related types
 
 .. cpp:struct:: FontFallbackMatch final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    FontFallbackMatch identifies an admitted face and the exact scalar prefix it covers.
 
@@ -638,7 +638,7 @@ Related types
 
 .. cpp:struct:: FontFallbackRequest final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    FontFallbackRequest supplies the primary and attempted faces, missing scalar cluster, language, and script without ownership transfer.
 
@@ -656,7 +656,7 @@ Related types
 
 .. cpp:class:: FontFallbackResolver
 
-   ``#include <gui_forms/text_shaping/font_fallback_resolver/font_fallback_resolver.hpp>``
+   ``#include <gui_forms/text_shaping/font_fallback_resolver/font_fallback_resolver.hpp>`` (:src:`source <include/gui_forms/text_shaping/font_fallback_resolver/font_fallback_resolver.hpp>`)
 
    FontFallbackResolver is the policy boundary that selects bounded coverage for a missing scalar cluster without consulting the host implicitly.
 
@@ -671,7 +671,7 @@ Related types
 
 .. cpp:struct:: FontFamilyFace final
 
-   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+   ``#include <gui_forms/typography/font_families/font_families.hpp>`` (:src:`source <include/gui_forms/typography/font_families/font_families.hpp>`)
 
    One face of a family: its file in the bundled font directory, its weight (1 to 1000) and slant.
 
@@ -687,7 +687,7 @@ Related types
 
 .. cpp:struct:: FontFamilyOrder final
 
-   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+   ``#include <gui_forms/typography/font_families/font_families.hpp>`` (:src:`source <include/gui_forms/typography/font_families/font_families.hpp>`)
 
    The families a font draws before its role, in order: its family, then its stack's families not already listed. Families that cannot draw now (unknown, or an application family quarantined or unloaded: font_family_drawable) are left out.
 
@@ -699,7 +699,7 @@ Related types
 
 .. cpp:struct:: FontFamilyRecord final
 
-   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+   ``#include <gui_forms/typography/font_families/font_families.hpp>`` (:src:`source <include/gui_forms/typography/font_families/font_families.hpp>`)
 
    .. cpp:member:: FontFamilyId id
 
@@ -723,7 +723,7 @@ Related types
 
 .. cpp:struct:: FontFamilyStack final
 
-   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+   ``#include <gui_forms/typography/font_families/font_families.hpp>`` (:src:`source <include/gui_forms/typography/font_families/font_families.hpp>`)
 
    A stack's families in order; ``count`` of ``families`` are live, the rest zero.
 
@@ -735,7 +735,7 @@ Related types
 
 .. cpp:struct:: FontVerticalMetrics final
 
-   ``#include <gui_forms/typography/types/typography_types.hpp>``
+   ``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
    A face's vertical design metrics at a size, in logical pixels: its ascender, descender (positive below the baseline) and line gap from the face's tables, scaled by size over units per em and not rounded. CSS's ``line-height: normal`` rounds each to a whole pixel and sums them, where ResolvedTextLayout's ascent and descent are already rounded outward.
 
@@ -753,7 +753,7 @@ Related types
 
 .. cpp:struct:: GenericFontFamily final
 
-   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+   ``#include <gui_forms/typography/font_families/font_families.hpp>`` (:src:`source <include/gui_forms/typography/font_families/font_families.hpp>`)
 
    A CSS generic family name and the bundled family it draws. The mapping is GUI.Forms' choice (owner, 2026-11-13: the theme language follows CSS closely), not a CSS rule: CSS leaves a generic's face to the user agent. The serif generics draw Tinos; until a cursive or fantasy face is bundled, those generics draw the content family. ``emoji`` names no family (zero): the bundled emoji fallback face already draws emoji for every font. A generic is matched only unquoted, as CSS does (a quoted "serif" is a family name).
 
@@ -765,7 +765,7 @@ Related types
 
 .. cpp:struct:: GlyphId final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    GlyphId is the ordered font-local glyph identity.
 
@@ -775,7 +775,7 @@ Related types
 
 .. cpp:struct:: GlyphPlacement final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    GlyphPlacement correlates one glyph to a UTF-8 cluster and finite two-axis advance/offset values.
 
@@ -795,7 +795,7 @@ Related types
 
 .. cpp:struct:: GlyphRun final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    GlyphRun owns ordered placements for one source range, face, and direction.
 
@@ -813,7 +813,7 @@ Related types
 
 .. cpp:struct:: GlyphRunRecord final
 
-   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`` (:src:`source <include/gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`)
 
    One run of glyphs shaped in one face and one direction, in visual order within its sequence: the bytes it shapes, its face (the engine's identity), its direction, and its glyphs, glyph_count elements from first_glyph of the glyph array its sequence is stored with.
 
@@ -833,7 +833,7 @@ Related types
 
 .. cpp:struct:: GlyphRunsView final
 
-   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`` (:src:`source <include/gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`)
 
    One line's glyph runs as a painter draws them (Painter::draw_glyph_runs), borrowed for the call: - source: the engine that shaped them; - runs: the line's runs in visual order; each names its glyphs in ``glyphs`` by index; - text: the line's text, which a painter that cannot draw the runs draws with draw_text_utf8 instead; - text_offset: where ``text`` begins in the offsets the runs' ranges and the glyphs' clusters use (the paragraph's, for a paragraph's line).
 
@@ -851,7 +851,7 @@ Related types
 
 .. cpp:struct:: GlyphSource final
 
-   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`` (:src:`source <include/gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`)
 
    Which engine shaped a set of glyphs, and in which state of its face table: a face identity means nothing to another engine, and a glyph id nothing to another face. ``engine`` is a process-unique number the engine was given when it was created (never zero); ``generation`` changes whenever a face is registered with it, since registration can change which face shapes a cluster. A painter draws glyph runs only when their source is its own engine's current one, and otherwise draws their text (Painter:: draw_glyph_runs). The zero source is no engine's.
 
@@ -868,7 +868,7 @@ Related types
 
 .. cpp:class:: GrayTextMask final
 
-   ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>``
+   ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>`` (:src:`source <include/gui_forms/prepared_text/layout/prepared_text_layout.hpp>`)
 
 
    .. rubric:: Construction
@@ -902,7 +902,7 @@ Related types
 
 .. cpp:struct:: LayoutAuthority final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:member:: std::uint64_t session
 
@@ -914,7 +914,7 @@ Related types
 
 .. cpp:struct:: LineBoxMetrics final
 
-   ``#include <gui_forms/typography/types/typography_types.hpp>``
+   ``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
    One line box of CSS text in a primary face (CSS 2.1 section 10.8 with ``line-height: normal`` as browsers compute it): its height, its baseline from its top, and the face's x-height.
 
@@ -928,7 +928,7 @@ Related types
 
 .. cpp:class:: LocaleCatalog final
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    The text store of one program: its four layers, the language in force and the untranslatable way back. The program owns it. One execution context (the UI thread); a refused load changes nothing. On an accepted load the result's records are in the catalog and the result's own are left empty; its info, rejections and ignored names stay.
 
@@ -999,7 +999,7 @@ Related types
 
 .. cpp:struct:: LocaleFileInfo final
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    The ``<locale>`` element's attributes.
 
@@ -1023,7 +1023,7 @@ Related types
 
 .. cpp:class:: LocaleLayer final
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    The records of one layer, sorted by stable ID with each ID once. Owns its records. Not thread-safe; one owner mutates it.
 
@@ -1071,7 +1071,7 @@ Related types
 
 .. cpp:struct:: LocaleLimits final
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    The bounds on one file's fields. A value past its field's bound rejects that field (LocaleRefusal::too_long), not the file; more records than maximum_records refuse the file. Lengths are bytes of UTF-8.
 
@@ -1087,7 +1087,7 @@ Related types
 
 .. cpp:struct:: LocaleReadResult final
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    .. cpp:member:: LocaleFileError error
 
@@ -1117,7 +1117,7 @@ Related types
 
 .. cpp:struct:: LocaleRecord final
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    One text record as one layer gives it. An absent field lets a lower layer's value show; a present field, even empty, hides it.
 
@@ -1131,7 +1131,7 @@ Related types
 
 .. cpp:struct:: LocaleRejection final
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    .. cpp:member:: std::string stable_id
 
@@ -1151,7 +1151,7 @@ Related types
 
 .. cpp:struct:: LocaleResolvedField final
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    One resolved field: its text and the layer it came from. ``fallback`` is set when a translation is in force and the field came from the built-in or program layer, so a page can mark it.
 
@@ -1165,7 +1165,7 @@ Related types
 
 .. cpp:struct:: LocalizableLiteral final
 
-   ``#include <gui_forms/text/localizable/localizable.hpp>``
+   ``#include <gui_forms/text/localizable/localizable.hpp>`` (:src:`source <include/gui_forms/text/localizable/localizable.hpp>`)
 
    One string literal the GUI.Forms Clang plugin found passed to a localizable property (a parameter or field marked GUI_FORMS_LOCALIZABLE). Each literal is recorded once for each property and function it reaches.
 
@@ -1201,7 +1201,7 @@ Related types
 
 .. cpp:struct:: MarkdownBlock final
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    A block and the spans it holds. level is a heading's level (1 to 6) or a list item's nesting (0 for an item of a top-level list), and 0 for other kinds. quote_depth counts the block quotes around the block. marker and ordinal are a list item's: an ordered item's ordinal is the number written on its marker. alignment comes from a block attribute line before a paragraph, heading or list item. A list item's later paragraphs are paragraphs. source runs from the start of the line holding the block's first source byte to the end of the line holding its last, so it includes the block's leading markup (quote, list and heading markers) but not a fence line or a setext underline. A block with no text (a rule, an empty heading or code block) has an empty source at the end of the block before it.
 
@@ -1235,7 +1235,7 @@ Related types
 
 .. cpp:struct:: MarkdownImage final
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    An image's source and title, decoded. Every image of the source has its own entry, in source order; its spans are its alternative text. Parsing records the source only and never opens it.
 
@@ -1247,7 +1247,7 @@ Related types
 
 .. cpp:struct:: MarkdownLimits final
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    Bounds on one parse. source_bytes bounds the input; blocks and spans bound the tables; text_bytes bounds the span texts, link targets and titles, and image sources and titles together.
 
@@ -1271,7 +1271,7 @@ Related types
 
 .. cpp:struct:: MarkdownLink final
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    A link's destination, decoded. Every link of the source has its own entry, in source order.
 
@@ -1285,7 +1285,7 @@ Related types
 
 .. cpp:class:: MarkdownLossReport final
 
-   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>``
+   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>`` (:src:`source <include/gui_forms/text/markdown/rtf_conversion.hpp>`)
 
    How many times a conversion met each kind of loss.
 
@@ -1311,7 +1311,7 @@ Related types
 
 .. cpp:class:: MarkdownParseResult final
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    The result of parse_markdown: parsed, or failed with an error and, for invalid_utf8, the offset of the first invalid byte.
 
@@ -1339,7 +1339,7 @@ Related types
 
 .. cpp:struct:: MarkdownRgb final
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    An sRGB colour without alpha, as an attribute span gives it.
 
@@ -1353,7 +1353,7 @@ Related types
 
 .. cpp:struct:: MarkdownSpan final
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    A piece of a block's text in one style. text is the text as shown: backslash escapes and character references decoded, a soft line break as one space, a code block's lines joined by line feeds. A line break span has empty text. source is the range of the source the span comes from. Spans of a block follow the source in order and never overlap. A span whose text equals its source bytes is literal text; a character reference's source is the reference, a soft or hard line break's source is the line ending, and text the parser supplies (a code block's indentation inside a container, a code span's line ending read as a space) has an empty range where it stands. Source bytes no span covers are markup: emphasis delimiters, heading and list markers, quote markers, escapes' backslashes, link destinations, attribute lists and fences.
 
@@ -1379,7 +1379,7 @@ Related types
 
 .. cpp:struct:: MarkdownSpanStyle final
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    How a span is set. The default value is body text. Bold, italic and strikethrough come from emphasis, ~~ and the span items b, i and s; code from a code span or a code block; the rest from attribute spans. size_step counts steps from the body size, minimum_markdown_size_step to maximum_markdown_size_step.
 
@@ -1407,7 +1407,7 @@ Related types
 
 .. cpp:struct:: OpenTypeTag final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    OpenTypeTag stores one big-endian four-byte script or feature tag.
 
@@ -1424,7 +1424,7 @@ Related types
 
 .. cpp:class:: ParagraphBuffers final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    Owned storage for repeated calls, sized once and reused: reserve for the largest text and line count expected, then pass storage() to every call. A call never grows it; on storage_too_small, reserve the requirement and call again. Its arrays are counted under AllocationSubsystem::text_layout. It also owns a shaping workspace once reserved with a provider: reserve with the provider the calls go through, so that their shaping allocates nothing either. Single-threaded, like the calls it serves.
 
@@ -1472,7 +1472,7 @@ Related types
 
 .. cpp:struct:: ParagraphGlyphRuns final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    A laid-out paragraph's glyph runs (ParagraphGlyphOutput::runs), borrowed from the storage it was laid out into: its metrics' glyph_source, and the leading glyph_run_count runs and glyph_count glyphs of the storage's arrays (ParagraphBuffers::glyph_runs gives them).
 
@@ -1486,7 +1486,7 @@ Related types
 
 .. cpp:class:: ParagraphLayoutResult final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    The result of lay_out_paragraph and measure_paragraph: laid out with its metrics; storage too small, with what it needs; or a refused request. On storage_too_small the lines array holds the first lines it could hold (partial) when the per-byte arrays were large enough, and nothing was written otherwise. A refused request writes nothing.
 
@@ -1520,7 +1520,7 @@ Related types
 
 .. cpp:struct:: ParagraphLine final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    One laid-out line, positioned in the paragraph's box (its top left is the origin, y down).
 
@@ -1552,7 +1552,7 @@ Related types
 
 .. cpp:struct:: ParagraphMetrics final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    A laid-out paragraph's size and what it cost.
 
@@ -1594,7 +1594,7 @@ Related types
 
 .. cpp:struct:: ParagraphPaint final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    How paint_paragraph places a paragraph: ``origin`` is its box's top left in the painter's coordinates, ``visible`` the part of those coordinates worth drawing (lines whose line box misses it vertically are skipped without being visited), and each baseline is snapped to ``device_scale``'s pixels with snap_text_baseline, as controls snap theirs.
 
@@ -1612,7 +1612,7 @@ Related types
 
 .. cpp:struct:: ParagraphStorage final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    The caller's storage for one call, borrowed for the call only; nothing is retained. The arrays must not overlap each other or the text. - lines (output): one record per line, in order; only lay_out_paragraph writes it. - collapsed_text (output, collapse only): the collapsed text, which the line ranges index and which paint_paragraph must be given. - opportunities and advances (scratch): one element per laid-out byte; their contents after a call are unspecified. - glyph_runs and glyphs (output, ParagraphGlyphOutput::runs only): every line's runs, then every line's glyphs, line after line; only lay_out_paragraph writes them. - workspace (borrowed, optional): the provider's shaping workspace (TextMetricsProvider::create_shaping_workspace), holding at least the laid-out size; every shaping of the call goes through it. Null uses the provider's plain calls, and no glyph runs are filled. The call uses the leading elements it needs and leaves the rest as they were.
 
@@ -1634,7 +1634,7 @@ Related types
 
 .. cpp:struct:: ParagraphStorageRequirement final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    What a call needs. per_byte is the size of the laid-out text (the collapsed size under collapse): the element count opportunities and advances need, the bytes a workspace must hold, and collapsed_text too under collapse (zero otherwise). lines is exact when the per-byte arrays were large enough to lay the text out, and otherwise per_byte, the most lines a text of that size can have (every line holds at least one byte), so storage of these sizes always succeeds on the next call. Under ParagraphGlyphOutput::runs, glyph_runs and glyphs are the runs and glyphs of every line: exact after a call that laid the text out, and otherwise per_byte each, which bounds the runs (each holds a byte of its line) and holds the glyphs of any text shaped into at most one glyph a byte (a call that needs more says so). Zero for ParagraphGlyphOutput::none.
 
@@ -1652,7 +1652,7 @@ Related types
 
 .. cpp:struct:: ParagraphStyle final
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    What one call lays out. ``font`` is the effective font, already scaled (Control::text_font, or the font and text scale a window applies), and ``line_box`` is paragraph_line_box's answer for it: computing it once per font keeps that resolution out of every row.
 
@@ -1692,7 +1692,7 @@ Related types
 
 .. cpp:struct:: PositionedGlyph final
 
-   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`` (:src:`source <include/gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`)
 
    One glyph as the engine placed it: its id in its run's face, the byte offset of the first byte of its cluster (in the text the offsets of its run index), and its pen position in logical pixels from the run sequence's origin on the baseline (x right, y down), offsets and letter spacing included. These are the positions Painter::draw_text_utf8 draws the same text at.
 
@@ -1708,7 +1708,7 @@ Related types
 
 .. cpp:struct:: PreparedFontSource final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    One face of a font bank: a role's face (``role``), a face of a registered family (``family``, a FontFamilyId the family registry has; text whose family order lists the family draws it first, its face nearest the weight and slant), or a fallback face (neither). A face is never both a role's and a family's.
 
@@ -1730,7 +1730,7 @@ Related types
 
 .. cpp:struct:: PreparedParagraphProof final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    Producer certifies real paragraph boundaries under the complete D1 token. The provider validates paired endpoints/mapping, never fabricates source proof.
 
@@ -1742,7 +1742,7 @@ Related types
 
 .. cpp:struct:: PreparedSourceEndpoint final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:member:: SourceByteOffset source
 
@@ -1752,7 +1752,7 @@ Related types
 
 .. cpp:struct:: PreparedTextBudgetSnapshot final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:member:: std::size_t payload_generations
 
@@ -1780,7 +1780,7 @@ Related types
 
 .. cpp:struct:: PreparedTextKey final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:member:: DocumentPageRequest page
 
@@ -1824,7 +1824,7 @@ Related types
 
 .. cpp:class:: PreparedTextLayout final
 
-   ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>``
+   ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>`` (:src:`source <include/gui_forms/prepared_text/layout/prepared_text_layout.hpp>`)
 
 
    .. rubric:: Construction
@@ -1858,7 +1858,7 @@ Related types
 
 .. cpp:struct:: PreparedTextLimits final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:member:: constexpr std::size_t display_bytes
 
@@ -1924,7 +1924,7 @@ Related types
 
 .. cpp:struct:: PreparedTextMetrics final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:member:: double advance_dip
 
@@ -1944,7 +1944,7 @@ Related types
 
 .. cpp:struct:: PreparedTextPaintResult final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:member:: PreparedTextPaintDisposition disposition
 
@@ -1958,7 +1958,7 @@ Related types
 
 .. cpp:class:: PreparedTextService final
 
-   ``#include <gui_forms/prepared_text/service/prepared_text_service.hpp>``
+   ``#include <gui_forms/prepared_text/service/prepared_text_service.hpp>`` (:src:`source <include/gui_forms/prepared_text/service/prepared_text_service.hpp>`)
 
 
    .. rubric:: Construction
@@ -1995,7 +1995,7 @@ Related types
 
 .. cpp:class:: PreparedTextSession final
 
-   ``#include <gui_forms/prepared_text/service/prepared_text_service.hpp>``
+   ``#include <gui_forms/prepared_text/service/prepared_text_service.hpp>`` (:src:`source <include/gui_forms/prepared_text/service/prepared_text_service.hpp>`)
 
 
    .. rubric:: Properties
@@ -2027,7 +2027,7 @@ Related types
 
 .. cpp:struct:: PreparedTextSessionSnapshot final
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:member:: PreparedTextSlot slot
 
@@ -2047,7 +2047,7 @@ Related types
 
 .. cpp:class:: PreparedTextWakeTarget
 
-   ``#include <gui_forms/prepared_text/service/prepared_text_service.hpp>``
+   ``#include <gui_forms/prepared_text/service/prepared_text_service.hpp>`` (:src:`source <include/gui_forms/prepared_text/service/prepared_text_service.hpp>`)
 
    Adapter for posting a coalesced UI-dispatch wake. Called on the worker; it must only enqueue a wake, never execute consumer/UI work or reenter session control. The target must survive until begin_close returns. The wake carries no payload: UI subsequently calls inspect_ready/adopt_ready.
 
@@ -2060,7 +2060,7 @@ Related types
 
 .. cpp:class:: PrepareInput final
 
-   ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>``
+   ``#include <gui_forms/prepared_text/layout/prepared_text_layout.hpp>`` (:src:`source <include/gui_forms/prepared_text/layout/prepared_text_layout.hpp>`)
 
 
    .. rubric:: Construction
@@ -2078,7 +2078,7 @@ Related types
 
 .. cpp:struct:: ResolvedFontRun final
 
-   ``#include <gui_forms/typography/types/typography_types.hpp>``
+   ``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
    .. cpp:member:: std::size_t utf8_start
 
@@ -2098,7 +2098,7 @@ Related types
 
 .. cpp:struct:: ResolvedTextLayout final
 
-   ``#include <gui_forms/typography/types/typography_types.hpp>``
+   ``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
 
    .. rubric:: Properties
@@ -2137,7 +2137,7 @@ Related types
 
 .. cpp:struct:: RtfBodySize final
 
-   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>``
+   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>`` (:src:`source <include/gui_forms/text/markdown/rtf_conversion.hpp>`)
 
    .. cpp:member:: std::int32_t half_points
 
@@ -2151,7 +2151,7 @@ Related types
 
 .. cpp:struct:: ShapedGlyphCounts final
 
-   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`` (:src:`source <include/gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`)
 
    The runs and glyphs one shaping produced.
 
@@ -2163,7 +2163,7 @@ Related types
 
 .. cpp:struct:: ShapingFeature final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    ShapingFeature applies one OpenType tag/value to a validated UTF-8 subrange.
 
@@ -2177,7 +2177,7 @@ Related types
 
 .. cpp:struct:: ShapingRequest final
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    ShapingRequest is a non-owning, bounded shaping transaction with text, range, face, size, direction, script, language, and features.
 
@@ -2203,7 +2203,7 @@ Related types
 
 .. cpp:class:: ShapingWorkspace
 
-   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>``
+   ``#include <gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`` (:src:`source <include/gui_forms/typography/shaping_workspace/shaping_workspace.hpp>`)
 
    A text metrics provider's reusable shaping state (TextMetricsProvider::create_shaping_workspace): the provider creates it, the caller owns it (ParagraphBuffers holds one), and the provider shapes into it (TextMetricsProvider::shape_in_workspace_utf8) without allocating once it holds the text's size. It keeps the last shaping until the next one, which the reads below answer from. Use it with the provider that created it, on one thread at a time; a provider refuses a workspace of another (invalid_request).
 
@@ -2238,7 +2238,7 @@ Related types
 
 .. cpp:struct:: SourceByteOffset final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
 
    .. rubric:: Construction
@@ -2251,7 +2251,7 @@ Related types
 
 .. cpp:struct:: SourceByteRange final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    .. cpp:member:: SourceByteOffset begin
 
@@ -2261,7 +2261,7 @@ Related types
 
 .. cpp:class:: SourceMappingResult final
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    A display position mapped to the source. One alternative per state (house form for results).
 
@@ -2287,7 +2287,7 @@ Related types
 
 .. cpp:struct:: TextEditResult final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    TextEditResult records exact removed/inserted UTF-8 ranges, scalar counts, resulting revision, and whether content changed.
 
@@ -2307,7 +2307,7 @@ Related types
 
 .. cpp:struct:: TextExtent final
 
-   ``#include <gui_forms/typography/types/typography_types.hpp>``
+   ``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
    A text's extent without its runs or names (D2): the part of a ResolvedTextLayout that measuring reads. A provider answers it with the same values its resolve_text_layout_utf8 reports, without copying the layout's strings and run vector.
 
@@ -2327,7 +2327,7 @@ Related types
 
 .. cpp:struct:: TextMaskBudgetSnapshot
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: TextMaskByteUsage utf8
 
@@ -2355,7 +2355,7 @@ Related types
 
 .. cpp:struct:: TextMaskByteUsage
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: std::size_t live
 
@@ -2377,7 +2377,7 @@ Related types
 
 .. cpp:struct:: TextMaskCancellation
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: TextMaskResult result
 
@@ -2389,7 +2389,7 @@ Related types
 
 .. cpp:struct:: TextMaskCountUsage
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: std::size_t live
 
@@ -2411,7 +2411,7 @@ Related types
 
 .. cpp:class:: TextMaskLease final
 
-   ``#include <gui_forms/text_mask/lease/text_mask_lease.hpp>``
+   ``#include <gui_forms/text_mask/lease/text_mask_lease.hpp>`` (:src:`source <include/gui_forms/text_mask/lease/text_mask_lease.hpp>`)
 
    Copying retains immutable storage; all views require a surviving owner.
 
@@ -2437,7 +2437,7 @@ Related types
 
 .. cpp:struct:: TextMaskLine
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: std::uint32_t source_begin
 
@@ -2479,7 +2479,7 @@ Related types
 
 .. cpp:struct:: TextMaskMetrics
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: std::int32_t size_64
 
@@ -2533,7 +2533,7 @@ Related types
 
 .. cpp:struct:: TextMaskRequest
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: std::string_view utf8
 
@@ -2563,7 +2563,7 @@ Related types
 
 .. cpp:struct:: TextMaskRequestId
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: std::uint64_t session
 
@@ -2573,7 +2573,7 @@ Related types
 
 .. cpp:struct:: TextMaskRequestSnapshot
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: TextMaskRequestId id
 
@@ -2589,7 +2589,7 @@ Related types
 
 .. cpp:struct:: TextMaskResult
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: TextMaskStatus status
 
@@ -2603,7 +2603,7 @@ Related types
 
 .. cpp:class:: TextMaskService final
 
-   ``#include <gui_forms/text_mask/service/text_mask_service.hpp>``
+   ``#include <gui_forms/text_mask/service/text_mask_service.hpp>`` (:src:`source <include/gui_forms/text_mask/service/text_mask_service.hpp>`)
 
 
    .. rubric:: Construction
@@ -2632,7 +2632,7 @@ Related types
 
 .. cpp:class:: TextMaskSession final
 
-   ``#include <gui_forms/text_mask/service/text_mask_service.hpp>``
+   ``#include <gui_forms/text_mask/service/text_mask_service.hpp>`` (:src:`source <include/gui_forms/text_mask/service/text_mask_service.hpp>`)
 
 
    .. rubric:: Properties
@@ -2666,7 +2666,7 @@ Related types
 
 .. cpp:struct:: TextMaskSessionSnapshot
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:member:: std::array<TextMaskRequestSnapshot, 9> requests
 
@@ -2702,7 +2702,7 @@ Related types
 
 .. cpp:class:: TextMetricsProvider
 
-   ``#include <gui_forms/typography/types/typography_types.hpp>``
+   ``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
    Portable non-owning service seam. Implementations may use a private text engine, but this contract contains no HarfBuzz, FreeType, Skia, AppKit, or Win32 type. A Window invalidates measurement when the installed provider changes.
 
@@ -2755,7 +2755,7 @@ Related types
 
 .. cpp:struct:: template <typename Position> TextRange final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    TextRange carries half-open start/end positions in one compile-time coordinate system.
 
@@ -2774,7 +2774,7 @@ Related types
 
 .. cpp:class:: TextShaper
 
-   ``#include <gui_forms/text_shaping/text_shaper/text_shaper.hpp>``
+   ``#include <gui_forms/text_shaping/text_shaper/text_shaper.hpp>`` (:src:`source <include/gui_forms/text_shaping/text_shaper/text_shaper.hpp>`)
 
    TextShaper is the renderer-neutral boundary from a validated shaping request to clustered glyph placement.
 
@@ -2789,7 +2789,7 @@ Related types
 
 .. cpp:class:: TextStore final
 
-   ``#include <gui_forms/text/text_store/text_store.hpp>``
+   ``#include <gui_forms/text/text_store/text_store.hpp>`` (:src:`source <include/gui_forms/text/text_store/text_store.hpp>`)
 
    TextStore is renderer-neutral contiguous UTF-8 storage with typed UTF-8/UTF-16/scalar/grapheme/line positions, bounded edits and style spans, Unicode grapheme metadata, exact revisions, and rejection telemetry.
 
@@ -2930,7 +2930,7 @@ Related types
 
 .. cpp:struct:: TextStoreLimits final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    TextStoreLimits bounds retained UTF-8 bytes and style-span cardinality before mutation.
 
@@ -2946,7 +2946,7 @@ Related types
 
 .. cpp:struct:: TextStoreSnapshot final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    TextStoreSnapshot reports coordinate counts, revision counters, rebuilds, and rejected operations without exposing storage.
 
@@ -2978,7 +2978,7 @@ Related types
 
 .. cpp:struct:: TextStyleId final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    TextStyleId is the ordered compact identity stored by style spans.
 
@@ -2988,7 +2988,7 @@ Related types
 
 .. cpp:struct:: TextStyleSpan final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    TextStyleSpan maps one UTF-8 half-open range to a compact style identity.
 
@@ -3000,7 +3000,7 @@ Related types
 
 .. cpp:class:: template <typename Tag> TextUnitIndex final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    TextUnitIndex prevents accidental mixing of byte, UTF-16, scalar, grapheme, and line coordinate systems.
 
@@ -3022,7 +3022,7 @@ Related types
 
 .. cpp:struct:: Utf8ScalarDecode final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    One scalar decoded strictly (the rules of validate_utf8: no overlong forms, surrogates or values past U+10FFFF). At a malformed or truncated sequence ``valid`` is false, ``length`` is 1 (the caller steps one byte) and ``scalar`` is U+FFFD. ``offset`` must be inside ``text``.
 
@@ -3036,7 +3036,7 @@ Related types
 
 .. cpp:struct:: Utf8ValidationResult final
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    Utf8ValidationResult preserves the first closed validation failure and exact byte/scalar/UTF-16 counts.
 
@@ -3064,7 +3064,7 @@ Enumerations
 
 .. cpp:enum-class:: AppFontQuarantine
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    .. cpp:enumerator:: open_failed
 
@@ -3076,7 +3076,7 @@ Enumerations
 
 .. cpp:enum-class:: AppFontState
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    .. cpp:enumerator:: absent
 
@@ -3092,7 +3092,7 @@ Enumerations
 
 .. cpp:enum-class:: AppFontStatus
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    .. cpp:enumerator:: loaded
 
@@ -3126,7 +3126,7 @@ Enumerations
 
 .. cpp:enum-class:: AppFontUnload
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    .. cpp:enumerator:: released
 
@@ -3138,7 +3138,7 @@ Enumerations
 
 .. cpp:enum-class:: DocumentMapKind
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    .. cpp:enumerator:: identity_utf8
 
@@ -3148,7 +3148,7 @@ Enumerations
 
 .. cpp:enum-class:: DocumentViewStatus
 
-   ``#include <gui_forms/document_view/types/document_view_types.hpp>``
+   ``#include <gui_forms/document_view/types/document_view_types.hpp>`` (:src:`source <include/gui_forms/document_view/types/document_view_types.hpp>`)
 
    .. cpp:enumerator:: success
 
@@ -3178,7 +3178,7 @@ Enumerations
 
 .. cpp:enum-class:: FontContext
 
-   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+   ``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
    .. cpp:enumerator:: factory_bundle
 
@@ -3190,7 +3190,7 @@ Enumerations
 
 .. cpp:enum-class:: FontFamilyKind
 
-   ``#include <gui_forms/typography/font_families/font_families.hpp>``
+   ``#include <gui_forms/typography/font_families/font_families.hpp>`` (:src:`source <include/gui_forms/typography/font_families/font_families.hpp>`)
 
    .. cpp:enumerator:: bundled
 
@@ -3198,7 +3198,7 @@ Enumerations
 
 .. cpp:enum-class:: GlyphRunError
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3222,7 +3222,7 @@ Enumerations
 
 .. cpp:enum-class:: LineBreakOpportunity
 
-   ``#include <gui_forms/typography/types/typography_types.hpp>``
+   ``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
    .. cpp:enumerator:: prohibited
 
@@ -3236,7 +3236,7 @@ Enumerations
 
 .. cpp:enum-class:: LocaleDirection
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    .. cpp:enumerator:: left_to_right
 
@@ -3246,7 +3246,7 @@ Enumerations
 
 .. cpp:enum-class:: LocaleField
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    .. cpp:enumerator:: text
 
@@ -3274,7 +3274,7 @@ Enumerations
 
 .. cpp:enum-class:: LocaleFileError
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3296,7 +3296,7 @@ Enumerations
 
 .. cpp:enum-class:: LocaleLayerKind
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    .. cpp:enumerator:: built_in
 
@@ -3310,7 +3310,7 @@ Enumerations
 
 .. cpp:enum-class:: LocaleRefusal
 
-   ``#include <gui_forms/text/locale_file/locale_file.hpp>``
+   ``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
    .. cpp:enumerator:: invalid_stable_id
 
@@ -3332,7 +3332,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkdownAlignment
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    .. cpp:enumerator:: left
 
@@ -3344,7 +3344,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkdownBaseline
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -3356,7 +3356,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkdownBlockKind
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    .. cpp:enumerator:: paragraph
 
@@ -3372,7 +3372,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkdownListMarker
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    .. cpp:enumerator:: bullet
 
@@ -3382,7 +3382,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkdownLoss
 
-   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>``
+   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>`` (:src:`source <include/gui_forms/text/markdown/rtf_conversion.hpp>`)
 
    .. cpp:enumerator:: destination_skipped
 
@@ -3438,7 +3438,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkdownParseError
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    .. cpp:enumerator:: invalid_utf8
 
@@ -3450,7 +3450,7 @@ Enumerations
 
 .. cpp:enum-class:: MarkdownSpanKind
 
-   ``#include <gui_forms/text/markdown/markdown.hpp>``
+   ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
    .. cpp:enumerator:: text
 
@@ -3460,7 +3460,7 @@ Enumerations
 
 .. cpp:enum-class:: ParagraphFit
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    .. cpp:enumerator:: verified
 
@@ -3470,7 +3470,7 @@ Enumerations
 
 .. cpp:enum-class:: ParagraphGlyphOutput
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3480,7 +3480,7 @@ Enumerations
 
 .. cpp:enum-class:: ParagraphOverflowWrap
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -3490,7 +3490,7 @@ Enumerations
 
 .. cpp:enum-class:: ParagraphRequestError
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    .. cpp:enumerator:: invalid_utf8
 
@@ -3504,7 +3504,7 @@ Enumerations
 
 .. cpp:enum-class:: ParagraphWhiteSpace
 
-   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+   ``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
    .. cpp:enumerator:: preserve_line_ends
 
@@ -3514,7 +3514,7 @@ Enumerations
 
 .. cpp:enum-class:: PreparedRasterProfile
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:enumerator:: outline_gray_72dpi_v1
 
@@ -3524,7 +3524,7 @@ Enumerations
 
 .. cpp:enum-class:: PreparedTextPaintDisposition
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:enumerator:: refused
 
@@ -3536,7 +3536,7 @@ Enumerations
 
 .. cpp:enum-class:: PreparedTextSlot
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:enumerator:: empty
 
@@ -3550,7 +3550,7 @@ Enumerations
 
 .. cpp:enum-class:: PreparedTextStatus
 
-   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+   ``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
    .. cpp:enumerator:: success
 
@@ -3594,7 +3594,7 @@ Enumerations
 
 .. cpp:enum-class:: RtfBodyRule
 
-   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>``
+   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>`` (:src:`source <include/gui_forms/text/markdown/rtf_conversion.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3608,7 +3608,7 @@ Enumerations
 
 .. cpp:enum-class:: RtfConversionError
 
-   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>``
+   ``#include <gui_forms/text/markdown/rtf_conversion.hpp>`` (:src:`source <include/gui_forms/text/markdown/rtf_conversion.hpp>`)
 
    .. cpp:enumerator:: malformed
 
@@ -3622,7 +3622,7 @@ Enumerations
 
 .. cpp:enum-class:: ShapingRequestError
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3650,7 +3650,7 @@ Enumerations
 
 .. cpp:enum-class:: TextDirection
 
-   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+   ``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
    .. cpp:enumerator:: left_to_right
 
@@ -3660,7 +3660,7 @@ Enumerations
 
 .. cpp:enum-class:: TextMaskLimit
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3700,7 +3700,7 @@ Enumerations
 
 .. cpp:enum-class:: TextMaskRaster
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:enumerator:: outline_gray
 
@@ -3710,7 +3710,7 @@ Enumerations
 
 .. cpp:enum-class:: TextMaskRetirement
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:enumerator:: released
 
@@ -3720,7 +3720,7 @@ Enumerations
 
 .. cpp:enum-class:: TextMaskSlot
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:enumerator:: empty
 
@@ -3738,7 +3738,7 @@ Enumerations
 
 .. cpp:enum-class:: TextMaskStatus
 
-   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>``
+   ``#include <gui_forms/text_mask/types/text_mask_types.hpp>`` (:src:`source <include/gui_forms/text_mask/types/text_mask_types.hpp>`)
 
    .. cpp:enumerator:: success
 
@@ -3776,7 +3776,7 @@ Enumerations
 
 .. cpp:enum-class:: TextResolutionStatus
 
-   ``#include <gui_forms/typography/types/typography_types.hpp>``
+   ``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
    .. cpp:enumerator:: exact
 
@@ -3792,7 +3792,7 @@ Enumerations
 
 .. cpp:enum-class:: Utf8ValidationError
 
-   ``#include <gui_forms/text/types/text_types.hpp>``
+   ``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3813,7 +3813,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/prepared_text/raster/prepared_text_raster.hpp>``
+``#include <gui_forms/prepared_text/raster/prepared_text_raster.hpp>`` (:src:`source <include/gui_forms/prepared_text/raster/prepared_text_raster.hpp>`)
 
 .. cpp:function:: PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout, LayoutAuthority expected, GrayTextMask& output)
 
@@ -3821,7 +3821,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>``
+``#include <gui_forms/prepared_text/types/prepared_text_types.hpp>`` (:src:`source <include/gui_forms/prepared_text/types/prepared_text_types.hpp>`)
 
 .. cpp:function:: bool same_prepared_text_key(const PreparedTextKey& left, const PreparedTextKey& right) noexcept
 
@@ -3829,7 +3829,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/text/locale_file/locale_file.hpp>``
+``#include <gui_forms/text/locale_file/locale_file.hpp>`` (:src:`source <include/gui_forms/text/locale_file/locale_file.hpp>`)
 
 .. cpp:function:: std::string_view locale_field_name(LocaleField field) noexcept
 
@@ -3899,7 +3899,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/text/localizable/localizable.hpp>``
+``#include <gui_forms/text/localizable/localizable.hpp>`` (:src:`source <include/gui_forms/text/localizable/localizable.hpp>`)
 
 .. cpp:function:: std::vector<LocalizableLiteral> localizable_literals()
 
@@ -3911,7 +3911,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/text/markdown/markdown.hpp>``
+``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
 .. cpp:function:: MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document, const MarkdownLimits& limits = MarkdownLimits{}, std::stop_token cancellation = std::stop_token{})
 
@@ -3931,7 +3931,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/text/markdown/rtf_conversion.hpp>``
+``#include <gui_forms/text/markdown/rtf_conversion.hpp>`` (:src:`source <include/gui_forms/text/markdown/rtf_conversion.hpp>`)
 
 .. cpp:function:: std::string describe_loss(MarkdownLoss kind, std::uint32_t count)
 
@@ -3955,7 +3955,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>``
+``#include <gui_forms/text/paragraph_layout/paragraph_layout.hpp>`` (:src:`source <include/gui_forms/text/paragraph_layout/paragraph_layout.hpp>`)
 
 .. cpp:function:: LineBoxMetrics paragraph_line_box(TextMetricsProvider* provider, FontSpec font, stxlib::Optional<double> line_height)
 
@@ -3987,7 +3987,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/text/types/text_types.hpp>``
+``#include <gui_forms/text/types/text_types.hpp>`` (:src:`source <include/gui_forms/text/types/text_types.hpp>`)
 
 .. cpp:function:: Utf8ValidationResult validate_utf8(std::string_view text) noexcept
 
@@ -4017,7 +4017,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>``
+``#include <gui_forms/text_shaping/types/text_shaping_types.hpp>`` (:src:`source <include/gui_forms/text_shaping/types/text_shaping_types.hpp>`)
 
 .. cpp:function:: constexpr OpenTypeTag open_type_tag(char first, char second, char third, char fourth) noexcept
 
@@ -4031,7 +4031,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/typography/app_fonts/app_fonts.hpp>``
+``#include <gui_forms/typography/app_fonts/app_fonts.hpp>`` (:src:`source <include/gui_forms/typography/app_fonts/app_fonts.hpp>`)
 
 .. cpp:function:: AppFontValidation validate_app_font(std::span<const std::byte> bytes) noexcept
 
@@ -4095,7 +4095,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/typography/font_families/font_families.hpp>``
+``#include <gui_forms/typography/font_families/font_families.hpp>`` (:src:`source <include/gui_forms/typography/font_families/font_families.hpp>`)
 
 .. cpp:function:: constexpr bool same_font_family_name(std::string_view left, std::string_view right) noexcept
 
@@ -4205,7 +4205,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/typography/types/typography_types.hpp>``
+``#include <gui_forms/typography/types/typography_types.hpp>`` (:src:`source <include/gui_forms/typography/types/typography_types.hpp>`)
 
 .. cpp:function:: const char* text_resolution_status_name(TextResolutionStatus status) noexcept
 

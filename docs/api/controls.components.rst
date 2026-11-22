@@ -14,7 +14,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    * - :cpp:class:`DockWorkspace <gui_forms::DockWorkspace>`
      - A docking workspace: the layout, the panels and their factories, and which panel and document are active.
    * - :cpp:class:`PlotLinkGroup <gui_forms::PlotLinkGroup>`
-     - Component that keeps the x, y or both axes of its member PlotViews on one range, following each member's pan and zoom.
+     - A group of :cpp:class:`PlotView <gui_forms::PlotView>` controls whose first x axes, first y axes or both share one range, such as linked subplots or a plot and its overview.
    * - :cpp:class:`Timer <gui_forms::Timer>`
      - A component that raises ``tick`` at a fixed interval on a window's UI thread.
    * - :cpp:class:`BackgroundWorker <gui_forms::BackgroundWorker>`
@@ -30,7 +30,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    * - :cpp:class:`HelpProvider <gui_forms::HelpProvider>`
      - A component that attaches help text and help topics to controls and routes F1.
    * - :cpp:class:`HelpBookSystem <gui_forms::HelpBookSystem>`
-     - The program's help: catalog of help fields, helpbook compile, F1 walking up to the window page, What's This, window cards, paper popups and the help window; external links go to the program.
+     - A program's help: it holds the help text of the program's language files, compiles the help book from it and the program's windows, and shows it on F1, in What's This mode, on window cards and from the ribbon.
    * - :cpp:class:`SemanticFeedback <gui_forms::SemanticFeedback>`
      - A component that turns application events into sound cues and a bounded history.
    * - :cpp:class:`Binding <gui_forms::Binding>`
@@ -168,7 +168,7 @@ Related types
 
 .. cpp:struct:: BackgroundWorkerCompleted final
 
-   ``#include <gui_forms/background_worker/background_worker.hpp>``
+   ``#include <gui_forms/background_worker/background_worker.hpp>`` (:src:`source <include/gui_forms/background_worker/background_worker.hpp>`)
 
    The end of a run, delivered on the UI thread. ``error`` holds the exception the work threw, if any, and ``error_message`` its what() text; ``result`` is then empty. ``cancelled`` is true when the work acknowledged a cancellation.
 
@@ -184,7 +184,7 @@ Related types
 
 .. cpp:struct:: BackgroundWorkerProgress final
 
-   ``#include <gui_forms/background_worker/background_worker.hpp>``
+   ``#include <gui_forms/background_worker/background_worker.hpp>`` (:src:`source <include/gui_forms/background_worker/background_worker.hpp>`)
 
    One progress report, delivered on the UI thread.
 
@@ -196,7 +196,7 @@ Related types
 
 .. cpp:class:: BackgroundWorkerTask final
 
-   ``#include <gui_forms/background_worker/background_worker.hpp>``
+   ``#include <gui_forms/background_worker/background_worker.hpp>`` (:src:`source <include/gui_forms/background_worker/background_worker.hpp>`)
 
    The one object the work function may touch on the worker thread: the argument, the result, the cancellation request and progress reports. It lives for one run; a run's work must not keep it after returning.
 
@@ -230,7 +230,7 @@ Related types
 
 .. cpp:struct:: DockActivationChange final
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    .. cpp:member:: DockActivationTrack track
 
@@ -248,7 +248,7 @@ Related types
 
 .. cpp:struct:: DockDocumentClosing final
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    Documents about to close at the user's request (DockWorkspace:: document_closing). ``documents`` is the one document asked about (each) or every document of the request (combined), in the request's order; it is a call-scope borrow, valid only while the event is raised (the sanitizer tree reports a use after the raise). A handler sets ``cancel`` to keep them, which ends the request with nothing closed, or ``defer`` to answer later with DockWorkspace::answer_close (an asynchronous prompt). With neither set, the request goes on.
 
@@ -266,7 +266,7 @@ Related types
 
 .. cpp:struct:: DockNamedLayout final
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    What the program registers for one panel: the layout's descriptor, the title its caption and tab show, and the factory that builds its content. The factory is a named delegate: its object must outlive the workspace's use of it (remove the panel or destroy the workspace first). A layout saved under a name (stage DK phase D7, owner decision DK-34, I6-1: Visual Studio's Window Layouts): the name the program shows and the layout's XML as DockLayout::write_xml wrote it. The program keeps and saves the list itself (decision DK-33: the framework never saves).
 
@@ -278,7 +278,7 @@ Related types
 
 .. cpp:struct:: DockPanelCreation final
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    A factory's request: build the content of ``panel`` and store it in ``content``. Left null, the panel shows an empty area and the factory is asked again the next time the panel is shown selected.
 
@@ -290,7 +290,7 @@ Related types
 
 .. cpp:struct:: DockPanelRegistration final
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    .. cpp:member:: DockPanelDescriptor descriptor
 
@@ -302,7 +302,7 @@ Related types
 
 .. cpp:struct:: DockPanelsAdded final
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    What DockWorkspace::add_panels did: how many panels it registered and how many of those the layout then placed.
 
@@ -314,7 +314,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockWorkspaceCapabilities : public DockWorkspaceClosePromptCapability<Declaring>, public DockWorkspaceFlyoutOpeningCapability<Declaring>
 
-   ``#include <gui_forms/controls/dock_workspace_capabilities.hpp>``
+   ``#include <gui_forms/controls/dock_workspace_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace_capabilities.hpp>`)
 
    Every DockWorkspace capability, in the order the declaring class takes them.
 
@@ -333,7 +333,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockWorkspaceClosePromptCapability
 
-   ``#include <gui_forms/controls/dock_workspace_capabilities.hpp>``
+   ``#include <gui_forms/controls/dock_workspace_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace_capabilities.hpp>`)
 
    How the program is asked before documents close at the user's request: one closing event per document (each, the default) or one for all (combined).
 
@@ -350,7 +350,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockWorkspaceFlyoutOpeningCapability
 
-   ``#include <gui_forms/controls/dock_workspace_capabilities.hpp>``
+   ``#include <gui_forms/controls/dock_workspace_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace_capabilities.hpp>`)
 
    The workspace setting for opening an auto-hidden panel's flyout from its side tab; hover_or_click by default.
 
@@ -367,7 +367,7 @@ Related types
 
 .. cpp:struct:: ErrorIconSnapshot final
 
-   ``#include <gui_forms/components/error_provider/error_provider.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider.hpp>`)
 
    ErrorIconSnapshot is a read-only diagnostic record for one target: stable identity, message, exact glyph bounds, target availability, overlay presentation, blink activity, and current phase visibility.
 
@@ -391,7 +391,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderBlinkRateCapability
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    The blink interval, 50 ms to 1 minute (std::invalid_argument otherwise).
 
@@ -408,7 +408,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderBlinkStyleCapability
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    When an icon blinks (see ErrorBlinkStyle). An unknown style throws std::invalid_argument.
 
@@ -425,7 +425,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderCapabilities : public ErrorProviderIconSizeCapability<Declaring>, public ErrorProviderBlinkRateCapability<Declaring>, public ErrorProviderBlinkStyleCapability<Declaring>, public ErrorProviderRightToLeftCapability<Declaring>, public ErrorProviderIconCapability<Declaring>, public ErrorProviderDataSourceCapability<Declaring>, public ErrorProviderDataMemberCapability<Declaring>, public ErrorProviderTagCapability<Declaring>
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    Every ErrorProvider capability, in the order the declaring class takes them.
 
@@ -468,7 +468,7 @@ Related types
 
 .. cpp:struct:: ErrorProviderChange final
 
-   ``#include <gui_forms/components/error_provider/error_provider.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider.hpp>`)
 
    ErrorProviderChange is the post-commit payload for a target error transition, carrying stable identity and the current message, which is empty once the error is cleared.
 
@@ -482,7 +482,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderDataMemberCapability
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    The member of the data source whose errors the provider shows, canonicalized; empty for the source's own. A name that is not valid UTF-8 throws std::invalid_argument.
 
@@ -497,7 +497,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderDataSourceCapability
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    The binding source whose errors the provider shows, or null; held weakly. A source that is not live or belongs to another window throws std::invalid_argument. An unchanged write updates the binding.
 
@@ -514,7 +514,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderIconCapability
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    The icon image, or none for the stock glyph. An image that is not live in the provider's window throws std::invalid_argument.
 
@@ -529,7 +529,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderIconSizeCapability
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    The icon's side in logical units, 8 to 64. A size outside that, or not finite, throws std::invalid_argument.
 
@@ -546,7 +546,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderRightToLeftCapability
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    Whether icon alignments are mirrored. A change raises right_to_left_changed.
 
@@ -561,7 +561,7 @@ Related types
 
 .. cpp:struct:: ErrorProviderSnapshot final
 
-   ``#include <gui_forms/components/error_provider/error_provider.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider.hpp>`)
 
    ErrorProviderSnapshot is a deterministic provider diagnostic aggregate containing every mapped icon record plus authoritative live-error and presented-overlay counts.
 
@@ -575,7 +575,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ErrorProviderTagCapability
 
-   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_capabilities/error_provider_capabilities.hpp>`)
 
    The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
 
@@ -592,7 +592,7 @@ Related types
 
 .. cpp:struct:: HelpBookSystemOptions final
 
-   ``#include <gui_forms/controls/help_book_system.hpp>``
+   ``#include <gui_forms/controls/help_book_system.hpp>`` (:src:`source <include/gui_forms/controls/help_book_system.hpp>`)
 
    .. cpp:member:: std::string stable_id
 
@@ -634,7 +634,7 @@ Related types
 
 .. cpp:struct:: HelpBookSystemSnapshot final
 
-   ``#include <gui_forms/controls/help_book_system.hpp>``
+   ``#include <gui_forms/controls/help_book_system.hpp>`` (:src:`source <include/gui_forms/controls/help_book_system.hpp>`)
 
    .. cpp:member:: std::uint64_t compiles
 
@@ -660,7 +660,7 @@ Related types
 
 .. cpp:class:: HelpBookWindow final
 
-   ``#include <gui_forms/controls/help_book_system.hpp>``
+   ``#include <gui_forms/controls/help_book_system.hpp>`` (:src:`source <include/gui_forms/controls/help_book_system.hpp>`)
 
    HelpBookWindow: a HelpBookViewer in a window of its own (help system study, section 6), owned by one of the program's windows. The window hides when the user closes it and is shown again on the next open, so its history, tab and pane width carry over; it is destroyed with its owner or by close(). Without application windowing (a headless run) open refuses.
 
@@ -698,7 +698,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> HelpProviderCapabilities : public HelpProviderHelpNamespaceCapability<Declaring>, public HelpProviderTagCapability<Declaring>
 
-   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>`)
 
    Every HelpProvider capability, in the order the declaring class takes them.
 
@@ -717,7 +717,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> HelpProviderHelpNamespaceCapability
 
-   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>`)
 
    The help file or URL the provider's keyword and navigator requests name (Windows Forms' HelpNamespace). Text that is not valid UTF-8 throws std::invalid_argument.
 
@@ -732,7 +732,7 @@ Related types
 
 .. cpp:struct:: HelpProviderSnapshot final
 
-   ``#include <gui_forms/components/help_provider/help_provider.hpp>``
+   ``#include <gui_forms/components/help_provider/help_provider.hpp>`` (:src:`source <include/gui_forms/components/help_provider/help_provider.hpp>`)
 
    HelpProviderSnapshot is a deterministic diagnostic aggregate of authored mappings, effective mappings, total requests, and handled requests.
 
@@ -748,7 +748,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> HelpProviderTagCapability
 
-   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>``
+   ``#include <gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>`` (:src:`source <include/gui_forms/components/help_provider/help_provider_capabilities/help_provider_capabilities.hpp>`)
 
    The component's own application metadata (Windows Forms Tag): inert, released on disposal, stored even when equal. A view onto the provider's std::any, which has no ==.
 
@@ -765,7 +765,7 @@ Related types
 
 .. cpp:struct:: HelpRequestEvent final
 
-   ``#include <gui_forms/components/help_provider/help_provider.hpp>``
+   ``#include <gui_forms/components/help_provider/help_provider.hpp>`` (:src:`source <include/gui_forms/components/help_provider/help_provider.hpp>`)
 
    HelpRequestEvent is the mutable dispatch payload for policy-free help routing. It identifies the target and position, carries authored namespace/string/keyword/navigator metadata and keyboard origin, and lets a consumer mark the request handled.
 
@@ -791,7 +791,7 @@ Related types
 
 .. cpp:struct:: HelpTarget final
 
-   ``#include <gui_forms/controls/help_book_system.hpp>``
+   ``#include <gui_forms/controls/help_book_system.hpp>`` (:src:`source <include/gui_forms/controls/help_book_system.hpp>`)
 
    Where help for a control is: the page and the anchor on it.
 
@@ -807,7 +807,7 @@ Related types
 
 .. cpp:struct:: ImageListChange final
 
-   ``#include <gui_forms/image_list/image_list/image_list.hpp>``
+   ``#include <gui_forms/image_list/image_list/image_list.hpp>`` (:src:`source <include/gui_forms/image_list/image_list/image_list.hpp>`)
 
    ImageListChange identifies revision, mutation kind, entry index, and key affected by one retained resource mutation.
 
@@ -825,7 +825,7 @@ Related types
 
 .. cpp:struct:: ImageListResolution final
 
-   ``#include <gui_forms/image_list/image_list/image_list.hpp>``
+   ``#include <gui_forms/image_list/image_list/image_list.hpp>`` (:src:`source <include/gui_forms/image_list/image_list/image_list.hpp>`)
 
    ImageListResolution returns the exact registered ImageId plus source pixel size, chosen scale variant, revision, and stable entry identity.
 
@@ -853,7 +853,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NotifyIconCapabilities : public NotifyIconIconCapability<Declaring>, public TextCapability<Declaring>, public NotifyIconVisibleCapability<Declaring>, public NotifyIconContextMenuCapability<Declaring>
 
-   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>`` (:src:`source <include/gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>`)
 
    Every NotifyIcon capability, in the order the declaring class takes them.
 
@@ -880,7 +880,7 @@ Related types
 
 .. cpp:struct:: NotifyIconClick final
 
-   ``#include <gui_forms/components/notify_icon/notify_icon.hpp>``
+   ``#include <gui_forms/components/notify_icon/notify_icon.hpp>`` (:src:`source <include/gui_forms/components/notify_icon/notify_icon.hpp>`)
 
    A click on the icon: ``button`` is primary for a click and secondary for the platform's context gesture.
 
@@ -892,7 +892,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NotifyIconContextMenuCapability
 
-   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>`` (:src:`source <include/gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>`)
 
    The menu shown on the icon's context gesture. Hosts with native tray menus (notification_area_menus) show its rows natively; choosing a row executes its command and raises menu_item_invoked. Submenus are left out. Without native tray menus only click is raised. UI thread only (std::logic_error).
 
@@ -907,7 +907,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NotifyIconIconCapability
 
-   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>`` (:src:`source <include/gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>`)
 
    The icon at one or more sizes, premultiplied BGRA8 (HostImage). Throws std::invalid_argument for more than 8 images or an image that is malformed or larger than 256 pixels a side. A write updates a shown icon, even when unchanged. UI thread only (std::logic_error).
 
@@ -924,7 +924,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NotifyIconVisibleCapability
 
-   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>``
+   ``#include <gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>`` (:src:`source <include/gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp>`)
 
    Whether the application wants the icon shown. Every write shows or removes the icon, even when unchanged, and status() then holds the host's answer: unsupported without a host or without the notification_area capability, invalid_argument while there is no icon image. A visible icon without an image is shown once an image is set. UI thread only (std::logic_error).
 
@@ -941,7 +941,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogCapabilities : public OpenFileDialogTitleCapability<Declaring>, public OpenFileDialogInitialDirectoryCapability<Declaring>, public OpenFileDialogFilterCapability<Declaring>, public OpenFileDialogFilterIndexCapability<Declaring>, public OpenFileDialogMultiselectCapability<Declaring>, public OpenFileDialogFileNameCapability<Declaring>, public OpenFileDialogCheckFileExistsCapability<Declaring>, public OpenFileDialogCheckPathExistsCapability<Declaring>
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    Every OpenFileDialog capability, in the order the declaring class takes them.
 
@@ -984,7 +984,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogCheckFileExistsCapability
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    Whether the host accepts only files that exist (Windows Forms' CheckFileExists; on by default). Off, a typed name of a file that does not exist is accepted where the host can (the X11 dialog, Windows); macOS's open panel always requires an existing file.
 
@@ -1001,7 +1001,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogCheckPathExistsCapability
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    Whether the host accepts only names in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's open panel always requires one.
 
@@ -1018,7 +1018,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogFileNameCapability
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -1035,7 +1035,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogFilterCapability
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label\|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
@@ -1050,7 +1050,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogFilterIndexCapability
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.
 
@@ -1065,7 +1065,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogInitialDirectoryCapability
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -1080,7 +1080,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogMultiselectCapability
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    Whether the user may choose more than one file (Windows Forms' Multiselect).
 
@@ -1095,7 +1095,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> OpenFileDialogTitleCapability
 
-   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp>`)
 
    The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -1113,7 +1113,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingViewMode
 
-   ``#include <gui_forms/binding/binding_source/binding_source.hpp>``
+   ``#include <gui_forms/binding/binding_source/binding_source.hpp>`` (:src:`source <include/gui_forms/binding/binding_source/binding_source.hpp>`)
 
    .. cpp:enumerator:: provider_order
 
@@ -1125,7 +1125,7 @@ Enumerations
 
 .. cpp:enum-class:: DockActivationCause
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    .. cpp:enumerator:: programmatic
 
@@ -1143,7 +1143,7 @@ Enumerations
 
 .. cpp:enum-class:: DockActivationTrack
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    .. cpp:enumerator:: panel
 
@@ -1153,7 +1153,7 @@ Enumerations
 
 .. cpp:enum-class:: DockCloseCause
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    .. cpp:enumerator:: document
 
@@ -1167,7 +1167,7 @@ Enumerations
 
 .. cpp:enum-class:: DockCloseOutcome
 
-   ``#include <gui_forms/controls/dock_workspace.hpp>``
+   ``#include <gui_forms/controls/dock_workspace.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace.hpp>`)
 
    .. cpp:enumerator:: closed
 
@@ -1183,7 +1183,7 @@ Enumerations
 
 .. cpp:enum-class:: DockClosePrompt
 
-   ``#include <gui_forms/controls/dock_workspace_values.hpp>``
+   ``#include <gui_forms/controls/dock_workspace_values.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace_values.hpp>`)
 
    .. cpp:enumerator:: each
 
@@ -1193,7 +1193,7 @@ Enumerations
 
 .. cpp:enum-class:: DockFlyoutOpening
 
-   ``#include <gui_forms/controls/dock_workspace_values.hpp>``
+   ``#include <gui_forms/controls/dock_workspace_values.hpp>`` (:src:`source <include/gui_forms/controls/dock_workspace_values.hpp>`)
 
    .. cpp:enumerator:: hover_or_click
 
@@ -1203,7 +1203,7 @@ Enumerations
 
 .. cpp:enum-class:: ErrorBlinkStyle
 
-   ``#include <gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider_values/error_provider_values.hpp>`)
 
    .. cpp:enumerator:: blink_if_different_error
 
@@ -1215,7 +1215,7 @@ Enumerations
 
 .. cpp:enum-class:: ErrorIconAlignment
 
-   ``#include <gui_forms/components/error_provider/error_provider.hpp>``
+   ``#include <gui_forms/components/error_provider/error_provider.hpp>`` (:src:`source <include/gui_forms/components/error_provider/error_provider.hpp>`)
 
    .. cpp:enumerator:: top_left
 
@@ -1233,7 +1233,7 @@ Enumerations
 
 .. cpp:enum-class:: HelpNavigator
 
-   ``#include <gui_forms/components/help_provider/help_provider.hpp>``
+   ``#include <gui_forms/components/help_provider/help_provider.hpp>`` (:src:`source <include/gui_forms/components/help_provider/help_provider.hpp>`)
 
    .. cpp:enumerator:: topic
 
@@ -1251,7 +1251,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageListChangeKind
 
-   ``#include <gui_forms/image_list/image_list/image_list.hpp>``
+   ``#include <gui_forms/image_list/image_list/image_list.hpp>`` (:src:`source <include/gui_forms/image_list/image_list/image_list.hpp>`)
 
    .. cpp:enumerator:: added
 
@@ -1269,7 +1269,7 @@ Enumerations
 
 .. cpp:enum-class:: ImageVisualState
 
-   ``#include <gui_forms/image_list/image_list/image_list.hpp>``
+   ``#include <gui_forms/image_list/image_list/image_list.hpp>`` (:src:`source <include/gui_forms/image_list/image_list/image_list.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -1285,7 +1285,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotLinkAxes
 
-   ``#include <gui_forms/controls/plot_view_links.hpp>``
+   ``#include <gui_forms/controls/plot_view_links.hpp>`` (:src:`source <include/gui_forms/controls/plot_view_links.hpp>`)
 
    .. cpp:enumerator:: x
 
@@ -1298,7 +1298,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/image_list/image_list/image_list.hpp>``
+``#include <gui_forms/image_list/image_list/image_list.hpp>`` (:src:`source <include/gui_forms/image_list/image_list/image_list.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_image_list_entries
 

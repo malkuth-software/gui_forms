@@ -1689,6 +1689,9 @@ void NativeWindow::event(XEvent &event) {
       return;
     // Moves arrive here too: ICCCM 4.1.5 has a reparenting window manager
     // send a synthetic ConfigureNotify when it moves the frame.
+    report_moved_to_model();
+    if (closed)
+      return;
     if (runtime.windowing)
       (*runtime.windowing).report_native_frame(*this);
     return;
@@ -2451,6 +2454,33 @@ void Runtime::step(int maximum_wait) {
 HostDialogResult NativeWindow::dialog(const HostDialogRequest &request) {
   return retained_dialog(*this, request);
 }
+bool NativeWindow::reports_frame_moves() const noexcept {
+  if (entry.popup.absent())
+    return true;
+  const HostPopupPlacement &popup = *entry.popup.value();
+  const bool takes_focus = !host_transient_is_splash(popup.kind) &&
+                           popup.focus == HostPopupFocus::takes_focus;
+  return takes_focus;
+}
+
+void NativeWindow::report_moved_to_model() {
+  if (closed || !reports_frame_moves())
+    return;
+  int x{}, y{};
+  ::Window child{};
+  if (!XTranslateCoordinates(runtime.display, xid,
+                             DefaultRootWindow(runtime.display), 0, 0, &x, &y,
+                             &child))
+    return;
+  const X11RootPosition position{x, y};
+  const bool moved = reported_root_position.has_value() &&
+                     ((*reported_root_position).x != position.x ||
+                      (*reported_root_position).y != position.y);
+  reported_root_position = position;
+  if (moved)
+    (*entry.model).report_frame_moved();
+}
+
 HostWindowFrame NativeWindow::frame() const {
   HostWindowFrame result;
   int x{}, y{};

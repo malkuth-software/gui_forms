@@ -44,7 +44,7 @@ Related types
 
 .. cpp:struct:: XmlAttribute final
 
-   ``#include <gui_forms/xml/types/xml_types.hpp>``
+   ``#include <gui_forms/xml/types/xml_types.hpp>`` (:src:`source <include/gui_forms/xml/types/xml_types.hpp>`)
 
    .. cpp:member:: std::string name
 
@@ -54,7 +54,7 @@ Related types
 
 .. cpp:struct:: XmlReadResult final
 
-   ``#include <gui_forms/xml/types/xml_types.hpp>``
+   ``#include <gui_forms/xml/types/xml_types.hpp>`` (:src:`source <include/gui_forms/xml/types/xml_types.hpp>`)
 
    .. cpp:member:: XmlError error
 
@@ -72,7 +72,7 @@ Related types
 
 .. cpp:struct:: XmlSourcePosition final
 
-   ``#include <gui_forms/xml/types/xml_types.hpp>``
+   ``#include <gui_forms/xml/types/xml_types.hpp>`` (:src:`source <include/gui_forms/xml/types/xml_types.hpp>`)
 
    Where a reader diagnostic was found. Lines and columns count from 1. A column counts Unicode scalar values from the start of the line, not bytes; CR LF, CR and LF each end one line. byte_offset counts bytes from the start of the input, including any byte order mark.
 
@@ -86,7 +86,7 @@ Related types
 
 .. cpp:struct:: XmlWriteOptions final
 
-   ``#include <gui_forms/xml/types/xml_types.hpp>``
+   ``#include <gui_forms/xml/types/xml_types.hpp>`` (:src:`source <include/gui_forms/xml/types/xml_types.hpp>`)
 
    .. cpp:member:: std::uint32_t indent_spaces
 
@@ -100,7 +100,7 @@ Related types
 
 .. cpp:struct:: XmlWriteResult final
 
-   ``#include <gui_forms/xml/types/xml_types.hpp>``
+   ``#include <gui_forms/xml/types/xml_types.hpp>`` (:src:`source <include/gui_forms/xml/types/xml_types.hpp>`)
 
    .. cpp:member:: XmlError error
 
@@ -117,7 +117,7 @@ Enumerations
 
 .. cpp:enum-class:: XmlError
 
-   ``#include <gui_forms/xml/types/xml_types.hpp>``
+   ``#include <gui_forms/xml/types/xml_types.hpp>`` (:src:`source <include/gui_forms/xml/types/xml_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -176,7 +176,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/xml/types/xml_types.hpp>``
+``#include <gui_forms/xml/types/xml_types.hpp>`` (:src:`source <include/gui_forms/xml/types/xml_types.hpp>`)
 
 .. cpp:function:: std::string_view xml_error_name(XmlError error) noexcept
 
@@ -186,7 +186,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/xml/xml_reader/xml_reader.hpp>``
+``#include <gui_forms/xml/xml_reader/xml_reader.hpp>`` (:src:`source <include/gui_forms/xml/xml_reader/xml_reader.hpp>`)
 
 .. cpp:function:: XmlReadResult read_xml(std::string_view utf8, const XmlLimits& limits = {})
 
@@ -194,7 +194,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/xml/xml_writer/xml_writer.hpp>``
+``#include <gui_forms/xml/xml_writer/xml_writer.hpp>`` (:src:`source <include/gui_forms/xml/xml_writer/xml_writer.hpp>`)
 
 .. cpp:function:: XmlWriteResult write_xml(const XmlElement& root, const XmlWriteOptions& options = {}, const XmlLimits& limits = {})
 

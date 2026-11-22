@@ -305,7 +305,7 @@ Related types
 
 .. cpp:struct:: AbsoluteAxisInput final
 
-   ``#include <gui_forms/layout/positioning/positioning.hpp>``
+   ``#include <gui_forms/layout/positioning/positioning.hpp>`` (:src:`source <include/gui_forms/layout/positioning/positioning.hpp>`)
 
    One axis of an absolutely positioned box in its containing block's padding box: left and right with the width, or top and bottom with the height. Lengths are resolved by the caller; the insets keep ``auto``.
 
@@ -365,7 +365,7 @@ Related types
 
 .. cpp:struct:: AbsoluteAxisResult final
 
-   ``#include <gui_forms/layout/positioning/positioning.hpp>``
+   ``#include <gui_forms/layout/positioning/positioning.hpp>`` (:src:`source <include/gui_forms/layout/positioning/positioning.hpp>`)
 
    .. cpp:member:: double position
 
@@ -377,7 +377,7 @@ Related types
 
 .. cpp:struct:: AccentIndex final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    A position in the theme's accent ramp (design language §8.5; owner decision RB-22): the ordered colours a theme offers for telling sets of items apart, such as a ribbon's contextual tab sets. Index 0 is the ramp's first colour; an index past the end of a theme's ramp wraps around it. A part or item carries one as data, not as a state.
 
@@ -387,7 +387,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AccessibleDescriptionCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The description assistive technology announces.
 
@@ -402,7 +402,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AccessibleNameCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The name assistive technology announces.
 
@@ -417,7 +417,7 @@ Related types
 
 .. cpp:struct:: ActiveBorder final
 
-   ``#include <gui_forms/control/active_border/active_border.hpp>``
+   ``#include <gui_forms/control/active_border/active_border.hpp>`` (:src:`source <include/gui_forms/control/active_border/active_border.hpp>`)
 
    What the program asks for. Lengths are logical units. ``colour`` empty is the theme's accent; ``alternate`` empty is the lit colour fully transparent, so a flash blinks the border off. ``offset`` is the gap between the control's box and the stroke's inner edge: negative draws inside the box. ``frequency`` is in cycles a second, for flashing and cycling only.
 
@@ -447,7 +447,7 @@ Related types
 
 .. cpp:struct:: ActiveBorderConditions final
 
-   ``#include <gui_forms/control/active_border/active_border.hpp>``
+   ``#include <gui_forms/control/active_border/active_border.hpp>`` (:src:`source <include/gui_forms/control/active_border/active_border.hpp>`)
 
    What the window is like when the border paints.
 
@@ -467,7 +467,7 @@ Related types
 
 .. cpp:struct:: ActiveBorderPath final
 
-   ``#include <gui_forms/control/active_border/active_border.hpp>``
+   ``#include <gui_forms/control/active_border/active_border.hpp>`` (:src:`source <include/gui_forms/control/active_border/active_border.hpp>`)
 
    The rectangle the stroke's centre line follows around a box of ``size``, and the radius it uses there (the corner radius grown by the distance from the box to the centre line, not below 0).
 
@@ -479,7 +479,7 @@ Related types
 
 .. cpp:struct:: ActiveBorderPose final
 
-   ``#include <gui_forms/control/active_border/active_border.hpp>``
+   ``#include <gui_forms/control/active_border/active_border.hpp>`` (:src:`source <include/gui_forms/control/active_border/active_border.hpp>`)
 
    What the border paints after the limiter: the colours, the motion and its frequency (0 when steady), and the width.
 
@@ -499,7 +499,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AlignSelfCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Where the control sits across its layout region's block axis (CSS align-self).
 
@@ -516,7 +516,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AllowDropCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether the control accepts dropped data (AllowDrop).
 
@@ -533,7 +533,7 @@ Related types
 
 .. cpp:class:: AnatomyStateSet final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    A bounded set of active standard and custom states.
 
@@ -561,7 +561,7 @@ Related types
 
 .. cpp:struct:: AnatomyValidation final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    The result of validate_control_anatomy: the first defect found, or none.
 
@@ -581,7 +581,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchorCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The parent edges the control keeps its distance to (Anchor).
 
@@ -598,7 +598,7 @@ Related types
 
 .. cpp:struct:: AutoLengthPercentage final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    A margin or an inset: ``auto`` or a length-percentage, which may be negative.
 
@@ -610,7 +610,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AutoSizeCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether measurement determines the control's size (AutoSize).
 
@@ -627,7 +627,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AutoSizeModeCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether auto size may shrink the control (AutoSizeMode).
 
@@ -644,7 +644,7 @@ Related types
 
 .. cpp:struct:: AvailableExtent final
 
-   ``#include <gui_forms/layout/types/layout_types.hpp>``
+   ``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
    One axis of a layout constraint. ``extent`` is read only for ``definite`` and ``at_most``, and must then be finite and nonnegative; the content kinds carry a zero extent.
 
@@ -658,7 +658,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BackColorCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The own background colour; empty takes the parent's.
 
@@ -673,7 +673,7 @@ Related types
 
 .. cpp:class:: template <typename Element> BasicBorrowedSpan final
 
-   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>`` (:src:`source <include/gui_forms/borrow/borrowed_view/borrowed_view.hpp>`)
 
    A checked view of Element values (const-qualified for BorrowedSpan): the pointer and live length of the lender's storage and the stamp. Made only by detail::lend_view and the subviews.
 
@@ -746,7 +746,7 @@ Related types
 
 .. cpp:struct:: BlockFlowContainerInput final
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    .. cpp:member:: double width
 
@@ -770,7 +770,7 @@ Related types
 
 .. cpp:struct:: BlockFlowItemInput final
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    One item's inputs.
 
@@ -814,7 +814,7 @@ Related types
 
 .. cpp:struct:: BlockFlowItemResult final
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    One item's result.
 
@@ -830,7 +830,7 @@ Related types
 
 .. cpp:class:: BlockFlowLayoutWorkspace final
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    Caller-owned storage solve_block_flow fills, reused from layout to layout (house style section 1): :cpp:func:`items <gui_forms::BlockFlowLayoutWorkspace::items>` has one record per input item, in input order; :cpp:func:`lines <gui_forms::BlockFlowLayoutWorkspace::lines>` the line boxes in order. Its storage grows only when the item or line count does.
 
@@ -868,7 +868,7 @@ Related types
 
 .. cpp:struct:: BlockFlowLine final
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    One line box, its items being items[first, first + count).
 
@@ -894,7 +894,7 @@ Related types
 
 .. cpp:class:: template <typename Target> BorrowedPointer final
 
-   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>`` (:src:`source <include/gui_forms/borrow/borrowed_view/borrowed_view.hpp>`)
 
    A checked borrowed pointer: the address and the stamp of the link it was read from. Converts to the plain pointer (checking the stamp) for comparisons and calls; ``*pointer`` checks the stamp and that it is not null. Made only by detail::lend_pointer, or null.
 
@@ -916,7 +916,7 @@ Related types
 
 .. cpp:class:: BorrowedText final
 
-   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+   ``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>`` (:src:`source <include/gui_forms/borrow/borrowed_view/borrowed_view.hpp>`)
 
    A checked view of UTF-8 text: the pointer and length of the lender's characters and the stamp.
 
@@ -955,7 +955,7 @@ Related types
 
 .. cpp:struct:: BoxAlignment final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    CSS Box Alignment's six properties, shared by flex and grid containers and their items.
 
@@ -987,7 +987,7 @@ Related types
 
 .. cpp:struct:: template <typename Value> BoxSides final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    Top, right, bottom and left, CSS's shorthand order.
 
@@ -1003,7 +1003,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CausesValidationCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether leaving the control starts validation (CausesValidation).
 
@@ -1020,7 +1020,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CeremonialCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether the control is a ceremonial surface (GIVEN B3-1): on it and its descendants the theme engine's ambient effects may cover more than 10 % of the window. A theme never sets it; a change repaints the subtree.
 
@@ -1035,7 +1035,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ClassesCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Style classes (T2 plan, E4) a theme's class rules select, in order, without duplicates; 1 to 64 lowercase ASCII letters, digits, '-' and '_', starting with a letter (std::invalid_argument, nothing changed). Repeated names are dropped.
 
@@ -1050,7 +1050,7 @@ Related types
 
 .. cpp:struct:: CollapsedMargin final
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    A set of adjoining vertical margins (8.3.1): the largest positive margin and the most negative one; the collapsed margin is their sum.
 
@@ -1078,7 +1078,7 @@ Related types
 
 .. cpp:class:: ComponentContainer final
 
-   ``#include <gui_forms/component/component_container/component_container.hpp>``
+   ``#include <gui_forms/component/component_container/component_container.hpp>`` (:src:`source <include/gui_forms/component/component_container/component_container.hpp>`)
 
    ComponentContainer owns a unique ordered set of shared components and disposes the captured ownership sequence exactly once.
 
@@ -1123,7 +1123,7 @@ Related types
 
 .. cpp:struct:: ContentItemKey final
 
-   ``#include <gui_forms/control/content_region/content_region.hpp>``
+   ``#include <gui_forms/control/content_region/content_region.hpp>`` (:src:`source <include/gui_forms/control/content_region/content_region.hpp>`)
 
    One item of a content region, such as a DataGridView cell: two numbers the owning control gives meaning to (for the grid, a row position and a column index).
 
@@ -1135,7 +1135,7 @@ Related types
 
 .. cpp:class:: ContentRegion final
 
-   ``#include <gui_forms/control/content_region/content_region.hpp>``
+   ``#include <gui_forms/control/content_region/content_region.hpp>`` (:src:`source <include/gui_forms/control/content_region/content_region.hpp>`)
 
    A control's content region (property-capabilities study, decision 10): the control owns its chrome (frame, headers, scroll bars), the region its items' lazy pending set. note_item records an item whose paint changed and, on the first entry since the last gather, asks the owner's window to gather the region after its next layout. The owner's Control::gather_content_regions then turns each pending item into damage at the item's final geometry and calls clear_pending. A redraw of the whole owner (Control::redraw_all) folds the region instead: fold_pending drops the entries, which would damage rectangles about to move anyway. The owning control holds the region as a member; the region observes its owner and is used only on the owner's UI thread.
 
@@ -1172,7 +1172,7 @@ Related types
 
 .. cpp:struct:: Control::Parts final
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    The parts and states every control publishes, as dot members. A type that declares its own anatomy hides these with records of its own. Every record reads the control's published geometry and states, so a record read through a base type agrees with the dynamic type.
 
@@ -1184,7 +1184,7 @@ Related types
 
 .. cpp:struct:: Control::States final
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:member:: bool normal
 
@@ -1200,7 +1200,7 @@ Related types
 
 .. cpp:struct:: ControlAnatomy final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    The anatomy of one control type. Every span refers to static storage owned by the control type's translation unit, so a ControlAnatomy may be copied and retained for the life of the program.
 
@@ -1222,7 +1222,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public HelpLineCapability<Declaring>, public HelpCapability<Declaring>, public KeywordsCapability<Declaring>, public CeremonialCapability<Declaring>, public TagCapability<Declaring>, public FocusableCapability<Declaring>, public DoubleBufferedCapability<Declaring>, public ClassesCapability<Declaring>
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Every Control capability, in the order the declaring class takes them.
 
@@ -1365,7 +1365,7 @@ Related types
 
 .. cpp:class:: ControlFactory
 
-   ``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>``
+   ``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>`` (:src:`source <include/gui_forms/control/static_tree/control_factory/control_factory.hpp>`)
 
    ControlFactory maps explicit type names to construction callbacks, rejects duplicates/unknown types, and recursively creates retained trees without a bundled scripting runtime.
 
@@ -1382,7 +1382,7 @@ Related types
 
 .. cpp:class:: ControlTreeDepthError final : public std::length_error
 
-   ``#include <gui_forms/component/failures/component_failures.hpp>``
+   ``#include <gui_forms/component/failures/component_failures.hpp>`` (:src:`source <include/gui_forms/component/failures/component_failures.hpp>`)
 
    Thrown, before any change, when an attachment would nest a control tree deeper than maximum_control_tree_depth (control.hpp). A limit, so a std::length_error, which is also the std::logic_error the cycle refusal throws; the C ABI reports it as GF_STATUS_LIMIT_EXCEEDED.
 
@@ -1395,7 +1395,7 @@ Related types
 
 .. cpp:struct:: ControlValidationEvent final
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    ControlValidationEvent carries source, destination, bulk-validation intent, and mutable cancellation through one validation turn.
 
@@ -1411,7 +1411,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CursorCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The pointer's cursor; empty takes the parent's (Cursor).
 
@@ -1426,7 +1426,7 @@ Related types
 
 .. cpp:struct:: CustomStateDeclaration final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    One application-defined finite state, as written in ``:state(name)``.
 
@@ -1436,7 +1436,7 @@ Related types
 
 .. cpp:struct:: CustomStateIndex final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    Position of an application-defined state in its control type's declaration list.
 
@@ -1446,7 +1446,7 @@ Related types
 
 .. cpp:struct:: DirectionRingStyle final
 
-   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>`` (:src:`source <include/gui_forms/layout/radial_layout/radial_layout.hpp>`)
 
    The direction ring: an annulus between ``inner_radius`` and ``outer_radius`` (finite, 0 <= inner < outer) about the layout's centre in ``track``, with the picked item's sector of it in ``pick``.
 
@@ -1462,7 +1462,7 @@ Related types
 
 .. cpp:class:: DisposedError final : public std::logic_error
 
-   ``#include <gui_forms/component/failures/component_failures.hpp>``
+   ``#include <gui_forms/component/failures/component_failures.hpp>`` (:src:`source <include/gui_forms/component/failures/component_failures.hpp>`)
 
    Thrown when a disposed object is mutated or attached.
 
@@ -1475,7 +1475,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DockCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The parent edge the control docks to (Dock).
 
@@ -1492,7 +1492,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> DoubleBufferedCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Windows Forms DoubleBuffered: a view over the double_buffer and optimized_double_buffer style bits, kept together; retained release is coherent either way.
 
@@ -1509,7 +1509,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> EnabledCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether the control receives ordinary user input (Enabled).
 
@@ -1526,7 +1526,7 @@ Related types
 
 .. cpp:struct:: FlexAvailableExtent final
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    One axis of the container's content box: a definite extent, or indefinite (sized from the items: the main axis never wraps then).
 
@@ -1538,7 +1538,7 @@ Related types
 
 .. cpp:struct:: FlexContainerInput final
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    .. cpp:member:: FlexDirection direction
 
@@ -1578,7 +1578,7 @@ Related types
 
 .. cpp:struct:: FlexContainerStyle final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:member:: FlexDirection direction
 
@@ -1592,7 +1592,7 @@ Related types
 
 .. cpp:class:: FlexFactor final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    Flex factors and grid fractions are unitless and never added to lengths.
 
@@ -1610,7 +1610,7 @@ Related types
 
 .. cpp:struct:: FlexItemCross final
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    One item's measurement for the second call, at its resolved main size.
 
@@ -1626,7 +1626,7 @@ Related types
 
 .. cpp:struct:: FlexItemInput final
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    One item's inputs to both calls.
 
@@ -1674,7 +1674,7 @@ Related types
 
 .. cpp:struct:: FlexItemResult final
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    One item's results.
 
@@ -1700,7 +1700,7 @@ Related types
 
 .. cpp:struct:: FlexItemStyle final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:member:: FlexFactor grow
 
@@ -1718,7 +1718,7 @@ Related types
 
 .. cpp:class:: FlexLayoutWorkspace final
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    Caller-owned storage both calls fill, reused from layout to layout (house style section 1): :cpp:func:`items <gui_forms::FlexLayoutWorkspace::items>` has one record per input item, in input order; :cpp:func:`order <gui_forms::FlexLayoutWorkspace::order>` the input positions in (order, position) order; :cpp:func:`lines <gui_forms::FlexLayoutWorkspace::lines>` the lines in order. Its storage grows only when the item count does.
 
@@ -1748,7 +1748,7 @@ Related types
 
 .. cpp:struct:: FlexLine final
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    One flex line, its items being order[first, first + count).
 
@@ -1770,7 +1770,7 @@ Related types
 
 .. cpp:struct:: FlexMargin final
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    One margin as the solver reads it: a resolved length, or ``auto``.
 
@@ -1782,7 +1782,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FocusableCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether the control may receive focus; turning it off while attached gives up eligibility (focus moves on).
 
@@ -1797,7 +1797,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontCapability
 
-   ``#include <gui_forms/control/shared_capabilities/shared_capabilities.hpp>``
+   ``#include <gui_forms/control/shared_capabilities/shared_capabilities.hpp>`` (:src:`source <include/gui_forms/control/shared_capabilities/shared_capabilities.hpp>`)
 
    The font of the control's text (Font).
 
@@ -1819,7 +1819,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ForeColorCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The own text colour; empty takes the parent's.
 
@@ -1834,7 +1834,7 @@ Related types
 
 .. cpp:class:: FractionFactor final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
 
    .. rubric:: Construction
@@ -1850,7 +1850,7 @@ Related types
 
 .. cpp:struct:: GridAvailableExtent final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    .. cpp:member:: double extent
 
@@ -1862,7 +1862,7 @@ Related types
 
 .. cpp:struct:: GridCell final
 
-   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>`` (:src:`source <include/gui_forms/layout/grid_span/grid_span.hpp>`)
 
    One cell of a grid, zero-based, row first (as grid-area and ``.form``'s ``cell: row column`` write it).
 
@@ -1874,7 +1874,7 @@ Related types
 
 .. cpp:struct:: GridContainerInput final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    .. cpp:member:: LayoutAlignment justify_content
 
@@ -1910,7 +1910,7 @@ Related types
 
 .. cpp:struct:: GridContainerStyle final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:member:: GridTrackList template_columns
 
@@ -1934,7 +1934,7 @@ Related types
 
 .. cpp:struct:: GridItemArea final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    One item's area in the implicit grid: zero-based, half-open track ranges.
 
@@ -1950,7 +1950,7 @@ Related types
 
 .. cpp:struct:: GridItemContribution final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    One item's contributions to the tracks of one axis, outer sizes (margins included). ``minimum`` is the item's minimum contribution (CSS Grid 12.3): its min-content contribution when its width or height is definite; the outer min-width or min-height when that is a length; otherwise ``automatic_minimum`` is set and ``minimum`` is the content-based minimum (CSS Grid 6.6), which the solver applies only where 6.6 does: when the item spans a track whose minimum is ``auto`` and, if it spans several, no flexible one.
 
@@ -1970,7 +1970,7 @@ Related types
 
 .. cpp:struct:: GridItemInput final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    One item's inputs to every call.
 
@@ -2012,7 +2012,7 @@ Related types
 
 .. cpp:struct:: GridItemResult final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    .. cpp:member:: GridItemArea area
 
@@ -2030,7 +2030,7 @@ Related types
 
 .. cpp:struct:: GridItemStyle final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:member:: GridLine column_start
 
@@ -2044,7 +2044,7 @@ Related types
 
 .. cpp:class:: GridLayoutWorkspace final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    Caller-owned storage the four calls fill, reused from layout to layout (house style section 1): :cpp:func:`items <gui_forms::GridLayoutWorkspace::items>` has one record per input item, in input order; :cpp:func:`columns <gui_forms::GridLayoutWorkspace::columns>` and :cpp:func:`rows <gui_forms::GridLayoutWorkspace::rows>` the tracks of the implicit grid in line order. Its storage grows only when the item or track count does.
 
@@ -2084,7 +2084,7 @@ Related types
 
 .. cpp:struct:: GridLayoutWorkspace::AxisPlacement final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    One item's placement on one axis during auto-placement: its start line (zero for the explicit grid's first line, negative before it), its span, and whether its lines fixed it. Internal to the solver.
 
@@ -2100,7 +2100,7 @@ Related types
 
 .. cpp:struct:: GridLayoutWorkspace::TrackFunction final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    .. cpp:member:: Breadth minimum
 
@@ -2120,7 +2120,7 @@ Related types
 
 .. cpp:struct:: GridLine final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:member:: GridLineKind kind
 
@@ -2134,7 +2134,7 @@ Related types
 
 .. cpp:struct:: GridMargin final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    One margin as the solver reads it: a resolved length, or ``auto``.
 
@@ -2146,7 +2146,7 @@ Related types
 
 .. cpp:struct:: GridNamedArea final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    One named area of grid-template-areas, as zero-based half-open line ranges of the template's cells.
 
@@ -2164,7 +2164,7 @@ Related types
 
 .. cpp:struct:: GridSpan final
 
-   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>`` (:src:`source <include/gui_forms/layout/grid_span/grid_span.hpp>`)
 
    A region of a grid that fuses ``rows`` x ``columns`` cells from its anchor, its top-left cell (top-right in a right-to-left layout, which the solver mirrors). A span is identified by its name when it has one, and always by its anchor. A named span is a named area (grid-template-areas is another spelling of the named spans); a child placed at an anonymous span's anchor occupies the whole region.
 
@@ -2186,7 +2186,7 @@ Related types
 
 .. cpp:struct:: GridTemplateAreas final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    grid-template-areas: its dimensions in cells and its areas in the order their first cells are written. Zero rows is ``none``.
 
@@ -2200,7 +2200,7 @@ Related types
 
 .. cpp:struct:: GridTrack final
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    One track of the implicit grid, in line order.
 
@@ -2232,7 +2232,7 @@ Related types
 
 .. cpp:struct:: GridTrackList final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    A grid-template-columns or -rows value. ``repeat(<n>, ...)`` is expanded into ``tracks`` when read; the one ``repeat(auto-fill | auto-fit, ...)`` a list may hold is kept apart, to be repeated against the container's size, and is inserted before ``tracks[auto_repeat_index]``.
 
@@ -2250,7 +2250,7 @@ Related types
 
 .. cpp:struct:: GridTrackSize final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    A track size: one breadth (both ends equal, except that a lone ``<n>fr`` is CSS's ``minmax(auto, <n>fr)``), ``minmax(minimum, maximum)``, or ``fit-content(<length-percentage>)``, whose limit is ``fit_content_limit`` with minimum ``auto`` and maximum ``max-content``.
 
@@ -2266,7 +2266,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> HelpCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The control's full help body: one markdown string in the stx_rtf2md dialect, with stable-ID topic links. A program value a language file's help translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
 
@@ -2283,7 +2283,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> HelpLineCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The control's help line (help system study, section 4): one sentence for What's This, the window help card and the contents. A program value a language file's help-line translates. A value check_locale_value refuses throws std::invalid_argument, changing nothing.
 
@@ -2300,7 +2300,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> HitTestTransparentCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether pointer hit testing passes through the control to what is under it.
 
@@ -2317,7 +2317,7 @@ Related types
 
 .. cpp:struct:: template <typename ControlType> HoldsGridSpans : std::false_type
 
-   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>`` (:src:`source <include/gui_forms/layout/grid_span/grid_span.hpp>`)
 
    A grid container type that holds spans opts in by specializing this to true beside its declaration (GridPanel does). Such a type provides the child properties ``area`` and ``cell`` and has ``GridSpanOutcome define_span(const GridSpan&)``; the form schema and the loader reach it through this declaration only.
 
@@ -2325,7 +2325,7 @@ Related types
 
 .. cpp:struct:: InteractionDeclaration final
 
-   ``#include <gui_forms/schema/types/schema_types.hpp>``
+   ``#include <gui_forms/schema/types/schema_types.hpp>`` (:src:`source <include/gui_forms/schema/types/schema_types.hpp>`)
 
    One interaction. ``payload`` spells the handler's argument types as the event accessor declares them, without ``const`` or reference marks and separated by ", " ("ButtonBase", "std::size_t, CheckState"); it is empty for an interaction without arguments. ``mutable_payload`` is true when some argument reaches the handler by mutable reference, as a validation the handler may cancel does.
 
@@ -2339,7 +2339,7 @@ Related types
 
 .. cpp:struct:: InteractionValidation final
 
-   ``#include <gui_forms/schema/types/schema_types.hpp>``
+   ``#include <gui_forms/schema/types/schema_types.hpp>`` (:src:`source <include/gui_forms/schema/types/schema_types.hpp>`)
 
    The result of validate_interactions: the first defect found and the index of the interaction it concerns, or none.
 
@@ -2353,7 +2353,7 @@ Related types
 
 .. cpp:struct:: ItemPositioning final
 
-   ``#include <gui_forms/layout/positioning/positioning.hpp>``
+   ``#include <gui_forms/layout/positioning/positioning.hpp>`` (:src:`source <include/gui_forms/layout/positioning/positioning.hpp>`)
 
    An item's ``position`` and its insets, ``auto`` by default. A positioned item (relative or absolute) is a containing block for its absolutely positioned descendants.
 
@@ -2369,7 +2369,7 @@ Related types
 
 .. cpp:struct:: ItemSystemDeclaration final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    One kind of repeated item a control paints (owner decision 5): a list row, a tree node, a details-view column header. ``name`` is the system's registered name in the schema ("item", "column"). Item part names are unique within the control, across its own parts and every item system, so a document addresses an item part by its name alone.
 
@@ -2387,7 +2387,7 @@ Related types
 
 .. cpp:struct:: ItemSystemIndex final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    Position of an item system in its control type's declaration list.
 
@@ -2397,7 +2397,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> JustifySelfCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Where the control sits across its layout region's inline axis (CSS justify-self).
 
@@ -2414,7 +2414,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> KeywordsCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The control's help index keywords: ';' separates keywords and ',' a keyword from its subkeyword. A program value a language file's keywords translate. A malformed list throws std::invalid_argument, changing nothing.
 
@@ -2431,7 +2431,7 @@ Related types
 
 .. cpp:struct:: LayoutConstraint final
 
-   ``#include <gui_forms/layout/types/layout_types.hpp>``
+   ``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
    A measure query on both axes. Control::measure_for_layout answers it and caches the answer under exactly this value.
 
@@ -2443,7 +2443,7 @@ Related types
 
 .. cpp:struct:: LayoutDiagnostic final
 
-   ``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>``
+   ``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>`` (:src:`source <include/gui_forms/layout/diagnostics/layout_diagnostics.hpp>`)
 
    .. cpp:member:: LayoutDiagnosticSeverity severity
 
@@ -2463,7 +2463,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> LayoutDirectionCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The control's own layout direction; inherit takes the parent's (RightToLeft).
 
@@ -2480,7 +2480,7 @@ Related types
 
 .. cpp:struct:: LayoutStyle final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:member:: DisplayKind display
 
@@ -2542,7 +2542,7 @@ Related types
 
 .. cpp:struct:: LayoutTransactionState final
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    LayoutTransactionState exposes suspension depth, deferred work, and requested-versus-committed revisions without leaking a host layout engine.
 
@@ -2558,7 +2558,7 @@ Related types
 
 .. cpp:struct:: LengthPercentage final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    A length and a percentage of the box CSS names for the property, summed: ``24px`` is {24, 0}, ``50%`` is {0, 50}, ``calc(100% - 24px)`` is {-24, 100}.
 
@@ -2572,7 +2572,7 @@ Related types
 
 .. cpp:struct:: LineStrut final
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    The strut every line box starts with (10.8.1): the container's ascent and descent above and below the baseline, as its font and line height give them, and the x-height ``vertical-align: middle`` aligns to. A zero strut is a point on the baseline (CSS's strut of a zero-size font).
 
@@ -2586,7 +2586,7 @@ Related types
 
 .. cpp:class:: LogicalLength final
 
-   ``#include <gui_forms/layout/types/layout_types.hpp>``
+   ``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
    A layout length in logical units (device-independent pixels), the unit of every retained bound. Device pixels appear only where paint snaps edges, so a layout length is never added to a device-pixel quantity by accident.
 
@@ -2604,7 +2604,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MarginCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The space kept outside the control (Margin).
 
@@ -2621,7 +2621,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MaximumSizeCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The largest size layout gives the control; zero is unbounded.
 
@@ -2636,7 +2636,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MinimumSizeCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The smallest size layout gives the control (MinimumSize).
 
@@ -2651,7 +2651,7 @@ Related types
 
 .. cpp:struct:: MnemonicText final
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    MnemonicText separates rendered UTF-8 from the optional activation scalar parsed from Forms-compatible ampersand notation.
 
@@ -2663,7 +2663,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> NameCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The stable authoring name (Control::Name).
 
@@ -2678,7 +2678,7 @@ Related types
 
 .. cpp:struct:: OwnerDecorationRecipe final
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:member:: OwnerDecorationLayer layer
 
@@ -2704,7 +2704,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> PaddingCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The space kept inside the control around its content (Padding).
 
@@ -2719,7 +2719,7 @@ Related types
 
 .. cpp:struct:: PaintEventArgs final
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    What Control::on_paint_background receives (Windows Forms' PaintEventArgs for OnPaintBackground): the painter the window records the control into and the local area being painted. Both are borrowed for the call; the painter is valid only until the raiser returns.
 
@@ -2731,7 +2731,7 @@ Related types
 
 .. cpp:struct:: PartDeclaration final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    One declared part. ``name`` is the part's stable registered name within its control type; documents write it in ``::part(name)``. ``composed_from`` names the control id of a simpler system the part reuses (a scroll arrow is a "button"), or is empty.
 
@@ -2751,7 +2751,7 @@ Related types
 
 .. cpp:struct:: template <typename Record> PartField final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    One member of a parts record and the part it publishes.
 
@@ -2761,7 +2761,7 @@ Related types
 
 .. cpp:struct:: PartGeometry final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    One declared part as published: its geometry in the control's local coordinate space after layout, and its own active states. ``present`` is false when the part does not exist in the control's current configuration (a track bar's fill in the classic style); ``bounds`` is then empty. Presence does not depend on transient state: a focus part is present while the control is unfocused. ``states`` holds only states the part's declaration lists, and no custom states.
 
@@ -2796,7 +2796,7 @@ Related types
 
 .. cpp:struct:: PartGeometryBuffer final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    Storage for one control's published part geometry: ``count`` live records, one per declared part, in declaration order.
 
@@ -2813,7 +2813,7 @@ Related types
 
 .. cpp:struct:: PartIndex final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    Position of a part in its control type's declaration list. Distinct from the part's role (shared vocabulary) and from its name (public identity).
 
@@ -2823,7 +2823,7 @@ Related types
 
 .. cpp:struct:: RadialLayout final
 
-   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>`` (:src:`source <include/gui_forms/layout/radial_layout/radial_layout.hpp>`)
 
    .. cpp:member:: Point center
 
@@ -2851,7 +2851,7 @@ Related types
 
 .. cpp:struct:: RadialPick final
 
-   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>`` (:src:`source <include/gui_forms/layout/radial_layout/radial_layout.hpp>`)
 
    What a pointer picks: nothing within ``dead_zone`` of the centre (or for a layout that is not valid, or a point or dead zone that is not finite), otherwise the item whose sector holds the pointer's direction. A direction on a boundary picks the item clockwise of it.
 
@@ -2865,7 +2865,7 @@ Related types
 
 .. cpp:struct:: RadialSlot final
 
-   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>`` (:src:`source <include/gui_forms/layout/radial_layout/radial_layout.hpp>`)
 
    One placed item: its box, its anchor and direction, and the sector of directions that picks it, from ``sweep_start`` to ``sweep_start + sweep`` degrees (sweep = 360 / count, centred on the direction).
 
@@ -2883,7 +2883,7 @@ Related types
 
 .. cpp:struct:: RuntimeId
 
-   ``#include <gui_forms/control/runtime_id/runtime_id.hpp>``
+   ``#include <gui_forms/control/runtime_id/runtime_id.hpp>`` (:src:`source <include/gui_forms/control/runtime_id/runtime_id.hpp>`)
 
    RuntimeId is the monotonic process-local identity used for exact retained instances and child operations.
 
@@ -2893,7 +2893,7 @@ Related types
 
 .. cpp:struct:: SizeValue final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:member:: SizeKind kind
 
@@ -2907,7 +2907,7 @@ Related types
 
 .. cpp:class:: StableIdLiteral final
 
-   ``#include <gui_forms/control/stable_id/stable_id.hpp>``
+   ``#include <gui_forms/control/stable_id/stable_id.hpp>`` (:src:`source <include/gui_forms/control/stable_id/stable_id.hpp>`)
 
    A stable ID written as a string literal, checked when the program is compiled. It borrows the literal's static storage.
 
@@ -2925,7 +2925,7 @@ Related types
 
 .. cpp:struct:: template <typename Record> StateField final
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    One member of a states record and the standard state it reports.
 
@@ -2937,7 +2937,7 @@ Related types
 
 .. cpp:struct:: StaticNode
 
-   ``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>``
+   ``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>`` (:src:`source <include/gui_forms/control/static_tree/control_factory/control_factory.hpp>`)
 
    StaticNode is an inert declarative node containing a registered type name, stable ID, and owned child descriptions.
 
@@ -2968,7 +2968,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabIndexCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The control's place in its parent's tab order (TabIndex).
 
@@ -2985,7 +2985,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TabStopCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether the Tab key stops at the control (TabStop).
 
@@ -3002,7 +3002,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TagCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Application-owned metadata or lifetime anchor (Windows Forms Tag). Deliberately inert: a write implies no rendering, layout, semantics or binding, and stores even an equal value. A view onto the control's std::any, which has no ==.
 
@@ -3019,7 +3019,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TextCapability
 
-   ``#include <gui_forms/control/shared_capabilities/shared_capabilities.hpp>``
+   ``#include <gui_forms/control/shared_capabilities/shared_capabilities.hpp>`` (:src:`source <include/gui_forms/control/shared_capabilities/shared_capabilities.hpp>`)
 
    The text the control shows (Text).
 
@@ -3041,7 +3041,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipTextCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    The plain tooltip text; empty never shows.
 
@@ -3056,7 +3056,7 @@ Related types
 
 .. cpp:struct:: TrackBreadth final
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:member:: TrackBreadthKind kind
 
@@ -3070,7 +3070,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> VisibleCapability
 
-   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>``
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
    Whether the control takes part in presentation and input (Visible).
 
@@ -3087,7 +3087,7 @@ Related types
 
 .. cpp:class:: WrongThreadError final : public std::logic_error
 
-   ``#include <gui_forms/component/failures/component_failures.hpp>``
+   ``#include <gui_forms/component/failures/component_failures.hpp>`` (:src:`source <include/gui_forms/component/failures/component_failures.hpp>`)
 
    Thrown when an object is used from a thread other than the one that owns it (a window's root thread).
 
@@ -3103,7 +3103,7 @@ Enumerations
 
 .. cpp:enum-class:: ActiveBorderMotion
 
-   ``#include <gui_forms/control/active_border/active_border.hpp>``
+   ``#include <gui_forms/control/active_border/active_border.hpp>`` (:src:`source <include/gui_forms/control/active_border/active_border.hpp>`)
 
    .. cpp:enumerator:: steady
 
@@ -3115,7 +3115,7 @@ Enumerations
 
 .. cpp:enum-class:: AnatomyDefect
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3181,7 +3181,7 @@ Enumerations
 
 .. cpp:enum-class:: AnatomyState
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -3251,7 +3251,7 @@ Enumerations
 
 .. cpp:enum-class:: AnchorStyles
 
-   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>`` (:src:`source <include/gui_forms/control/control_layout_styles/control_layout_styles.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3267,7 +3267,7 @@ Enumerations
 
 .. cpp:enum-class:: AutoRepeatKind
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3279,7 +3279,7 @@ Enumerations
 
 .. cpp:enum-class:: AutoSizeMode
 
-   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>`` (:src:`source <include/gui_forms/control/control_layout_styles/control_layout_styles.hpp>`)
 
    .. cpp:enumerator:: grow_and_shrink
 
@@ -3289,7 +3289,7 @@ Enumerations
 
 .. cpp:enum-class:: AutoValidate
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:enumerator:: inherit
 
@@ -3303,7 +3303,7 @@ Enumerations
 
 .. cpp:enum-class:: AvailableExtentKind
 
-   ``#include <gui_forms/layout/types/layout_types.hpp>``
+   ``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
    .. cpp:enumerator:: definite
 
@@ -3317,7 +3317,7 @@ Enumerations
 
 .. cpp:enum-class:: BlockFlowIntrinsicKind
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    .. cpp:enumerator:: min_content
 
@@ -3327,7 +3327,7 @@ Enumerations
 
 .. cpp:enum-class:: BlockFlowLevel
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    .. cpp:enumerator:: block
 
@@ -3337,7 +3337,7 @@ Enumerations
 
 .. cpp:enum-class:: BlockFlowSolveOutcome
 
-   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+   ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
    .. cpp:enumerator:: solved
 
@@ -3347,7 +3347,7 @@ Enumerations
 
 .. cpp:enum-class:: BoundsSpecified
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3369,7 +3369,7 @@ Enumerations
 
 .. cpp:enum-class:: ComponentState
 
-   ``#include <gui_forms/component/types/component_types.hpp>``
+   ``#include <gui_forms/component/types/component_types.hpp>`` (:src:`source <include/gui_forms/component/types/component_types.hpp>`)
 
    .. cpp:enumerator:: alive
 
@@ -3381,7 +3381,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlStyles
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3401,7 +3401,7 @@ Enumerations
 
 .. cpp:enum-class:: DialogResult
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3427,7 +3427,7 @@ Enumerations
 
 .. cpp:enum-class:: DisplayKind
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: block
 
@@ -3445,7 +3445,7 @@ Enumerations
 
 .. cpp:enum-class:: DockStyle
 
-   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>`` (:src:`source <include/gui_forms/control/control_layout_styles/control_layout_styles.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3463,7 +3463,7 @@ Enumerations
 
 .. cpp:enum-class:: EngineInput
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    .. cpp:enumerator:: pointer_x
 
@@ -3481,7 +3481,7 @@ Enumerations
 
 .. cpp:enum-class:: FlexDirection
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: row
 
@@ -3495,7 +3495,7 @@ Enumerations
 
 .. cpp:enum-class:: FlexFreezeReason
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    .. cpp:enumerator:: inflexible
 
@@ -3509,7 +3509,7 @@ Enumerations
 
 .. cpp:enum-class:: FlexSolveOutcome
 
-   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+   ``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
    .. cpp:enumerator:: solved
 
@@ -3521,7 +3521,7 @@ Enumerations
 
 .. cpp:enum-class:: FlexWrap
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: nowrap
 
@@ -3533,7 +3533,7 @@ Enumerations
 
 .. cpp:enum-class:: GetChildAtPointSkip
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3547,7 +3547,7 @@ Enumerations
 
 .. cpp:enum-class:: GridAutoFlow
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: row
 
@@ -3561,7 +3561,7 @@ Enumerations
 
 .. cpp:enum-class:: GridAxis
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    .. cpp:enumerator:: columns
 
@@ -3571,7 +3571,7 @@ Enumerations
 
 .. cpp:enum-class:: GridLayoutWorkspace::Breadth
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    .. cpp:enumerator:: fixed
 
@@ -3589,7 +3589,7 @@ Enumerations
 
 .. cpp:enum-class:: GridLineKind
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: automatic
 
@@ -3603,7 +3603,7 @@ Enumerations
 
 .. cpp:enum-class:: GridSizingKind
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    .. cpp:enumerator:: definite
 
@@ -3615,7 +3615,7 @@ Enumerations
 
 .. cpp:enum-class:: GridSolveOutcome
 
-   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+   ``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
    .. cpp:enumerator:: solved
 
@@ -3629,7 +3629,7 @@ Enumerations
 
 .. cpp:enum-class:: GridSpanOutcome
 
-   ``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+   ``#include <gui_forms/layout/grid_span/grid_span.hpp>`` (:src:`source <include/gui_forms/layout/grid_span/grid_span.hpp>`)
 
    .. cpp:enumerator:: applied
 
@@ -3649,7 +3649,7 @@ Enumerations
 
 .. cpp:enum-class:: InlineVerticalAlignment
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: baseline
 
@@ -3663,7 +3663,7 @@ Enumerations
 
 .. cpp:enum-class:: InteractionDefect
 
-   ``#include <gui_forms/schema/types/schema_types.hpp>``
+   ``#include <gui_forms/schema/types/schema_types.hpp>`` (:src:`source <include/gui_forms/schema/types/schema_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3677,7 +3677,7 @@ Enumerations
 
 .. cpp:enum-class:: LayoutAlignment
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: automatic
 
@@ -3707,7 +3707,7 @@ Enumerations
 
 .. cpp:enum-class:: LayoutDiagnosticCode
 
-   ``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>``
+   ``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>`` (:src:`source <include/gui_forms/layout/diagnostics/layout_diagnostics.hpp>`)
 
    .. cpp:enumerator:: containing_block_not_parent
 
@@ -3717,7 +3717,7 @@ Enumerations
 
 .. cpp:enum-class:: LayoutDiagnosticSeverity
 
-   ``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>``
+   ``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>`` (:src:`source <include/gui_forms/layout/diagnostics/layout_diagnostics.hpp>`)
 
    .. cpp:enumerator:: warning
 
@@ -3727,7 +3727,7 @@ Enumerations
 
 .. cpp:enum-class:: LayoutDirection
 
-   ``#include <gui_forms/layout/types/layout_types.hpp>``
+   ``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
    .. cpp:enumerator:: inherit
 
@@ -3739,7 +3739,7 @@ Enumerations
 
 .. cpp:enum-class:: OwnerDecorationLayer
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:enumerator:: before_content
 
@@ -3749,7 +3749,7 @@ Enumerations
 
 .. cpp:enum-class:: PartRole
 
-   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+   ``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
    .. cpp:enumerator:: region
 
@@ -3871,7 +3871,7 @@ Enumerations
 
 .. cpp:enum-class:: PositionKind
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: static_position
 
@@ -3883,7 +3883,7 @@ Enumerations
 
 .. cpp:enum-class:: RadialItemAlignment
 
-   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+   ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>`` (:src:`source <include/gui_forms/layout/radial_layout/radial_layout.hpp>`)
 
    .. cpp:enumerator:: centred
 
@@ -3893,7 +3893,7 @@ Enumerations
 
 .. cpp:enum-class:: ResizeAxes
 
-   ``#include <gui_forms/layout/resize_axes/resize_axes.hpp>``
+   ``#include <gui_forms/layout/resize_axes/resize_axes.hpp>`` (:src:`source <include/gui_forms/layout/resize_axes/resize_axes.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -3907,7 +3907,7 @@ Enumerations
 
 .. cpp:enum-class:: RightToLeft
 
-   ``#include <gui_forms/layout/types/layout_types.hpp>``
+   ``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
    .. cpp:enumerator:: no
 
@@ -3919,7 +3919,7 @@ Enumerations
 
 .. cpp:enum-class:: SelfAlignment
 
-   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+   ``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>`` (:src:`source <include/gui_forms/control/control_layout_styles/control_layout_styles.hpp>`)
 
    .. cpp:enumerator:: automatic
 
@@ -3935,7 +3935,7 @@ Enumerations
 
 .. cpp:enum-class:: SizeKind
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: automatic
 
@@ -3955,7 +3955,7 @@ Enumerations
 
 .. cpp:enum-class:: TextAlignment
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: start
 
@@ -3971,7 +3971,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolTipPresentation
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:enumerator:: bubble
 
@@ -3983,7 +3983,7 @@ Enumerations
 
 .. cpp:enum-class:: TrackBreadthKind
 
-   ``#include <gui_forms/layout/style/layout_style.hpp>``
+   ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
    .. cpp:enumerator:: length_percentage
 
@@ -3999,7 +3999,7 @@ Enumerations
 
 .. cpp:enum-class:: ValidationConstraints
 
-   ``#include <gui_forms/control/control/control.hpp>``
+   ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -4018,7 +4018,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/anatomy/types/anatomy_types.hpp>``
+``#include <gui_forms/anatomy/types/anatomy_types.hpp>`` (:src:`source <include/gui_forms/anatomy/types/anatomy_types.hpp>`)
 
 .. cpp:function:: std::string_view part_role_name(PartRole role) noexcept
 
@@ -4124,7 +4124,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>``
+``#include <gui_forms/borrow/borrowed_view/borrowed_view.hpp>`` (:src:`source <include/gui_forms/borrow/borrowed_view/borrowed_view.hpp>`)
 
 .. cpp:function:: template <typename Element> std::span<Element> unchecked_view(const BasicBorrowedSpan<Element>& view) noexcept
 
@@ -4144,7 +4144,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/control/active_border/active_border.hpp>``
+``#include <gui_forms/control/active_border/active_border.hpp>`` (:src:`source <include/gui_forms/control/active_border/active_border.hpp>`)
 
 .. cpp:function:: bool active_border_valid(const ActiveBorder& border) noexcept
 
@@ -4202,7 +4202,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/control/control/control.hpp>``
+``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
 
 .. cpp:function:: constexpr bool has_validation_constraint(ValidationConstraints value, ValidationConstraints flag) noexcept
 
@@ -4230,13 +4230,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>`` (:src:`source <include/gui_forms/control/control_layout_styles/control_layout_styles.hpp>`)
 
 .. cpp:function:: constexpr bool has_anchor(AnchorStyles value, AnchorStyles flag) noexcept
 
 .. cpp:namespace:: gui_forms::types
 
-``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>``
+``#include <gui_forms/control/control_layout_styles/control_layout_styles.hpp>`` (:src:`source <include/gui_forms/control/control_layout_styles/control_layout_styles.hpp>`)
 
 .. cpp:var:: constexpr TypeTag<DockStyle> dock_style
 
@@ -4248,13 +4248,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::types
 
-``#include <gui_forms/control/control_property_traits/control_property_traits.hpp>``
+``#include <gui_forms/control/control_property_traits/control_property_traits.hpp>`` (:src:`source <include/gui_forms/control/control_property_traits/control_property_traits.hpp>`)
 
 .. cpp:var:: constexpr TypeTag<stxlib::Optional<CursorKind>> optional_cursor_kind
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/control/stable_id/stable_id.hpp>``
+``#include <gui_forms/control/stable_id/stable_id.hpp>`` (:src:`source <include/gui_forms/control/stable_id/stable_id.hpp>`)
 
 .. cpp:function:: constexpr bool valid_stable_id(std::string_view value) noexcept
 
@@ -4262,13 +4262,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>``
+``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>`` (:src:`source <include/gui_forms/control/static_tree/control_factory/control_factory.hpp>`)
 
 .. cpp:function:: Control::Ptr build_static_tree(const StaticNode& node, const ControlFactory& factory)
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>``
+``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
 .. cpp:function:: BlockFlowSolveOutcome solve_block_flow(const BlockFlowContainerInput& container, std::span<const BlockFlowItemInput> items, BlockFlowLayoutWorkspace& workspace)
 
@@ -4288,7 +4288,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>``
+``#include <gui_forms/layout/diagnostics/layout_diagnostics.hpp>`` (:src:`source <include/gui_forms/layout/diagnostics/layout_diagnostics.hpp>`)
 
 .. cpp:function:: LayoutDiagnosticSeverity layout_diagnostic_severity(LayoutDiagnosticCode code) noexcept
 
@@ -4306,7 +4306,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/flex_solver/flex_solver.hpp>``
+``#include <gui_forms/layout/flex_solver/flex_solver.hpp>`` (:src:`source <include/gui_forms/layout/flex_solver/flex_solver.hpp>`)
 
 .. cpp:function:: FlexSolveOutcome resolve_flex_main_sizes(const FlexContainerInput& container, std::span<const FlexItemInput> items, FlexLayoutWorkspace& workspace)
 
@@ -4322,7 +4322,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/grid_solver/grid_solver.hpp>``
+``#include <gui_forms/layout/grid_solver/grid_solver.hpp>`` (:src:`source <include/gui_forms/layout/grid_solver/grid_solver.hpp>`)
 
 .. cpp:function:: GridSolveOutcome place_grid_items(const GridContainerStyle& style, const GridContainerInput& container, std::span<const GridItemInput> items, GridLayoutWorkspace& workspace)
 
@@ -4354,7 +4354,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/grid_span/grid_span.hpp>``
+``#include <gui_forms/layout/grid_span/grid_span.hpp>`` (:src:`source <include/gui_forms/layout/grid_span/grid_span.hpp>`)
 
 .. cpp:function:: bool grid_span_extent_valid(const GridSpan& span) noexcept
 
@@ -4380,7 +4380,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/positioning/positioning.hpp>``
+``#include <gui_forms/layout/positioning/positioning.hpp>`` (:src:`source <include/gui_forms/layout/positioning/positioning.hpp>`)
 
 .. cpp:function:: Point relative_position_offset(const ItemPositioning& positioning, Size containing_block, LayoutDirection direction) noexcept
 
@@ -4398,7 +4398,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/radial_layout/radial_layout.hpp>``
+``#include <gui_forms/layout/radial_layout/radial_layout.hpp>`` (:src:`source <include/gui_forms/layout/radial_layout/radial_layout.hpp>`)
 
 .. cpp:function:: bool valid_radial_layout(const RadialLayout& layout) noexcept
 
@@ -4422,7 +4422,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/resize_axes/resize_axes.hpp>``
+``#include <gui_forms/layout/resize_axes/resize_axes.hpp>`` (:src:`source <include/gui_forms/layout/resize_axes/resize_axes.hpp>`)
 
 .. cpp:function:: constexpr bool has_axes(ResizeAxes axes, ResizeAxes wanted) noexcept
 
@@ -4434,7 +4434,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/style/layout_style.hpp>``
+``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_grid_tracks
 
@@ -4442,7 +4442,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/layout/types/layout_types.hpp>``
+``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
 .. cpp:function:: constexpr AvailableExtent definite_extent(LogicalLength extent) noexcept
 
@@ -4490,13 +4490,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::types
 
-``#include <gui_forms/layout/types/layout_types.hpp>``
+``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
 .. cpp:var:: constexpr TypeTag<LayoutDirection> layout_direction
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/schema/types/schema_types.hpp>``
+``#include <gui_forms/schema/types/schema_types.hpp>`` (:src:`source <include/gui_forms/schema/types/schema_types.hpp>`)
 
 .. cpp:function:: bool is_registered_name(std::string_view name) noexcept
 
@@ -4508,7 +4508,7 @@ Functions, constants and aliases
 
 .. cpp:function:: std::string css_spelling(std::string_view registered)
 
-   The kebab-case spelling CSS-family documents write: "auto-size-mode".
+   The kebab-case spelling theme sheets and form documents write: "auto-size-mode".
 
 .. cpp:function:: std::string display_spelling(std::string_view registered)
 

@@ -79,6 +79,12 @@ void finish_run(MacRunEnd& end);
     // application when the run destroys the window, quit or session_end
     // when a quit request closes it (closeForTermination:reason:).
     HostCloseReason _closeReason;
+    // The content area's top-left corner on the screen (AppKit screen
+    // coordinates) as last seen (rememberFrameOriginOf:, a move or the start
+    // of one); _frameOriginKnown is NO (as the runtime zeroes ivars) until
+    // then, and the first move notification only records it.
+    NSPoint _reportedContentOrigin;
+    BOOL _frameOriginKnown;
 }
 - (instancetype)initWithView:(GUIFormsView*)view
       stopsApplicationOnClose:(BOOL)stopsApplicationOnClose
@@ -89,6 +95,9 @@ void finish_run(MacRunEnd& end);
            window:(gui_forms::HostWindowId)window;
 // Closes without asking the closing handler (HostWindowing::destroy_window).
 - (void)closeWindowForApplication:(NSWindow*)window;
+// Records where `window`'s content area is, so that its next move is
+// reported (called when the window is made, after setDelegate:).
+- (void)rememberFrameOriginOf:(NSWindow*)window;
 // A quit request (Cmd-Q, the Dock, a quit Apple event, a log-out): for the
 // window that ends the run, asks the closing handler with reason (quit, or
 // session_end for a log-out, restart or shut-down) and closes the window
@@ -106,6 +115,8 @@ void finish_run(MacRunEnd& end);
 // targets below): each entry calls its answer through the fail-fast
 // boundary (call_failing_fast).
 - (void)answerWindowDidMove:(NSNotification*)notification;
+- (void)answerWindowWillMove:(NSNotification*)notification;
+- (void)answerWindowWillStartLiveResize:(NSNotification*)notification;
 - (void)answerWindowWillClose:(NSNotification*)notification;
 - (void)answerWindowDidResize:(NSNotification*)notification;
 - (BOOL)answerWindowShouldClose:(NSWindow*)sender;

@@ -48,7 +48,9 @@ config.theme.packages.push_back(my_app::my_app_theme());   // compiled once, in 
   family (`window`, `panel`, `card`, `button`, `accent-button`,
   `command-button`, `choice`, `editor`, `menu-item`, `selection`,
   `progress`, `tool-tip`, `link`, `visited-link`);
-- the surfaces `window` and `popup`, which hold only `backdrop`.
+- the surfaces `window` and `popup`: both take `backdrop`, and `window`
+  also takes the window outer band's look (`band-width`, `band-color`,
+  `band-lit-color`, `band-effect`).
 
 `:has()`, `:nth-*()`, attribute selectors and the sibling combinators are
 errors. Specificity is CSS's; a package beats its base as CSS's author origin

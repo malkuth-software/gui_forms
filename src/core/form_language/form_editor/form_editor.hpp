@@ -1,7 +1,7 @@
 #pragma once
 
-// A form document's editor (stage FD, phase FD4): one property set or
-// reset, one object added, removed or moved, changing only the bytes of
+// A form document's editor (stage FD, phase FD4): one property set, bound
+// or reset, one object added, removed or moved, changing only the bytes of
 // what it touches. Every edit is made on a copy of the text, which is then
 // parsed and checked against the schema like any document; the document
 // changes only when that copy is a valid document (validation before
@@ -18,7 +18,9 @@
 // opened first). The document's own line ending (CRLF when it has one) is
 // used. A removed attribute takes the whitespace before it; a removed
 // element takes its line with it when it is alone on that line. A moved
-// element keeps its bytes as written, inner indentation included.
+// element keeps its bytes as written, inner indentation included. A new
+// `bind` element goes after the object's last one, or before its first
+// child element when it has none, or as its only child.
 
 #include "../form_model/form_model.hpp"
 #include "../form_xml/form_xml.hpp"
@@ -64,18 +66,45 @@ enum class FormEditOutcome : std::uint8_t {
                                                  const FormSchema& schema,
                                                  theme_language::ThemeDiagnosticList& diagnostics);
 
-// Writes `property` (kebab-case, as a document spells it; a binding is a
-// value, `bind(...)`) of the object `object_id` as `value`, the attribute's
-// value as XML decodes it; the editor escapes it. A written attribute's
-// value bytes are replaced; an unwritten one is added after the element's
-// last attribute. `id` and `xmlns` are no properties (not_admitted).
+// One binding as its `bind` element writes it (form_model.hpp, Bindings):
+// each attribute's value as XML decodes it, the editor escaping it; an
+// empty one is not written. `to` is required.
+struct FormBindingText final {
+    std::string to{};
+    std::string field{};
+    std::string mode{};
+    std::string update{};
+};
+
+// Writes `property` (kebab-case, as a document spells it) of the object
+// `object_id` as `value`, the attribute's value as XML decodes it; the
+// editor escapes it. An attribute is always a literal value. A written
+// attribute's value bytes are replaced; an unwritten one is added after
+// the element's last attribute. A `bind` element of the property is
+// removed in the same edit: the property is then set, not bound. `id` and
+// `xmlns` are no properties (not_admitted).
 [[nodiscard]] FormEditOutcome set_form_property(FormDocument& document, std::string_view object_id,
                                                 std::string_view property, std::string_view value,
                                                 const FormSchema& schema,
                                                 theme_language::ThemeDiagnosticList& diagnostics);
 
-// Removes the attribute `property` from the object's element, so that the
-// property keeps the value its type gives it.
+// Binds `property` of the object `object_id` as `binding` describes. The
+// property's `bind` element, when there is one, keeps its bytes but for
+// the attributes that change: a changed value's bytes are replaced, an
+// attribute `binding` leaves empty is removed, and a new one is added
+// after the element's last attribute; attributes the editor does not write
+// (a reserved `converter`) are kept. Otherwise a `bind` element is added
+// (Layout above). An attribute setting the property is removed in the same
+// edit. unchanged when the document already writes exactly this binding;
+// not_admitted for an empty `to` or a property that is not one name.
+[[nodiscard]] FormEditOutcome set_form_binding(FormDocument& document, std::string_view object_id,
+                                               std::string_view property, const FormBindingText& binding,
+                                               const FormSchema& schema,
+                                               theme_language::ThemeDiagnosticList& diagnostics);
+
+// Removes the attribute `property` from the object's element, and the
+// property's `bind` element, so that the property keeps the value its type
+// gives it; unchanged when neither is written.
 [[nodiscard]] FormEditOutcome reset_form_property(FormDocument& document, std::string_view object_id,
                                                   std::string_view property, const FormSchema& schema,
                                                   theme_language::ThemeDiagnosticList& diagnostics);

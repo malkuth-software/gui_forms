@@ -178,7 +178,7 @@ WINFORMS_TYPES: Mapping[str, WinFormsType] = {
     "ScrollableControl": WinFormsType("Control", "done"),
     "ContainerControl": WinFormsType("ScrollableControl", "done"),
     "UserControl": WinFormsType("ContainerControl", "done"),
-    "Form": WinFormsType("ContainerControl", "partial", "the top level is Window, not a control; MDI is admitted as a presentation of DK's document area, not built"),
+    "Form": WinFormsType("ContainerControl", "partial", "the top level is Window, not a control; MDI is a presentation of DK's document area (Window's MDI calls over the docking workspace, DK decisions 60 to 63)"),
     "Panel": WinFormsType("ScrollableControl", "done"),
     "GroupBox": WinFormsType("Control", "done"),
     "FlowLayoutPanel": WinFormsType("Panel", "done"),
@@ -237,7 +237,7 @@ WINFORMS_TYPES: Mapping[str, WinFormsType] = {
     "AxHost": WinFormsType("Control", "excluded", "ActiveX hosting"),
     "WebBrowserBase": WinFormsType("Control", "excluded", "browser hosting"),
     "WebBrowser": WinFormsType("WebBrowserBase", "excluded", "browser hosting"),
-    "MdiClient": WinFormsType("Control", "excluded", "MDI (stage W's exclusion list; MDI was since admitted as a presentation of DK's document area, not as MdiClient)"),
+    "MdiClient": WinFormsType("Control", "excluded", "MDI (stage W's exclusion list): MDI is a presentation of DK's document area, with no MdiClient control; the main DockSite realizes the frames (DK decisions 60 to 63)"),
     "PrintPreviewControl": WinFormsType("Control", "excluded", "printing"),
     "PrintPreviewDialog": WinFormsType("Form", "excluded", "printing"),
     "PrintDialog": WinFormsType("CommonDialog", "excluded", "printing"),
@@ -277,10 +277,13 @@ W_MEMBER_EVIDENCE: tuple[MemberEvidence, ...] = (
                    "excluded", "An IFileDialog-only option.", W_BRIEF),
     MemberEvidence("FileDialog", "RestoreDirectory", "excluded",
                    "No dialog changes the working directory.", W_BRIEF),
-    MemberEvidence("Form", "(On)?MdiChildActivate|IsMdiContainer|IsMdiChild|MdiChildren|MdiParent|ActiveMdiChild"
-                   "|LayoutMdi|ActivateMdiChild|MdiChildrenMinimizedAnchorBottom", "deferred",
-                   "MDI is admitted as a presentation of DK's document area (DK decisions 60 to 62, 2026-11-02), not built yet.",
-                   W_BRIEF),
+    MemberEvidence("Form", "IsMdiChild|MdiParent", "excluded",
+                   "An MDI child is a document of the window's docking document area, named by its DockPanelId, "
+                   "never a second Window, so no window is an MDI child or has an MDI parent (DK decisions 60 to 63; "
+                   "Window::mdi_children).", W_BRIEF),
+    MemberEvidence("Form", "OnMdiChildActivate", "excluded",
+                   "The document area raises mdi_child_activate; Window has no overridable raiser (DK decisions 60 "
+                   "to 63).", W_BRIEF),
 )
 # Members stage W's brief names as open questions rather than classifying.
 W_OPEN_MEMBERS: Mapping[str, tuple[str, str]] = {

@@ -384,6 +384,10 @@ private:
     void read_children(std::uint32_t index, ControlModel& scratch);
     void read_child(std::uint32_t index, std::optional<std::size_t> parent_child,
                     std::optional<std::size_t> parent_type, ControlModel& scratch);
+    // A `bind` element (position `index`) of the child `parent_child`, whose
+    // type (the base type for the slot) is `parent_type`.
+    void read_child_binding(std::uint32_t index, std::optional<std::size_t> parent_child,
+                            std::optional<std::size_t> parent_type, ControlModel& scratch);
     void read_focus(std::uint32_t index, ControlModel& scratch);
     void read_rule(std::uint32_t index, bool key, ControlModel& scratch);
     void read_semantics(std::uint32_t index, ControlModel& scratch);
@@ -1221,6 +1225,10 @@ void ModelBuilder::read_child(const std::uint32_t index, const std::optional<std
                    "style belongs in <look>");
             continue;
         }
+        if (written_type == form_language::form_bind_type_name) {
+            read_child_binding(item.index, item.parent_child, item.parent_type, scratch);
+            continue;
+        }
         if (written_type == span_element) {
             const bool holds = item.parent_type && schema_.types[*item.parent_type].holds_spans;
             if (!holds) {
@@ -1281,7 +1289,6 @@ void ModelBuilder::read_child(const std::uint32_t index, const std::optional<std
             ControlChildAttribute value{};
             value.name = snake_of(written.name);
             value.value = written.value;
-            value.bound = written.value.starts_with("bind(");
             const PropertyDescriptor* descriptor = nullptr;
             if (own_type) {
                 for (const PropertyDescriptor& candidate : schema_.types[*own_type].properties) {
@@ -1322,6 +1329,72 @@ void ModelBuilder::read_child(const std::uint32_t index, const std::optional<std
             pending.push_back(Pending{index_of(nested), position, own_type});
         }
     }
+}
+
+void ModelBuilder::read_child_binding(const std::uint32_t index, const std::optional<std::size_t> parent_child,
+                                      const std::optional<std::size_t> parent_type, ControlModel& scratch) {
+    const std::string_view bind_name = form_language::form_bind_type_name;
+    if (!parent_child) {
+        report(DiagnosticCode::control_child_invalid, element_offset(index), bind_name, {},
+               "a bind is written directly inside the child whose property it binds");
+        return;
+    }
+    const ElementShape shape{bind_name,
+                             {form_language::form_bind_property_attribute, form_language::form_bind_source_attribute,
+                              form_language::form_bind_mode_attribute, form_language::form_bind_update_attribute,
+                              form_language::form_bind_converter_attribute},
+                             {form_language::form_bind_property_attribute, form_language::form_bind_source_attribute}};
+    check_attributes(index, shape, bind_name);
+    const XmlElement& element = *flat_[index].element;
+    if (!element.children.empty()) {
+        report(DiagnosticCode::control_child_invalid, element_offset(index), bind_name, {}, "a bind holds nothing");
+    }
+    ControlChild& child = scratch.children[*parent_child];
+    ControlChildBinding binding{};
+    const std::string_view written = attribute(index, form_language::form_bind_property_attribute);
+    binding.property = snake_of(written);
+    binding.to = std::string(attribute(index, form_language::form_bind_source_attribute));
+    binding.mode = std::string(attribute(index, form_language::form_bind_mode_attribute));
+    binding.update = std::string(attribute(index, form_language::form_bind_update_attribute));
+    binding.converter = has_attribute(index, form_language::form_bind_converter_attribute);
+    binding.source = source_of(index);
+    // The property: the child's type's (the base type's for the slot), as
+    // for an attribute, written once.
+    const PropertyDescriptor* descriptor = nullptr;
+    if (parent_type && kebab_name(written)) {
+        for (const PropertyDescriptor& candidate : schema_.types[*parent_type].properties) {
+            if (candidate.name == binding.property) descriptor = &candidate;
+        }
+    }
+    const std::size_t property_offset = value_offset(index, form_language::form_bind_property_attribute);
+    if (descriptor == nullptr) {
+        if (parent_type && !written.empty()) {
+            report(DiagnosticCode::control_child_invalid, property_offset, bind_name, written,
+                   schema_.types[*parent_type].name + " has no property " + std::string(written));
+        }
+    } else {
+        // A composite wires its own children, so any writable property of a
+        // child takes a bind, as the bound attributes did before <bind>
+        // (stepper-field binds the text box's read-only); a form's binding
+        // still needs a bindable property.
+        if (!(*descriptor).writable) {
+            report(DiagnosticCode::form_binding_invalid, property_offset, bind_name, written,
+                   std::string(written) + " is read-only");
+        }
+        if (binding.mode == "two-way" && (*descriptor).binding_direction != PropertyBindingDirection::two_way) {
+            report(DiagnosticCode::form_binding_option_invalid,
+                   value_offset(index, form_language::form_bind_mode_attribute), bind_name, written,
+                   "two-way applies to a property the user edits through the control");
+        }
+    }
+    bool repeated = false;
+    for (const ControlChildAttribute& existing : child.attributes) repeated = repeated || existing.name == binding.property;
+    for (const ControlChildBinding& existing : child.bindings) repeated = repeated || existing.property == binding.property;
+    if (repeated) {
+        report(DiagnosticCode::control_child_invalid, property_offset, bind_name, written,
+               std::string(written) + " is written twice on the child");
+    }
+    child.bindings.push_back(std::move(binding));
 }
 
 void ModelBuilder::read_focus(const std::uint32_t index, ControlModel& scratch) {
@@ -1981,50 +2054,40 @@ void ModelBuilder::check_child_values(const ControlModel& scratch) {
         const std::string rule = child.local_id.empty() ? std::string("child") : "@" + child.local_id;
         for (const ControlChildAttribute& attribute_value : child.attributes) {
             const std::string written_name = kebab_of(attribute_value.name);
-            if (attribute_value.bound) {
-                // bind(self.<property>[, option]...): a composite's child
-                // binds to the composite's own properties.
-                const std::string_view value = attribute_value.value;
-                const std::size_t close = value.rfind(')');
-                const std::string_view inside = close == std::string_view::npos ? std::string_view{}
-                                                                                : value.substr(5U, close - 5U);
-                const std::size_t comma = inside.find(',');
-                std::string_view source_name = inside.substr(0U, comma);
-                while (!source_name.empty() && source_name.back() == ' ') source_name.remove_suffix(1U);
-                while (!source_name.empty() && source_name.front() == ' ') source_name.remove_prefix(1U);
-                if (close == std::string_view::npos || close + 1U != value.size() || !source_name.starts_with("self.")) {
-                    report(DiagnosticCode::form_binding_invalid, value_offset(element, written_name), rule,
-                           written_name, "a child binds to the composite: bind(self.<property>[, option]...)");
-                    continue;
-                }
-                const std::string_view property = source_name.substr(5U);
-                if (!any_property(scratch, property)) {
-                    report(DiagnosticCode::control_reference_unknown, value_offset(element, written_name), rule,
-                           written_name, "self." + std::string(property) + " names no property");
-                }
-                const std::string_view options = comma == std::string_view::npos ? std::string_view{}
-                                                                                 : inside.substr(comma + 1U);
-                std::size_t start = 0U;
-                while (start <= options.size() && !options.empty()) {
-                    const std::size_t next = options.find(',', start);
-                    std::string_view option = options.substr(start, next == std::string_view::npos ? std::string_view::npos
-                                                                                                   : next - start);
-                    while (!option.empty() && option.front() == ' ') option.remove_prefix(1U);
-                    while (!option.empty() && option.back() == ' ') option.remove_suffix(1U);
-                    if (option.starts_with("convert")) {
-                        report(DiagnosticCode::not_yet_built, value_offset(element, written_name), rule, written_name,
-                               "converters are reserved (convert)");
-                    } else if (option != "one_way" && option != "update on-change" && option != "update on-validate") {
-                        report(DiagnosticCode::form_binding_option_invalid, value_offset(element, written_name), rule,
-                               written_name, "binding option '" + std::string(option) + "'");
-                    }
-                    if (next == std::string_view::npos) break;
-                    start = next + 1U;
-                }
-                continue;
-            }
             if (attribute_value.value.find("self.") != std::string::npos) {
                 check_expression(attribute_value.value, element, written_name, ExpressionPlace::child, rule, scratch);
+            }
+        }
+        // <bind property="..." to="self.<property>" .../>: a composite's
+        // child binds to the composite's own properties.
+        for (const ControlChildBinding& binding : child.bindings) {
+            const std::uint32_t bind = binding.source.element;
+            const std::string written_name = kebab_of(binding.property);
+            const std::size_t to_offset = value_offset(bind, form_language::form_bind_source_attribute);
+            if (!binding.to.starts_with("self.")) {
+                report(DiagnosticCode::form_binding_invalid, to_offset, rule, written_name,
+                       "a child binds to the composite: to=\"self.<property>\"");
+                continue;
+            }
+            const std::string_view property = std::string_view(binding.to).substr(5U);
+            if (!any_property(scratch, property)) {
+                report(DiagnosticCode::control_reference_unknown, to_offset, rule, written_name,
+                       "self." + std::string(property) + " names no property");
+            }
+            if (!binding.mode.empty() && binding.mode != "one-way" && binding.mode != "two-way") {
+                report(DiagnosticCode::form_binding_option_invalid,
+                       value_offset(bind, form_language::form_bind_mode_attribute), rule, written_name,
+                       "mode is one-way or two-way");
+            }
+            if (!binding.update.empty() && binding.update != "on-change" && binding.update != "on-validate") {
+                report(DiagnosticCode::form_binding_option_invalid,
+                       value_offset(bind, form_language::form_bind_update_attribute), rule, written_name,
+                       "update is on-change or on-validate");
+            }
+            if (binding.converter) {
+                report(DiagnosticCode::not_yet_built,
+                       attribute_offset(bind, form_language::form_bind_converter_attribute), rule, written_name,
+                       "converters are reserved (converter)");
             }
         }
     }

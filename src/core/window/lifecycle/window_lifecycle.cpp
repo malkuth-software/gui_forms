@@ -152,6 +152,8 @@ Window::Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationR
     if (application != nullptr) (*application).join(*this);
 }
 Window::~Window() {
+    // The bound document area stops observing this window.
+    release_document_area();
     // The tooltip presenter goes first: it holds an overlay and a wake, and
     // raises nothing while it shuts down.
     if (tool_tips_) (*tool_tips_).shutdown();
@@ -388,8 +390,10 @@ bool valid_pointer_settings(const PointerSettings& settings) noexcept {
                        settings.hover_milliseconds <= maximum_hover_milliseconds &&
                        valid_pointer_distance(settings.hover_width) &&
                        valid_pointer_distance(settings.hover_height);
-    const bool origins = known_setting_origin(settings.drag_origin) && known_setting_origin(settings.hover_origin);
-    return drag && hover && origins;
+    const bool menu_show = settings.menu_show_milliseconds <= maximum_menu_show_milliseconds;
+    const bool origins = known_setting_origin(settings.drag_origin) && known_setting_origin(settings.hover_origin) &&
+                         known_setting_origin(settings.menu_show_origin);
+    return drag && hover && menu_show && origins;
 }
 
 bool valid_caret_settings(const CaretSettings& settings) noexcept {
@@ -675,7 +679,14 @@ void SurfaceRoot::set_active(bool active) {
     // ends the pointer sequences in progress (input order rule 5).
     if (!active) break_pointer_sequences();
     // A drag does not survive the window's deactivation (DK's rule).
-    if (!active && drag_engine_) (*drag_engine_).cancel(DragEnd::deactivated);
+    if (!active && drag_engine_) {
+        // The drag's end calls its client, whose change event may close
+        // and destroy this window: nothing of it is read after that.
+        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+        Window* const presenting = (*lifetime).window;
+        (*drag_engine_).cancel(DragEnd::deactivated);
+        if ((*lifetime).window != presenting) return;
+    }
     // The window's backplane material follows activation (E9-B).
     damage_backplane_readers(nullptr);
     mark_subtree_dirty(*root_, Dirty::paint | Dirty::semantics);

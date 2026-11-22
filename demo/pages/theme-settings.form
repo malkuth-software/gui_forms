@@ -44,8 +44,9 @@
     <button id="gallery.theme-settings.restore"
         text="Restore the Gallery theme"
         visual-style="command"
-        bounds="16 318 268 32"
-        command="bind(restore_)"/>
+        bounds="16 318 268 32">
+      <bind property="command" to="restore_"/>
+    </button>
   </scaled-group-box>
 
   <scaled-group-box id="gallery.theme-settings.scheme-group"
@@ -72,8 +73,9 @@
     <check-box id="gallery.theme-settings.follow-host"
         text="Follow the host's scheme"
         indicator-style="toggle"
-        bounds="16 146 270 26"
-        checked="bind(follow_host_)"/>
+        bounds="16 146 270 26">
+      <bind property="checked" to="follow_host_"/>
+    </check-box>
   </scaled-group-box>
 
   <scaled-group-box id="gallery.theme-settings.scope-group"

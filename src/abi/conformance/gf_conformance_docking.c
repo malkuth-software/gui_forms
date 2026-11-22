@@ -3,7 +3,10 @@
  * their refusals, where a panel is (with the side of the document area its
  * stack stands on), saving and restoring the layout, the stacks' panels,
  * and the workspace's layout_changed interaction. No window runs, so
- * attach_windows is refused and floating needs no window. */
+ * attach_windows is refused and floating needs no window. Since 1.6, the
+ * frames presentation (its edits, the frame memory, the area's documents,
+ * a panel's menu strip) and a window's MDI slots (windows table), on
+ * windows made with windows.create that never run. */
 
 #include "gf_conformance_internal.h"
 
@@ -306,6 +309,229 @@ static void restricting(gf_kit* kit, gf_object workspace) {
                   "an unknown visibility is refused");
 }
 
+static gf_dock_frame_memory frame_of(gf_kit* kit, gf_object workspace, const char* document) {
+    gf_dock_frame_memory frame;
+    memset(&frame, 0, sizeof(frame));
+    frame.struct_size = (uint32_t)sizeof(frame);
+    gf_kit_status(kit, (*kit).docking.frame_memory(workspace, gf_kit_text(document), &frame), GF_STATUS_OK,
+                  "read a document's frame");
+    return frame;
+}
+
+/* The frames presentation (since 1.6): the presentation edit and its read,
+ * a document's frame bounds, state and icon slot, the area's documents and
+ * its active one, the arrangements, and a panel's menu strip. The site is
+ * never laid out, so arranging changes nothing. */
+static void frames(gf_kit* kit, gf_object workspace) {
+    gf_dock_document_presentation presentation = 99u;
+    gf_kit_status(kit, (*kit).docking.document_presentation(workspace, &presentation), GF_STATUS_OK,
+                  "read the presentation");
+    gf_kit_check(kit, presentation == GF_DOCK_DOCUMENT_PRESENTATION_TABS, "documents show as tabs by default");
+    gf_kit_status(kit, (*kit).docking.document_presentation(workspace, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "document_presentation needs an output");
+
+    gf_dock_edit framed = edit_record(GF_DOCK_EDIT_SET_DOCUMENT_PRESENTATION, "");
+    framed.presentation = GF_DOCK_DOCUMENT_PRESENTATION_FRAMES;
+    gf_kit_status(kit, apply(kit, workspace, &framed, NULL), GF_STATUS_OK, "show the documents as frames");
+    gf_kit_status(kit, (*kit).docking.document_presentation(workspace, &presentation), GF_STATUS_OK,
+                  "read the presentation again");
+    gf_kit_check(kit, presentation == GF_DOCK_DOCUMENT_PRESENTATION_FRAMES, "the area shows frames");
+    gf_dock_edit short_record = framed;
+    short_record.struct_size = 104u;
+    gf_kit_status(kit, apply(kit, workspace, &short_record, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "a 1.1-sized record cannot carry a presentation");
+    gf_dock_edit unknown = framed;
+    unknown.presentation = 7u;
+    gf_kit_status(kit, apply(kit, workspace, &unknown, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown presentation is refused");
+
+    uint64_t count = 0u;
+    gf_kit_status(kit, (*kit).docking.area_document_count(workspace, &count), GF_STATUS_OK,
+                  "count the area's documents");
+    gf_kit_check(kit, count == 1u, "the one document stands in the area");
+    char text[32];
+    uint64_t required = 0u;
+    gf_kit_status(kit, (*kit).docking.area_document_at(workspace, 0u, text, sizeof(text), &required), GF_STATUS_OK,
+                  "read the area's first document");
+    gf_kit_check(kit, required == 8u && memcmp(text, "spectrum", 8u) == 0, "it is the spectrum document");
+    gf_kit_status(kit, (*kit).docking.area_document_at(workspace, 1u, text, sizeof(text), &required),
+                  GF_STATUS_NOT_FOUND, "no document past the area's end");
+    gf_kit_status(kit, (*kit).docking.area_active_document(workspace, text, sizeof(text), &required), GF_STATUS_OK,
+                  "read the area's active document");
+    gf_kit_check(kit, required == 8u && memcmp(text, "spectrum", 8u) == 0, "the only document is the active one");
+
+    gf_dock_edit bounds = edit_record(GF_DOCK_EDIT_SET_FRAME_BOUNDS, "spectrum");
+    bounds.frame.x = 12.0;
+    bounds.frame.y = 16.0;
+    bounds.frame.width = 300.0;
+    bounds.frame.height = 200.0;
+    gf_kit_status(kit, apply(kit, workspace, &bounds, NULL), GF_STATUS_OK, "place the document's frame");
+    gf_dock_frame_memory frame = frame_of(kit, workspace, "spectrum");
+    gf_kit_check(kit, frame.present == 1u && frame.bounds.x == 12.0 && frame.bounds.width == 300.0 &&
+                          frame.state == GF_DOCK_FRAME_STATE_NORMAL,
+                 "the frame keeps its normal bounds");
+    gf_dock_edit empty_bounds = bounds;
+    empty_bounds.frame.width = 0.0;
+    gf_kit_status(kit, apply(kit, workspace, &empty_bounds, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "an empty frame is refused");
+
+    gf_dock_edit minimized = edit_record(GF_DOCK_EDIT_SET_FRAME_STATE, "spectrum");
+    minimized.frame_state = GF_DOCK_FRAME_STATE_MINIMIZED;
+    gf_kit_status(kit, apply(kit, workspace, &minimized, NULL), GF_STATUS_OK, "minimize the frame");
+    frame = frame_of(kit, workspace, "spectrum");
+    gf_kit_check(kit, frame.state == GF_DOCK_FRAME_STATE_MINIMIZED && frame.icon_slot == 0u &&
+                          frame.bounds.width == 300.0,
+                 "minimized to the first icon slot, its bounds kept");
+    gf_dock_edit slot = edit_record(GF_DOCK_EDIT_SET_FRAME_ICON_SLOT, "spectrum");
+    slot.index = 3u;
+    gf_kit_status(kit, apply(kit, workspace, &slot, NULL), GF_STATUS_OK, "move the icon to the fourth slot");
+    frame = frame_of(kit, workspace, "spectrum");
+    gf_kit_check(kit, frame.icon_slot == 3u, "the icon stands in the fourth slot");
+    gf_dock_edit maximized = minimized;
+    maximized.frame_state = GF_DOCK_FRAME_STATE_MAXIMIZED;
+    gf_kit_status(kit, apply(kit, workspace, &maximized, NULL), GF_STATUS_OK, "maximize the frame");
+    frame = frame_of(kit, workspace, "spectrum");
+    gf_kit_check(kit, frame.state == GF_DOCK_FRAME_STATE_MAXIMIZED, "the frame is maximized");
+    gf_dock_edit bad_state = minimized;
+    bad_state.frame_state = 9u;
+    gf_kit_status(kit, apply(kit, workspace, &bad_state, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown frame state is refused");
+    gf_dock_edit tool_frame = edit_record(GF_DOCK_EDIT_SET_FRAME_STATE, "audio");
+    tool_frame.frame_state = GF_DOCK_FRAME_STATE_MINIMIZED;
+    gf_dock_refusal refusal = GF_DOCK_REFUSAL_NONE;
+    gf_kit_status(kit, apply(kit, workspace, &tool_frame, &refusal), GF_STATUS_INVALID_STATE,
+                  "a panel outside the document area has no frame state");
+    gf_kit_check(kit, refusal != GF_DOCK_REFUSAL_NONE, "the refusal names why");
+    frame = frame_of(kit, workspace, "audio");
+    gf_kit_check(kit, frame.present == 0u && frame.bounds.width == 0.0, "a panel never framed has no frame");
+    gf_kit_status(kit, (*kit).docking.frame_memory(workspace, gf_kit_text("nobody"), &frame), GF_STATUS_NOT_FOUND,
+                  "an unregistered panel has no frame");
+    frame.struct_size = 8u;
+    gf_kit_status(kit, (*kit).docking.frame_memory(workspace, gf_kit_text("spectrum"), &frame),
+                  GF_STATUS_INVALID_ARGUMENT, "a frame record below the 1.6 size is refused");
+
+    refusal = 99u;
+    gf_kit_status(kit, (*kit).docking.arrange_frames(workspace, GF_DOCK_FRAME_ARRANGEMENT_CASCADE, &refusal),
+                  GF_STATUS_OK, "cascade the frames of an area never laid out");
+    gf_kit_check(kit, refusal == GF_DOCK_REFUSAL_NONE, "an applied arrangement writes no refusal");
+    gf_kit_status(kit, (*kit).docking.arrange_frames(workspace, GF_DOCK_FRAME_ARRANGEMENT_ARRANGE_ICONS, NULL),
+                  GF_STATUS_OK, "arrange the icons");
+    gf_kit_status(kit, (*kit).docking.arrange_frames(workspace, 4u, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown arrangement is refused");
+    gf_kit_status(kit, (*kit).docking.set_frame_icons_at_bottom(workspace, 0u), GF_STATUS_OK,
+                  "line the icons along the top");
+    gf_kit_status(kit, (*kit).docking.set_frame_icons_at_bottom(workspace, 1u), GF_STATUS_OK,
+                  "and along the bottom again");
+    gf_kit_status(kit, (*kit).docking.set_frame_icons_at_bottom(workspace, 2u), GF_STATUS_INVALID_ARGUMENT,
+                  "the icon edge is 0 or 1");
+
+    const gf_object strip = gf_kit_create(kit, "menu_strip", "kit.dock.menu");
+    const gf_object label = gf_kit_create(kit, "label", "kit.dock.not-a-strip");
+    gf_kit_status(kit, (*kit).docking.set_panel_menu_strip(workspace, gf_kit_text("spectrum"), strip), GF_STATUS_OK,
+                  "give the document a menu strip");
+    gf_kit_status(kit, (*kit).docking.set_panel_menu_strip(workspace, gf_kit_text("spectrum"), label),
+                  GF_STATUS_WRONG_HANDLE_KIND, "a label is not a menu strip");
+    gf_kit_status(kit, (*kit).docking.set_panel_menu_strip(workspace, gf_kit_text("nobody"), strip),
+                  GF_STATUS_NOT_FOUND, "an unregistered panel takes no strip");
+    required = 99u;
+    gf_kit_status(kit, (*kit).docking.merged_document(workspace, text, sizeof(text), &required), GF_STATUS_OK,
+                  "read the merged document");
+    gf_kit_check(kit, required == 0u, "no window's main menu strip, so nothing is merged");
+    gf_kit_status(kit, (*kit).docking.set_panel_menu_strip(workspace, gf_kit_text("spectrum"), 0u), GF_STATUS_OK,
+                  "take the strip away");
+
+    gf_dock_edit tabs = framed;
+    tabs.presentation = GF_DOCK_DOCUMENT_PRESENTATION_TABS;
+    gf_kit_status(kit, apply(kit, workspace, &tabs, NULL), GF_STATUS_OK, "show the documents as tabs again");
+    frame = frame_of(kit, workspace, "spectrum");
+    gf_kit_check(kit, frame.present == 1u, "the frame waits while tabs show");
+    gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the label");
+    gf_kit_status(kit, (*kit).objects.release(strip), GF_STATUS_OK, "release the menu strip");
+}
+
+/* A window's MDI slots (since 1.6): over a plain root no document area is
+ * bound, so the window keeps its settings, has no children and arranges
+ * nothing; its main menu strip is held weakly and refuses another object.
+ * Over the workspace's site the area may bind before the run (when the
+ * window attaches its root); either way the window lists what it holds. */
+static void mdi_window(gf_kit* kit, gf_object workspace, gf_object site) {
+    const gf_object root = gf_kit_create(kit, "Panel", "kit.mdi");
+    gf_object window = 0u;
+    gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "create a window");
+    uint32_t value = 99u;
+    gf_kit_status(kit, (*kit).windows.mdi_container(window, &value), GF_STATUS_OK, "read the container switch");
+    gf_kit_check(kit, value == 0u, "a window is not an MDI container by default");
+    gf_kit_status(kit, (*kit).windows.set_mdi_container(window, 1u), GF_STATUS_OK, "make it an MDI container");
+    gf_kit_status(kit, (*kit).windows.mdi_container(root, &value), GF_STATUS_OK,
+                  "read the switch through the root");
+    gf_kit_check(kit, value == 1u, "the switch is kept with no area bound");
+    gf_kit_status(kit, (*kit).windows.set_mdi_container(window, 2u), GF_STATUS_INVALID_ARGUMENT,
+                  "the switch is 0 or 1");
+    gf_kit_status(kit, (*kit).windows.mdi_children_minimized_anchor_bottom(window, &value), GF_STATUS_OK,
+                  "read the icon anchor");
+    gf_kit_check(kit, value == 1u, "minimized children line the bottom by default");
+    gf_kit_status(kit, (*kit).windows.set_mdi_children_minimized_anchor_bottom(window, 0u), GF_STATUS_OK,
+                  "anchor them at the top");
+    gf_kit_status(kit, (*kit).windows.mdi_children_minimized_anchor_bottom(window, &value), GF_STATUS_OK,
+                  "read the anchor again");
+    gf_kit_check(kit, value == 0u, "the anchor is kept");
+
+    uint64_t count = 99u;
+    gf_kit_status(kit, (*kit).windows.mdi_child_count(window, &count), GF_STATUS_OK, "count the MDI children");
+    gf_kit_check(kit, count == 0u, "no area, no children");
+    char text[32];
+    uint64_t required = 99u;
+    gf_kit_status(kit, (*kit).windows.mdi_child_at(window, 0u, text, sizeof(text), &required), GF_STATUS_NOT_FOUND,
+                  "no child at index zero");
+    gf_kit_status(kit, (*kit).windows.active_mdi_child(window, text, sizeof(text), &required), GF_STATUS_OK,
+                  "read the active child");
+    gf_kit_check(kit, required == 0u, "there is no active child");
+    uint32_t done = 99u;
+    gf_kit_status(kit, (*kit).windows.activate_mdi_child(window, gf_kit_text("spectrum"), &done), GF_STATUS_OK,
+                  "activate a child the window does not hold");
+    gf_kit_check(kit, done == 0u, "nothing is activated");
+    done = 99u;
+    gf_kit_status(kit, (*kit).windows.layout_mdi(window, GF_MDI_LAYOUT_TILE_VERTICAL, &done), GF_STATUS_OK,
+                  "tile the children");
+    gf_kit_check(kit, done == 0u, "nothing is arranged");
+    gf_kit_status(kit, (*kit).windows.layout_mdi(window, 4u, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "an unknown layout is refused");
+
+    const gf_object strip = gf_kit_create(kit, "menu_strip", "kit.mdi.menu");
+    gf_kit_status(kit, (*kit).windows.set_main_menu_strip(window, strip), GF_STATUS_OK, "set the main menu strip");
+    gf_object held = 0u;
+    gf_kit_status(kit, (*kit).windows.main_menu_strip(window, &held), GF_STATUS_OK, "read the main menu strip");
+    gf_kit_check(kit, held != 0u, "the window gives a reference to its strip");
+    gf_kit_status(kit, (*kit).objects.release(held), GF_STATUS_OK, "release that reference");
+    gf_kit_status(kit, (*kit).windows.set_main_menu_strip(window, root), GF_STATUS_WRONG_HANDLE_KIND,
+                  "a panel is not a menu strip");
+    gf_kit_status(kit, (*kit).windows.set_main_menu_strip(window, 0u), GF_STATUS_OK, "clear the main menu strip");
+    held = 99u;
+    gf_kit_status(kit, (*kit).windows.main_menu_strip(window, &held), GF_STATUS_OK, "read it again");
+    gf_kit_check(kit, held == 0u, "no strip is set");
+    gf_kit_status(kit, (*kit).windows.main_menu_strip(window, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "main_menu_strip needs an output");
+    gf_kit_status(kit, (*kit).windows.mdi_container(workspace, &value), GF_STATUS_WRONG_HANDLE_KIND,
+                  "a workspace is neither a window nor a control in one");
+    gf_kit_status(kit, (*kit).windows.mdi_child_count(strip, &count), GF_STATUS_INVALID_STATE,
+                  "a control outside a window has no MDI children");
+
+    gf_object docked = 0u;
+    gf_kit_status(kit, (*kit).windows.create(site, &docked), GF_STATUS_OK, "create a window over the dock site");
+    uint64_t area_count = 0u;
+    gf_kit_status(kit, (*kit).docking.area_document_count(workspace, &area_count), GF_STATUS_OK,
+                  "count the workspace's area documents");
+    gf_kit_status(kit, (*kit).windows.mdi_child_count(docked, &count), GF_STATUS_OK,
+                  "count the docked window's MDI children");
+    gf_kit_check(kit, count == area_count || count == 0u,
+                 "the window lists the area's documents once the area is bound, none before");
+
+    gf_kit_status(kit, (*kit).objects.release(docked), GF_STATUS_OK, "release the docked window");
+    gf_kit_status(kit, (*kit).objects.release(strip), GF_STATUS_OK, "release the strip");
+    gf_kit_status(kit, (*kit).objects.release(window), GF_STATUS_OK, "release the window");
+    gf_kit_status(kit, (*kit).objects.release(root), GF_STATUS_OK, "release its root");
+}
+
 void gf_kit_docking(gf_kit* kit) {
     const gf_object workspace = gf_kit_create(kit, "dock_workspace", "kit.dock");
     gf_create_arguments arguments;
@@ -334,6 +560,8 @@ void gf_kit_docking(gf_kit* kit) {
     editing(kit, workspace);
     persistence(kit, workspace);
     restricting(kit, workspace);
+    frames(kit, workspace);
+    mdi_window(kit, workspace, site);
     gf_kit_check(kit, changes.invoked >= 10u, "every applied edit and the restore raised layout_changed");
     gf_kit_status(kit, (*kit).docking.attach_windows(workspace), GF_STATUS_INVALID_STATE,
                   "no window runs to attach");

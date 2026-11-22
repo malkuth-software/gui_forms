@@ -32,7 +32,11 @@ for a new dependency or a new platform assumption is not.
   lookup described in [Text engine](../user/text-engine) serves a program's
   own drawing and is the one existing exception.
 
-Boundary tests run under `ctest`, so a violation fails before review.
+The boundary checks (the `cmake/` scripts that [Build from
+source](../building/index.md#dependency-boundaries) lists, and the header
+audits) run in
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests) against
+the test cache, so a violation fails before review.
 
 ## Code style
 
@@ -55,54 +59,76 @@ In practice:
 
 `tools/check_house_style.py` reports spelling violations: `auto`, `->`,
 trailing returns, structured bindings, lambdas, defaulted comparisons,
-coroutines and ranges pipelines. CI runs it over every first-party directory
-and fails on any finding, so run it before you push:
+coroutines and ranges pipelines. The `house-style` CI job runs it over every
+first-party directory, with the six other checks below, and fails on any
+finding (the standard-surface census only reports there for now), so run
+all seven before you push:
 
 ```sh
-python3 -B tools/check_house_style.py include src lab demo tests examples tools file_manager_demoboard fuzz
+python3 -B tools/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz
+python3 -B tools/check_lifetime_rules.py include src lab demo examples tools file_manager_demoboard
+python3 -B tools/export_annotations.py check
+python3 -B tools/control_registry.py members --check
+python3 -B tools/abi_class_tables.py --check
+python3 -I tools/check_std_rules.py --config tools/std_rules.toml
+python3 -I tools/std_surface_census.py check
 ```
 
-It is a review aid, not a certification: ownership, lifetimes and
-initialization still need a human reader.
+`AGENTS.md` says what each one checks and how to fix a finding;
+[Repository tools](tools.md) describes the tools. The spelling scanner is a
+review aid, not a certification: ownership, lifetimes and initialization
+still need a human reader.
 
-`tools/check_lifetime_rules.py` checks two lifetime rules the same way and
-CI runs it beside the spelling scanner: a function that returns a pointer or
-reference borrowed from a container or snapshot argument must delete its
-rvalue overload, and a function pointer obtained with `GetProcAddress` or
-`dlsym` must take its type from the function's declaration (`decltype`, or a
-`static_assert` against it). The `sanitizers` job builds and runs the whole
-suite on Linux under AddressSanitizer, UndefinedBehaviorSanitizer and
-LeakSanitizer (`python tools/ci_build.py --sanitize`), with Clang 22 and
-libc++ 22 like every Linux build; any report fails it.
-It runs only when requested by hand (`workflow_dispatch` with
-`run_sanitizers`); the gate is the local sanitized run of every test when a
-checkpoint is folded. The same gate compiles every changed file against
-libstdc++ (syntax only, on macOS or the Linux VM), because macOS and Windows
-both build with libc++ and libstdc++-only failures otherwise surface only in
-CI.
+`tools/check_lifetime_rules.py` checks two lifetime rules: a function that
+returns a pointer or reference borrowed from a container or snapshot
+argument must delete its rvalue overload, and a function pointer obtained
+with `GetProcAddress` or `dlsym` must take its type from the function's
+declaration (`decltype`, or a `static_assert` against it).
 
-The same command is the standard local sanitizer tree, kept by every build
-tree on every platform: it builds `.build/native-<host>-<arch>/gui-forms-sanitize`
-with CI's flags and runs the suite, or with `--tests REGEX` builds and runs
-only what the matching tests need, incrementally after the first build.
-`--test-jobs N` runs N tests at once. `--skip-labels gallery_accessibility`
-leaves out the Gallery-wide accessibility tests (each walks every Gallery page
-through MSAA, UI Automation, AT-SPI or AX; together the slowest sanitized
-tests by far) from a local run and from its narrowed build; CI passes no
-label and still runs them. The sanitized objects carry
-`-fdebug-compilation-dir=.`, so checkouts with the CI layout share them
-through one `ccache`; a second checkout of the same sources compiles
-almost nothing. A rerun with nothing changed skips the dependency checkout
-and the configure. AddressSanitizer and
+## Sanitizers
+
+Every build tree keeps a sanitizer tree beside its ordinary one, on every
+platform it builds on:
+
+```sh
+python3 -B tools/ci_build.py --sanitize --test-cache <dir>
+```
+
+It builds `.build/native-<host>-<arch>/gui-forms-sanitize` with CI's flags,
+with borrowed views checked (`GUI_FORMS_CHECKED_BORROWS`), and packs the
+sanitize test cache into `<dir>`. AddressSanitizer and
 UndefinedBehaviorSanitizer run everywhere; LeakSanitizer runs on Linux and
-macOS, since the Windows MinGW runtime has none. Host code is sanitized only
-where it builds, so the Windows and macOS hosts depend on these local trees.
+macOS, since the Windows MinGW runtime has none. The tests then run against
+that cache from a gui_forms_tests checkout, and any report fails them:
 
-A plain run without `--sanitize` builds the tree, runs the suite and installs
-the SDK. `--install-only` builds and installs the same SDK, with its notice
-and import checks and the installed reference examples, but runs none of the
-toolkit's tests: it is for a consumer's smoke build at a pin GUI.Forms' CI
-has already tested (File Manager's bootstrap smoke).
+```sh
+python3 tools/ci_tests.py --kind sanitize --archive <dir>/<archive> --unpinned
+```
+
+Run it over the tests your change touches before pushing C++, and the whole
+suite before a stage gate. In gui_forms_tests, `ci_tests.py --tests REGEX`
+narrows the run to the matching tests (a `ctest -R` pattern), and
+`--changed BASE` to the tests whose own sources changed there. Host code is sanitized
+only where it builds, so the Windows and macOS hosts depend on these local
+trees. The sanitized objects carry `-fdebug-compilation-dir=.`, so checkouts
+with the CI layout share them through one `ccache`; a second checkout of the
+same sources compiles almost nothing.
+
+The `sanitizers` CI job builds the same tree on Linux, with Clang 22 and
+libc++ 22 like every Linux build, and packs its test cache; gui_forms_tests'
+`sanitizers` job runs the whole suite against it. Both run only when
+requested by hand (`workflow_dispatch` with `run_sanitizers`); the gate is
+the local sanitized run of every test when a checkpoint is folded. The same
+gate compiles every changed file against libstdc++ (syntax only, on macOS or
+the Linux VM), because macOS and Windows both build with libc++ and
+libstdc++-only failures otherwise surface only in CI.
+
+A plain run without `--sanitize` builds the tree, installs the SDK, checks
+its notices (and on Windows its DLLs' imports), and builds and runs the
+installed reference examples against it; with `--test-cache` it also packs
+the test cache. `--install-only` stops after the SDK checks and packs
+nothing: it is for a consumer's smoke build at a pin GUI.Forms' CI has
+already built (File Manager's bootstrap smoke).
 
 Sanitized trees carry line tables, not full debug information, by default
 (`--debug-info lines`, `-gline-tables-only`): every report frame keeps its
@@ -117,32 +143,15 @@ message contains `[sanitizer-full-g]`, and keys its cache by the mode. LeakSanit
 suppressions (`tools/sanitizer/lsan.supp`) therefore name functions without a
 namespace where the name allows.
 
-Every test carries one area label, `area_<area>`: `core`, `codec`, `audio`,
-`render`, `controls`, `docs`, `host`, `gui` (the Gallery, demoboard and lab
-tests) or `a11y` (the accessibility clients and providers), so
-`ctest -L area_gui` runs one area. `tools/test_areas.json` holds both the
-name patterns that give the labels (`cmake/TestAreas.cmake`) and the rules
-that map source paths to the areas whose tests read them. `--changed-from REF`
-on a sanitized run builds and runs only the tests the paths changed since
-`REF` (its merge base with `HEAD`, plus uncommitted and untracked files) can
-affect; `python tools/change_selection.py --base REF --format areas` prints
-the areas and the reason for each path, and with `--tree` and the default
-format a `ctest -R` pattern. Core sources reach every area but `gui` and
-`a11y`; controls, render and host sources reach those too; codec and audio
-sources reach only their own area; a test source selects its own test;
-documentation, planning and results reach no test. A path in the
-touches-everything set (`CMakeLists.txt`, `cmake/`, `third_party/`,
-`.github/`, `assets/`, the headers under `include/gui_forms/` outside the
-controls, compression and audio directories, the selection tool and its
-rules, `tools/ci_build.py`, `tools/sanitizer/`, and the shared test support
-and fixtures) or a path no rule names runs every test. CI's sanitizer job
-selects this way on pull requests and runs the whole suite on main.
-
 ## Tests and evidence
 
-Every behavioural change ships with a test. Core and control behaviour is
-tested renderer-free against the headless host; painting against the
-identity and raster tests; host behaviour in the platform job for that host.
+Every behavioural change ships with a test. The tests live in
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests), so a
+change here and its test land as a pair: the test moves its
+`gui_forms.lock` pin to the commit that carries the change. Core and control
+behaviour is tested renderer-free against the headless host; painting
+against the identity and raster tests; host behaviour on the platform of
+that host.
 A visual claim ("looks right") is not evidence; a counter, a trace or a hash
 is.
 
@@ -163,8 +172,10 @@ repository, listed under [Architecture decisions](decisions).
 ## Workflow
 
 1. Fork and branch from `main`.
-2. Build and run `ctest` on at least one platform; CI runs macOS arm64, Linux
-   x64, Linux arm64 and Windows x64.
+2. Build on at least one platform with `tools/ci_build.py --test-cache <dir>`,
+   then run gui_forms_tests against that cache
+   ([Build from source](../building/index.md#tests)); CI builds macOS arm64,
+   Linux x64, Linux arm64 and Windows x64.
 3. Keep unrelated working-tree changes out of the commit. Preserve user files.
 4. Describe in the pull request what changed, which tests cover it, and the
    exact commands and environment you used for any measurement.

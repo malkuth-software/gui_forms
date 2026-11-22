@@ -43,18 +43,21 @@
     <button id="gallery.input.press"
         text="Click me"
         visual-style="command"
-        bounds="22 202 260 32"
-        command="bind(press_)"/>
+        bounds="22 202 260 32">
+      <bind property="command" to="press_"/>
+    </button>
     <button id="gallery.input.clear"
         text="Clear the log"
         visual-style="command"
-        bounds="296 202 132 32"
-        command="bind(clear_)"/>
+        bounds="296 202 132 32">
+      <bind property="command" to="clear_"/>
+    </button>
     <check-box id="gallery.input.log-moves"
         text="Log MouseMove and MouseWheel too"
         indicator-style="modern"
-        bounds="22 248 300 26"
-        checked="bind(log_moves_)"/>
+        bounds="22 248 300 26">
+      <bind property="checked" to="log_moves_"/>
+    </check-box>
   </scaled-group-box>
 
   <scaled-group-box id="gallery.input.rules-group"
@@ -65,18 +68,21 @@
     <check-box id="gallery.input.rules.armed"
         text="Arm the page's three rules"
         indicator-style="toggle"
-        bounds="22 40 400 26"
-        checked="bind(rules_armed_)"/>
+        bounds="22 40 400 26">
+      <bind property="checked" to="rules_armed_"/>
+    </check-box>
     <check-box id="gallery.input.rules.consume"
         text="Consume a Shift+click on Click me"
         indicator-style="modern"
-        bounds="22 76 406 26"
-        checked="bind(consume_shift_clicks_)"/>
+        bounds="22 76 406 26">
+      <bind property="checked" to="consume_shift_clicks_"/>
+    </check-box>
     <check-box id="gallery.input.marked"
         text="Marked (H over the target toggles it)"
         indicator-style="modern"
-        bounds="22 112 406 26"
-        checked="bind(marked_)"/>
+        bounds="22 112 406 26">
+      <bind property="checked" to="marked_"/>
+    </check-box>
     <label id="gallery.input.rules.statistics"
         text="Rules not armed"
         classes="muted body"

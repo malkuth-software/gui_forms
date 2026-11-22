@@ -49,7 +49,7 @@ Related types
 
 .. cpp:struct:: AnimationSample final
 
-   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
+   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>`` (:src:`source <include/gui_forms/animation/animation_timeline/animation_timeline.hpp>`)
 
    AnimationSample is one immutable normalized/raw progress, iteration, and completion observation.
 
@@ -69,7 +69,7 @@ Related types
 
 .. cpp:struct:: AnimationSpec final
 
-   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
+   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>`` (:src:`source <include/gui_forms/animation/animation_timeline/animation_timeline.hpp>`)
 
    AnimationSpec declares duration, repetition, direction, easing, and reduced-motion behavior for one timeline.
 
@@ -97,7 +97,7 @@ Related types
 
 .. cpp:class:: AnimationTimeline final
 
-   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
+   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>`` (:src:`source <include/gui_forms/animation/animation_timeline/animation_timeline.hpp>`)
 
    AnimationTimeline validates one specification and deterministically transitions stopped, running, and paused time into iteration-aware eased samples.
 
@@ -138,7 +138,7 @@ Related types
 
 .. cpp:struct:: AtomicTask final
 
-   ``#include <gui_forms/threading.hpp>``
+   ``#include <gui_forms/threading.hpp>`` (:src:`source <include/gui_forms/threading.hpp>`)
 
    .. cpp:member:: void (*entry)(void* context) noexcept
 
@@ -152,7 +152,7 @@ Related types
 
 .. cpp:class:: AtomicThreadPool final
 
-   ``#include <gui_forms/threading.hpp>``
+   ``#include <gui_forms/threading.hpp>`` (:src:`source <include/gui_forms/threading.hpp>`)
 
    The owner's threadpool_atomic_fast algorithm: synchronous batches, reusable task storage, STXlib's AtomicPool workers. Small batches may run on the caller. Methods belong to one owner thread; entries borrow contexts until run returns.
 
@@ -175,7 +175,7 @@ Related types
 
 .. cpp:struct:: MotionPolicy final
 
-   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
+   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>`` (:src:`source <include/gui_forms/animation/animation_timeline/animation_timeline.hpp>`)
 
    MotionPolicy is the resolved environment policy for active/quiescent cadence, speed scaling, and presentation phase.
 
@@ -210,7 +210,7 @@ Enumerations
 
 .. cpp:enum-class:: AnimationDirection
 
-   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
+   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>`` (:src:`source <include/gui_forms/animation/animation_timeline/animation_timeline.hpp>`)
 
    .. cpp:enumerator:: normal
 
@@ -224,7 +224,7 @@ Enumerations
 
 .. cpp:enum-class:: AnimationTickResult
 
-   ``#include <gui_forms/animation/animation_timer/animation_timer.hpp>``
+   ``#include <gui_forms/animation/animation_timer/animation_timer.hpp>`` (:src:`source <include/gui_forms/animation/animation_timer/animation_timer.hpp>`)
 
    .. cpp:enumerator:: damaged
 
@@ -234,7 +234,7 @@ Enumerations
 
 .. cpp:enum-class:: EasingCurve
 
-   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
+   ``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>`` (:src:`source <include/gui_forms/animation/animation_timeline/animation_timeline.hpp>`)
 
    .. cpp:enumerator:: linear
 
@@ -257,13 +257,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>``
+``#include <gui_forms/animation/animation_timeline/animation_timeline.hpp>`` (:src:`source <include/gui_forms/animation/animation_timeline/animation_timeline.hpp>`)
 
 .. cpp:function:: double apply_easing(EasingCurve easing, double progress) noexcept
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/animation/animation_timer/animation_timer.hpp>``
+``#include <gui_forms/animation/animation_timer/animation_timer.hpp>`` (:src:`source <include/gui_forms/animation/animation_timer/animation_timer.hpp>`)
 
 .. cpp:function:: FrameInterval animation_interval_for_travel(double device_pixels_per_second, FrameInterval display_interval = display_frame_interval) noexcept
 

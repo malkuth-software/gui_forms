@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 199> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -101,7 +101,9 @@ inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"MaskInputRejection", "position: unsigned_integer, hint: enumeration, text: text"},
     {"MaskValidation", "text: text, mask_completed: boolean, valid: boolean, message: text, cancel: boolean"},
     {"MasterDetailPresentationChange", "previous: enumeration, current: enumeration, automatic: boolean"},
+    {"MdiChildActivation", "previous: text optional, current: text optional"},
     {"MenuItemInvocation", "menu_id: text, item_id: text, command_id: text, source_id: text"},
+    {"MenuStripFrameButton", "value: enumeration"},
     {"MenuStripInvocation", "menu_strip_id: text, top_level_id: text, item.menu_id: text, item.item_id: text, item.command_id: text, item.source_id: text"},
     {"ModalLayerClosingEvent", "result: enumeration, cancel: boolean"},
     {"MouseEventArgs", "button: enumeration, clicks: unsigned_integer, location: point, window_position: point, wheel_delta: point, modifiers: enumeration, action: enumeration, wheel_unit: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, suppress_click: boolean, wheel_phase: enumeration, timestamp_nanoseconds: unsigned_integer"},
@@ -130,7 +132,7 @@ inline constexpr std::array<InteractionFieldsEntry, 197> interaction_fields{{
     {"PlotViewRanges", "x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
     {"Point", "value: point"},
     {"PointerEvent", "action: enumeration, button: enumeration, position: point, wheel_delta: point, modifiers: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, click_count: unsigned_integer, wheel_unit: enumeration, wheel_phase: enumeration, timestamp_nanoseconds: unsigned_integer"},
-    {"PresentationSettings", "text_scale: number, high_contrast: boolean, reduced_motion: boolean, sound_enabled: boolean, ambient_motion: boolean, reduced_transparency: boolean, double_click_milliseconds: unsigned_integer, double_click_origin: enumeration, pointer.drag_width: number, pointer.drag_height: number, pointer.drag_origin: enumeration, pointer.hover_milliseconds: unsigned_integer, pointer.hover_width: number, pointer.hover_height: number, pointer.hover_origin: enumeration, pointer.native_hover: boolean, caret.blink_milliseconds: unsigned_integer, caret.origin: enumeration, colour_scheme: enumeration"},
+    {"PresentationSettings", "text_scale: number, high_contrast: boolean, reduced_motion: boolean, sound_enabled: boolean, ambient_motion: boolean, reduced_transparency: boolean, double_click_milliseconds: unsigned_integer, double_click_origin: enumeration, pointer.drag_width: number, pointer.drag_height: number, pointer.drag_origin: enumeration, pointer.hover_milliseconds: unsigned_integer, pointer.hover_width: number, pointer.hover_height: number, pointer.hover_origin: enumeration, pointer.native_hover: boolean, pointer.menu_show_milliseconds: unsigned_integer, pointer.menu_show_origin: enumeration, caret.blink_milliseconds: unsigned_integer, caret.origin: enumeration, colour_scheme: enumeration"},
     {"PreviewKeyDownEventArgs", "key_code: unsigned_integer, physical_key: unsigned_integer, modifiers: enumeration, repeat: boolean, is_input_key: boolean"},
     {"PropertyEditorInputError", "attempted_value: text, message: text"},
     {"PropertyEnumValue", "type_name: text, name: text, value: signed_integer"},

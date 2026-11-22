@@ -5,7 +5,7 @@ do not edit. The manifest is written by `gui_forms_gallery_pages_tests` from the
 registry (stage T1), so this page lists what the library publishes.
 
 Every name here is a registered name, stored in snake_case (owner decision 8). Theme
-and form documents, which are CSS-family, write the same words in kebab-case
+sheets (CSS-family) and form documents (XML) write the same words in kebab-case
 (`scroll_thumb` is `::part(scroll-thumb)`, `auto_size_mode` is `auto-size-mode`);
 PropertyGrid and C# show them in PascalCase (`AutoSizeMode`). C++ reads the anatomy as
 typed records (`(*bar).parts().thumb`) and registers handlers through each type's events
@@ -33,7 +33,7 @@ States: `normal`, `hot`, `pressed`, `captured`, `focused`, `focus_visible`, `pre
 
 Admitted custom states: `modified`, `pinned`.
 
-Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`, `search`, `information`, `warning`, `success`, `chevron_left`.
+Marks: `check`, `indeterminate`, `radio_dot`, `toggle_knob`, `arrow_up`, `arrow_down`, `arrow_left`, `arrow_right`, `chevron_down`, `chevron_right`, `close`, `grip_dots`, `dialog_launcher`, `more`, `overflow`, `customize`, `pin`, `dock_shape`, `underline`, `pencil`, `asterisk`, `error`, `search`, `information`, `warning`, `success`, `chevron_left`, `minimize`, `maximize`, `restore`.
 
 Engine inputs: `pointer_x`, `pointer_y`, `time_in_state`, `display_scale`, `text_scale`.
 
@@ -431,9 +431,9 @@ Interactions beyond every control's: none.
 | `lens` | indicator |  |  |
 | `label` | label |  |  |
 
-States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`.
+States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`, `pinpoint`.
 
-Properties beyond every control's: `lamp_color` (color), `light_planes` (text), `state` (enumeration), `text` (text).
+Properties beyond every control's: `lamp_color` (color), `lamp_style` (enumeration), `light_planes` (text), `state` (enumeration), `text` (text).
 
 Interactions beyond every control's: none.
 
@@ -1333,7 +1333,7 @@ Properties beyond every control's: `check_state` (enumeration), `checked` (boole
 | `label` | label |  |  |
 | `focus` | focus |  |  |
 
-States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`.
+States: `normal`, `hot`, `pressed`, `checked`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`. Application-defined: `lamp`.
 
 Properties beyond every control's: `checked` (boolean), `content_padding` (insets), `font` (font), `group_name` (text), `image` (image), `indicator_style` (enumeration), `text` (text), `text_alignment` (enumeration).
 
@@ -2749,6 +2749,7 @@ Properties beyond every control's: none.
 |---|---|
 | `item_invoked` | `MenuStripInvocation` |
 | `open_changed` | `stxlib::Optional<std::size_t>` |
+| `frame_button_pressed` | `MenuStripFrameButton` |
 
 ## `tool_strip` (ToolStrip, control)
 
@@ -3985,6 +3986,7 @@ Properties beyond every control's: none.
 | `key_up` | `KeyEventArgs`, by reference |
 | `presentation_changed` | `PresentationSettings` |
 | `theme_changed` | `Theme` |
+| `mdi_child_activate` | `MdiChildActivation` |
 
 ## Composite controls
 

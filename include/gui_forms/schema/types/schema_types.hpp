@@ -14,8 +14,8 @@ namespace gui_forms {
 // compound fields, enumeration types and values) is a sequence of lowercase
 // words with one stored spelling, snake_case (`auto_size_mode`). C++ string
 // APIs, the C ABI, the schema and every name the library reports use it.
-// Two spellings are derived from it and never stored: CSS-family documents
-// (themes, form documents) write the words in kebab-case
+// Two spellings are derived from it and never stored: theme sheets
+// (CSS-family) and form documents (XML) write the words in kebab-case
 // (`auto-size-mode`), and PropertyGrid and C# show them in PascalCase
 // (`AutoSizeMode`). Names are a versioned public contract: within a major
 // version they are only added.
@@ -31,7 +31,7 @@ namespace gui_forms {
 // Leading and trailing whitespace is ignored. Throws std::invalid_argument
 // for an empty name.
 [[nodiscard]] GUI_FORMS_API std::string registered_name(std::string_view spelling);
-// The kebab-case spelling CSS-family documents write: "auto-size-mode".
+// The kebab-case spelling theme sheets and form documents write: "auto-size-mode".
 [[nodiscard]] GUI_FORMS_API std::string css_spelling(std::string_view registered);
 // The PascalCase display spelling: "AutoSizeMode", "Bounds.Width".
 [[nodiscard]] GUI_FORMS_API std::string display_spelling(std::string_view registered);

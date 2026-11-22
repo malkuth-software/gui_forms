@@ -152,6 +152,7 @@ bool valid_procedural_fill(const ProceduralFill& fill) noexcept {
     case ProceduralPattern::brushed_metal:
     case ProceduralPattern::fresco:
     case ProceduralPattern::checker:
+    case ProceduralPattern::carbon_fibre:
     case ProceduralPattern::hatch: {
         HatchPattern style{};
         style.style = fill.hatch_style;

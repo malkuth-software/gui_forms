@@ -1,13 +1,13 @@
 # Roadmap
 
 GUI.Forms is pre-1.0. This page says what is done, what is being worked on
-now, and what has to be true before the API is declared stable. It is a
+now, and what has to be true before 1.0 is declared. It is a
 summary of the planning documents in the [`planning/`](https://github.com/malkuth-software/notes/tree/gui_forms/planning) directory of the project's notes repository,
 which remain the detailed source; where they disagree with the code, the code
 and its tests are the authority.
 
 ```{image} ../_static/roadmap.svg
-:alt: Releases toward 1.0: 0.1 Shipped, 0.2 Verified, 0.3 Themeable, 0.4 Flexible and 0.5 ABI seal are done; 1.0 Backend is in progress; then Tools (the designers), then 1.0 Stable.
+:alt: Releases toward 1.0: 0.1 Shipped, 0.2 Verified, 0.3 Themeable, 0.4 Flexible and 0.5 ABI seal are done; the current series, the backend, is in progress; 1.0 is next; the tools follow as 1.x releases.
 :width: 100%
 :class: roadmap-figure
 ```
@@ -87,127 +87,144 @@ variants and the reference application. After 0.5, a change to a sealed
 interface needs a recorded owner decision. The
 [0.5 release notes](../release/0.5) list it in full.
 
-## 1.0 (backend): in progress
+## Now: the backend, toward 1.0 (in progress)
 
-1.0 (backend) is the library, its C ABI and its C# bindings. Work goes in
-checkpoints: coders write in parallel without building, an integrator folds
-their branches into one tree, builds it once and runs the gate (the whole
-suite, the sanitized tree and a libstdc++ compile of the changed files), and
-the checkpoint merges as one pull request.
+The current series is the library, its C ABI and its C# bindings, brought
+to the point where 1.0 can be declared. Builds published from `main` carry
+the package version, now {{ gf_version }}. Work lands in checkpoints:
+several changes are folded into one tree, built once and gated (the whole
+test suite, the sanitized tree and a libstdc++ compile of every changed
+file), then merged as one pull request.
 
 ### Done since the seal
 
-On `main` (pull requests #474 to #482; see [Unreleased](../release/unreleased)):
+On `main` since the 0.5 seal; [Unreleased](../release/unreleased) lists
+every change and the breaking ones.
 
-- **Checkpoints 24 to 26:** `gui-forms` as the default theme; C ABI
-  additions for keys, NumericUpDown's range, modal and owned windows,
-  anchored overlays, window properties and keyboard focus; styled text runs
-  in TextBox; a public SHA-256; Finder open-files on macOS and Linux dialog
-  filters that ignore case; the data grid in the C ABI; the ribbon gaps.
-- **Checkpoint 27:** menus and drop-downs in Popup windows with the menu
-  look; the invalidation overlay; the first look-integration rows; the final
-  controls (seven-segment display, linear and radial gauges, dial, step
-  indicator, wizard, callout, modal layer, lookup combo box, About dialog);
-  the help system (help records, HelpBook, the CHM-shaped viewer, search,
-  F1 and What's This); the declarative drag engine; the value bar; batch and
-  polyline drawing and a conic gradient; the plots package; the C ABI
-  docking table.
-- **Checkpoint 28:** C ABI 1.2 (owner decision D9: window, focus,
-  decoration, anchored overlay, data grid, docking and font surfaces, as
-  additions), a data-provider binding and a help table; a much cheaper
-  window tree; canvas scroll copies; TreeListView virtual rows; fail-fast
-  native boundaries with expectation telemetry; hardening; runtime theme
-  sheets.
-- **Checkpoints 29 to 31:**
-  - flat control headers (`include/gui_forms/controls/<name>.hpp`), the lab
-    controls out of the installed library, and export lists generated from
-    `GUI_FORMS_API`;
-  - C ABI 1.3: generated class tables, so C and C# code can override a
-    control's `on_*` hooks (additions only);
-  - per-event raisers in the owner's input order, `Control::RightToLeft`,
-    borrowed views with a checked build (`GUI_FORMS_CHECKED_BORROWS`) and
-    the member manifest;
-  - VirtualRowsView, DragTracker, NodeGraph undo and its save format,
-    paragraph layout, ImageAtlas and allocation statistics;
-  - row heights indexed by `stx_btree` from stx_auxlib, with fixed-point
-    heights;
-  - industrial surfaces: paint finishes, baked light planes, the GOST
-    paint palette, the IndicatorLamp control and the danger key
-    (`Button::danger`);
-  - custom states in theme selectors, the canvas theme, the public
-    NodeCanvas and dithered gradient fills;
-  - the package version 0.6.0.
+Text and fonts
+: STXlib's glyph library reads, shapes and hints every face, and its text
+  layout handles bidirectional text, line breaks and scripts; FreeType,
+  HarfBuzz, SheenBidi, libunibreak and MD4C are gone. Every bundled face is
+  compiled into the library as one font pack, so the interface faces cannot
+  be missing, with smaller Chinese, Japanese, Korean, Arabic and Indic
+  fallback subsets. A registry names the bundled families (`FontFamilyId`),
+  with family stacks and nearest faces. Programs can load their own font
+  families for composites and sub-surfaces
+  ([Application font families](../user/app-fonts)). TextBox takes styled
+  text runs, and paragraph layout gives glyph runs to draw.
 
-The first build under the 0.6 number is `v0.6.1541`.
+Content and hosting
+: Content surfaces run on their own execution context, with stale frames, a
+  watchdog and termination. In the content editing mode the program lays out
+  and draws the text, and GUI.Forms supplies the caret, input, undo and
+  accessibility. Hosted content runs the content program in its own process,
+  on macOS, Linux and Windows ([Content surfaces](../user/content-surfaces)).
 
-### In progress: the Mac side, to the Windows hand-back
+Windows, input and presentation
+: Window properties in the Windows Forms shape, modal and owned windows and
+  anchored overlays; the window band's per-edge reservations, colour roles,
+  cycling and textures, and window shaping
+  ([The window band](../user/window-band)); a business card that shows the
+  program's identity, and a diagnostic overlay with a counters card;
+  relative pointer mode ([Relative pointer mode](../user/relative-pointer));
+  key events in the Windows Forms shape and focus that returns where it
+  was; a new window that stays off screen until its first frame is painted,
+  on macOS and X11; one presentation layer through which each host presents
+  and moves scrolled pixels ([Presentation](../user/presentation)); modal
+  loops that wake for work scheduled outside them; click-through on macOS;
+  and the user's locale read from the host on all three hosts.
 
-The current plan (started 2026-11-13) finishes 1.0 (backend) without its
-Windows-only parts on macOS and Linux, then hands back to the Windows side.
-It runs in streams. Much of it is already written in branches of
-checkpoints 32 and 33 that wait to be folded:
+Controls
+: The final controls (seven-segment display, linear and radial gauges,
+  dial, step indicator, wizard, callout, modal layer, lookup combo box and
+  About dialog); the help system (HelpBook, its viewer, search, F1 and
+  What's This); VirtualRowsView, with TreeListView and DataGridView on the
+  same row engine; DataGridView's frozen rows and columns, click events,
+  cell tooltips and hit testing; menu first-letter jumps and file dialog
+  checks; the ribbon's minimized popup, Quick Access Toolbar and help
+  button; IndicatorLamp, the danger key and the public NodeCanvas; the plots
+  package and 3D plotting (Plot3DView); stock icons from Heroicons; and
+  composite controls written as `.control` documents
+  ([Forms](../user/forms)).
 
-Font identity
-: A registry of the bundled families (`FontFamilyId`), family stacks with a
-  theme fallback that warns instead of refusing, and the family across the
-  C ABI and C#. Then the font pack: all bundled faces in one first-party
-  file embedded in the library, so the interface faces cannot be missing.
+Themes and drawing
+: `gui-forms` as the default theme and theme sheets loaded at run time;
+  custom states in selectors and the canvas theme; industrial surfaces
+  (paint finishes, baked light planes, the GOST palette); content effects
+  (filters, masks, blend modes, backdrop filters and colour stages) on a
+  control and its descendants; linear-light and dithered gradients; curved
+  paths, trimmed strokes, text at any angle and shaded triangles in the
+  Painter and the drawing ABI.
 
-Content boundary
-: A content surface on its own execution context, with stale frames, a
-  watchdog and termination; a content editing mode, where the program lays
-  out and draws the text and GUI.Forms provides the caret, input, undo and
-  accessibility; a program's own HarfBuzz and FreeType
-  link beside GUI.Forms, which contains neither since 2026-11-16; and a hosted mode in which the content program
-  runs in its own process (macOS and Linux first).
+Forms and the member manifest
+: Form documents are XML (`urn:gui-forms:form:1`), and
+  `tools/convert_form_to_xml.py` converts the old syntax once. The member
+  manifest (`manifests/members.json`) lists every control member against
+  Windows Forms. Controls raise per-event notifications in the Windows
+  Forms shape, `right_to_left` is the visible spelling, and alignments that
+  follow the reading direction are spelled `start` and `end`, as in CSS.
 
-Engine and controls
-: Stock icons (Heroicons), curved paths in the Painter and the drawing ABI,
-  the locale from the host; the ribbon's minimized popup, Quick Access
-  Toolbar on the tab row and help button; menu first-letter jumps, file
-  dialog checks and the DataGridView breadth (frozen columns and rows,
-  clicks, tooltips, hit testing); DataGridView rebuilt on VirtualRowsView's
-  engine (the row index, the shared column placement and scroll copies);
-  VoiceOver following keyboard focus; the window band's per-edge
-  reservations, colour roles, cycling and textures in C ABI 1.3, with the
-  control border as schema properties; effects taken from Dear ImGui and
-  the active border on controls.
+C ABI and C#
+: The C ABI grows by additions only, each checked by a blocking
+  breaking-change audit: the window, focus, decoration, overlay, data grid,
+  docking and font surfaces; class tables, so C and C# code can override a
+  control's hooks; the content boundary; then the window band and shaping,
+  the pointer location, the list view table, failure detail, composites,
+  the business card and diagnostic overlay, relative pointer mode,
+  application fonts and the presentation capabilities. It is now version
+  {{ gf_c_abi }}. The drawing ABI (`gd_*`) was sealed on 2026-11-13 and is
+  now version {{ gf_drawing_abi }}; the host protocol is at version
+  {{ gf_host_protocol }}.
 
-Demonstrators
-: A node-graph editor (D1), a flame graph and profiler viewer (D2), an
-  ImGui-class (D3) and an ImPlot-class (D4) program and 3D plotting (D5)
-  exercise the drawing ABI. The drawing ABI (`gd_*`) is sealed only after
-  all five exist, with owner review.
+Library and build
+: STXlib, pinned with the stx packages in `stx.lock`, supplies the row
+  height index and owned types at the boundaries; public signatures move
+  from `std::optional` to `stxlib::Optional` and the other STXlib types.
+  Control headers are flat, the shared libraries export exactly what
+  `GUI_FORMS_API` marks, and `import gui_forms;` is a C++20 module. A
+  program is one module: it links GUI.Forms statically, or loads only the C
+  ABI library. The tests live in their own repository,
+  `malkuth-software/gui_forms_tests`, and build against a test cache CI
+  publishes for each commit; CI builds with warnings as errors.
 
-STXlib swap-in
-: STXlib, a separate library that replaces stx_auxlib, gives GUI.Forms
-  owned types at its boundaries instead of `std::` types, a platform layer
-  and, in development builds, exception shadowing at every ABI boundary. It
-  lands before 1.0; the row index moves to it in one fold.
+Each build that passes CI on `main` is published on the
+[Releases page](https://github.com/malkuth-software/gui_forms/releases).
 
-1.0 conditions, Mac share
-: macOS and X11 normative traces; Cmd-Q, live resize and smooth-scroll
-  checks; a ThreadSanitizer run.
+### Before 1.0
 
-Consumers
-: The conformance consumers are rebased once, after the STXlib swap-in:
-  template_harness, SwiftEdit, PlaySuite, Plan Paint and Pocket Library.
-  Product pins do not move before then.
+These steps run in order; each finishes before the next starts.
 
-The order is: fold checkpoint 32, then 33 (the font pack, the grid engine,
-the warning cleanup); build the demonstrators and seal the drawing ABI; the
-STXlib swap-in; the Mac 1.0 conditions; the conformance rebases; then the
-hand-back. On the Windows side, the hand-back covers the C# package and
-NuGet, Visual Studio integration, the Windows normative traces, the
-Windows 11 border shaping of the window band, the Windows part of the
-hosted mode and the 1.0 seal.
+1. **Finish and integrate the open work.** On Windows: the C# package and
+   NuGet, the Windows normative traces and the Windows 11 border of the
+   window band. Across the library: the rows under
+   [Open work by area](#open-work-by-area), the remaining Windows Forms
+   behaviour gaps, the move to STXlib's owned types at the public surface,
+   one canonical image interpolation in `stx_conv`, and two studies, a
+   guarantee that a window's content always fits the area it is shown in
+   and behavioural constraints checked by a block fuzzer. Alongside,
+   controls and tools from other frameworks are reviewed for what
+   GUI.Forms lacks.
+2. **Automation through the Model Context Protocol.** Every GUI.Forms
+   program can offer its interface to an assistant or a test tool, which
+   reads and drives it.
+3. **Everything else before 1.0:** touch input, building for Apple
+   platforms without a Mac, signed files in STXlib, and the tools brought
+   forward from after 1.0.
+4. **Declare 1.0** once the [conditions for 1.0](#conditions-for-10) hold,
+   after a cleanup round across the tree and signed, reproducible packaging.
+
+After the declaration, the documentation is reviewed against the release
+and embedded in the package, with pages showing GUI.Forms in use in a
+range of programs.
 
 ### Owner decisions that shape the plan
 
 The owner recorded these choices on 2026-11-13:
 
 - **Interface and content fonts.** Interface text uses only the families
-  GUI.Forms bundles, and programs cannot register fonts with its engine.
+  GUI.Forms bundles; stock controls and themes never draw anything else.
+  Since 2026-11-15 a program may load its own font families for its
+  composites and sub-surfaces ([Application font families](../user/app-fonts)).
   Content may use any font, drawn by the program's own text engine into its
   own sub-surfaces. Registered families through themes wait for a formally
   verified FreeType, after 1.0 (decided while GUI.Forms read fonts with
@@ -238,45 +255,9 @@ The owner recorded these choices on 2026-11-13:
 - **The theme vocabulary** is sufficient for most purposes; terms are added
   as needed.
 
-## Tools (after 1.0 backend)
+## Conditions for 1.0
 
-The visual tools are closed source and separate from the library, which
-stays MIT. Binaries come from the website. There is no nag screen and no
-splash: each tool shows the line "MALKUTH SOFTWARE CONSULTING" in its title
-bar and one line along the top. The licence is freeware, single seat. The
-tools are:
-
-- the theme editor, which captures every control for reference and lets
-  you click a control to see and edit the rules that affect it (started);
-- the WYSIWYG designer, with flex and grid snapping and in-line theme
-  overrides;
-- Visual Studio integration for C++ and C#;
-- the Windows Forms conversion program;
-- the mirrored-mode launcher, which runs an existing Windows Forms
-  program on GUI.Forms without recompiling it, through a Windows Forms
-  facade over the C ABI that logs what is not yet supported. It is in
-  progress: its proof of concept runs SDR#, the software-defined radio
-  receiver, with a live radio.
-
-Then a cleanup round, documentation and tutorials, and reproducible,
-signed packaging lead to **1.0 Stable**.
-
-After 1.0:
-- HTML import (converting static web pages into GUI.Forms documents);
-- a light FreeType fork, and registered font families through themes once
-  FreeType is formally verified (planned while GUI.Forms read fonts with
-  FreeType; since 2026-11-16 STXlib's glyph library reads them);
-- identical floating-point results on every architecture;
-- a proposal, timing open: once STXlib runs on FreeBSD, build and test the
-  X11 host there so that GUI.Forms can claim BSD support.
-
-GUI.Forms 2.0 is planned for release builds without exceptions, formal
-verification from STXlib up through GUI.Forms, freestanding builds, and a
-FreeBSD appliance whose supervisor is a GUI.Forms application.
-
-## 1.0 Stable
-
-The API is declared stable only when all of the following hold:
+1.0 is declared, and the API with it, only when all of the following hold:
 
 - The C function tables and error model pass a breaking-change audit, and the
   C++ wrappers are RAII conveniences over them rather than a second contract.
@@ -299,12 +280,48 @@ The full plan, with a measured gate for each stage, is
 Future note, not a stage: distribution near 1.0 is expected to move to
 rolling releases with pinnable caches, likely hosted off GitHub.
 
+## After 1.0: the tools and beyond
+
+The visual tools follow 1.0 as 1.x releases; any brought forward come
+before it. They are closed source and separate from the library, which
+stays MIT. Binaries come from the website. There is no nag screen and no
+splash: each tool shows the line "MALKUTH SOFTWARE CONSULTING" in its title
+bar and one line along the top. The licence is freeware, single seat. The
+tools are:
+
+- the theme editor, which captures every control for reference and lets
+  you click a control to see and edit the rules that affect it (started);
+- the WYSIWYG designer, with flex and grid snapping and in-line theme
+  overrides;
+- Visual Studio integration for C++ and C#;
+- the Windows Forms conversion program;
+- the mirrored-mode launcher, which runs an existing Windows Forms
+  program on GUI.Forms without recompiling it, through a Windows Forms
+  facade over the C ABI that logs what is not yet supported. It is in
+  progress: its proof of concept runs SDR#, the software-defined radio
+  receiver, with a live radio.
+
+Also after 1.0:
+
+- HTML import (converting static web pages into GUI.Forms documents);
+- a light FreeType fork, and registered font families through themes once
+  FreeType is formally verified (planned while GUI.Forms read fonts with
+  FreeType; since 2026-11-16 STXlib's glyph library reads them);
+- identical floating-point results on every architecture;
+- a proposal, timing open: once STXlib runs on FreeBSD, build and test the
+  X11 host there so that GUI.Forms can claim BSD support.
+
+GUI.Forms 2.0 is planned for release builds without exceptions, formal
+verification from STXlib up through GUI.Forms, freestanding builds, and a
+FreeBSD appliance whose supervisor is a GUI.Forms application.
+
 ## Milestones
 
 The implementation programme is a chain of independently testable contracts.
 The table lists them in dependency order, with the paint-pipeline closure
 gates as their own rows. "Done" means the deliverable exists and a test in
-`tests/` exercises it; a row's open remainder is named in its status.
+the tests repository (`malkuth-software/gui_forms_tests`) exercises it; a
+row's open remainder is named in its status.
 
 | Milestone | What it delivers | Status |
 |---|---|---|
@@ -312,15 +329,15 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 | Display chunks, damage and the CPU renderer | Retained display chunks, bounded multi-rectangle damage per paint plane, a bounded PNG registry with a fuzz target, the renderer-free drawing core (paths, gradients, transforms, clips, images), and the private CPU-only Skia adapter behind symbol audits | done |
 | Portable host protocol and the macOS host | A versioned, capability-reported protocol; on AppKit: lifecycle and close cancellation, monitors, occlusion, capture, cursors, clipboard text and images, inbound typed drops, the five common dialogs, sound cues and IME composition | done; outbound drag and native menus are open |
 | Unicode text, shaping and editing | A strict UTF-8 text store with distinct position types, Unicode grapheme boundaries, STXlib's shaping over bundled faces with script fallback, bidirectional analysis, and single and multiline editing with selection, clipboard and undo | in progress: preedit on X11 remains |
-| Layout, scrolling and virtualization | Measure and arrange with Dock/Anchor, flow, table, split and responsive-track containers; scrollable containers with real scrollbars; read barriers and bounded passes; lists and trees that realize only visible rows | in progress: FlexPanel, GridPanel and BlockPanel pass a box and text gate against a browser layout oracle (211 fixtures); VirtualRowsView and TreeListView index row heights with `stx_btree` (fixed-point heights); DataGridView virtual mode is tested with a million rows; DataGridView on the same row engine is in checkpoint 33 |
+| Layout, scrolling and virtualization | Measure and arrange with Dock/Anchor, flow, table, split and responsive-track containers; scrollable containers with real scrollbars; read barriers and bounded passes; lists and trees that realize only visible rows | done: FlexPanel, GridPanel and BlockPanel pass a box and text gate against a browser layout oracle; VirtualRowsView, TreeListView and DataGridView share one row engine, with row heights indexed by STXlib's `stx_btree` (fixed-point heights); DataGridView virtual mode is tested with a million rows |
 | Basic Forms controls | Panel, GroupBox, Label, LinkLabel, Button, CheckBox, RadioButton, TextBox, ListBox, ComboBox, NumericUpDown, scroll bars, TrackBar, ProgressBar, PictureBox, ContainerControl, UserControl, Timer, ToolTip, ErrorProvider, HelpProvider, ImageList and commands, with initialization scopes, mnemonics and accept/cancel targets | done |
-| Collection, command and data controls | TreeView, ObjectView, CheckedListBox, TabControl, SplitContainer, MasterDetailView, MenuStrip, ContextMenu, CommandBar, DateTimePicker and a metadata-driven PropertyGrid; `Value<T>` and `Command` bindings with record currency and validation | in progress: DataGridView (with link and sparkline columns), ListView, StatusStrip and MessageBox are implemented; menu first-letter jumps and the DataGridView breadth (frozen columns and rows, click events, cell tooltips, hit testing) are in checkpoint 32; MDI (with docking) is open |
+| Collection, command and data controls | TreeView, ObjectView, CheckedListBox, TabControl, SplitContainer, MasterDetailView, MenuStrip, ContextMenu, CommandBar, DateTimePicker and a metadata-driven PropertyGrid; `Value<T>` and `Command` bindings with record currency and validation | in progress: DataGridView (with link and sparkline columns), ListView, StatusStrip and MessageBox are implemented; menu first-letter jumps and the DataGridView breadth (frozen columns and rows, click events, cell tooltips, hit testing) are done; MDI (with docking) is open |
 | Semantic tree | A retained semantic graph with stable-ID snapshots, default adapters for stock controls, virtual children and semantic actions, independent of authored metadata | done |
 | Native accessibility on every host | Publication of the semantic tree through each platform's accessibility API, exercised by tests | done: macOS (NSAccessibility), Windows (MSAA and UI Automation) and Linux (ATK/AT-SPI) publish the tree and editable text ranges, client tests read each through its own API, and every native host advertises the capability |
-| Themes, assets and localization | Immutable theme records with named visual roles and high-contrast recipes, atomic theme replacement, layered surface materials, OKLab/OKLCH colour and a fixed bundled font set | in progress: the theme language is complete (packages, imports, user themes, effects), with the GUI.Forms theme and four familiar themes whose gate records are open; language files carry each control's translatable text and help records; the industrial theme and the GOST paint palette ship as Gallery packages; the font family registry and the font pack are in checkpoints 32 and 33 |
+| Themes, assets and localization | Immutable theme records with named visual roles and high-contrast recipes, atomic theme replacement, layered surface materials, OKLab/OKLCH colour and a fixed bundled font set | in progress: the theme language is complete (packages, imports, user themes, effects), with the GUI.Forms theme and four familiar themes whose gate records are open; language files carry each control's translatable text and help records; the industrial theme and the GOST paint palette ship as Gallery packages; the font family registry and the embedded font pack are done |
 | Compositor cooperation | Transparency, glass and behind-window materials where the host provides them, joined to the theme engine | in progress: the Windows, macOS and X11 adapters, the XWayland probe, window backdrop chains, full-fidelity glass and reflection are done; some host rows of the stage gate are open |
-| Authoring manifest for compiled forms | A versioned manifest of controls, properties, events, layout and resources that form compilers consume, with conformance fixtures | in progress: the control registry lists every public control type, and the member manifest (`manifests/members.json`) classifies every property, event and method against Windows Forms; conformance fixtures are open |
-| Stable C ABI | Versioned function tables and an error model that pass a breaking-change audit, an export allowlist, and C++ wrappers as RAII conveniences over them | in progress: ABI 1.3 is installed (1.1 the seal, 1.2 and 1.3 additions only, including the class tables), with a blocking audit against the recorded baselines, a conformance kit, export lists and generated C# bindings; the drawing ABI (`gd_*`, 0.3 on `main`) is sealed after the demonstrators |
+| Authoring manifest for compiled forms | A versioned manifest of controls, properties, events, layout and resources that form compilers consume, with conformance fixtures | in progress: the control registry lists every public control type, and the member manifest (`manifests/members.json`) lists every property, event and method against Windows Forms; many members are not yet classified as supported, deferred or excluded ([Members](../controls/generated/members)), and 1.0 needs every one classified; conformance fixtures are open |
+| Stable C ABI | Versioned function tables and an error model that pass a breaking-change audit, an export allowlist, and C++ wrappers as RAII conveniences over them | in progress: ABI {{ gf_c_abi }} is installed (1.1 the seal, every later version additions only), with a blocking audit against the recorded baselines, a conformance kit, export lists and generated C# bindings; the drawing ABI (`gd_*`) is sealed, now version {{ gf_drawing_abi }} |
 | Windows and Linux hosts | The same protocol on Win32 (DIB presentation, MSAA, dialogs, clipboard, automation channel) and X11 (XDND drops, ATK/AT-SPI, dialogs, clipboard) | in progress: Windows lacks inbound drag and drop and occlusion; X11 lacks preedit |
 | Packaging and release | A pipeline that builds, tests, packages and launch-tests every program on every platform, then publishes archives, installers, checksums and licence notices | in progress: release signing and notarization, a software bill of materials and reproducible builds remain |
 | Coherent latest-state presentation | Separate content, rendered and presented revisions; one paint lease, one coalesced wake and one deferred follow-up per window; exact presentation receipts; owner-callback failure restores the previous chunks | done |
@@ -328,7 +345,7 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 | Atomic candidate raster | Replay into a private candidate raster and publish it only after every backend command succeeds, keeping the last presented raster across allocation, renderer and upload faults | in progress: an opt-in Windows transactional frame store exists; default hosts replay into the live raster |
 | Damage-preserving painting | Painting and presenting each damage rectangle instead of their bounding box | done: every host paints the rectangle set (paint contract version 2), and live frames follow one frame sequence; the gate is recorded on Windows, X11 and macOS ([`results/2026-10-25-dp-gate-macos`](https://github.com/malkuth-software/notes/tree/gui_forms/results/2026-10-25-dp-gate-macos)), where AppKit copies the union of the set over unchanged pixels, accepted by the owner; paint edges snap to whole device pixels |
 | Presentation availability record | Publishing the mandatory paint-contract version and optional host extensions (partial present, zero-copy import, presentation fences) | done: `Window::presentation_availability()` reports contract version 2 (partial present is now part of the contract), the extensions and the live paint lease; no host offers zero-copy import or fences yet |
-| API stability (1.0) | The conditions listed under [1.0 Stable](#10-stable) | planned |
+| API stability (1.0) | The conditions listed under [Conditions for 1.0](#conditions-for-10) | planned |
 
 ## Done and tested
 
@@ -377,7 +394,7 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 - Merges to main go through a merge queue whose required checks include a
   state-machine gate that fails on findings.
 - The host protocol versions are one table in the public header, now at
-  version 13.
+  version {{ gf_host_protocol }}.
 - Flex, grid and block layout panels and a `TextBlock` leaf, checked against
   a browser layout oracle, and the Windows Forms containers with full
   right-to-left mirroring.
@@ -390,8 +407,17 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 - `stx_rtf2md`, the first-party rich-text library: one document model, a
   markdown-like dialect, and RTF read and written by meaning.
 - `stx_skia/`, the CPU renderer (from the pinned stx checkout), built with the tree on every host.
-- The C ABI at version 1.3, with class tables for C and C# overrides, a
-  blocking breaking-change audit and generated C# bindings.
+- The C ABI at version {{ gf_c_abi }}, with class tables for C and C#
+  overrides, a blocking breaking-change audit and generated C# bindings;
+  the sealed drawing ABI (`gd_*`) inside the same library.
+- Content surfaces, the content editing mode and hosted content on macOS,
+  Linux and Windows; composite controls; application font families;
+  relative pointer mode; the business card and the diagnostic overlay.
+- Every bundled face in one embedded font pack, read by STXlib's glyph
+  library and laid out by its text layout.
+- Form documents in XML, with a one-time converter for the old syntax.
+- One presentation layer on every host, and a first frame painted before a
+  new window shows on macOS and X11.
 - VirtualRowsView, TreeListView virtual rows, DragTracker, NodeCanvas,
   paragraph layout, ImageAtlas, allocation statistics and IndicatorLamp.
 - Three demonstration programs (the Gallery and the Explore and
@@ -402,17 +428,18 @@ gates as their own rows. "Done" means the deliverable exists and a test in
 ## Open work by area
 
 The current work is under
-[1.0 (backend): in progress](#10-backend-in-progress). By area, what is
-still open:
+[Now: the backend, toward 1.0](#now-the-backend-toward-10-in-progress). By
+area, what is still open:
 
 Documentation
-: Reviewed descriptions for the public members the API reference still lists
-  by signature only, and screenshots captured by CI rather than by hand.
+: Reviewed descriptions for the controls and members the API reference
+  still lists by signature only; a preview of every control, captured
+  without a screen in the windows-professional theme; and links from the
+  reference to the source at the commit it was built from.
 
 Hosts
-: Input-method preedit on X11, inbound drag and drop on Windows, outbound
-  drag on every host, and the locale read from the host (checkpoint 32;
-  Windows with the hand-back).
+: Input-method preedit on X11, inbound drag and drop on Windows, and
+  outbound drag on every host.
 
 Compositor cooperation
 : The stage gate's remaining rows: the Windows fallback and settings rows,
@@ -438,8 +465,9 @@ hosting, device printing and obsolete Forms families.
 
 GUI.Forms aims to be agnostic about the display server and to target what
 already works everywhere. Today that is the X11 host: it runs on X11 desktops
-and, through XWayland, in Wayland sessions, with the same behaviour. A
-Wayland-native adapter is not planned. FreeBSD is a desired target; it has
+and, through XWayland, in Wayland sessions, with the same behaviour. There
+is no Wayland-native host; a Wayland shared-memory presentation path is
+built only with `GUI_FORMS_ENABLE_WAYLAND_PRESENT`. FreeBSD is a desired target; it has
 not yet been built or tested. After 1.0, once STXlib runs on FreeBSD, the
 plan is to build and test the X11 host there.
 

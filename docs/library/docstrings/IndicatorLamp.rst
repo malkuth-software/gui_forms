@@ -46,6 +46,11 @@ lamp_color : default empty
     lamp amber when empty; without one it fills the lit lens over the
     theme's look as an authored colour, and not in forced high contrast.
     An error always lights in the error colour (with a bake, lamp red).
+lamp_style : default ``IndicatorLampStyle::lens``
+    How the lamp draws: `IndicatorLampStyle::lens`, a lens in a bezel, or
+    `IndicatorLampStyle::pinpoint`, a tiny accent light for status, a dot
+    6 units across with no bezel and the legend 4 units after it. A
+    pinpoint lights and warms up as a lens does, but never shows a bake.
 light_planes_shown
     Whether the lens is composited from its bake now.
 power
@@ -63,8 +68,11 @@ Notes
 The lamp is never clickable and takes no focus: the pointer reaches what
 lies beneath it. It lights only its own lens: the lit lens is drawn
 clipped to the lens, so its light reaches neither the bezel, the legend nor
-a neighbour. The parts are ``bezel`` (a well), ``lens`` (an indicator) and
-``label``; the custom states ``on`` and ``error`` name the lit states. It
+a neighbour. The parts are ``bezel`` (a well; none for a pinpoint),
+``lens`` (an indicator) and ``label``; the custom states ``on`` and
+``error`` name the lit states, and ``pinpoint`` the pinpoint style. A
+radio choice drawn with lamps is a `RadioButton` whose `indicator_style`
+is `ChoiceIndicatorStyle::lamp`, never a lamp. It
 publishes the accessibility role `static_text`, named by its accessible
 name or else its legend, with the state as its value (``off``, ``on`` or
 ``error``), so the state never rests on colour alone. The warm-up is the

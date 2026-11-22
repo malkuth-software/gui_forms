@@ -167,6 +167,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
+#include "gui_forms/window/document_area/window_document_area.hpp"
 #include "gui_forms/window/presentation/colour_scheme.hpp"
 #include "gui_forms/window/presentation/input_settings.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
@@ -804,6 +805,16 @@ struct EnumerationChoices<MaterialReflectionSource> {
 };
 
 template <>
+struct EnumerationChoices<MenuStripFrameButton> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 3> choices{{
+        {"minimize", static_cast<std::int64_t>(MenuStripFrameButton::minimize)},
+        {"restore", static_cast<std::int64_t>(MenuStripFrameButton::restore)},
+        {"close", static_cast<std::int64_t>(MenuStripFrameButton::close)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<Modifier> {
     static constexpr bool flags = true;
     static constexpr std::array<EnumerationChoice, 5> choices{{
@@ -901,7 +912,7 @@ struct EnumerationChoices<PageSelectionCause> {
 template <>
 struct EnumerationChoices<PartMark> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 29> choices{{
+    static constexpr std::array<EnumerationChoice, 32> choices{{
         {"none", static_cast<std::int64_t>(PartMark::none)},
         {"check", static_cast<std::int64_t>(PartMark::check)},
         {"indeterminate", static_cast<std::int64_t>(PartMark::indeterminate)},
@@ -930,6 +941,9 @@ struct EnumerationChoices<PartMark> {
         {"warning", static_cast<std::int64_t>(PartMark::warning)},
         {"success", static_cast<std::int64_t>(PartMark::success)},
         {"chevron_left", static_cast<std::int64_t>(PartMark::chevron_left)},
+        {"minimize", static_cast<std::int64_t>(PartMark::minimize)},
+        {"maximize", static_cast<std::int64_t>(PartMark::maximize)},
+        {"restore", static_cast<std::int64_t>(PartMark::restore)},
         {"count", static_cast<std::int64_t>(PartMark::count)},
     }};
 };
@@ -1026,7 +1040,7 @@ struct EnumerationChoices<PointerButton> {
 template <>
 struct EnumerationChoices<ProceduralPattern> {
     static constexpr bool flags = false;
-    static constexpr std::array<EnumerationChoice, 8> choices{{
+    static constexpr std::array<EnumerationChoice, 9> choices{{
         {"felt", static_cast<std::int64_t>(ProceduralPattern::felt)},
         {"wood_grain", static_cast<std::int64_t>(ProceduralPattern::wood_grain)},
         {"paper_fibre", static_cast<std::int64_t>(ProceduralPattern::paper_fibre)},
@@ -1035,6 +1049,7 @@ struct EnumerationChoices<ProceduralPattern> {
         {"fresco", static_cast<std::int64_t>(ProceduralPattern::fresco)},
         {"checker", static_cast<std::int64_t>(ProceduralPattern::checker)},
         {"hatch", static_cast<std::int64_t>(ProceduralPattern::hatch)},
+        {"carbon_fibre", static_cast<std::int64_t>(ProceduralPattern::carbon_fibre)},
     }};
 };
 
@@ -1475,6 +1490,7 @@ void append_field(EventFields& fields, std::string_view name, const MaterialMask
 void append_field(EventFields& fields, std::string_view name, const MaterialReflection& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialShadow& value);
 void append_field(EventFields& fields, std::string_view name, const MaterialTransform& value);
+void append_field(EventFields& fields, std::string_view name, const MdiChildActivation& value);
 void append_field(EventFields& fields, std::string_view name, const MenuItemInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const MenuStripInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const ModalLayerClosingEvent& value);
@@ -2857,6 +2873,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Mater
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const MdiChildActivation& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "previous", value.previous);
+    append_field(fields, "current", value.current);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const MenuItemInvocation& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "menu_id", value.menu_id);
@@ -3180,6 +3203,8 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     append_field(fields, "hover_height", value.hover_height);
     append_field(fields, "hover_origin", value.hover_origin);
     append_field(fields, "native_hover", value.native_hover);
+    append_field(fields, "menu_show_milliseconds", value.menu_show_milliseconds);
+    append_field(fields, "menu_show_origin", value.menu_show_origin);
     fields.leave(prefix);
 }
 
@@ -5315,6 +5340,15 @@ inline SubscriptionToken connect_binding_format(Component& source, const EventSi
     return token;
 }
 
+inline SubscriptionToken connect_menu_strip_frame_button_pressed(Component& source, const EventSink& sink) {
+    MenuStrip* typed = dynamic_cast<MenuStrip*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).frame_button_pressed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_node_canvas_graph_edited(Component& source, const EventSink& sink) {
     NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
     if (typed == nullptr) {
@@ -5755,6 +5789,19 @@ inline SubscriptionToken connect_material_panel_material_changed(Component& sour
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).material_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_window_mdi_child_activate(Component& source, const EventSink& sink) {
+    WindowHandle* holder = dynamic_cast<WindowHandle*>(&source);
+    if (holder == nullptr) {
+        return SubscriptionToken{};
+    }
+    Window* typed = (*holder).window();
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).mdi_child_activate(), sink);
     return token;
 }
 
@@ -7297,7 +7344,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 381> event_connectors{{
+inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7462,6 +7509,7 @@ inline constexpr std::array<EventConnector, 381> event_connectors{{
     {"focus_observed", "Control", &connect_control_focus_observed},
     {"focused_control_changed", "Window", &connect_window_focused_control_changed},
     {"format", "Binding", &connect_binding_format},
+    {"frame_button_pressed", "MenuStrip", &connect_menu_strip_frame_button_pressed},
     {"graph_edited", "NodeCanvas", &connect_node_canvas_graph_edited},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
     {"handle_committed", "PlotView", &connect_plot_view_handle_committed},
@@ -7509,6 +7557,7 @@ inline constexpr std::array<EventConnector, 381> event_connectors{{
     {"mask_changed", "MaskedTextBox", &connect_masked_text_box_mask_changed},
     {"mask_input_rejected", "MaskedTextBox", &connect_masked_text_box_mask_input_rejected},
     {"material_changed", "MaterialPanel", &connect_material_panel_material_changed},
+    {"mdi_child_activate", "Window", &connect_window_mdi_child_activate},
     {"menu_item_invoked", "NotifyIcon", &connect_notify_icon_menu_item_invoked},
     {"minimized_changed", "Ribbon", &connect_ribbon_minimized_changed},
     {"mouse_capture_changed", "Control", &connect_control_mouse_capture_changed},

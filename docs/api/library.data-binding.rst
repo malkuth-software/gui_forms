@@ -113,7 +113,7 @@ Types
 
 .. cpp:struct:: BindingColumn final
 
-   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
    BindingColumn declares one provider column: canonical name, value kind (null for untyped) and read-only flag.
 
@@ -129,7 +129,7 @@ Types
 
 .. cpp:struct:: BindingCompleteEvent final
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    BindingCompleteEvent reports binding identity, transfer direction, closed outcome, diagnostic text, and cancellable acceptance.
 
@@ -151,7 +151,7 @@ Types
 
 .. cpp:struct:: BindingContextChange final
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    BindingContextChange identifies one BindingSource entering or leaving a Window currency context.
 
@@ -163,7 +163,7 @@ Types
 
 .. cpp:struct:: BindingConvertEvent final
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    BindingConvertEvent lets formatting/parsing observers replace a proposed value for a declared destination kind and explicitly mark it handled.
 
@@ -179,7 +179,7 @@ Types
 
 .. cpp:struct:: BindingFilter final
 
-   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
    BindingFilter is a conjunction of BindingPredicate values that every shown row satisfies.
 
@@ -194,7 +194,7 @@ Types
 
 .. cpp:struct:: BindingListChange final
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    BindingListChange identifies one reset, row mutation, or currency transition with stable identity, field, index, and metadata flag.
 
@@ -220,7 +220,7 @@ Types
 
 .. cpp:class:: BindingManagerBase
 
-   ``#include <gui_forms/binding/binding_manager_base/binding_manager_base.hpp>``
+   ``#include <gui_forms/binding/binding_manager_base/binding_manager_base.hpp>`` (:src:`source <include/gui_forms/binding/binding_manager_base/binding_manager_base.hpp>`)
 
    BindingManagerBase is the renderer-neutral currency/edit/transfer contract shared by list, grid, property, and settings surfaces.
 
@@ -302,7 +302,7 @@ Types
 
 .. cpp:struct:: BindingNotification final
 
-   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>`` (:src:`source <include/gui_forms/binding/binding_provider/binding_provider.hpp>`)
 
    BindingNotification is one provider change report: reset, inserted, removed, moved or changed rows.
 
@@ -320,7 +320,7 @@ Types
 
 .. cpp:struct:: BindingOptions final
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    BindingOptions defines source/control update timing, optional invariant formatting, and asymmetric null projections.
 
@@ -344,7 +344,7 @@ Types
 
 .. cpp:struct:: BindingPredicate final
 
-   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
    BindingPredicate is the one structured filter predicate: a column, a comparison operator and an operand.
 
@@ -360,7 +360,7 @@ Types
 
 .. cpp:class:: BindingProvider
 
-   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>`` (:src:`source <include/gui_forms/binding/binding_provider/binding_provider.hpp>`)
 
    BindingProvider is the data-provider interface a BindingSource reads in place: schema, row count, copied cell values, stable IDs, validated writes and change notifications.
 
@@ -419,7 +419,7 @@ Types
 
 .. cpp:struct:: BindingProviderCapabilities final
 
-   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>`` (:src:`source <include/gui_forms/binding/binding_provider/binding_provider.hpp>`)
 
    BindingProviderCapabilities states whether a provider sorts, filters, inserts and removes rows itself.
 
@@ -435,7 +435,7 @@ Types
 
 .. cpp:class:: BindingProviderLink final
 
-   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>`` (:src:`source <include/gui_forms/binding/binding_provider/binding_provider.hpp>`)
 
    BindingProviderLink is a provider's revocable, thread-safe handle for reporting changes to its source; reports from another thread are posted to the UI thread.
 
@@ -476,7 +476,7 @@ Types
 
 .. cpp:struct:: BindingRow final
 
-   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
    BindingRow is one row handed to a provider: stable ID, values by column position, and edit policy.
 
@@ -492,7 +492,7 @@ Types
 
 .. cpp:class:: BindingSchema final
 
-   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
    BindingSchema is a provider's validated column list, declared once per source, with canonical name lookup and kind admission.
 
@@ -539,7 +539,7 @@ Types
 
 .. cpp:struct:: BindingSnapshot final
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    BindingSnapshot reports endpoints, directional operations, successes, failures, reentrancy suppression, and active state.
 
@@ -563,7 +563,7 @@ Types
 
 .. cpp:struct:: BindingSortKey final
 
-   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
    BindingSortKey names one sort column and its direction; equal keys keep the provider order.
 
@@ -577,7 +577,7 @@ Types
 
 .. cpp:struct:: BindingSourceSnapshot final
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    BindingSourceSnapshot reports currency, revision, reset/field/position/suspension counters, edit state, and event publication policy.
 
@@ -615,7 +615,7 @@ Types
 
 .. cpp:class:: BindingTable final : public BindingProvider
 
-   ``#include <gui_forms/binding/binding_table/binding_table.hpp>``
+   ``#include <gui_forms/binding/binding_table/binding_table.hpp>`` (:src:`source <include/gui_forms/binding/binding_table/binding_table.hpp>`)
 
    BindingTable is the built-in column-store provider: row-major cells, stable IDs, edit flags and sparse error texts, reporting its own mutations through the link.
 
@@ -715,7 +715,7 @@ Types
 
 .. cpp:struct:: BindingWriteResult final
 
-   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>`` (:src:`source <include/gui_forms/binding/binding_provider/binding_provider.hpp>`)
 
    BindingWriteResult reports a provider's acceptance or refusal of a write, with its reason.
 
@@ -734,7 +734,7 @@ Types
 
 .. cpp:struct:: ChildPropertyEntry final
 
-   ``#include <gui_forms/binding/property_table/property_table.hpp>``
+   ``#include <gui_forms/binding/property_table/property_table.hpp>`` (:src:`source <include/gui_forms/binding/property_table/property_table.hpp>`)
 
    One property a container provides to its direct children (an attached property, study sections 10 and 15.4): a child writes it in its own ``.form`` block, and the container stores the value per child. The operations take the container as a Component (static_cast to the declaring class, as PropertyEntry's do) and the child, which must be a live direct child of it. A child property has no change event and no origin (Windows Forms raises no per-child event).
 
@@ -766,7 +766,7 @@ Types
 
 .. cpp:class:: template <typename Value, typename Capability> ChildPropertyView final
 
-   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>``
+   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>`` (:src:`source <include/gui_forms/binding/child_property_view/child_property_view.hpp>`)
 
    A property a container provides to its direct children (an attached property: study sections 10 and 15.4), as the single member of its capability. The container owns the values, one per child, keyed by the child's runtime identity; the view has no storage. Subscripting by a child yields a borrow of that child's value for one expression: template <typename Declaring> struct FlowBreakCapability { ChildPropertyView<bool, FlowBreakCapability<Declaring>> flow_break; static void assign(FlowBreakCapability& capability, const Control& child, bool value); static bool read(const FlowBreakCapability& capability, const Control& child); }; For example, ``(*flow).flow_break[*button] = true`` is the write and ``(*flow).flow_break[*button].read()`` the read. The write calls ``Capability::assign``, which checks the container's thread and that ``child`` is a live direct child, compares with the child's value (an equal value does nothing), stores in the container and touches the container. The read calls ``Capability::read``, which refuses a child that is not a live direct child and answers the default for a child with no value written. A borrow cannot be copied, kept or written twice: its write is rvalue-qualified and returns nothing. Like a cell, neither the view nor a borrow has a conversion operator or ==, so a forgotten ``.read()`` does not compile.
 
@@ -779,7 +779,7 @@ Types
 
 .. cpp:class:: ChildPropertyView::Borrow final
 
-   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>``
+   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>`` (:src:`source <include/gui_forms/binding/child_property_view/child_property_view.hpp>`)
 
    One child's value, writable: borrows the capability and the child.
 
@@ -807,7 +807,7 @@ Types
 
 .. cpp:class:: ChildPropertyView::Reading final
 
-   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>``
+   ``#include <gui_forms/binding/child_property_view/child_property_view.hpp>`` (:src:`source <include/gui_forms/binding/child_property_view/child_property_view.hpp>`)
 
    One child's value through a const container: the reads only.
 
@@ -829,7 +829,7 @@ Types
 
 .. cpp:class:: template <typename Element, typename Capability> CollectionCell final
 
-   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>`` (:src:`source <include/gui_forms/binding/collection_cell/collection_cell.hpp>`)
 
    A collection property's only storage, as the single member of its capability: PropertyCell's shape for a sequence edited in place (design accepted 2026-11-07). The read is ``items.read()`` (a span) or ``items[i]``; the writes are ``items = elements``, ``items.insert(i, x)`` (or a range, ``items.insert(i, elements)``), ``items.append(x)`` or ``items.append(elements)`` (an insertion at the end), ``items.erase(i, n)``, ``items.replace(i, x)`` and ``items.clear()``. Each write checks its positions (std::out_of_range), skips an edit that changes nothing (an equal assignment or replacement, an empty erasure), reserves what the store needs (capacity only: nothing observable changes), then calls ``Capability::prepare_edit(capability, edit, incoming)``, where the declaring control checks and may coerce the incoming elements and readies its own per-element state; a throw there refuses the edit and the elements have not changed. Nothing fails after prepare_edit returns: the cell stores (Element moves without throwing), records the edit in its dirty record, and calls ``Capability::written(capability, edit)``, so state the hook readied is always followed by its written. An edit of the same collection made while its prepare_edit runs (by a handler the hook raised) refuses the outer edit with std::logic_error. Writes to an element's fields and reorders the declaring control makes itself go through the capability's protected owner operations, which record their damage and raise no hooks. The declaring control takes the dirty record at its flush through the capability (``take_dirty``) and intersects it with what it shows. Element: copyable or movable, comparable with ==, nothrow movable. Capability: the standard-layout class whose only member this cell is.
 
@@ -882,7 +882,7 @@ Types
 
 .. cpp:class:: CollectionDirty final
 
-   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>`` (:src:`source <include/gui_forms/binding/collection_cell/collection_cell.hpp>`)
 
    A collection's pending damage between two settles (design: settled at flush, like the control table's DirtyBitset): the replaced positions, as bits, and a structural watermark, the lowest position an insertion, erasure or assignment touched. Every position at or past the watermark is dirty (its element moved or is new), so a bit there says nothing more and is dropped at the take. Edits between two takes coalesce: the lowest watermark wins and the bits unite. Used on its control's thread.
 
@@ -912,7 +912,7 @@ Types
 
 .. cpp:class:: CollectionEdit final
 
-   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>`` (:src:`source <include/gui_forms/binding/collection_cell/collection_cell.hpp>`)
 
    One edit's description, made only by the named factories and read only through the queries, so an edit is always one of the four shapes. The collection's hooks receive it: prepare_edit before anything changes, written after the elements are stored.
 
@@ -960,7 +960,7 @@ Types
 
 .. cpp:class:: ControlBindingsCollection final
 
-   ``#include <gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp>``
+   ``#include <gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp>`` (:src:`source <include/gui_forms/binding/control_bindings_collection/control_bindings_collection.hpp>`)
 
    ControlBindingsCollection owns the unique active binding for each canonical target property and disposes the set deterministically.
 
@@ -1025,7 +1025,7 @@ Types
 
 .. cpp:class:: CurrencyManager final : public BindingManagerBase
 
-   ``#include <gui_forms/binding/currency_manager/currency_manager.hpp>``
+   ``#include <gui_forms/binding/currency_manager/currency_manager.hpp>`` (:src:`source <include/gui_forms/binding/currency_manager/currency_manager.hpp>`)
 
    CurrencyManager is the non-owning facade over exactly one BindingSource, keeping navigation, edit, and bulk transfer vocabulary uniform.
 
@@ -1125,7 +1125,7 @@ Types
 
 .. cpp:struct:: NumberFormat final
 
-   ``#include <gui_forms/binding/number_format/number_format.hpp>``
+   ``#include <gui_forms/binding/number_format/number_format.hpp>`` (:src:`source <include/gui_forms/binding/number_format/number_format.hpp>`)
 
    .. cpp:member:: NumberFormatKind kind
 
@@ -1143,7 +1143,7 @@ Types
 
 .. cpp:class:: template <typename Value, typename Capability> PropertyCell final
 
-   ``#include <gui_forms/binding/property_cell/property_cell.hpp>``
+   ``#include <gui_forms/binding/property_cell/property_cell.hpp>`` (:src:`source <include/gui_forms/binding/property_cell/property_cell.hpp>`)
 
    A property's only storage, as the single member of its capability (property-capabilities study, sections 2 and 15; owner decisions: a read is ``.read()``, a write is a touch, no implicit conversion). For example, ``TextCapability<Declaring>`` has the one member ``PropertyCell<std::string, TextCapability<Declaring>> text`` and a static ``assign(TextCapability& capability, std::string value)``, and :cpp:class:`ButtonBase <gui_forms::ButtonBase>` derives from :cpp:class:`Control <gui_forms::Control>` and ``TextCapability<ButtonBase>``. Then ``(*button).text = "OK"`` is the write and ``(*button).text.read()`` the read. (The generated API pages join comment lines, so the example stays in code spans: a bare ``*`` there opens reStructuredText emphasis.) The write calls ``Capability::assign``, which compares (an equal value does nothing: decision 3), stores through ``replace``, touches its control and raises the property's change event (decision 2). The cell is the first and only non-static member of a standard-layout capability, so the cell and its capability are pointer-interconvertible: that is the one raw address conversion, in ``capability()``, checked by ``static_assert``. The capability reaches its control with a static_cast to its declaring class. Beside the read: ``type()`` (the runtime PropertyType), ``as_type(types::x)`` (a total conversion; a pair that can fail is a compile error) and ``as_type(PropertyType)`` (any conversion, as an explicit optional result). These three need a PropertyValueTraits entry for Value. Value: the property's stored type, copyable or movable and comparable with ==. Capability: the class whose only member this cell is. The cell has no conversion operator and no ==, so a forgotten ``.read()`` does not compile, and it cannot be copied: a property is part of its control.
 
@@ -1180,7 +1180,7 @@ Types
 
 .. cpp:struct:: PropertyCollectionData final
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    PropertyCollectionData is shared immutable item type/kind plus a bounded homogeneous value sequence.
 
@@ -1196,7 +1196,7 @@ Types
 
 .. cpp:class:: PropertyCollectionValue final
 
-   ``#include <gui_forms/binding/value/property_collection_value/property_collection_value.hpp>``
+   ``#include <gui_forms/binding/value/property_collection_value/property_collection_value.hpp>`` (:src:`source <include/gui_forms/binding/value/property_collection_value/property_collection_value.hpp>`)
 
    PropertyCollectionValue is a cheap immutable shared handle over a validated bounded homogeneous property sequence.
 
@@ -1226,7 +1226,7 @@ Types
 
 .. cpp:struct:: PropertyDescriptor final
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    PropertyDescriptor exposes renderer/language-neutral schema, serialization, mutability, invalidation, enum, standard-value, converter, and editor metadata without executable callbacks.
 
@@ -1321,7 +1321,7 @@ Types
 
 .. cpp:struct:: PropertyEntry final
 
-   ``#include <gui_forms/binding/property_table/property_table.hpp>``
+   ``#include <gui_forms/binding/property_table/property_table.hpp>`` (:src:`source <include/gui_forms/binding/property_table/property_table.hpp>`)
 
    One property of a property-owning type's constant table (property- capabilities study, section 4 and decision 5): what the run-time registry, the form loader, binding, the schema export and the C ABI read, once per type instead of a registration per instance. Every operation is a plain function taking the owner, a Component (study section 14, G7: controls and components alike); the operation static_casts it to its declaring class, which derives from Component non-virtually. A null operation means the descriptor's default rule applies, as for a PropertyRegistration without it.
 
@@ -1361,7 +1361,7 @@ Types
 
 .. cpp:struct:: PropertyEnumChoice final
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    PropertyEnumChoice maps one canonical display/name token to a signed enum value.
 
@@ -1373,7 +1373,7 @@ Types
 
 .. cpp:struct:: PropertyEnumDescriptor final
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    PropertyEnumDescriptor supplies bounded named choices and explicit flags semantics for descriptor-aware conversion.
 
@@ -1387,7 +1387,7 @@ Types
 
 .. cpp:struct:: PropertyEnumValue final
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    PropertyEnumValue preserves declared enum type, canonical symbolic name, and signed numeric representation.
 
@@ -1401,7 +1401,7 @@ Types
 
 .. cpp:class:: PropertyLink
 
-   ``#include <gui_forms/binding/property_link/property_link.hpp>``
+   ``#include <gui_forms/binding/property_link/property_link.hpp>`` (:src:`source <include/gui_forms/binding/property_link/property_link.hpp>`)
 
 
    .. rubric:: Construction
@@ -1412,7 +1412,7 @@ Types
 
 .. cpp:struct:: PropertyObjectData final
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    PropertyObjectData is shared immutable type identity plus bounded ordered members.
 
@@ -1424,7 +1424,7 @@ Types
 
 .. cpp:struct:: PropertyObjectMember final
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    PropertyObjectMember is one inert inspectable object member with optional schema, nullability, enum, standard-value, converter, and editor metadata.
 
@@ -1458,7 +1458,7 @@ Types
 
 .. cpp:class:: PropertyObjectValue final
 
-   ``#include <gui_forms/binding/value/property_object_value/property_object_value.hpp>``
+   ``#include <gui_forms/binding/value/property_object_value/property_object_value.hpp>`` (:src:`source <include/gui_forms/binding/value/property_object_value/property_object_value.hpp>`)
 
    PropertyObjectValue is a cheap immutable shared handle over a validated recursive property object tree.
 
@@ -1488,7 +1488,7 @@ Types
 
 .. cpp:struct:: PropertyOperations final
 
-   ``#include <gui_forms/binding/property_table/property_table.hpp>``
+   ``#include <gui_forms/binding/property_table/property_table.hpp>`` (:src:`source <include/gui_forms/binding/property_table/property_table.hpp>`)
 
    Which operations a property has, for the descriptor checks.
 
@@ -1504,7 +1504,7 @@ Types
 
 .. cpp:struct:: PropertyRegistration final
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    PropertyRegistration privately couples an inert descriptor to explicit getter, setter, change, reset, serialization, and origin callbacks registered by a retained Control.
 
@@ -1549,7 +1549,7 @@ Types
 
 .. cpp:struct:: PropertyType final
 
-   ``#include <gui_forms/binding/property_type/property_type.hpp>``
+   ``#include <gui_forms/binding/property_type/property_type.hpp>`` (:src:`source <include/gui_forms/binding/property_type/property_type.hpp>`)
 
    A property's runtime type (study section 15; numpy's dtype): the binding kind, whether empty is a value, and an enumeration's finite choice set. ``(*c).visible.type()`` returns it; ``as_type(type)`` converts to it.
 
@@ -1565,7 +1565,7 @@ Types
 
 .. cpp:class:: template <typename Value, typename Capability> PropertyView final
 
-   ``#include <gui_forms/binding/property_cell/property_cell.hpp>``
+   ``#include <gui_forms/binding/property_cell/property_cell.hpp>`` (:src:`source <include/gui_forms/binding/property_cell/property_cell.hpp>`)
 
    A property whose value has another owner (study section 14, G2: an editing engine's text, a selection derived from item state): the capability's only member, with PropertyCell's spelling and no storage. The write calls ``Capability::assign``, which writes the owner; the read calls ``Capability::read``, which returns the owner's value by value. template <typename Declaring> struct EditedTextCapability { PropertyView<std::string, EditedTextCapability<Declaring>> text; static void assign(EditedTextCapability& capability, std::string value); static std::string read(const EditedTextCapability& capability); }; Like a cell, a view has no conversion operator and no ==, and it cannot be copied. It is empty, and as its capability's first and only member it is pointer-interconvertible with the capability, as a cell is.
 
@@ -1596,7 +1596,7 @@ Types
 
 .. cpp:struct:: template <typename Target> TypeTag final
 
-   ``#include <gui_forms/binding/type_tag/type_tag.hpp>``
+   ``#include <gui_forms/binding/type_tag/type_tag.hpp>`` (:src:`source <include/gui_forms/binding/type_tag/type_tag.hpp>`)
 
    A compile-time type name for a property read's conversion (study section 15): ``(*c).visible.as_type(types::string)``. The tag is empty; its type carries the target, so overload resolution picks the conversion and no ``<>`` appears at a call site. The tags live in ``namespace types``, the stock ones in property_type.hpp and each enumeration's beside its enum.
 
@@ -1607,7 +1607,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingCompleteContext
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    .. cpp:enumerator:: control_update
 
@@ -1617,7 +1617,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingCompleteState
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    .. cpp:enumerator:: success
 
@@ -1629,7 +1629,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingListChangeKind
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    .. cpp:enumerator:: reset
 
@@ -1647,7 +1647,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingNotificationKind
 
-   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>`` (:src:`source <include/gui_forms/binding/binding_provider/binding_provider.hpp>`)
 
    .. cpp:enumerator:: reset
 
@@ -1663,7 +1663,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingPredicateOperator
 
-   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
    .. cpp:enumerator:: equal
 
@@ -1689,7 +1689,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingSortDirection
 
-   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+   ``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
    .. cpp:enumerator:: ascending
 
@@ -1699,7 +1699,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingValueKind
 
-   ``#include <gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp>``
+   ``#include <gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value_kind/binding_value_kind.hpp>`)
 
    .. cpp:enumerator:: null
 
@@ -1737,7 +1737,7 @@ Enumerations
 
 .. cpp:enum-class:: BindingWriteStatus
 
-   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>``
+   ``#include <gui_forms/binding/binding_provider/binding_provider.hpp>`` (:src:`source <include/gui_forms/binding/binding_provider/binding_provider.hpp>`)
 
    .. cpp:enumerator:: accepted
 
@@ -1755,7 +1755,7 @@ Enumerations
 
 .. cpp:enum-class:: CollectionEditKind
 
-   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>``
+   ``#include <gui_forms/binding/collection_cell/collection_cell.hpp>`` (:src:`source <include/gui_forms/binding/collection_cell/collection_cell.hpp>`)
 
    .. cpp:enumerator:: assign
 
@@ -1769,7 +1769,7 @@ Enumerations
 
 .. cpp:enum-class:: ControlUpdateMode
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    .. cpp:enumerator:: on_property_changed
 
@@ -1779,7 +1779,7 @@ Enumerations
 
 .. cpp:enum-class:: DataSourceUpdateMode
 
-   ``#include <gui_forms/binding/types/binding_contract_types.hpp>``
+   ``#include <gui_forms/binding/types/binding_contract_types.hpp>`` (:src:`source <include/gui_forms/binding/types/binding_contract_types.hpp>`)
 
    .. cpp:enumerator:: on_validation
 
@@ -1791,7 +1791,7 @@ Enumerations
 
 .. cpp:enum-class:: FormUpdateTrigger
 
-   ``#include <gui_forms/binding/form_binding/form_binding.hpp>``
+   ``#include <gui_forms/binding/form_binding/form_binding.hpp>`` (:src:`source <include/gui_forms/binding/form_binding/form_binding.hpp>`)
 
    .. cpp:enumerator:: on_validate
 
@@ -1801,7 +1801,7 @@ Enumerations
 
 .. cpp:enum-class:: NumberFormatKind
 
-   ``#include <gui_forms/binding/number_format/number_format.hpp>``
+   ``#include <gui_forms/binding/number_format/number_format.hpp>`` (:src:`source <include/gui_forms/binding/number_format/number_format.hpp>`)
 
    .. cpp:enumerator:: fixed
 
@@ -1819,7 +1819,7 @@ Enumerations
 
 .. cpp:enum-class:: PropertyBindingDirection
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    .. cpp:enumerator:: one_way
 
@@ -1829,7 +1829,7 @@ Enumerations
 
 .. cpp:enum-class:: PropertySerializationVisibility
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    .. cpp:enumerator:: hidden
 
@@ -1841,7 +1841,7 @@ Enumerations
 
 .. cpp:enum-class:: PropertyValueOrigin
 
-   ``#include <gui_forms/binding/value/binding_value.hpp>``
+   ``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
    .. cpp:enumerator:: defaulted
 
@@ -1858,7 +1858,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/binding/binding_schema/binding_schema.hpp>``
+``#include <gui_forms/binding/binding_schema/binding_schema.hpp>`` (:src:`source <include/gui_forms/binding/binding_schema/binding_schema.hpp>`)
 
 .. cpp:function:: int compare_binding_keys(const BindingValue& left, const BindingValue& right) noexcept
 
@@ -1890,7 +1890,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/binding/form_binding/form_binding.hpp>``
+``#include <gui_forms/binding/form_binding/form_binding.hpp>`` (:src:`source <include/gui_forms/binding/form_binding/form_binding.hpp>`)
 
 .. cpp:function:: void bind_form_value(Control& target, std::string_view property, Value<bool>& source, PropertyBindingDirection direction)
 
@@ -1910,7 +1910,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/binding/number_format/number_format.hpp>``
+``#include <gui_forms/binding/number_format/number_format.hpp>`` (:src:`source <include/gui_forms/binding/number_format/number_format.hpp>`)
 
 .. cpp:function:: stxlib::Optional<NumberFormat> parse_number_format(std::string_view text) noexcept
 
@@ -1934,7 +1934,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/binding/property_cell_entry/property_cell_entry.hpp>``
+``#include <gui_forms/binding/property_cell_entry/property_cell_entry.hpp>`` (:src:`source <include/gui_forms/binding/property_cell_entry/property_cell_entry.hpp>`)
 
 .. cpp:function:: template <typename Member> typename AssignedMemberValue<std::remove_cvref_t<Member>>::Type assigned_property_value(const BindingValue& value)
 
@@ -1974,7 +1974,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/binding/property_table/property_table.hpp>``
+``#include <gui_forms/binding/property_table/property_table.hpp>`` (:src:`source <include/gui_forms/binding/property_table/property_table.hpp>`)
 
 .. cpp:function:: template <typename Entry, std::size_t Count> consteval bool property_names_distinct(const std::array<Entry, Count>& entries)
 
@@ -2028,7 +2028,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/binding/property_type/property_type.hpp>``
+``#include <gui_forms/binding/property_type/property_type.hpp>`` (:src:`source <include/gui_forms/binding/property_type/property_type.hpp>`)
 
 .. cpp:function:: std::optional<BindingValue> convert_to_property_type(const BindingValue& value, const PropertyType& target)
 
@@ -2036,7 +2036,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::types
 
-``#include <gui_forms/binding/property_type/property_type.hpp>``
+``#include <gui_forms/binding/property_type/property_type.hpp>`` (:src:`source <include/gui_forms/binding/property_type/property_type.hpp>`)
 
 .. cpp:var:: constexpr TypeTag<bool> boolean
 
@@ -2076,7 +2076,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/binding/value/binding_value.hpp>``
+``#include <gui_forms/binding/value/binding_value.hpp>`` (:src:`source <include/gui_forms/binding/value/binding_value.hpp>`)
 
 .. cpp:function:: PropertyObjectValue make_property_object(std::string type_name, std::vector<PropertyObjectMember> members)
 

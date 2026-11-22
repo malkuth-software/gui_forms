@@ -144,6 +144,80 @@ class InitializerTests(unittest.TestCase):
                 self.assertIsNone(unterminated.match(line), f"{page.name}:{number}: {line}")
 
 
+class SourceLinkTests(unittest.TestCase):
+    """D3: declarations carry their header line for the site's [source] links
+    (docs/conf.py linkcode_resolve), and pages link the header itself."""
+
+    def test_members_record_the_line_their_declaration_starts_on(self) -> None:
+        body = (
+            " // the body starts on the class's line\n"
+            "public:\n"
+            "    // Runs it.\n"
+            "    void run(int count,\n"
+            "             bool twice);\n"
+            "    std::array<int, 2> pairs{\n"
+            "        1, 2};\n"
+            "    int after{7};\n")
+        methods, declarations = api_docs_parse.declared_members(body, "class", 40)
+        self.assertEqual([(method.name, method.line) for method in methods], [("run", 43)])
+        self.assertEqual([item.line for item in declarations], [45, 47])
+
+    def test_source_locations_name_types_members_enums_and_functions(self) -> None:
+        record = api_docs_parse.TypeRecord(
+            "Thing", "class", "include/gui_forms/thing.hpp", 10, namespace="gui_forms",
+            methods=[api_docs_parse.Method("run", "void run()", "public", "", 14),
+                     api_docs_parse.Method("hidden", "void hidden()", "private", "", 20)],
+            fields=[api_docs_parse.Declaration("int count{3}", "", 16),
+                    api_docs_parse.Declaration("using Size = int", "", 17)])
+        hidden = api_docs_parse.TypeRecord("Inner", "class", "include/gui_forms/detail/inner.hpp", 3,
+                                           namespace="gui_forms")
+        enum = api_docs_parse.EnumRecord("Mode", "include/gui_forms/thing.hpp", 30, namespace="gui_forms")
+        scope = api_docs_parse.HeaderScope(
+            "include/gui_forms/thing.hpp", "gui_forms",
+            [api_docs_parse.Method("make_thing", "Thing make_thing()", "public", "", 40)],
+            [api_docs_parse.Declaration("inline constexpr int limit = 4", "", 42)])
+        found = api_docs_parse.source_locations([record, hidden], [enum], [scope])
+        header = "include/gui_forms/thing.hpp"
+        self.assertEqual(found, {
+            "gui_forms::Thing": (header, 10), "gui_forms::Thing::run": (header, 14),
+            "gui_forms::Thing::count": (header, 16), "gui_forms::Thing::Size": (header, 17),
+            "gui_forms::Mode": (header, 30), "gui_forms::make_thing": (header, 40),
+            "gui_forms::limit": (header, 42)})
+
+    def test_the_real_headers_give_lines_that_hold_the_declaration(self) -> None:
+        found = api_docs_parse.source_locations(*api_docs_parse.declarations())
+        for name in ("gui_forms::Button", "gui_forms::OffscreenAttachment::capture_control",
+                     "gui_forms::encode_window_capture_png"):
+            header, line = found[name]
+            text = (ROOT / header).read_text(encoding="utf-8").splitlines()[line - 1]
+            self.assertIn(name.rsplit("::", 1)[1], text, name)
+
+    def test_type_pages_link_their_header_and_name_it_as_their_source(self) -> None:
+        line = generator.rst.include_line("include/gui_forms/controls/button.hpp")
+        self.assertEqual(line, "``#include <gui_forms/controls/button.hpp>`` "
+                               "(:src:`source <include/gui_forms/controls/button.hpp>`)")
+        page = (ROOT / "docs/api/generated/gui_forms.Button.rst").read_text(encoding="utf-8")
+        self.assertIn(":gf_source: include/gui_forms/controls/button.hpp", page.splitlines()[2])
+
+
+class PreviewTests(unittest.TestCase):
+    """D2: every registry control's page names its preview, with alt text."""
+
+    def test_a_registry_control_names_its_specimen_preview(self) -> None:
+        lines = generator.rst.preview_lines({"id": "check_box", "type": "CheckBox"})
+        self.assertEqual(lines[0], ".. gf-preview:: controls/check_box")
+        self.assertTrue(lines[1].startswith("   :alt: A CheckBox "), lines[1])
+        self.assertEqual(generator.rst.preview_lines(None), [])
+
+    def test_every_registry_control_page_carries_its_preview(self) -> None:
+        import json
+        registry = json.loads((ROOT / "manifests/controls.json").read_text(encoding="utf-8"))
+        pages = "\n".join(path.read_text(encoding="utf-8")
+                          for path in (ROOT / "docs/api").rglob("*.rst"))
+        for entry in registry["controls"]:
+            self.assertIn(f".. gf-preview:: controls/{entry['id']}\n", pages, entry["id"])
+
+
 class DocstringTests(unittest.TestCase):
     def write(self, text: str) -> Path:
         directory = Path(tempfile.mkdtemp(prefix="gui-forms-docstring-"))

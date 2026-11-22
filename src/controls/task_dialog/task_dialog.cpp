@@ -1,4 +1,5 @@
 #include "gui_forms/controls/task_dialog.hpp"
+#include "../frame_chrome/frame_chrome.hpp"
 
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/delegate.hpp"
@@ -824,23 +825,20 @@ void TaskDialog::paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeo
 void TaskDialog::on_paint(Painter& painter, Rect) {
     const Layout placed = layout(client_rectangle().width);
     const Parts& parts = placed.parts;
+    // The face and the caption band are the in-window frames' shared
+    // chrome (frame_chrome.hpp), as an MDI document frame's.
+    frame_chrome::FrameChromePaint chrome{};
+    chrome.font = text_font(font_);
+    chrome.face = parts.face.bounds;
+    if (parts.caption_band.present) {
+        chrome.caption = parts.caption_band.bounds;
+        chrome.label = parts.caption.bounds;
+        chrome.title = page_.caption;
+    }
+    frame_chrome::paint_frame_chrome(painter, *this, chrome);
     PartPaint part;
     part.font = text_font(font_);
-    part.family = ControlVisualRole::card;
-    part.role = PartRole::face;
-    part.bounds = parts.face.bounds;
-    paint_part(painter, *this, part);
     part.family = ControlVisualRole::panel;
-    if (parts.caption_band.present) {
-        part.role = PartRole::face;
-        part.bounds = parts.caption_band.bounds;
-        paint_part(painter, *this, part);
-        part.role = PartRole::label;
-        part.bounds = parts.caption.bounds;
-        part.text = lend_paint_text(page_.caption);
-        paint_part(painter, *this, part);
-        part.text = {};
-    }
     if (parts.icon_image.present && page_.icon_image.value != 0U) {
         part.role = PartRole::icon;
         part.bounds = parts.icon_image.bounds;

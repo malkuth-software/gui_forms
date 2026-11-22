@@ -181,7 +181,7 @@ Types
 
 .. cpp:struct:: AnnotationRequest final
 
-   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>``
+   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>`` (:src:`source <include/gui_forms/plots/plot_legend/plot_legend.hpp>`)
 
    .. cpp:member:: Point anchor
 
@@ -193,7 +193,7 @@ Types
 
 .. cpp:struct:: Axis final
 
-   ``#include <gui_forms/plots/axis/axis.hpp>``
+   ``#include <gui_forms/plots/axis/axis.hpp>`` (:src:`source <include/gui_forms/plots/axis/axis.hpp>`)
 
    .. cpp:member:: ScaleKind kind
 
@@ -225,7 +225,7 @@ Types
 
 .. cpp:struct:: AxisFollow final
 
-   ``#include <gui_forms/plots/axis/axis.hpp>``
+   ``#include <gui_forms/plots/axis/axis.hpp>`` (:src:`source <include/gui_forms/plots/axis/axis.hpp>`)
 
    A follow-tail axis keeps its maximum on the newest data and its extent at ``span`` (scrolling time); the user's pan stops it until a fit or End.
 
@@ -237,7 +237,7 @@ Types
 
 .. cpp:class:: AxisLink final
 
-   ``#include <gui_forms/plots/axis/axis.hpp>``
+   ``#include <gui_forms/plots/axis/axis.hpp>`` (:src:`source <include/gui_forms/plots/axis/axis.hpp>`)
 
    A group of axes sharing one range. Each linked axis reads the link's range when its plot lays out, and a change on any of them is written to the link. One thread: the plots of a link live on one UI thread (linked live plots exchange ranges as messages, plot_view.hpp). Shared by the plots that join it.
 
@@ -263,7 +263,7 @@ Types
 
 .. cpp:struct:: BinSpec final
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
    Fixed bins over [minimum, maximum]: ``count`` bins of equal width, right-open except the last, which is closed.
 
@@ -281,7 +281,7 @@ Types
 
 .. cpp:struct:: BinTally final
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
    .. cpp:member:: std::uint64_t binned
 
@@ -299,7 +299,7 @@ Types
 
 .. cpp:class:: template <SeriesElement Element> BorrowedSeries final
 
-   ``#include <gui_forms/plots/series_view/series_view.hpp>``
+   ``#include <gui_forms/plots/series_view/series_view.hpp>`` (:src:`source <include/gui_forms/plots/series_view/series_view.hpp>`)
 
    A reader's borrowed series: a validated view and the lease it is read under. Copyable (each copy shares the lease).
 
@@ -325,7 +325,7 @@ Types
 
 .. cpp:struct:: ChirpSignal final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    A linear chirp from ``frequency`` to ``end_frequency`` over each sweep of ``sweep_seconds``, repeating.
 
@@ -358,7 +358,7 @@ Types
 
 .. cpp:struct:: CivilTime final
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
    A calendar date and time in UTC from seconds since the Unix epoch (the proleptic Gregorian calendar; Howard Hinnant's days-from-civil in integers), and back.
 
@@ -384,7 +384,7 @@ Types
 
 .. cpp:struct:: Colormap final
 
-   ``#include <gui_forms/plots/colormap/colormap.hpp>``
+   ``#include <gui_forms/plots/colormap/colormap.hpp>`` (:src:`source <include/gui_forms/plots/colormap/colormap.hpp>`)
 
    .. cpp:member:: ColormapKind kind
 
@@ -408,7 +408,7 @@ Types
 
 .. cpp:struct:: ColormapStop final
 
-   ``#include <gui_forms/plots/colormap/colormap.hpp>``
+   ``#include <gui_forms/plots/colormap/colormap.hpp>`` (:src:`source <include/gui_forms/plots/colormap/colormap.hpp>`)
 
    .. cpp:member:: double offset
 
@@ -418,7 +418,7 @@ Types
 
 .. cpp:struct:: template <SeriesElement XElement, SeriesElement YElement> ColumnSamples final
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
    x and y from two columns' spans of equal length.
 
@@ -442,7 +442,7 @@ Types
 
 .. cpp:struct:: DecimationStatistics final
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
    What a decimation pass did.
 
@@ -462,7 +462,7 @@ Types
 
 .. cpp:struct:: DeviceColumn final
 
-   ``#include <gui_forms/plots/plot_types/plot_types.hpp>``
+   ``#include <gui_forms/plots/plot_types/plot_types.hpp>`` (:src:`source <include/gui_forms/plots/plot_types/plot_types.hpp>`)
 
    A device pixel column of a plot, counted from the plot's left device edge.
 
@@ -472,7 +472,7 @@ Types
 
 .. cpp:struct:: ElementIndex final
 
-   ``#include <gui_forms/plots/plot_types/plot_types.hpp>``
+   ``#include <gui_forms/plots/plot_types/plot_types.hpp>`` (:src:`source <include/gui_forms/plots/plot_types/plot_types.hpp>`)
 
    An element's position in a series, counted from the oldest live element (a ring's oldest survivor is 0). Kept apart from device columns and from absolute sequence numbers, which it is easily confused with.
 
@@ -482,7 +482,7 @@ Types
 
 .. cpp:struct:: ElementRange final
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
    Elements [first, end) of a monotone source.
 
@@ -499,7 +499,7 @@ Types
 
 .. cpp:struct:: ElementSequence final
 
-   ``#include <gui_forms/plots/plot_types/plot_types.hpp>``
+   ``#include <gui_forms/plots/plot_types/plot_types.hpp>`` (:src:`source <include/gui_forms/plots/plot_types/plot_types.hpp>`)
 
    An element's absolute sequence number: how many elements were ever written before it. A growable column's sequence equals its index; a ring's index is its sequence minus the elements it has dropped.
 
@@ -509,7 +509,7 @@ Types
 
 .. cpp:class:: EnvelopePyramid final
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
 
    .. rubric:: Properties
@@ -555,7 +555,7 @@ Types
 
 .. cpp:class:: EstimatedLabelMetrics final : public TickLabelMetrics
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
    Estimates a label's extent as ``advance`` per byte: deterministic, for headless tests and for vertical axes (pass the line height and 0 per byte through a fixed extent instead).
 
@@ -573,7 +573,7 @@ Types
 
 .. cpp:struct:: template <SeriesElement YElement> ImplicitXSamples final
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
    y from a column, x implied: x = x_start + index · x_step (a sampled signal). Monotone whenever x_step ≥ 0.
 
@@ -601,7 +601,7 @@ Types
 
 .. cpp:struct:: LegendEntryLayout final
 
-   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>``
+   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>`` (:src:`source <include/gui_forms/plots/plot_legend/plot_legend.hpp>`)
 
    One entry's laid-out geometry, in the plot's coordinates.
 
@@ -615,7 +615,7 @@ Types
 
 .. cpp:struct:: LegendLayout final
 
-   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>``
+   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>`` (:src:`source <include/gui_forms/plots/plot_legend/plot_legend.hpp>`)
 
    .. cpp:member:: Rect frame
 
@@ -625,7 +625,7 @@ Types
 
 .. cpp:struct:: LegendStyle final
 
-   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>``
+   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>`` (:src:`source <include/gui_forms/plots/plot_legend/plot_legend.hpp>`)
 
    .. cpp:member:: LegendPlace place
 
@@ -667,7 +667,7 @@ Types
 
 .. cpp:struct:: MajorTick final
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
    .. cpp:member:: double value
 
@@ -685,7 +685,7 @@ Types
 
 .. cpp:struct:: MarkStatistics final
 
-   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>``
+   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>`` (:src:`source <include/gui_forms/plots/mark_painters/mark_painters.hpp>`)
 
    What one painter call drew.
 
@@ -699,7 +699,7 @@ Types
 
 .. cpp:struct:: NoiseSignal final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    Uniform noise in [-amplitude, amplitude] (plus offset), keyed by sample.
 
@@ -726,7 +726,7 @@ Types
 
 .. cpp:class:: OccupancyGrid final
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
    A device pixel grid over a plot, reused between frames (decimation stage 4). Caller-owned; reserve() allocates.
 
@@ -750,7 +750,7 @@ Types
 
 .. cpp:struct:: Oscillator final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    .. cpp:member:: double frequency
 
@@ -766,7 +766,7 @@ Types
 
 .. cpp:struct:: OscillatorBank final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    A sum of up to maximum_oscillators sines.
 
@@ -789,7 +789,7 @@ Types
 
 .. cpp:struct:: PickResult final
 
-   ``#include <gui_forms/plots/series_picker/series_picker.hpp>``
+   ``#include <gui_forms/plots/series_picker/series_picker.hpp>`` (:src:`source <include/gui_forms/plots/series_picker/series_picker.hpp>`)
 
    .. cpp:member:: bool found
 
@@ -811,7 +811,7 @@ Types
 
 .. cpp:struct:: Plot3DCamera final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:member:: double elevation
 
@@ -845,7 +845,7 @@ Types
 
 .. cpp:struct:: Plot3DColors final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    The colours the caller resolves from its theme: the panes (translucent, drawn over the caller's own background), the grid, the axis lines and ticks, and the series colours an item without its own colour takes in turn.
 
@@ -873,7 +873,7 @@ Types
 
 .. cpp:struct:: Plot3DFrame final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    One render's request: the picture's logical size, its device scale (0.5 to 8), the supersampling per side (1 to 4) and how wide the caller's tick labels are (logical units; null estimates them).
 
@@ -893,7 +893,7 @@ Types
 
 .. cpp:struct:: Plot3DHit final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    What lies under a point of the last picture, exact per pixel. - index: a line's or scatter's point (the nearer end of the hit segment), a surface's nearest grid node (row * columns + column); - data_point: the point in data coordinates (on a surface, the interpolant's point; on a pane, the point on the pane); - surface_parameter: a surface's fractional row and column; - depth: the distance in front of the eye along the view, in box units.
 
@@ -915,7 +915,7 @@ Types
 
 .. cpp:struct:: Plot3DItemId final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    An item's identity, stable for the scene's lifetime (never reused).
 
@@ -925,7 +925,7 @@ Types
 
 .. cpp:struct:: Plot3DLabel final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    A label to draw over the picture, centred on ``anchor`` (logical units from the picture's top left). A tick label carries its text; a title's text is options().axis_titles[axis]. ``occluded`` marks a label whose place on the box is hidden behind data: the caller dims it rather than removing it. ``angle``: how far the label's baseline is turned about ``anchor``, in degrees anticlockwise as seen (Painter::draw_rotated_text_utf8), in (-90, 90]; 0 for a screen-facing label.
 
@@ -949,7 +949,7 @@ Types
 
 .. cpp:struct:: Plot3DLineSpec final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    A polyline through points (matplotlib's plot). NaN in any coordinate breaks the line. Equal lengths, at least one point.
 
@@ -971,7 +971,7 @@ Types
 
 .. cpp:struct:: Plot3DOptions final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:member:: std::array<double, 3> box_aspect
 
@@ -999,7 +999,7 @@ Types
 
 .. cpp:struct:: Plot3DScatterSpec final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    Markers at points (matplotlib's scatter). A point with NaN is left out.
 
@@ -1025,7 +1025,7 @@ Types
 
 .. cpp:class:: Plot3DScene final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
 
    .. rubric:: Construction
@@ -1140,7 +1140,7 @@ Types
 
 .. cpp:struct:: Plot3DSurfaceSpec final
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    A surface over a grid (matplotlib's plot_surface). Borrowed for the call: the scene copies what it keeps.
 
@@ -1186,7 +1186,7 @@ Types
 
 .. cpp:struct:: PlotDataBounds final
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    The data extents fit() fits to: one range per axis, in model order; an invalid range leaves its axis as it is.
 
@@ -1198,7 +1198,7 @@ Types
 
 .. cpp:struct:: PlotModifiers final
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    .. cpp:member:: bool shift
 
@@ -1210,7 +1210,7 @@ Types
 
 .. cpp:struct:: PlotRange final
 
-   ``#include <gui_forms/plots/plot_types/plot_types.hpp>``
+   ``#include <gui_forms/plots/plot_types/plot_types.hpp>`` (:src:`source <include/gui_forms/plots/plot_types/plot_types.hpp>`)
 
    A closed interval of data values on one axis. ``minimum`` may exceed ``maximum`` only in an inverted range the caller builds on purpose; the primitives keep minimum < maximum and carry inversion separately.
 
@@ -1238,7 +1238,7 @@ Types
 
 .. cpp:struct:: PlotSelection final
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    A rectangle in data units of the primary axes: the query selection.
 
@@ -1250,7 +1250,7 @@ Types
 
 .. cpp:class:: PlotTransform final
 
-   ``#include <gui_forms/plots/plot_transform/plot_transform.hpp>``
+   ``#include <gui_forms/plots/plot_transform/plot_transform.hpp>`` (:src:`source <include/gui_forms/plots/plot_transform/plot_transform.hpp>`)
 
 
    .. rubric:: Construction
@@ -1305,7 +1305,7 @@ Types
 
 .. cpp:struct:: PlotTransformResult final
 
-   ``#include <gui_forms/plots/plot_transform/plot_transform.hpp>``
+   ``#include <gui_forms/plots/plot_transform/plot_transform.hpp>`` (:src:`source <include/gui_forms/plots/plot_transform/plot_transform.hpp>`)
 
    .. cpp:member:: PlotTransformCheck check
 
@@ -1317,7 +1317,7 @@ Types
 
 .. cpp:struct:: PlotViewChange final
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    What one input changed.
 
@@ -1337,7 +1337,7 @@ Types
 
 .. cpp:class:: PlotViewModel final
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
 
    .. rubric:: Construction
@@ -1420,7 +1420,7 @@ Types
 
 .. cpp:struct:: PlotZone final
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    .. cpp:member:: PlotZoneKind kind
 
@@ -1432,7 +1432,7 @@ Types
 
 .. cpp:struct:: RectPick final
 
-   ``#include <gui_forms/plots/series_picker/series_picker.hpp>``
+   ``#include <gui_forms/plots/series_picker/series_picker.hpp>`` (:src:`source <include/gui_forms/plots/series_picker/series_picker.hpp>`)
 
    Whether ``device`` lies in ``rects`` (bars, heatmap cells); the first containing rectangle's index, or none.
 
@@ -1444,7 +1444,7 @@ Types
 
 .. cpp:struct:: SawSignal final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
 
    .. rubric:: Methods
@@ -1469,7 +1469,7 @@ Types
 
 .. cpp:struct:: Scale final
 
-   ``#include <gui_forms/plots/scale/scale.hpp>``
+   ``#include <gui_forms/plots/scale/scale.hpp>`` (:src:`source <include/gui_forms/plots/scale/scale.hpp>`)
 
    .. cpp:member:: ScaleKind kind
 
@@ -1493,7 +1493,7 @@ Types
 
 .. cpp:class:: ScaleMapping final
 
-   ``#include <gui_forms/plots/scale/scale.hpp>``
+   ``#include <gui_forms/plots/scale/scale.hpp>`` (:src:`source <include/gui_forms/plots/scale/scale.hpp>`)
 
    A validated scale, prepared for mapping. Copyable value.
 
@@ -1538,7 +1538,7 @@ Types
 
 .. cpp:struct:: ScaleMappingResult final
 
-   ``#include <gui_forms/plots/scale/scale.hpp>``
+   ``#include <gui_forms/plots/scale/scale.hpp>`` (:src:`source <include/gui_forms/plots/scale/scale.hpp>`)
 
    .. cpp:member:: ScaleCheck check
 
@@ -1550,7 +1550,7 @@ Types
 
 .. cpp:struct:: SeriesChannelStatistics final
 
-   ``#include <gui_forms/plots/series_ring_channel/series_ring_channel.hpp>``
+   ``#include <gui_forms/plots/series_ring_channel/series_ring_channel.hpp>`` (:src:`source <include/gui_forms/plots/series_ring_channel/series_ring_channel.hpp>`)
 
    Counters of one channel, read by either thread.
 
@@ -1570,7 +1570,7 @@ Types
 
 .. cpp:class:: template <SeriesElement Element> SeriesColumn final
 
-   ``#include <gui_forms/plots/series_column/series_column.hpp>``
+   ``#include <gui_forms/plots/series_column/series_column.hpp>`` (:src:`source <include/gui_forms/plots/series_column/series_column.hpp>`)
 
 
    .. rubric:: Construction
@@ -1657,7 +1657,7 @@ Types
 
 .. cpp:struct:: SeriesDirtyRange final
 
-   ``#include <gui_forms/plots/series_column/series_column.hpp>``
+   ``#include <gui_forms/plots/series_column/series_column.hpp>`` (:src:`source <include/gui_forms/plots/series_column/series_column.hpp>`)
 
    The sequence numbers an edit touched, half open: [first, end).
 
@@ -1674,7 +1674,7 @@ Types
 
 .. cpp:struct:: SeriesIdentity final
 
-   ``#include <gui_forms/plots/plot_types/plot_types.hpp>``
+   ``#include <gui_forms/plots/plot_types/plot_types.hpp>`` (:src:`source <include/gui_forms/plots/plot_types/plot_types.hpp>`)
 
    A series' identity inside one plot: its position in the plot's series list when the plot was last laid out, plus the generation that list had, so a pick result kept across a change of series is recognised as stale.
 
@@ -1686,7 +1686,7 @@ Types
 
 .. cpp:class:: SeriesLease final
 
-   ``#include <gui_forms/plots/series_view/series_view.hpp>``
+   ``#include <gui_forms/plots/series_view/series_view.hpp>`` (:src:`source <include/gui_forms/plots/series_view/series_view.hpp>`)
 
    The owner's side. Move-only; destroying a held lease releases it.
 
@@ -1717,7 +1717,7 @@ Types
 
 .. cpp:class:: SeriesLeaseState final
 
-   ``#include <gui_forms/plots/series_view/series_view.hpp>``
+   ``#include <gui_forms/plots/series_view/series_view.hpp>`` (:src:`source <include/gui_forms/plots/series_view/series_view.hpp>`)
 
    The lease's shared state, between the owner's SeriesLease and the readers' handles.
 
@@ -1743,7 +1743,7 @@ Types
 
 .. cpp:class:: SeriesMarkPainter final
 
-   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>``
+   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>`` (:src:`source <include/gui_forms/plots/mark_painters/mark_painters.hpp>`)
 
 
    .. rubric:: Properties
@@ -1809,7 +1809,7 @@ Types
 
 .. cpp:class:: SeriesPicker final
 
-   ``#include <gui_forms/plots/series_picker/series_picker.hpp>``
+   ``#include <gui_forms/plots/series_picker/series_picker.hpp>`` (:src:`source <include/gui_forms/plots/series_picker/series_picker.hpp>`)
 
 
    .. rubric:: Properties
@@ -1837,7 +1837,7 @@ Types
 
 .. cpp:class:: SeriesPin final
 
-   ``#include <gui_forms/plots/series_view/series_view.hpp>``
+   ``#include <gui_forms/plots/series_view/series_view.hpp>`` (:src:`source <include/gui_forms/plots/series_view/series_view.hpp>`)
 
    A pin held for one read of a borrowed series (one frame): ``held()`` is false when the lease was released (read nothing). Unpins when destroyed.
 
@@ -1855,7 +1855,7 @@ Types
 
 .. cpp:class:: SeriesRingChannel final
 
-   ``#include <gui_forms/plots/series_ring_channel/series_ring_channel.hpp>``
+   ``#include <gui_forms/plots/series_ring_channel/series_ring_channel.hpp>`` (:src:`source <include/gui_forms/plots/series_ring_channel/series_ring_channel.hpp>`)
 
 
    .. rubric:: Construction
@@ -1894,7 +1894,7 @@ Types
 
 .. cpp:struct:: template <SeriesElement Element> SeriesSpans final
 
-   ``#include <gui_forms/plots/series_column/series_column.hpp>``
+   ``#include <gui_forms/plots/series_column/series_column.hpp>`` (:src:`source <include/gui_forms/plots/series_column/series_column.hpp>`)
 
    A column's live elements, oldest first: one span, or two for a wrapped ring (``first`` then ``second``). Borrowed: valid until the column's next edit or reserve.
 
@@ -1920,7 +1920,7 @@ Types
 
 .. cpp:struct:: template <SeriesElement Element> SeriesView final
 
-   ``#include <gui_forms/plots/series_view/series_view.hpp>``
+   ``#include <gui_forms/plots/series_view/series_view.hpp>`` (:src:`source <include/gui_forms/plots/series_view/series_view.hpp>`)
 
    A borrowed strided array of ``count`` elements of Element: element ``i`` starts at ``data + offset_bytes + i * stride_bytes``. The bytes are the owner's (see the file comment).
 
@@ -1938,7 +1938,7 @@ Types
 
 .. cpp:class:: SeriesWriteLease final
 
-   ``#include <gui_forms/plots/series_ring_channel/series_ring_channel.hpp>``
+   ``#include <gui_forms/plots/series_ring_channel/series_ring_channel.hpp>`` (:src:`source <include/gui_forms/plots/series_ring_channel/series_ring_channel.hpp>`)
 
    The single producer's right to write a channel (built like LiveSurface's write lease): writes whole samples, each ``stream_count`` doubles, and publishes them with release ordering. Owned by the producer's thread; destroying it ends the lease, so another may be acquired. The channel must outlive it.
 
@@ -1953,7 +1953,7 @@ Types
 
 .. cpp:class:: SignalClock final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    Converts frame times to ticks. Starts at the first advance() (tick 0 at that time); each advance runs the ticks due since, at most maximum_ticks_per_frame of them, skipping the excess.
 
@@ -1979,7 +1979,7 @@ Types
 
 .. cpp:struct:: SignalDeclaration final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    A program's declaration: its registered name and its declared budget in operations per sample (the effect plugin's measure, per sample instead of per device pixel). The plugin's effect pass checks the static bound of one run against operations_per_sample × signal_sink_capacity, so the per-sample figure also covers each sample's share of the frame's loop and validation overhead.
 
@@ -1991,7 +1991,7 @@ Types
 
 .. cpp:struct:: SignalEntry final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    One registered program type: its declaration and the size of its state. Each instantiation of make_signal_entry<P> registers P with the gui_forms plugin's effect pass, which verifies P::run under the effect rules and bounds it by the declared budget (signal_program.cpp instantiates one per kind, in SignalKind order).
 
@@ -2003,7 +2003,7 @@ Types
 
 .. cpp:struct:: SignalFrame final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    The ticks one frame runs: [first_tick, first_tick + tick_count).
 
@@ -2024,7 +2024,7 @@ Types
 
 .. cpp:struct:: SignalProgram final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    One program of any kind, by value: the kind chooses which member is live (a tagged record rather than a callable, so no indirect call runs).
 
@@ -2052,7 +2052,7 @@ Types
 
 .. cpp:struct:: SignalSink final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    Where a program writes: fixed capacity, times in seconds from the program's start. Reused frame to frame (clear() first).
 
@@ -2075,7 +2075,7 @@ Types
 
 .. cpp:struct:: SineSignal final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
 
    .. rubric:: Methods
@@ -2104,7 +2104,7 @@ Types
 
 .. cpp:struct:: SquareSignal final
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
 
    .. rubric:: Methods
@@ -2133,7 +2133,7 @@ Types
 
 .. cpp:struct:: TickLabel final
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
 
    .. rubric:: Properties
@@ -2148,7 +2148,7 @@ Types
 
 .. cpp:class:: TickLabelMetrics
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
    Measures labels for thinning: their extent along the axis in device units (a horizontal axis's widths, a vertical axis's line heights). Runtime variation is real (each host and font measures differently), so this is an interface; the control passes its painter's text metrics.
 
@@ -2161,7 +2161,7 @@ Types
 
 .. cpp:struct:: TickRequest final
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
    .. cpp:member:: double minimum_spacing
 
@@ -2187,7 +2187,7 @@ Types
 
 .. cpp:struct:: TickSet final
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
    Caller-owned output of TickGenerator::generate: capacity fixed, live counts stated. A generation replaces it whole.
 
@@ -2220,7 +2220,7 @@ Types
 
 .. cpp:struct:: template <SeriesElement XElement, SeriesElement YElement> ViewSamples final
 
-   ``#include <gui_forms/plots/series_view/series_view.hpp>``
+   ``#include <gui_forms/plots/series_view/series_view.hpp>`` (:src:`source <include/gui_forms/plots/series_view/series_view.hpp>`)
 
    x and y from two borrowed views, read as a decimation source (decimation.hpp's ColumnSamples for owned columns): read only under a pin (SeriesPin) of each view's lease.
 
@@ -2247,7 +2247,7 @@ Enumerations
 
 .. cpp:enum-class:: AxisFit
 
-   ``#include <gui_forms/plots/axis/axis.hpp>``
+   ``#include <gui_forms/plots/axis/axis.hpp>`` (:src:`source <include/gui_forms/plots/axis/axis.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2261,7 +2261,7 @@ Enumerations
 
 .. cpp:enum-class:: AxisLock
 
-   ``#include <gui_forms/plots/axis/axis.hpp>``
+   ``#include <gui_forms/plots/axis/axis.hpp>`` (:src:`source <include/gui_forms/plots/axis/axis.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2275,7 +2275,7 @@ Enumerations
 
 .. cpp:enum-class:: AxisSide
 
-   ``#include <gui_forms/plots/axis/axis.hpp>``
+   ``#include <gui_forms/plots/axis/axis.hpp>`` (:src:`source <include/gui_forms/plots/axis/axis.hpp>`)
 
    .. cpp:enumerator:: bottom
 
@@ -2289,7 +2289,7 @@ Enumerations
 
 .. cpp:enum-class:: BoxZoomBinding
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    .. cpp:enumerator:: secondary_drag
 
@@ -2299,7 +2299,7 @@ Enumerations
 
 .. cpp:enum-class:: BuiltInColormap
 
-   ``#include <gui_forms/plots/colormap/colormap.hpp>``
+   ``#include <gui_forms/plots/colormap/colormap.hpp>`` (:src:`source <include/gui_forms/plots/colormap/colormap.hpp>`)
 
    .. cpp:enumerator:: viridis
 
@@ -2315,7 +2315,7 @@ Enumerations
 
 .. cpp:enum-class:: ColormapKind
 
-   ``#include <gui_forms/plots/colormap/colormap.hpp>``
+   ``#include <gui_forms/plots/colormap/colormap.hpp>`` (:src:`source <include/gui_forms/plots/colormap/colormap.hpp>`)
 
    .. cpp:enumerator:: qualitative
 
@@ -2325,7 +2325,7 @@ Enumerations
 
 .. cpp:enum-class:: ColormapSpace
 
-   ``#include <gui_forms/plots/colormap/colormap.hpp>``
+   ``#include <gui_forms/plots/colormap/colormap.hpp>`` (:src:`source <include/gui_forms/plots/colormap/colormap.hpp>`)
 
    .. cpp:enumerator:: linear_srgb
 
@@ -2335,7 +2335,7 @@ Enumerations
 
 .. cpp:enum-class:: InfiniteLineOrientation
 
-   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>``
+   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>`` (:src:`source <include/gui_forms/plots/mark_painters/mark_painters.hpp>`)
 
    .. cpp:enumerator:: vertical
 
@@ -2345,7 +2345,7 @@ Enumerations
 
 .. cpp:enum-class:: LegendFlow
 
-   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>``
+   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>`` (:src:`source <include/gui_forms/plots/plot_legend/plot_legend.hpp>`)
 
    .. cpp:enumerator:: vertical
 
@@ -2355,7 +2355,7 @@ Enumerations
 
 .. cpp:enum-class:: LegendPlace
 
-   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>``
+   ``#include <gui_forms/plots/plot_legend/plot_legend.hpp>`` (:src:`source <include/gui_forms/plots/plot_legend/plot_legend.hpp>`)
 
    .. cpp:enumerator:: top_left
 
@@ -2379,7 +2379,7 @@ Enumerations
 
 .. cpp:enum-class:: LineDecimation
 
-   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>``
+   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>`` (:src:`source <include/gui_forms/plots/mark_painters/mark_painters.hpp>`)
 
    .. cpp:enumerator:: envelope
 
@@ -2391,7 +2391,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DAxis
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: x
 
@@ -2403,7 +2403,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DCheck
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: ok
 
@@ -2417,7 +2417,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DHitKind
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2433,7 +2433,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DInterpolation
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: conv
 
@@ -2445,7 +2445,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DLabelAlignment
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: screen
 
@@ -2455,7 +2455,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DLabelRole
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: tick
 
@@ -2465,7 +2465,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DLighting
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2477,7 +2477,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DMarker
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: circle
 
@@ -2495,7 +2495,7 @@ Enumerations
 
 .. cpp:enum-class:: Plot3DProjection
 
-   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>``
+   ``#include <gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`` (:src:`source <include/gui_forms/plots/plot3d_scene/plot3d_scene.hpp>`)
 
    .. cpp:enumerator:: perspective
 
@@ -2505,7 +2505,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotGesture
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2519,7 +2519,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotGestureAxes
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    .. cpp:enumerator:: both
 
@@ -2531,7 +2531,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotKey
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    .. cpp:enumerator:: left
 
@@ -2553,7 +2553,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotPointerButton
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    .. cpp:enumerator:: primary
 
@@ -2565,7 +2565,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotTransformCheck
 
-   ``#include <gui_forms/plots/plot_transform/plot_transform.hpp>``
+   ``#include <gui_forms/plots/plot_transform/plot_transform.hpp>`` (:src:`source <include/gui_forms/plots/plot_transform/plot_transform.hpp>`)
 
    .. cpp:enumerator:: valid
 
@@ -2579,7 +2579,7 @@ Enumerations
 
 .. cpp:enum-class:: PlotZoneKind
 
-   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+   ``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
    .. cpp:enumerator:: outside
 
@@ -2593,7 +2593,7 @@ Enumerations
 
 .. cpp:enum-class:: PyramidOutcome
 
-   ``#include <gui_forms/plots/decimation/decimation.hpp>``
+   ``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
    .. cpp:enumerator:: built
 
@@ -2607,7 +2607,7 @@ Enumerations
 
 .. cpp:enum-class:: ScaleCheck
 
-   ``#include <gui_forms/plots/scale/scale.hpp>``
+   ``#include <gui_forms/plots/scale/scale.hpp>`` (:src:`source <include/gui_forms/plots/scale/scale.hpp>`)
 
    .. cpp:enumerator:: valid
 
@@ -2623,7 +2623,7 @@ Enumerations
 
 .. cpp:enum-class:: ScaleKind
 
-   ``#include <gui_forms/plots/scale/scale.hpp>``
+   ``#include <gui_forms/plots/scale/scale.hpp>`` (:src:`source <include/gui_forms/plots/scale/scale.hpp>`)
 
    .. cpp:enumerator:: linear
 
@@ -2639,7 +2639,7 @@ Enumerations
 
 .. cpp:enum-class:: SeriesEditOutcome
 
-   ``#include <gui_forms/plots/series_column/series_column.hpp>``
+   ``#include <gui_forms/plots/series_column/series_column.hpp>`` (:src:`source <include/gui_forms/plots/series_column/series_column.hpp>`)
 
    .. cpp:enumerator:: applied
 
@@ -2655,7 +2655,7 @@ Enumerations
 
 .. cpp:enum-class:: SeriesMode
 
-   ``#include <gui_forms/plots/series_column/series_column.hpp>``
+   ``#include <gui_forms/plots/series_column/series_column.hpp>`` (:src:`source <include/gui_forms/plots/series_column/series_column.hpp>`)
 
    .. cpp:enumerator:: growable
 
@@ -2665,7 +2665,7 @@ Enumerations
 
 .. cpp:enum-class:: SeriesViewCheck
 
-   ``#include <gui_forms/plots/series_view/series_view.hpp>``
+   ``#include <gui_forms/plots/series_view/series_view.hpp>`` (:src:`source <include/gui_forms/plots/series_view/series_view.hpp>`)
 
    .. cpp:enumerator:: valid
 
@@ -2683,7 +2683,7 @@ Enumerations
 
 .. cpp:enum-class:: SignalKind
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    .. cpp:enumerator:: sine
 
@@ -2701,7 +2701,7 @@ Enumerations
 
 .. cpp:enum-class:: SignalParseOutcome
 
-   ``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+   ``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
    .. cpp:enumerator:: parsed
 
@@ -2717,7 +2717,7 @@ Enumerations
 
 .. cpp:enum-class:: StairsMode
 
-   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>``
+   ``#include <gui_forms/plots/mark_painters/mark_painters.hpp>`` (:src:`source <include/gui_forms/plots/mark_painters/mark_painters.hpp>`)
 
    .. cpp:enumerator:: post
 
@@ -2727,7 +2727,7 @@ Enumerations
 
 .. cpp:enum-class:: TickLabelUnit
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
    .. cpp:enumerator:: number
 
@@ -2737,7 +2737,7 @@ Enumerations
 
 .. cpp:enum-class:: TickOutcome
 
-   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+   ``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
    .. cpp:enumerator:: generated
 
@@ -2749,7 +2749,7 @@ Enumerations
 
 .. cpp:enum-class:: XOrder
 
-   ``#include <gui_forms/plots/plot_types/plot_types.hpp>``
+   ``#include <gui_forms/plots/plot_types/plot_types.hpp>`` (:src:`source <include/gui_forms/plots/plot_types/plot_types.hpp>`)
 
    .. cpp:enumerator:: monotone
 
@@ -2760,7 +2760,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/axis/axis.hpp>``
+``#include <gui_forms/plots/axis/axis.hpp>`` (:src:`source <include/gui_forms/plots/axis/axis.hpp>`)
 
 .. cpp:function:: constexpr bool horizontal_side(AxisSide side) noexcept
 
@@ -2786,7 +2786,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/colormap/colormap.hpp>``
+``#include <gui_forms/plots/colormap/colormap.hpp>`` (:src:`source <include/gui_forms/plots/colormap/colormap.hpp>`)
 
 .. cpp:function:: bool valid_colormap(const Colormap& map) noexcept
 
@@ -2828,7 +2828,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/decimation/decimation.hpp>``
+``#include <gui_forms/plots/decimation/decimation.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation.hpp>`)
 
 .. cpp:function:: template <typename Source> ElementRange visible_range(const Source& source, double minimum, double maximum) noexcept
 
@@ -2864,15 +2864,15 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/decimation/decimation_kernels.hpp>``
+``#include <gui_forms/plots/decimation/decimation_kernels.hpp>`` (:src:`source <include/gui_forms/plots/decimation/decimation_kernels.hpp>`)
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/mark_painters/mark_painter_kernels.hpp>``
+``#include <gui_forms/plots/mark_painters/mark_painter_kernels.hpp>`` (:src:`source <include/gui_forms/plots/mark_painters/mark_painter_kernels.hpp>`)
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/plot_legend/plot_legend.hpp>``
+``#include <gui_forms/plots/plot_legend/plot_legend.hpp>`` (:src:`source <include/gui_forms/plots/plot_legend/plot_legend.hpp>`)
 
 .. cpp:function:: LegendLayout layout_legend(const LegendStyle& style, Rect plot, std::span<const double> label_widths, std::span<LegendEntryLayout> entries) noexcept
 
@@ -2892,7 +2892,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>``
+``#include <gui_forms/plots/plot_view_model/plot_view_model.hpp>`` (:src:`source <include/gui_forms/plots/plot_view_model/plot_view_model.hpp>`)
 
 .. cpp:var:: constexpr double wheel_zoom_per_notch
 
@@ -2916,7 +2916,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/scale/scale.hpp>``
+``#include <gui_forms/plots/scale/scale.hpp>`` (:src:`source <include/gui_forms/plots/scale/scale.hpp>`)
 
 .. cpp:function:: ScaleCheck check_scale(const Scale& scale) noexcept
 
@@ -2928,7 +2928,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/series_column/series_column.hpp>``
+``#include <gui_forms/plots/series_column/series_column.hpp>`` (:src:`source <include/gui_forms/plots/series_column/series_column.hpp>`)
 
 .. cpp:function:: template <SeriesElement Element> constexpr double series_value(Element element) noexcept
 
@@ -2940,13 +2940,13 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/series_picker/series_picker.hpp>``
+``#include <gui_forms/plots/series_picker/series_picker.hpp>`` (:src:`source <include/gui_forms/plots/series_picker/series_picker.hpp>`)
 
 .. cpp:function:: RectPick pick_rect(std::span<const Rect> rects, Point device) noexcept
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/series_ring_channel/series_ring_channel.hpp>``
+``#include <gui_forms/plots/series_ring_channel/series_ring_channel.hpp>`` (:src:`source <include/gui_forms/plots/series_ring_channel/series_ring_channel.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_channel_streams
 
@@ -2954,7 +2954,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/series_view/series_view.hpp>``
+``#include <gui_forms/plots/series_view/series_view.hpp>`` (:src:`source <include/gui_forms/plots/series_view/series_view.hpp>`)
 
 .. cpp:function:: template <SeriesElement Element> SeriesViewCheck validate_series_view(const SeriesView<Element>& view) noexcept
 
@@ -2964,7 +2964,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/signal_program/signal_program.hpp>``
+``#include <gui_forms/plots/signal_program/signal_program.hpp>`` (:src:`source <include/gui_forms/plots/signal_program/signal_program.hpp>`)
 
 .. cpp:function:: template <typename Program> constexpr SignalEntry make_signal_entry() noexcept
 
@@ -3000,7 +3000,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms::plots
 
-``#include <gui_forms/plots/tick_generator/tick_generator.hpp>``
+``#include <gui_forms/plots/tick_generator/tick_generator.hpp>`` (:src:`source <include/gui_forms/plots/tick_generator/tick_generator.hpp>`)
 
 .. cpp:function:: TickOutcome generate_ticks(const ScaleMapping& mapping, const TickRequest& request, const TickLabelMetrics* metrics, TickSet& out)
 

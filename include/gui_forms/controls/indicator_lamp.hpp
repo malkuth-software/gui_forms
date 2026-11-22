@@ -44,6 +44,13 @@ namespace gui_forms {
 // bake's aspect (the largest such rectangle in the client area without a
 // legend, else in the bezel's square), and the bezel gives way. Without the
 // bake, and in forced high contrast, the theme's lens is drawn.
+//
+// A lamp may instead be a pinpoint (lamp_style, owner 2026-11-21): a tiny
+// accent light for status, a dot 6 units across with no bezel and the
+// legend close beside it, lit and warmed up as a lens is, and styled by a
+// theme as `indicator-lamp::part(lens):state(pinpoint)`. It never shows a
+// bake. A radio choice drawn with lamps is a RadioButton's lamp look
+// (ChoiceIndicatorStyle::lamp), not a lamp: a lamp is never clicked.
 class GUI_FORMS_API IndicatorLamp final : public Control, public IndicatorLampCapabilities<IndicatorLamp> {
 public:
     explicit IndicatorLamp(StableId stable_id, std::string text = {});
@@ -68,8 +75,9 @@ public:
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     [[nodiscard]] AnatomyStateSet anatomy_states() const override;
     // Stage T1 anatomy, as dot members (see Control::Parts). `bezel` is the
-    // ring the lens sits in, `lens` the glass that lights, and `label` the
-    // legend, absent while the text is empty.
+    // ring the lens sits in (absent for a pinpoint), `lens` the glass that
+    // lights (a pinpoint's dot), and `label` the legend, absent while the
+    // text is empty.
     struct GUI_FORMS_API Parts final {
         PartGeometry region;
         PartGeometry bezel;
@@ -133,7 +141,7 @@ private:
     // property_codemod begin IndicatorLamp (tools/property_families/indicator_lamp.json; generated, do not edit)
 public:
     // IndicatorLamp's property table: Control's entries, then its own.
-    static constexpr std::size_t indicator_lamp_property_count = Control::control_property_count + 4U;
+    static constexpr std::size_t indicator_lamp_property_count = Control::control_property_count + 5U;
     [[nodiscard]] static const std::array<PropertyEntry, indicator_lamp_property_count>& indicator_lamp_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
@@ -142,6 +150,7 @@ private:
     friend struct IndicatorLampTextCapability<IndicatorLamp>;
     friend struct IndicatorLampLightPlanesCapability<IndicatorLamp>;
     friend struct IndicatorLampLampColorCapability<IndicatorLamp>;
+    friend struct IndicatorLampLampStyleCapability<IndicatorLamp>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(state)& cell, IndicatorLampState& incoming);
     void written(const decltype(state)& cell);
@@ -151,6 +160,8 @@ private:
     void written(const decltype(light_planes)& cell);
     void prepare_write(const decltype(lamp_color)& cell, stxlib::Optional<Color>& incoming);
     void written(const decltype(lamp_color)& cell);
+    void prepare_write(const decltype(lamp_style)& cell, IndicatorLampStyle& incoming);
+    void written(const decltype(lamp_style)& cell);
     // property_codemod end IndicatorLamp
 };
 

@@ -704,6 +704,8 @@ add_library(gui_forms_core STATIC
     src/core/docking/dock_layout/dock_layout_edits.cpp
     src/core/docking/dock_layout/dock_layout_model.cpp
     src/core/docking/dock_layout/dock_layout_persistence.cpp
+    src/core/docking/dock_layout/dock_layout_frames.cpp
+    src/core/docking/dock_frames/dock_frames.cpp
     src/core/docking/dock_drop_targets/dock_drop_targets.cpp
     src/core/host/image/host_image.cpp
     src/core/host/image/host_image_pixels.cpp
@@ -758,6 +760,7 @@ add_library(gui_forms_core STATIC
     src/core/surface_root/control_table/control_table.cpp
     src/core/surface_root/control_lookup/control_lookup.cpp
     src/core/window/lifecycle/window_lifecycle.cpp
+    src/core/window/document_area/window_document_area.cpp
     src/core/window/typography/window_typography.cpp
     src/core/window/update_scope/update_scope.cpp
     src/core/window/presentation/window_presentation.cpp
@@ -1254,8 +1257,10 @@ add_library(gui_forms_controls STATIC
     src/controls/pages/page_view/page_view.cpp
     src/controls/docking/dock_navigator/dock_navigator.cpp
     src/controls/docking/dock_workspace/dock_workspace.cpp
+    src/controls/docking/dock_workspace/dock_workspace_mdi.cpp
     src/controls/docking/dock_site/dock_site.cpp
     src/controls/docking/dock_site/dock_site_drag.cpp
+    src/controls/docking/dock_site/dock_site_frames.cpp
     src/controls/drag_gesture/drag_gesture.cpp
     src/controls/docking/dock_site/dock_site_auto_hide.cpp
     src/controls/data_grid_view/data_grid_view.cpp
@@ -1267,6 +1272,7 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view_cells.cpp
     src/controls/data_grid_view/data_grid_view_cells_region.cpp
     src/controls/task_dialog/task_dialog.cpp
+    src/controls/frame_chrome/frame_chrome.cpp
     src/controls/notify_icon/notify_icon.cpp
     src/controls/file_dialog/file_dialog_support.cpp
     src/controls/file_dialog/file_dialog_types.cpp
@@ -3062,6 +3068,15 @@ endif()
 if(TARGET gui_forms_application)
     add_executable(gui_forms_present_profile_workload EXCLUDE_FROM_ALL benchmarks/present_profile_workload.cpp)
     target_link_libraries(gui_forms_present_profile_workload PRIVATE gui_forms_application)
+endif()
+
+# D2: the documentation's control previews, one PNG per stock specimen in the
+# windows-professional theme (tools/preview_capture/preview_capture.cpp), run
+# by tools/capture_previews.py. Built with the Gallery so CI compiles it on
+# every host; never installed.
+if(TARGET gui_forms_application AND GUI_FORMS_BUILD_GALLERY)
+    add_executable(gui_forms_preview_capture tools/preview_capture/preview_capture.cpp)
+    target_link_libraries(gui_forms_preview_capture PRIVATE gui_forms_application)
 endif()
 
 if(GUI_FORMS_BUILD_BENCHMARKS)

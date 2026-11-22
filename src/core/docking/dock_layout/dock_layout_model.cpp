@@ -307,7 +307,19 @@ private:
             if (index > 0U && !(state_.panels[index - 1U].id < state_.panels[index].id)) {
                 return fail("panel records are not sorted by unique ID");
             }
+            const DockFrameMemory* const frame = state_.panels[index].frame.value();
+            if (frame == nullptr) continue;
+            if (!(*frame).bounds.finite() || (*frame).bounds.empty()) {
+                return fail("the frame of " + state_.panels[index].id.value + " is not valid");
+            }
+            const bool known_state = (*frame).state == DockFrameState::normal ||
+                                     (*frame).state == DockFrameState::minimized ||
+                                     (*frame).state == DockFrameState::maximized;
+            if (!known_state) return fail("the frame of " + state_.panels[index].id.value + " has no known state");
         }
+        const bool known_presentation = state_.document_presentation == DockDocumentPresentation::tabs ||
+                                        state_.document_presentation == DockDocumentPresentation::frames;
+        if (!known_presentation) return fail("the document presentation is not known");
         if (state_.floating_sites.size() > dock_maximum_floating_sites) {
             return fail("more floating sites than the limit");
         }
@@ -476,6 +488,9 @@ bool unknown_owner_exists(const DockLayoutState& state, const DockUnknownOwner& 
     case DockUnknownOwnerKind::auto_hidden_memory:
         record = find_dock_record(state, owner.panel);
         return record != nullptr && (*record).auto_hidden.present();
+    case DockUnknownOwnerKind::frame_memory:
+        record = find_dock_record(state, owner.panel);
+        return record != nullptr && (*record).frame.present();
     }
     return false;
 }

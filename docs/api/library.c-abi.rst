@@ -198,6 +198,8 @@ Types
      -  
    * - :cpp:class:`gf_dock_edit <gf_dock_edit>`
      -  
+   * - :cpp:class:`gf_dock_frame_memory <gf_dock_frame_memory>`
+     -  
    * - :cpp:class:`gf_dock_location <gf_dock_location>`
      -  
    * - :cpp:class:`gf_dock_navigator_class <gf_dock_navigator_class>`
@@ -463,7 +465,7 @@ Types
 
 .. cpp:class:: ApplicationTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_application_table, negotiated as GF_TABLE_APPLICATION.
 
@@ -500,7 +502,7 @@ Types
 
 .. cpp:class:: BindingsTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
 
@@ -567,7 +569,7 @@ Types
 
 .. cpp:class:: ClassesTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_classes_table, negotiated as GF_TABLE_CLASSES.
 
@@ -600,7 +602,7 @@ Types
 
 .. cpp:class:: ContentTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_content_table, negotiated as GF_TABLE_CONTENT.
 
@@ -719,7 +721,7 @@ Types
 
 .. cpp:class:: ControlsTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_controls_table, negotiated as GF_TABLE_CONTROLS.
 
@@ -786,7 +788,7 @@ Types
 
 .. cpp:class:: CustomControlsTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_custom_controls_table, negotiated as GF_TABLE_CUSTOM_CONTROLS.
 
@@ -827,7 +829,7 @@ Types
 
 .. cpp:class:: DataGridTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_data_grid_table, negotiated as GF_TABLE_DATA_GRID.
 
@@ -922,7 +924,7 @@ Types
 
 .. cpp:class:: DiagnosticsTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_diagnostics_table, negotiated as GF_TABLE_DIAGNOSTICS.
 
@@ -973,7 +975,7 @@ Types
 
 .. cpp:class:: DispatchTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_dispatch_table, negotiated as GF_TABLE_DISPATCH.
 
@@ -1006,7 +1008,7 @@ Types
 
 .. cpp:class:: DockingTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_docking_table, negotiated as GF_TABLE_DOCKING.
 
@@ -1055,6 +1057,20 @@ Types
 
    .. cpp:function:: gf_status update_panel(gf_object workspace, const gf_dock_panel* panel) const noexcept
 
+   .. cpp:function:: gf_status document_presentation(gf_object workspace, gf_dock_document_presentation* presentation) const noexcept
+
+   .. cpp:function:: gf_status arrange_frames(gf_object workspace, gf_dock_frame_arrangement arrangement, gf_dock_refusal* refusal) const noexcept
+
+   .. cpp:function:: gf_status frame_memory(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame) const noexcept
+
+   .. cpp:function:: gf_status area_document_count(gf_object workspace, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status area_document_at(gf_object workspace, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status area_active_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status merged_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
    .. cpp:function:: gf_status set_panel_content(gf_object workspace, gf_utf8_view panel, gf_object content) const noexcept
 
    .. cpp:function:: gf_status set_panel_title(gf_object workspace, gf_utf8_view panel, gf_utf8_view title) const noexcept
@@ -1063,11 +1079,15 @@ Types
 
    .. cpp:function:: gf_status set_floating_window_visibility(gf_object workspace, uint32_t site, gf_dock_window_visibility visibility) const noexcept
 
+   .. cpp:function:: gf_status set_frame_icons_at_bottom(gf_object workspace, uint32_t bottom) const noexcept
+
+   .. cpp:function:: gf_status set_panel_menu_strip(gf_object workspace, gf_utf8_view panel, gf_object strip) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: EventsTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_events_table, negotiated as GF_TABLE_EVENTS.
 
@@ -1106,7 +1126,7 @@ Types
 
 .. cpp:class:: FontsTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_fonts_table, negotiated as GF_TABLE_FONTS.
 
@@ -1143,7 +1163,7 @@ Types
 
 .. cpp:struct:: gd_api_v0
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_api_v0 is the size-versioned negotiated function table for drawing object ownership, transforms, paths, regions, brushes, pens, fonts, text, images, bitmap locks/edits/damage, recording/replay, native interop, and raster publication.
 
@@ -1465,7 +1485,7 @@ Types
 
 .. cpp:struct:: gd_bitmap_damage_summary
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_bitmap_damage_summary projects revision, rectangle/compaction/collapse counts, and exact bounds after bitmap edits.
 
@@ -1479,7 +1499,7 @@ Types
 
 .. cpp:struct:: gd_bitmap_edit_view
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_bitmap_edit_view exposes bounded mutable premultiplied BGRA storage, dimensions, stride, and generational edit token.
 
@@ -1499,7 +1519,7 @@ Types
 
 .. cpp:struct:: gd_bitmap_lock_view
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_bitmap_lock_view exposes bounded pixel pointer, dimensions, signed stride, pixel format, and lease token for one active read/write lock.
 
@@ -1521,7 +1541,7 @@ Types
 
 .. cpp:struct:: gd_color
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_color projects packed straight-alpha ARGB plus explicit empty-color identity.
 
@@ -1533,7 +1553,7 @@ Types
 
 .. cpp:struct:: gd_color_remap
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_color_remap maps one exact source ARGB value to a replacement for image-attribute processing.
 
@@ -1545,7 +1565,7 @@ Types
 
 .. cpp:struct:: gd_corner_radii
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    .. cpp:member:: double top_left
 
@@ -1559,7 +1579,7 @@ Types
 
 .. cpp:struct:: gd_error_view
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_error_view returns thread-local drawing result code and borrowed bounded diagnostic.
 
@@ -1571,7 +1591,7 @@ Types
 
 .. cpp:struct:: gd_font_resolution
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1593,7 +1613,7 @@ Types
 
 .. cpp:struct:: gd_grid_pattern
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    .. cpp:member:: gd_point origin
 
@@ -1611,7 +1631,7 @@ Types
 
 .. cpp:struct:: gd_handle
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_handle encodes one-based drawing registry slot plus generation for deterministic stale-object rejection.
 
@@ -1623,7 +1643,7 @@ Types
 
 .. cpp:struct:: gd_marker_style
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    .. cpp:member:: uint32_t shape
 
@@ -1639,7 +1659,7 @@ Types
 
 .. cpp:struct:: gd_matrix
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_matrix projects the six coefficients of a 2D affine transform.
 
@@ -1659,7 +1679,7 @@ Types
 
 .. cpp:struct:: gd_point
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_point projects one floating-point drawing coordinate.
 
@@ -1671,7 +1691,7 @@ Types
 
 .. cpp:struct:: gd_rect
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_rect projects floating-point drawing rectangle geometry.
 
@@ -1687,7 +1707,7 @@ Types
 
 .. cpp:struct:: gd_rect_i
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_rect_i projects exact integer pixel bounds for bitmap lock/edit/damage contracts.
 
@@ -1703,7 +1723,7 @@ Types
 
 .. cpp:struct:: gd_size
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_size projects floating-point drawing dimensions.
 
@@ -1715,7 +1735,7 @@ Types
 
 .. cpp:struct:: gd_string_view
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    gd_string_view is a non-owning bounded drawing-ABI string view with explicit validation before copying.
 
@@ -1727,7 +1747,7 @@ Types
 
 .. cpp:struct:: gd_text_item
 
-   ``#include <gui_forms/drawing_c_api.h>``
+   ``#include <gui_forms/drawing_c_api.h>`` (:src:`source <include/gui_forms/drawing_c_api.h>`)
 
    .. cpp:member:: gd_string_view text
 
@@ -1739,7 +1759,7 @@ Types
 
 .. cpp:struct:: gf_abi_version_info
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    gf_abi_version_info is the size-prefixed output record of the library and ABI versions.
 
@@ -1759,7 +1779,7 @@ Types
 
 .. cpp:struct:: gf_anchored_overlay_options
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1777,7 +1797,7 @@ Types
 
 .. cpp:struct:: gf_app_font_face
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1793,7 +1813,7 @@ Types
 
 .. cpp:struct:: gf_application_config
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source. With GF_PRESENTATION_SOURCE_HOST windows start from GUI.Forms' defaults and follow the host's presentation reports (a later minor may start from the host's settings read at create); with GF_PRESENTATION_SOURCE_DEFAULTS they start from explicit defaults and still follow the host's reports.
 
@@ -1813,7 +1833,7 @@ Types
 
 .. cpp:struct:: gf_application_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -1834,7 +1854,7 @@ Types
 
 .. cpp:struct:: gf_binding_arguments
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1862,7 +1882,7 @@ Types
 
 .. cpp:struct:: gf_binding_column
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1878,7 +1898,7 @@ Types
 
 .. cpp:struct:: gf_binding_field
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_utf8_view name
 
@@ -1888,7 +1908,7 @@ Types
 
 .. cpp:struct:: gf_binding_predicate
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1902,7 +1922,7 @@ Types
 
 .. cpp:struct:: gf_binding_provider_callbacks
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -1937,7 +1957,7 @@ Types
 
 .. cpp:struct:: gf_binding_record
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1953,7 +1973,7 @@ Types
 
 .. cpp:struct:: gf_binding_sort_key
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -1965,7 +1985,7 @@ Types
 
 .. cpp:struct:: gf_bindings_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -2016,7 +2036,7 @@ Types
 
 .. cpp:struct:: gf_button_base_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -2026,7 +2046,7 @@ Types
 
 .. cpp:struct:: gf_button_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -2036,7 +2056,7 @@ Types
 
 .. cpp:struct:: gf_bytes_view
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: const uint8_t* data
 
@@ -2046,7 +2066,7 @@ Types
 
 .. cpp:struct:: gf_callback
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -2065,7 +2085,7 @@ Types
 
 .. cpp:struct:: gf_card_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -2075,7 +2095,7 @@ Types
 
 .. cpp:struct:: gf_check_box_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -2087,7 +2107,7 @@ Types
 
 .. cpp:struct:: gf_check_box_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2103,7 +2123,7 @@ Types
 
 .. cpp:struct:: gf_class_header
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
 
    .. rubric:: Methods
@@ -2122,7 +2142,7 @@ Types
 
 .. cpp:struct:: gf_classes_table
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
 
    .. rubric:: Methods
@@ -2139,7 +2159,7 @@ Types
 
 .. cpp:struct:: gf_combo_box_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2151,7 +2171,7 @@ Types
 
 .. cpp:struct:: gf_composite_spec
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2169,7 +2189,7 @@ Types
 
 .. cpp:struct:: gf_container_control_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -2179,7 +2199,7 @@ Types
 
 .. cpp:struct:: gf_content_caret_stop
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint64_t offset
 
@@ -2189,7 +2209,7 @@ Types
 
 .. cpp:struct:: gf_content_effect
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2211,7 +2231,7 @@ Types
 
 .. cpp:struct:: gf_content_frame
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2235,7 +2255,7 @@ Types
 
 .. cpp:struct:: gf_content_layout_transform
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: double xx
 
@@ -2253,7 +2273,7 @@ Types
 
 .. cpp:struct:: gf_content_pixel_rect
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t x
 
@@ -2267,7 +2287,7 @@ Types
 
 .. cpp:struct:: gf_content_program
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2279,7 +2299,7 @@ Types
 
 .. cpp:struct:: gf_content_quad
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_logical_point top_left
 
@@ -2293,7 +2313,7 @@ Types
 
 .. cpp:struct:: gf_content_request
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2311,7 +2331,7 @@ Types
 
 .. cpp:struct:: gf_content_semantics
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2327,7 +2347,7 @@ Types
 
 .. cpp:struct:: gf_content_statistics
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2355,7 +2375,7 @@ Types
 
 .. cpp:struct:: gf_content_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -2458,7 +2478,7 @@ Types
 
 .. cpp:struct:: gf_content_text_cluster
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint64_t start
 
@@ -2474,7 +2494,7 @@ Types
 
 .. cpp:struct:: gf_content_text_layout
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2504,7 +2524,7 @@ Types
 
 .. cpp:struct:: gf_content_text_line
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint64_t start
 
@@ -2516,7 +2536,7 @@ Types
 
 .. cpp:struct:: gf_control_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2612,7 +2632,7 @@ Types
 
 .. cpp:struct:: gf_controls_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -2663,7 +2683,7 @@ Types
 
 .. cpp:struct:: gf_create_arguments
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2683,7 +2703,7 @@ Types
 
 .. cpp:struct:: gf_create_choice
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_utf8_view name
 
@@ -2693,7 +2713,7 @@ Types
 
 .. cpp:struct:: gf_custom_control_callbacks
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -2716,7 +2736,7 @@ Types
 
 .. cpp:struct:: gf_custom_control_spec
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2738,7 +2758,7 @@ Types
 
 .. cpp:struct:: gf_custom_controls_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -2763,7 +2783,7 @@ Types
 
 .. cpp:struct:: gf_custom_layout_callbacks
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -2782,7 +2802,7 @@ Types
 
 .. cpp:struct:: gf_custom_property
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_utf8_view name
 
@@ -2806,7 +2826,7 @@ Types
 
 .. cpp:struct:: gf_custom_semantics
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2822,7 +2842,7 @@ Types
 
 .. cpp:struct:: gf_data_grid_cell
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint64_t row
 
@@ -2832,7 +2852,7 @@ Types
 
 .. cpp:struct:: gf_data_grid_column
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2864,7 +2884,7 @@ Types
 
 .. cpp:struct:: gf_data_grid_row
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2882,7 +2902,7 @@ Types
 
 .. cpp:struct:: gf_data_grid_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -2961,7 +2981,7 @@ Types
 
 .. cpp:struct:: gf_data_grid_view_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3015,7 +3035,7 @@ Types
 
 .. cpp:struct:: gf_date_time_picker_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3029,7 +3049,7 @@ Types
 
 .. cpp:struct:: gf_diagnostics_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3064,7 +3084,7 @@ Types
 
 .. cpp:struct:: gf_dial_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3076,7 +3096,7 @@ Types
 
 .. cpp:struct:: gf_dialog_request
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3116,7 +3136,7 @@ Types
 
 .. cpp:struct:: gf_dialog_result
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3134,7 +3154,7 @@ Types
 
 .. cpp:struct:: gf_dispatch_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3151,7 +3171,7 @@ Types
 
 .. cpp:struct:: gf_dock_edit
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3179,11 +3199,35 @@ Types
 
    .. cpp:member:: uint64_t reserved
 
+   .. cpp:member:: gf_dock_document_presentation presentation
+
+   .. cpp:member:: gf_dock_frame_state frame_state
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_dock_frame_memory
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t present
+
+   .. cpp:member:: gf_logical_rect bounds
+
+   .. cpp:member:: gf_dock_frame_state state
+
+   .. cpp:member:: uint32_t icon_slot
+
+   .. cpp:member:: uint32_t order
+
+   .. cpp:member:: uint32_t reserved
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_dock_location
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3209,7 +3253,7 @@ Types
 
 .. cpp:struct:: gf_dock_navigator_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3219,7 +3263,7 @@ Types
 
 .. cpp:struct:: gf_dock_options
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3233,7 +3277,7 @@ Types
 
 .. cpp:struct:: gf_dock_panel
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3267,7 +3311,7 @@ Types
 
 .. cpp:struct:: gf_dock_site_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3277,7 +3321,7 @@ Types
 
 .. cpp:struct:: gf_docking_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3314,6 +3358,24 @@ Types
 
    .. cpp:member:: gf_status (*set_floating_window_visibility)(gf_object workspace, uint32_t site, gf_dock_window_visibility visibility)
 
+   .. cpp:member:: gf_status (*document_presentation)(gf_object workspace, gf_dock_document_presentation* presentation)
+
+   .. cpp:member:: gf_status (*arrange_frames)(gf_object workspace, gf_dock_frame_arrangement arrangement, gf_dock_refusal* refusal)
+
+   .. cpp:member:: gf_status (*frame_memory)(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame)
+
+   .. cpp:member:: gf_status (*set_frame_icons_at_bottom)(gf_object workspace, uint32_t bottom)
+
+   .. cpp:member:: gf_status (*area_document_count)(gf_object workspace, uint64_t* count)
+
+   .. cpp:member:: gf_status (*area_document_at)(gf_object workspace, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*area_active_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*set_panel_menu_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip)
+
+   .. cpp:member:: gf_status (*merged_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -3322,7 +3384,7 @@ Types
 
 .. cpp:struct:: gf_effect_mask_layer
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3344,7 +3406,7 @@ Types
 
 .. cpp:struct:: gf_error_detail
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    gf_error_detail is the size-prefixed copy of the calling thread's last failure: status, table, slot and message size.
 
@@ -3362,7 +3424,7 @@ Types
 
 .. cpp:struct:: gf_event
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3382,7 +3444,7 @@ Types
 
 .. cpp:struct:: gf_event_field
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_utf8_view name
 
@@ -3396,7 +3458,7 @@ Types
 
 .. cpp:struct:: gf_events_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3419,7 +3481,7 @@ Types
 
 .. cpp:struct:: gf_failure_detail
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3443,7 +3505,7 @@ Types
 
 .. cpp:struct:: gf_failure_snapshot
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3469,7 +3531,7 @@ Types
 
 .. cpp:struct:: gf_file_filter
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_utf8_view label
 
@@ -3481,7 +3543,7 @@ Types
 
 .. cpp:struct:: gf_font
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_font_role role
 
@@ -3499,7 +3561,7 @@ Types
 
 .. cpp:struct:: gf_fonts_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3520,7 +3582,7 @@ Types
 
 .. cpp:struct:: gf_gauge_base_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3532,7 +3594,7 @@ Types
 
 .. cpp:struct:: gf_group_box_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3542,7 +3604,7 @@ Types
 
 .. cpp:struct:: gf_help_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3585,7 +3647,7 @@ Types
 
 .. cpp:struct:: gf_host_capabilities
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3605,7 +3667,7 @@ Types
 
 .. cpp:struct:: gf_host_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3632,7 +3694,7 @@ Types
 
 .. cpp:struct:: gf_hosted_input_report
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3644,7 +3706,7 @@ Types
 
 .. cpp:struct:: gf_hosted_options
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3666,7 +3728,7 @@ Types
 
 .. cpp:struct:: gf_label_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3676,7 +3738,7 @@ Types
 
 .. cpp:struct:: gf_layout_transaction
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3694,7 +3756,7 @@ Types
 
 .. cpp:struct:: gf_link_label_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3704,7 +3766,7 @@ Types
 
 .. cpp:struct:: gf_list_box_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3714,7 +3776,7 @@ Types
 
 .. cpp:struct:: gf_list_control_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3724,7 +3786,7 @@ Types
 
 .. cpp:struct:: gf_list_view_column
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3740,7 +3802,7 @@ Types
 
 .. cpp:struct:: gf_list_view_group
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3754,7 +3816,7 @@ Types
 
 .. cpp:struct:: gf_list_view_item
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3776,7 +3838,7 @@ Types
 
 .. cpp:struct:: gf_list_view_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3833,7 +3895,7 @@ Types
 
 .. cpp:struct:: gf_logical_insets
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: double left
 
@@ -3847,7 +3909,7 @@ Types
 
 .. cpp:struct:: gf_logical_point
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: double x
 
@@ -3857,7 +3919,7 @@ Types
 
 .. cpp:struct:: gf_logical_rect
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: double x
 
@@ -3871,7 +3933,7 @@ Types
 
 .. cpp:struct:: gf_logical_size
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: double width
 
@@ -3881,7 +3943,7 @@ Types
 
 .. cpp:struct:: gf_masked_text_box_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3893,7 +3955,7 @@ Types
 
 .. cpp:struct:: gf_material_panel_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3903,7 +3965,7 @@ Types
 
 .. cpp:struct:: gf_navigation_pane_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3913,7 +3975,7 @@ Types
 
 .. cpp:struct:: gf_node_canvas_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -3925,7 +3987,7 @@ Types
 
 .. cpp:struct:: gf_node_canvas_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3947,7 +4009,7 @@ Types
 
 .. cpp:struct:: gf_numeric_up_down_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3959,7 +4021,7 @@ Types
 
 .. cpp:struct:: gf_objects_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -3998,7 +4060,7 @@ Types
 
 .. cpp:struct:: gf_overlays_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -4029,7 +4091,7 @@ Types
 
 .. cpp:struct:: gf_owned_window_options
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4053,7 +4115,7 @@ Types
 
 .. cpp:struct:: gf_page_strip_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4063,7 +4125,7 @@ Types
 
 .. cpp:struct:: gf_page_view_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4073,7 +4135,7 @@ Types
 
 .. cpp:struct:: gf_paint_target
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4095,7 +4157,7 @@ Types
 
 .. cpp:struct:: gf_panel_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4105,7 +4167,7 @@ Types
 
 .. cpp:struct:: gf_picture_box_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4117,7 +4179,7 @@ Types
 
 .. cpp:struct:: gf_picture_box_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4129,7 +4191,7 @@ Types
 
 .. cpp:struct:: gf_program_identity
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4151,7 +4213,7 @@ Types
 
 .. cpp:struct:: gf_progress_bar_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4163,7 +4225,7 @@ Types
 
 .. cpp:struct:: gf_properties_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -4190,7 +4252,7 @@ Types
 
 .. cpp:struct:: gf_property_grid_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -4213,7 +4275,7 @@ Types
 
 .. cpp:struct:: gf_radio_button_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4225,7 +4287,7 @@ Types
 
 .. cpp:struct:: gf_radio_button_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4237,7 +4299,7 @@ Types
 
 .. cpp:struct:: gf_range_control_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4249,7 +4311,7 @@ Types
 
 .. cpp:struct:: gf_range_control_hooks
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4261,7 +4323,7 @@ Types
 
 .. cpp:struct:: gf_raster_canvas_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4271,7 +4333,7 @@ Types
 
 .. cpp:struct:: gf_relative_pointer_grant
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4289,7 +4351,7 @@ Types
 
 .. cpp:struct:: gf_relative_pointer_request
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4307,7 +4369,7 @@ Types
 
 .. cpp:struct:: gf_relative_pointer_state
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4351,7 +4413,7 @@ Types
 
 .. cpp:struct:: gf_rule
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4377,7 +4439,7 @@ Types
 
 .. cpp:struct:: gf_rule_action
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4395,7 +4457,7 @@ Types
 
 .. cpp:struct:: gf_rule_condition
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4415,7 +4477,7 @@ Types
 
 .. cpp:struct:: gf_rules_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -4434,7 +4496,7 @@ Types
 
 .. cpp:struct:: gf_run_options
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4460,7 +4522,7 @@ Types
 
 .. cpp:struct:: gf_runtime_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    gf_runtime_table (GF_TABLE_RUNTIME) reports the versions and copies out or clears the calling thread's error detail, from any thread. Since 1.1 it also shows the splashscreen before any object or window (splashscreen_show, set_status, set_progress, close), on the thread that will be the UI thread; the library's first window hands it over.
 
@@ -4489,7 +4551,7 @@ Types
 
 .. cpp:struct:: gf_scaled_panel_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4499,7 +4561,7 @@ Types
 
 .. cpp:struct:: gf_schema_choice
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4513,7 +4575,7 @@ Types
 
 .. cpp:struct:: gf_schema_composite
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4545,7 +4607,7 @@ Types
 
 .. cpp:struct:: gf_schema_effect
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4577,7 +4639,7 @@ Types
 
 .. cpp:struct:: gf_schema_engine
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4611,7 +4673,7 @@ Types
 
 .. cpp:struct:: gf_schema_interaction
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4625,7 +4687,7 @@ Types
 
 .. cpp:struct:: gf_schema_item_system
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4643,7 +4705,7 @@ Types
 
 .. cpp:struct:: gf_schema_parameter
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4667,7 +4729,7 @@ Types
 
 .. cpp:struct:: gf_schema_part
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4685,7 +4747,7 @@ Types
 
 .. cpp:struct:: gf_schema_primitive
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4715,7 +4777,7 @@ Types
 
 .. cpp:struct:: gf_schema_property
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4737,7 +4799,7 @@ Types
 
 .. cpp:struct:: gf_schema_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -4812,7 +4874,7 @@ Types
 
 .. cpp:struct:: gf_schema_type
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4838,7 +4900,7 @@ Types
 
 .. cpp:struct:: gf_scroll_axis
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t enabled
 
@@ -4858,7 +4920,7 @@ Types
 
 .. cpp:struct:: gf_scroll_bar_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4870,7 +4932,7 @@ Types
 
 .. cpp:struct:: gf_scroll_snapshot
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4904,7 +4966,7 @@ Types
 
 .. cpp:struct:: gf_scrollable_control_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -4914,7 +4976,7 @@ Types
 
 .. cpp:struct:: gf_segment_header
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4924,7 +4986,7 @@ Types
 
 .. cpp:struct:: gf_shadow_frame
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_shadow_frame_kind kind
 
@@ -4948,7 +5010,7 @@ Types
 
 .. cpp:struct:: gf_shadow_stack_info
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4962,7 +5024,7 @@ Types
 
 .. cpp:struct:: gf_splashscreen_options
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    gf_splashscreen_options (C ABI 1.1) is what runtime.splashscreen_show shows: PNG artwork whose pixel size is the window's (160 to 1600 per extent), a UTF-8 status line and an optional progress in [0, 1], in fixed built-in styling (owner ruling Q-S1 (a)).
 
@@ -4982,7 +5044,7 @@ Types
 
 .. cpp:struct:: gf_subsurface_content
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4994,7 +5056,7 @@ Types
 
 .. cpp:struct:: gf_subsurfaces_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -5017,7 +5079,7 @@ Types
 
 .. cpp:struct:: gf_sweep_scope_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -5029,7 +5091,7 @@ Types
 
 .. cpp:struct:: gf_text_box_base_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -5039,7 +5101,7 @@ Types
 
 .. cpp:struct:: gf_text_decoration
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint64_t start
 
@@ -5069,7 +5131,7 @@ Types
 
 .. cpp:struct:: gf_text_editing_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -5110,7 +5172,7 @@ Types
 
 .. cpp:struct:: gf_theme_diagnostic
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5124,7 +5186,7 @@ Types
 
 .. cpp:struct:: gf_theme_file
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: gf_utf8_view path
 
@@ -5134,7 +5196,7 @@ Types
 
 .. cpp:struct:: gf_theme_package
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5150,7 +5212,7 @@ Types
 
 .. cpp:struct:: gf_theme_report
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5162,7 +5224,7 @@ Types
 
 .. cpp:struct:: gf_themes_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -5207,7 +5269,7 @@ Types
 
 .. cpp:struct:: gf_tool_strip_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -5217,7 +5279,7 @@ Types
 
 .. cpp:struct:: gf_track_bar_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -5229,7 +5291,7 @@ Types
 
 .. cpp:struct:: gf_up_down_base_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -5239,7 +5301,7 @@ Types
 
 .. cpp:struct:: gf_user_control_class
 
-   ``#include <gui_forms/c/gf_abi_classes.h>``
+   ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
    .. cpp:member:: gf_class_header header
 
@@ -5249,7 +5311,7 @@ Types
 
 .. cpp:struct:: gf_utf8_view
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    gf_utf8_view (C ABI 1) borrows size bytes of UTF-8 text, not terminated; the callee copies what it keeps.
 
@@ -5261,7 +5323,7 @@ Types
 
 .. cpp:struct:: gf_value
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5297,7 +5359,7 @@ Types
 
 .. cpp:struct:: gf_window_band_appearance
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5335,7 +5397,7 @@ Types
 
 .. cpp:struct:: gf_window_band_options
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5353,7 +5415,7 @@ Types
 
 .. cpp:struct:: gf_window_band_report
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5375,7 +5437,7 @@ Types
 
 .. cpp:struct:: gf_window_shaping
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5395,7 +5457,7 @@ Types
 
 .. cpp:struct:: gf_windows_paint_endpoint_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -5432,7 +5494,7 @@ Types
 
 .. cpp:struct:: gf_windows_table
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
 
    .. rubric:: Methods
@@ -5477,6 +5539,28 @@ Types
 
    .. cpp:member:: gf_status (*show_business_card)(gf_object window_or_root, uint32_t* shown)
 
+   .. cpp:member:: gf_status (*set_mdi_container)(gf_object window_or_root, uint32_t container)
+
+   .. cpp:member:: gf_status (*mdi_container)(gf_object window_or_root, uint32_t* container)
+
+   .. cpp:member:: gf_status (*mdi_child_count)(gf_object window_or_root, uint64_t* count)
+
+   .. cpp:member:: gf_status (*mdi_child_at)(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*active_mdi_child)(gf_object window_or_root, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*activate_mdi_child)(gf_object window_or_root, gf_utf8_view child, uint32_t* activated)
+
+   .. cpp:member:: gf_status (*layout_mdi)(gf_object window_or_root, gf_mdi_layout layout, uint32_t* arranged)
+
+   .. cpp:member:: gf_status (*set_mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t bottom)
+
+   .. cpp:member:: gf_status (*mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t* bottom)
+
+   .. cpp:member:: gf_status (*set_main_menu_strip)(gf_object window_or_root, gf_object strip)
+
+   .. cpp:member:: gf_status (*main_menu_strip)(gf_object window_or_root, gf_object* strip)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -5485,7 +5569,7 @@ Types
 
 .. cpp:class:: HelpTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_help_table, negotiated as GF_TABLE_HELP.
 
@@ -5544,7 +5628,7 @@ Types
 
 .. cpp:class:: HostTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_host_table, negotiated as GF_TABLE_HOST.
 
@@ -5587,7 +5671,7 @@ Types
 
 .. cpp:class:: ListViewTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_list_view_table, negotiated as GF_TABLE_LIST_VIEW.
 
@@ -5660,7 +5744,7 @@ Types
 
 .. cpp:class:: ObjectReference
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    One reference to a library object, released (objects.release) when the owner goes or resets. The ObjectsTable it borrows must outlive it.
 
@@ -5693,7 +5777,7 @@ Types
 
 .. cpp:class:: ObjectsTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_objects_table, negotiated as GF_TABLE_OBJECTS.
 
@@ -5748,7 +5832,7 @@ Types
 
 .. cpp:class:: OverlaysTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_overlays_table, negotiated as GF_TABLE_OVERLAYS.
 
@@ -5795,7 +5879,7 @@ Types
 
 .. cpp:class:: PropertiesTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_properties_table, negotiated as GF_TABLE_PROPERTIES.
 
@@ -5838,7 +5922,7 @@ Types
 
 .. cpp:class:: PropertyGridTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_property_grid_table, negotiated as GF_TABLE_PROPERTY_GRID.
 
@@ -5877,7 +5961,7 @@ Types
 
 .. cpp:class:: RulesTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_rules_table, negotiated as GF_TABLE_RULES.
 
@@ -5912,7 +5996,7 @@ Types
 
 .. cpp:class:: RuntimeTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_runtime_table, negotiated as GF_TABLE_RUNTIME.
 
@@ -5955,7 +6039,7 @@ Types
 
 .. cpp:class:: SchemaTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_schema_table, negotiated as GF_TABLE_SCHEMA.
 
@@ -6046,7 +6130,7 @@ Types
 
 .. cpp:class:: SubscriptionReference
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    One subscription, disconnected (events.disconnect) when the owner goes or resets. The EventsTable it borrows must outlive it.
 
@@ -6075,7 +6159,7 @@ Types
 
 .. cpp:class:: SubsurfacesTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_subsurfaces_table, negotiated as GF_TABLE_SUBSURFACES.
 
@@ -6114,7 +6198,7 @@ Types
 
 .. cpp:class:: TextEditingTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_text_editing_table, negotiated as GF_TABLE_TEXT_EDITING.
 
@@ -6171,7 +6255,7 @@ Types
 
 .. cpp:class:: ThemesTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_themes_table, negotiated as GF_TABLE_THEMES.
 
@@ -6232,7 +6316,7 @@ Types
 
 .. cpp:class:: WindowsPaintEndpointTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
 
@@ -6285,7 +6369,7 @@ Types
 
 .. cpp:class:: WindowsTable
 
-   ``#include <gui_forms/c/gf_abi.hpp>``
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
 
    gf_windows_table, negotiated as GF_TABLE_WINDOWS.
 
@@ -6346,6 +6430,28 @@ Types
 
    .. cpp:function:: gf_status show_business_card(gf_object window_or_root, uint32_t* shown) const noexcept
 
+   .. cpp:function:: gf_status mdi_container(gf_object window_or_root, uint32_t* container) const noexcept
+
+   .. cpp:function:: gf_status mdi_child_count(gf_object window_or_root, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status mdi_child_at(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status active_mdi_child(gf_object window_or_root, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status activate_mdi_child(gf_object window_or_root, gf_utf8_view child, uint32_t* activated) const noexcept
+
+   .. cpp:function:: gf_status layout_mdi(gf_object window_or_root, gf_mdi_layout layout, uint32_t* arranged) const noexcept
+
+   .. cpp:function:: gf_status mdi_children_minimized_anchor_bottom(gf_object window_or_root, uint32_t* bottom) const noexcept
+
+   .. cpp:function:: gf_status main_menu_strip(gf_object window_or_root, gf_object* strip) const noexcept
+
    .. cpp:function:: gf_status set_band_appearance(gf_object window, const gf_window_band_appearance* appearance) const noexcept
 
    .. cpp:function:: gf_status set_corner_preference(gf_object window, gf_window_corner_preference preference) const noexcept
+
+   .. cpp:function:: gf_status set_mdi_container(gf_object window_or_root, uint32_t container) const noexcept
+
+   .. cpp:function:: gf_status set_mdi_children_minimized_anchor_bottom(gf_object window_or_root, uint32_t bottom) const noexcept
+
+   .. cpp:function:: gf_status set_main_menu_strip(gf_object window_or_root, gf_object strip) const noexcept

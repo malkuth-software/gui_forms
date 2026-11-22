@@ -86,9 +86,15 @@ public:
         : state_(state), rules_(rules), origin_(origin) {}
 
     DockRefusal apply(const DockEdit& edit) {
+        // The frames presentation's edits place frames, not panels, so the
+        // lock lets them through as it does a floating frame's.
         const bool moves_panels = edit.kind != DockEditKind::select &&
                                   edit.kind != DockEditKind::set_ratio &&
-                                  edit.kind != DockEditKind::set_floating_frame;
+                                  edit.kind != DockEditKind::set_floating_frame &&
+                                  edit.kind != DockEditKind::set_document_presentation &&
+                                  edit.kind != DockEditKind::set_frame_bounds &&
+                                  edit.kind != DockEditKind::set_frame_state &&
+                                  edit.kind != DockEditKind::set_frame_icon_slot;
         if (moves_panels && origin_ == DockEditOrigin::user && rules_.user_docking_locked) {
             return refuse(DockRefusalReason::user_docking_locked, DockRefusalLayer::site);
         }
@@ -109,6 +115,10 @@ public:
         case DockEditKind::set_ratio: return set_ratio(edit.target, edit.ratio);
         case DockEditKind::set_floating_frame:
             return set_floating_frame(edit.site, edit.frame, edit.monitor_id);
+        case DockEditKind::set_document_presentation: return set_document_presentation(edit.presentation);
+        case DockEditKind::set_frame_bounds: return set_frame_bounds(edit.subject.panel, edit.frame);
+        case DockEditKind::set_frame_state: return set_frame_state(edit.subject.panel, edit.frame_state);
+        case DockEditKind::set_frame_icon_slot: return set_frame_icon_slot(edit.subject.panel, edit.index);
         }
         return refuse(DockRefusalReason::invariant_violated, DockRefusalLayer::model);
     }
@@ -744,6 +754,10 @@ private:
         const DockPanelLocation location = locate_dock_panel(state_, panel_id);
         if (location.stack == DockNodeId{}) return refuse(DockRefusalReason::not_placed, DockRefusalLayer::model, panel_id);
         (*find_dock_node(state_, location.stack)).selected = location.index;
+        // A selected document's frame comes to the front (the orders are
+        // numbered again once the transaction's edits are done).
+        DockPanelRecord* const record = find_dock_record(state_, panel_id);
+        if (record != nullptr && (*record).frame.present()) (*(*record).frame.value()).order = top_frame_order(state_) + 1U;
         return accepted();
     }
 
@@ -762,6 +776,68 @@ private:
         if (!valid_frame(frame)) return refuse(DockRefusalReason::invalid_frame, DockRefusalLayer::model);
         (*site).frame = frame;
         (*site).monitor_id = monitor_id;
+        return accepted();
+    }
+
+    // The frames presentation -------------------------------------------
+
+    DockRefusal set_document_presentation(DockDocumentPresentation presentation) {
+        if (presentation != DockDocumentPresentation::tabs && presentation != DockDocumentPresentation::frames) {
+            return refuse(DockRefusalReason::invariant_violated, DockRefusalLayer::model);
+        }
+        state_.document_presentation = presentation;
+        return accepted();
+    }
+
+    // The frame memory of a document docked in the main site's document
+    // area, given a default one (cascaded, in front) when it has none; null
+    // with the refusal otherwise.
+    DockRefusal area_frame(const DockPanelId& panel_id, DockFrameMemory*& frame) {
+        frame = nullptr;
+        const DockPanelLocation location = locate_dock_panel(state_, panel_id);
+        if (location.stack == DockNodeId{}) {
+            return refuse(DockRefusalReason::not_placed, DockRefusalLayer::model, panel_id);
+        }
+        if (dock_place_of(state_, location.stack).region != DockRegion::document_area) {
+            return refuse(DockRefusalReason::not_in_main_site, DockRefusalLayer::model, panel_id);
+        }
+        DockPanelRecord* const record = find_dock_record(state_, panel_id);
+        if (record == nullptr) return refuse(DockRefusalReason::unknown_panel, DockRefusalLayer::model, panel_id);
+        if ((*record).frame.absent()) (*record).frame.set(default_frame_memory(state_));
+        frame = (*record).frame.value();
+        return accepted();
+    }
+
+    DockRefusal set_frame_bounds(const DockPanelId& panel_id, Rect bounds) {
+        if (!valid_frame(bounds)) return refuse(DockRefusalReason::invalid_frame, DockRefusalLayer::model, panel_id);
+        DockFrameMemory* frame = nullptr;
+        const DockRefusal found = area_frame(panel_id, frame);
+        if (is_refusal(found)) return found;
+        (*frame).bounds = bounds;
+        return accepted();
+    }
+
+    DockRefusal set_frame_state(const DockPanelId& panel_id, DockFrameState frame_state) {
+        const bool known = frame_state == DockFrameState::normal || frame_state == DockFrameState::minimized ||
+                           frame_state == DockFrameState::maximized;
+        if (!known) return refuse(DockRefusalReason::invalid_frame, DockRefusalLayer::model, panel_id);
+        DockFrameMemory* frame = nullptr;
+        const DockRefusal found = area_frame(panel_id, frame);
+        if (is_refusal(found)) return found;
+        if (frame_state == DockFrameState::minimized && (*frame).state != DockFrameState::minimized) {
+            // The slot is chosen with this frame not yet minimized, so it
+            // never counts its own old slot as taken.
+            (*frame).icon_slot = first_free_icon_slot(state_);
+        }
+        (*frame).state = frame_state;
+        return accepted();
+    }
+
+    DockRefusal set_frame_icon_slot(const DockPanelId& panel_id, std::uint32_t slot) {
+        DockFrameMemory* frame = nullptr;
+        const DockRefusal found = area_frame(panel_id, frame);
+        if (is_refusal(found)) return found;
+        (*frame).icon_slot = slot;
         return accepted();
     }
 

@@ -9,6 +9,7 @@
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/dock_workspace.hpp"
+#include "gui_forms/controls/menu_strip.hpp"
 #include "gui_forms/docking.hpp"
 
 #include <algorithm>
@@ -42,18 +43,32 @@ constexpr SlotIdentity floating_site_slot{GF_TABLE_DOCKING, 12U};
 constexpr SlotIdentity update_panel_slot{GF_TABLE_DOCKING, 13U};
 constexpr SlotIdentity set_options_slot{GF_TABLE_DOCKING, 14U};
 constexpr SlotIdentity set_floating_window_visibility_slot{GF_TABLE_DOCKING, 15U};
+constexpr SlotIdentity document_presentation_slot{GF_TABLE_DOCKING, 16U};
+constexpr SlotIdentity arrange_frames_slot{GF_TABLE_DOCKING, 17U};
+constexpr SlotIdentity frame_memory_slot{GF_TABLE_DOCKING, 18U};
+constexpr SlotIdentity set_frame_icons_at_bottom_slot{GF_TABLE_DOCKING, 19U};
+constexpr SlotIdentity area_document_count_slot{GF_TABLE_DOCKING, 20U};
+constexpr SlotIdentity area_document_at_slot{GF_TABLE_DOCKING, 21U};
+constexpr SlotIdentity area_active_document_slot{GF_TABLE_DOCKING, 22U};
+constexpr SlotIdentity set_panel_menu_strip_slot{GF_TABLE_DOCKING, 23U};
+constexpr SlotIdentity merged_document_slot{GF_TABLE_DOCKING, 24U};
 
 constexpr const char* not_workspace = "the object is not a dock workspace";
 
-// The 1.1 sizes of the records this table reads and writes.
+// The 1.1 sizes of the records this table reads and writes, and the sizes
+// they grew to: an edit gained presentation and frame_state in 1.6, and the
+// frame memory came in 1.6.
 constexpr std::uint32_t panel_size_1_1 = 136U;
 constexpr std::uint32_t edit_size_1_1 = 104U;
+constexpr std::uint32_t edit_size_1_6 = 112U;
 constexpr std::uint32_t location_size_1_1 = 40U;
 constexpr std::uint32_t options_size_1_1 = 16U;
+constexpr std::uint32_t frame_memory_size_1_6 = 56U;
 static_assert(sizeof(gf_dock_options) == options_size_1_1);
 static_assert(sizeof(gf_dock_panel) == panel_size_1_1);
-static_assert(sizeof(gf_dock_edit) == edit_size_1_1);
+static_assert(sizeof(gf_dock_edit) == edit_size_1_6);
 static_assert(sizeof(gf_dock_location) == location_size_1_1);
+static_assert(sizeof(gf_dock_frame_memory) == frame_memory_size_1_6);
 
 // gf_dock_side and DockSide, gf_dock_placement and DockPlacementKind, and
 // gf_dock_refusal and DockRefusalReason number their values alike.
@@ -61,6 +76,18 @@ static_assert(static_cast<std::uint32_t>(DockSide::bottom) == GF_DOCK_SIDE_BOTTO
 static_assert(static_cast<std::uint32_t>(DockPlacementKind::absent) == GF_DOCK_PLACEMENT_ABSENT);
 static_assert(static_cast<std::uint32_t>(DockRefusalReason::user_docking_locked) ==
               GF_DOCK_REFUSAL_USER_DOCKING_LOCKED);
+// The frames presentation's enumerations number their values alike too.
+static_assert(static_cast<std::uint32_t>(DockDocumentPresentation::frames) == GF_DOCK_DOCUMENT_PRESENTATION_FRAMES);
+static_assert(static_cast<std::uint32_t>(DockFrameState::normal) == GF_DOCK_FRAME_STATE_NORMAL &&
+              static_cast<std::uint32_t>(DockFrameState::minimized) == GF_DOCK_FRAME_STATE_MINIMIZED &&
+              static_cast<std::uint32_t>(DockFrameState::maximized) == GF_DOCK_FRAME_STATE_MAXIMIZED);
+static_assert(static_cast<std::uint32_t>(DockFrameArrangement::cascade) == GF_DOCK_FRAME_ARRANGEMENT_CASCADE &&
+              static_cast<std::uint32_t>(DockFrameArrangement::tile_horizontal) ==
+                  GF_DOCK_FRAME_ARRANGEMENT_TILE_HORIZONTAL &&
+              static_cast<std::uint32_t>(DockFrameArrangement::tile_vertical) ==
+                  GF_DOCK_FRAME_ARRANGEMENT_TILE_VERTICAL &&
+              static_cast<std::uint32_t>(DockFrameArrangement::arrange_icons) ==
+                  GF_DOCK_FRAME_ARRANGEMENT_ARRANGE_ICONS);
 
 using WorkspacePtr = std::shared_ptr<DockWorkspace>;
 
@@ -296,17 +323,32 @@ gf_status read_edit(const DockWorkspace& workspace, const gf_dock_edit* record, 
     if (record == nullptr || (*record).struct_size < edit_size_1_1 || (*record).reserved != 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "an edit record has at least the 1.1 size and reserved zero");
     }
-    if ((*record).kind > GF_DOCK_EDIT_SET_FLOATING_FRAME || (*record).subject_is_stack > 1U ||
+    if ((*record).kind > GF_DOCK_EDIT_SET_FRAME_ICON_SLOT || (*record).subject_is_stack > 1U ||
         !valid_side((*record).side) || !std::isfinite((*record).ratio) || !std::isfinite((*record).extent)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot,
                     "an edit has a known kind, subject_is_stack 0 or 1, a side and finite numbers");
     }
     const gf_dock_edit_kind kind = (*record).kind;
+    // The 1.6 fields are read only from a record that has them.
+    const bool reads_presentation = kind == GF_DOCK_EDIT_SET_DOCUMENT_PRESENTATION;
+    const bool reads_frame_state = kind == GF_DOCK_EDIT_SET_FRAME_STATE;
+    if ((reads_presentation || reads_frame_state) && (*record).struct_size < edit_size_1_6) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot,
+                    "SET_DOCUMENT_PRESENTATION and SET_FRAME_STATE need an edit record of at least the 1.6 size");
+    }
+    if (reads_presentation && (*record).presentation > GF_DOCK_DOCUMENT_PRESENTATION_FRAMES) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a presentation is TABS or FRAMES");
+    }
+    if (reads_frame_state && (*record).frame_state > GF_DOCK_FRAME_STATE_MAXIMIZED) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a frame state is NORMAL, MINIMIZED or MAXIMIZED");
+    }
     const bool stack_subject = (*record).subject_is_stack == 1U;
     const bool reads_subject = kind <= GF_DOCK_EDIT_AUTO_HIDE;
+    const bool frame_edit = kind == GF_DOCK_EDIT_SET_FRAME_BOUNDS || kind == GF_DOCK_EDIT_SET_FRAME_STATE ||
+                            kind == GF_DOCK_EDIT_SET_FRAME_ICON_SLOT;
     const bool reads_panel = (reads_subject && !stack_subject) || kind == GF_DOCK_EDIT_HIDE ||
                              kind == GF_DOCK_EDIT_SHOW || kind == GF_DOCK_EDIT_CLOSE || kind == GF_DOCK_EDIT_MOVE ||
-                             kind == GF_DOCK_EDIT_SELECT;
+                             kind == GF_DOCK_EDIT_SELECT || frame_edit;
     DockPanelId panel{};
     if (reads_panel) {
         const gf_status read = read_registered_panel(workspace, (*record).panel, slot, panel);
@@ -316,6 +358,9 @@ gf_status read_edit(const DockWorkspace& workspace, const gf_dock_edit* record, 
     }
     if ((kind == GF_DOCK_EDIT_FLOAT || kind == GF_DOCK_EDIT_SET_FLOATING_FRAME) && !valid_frame((*record).frame)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a floating frame has a positive size");
+    }
+    if (kind == GF_DOCK_EDIT_SET_FRAME_BOUNDS && !valid_frame((*record).frame)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, slot, "a document frame has a positive size");
     }
     DockSubject subject = stack_subject ? DockSubject::of_stack(DockNodeId{(*record).subject_stack})
                                         : DockSubject::of_panel(panel);
@@ -359,6 +404,18 @@ gf_status read_edit(const DockWorkspace& workspace, const gf_dock_edit* record, 
         break;
     case GF_DOCK_EDIT_SET_RATIO:
         edit = DockEdit::set_ratio(target, ratio);
+        break;
+    case GF_DOCK_EDIT_SET_DOCUMENT_PRESENTATION:
+        edit = DockEdit::set_document_presentation(static_cast<DockDocumentPresentation>((*record).presentation));
+        break;
+    case GF_DOCK_EDIT_SET_FRAME_BOUNDS:
+        edit = DockEdit::set_frame_bounds(std::move(panel), rect_of((*record).frame));
+        break;
+    case GF_DOCK_EDIT_SET_FRAME_STATE:
+        edit = DockEdit::set_frame_state(std::move(panel), static_cast<DockFrameState>((*record).frame_state));
+        break;
+    case GF_DOCK_EDIT_SET_FRAME_ICON_SLOT:
+        edit = DockEdit::set_frame_icon_slot(std::move(panel), index);
         break;
     default:
         edit = DockEdit::set_floating_frame(DockSiteId{(*record).site}, rect_of((*record).frame), std::string{});
@@ -548,6 +605,17 @@ gf_status docking_apply_edit_body(gf_object workspace, const gf_dock_edit* edit,
         break;
     case DockEditKind::close:
         result = (*typed).close_panel(made.subject.panel, DockEditOrigin::program);
+        break;
+    // The frames presentation's edits go through the workspace too: a
+    // maximized frame restores another and activates its document.
+    case DockEditKind::set_document_presentation:
+        result = (*typed).set_document_presentation(made.presentation, DockEditOrigin::program);
+        break;
+    case DockEditKind::set_frame_state:
+        result = (*typed).set_frame_state(made.subject.panel, made.frame_state, DockEditOrigin::program);
+        break;
+    case DockEditKind::set_frame_bounds:
+        result = (*typed).set_frame_bounds(made.subject.panel, made.frame, DockEditOrigin::program);
         break;
     case DockEditKind::float_subject:
         if ((*typed).windows_attached()) {
@@ -916,6 +984,224 @@ gf_status GF_CALL docking_set_floating_window_visibility(gf_object workspace, st
                      workspace, site, visibility);
 }
 
+// -- the frames presentation and the multiple document interface (since 1.6) ------
+
+// A document id as text into the caller's buffer, or empty for none.
+gf_status write_optional_panel(const stxlib::Optional<DockPanelId>& panel, char* buffer, std::uint64_t capacity,
+                               std::uint64_t* required, SlotIdentity slot) {
+    // Copied before the text is written: the buffer is the caller's.
+    const std::string id = panel.present() ? (*panel.value()).value : std::string{};
+    return write_text(id, buffer, capacity, required, slot);
+}
+
+gf_status docking_document_presentation_body(gf_object workspace, gf_dock_document_presentation* presentation) {
+    if (presentation == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, document_presentation_slot,
+                    "document_presentation needs a presentation output");
+    }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, document_presentation_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    *presentation = static_cast<gf_dock_document_presentation>((*typed).document_presentation());
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_document_presentation(gf_object workspace,
+                                                gf_dock_document_presentation* presentation) noexcept {
+    return call_slot(document_presentation_slot, docking_document_presentation_body, workspace, presentation);
+}
+
+gf_status docking_arrange_frames_body(gf_object workspace, gf_dock_frame_arrangement arrangement,
+                                      gf_dock_refusal* refusal) {
+    if (arrangement > GF_DOCK_FRAME_ARRANGEMENT_ARRANGE_ICONS) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, arrange_frames_slot,
+                    "an arrangement is CASCADE, TILE_HORIZONTAL, TILE_VERTICAL or ARRANGE_ICONS");
+    }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, arrange_frames_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const DockTransactionResult result =
+        (*typed).arrange_frames(static_cast<DockFrameArrangement>(arrangement), DockEditOrigin::program);
+    const gf_dock_refusal reason = static_cast<gf_dock_refusal>(result.refusal.reason);
+    if (refusal != nullptr) *refusal = result.applied ? GF_DOCK_REFUSAL_NONE : reason;
+    if (!result.applied) {
+        return fail(GF_STATUS_INVALID_STATE, arrange_frames_slot, "the layout refused the arrangement");
+    }
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_arrange_frames(gf_object workspace, gf_dock_frame_arrangement arrangement,
+                                         gf_dock_refusal* refusal) noexcept {
+    return call_slot(arrange_frames_slot, docking_arrange_frames_body, workspace, arrangement, refusal);
+}
+
+gf_status docking_frame_memory_body(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame) {
+    if (frame == nullptr || (*frame).struct_size < frame_memory_size_1_6) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, frame_memory_slot,
+                    "frame_memory needs a frame record of at least the 1.6 size");
+    }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, frame_memory_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    DockPanelId id;
+    const gf_status read = read_registered_panel(*typed, document, frame_memory_slot, id);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    const stxlib::Optional<DockFrameMemory> memory = (*typed).frame_memory(id);
+    gf_dock_frame_memory made{};
+    made.struct_size = frame_memory_size_1_6;
+    if (memory.present()) {
+        const DockFrameMemory& held = *memory.value();
+        made.present = 1U;
+        made.bounds = gf_logical_rect{held.bounds.x, held.bounds.y, held.bounds.width, held.bounds.height};
+        made.state = static_cast<gf_dock_frame_state>(held.state);
+        made.icon_slot = held.icon_slot;
+        made.order = held.order;
+    }
+    // The caller's record may be larger; only the 1.6 fields are ours.
+    const std::uint32_t caller_size = (*frame).struct_size;
+    *frame = made;
+    (*frame).struct_size = caller_size;
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_frame_memory(gf_object workspace, gf_utf8_view document,
+                                       gf_dock_frame_memory* frame) noexcept {
+    return call_slot(frame_memory_slot, docking_frame_memory_body, workspace, document, frame);
+}
+
+gf_status docking_set_frame_icons_at_bottom_body(gf_object workspace, std::uint32_t bottom) {
+    if (bottom > 1U) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, set_frame_icons_at_bottom_slot, "bottom is 0 or 1");
+    }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_frame_icons_at_bottom_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    (*typed).set_frame_icons_at_bottom(bottom == 1U);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_set_frame_icons_at_bottom(gf_object workspace, std::uint32_t bottom) noexcept {
+    return call_slot(set_frame_icons_at_bottom_slot, docking_set_frame_icons_at_bottom_body, workspace, bottom);
+}
+
+gf_status docking_area_document_count_body(gf_object workspace, std::uint64_t* count) {
+    if (count == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, area_document_count_slot, "area_document_count needs a count output");
+    }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, area_document_count_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const WindowDocumentArea& area = (*typed).document_area();
+    *count = static_cast<std::uint64_t>(area.document_count());
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_area_document_count(gf_object workspace, std::uint64_t* count) noexcept {
+    return call_slot(area_document_count_slot, docking_area_document_count_body, workspace, count);
+}
+
+gf_status docking_area_document_at_body(gf_object workspace, std::uint64_t index, char* buffer,
+                                        std::uint64_t capacity, std::uint64_t* required) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, area_document_at_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const WindowDocumentArea& area = (*typed).document_area();
+    if (index >= area.document_count()) {
+        return fail(GF_STATUS_NOT_FOUND, area_document_at_slot, "the index is past the area's documents");
+    }
+    // Copied before the text is written: the buffer is the caller's.
+    const std::string id = area.document_at(static_cast<std::size_t>(index)).value;
+    return write_text(id, buffer, capacity, required, area_document_at_slot);
+}
+
+gf_status GF_CALL docking_area_document_at(gf_object workspace, std::uint64_t index, char* buffer,
+                                           std::uint64_t capacity, std::uint64_t* required) noexcept {
+    return call_slot(area_document_at_slot, docking_area_document_at_body, workspace, index, buffer, capacity,
+                     required);
+}
+
+gf_status docking_area_active_document_body(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                            std::uint64_t* required) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, area_active_document_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const stxlib::Optional<DockPanelId> active = (*typed).area_active_document();
+    return write_optional_panel(active, buffer, capacity, required, area_active_document_slot);
+}
+
+gf_status GF_CALL docking_area_active_document(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                               std::uint64_t* required) noexcept {
+    return call_slot(area_active_document_slot, docking_area_active_document_body, workspace, buffer, capacity,
+                     required);
+}
+
+gf_status docking_set_panel_menu_strip_body(gf_object workspace, gf_utf8_view panel, gf_object strip) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_panel_menu_strip_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    DockPanelId id;
+    const gf_status read = read_registered_panel(*typed, panel, set_panel_menu_strip_slot, id);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    if (strip == 0U) {
+        static_cast<void>((*typed).clear_panel_menu_strip(id));
+        return GF_STATUS_OK;
+    }
+    Control::Ptr control;
+    const gf_status found = registry().find_object(strip, set_panel_menu_strip_slot, control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::shared_ptr<MenuStrip> typed_strip = std::dynamic_pointer_cast<MenuStrip>(control);
+    if (typed_strip == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, set_panel_menu_strip_slot, "the strip is not a menu strip");
+    }
+    if (!(*typed_strip).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, set_panel_menu_strip_slot, "the strip has been disposed");
+    }
+    static_cast<void>((*typed).set_panel_menu_strip(id, *typed_strip));
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_set_panel_menu_strip(gf_object workspace, gf_utf8_view panel, gf_object strip) noexcept {
+    return call_slot(set_panel_menu_strip_slot, docking_set_panel_menu_strip_body, workspace, panel, strip);
+}
+
+gf_status docking_merged_document_body(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                       std::uint64_t* required) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, merged_document_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const stxlib::Optional<DockPanelId> merged = (*typed).merged_document();
+    return write_optional_panel(merged, buffer, capacity, required, merged_document_slot);
+}
+
+gf_status GF_CALL docking_merged_document(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                          std::uint64_t* required) noexcept {
+    return call_slot(merged_document_slot, docking_merged_document_body, workspace, buffer, capacity, required);
+}
+
 const gf_docking_table table{
     .struct_size = static_cast<std::uint32_t>(sizeof(gf_docking_table)),
     .abi_minor = GF_ABI_MINOR,
@@ -935,6 +1221,15 @@ const gf_docking_table table{
     .update_panel = &docking_update_panel,
     .set_options = &docking_set_options,
     .set_floating_window_visibility = &docking_set_floating_window_visibility,
+    .document_presentation = &docking_document_presentation,
+    .arrange_frames = &docking_arrange_frames,
+    .frame_memory = &docking_frame_memory,
+    .set_frame_icons_at_bottom = &docking_set_frame_icons_at_bottom,
+    .area_document_count = &docking_area_document_count,
+    .area_document_at = &docking_area_document_at,
+    .area_active_document = &docking_area_active_document,
+    .set_panel_menu_strip = &docking_set_panel_menu_strip,
+    .merged_document = &docking_merged_document,
 };
 
 } // namespace

@@ -35,11 +35,11 @@ has the claimed tree (`merge_of_head`).
 
 | Step | When | Result |
 |---|---|---|
-| Promotion, `ci_promote.py lookup` | on `main`, before any tool is installed | the same tree passed on this platform: publish those bytes, install nothing, build and test nothing |
-| Exact reuse, `ci_reuse.py lookup` | after tools and identity | same tree, compiler and environment passed: restore that archive, skip build and tests |
+| Promotion, `ci_promote.py lookup` | on `main`, before any tool is installed | the same tree passed on this platform: publish those bytes and that run's test cache, install nothing, build nothing |
+| Exact reuse, `ci_reuse.py lookup` | after tools and identity | same tree, compiler and environment passed: restore that archive and test cache, skip the build |
 | Actions caches | otherwise | `.ccache` from `gui-objects-v2-<platform>-<compiler>-<tree>`, else the newest for the same compiler, else the same platform; the stx package (stx_skia and the text stack, built once) from a key over `stx.lock`, the package recipe, the platform and the compiler; miniaudio from a key over `cmake/Audio.cmake` |
-| Seed, `ci_promote.py seed` | otherwise | objects from the first acceptable one of at most eight recent validated archives, on any branch, with the same compiler identity; every test still runs |
-| Build and test | otherwise | `ci_build.py`, the development text profiles and the native host tests |
+| Seed, `ci_promote.py seed` | otherwise | objects from the first acceptable one of at most eight recent validated archives, on any branch, with the same compiler identity; the whole build and its checks still run |
+| Build | otherwise | `ci_build.py --test-cache`: the toolkit, the installed SDK and its checks, the installed reference examples, and the test cache; then the present-time measurement |
 
 Exact reuse accepts only an older run of `.github/workflows/native.yml` in
 this repository, not a fork, whose commit has the same actual tree (asked of
@@ -72,19 +72,20 @@ Promotion applies when the `main` commit has exactly the tested tree, as when
 an up-to-date branch is merged. Any other merge builds fresh, usually from a
 seed.
 
-## Tests the programs job does not repeat
+## No tests in these jobs
 
-The native job's `ci_build.py` run writes CTest's JUnit report
-(`ctest-native.xml` in the toolkit build directory). `cache_manifest.py`
-records the passed tests from it as `validated_tests` in
-`cache-manifest.json`. A reused validation carries the producer's list over.
-On a pull request, the programs job reads that list from its platform's
-archive and runs only the tests of its own build that are not on it
-(`tools/native_tests.py select`). Those are the Gallery and demoboard tests,
-which the native configuration leaves out, and any test the native job
-skipped. A manifest without the list runs every test. Direct runs of the
-programs workflow and `native.yml`'s daily scheduled run on `main` run every
-test.
+The tests live in
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests) and run
+in that repository's CI, against the test caches these jobs pack: the native
+job's (`gui_forms_test_cache-<platform>.tar.gz`), the programs job's
+(`-programs`) and, when a sanitizer run is requested, the sanitize kind. On a
+push to `main` or to a checkpoint branch each is published to the
+`test-cache-<commit>` pre-release, where gui_forms_tests' `gui_forms.lock`
+can name it. A native job that promoted or reused an earlier validation of
+the same tree takes that run's test cache, whose manifest names the same tree
+(`test_cache.py publish` checks it). No job here runs `ctest` over the
+library, so no job carries a test list or a test receipt; the only `ctest`
+run is over the installed reference examples, inside `ci_build.py`.
 
 ## Jobs that carry an earlier run of the same tree
 
@@ -96,18 +97,8 @@ instead of repeating them, and every job still passes under its own name:
 | Job | Carried with | What the push then does |
 |---|---|---|
 | native | `ci_promote.py lookup`, `ci_reuse.py lookup` | promotes or restores the tested archive |
-| programs | `release_tests.py merged` | copies the pull request's programs ctest receipt; builds, packages and smoke tests under its own version; runs no tests |
+| programs | the native job's objects and the programs objects of the run that tested this tree | links, packages and smoke-launches under its own version, compiling almost nothing |
 | docs | `ci_tree_receipt.py lookup --kind docs` | builds nothing |
-
-`release_tests.py merged` takes the merge commit's second parent as the pull
-request's head, which must have this tree, and a `pull_request` run of
-`native.yml` on that head, in this repository, whose programs job for the
-platform succeeded. The packages receipt of that job must name a revision of
-this tree, and its ctest receipt must report at least one test and no
-failure. The carried receipt gains a comment naming the run and saying what
-it covers: the tests not in the validated list of the tree's native job,
-which passed the rest. A release tag carries `main`'s receipt the same way
-(`release_tests.py find`), comment and all.
 
 `ci_tree_receipt.py` records, for each passing docs job (and Sanitizers job, when one is requested by hand), a
 receipt artifact `gui-tree-<kind>-<tree>`: the tree, the revision checked
@@ -118,30 +109,28 @@ this repository, not a fork's, whose job of that name succeeded, whose
 artifact digest and receipt match this tree and run, and whose head has the
 tree or whose recorded revision merges its head (`merge_of_head`). A pull
 request's docs run is carried by the push to `main` the same way. A failed
-lookup runs the job. The Sanitizers job no longer runs on pull requests,
-pushes, merge groups or the schedule (owner ruling, 2026-11-03): it runs the
-whole suite only when requested by hand (`workflow_dispatch` with
-`run_sanitizers`), and the local sanitized run at checkpoint fold time is the
-gate.
+lookup runs the job. The Sanitizers job does not run on pull requests,
+pushes, merge groups or the schedule (owner ruling, 2026-11-03): it builds
+the sanitized tree and packs the sanitize test cache only when requested by
+hand (`workflow_dispatch` with `run_sanitizers`), and gui_forms_tests runs
+the suite against that cache. The gate is the local sanitized run of every
+test when a checkpoint is folded.
 
 The daily scheduled run on `main` (03:41 UTC) carries nothing: the native
 jobs validate afresh (`force_validation`), and the programs and docs jobs
-build and test everything. It is the backstop for the two rules
-the carried results rely on, `native_tests.py`'s name match and
-`change_selection.py`'s selection, and it publishes nothing. It has its own
+build everything. It is the backstop for the carried results, and it
+publishes nothing. It has its own
 concurrency group, so it and a push to `main` never cancel each other.
 
 ## The sanitizer job's cache
 
-Its compiler cache crosses the branch boundary through an artifact:
-each successful job uploads its `.ccache` as `gui-sanitize-ccache-linux-x64`
+The job runs only when requested by hand. Its compiler cache crosses the
+branch boundary through an artifact: each successful job uploads its `.ccache` as `gui-sanitize-ccache-linux-x64`
 (kept seven days), and the next job takes the newest one of the nearest
 branch (`tools/ci_sanitizer_seed.py`): a pull request's own earlier push,
 then the branch it is stacked on; on `main`, the merged pull request's head.
 Without one it keeps `main`'s Actions cache. Only `main` saves Actions
-caches for the sanitizer, native object and programs object caches (a
-sanitizer job that carried a pull request's result built nothing, so the
-daily run and pushes that carried nothing refresh it);
+caches for the sanitizer, native object and programs object caches;
 pull requests restore `main`'s, so per-run entries no longer evict the
 dependency caches from the repository's 10 GB.
 
@@ -185,7 +174,8 @@ python3 gui_forms/tools/ci_build.py --jobs 4   # Linux: inside xvfb-run -a
 On macOS, set and verify the runtime prefix below first; use `shasum -a 256`
 there. A hit needs the same compiler binary, SDK headers and options;
 anything else compiles normally. Never loosen `ccache` checks to force hits,
-and still run your own tests. `ccache --show-stats` shows what was reused.
+and still run the tests (gui_forms_tests, against the test cache
+`--test-cache` packs) or your own. `ccache --show-stats` shows what was reused.
 
 ## Matching the toolchain
 
@@ -194,8 +184,9 @@ and run `python3 gui_forms/tools/macos_runtime_manifest.py "$GUI_FORMS_LLVM_RUNT
 It compares the three dylibs, their symlinks, the configured libc++ headers,
 the SDK version and the `clang++` binary with `runtime-manifest.json`, and
 fails on any difference; then rebuild with `tools/build_macos_runtimes.py`.
-After a fresh build, CI extracts the archive in a new directory and runs a
-native test with all three relocated dylibs loaded through its own rpath.
+After a fresh build, CI extracts the archive in a new directory and runs the
+form compiler with all three relocated dylibs loaded through its own rpath
+(`tools/prove_macos_runtime_restore.py`).
 
 **Windows.** Download the toolchain archive and manifest from the same
 release and check `archive_sha256`. Extract it with Python 3.14
@@ -220,9 +211,10 @@ revision to `packaging/pinned_cache_revisions.json`.
 
 Hosted job durations from the Actions API, excluding queue time, recorded
 in [`docs-notes/CI_TIMING_2026-10-08.md`](https://github.com/malkuth-software/notes/blob/gui_forms/docs-notes/CI_TIMING_2026-10-08.md). A fresh job builds the Release
-toolkit, runs all tests, installs the SDK, builds and tests the installed
-examples and runs the development text profiles. The workflow has gained
-steps since; these are the recorded numbers, not a promise.
+toolkit, ran all tests (the tests still built here then), installed the
+SDK, built and tested the installed examples and ran the development text
+profiles. The workflow has changed since, and the tests have moved to
+gui_forms_tests; these are the recorded numbers, not a promise.
 
 | Situation | Platform | Run | Job |
 |---|---|---|---:|
@@ -231,7 +223,7 @@ steps since; these are the recorded numbers, not a promise.
 | Fresh, cross-branch seed, 0 of 705 missed | Linux x64 | 37760012173 | 1 m 45 s |
 | Fresh, same run | macOS, Windows, Linux arm64 | 37760012173 | 4 m 26 s, 4 m 09 s, 3 m 09 s |
 
-The 56-second job compiled and tested nothing; it restored, re-archived and
+The 56-second job compiled nothing; it restored, re-archived and
 recorded the earlier result.
 
 ## Copying the method
@@ -243,11 +235,11 @@ failures seen when the method was varied.
 |---|---|
 | LLVM 22.1.8 from the same package source; `CC=clang`, `CXX=clang++`, `OBJCXX=clang++`; `cmake/llvm22.cmake` on both sides | the content check hashes the binary; Windows `cc.exe` is another identity; a CMake cache keeps its old compiler, so use a fresh build tree |
 | `gui_forms/` and `.build/native-<platform>/gui-forms/` under one root | hits rely on equal paths relative to `CCACHE_BASEDIR` |
-| `CCACHE_BASEDIR`, `CCACHE_DIR`, `CCACHE_COMPILERCHECK=content`, no sloppiness beyond the `pch_defines,time_macros` that the precompiled-header test programs carry themselves | anything weaker reuses objects it should not |
+| `CCACHE_BASEDIR`, `CCACHE_DIR`, `CCACHE_COMPILERCHECK=content`, no sloppiness beyond `pch_defines,time_macros` | anything weaker reuses objects it should not |
 | all three launchers as environment variables | CMake takes each launcher from the environment variable of the same name for every language, and `cmake/Stx.cmake` passes the C and C++ launchers on to the stx package's build |
 | the `ci_build.py` configure options | options are part of every hash |
 | reuse only older, successful runs of the same workflow and repository, matching tree, compiler and environment | anything looser can turn an untested or failed result green |
 | macOS SDK version and runtime manifest; Windows `msys64` location | SDK and MSYS2 headers lie outside the base directory; the runtime is checked byte for byte |
 | tree from `git show -s --format=%T HEAD` | MSYS2 rewrote `HEAD^{tree}` to `HEAD^tree` and broke the fingerprint |
-| the toolchain archive as published | an archive without `tmp/` failed the audio tests |
+| the toolchain archive as published | an archive without `tmp/` failed the audio tests (then built here) |
 | per-image rpaths, not `DYLD_LIBRARY_PATH` | a global override replaced Apple's own C++ runtime and failed |

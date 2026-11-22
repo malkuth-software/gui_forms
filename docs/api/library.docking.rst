@@ -58,6 +58,10 @@ Related types
      -  
    * - :cpp:class:`DockFloatingSite <gui_forms::DockFloatingSite>`
      -  
+   * - :cpp:class:`DockFrameMemory <gui_forms::DockFrameMemory>`
+     - Where a document's frame stands in the frames presentation (DK decision 61).
+   * - :cpp:class:`DockFrameMetrics <gui_forms::DockFrameMetrics>`
+     - What the planners measure frames with, in logical units.
    * - :cpp:class:`DockGroupDescriptor <gui_forms::DockGroupDescriptor>`
      - Which other groups a dock group admits into a stack beside its own panels (the second restriction layer).
    * - :cpp:class:`DockGroupId <gui_forms::DockGroupId>`
@@ -121,7 +125,7 @@ Related types
 
 .. cpp:struct:: DockAllowedPlacements final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    What a panel permits (the first of the three restriction layers). Each field defaults to permitted.
 
@@ -178,7 +182,7 @@ Related types
 
 .. cpp:struct:: DockArrangedNode final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    One node's rectangle from DockLayout::arrange.
 
@@ -194,7 +198,7 @@ Related types
 
 .. cpp:struct:: DockAutoHideEntry final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    A tool stack pinned out to an edge of the main site (auto-hide). The stack keeps its node ID while it is out, so unpinning returns the same stack. Pinning out and unpinning are inverse edits: unpinning beside the same neighbour recreates the split the stack stood in with its old identity and ratio, and neither edit writes the panels' remembered places, so a pin followed by an unpin leaves the layout exactly as it was.
 
@@ -232,7 +236,7 @@ Related types
 
 .. cpp:struct:: DockAutoHideMemory final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: DockNodeId stack
 
@@ -248,7 +252,7 @@ Related types
 
 .. cpp:struct:: DockCaptionReach final
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    How much of a restored window must lie inside a work area so its caption can be reached: the caption's full height and this much of its width (DOCKING_STUDY.md section 5.8, step 4).
 
@@ -264,7 +268,7 @@ Related types
 
 .. cpp:struct:: DockDefaultPlacement final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    Where show() puts a panel that the layout has no memory of. A document always goes to the document area; for a tool panel, docked means against the main site's outer edge at side with ratio, auto_hidden means on edge side with extent, floating means frame on monitor_id.
 
@@ -294,7 +298,7 @@ Related types
 
 .. cpp:struct:: DockDockedMemory final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    Remembered placements (DK decision 22). Each is written when a panel leaves that kind of place, and read by show() to put it back.
 
@@ -320,7 +324,7 @@ Related types
 
 .. cpp:struct:: DockDropHit final
 
-   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
+   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`` (:src:`source <include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`)
 
    What the pointer is over: a window edge, or a pane's zone, or nothing in particular inside the site (``over_site`` without a pane), or outside it.
 
@@ -344,7 +348,7 @@ Related types
 
 .. cpp:struct:: DockDropMetrics final
 
-   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
+   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`` (:src:`source <include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`)
 
    The geometry, in logical units at text scale 1 (the look study's quiet tiles, T2-4; its zone threshold and global bands).
 
@@ -392,7 +396,7 @@ Related types
 
 .. cpp:struct:: DockDropPane final
 
-   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
+   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`` (:src:`source <include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`)
 
    A pane the pointer can hover: a stack of the main site as it is laid out during the drag (the dragged subject's place closed up), or the empty document area. ``bounds`` in the site's coordinates. A document stack also names its document area (``area``, ``area_bounds``): a side the stack itself refuses (a tool panel beside a document) docks beside the whole area, as Visual Studio's outer guides do.
 
@@ -408,7 +412,7 @@ Related types
 
 .. cpp:struct:: DockDropTarget final
 
-   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
+   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`` (:src:`source <include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`)
 
    One accepted target: what a drop there does (``edit``, one DockLayout edit validated against the restrictions when the drag started) and the area the subject would take (``highlight``, in the site's coordinates). For an edge target, ``zone`` is the edge (never center) and ``pane`` is none.
 
@@ -430,7 +434,7 @@ Related types
 
 .. cpp:struct:: DockFloatingMemory final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: DockSiteId site
 
@@ -442,7 +446,7 @@ Related types
 
 .. cpp:struct:: DockFloatingSite final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: DockSiteId id
 
@@ -460,9 +464,47 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DockFrameMemory final
+
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
+
+   Where a document's frame stands in the frames presentation (DK decision 61). ``bounds`` is the normal frame in the document area's coordinates (its top-left corner is the origin), kept while the frame is minimized or maximized so that restoring returns it there. ``icon_slot`` is the frame's place in the row of icons while minimized (0 first, see dock_frame_icon_bounds). ``order`` stacks the frames: a higher order is in front; the layout keeps the orders of the area's documents numbered from 1, back to front, and selecting a document brings its frame to the front. A record keeps its frame while its document is elsewhere (floating, or in the tabs presentation), so the frame comes back where it was.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: DockFrameState state
+
+      Default: ``{DockFrameState::normal}``.
+
+   .. cpp:member:: std::uint32_t icon_slot
+
+   .. cpp:member:: std::uint32_t order
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: DockFrameMetrics final
+
+   ``#include <gui_forms/docking/dock_frames/dock_frames.hpp>`` (:src:`source <include/gui_forms/docking/dock_frames/dock_frames.hpp>`)
+
+   What the planners measure frames with, in logical units.
+
+   .. cpp:member:: double caption_height
+
+      A frame's caption: a cascade steps by it, and an icon is this tall. Default: ``{24.0}``.
+
+   .. cpp:member:: double icon_width
+
+      A minimized frame's icon. Default: ``{160.0}``.
+
+   .. cpp:member:: bool icons_at_bottom
+
+      Whether the icons line the bottom of the area (WinForms' default, MdiChildrenMinimizedAnchorBottom), else its top. Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: DockGroupDescriptor final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    Which other groups a dock group admits into a stack beside its own panels (the second restriction layer). Two panels may share a stack when their groups are equal or either group's descriptor lists the other. A group without a descriptor admits only itself.
 
@@ -474,7 +516,7 @@ Related types
 
 .. cpp:struct:: DockGroupId final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
 
    .. rubric:: Construction
@@ -489,7 +531,7 @@ Related types
 
 .. cpp:struct:: DockInvariantResult final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: bool valid
 
@@ -503,7 +545,7 @@ Related types
 
 .. cpp:struct:: DockLayoutChange final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    Published once per applied transaction, after the model is committed.
 
@@ -527,7 +569,7 @@ Related types
 
 .. cpp:struct:: DockLayoutState final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    The whole layout as plain records: one main site (its root is the document area or a split that contains it), floating sites, auto-hidden stacks and panel records. nodes and panels are kept sorted by ID.
 
@@ -555,11 +597,15 @@ Related types
 
       Fields of a newer format this framework does not know, kept from a restore and written back (DK decision 48), one entry per element that had any, in file order. An edit that removes an element drops its entry (DockTransactionResult::diagnostics).
 
+   .. cpp:member:: DockDocumentPresentation document_presentation
+
+      How the document area shows its documents; saved with the layout, so a restore brings the presentation back. Default: ``{DockDocumentPresentation::tabs}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DockLayoutUpgradeHook final
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    Called during restore when the saved application layout version differs from DockRestoreOptions::application_version, with the parsed state before panel identities are resolved. It may rename panels (rename_dock_panel), move or drop them, or reject the layout (the layout then keeps what it held). It must not retain the state. Runs on the caller's thread, inside restore_xml; it must not call into the DockLayout being restored.
 
@@ -573,7 +619,7 @@ Related types
 
 .. cpp:struct:: DockLayoutWriteResult final
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:member:: XmlError error
 
@@ -585,7 +631,7 @@ Related types
 
 .. cpp:struct:: DockMonitor final
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    A monitor as restore needs it; convert from HostMonitor (id, work_area, primary). Frames are in screen logical units.
 
@@ -601,7 +647,7 @@ Related types
 
 .. cpp:struct:: DockMonitorPlacement final
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:member:: Rect frame
 
@@ -619,7 +665,7 @@ Related types
 
 .. cpp:struct:: DockNode final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    One node of a site's tree. Fields that do not apply to a node's kind keep their defaults (the invariant check verifies this).
 
@@ -657,7 +703,7 @@ Related types
 
 .. cpp:struct:: DockNodeId final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: std::uint32_t value
 
@@ -665,7 +711,7 @@ Related types
 
 .. cpp:struct:: DockPanelId final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    Identities. A panel ID is the application's stable string for a panel (for example "tools.properties" or "doc:file:///a.txt"); it is what a saved layout records and what a factory is asked to build. A dock group ID names a set of panels that may share a stack (DK decision 21); the empty string is the default group. Node and site IDs are numbers the layout assigns; they are saved with the layout and stay stable across edits and restores. Zero means "none".
 
@@ -682,7 +728,7 @@ Related types
 
 .. cpp:struct:: DockPanelLocation final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: DockPlacementKind placement
 
@@ -702,7 +748,7 @@ Related types
 
 .. cpp:struct:: DockPanelRecord final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    The layout's record of one panel: kept while the panel is placed and while it is hidden (then it is the placeholder), including for panel IDs no descriptor is registered for (a removed plugin's panel, kept so that its return restores it; DK decision 34).
 
@@ -722,11 +768,15 @@ Related types
 
    .. cpp:member:: stxlib::Optional<DockAutoHideMemory> auto_hidden
 
+   .. cpp:member:: stxlib::Optional<DockFrameMemory> frame
+
+      A document's frame in the frames presentation (DockFrameMemory); none until the document first shows as a frame or the program places it.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: DockRefusal final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: DockRefusalReason reason
 
@@ -748,7 +798,7 @@ Related types
 
 .. cpp:struct:: DockRestoreDiagnostic final
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:member:: DockRestoreDiagnosticKind kind
 
@@ -762,7 +812,7 @@ Related types
 
 .. cpp:struct:: DockRestoreOptions final
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:member:: std::uint32_t application_version
 
@@ -784,7 +834,7 @@ Related types
 
 .. cpp:struct:: DockRestoreResult final
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:member:: DockRestoreStatus status
 
@@ -796,7 +846,7 @@ Related types
 
 .. cpp:struct:: DockSiteId final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: std::uint32_t value
 
@@ -804,7 +854,7 @@ Related types
 
 .. cpp:struct:: DockSiteRestrictions final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    What one site accepts (the third restriction layer). The main site has one record; every floating site shares another.
 
@@ -824,7 +874,7 @@ Related types
 
 .. cpp:struct:: DockSplitSizes final
 
-   ``#include <gui_forms/docking/dock_split_solver/dock_split_solver.hpp>``
+   ``#include <gui_forms/docking/dock_split_solver/dock_split_solver.hpp>`` (:src:`source <include/gui_forms/docking/dock_split_solver/dock_split_solver.hpp>`)
 
    DK's own small split solver (DK decisions 5 and 18), which stage L may adopt or replace. It divides one span between the two children of a split.
 
@@ -840,7 +890,7 @@ Related types
 
 .. cpp:struct:: DockSubject final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
 
    .. rubric:: Methods
@@ -861,7 +911,7 @@ Related types
 
 .. cpp:struct:: DockTransaction final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    Primitive edits applied together: validated first, then applied all or nothing, publishing one change (DOCKING_STUDY.md section 5.3).
 
@@ -875,7 +925,7 @@ Related types
 
 .. cpp:struct:: DockTransactionResult final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: bool applied
 
@@ -895,7 +945,7 @@ Related types
 
 .. cpp:struct:: DockUnknownChild final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    One unknown child element, whole, and how many of its parent's known children came before it in the file; it is written back after that many known children (or last, when there are fewer now).
 
@@ -907,7 +957,7 @@ Related types
 
 .. cpp:struct:: DockUnknownFields final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    The unknown attributes (in file order; written after the known ones) and child elements of one known element.
 
@@ -921,7 +971,7 @@ Related types
 
 .. cpp:struct:: DockUnknownOwner final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:member:: DockUnknownOwnerKind kind
 
@@ -939,7 +989,7 @@ Related types
 
 .. cpp:struct:: DockVisiblePanel final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    A panel in a stack, as the realizing controls need it: lazy creation builds only panels that are selected in a docked or floating stack, and the rest on first show (DK decision 34).
 
@@ -959,7 +1009,7 @@ Related types
 
 .. cpp:struct:: DockWindowFrame final
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    The main window's frame, recorded by the program before it saves so that a restore can place the window again; the layout never moves a window.
 
@@ -978,7 +1028,7 @@ Enumerations
 
 .. cpp:enum-class:: DockAxis
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: horizontal
 
@@ -986,9 +1036,19 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DockDocumentPresentation
+
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
+
+   .. cpp:enumerator:: tabs
+
+   .. cpp:enumerator:: frames
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DockDropEdges
 
-   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
+   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`` (:src:`source <include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`)
 
    .. cpp:enumerator:: global
 
@@ -998,7 +1058,7 @@ Enumerations
 
 .. cpp:enum-class:: DockDropTargetKind
 
-   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
+   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`` (:src:`source <include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`)
 
    .. cpp:enumerator:: pane
 
@@ -1008,7 +1068,7 @@ Enumerations
 
 .. cpp:enum-class:: DockDropZone
 
-   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
+   ``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`` (:src:`source <include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`)
 
    .. cpp:enumerator:: top
 
@@ -1024,7 +1084,7 @@ Enumerations
 
 .. cpp:enum-class:: DockEditKind
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: dock_into
 
@@ -1052,11 +1112,19 @@ Enumerations
 
    .. cpp:enumerator:: set_floating_frame
 
+   .. cpp:enumerator:: set_document_presentation
+
+   .. cpp:enumerator:: set_frame_bounds
+
+   .. cpp:enumerator:: set_frame_state
+
+   .. cpp:enumerator:: set_frame_icon_slot
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: DockEditOrigin
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: program
 
@@ -1064,9 +1132,35 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DockFrameArrangement
+
+   ``#include <gui_forms/docking/dock_frames/dock_frames.hpp>`` (:src:`source <include/gui_forms/docking/dock_frames/dock_frames.hpp>`)
+
+   .. cpp:enumerator:: cascade
+
+   .. cpp:enumerator:: tile_horizontal
+
+   .. cpp:enumerator:: tile_vertical
+
+   .. cpp:enumerator:: arrange_icons
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: DockFrameState
+
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: minimized
+
+   .. cpp:enumerator:: maximized
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: DockMonitorMatch
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1080,7 +1174,7 @@ Enumerations
 
 .. cpp:enum-class:: DockNodeKind
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: split
 
@@ -1094,7 +1188,7 @@ Enumerations
 
 .. cpp:enum-class:: DockPanelKind
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: tool
 
@@ -1104,7 +1198,7 @@ Enumerations
 
 .. cpp:enum-class:: DockPlacementKind
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: docked
 
@@ -1120,7 +1214,7 @@ Enumerations
 
 .. cpp:enum-class:: DockRefusalLayer
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1136,7 +1230,7 @@ Enumerations
 
 .. cpp:enum-class:: DockRefusalReason
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1192,7 +1286,7 @@ Enumerations
 
 .. cpp:enum-class:: DockRestoreDiagnosticKind
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:enumerator:: unreadable_xml
 
@@ -1234,7 +1328,7 @@ Enumerations
 
 .. cpp:enum-class:: DockRestoreStatus
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:enumerator:: restored
 
@@ -1244,7 +1338,7 @@ Enumerations
 
 .. cpp:enum-class:: DockSide
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: left
 
@@ -1258,7 +1352,7 @@ Enumerations
 
 .. cpp:enum-class:: DockSubjectKind
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: panel
 
@@ -1268,7 +1362,7 @@ Enumerations
 
 .. cpp:enum-class:: DockUnknownOwnerKind
 
-   ``#include <gui_forms/docking/types/dock_types.hpp>``
+   ``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
    .. cpp:enumerator:: layout
 
@@ -1292,11 +1386,13 @@ Enumerations
 
    .. cpp:enumerator:: auto_hidden_memory
 
+   .. cpp:enumerator:: frame_memory
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: DockUpgradeDecision
 
-   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+   ``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
    .. cpp:enumerator:: accept
 
@@ -1307,7 +1403,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>``
+``#include <gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`` (:src:`source <include/gui_forms/docking/dock_drop_targets/dock_drop_targets.hpp>`)
 
 .. cpp:function:: std::array<Rect, dock_drop_zone_count> dock_cross_tiles(Rect pane, double scale) noexcept
 
@@ -1347,7 +1443,23 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/docking/dock_layout/dock_layout.hpp>``
+``#include <gui_forms/docking/dock_frames/dock_frames.hpp>`` (:src:`source <include/gui_forms/docking/dock_frames/dock_frames.hpp>`)
+
+.. cpp:function:: Rect dock_frame_icon_bounds(std::uint32_t slot, Size area, const DockFrameMetrics& metrics) noexcept
+
+   The rectangle of icon slot ``slot`` in an area of ``area``: icons fill rows from the reading start, as many to a row as fit (at least one), the first row along the anchored edge.
+
+.. cpp:function:: Rect dock_frame_shown_bounds(const DockFrameMemory& frame, Size area, const DockFrameMetrics& metrics) noexcept
+
+   Where a frame shows in an area of ``area``: its bounds while normal, its icon while minimized, the whole area while maximized.
+
+.. cpp:function:: DockTransaction plan_frame_arrangement(const DockLayout& layout, DockFrameArrangement arrangement, Size area, const DockFrameMetrics& metrics)
+
+   The edits that arrange the area's frames in an area of ``area`` (frame edits only, in a program transaction; the caller may make it a user one). Empty when there is no frame to move or the area is empty. A document without a frame memory counts as a normal frame behind the others.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/docking/dock_layout/dock_layout.hpp>`` (:src:`source <include/gui_forms/docking/dock_layout/dock_layout.hpp>`)
 
 .. cpp:function:: XmlLimits dock_layout_xml_limits() noexcept
 
@@ -1371,7 +1483,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/docking/dock_split_solver/dock_split_solver.hpp>``
+``#include <gui_forms/docking/dock_split_solver/dock_split_solver.hpp>`` (:src:`source <include/gui_forms/docking/dock_split_solver/dock_split_solver.hpp>`)
 
 .. cpp:function:: DockSplitSizes solve_dock_split(double span, double ratio, double first_minimum, double second_minimum) noexcept
 
@@ -1379,7 +1491,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/docking/types/dock_types.hpp>``
+``#include <gui_forms/docking/types/dock_types.hpp>`` (:src:`source <include/gui_forms/docking/types/dock_types.hpp>`)
 
 .. cpp:var:: constexpr std::size_t dock_maximum_floating_sites
 

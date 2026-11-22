@@ -464,9 +464,11 @@ struct RecordingMark final {
 };
 
 // The events a window raises through the C ABI (SurfaceRoot::append_interactions),
-// in declaration order. The rest of Window's events stay C++-only until a
-// consumer needs them; declaring one later is a minor ABI addition.
-constexpr std::array<InteractionDeclaration, 11> window_interactions{{
+// in declaration order, then the later additions in the order they came
+// (interaction_at's indices never move). The rest of Window's events stay
+// C++-only until a consumer needs them; declaring one later is a minor ABI
+// addition.
+constexpr std::array<InteractionDeclaration, 12> window_interactions{{
     {.name = "active_changed", .payload = "bool", .mutable_payload = false},
     {.name = "backdrop_changed", .payload = "WindowBackdropGrant", .mutable_payload = false},
     {.name = "dialog_result_changed", .payload = "DialogResult", .mutable_payload = false},
@@ -478,6 +480,8 @@ constexpr std::array<InteractionDeclaration, 11> window_interactions{{
     {.name = "key_up", .payload = "KeyEventArgs", .mutable_payload = true},
     {.name = "presentation_changed", .payload = "PresentationSettings", .mutable_payload = false},
     {.name = "theme_changed", .payload = "Theme", .mutable_payload = false},
+    // Since C ABI 1.6: the multiple document interface (DK decisions 60 to 63).
+    {.name = "mdi_child_activate", .payload = "MdiChildActivation", .mutable_payload = false},
 }};
 
 } // namespace
@@ -1508,7 +1512,13 @@ FocusScopeId SurfaceRoot::begin_focus_scope(const Control::Ptr& root,
     change.stable_id = state.stable_id;
     change.depth = depth;
     change.opened = true;
+    // A focus_scope_changed handler may close and destroy this window:
+    // nothing of it is read after that (the scope's identity is the
+    // caller's own copy).
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     focus_scope_changed_.emit(change);
+    if (window_destroyed(*lifetime, presenting)) return state.id;
     if (tool_tips_) (*tool_tips_).scope_changed();
 
     bool remains_active = false;
@@ -1842,6 +1852,11 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
         captured_pointer_id_ = 0;
     }
     if (previous && host_services_ != nullptr) { (*host_services_).revoke_cursor_interaction(); }
+    // The losing control's handler and the drag it ends (a client's end
+    // raising its change event) may close and destroy this window: nothing
+    // of it is read after that.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     // WinForms' MouseCaptureChanged, on the control losing the capture;
     // after the MouseUp when a primary release ends it.
     if (previous && previous != control) {
@@ -1859,6 +1874,7 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
                 break_pointer_sequences();
             }
             (*previous).on_mouse_capture_changed();
+            if (window_destroyed(*lifetime, presenting)) return;
         }
     }
     if (revoked && previous) {
@@ -1869,6 +1885,7 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
     // the release reaches the subject, which then ends the drag itself.
     if (previous && previous != control && drag_engine_ && !defer_capture_changed_) {
         (*drag_engine_).note_capture_lost(*previous);
+        if (window_destroyed(*lifetime, presenting)) return;
     }
     PointerCaptureChange change;
     change.captured = static_cast<bool>(control);
@@ -2349,6 +2366,12 @@ bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
         return defer_input(DeferredInput{std::move(event)});
     }
     const bool key_down = event.action == KeyAction::down;
+    // A raiser below (key_state_changed, the popup's route, the relative
+    // pointer's end, the drag, the key route) may close and destroy this
+    // window: nothing of it is read once its lifetime says it is gone, and
+    // the key counts as taken.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     // The input state sees the key before any control does; a change of a
     // key's held state is raised raw (key_state_changed) before any route
     // can consume the key.
@@ -2360,20 +2383,23 @@ bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
         change.scan_code = event.scan_code;
         change.modifiers = event.modifiers;
         change.down = key_down;
-        const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
-        Window* const presenting = (*lifetime).window;
         key_state_changed_.emit(change);
-        if ((*lifetime).window != presenting) return true;
+        if (window_destroyed(*lifetime, presenting)) return true;
     }
     // A lifted drop-down or picker's Popup window takes the key first.
-    if (forward_to_popup(event)) return true;
+    if (forward_to_popup(event) || window_destroyed(*lifetime, presenting)) return true;
     // Escape ends a relative pointer mode, and the key goes no further.
-    if (relative_pointer_takes_key(event)) return true;
+    if (relative_pointer_takes_key(event) || window_destroyed(*lifetime, presenting)) return true;
     // A running drag takes the keys it uses (Escape; the keyboard mode's
     // arrows, Tab and Enter) before the rules and the focused control.
-    if (drag_engine_ && (*drag_engine_).key(event)) return true;
+    if ((drag_engine_ && (*drag_engine_).key(event)) || window_destroyed(*lifetime, presenting)) {
+        return true;
+    }
     const bool escape = key_down && event.physical_key == PhysicalKey::escape;
     const bool handled = route_key(std::move(event));
+    // A key_down handler or the focused control's own handling that closed
+    // the window leaves tool_tips_ freed (hostile_handlers, destroy_window).
+    if (window_destroyed(*lifetime, presenting)) return handled;
     // Escape dismisses a bubble. Any other key may have moved the keyboard
     // within the focused control, or shown the focus cue: the presenter
     // looks at what focus is on again.
@@ -3716,8 +3742,14 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
     }
     const Control::Ptr control = find(stable_id);
     const Control::Ptr scoped = focus_allowed_by_active_scope(root_) ? Control::Ptr{} : active_focus_scope_root();
+    // A control's action (its focus handlers, the menu it opens) may close
+    // and destroy this window: nothing of it is read after that, and the
+    // action counts as performed.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
     if (!control) {
-        if (dispatch_semantic_child_action(scoped ? scoped : root_, stable_id, action, value)) {
+        if (dispatch_semantic_child_action(scoped ? scoped : root_, stable_id, action, value) ||
+            window_destroyed(*lifetime, presenting)) {
             return true;
         }
         ControlList overlay_roots;
@@ -3728,8 +3760,10 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
         for (ControlList::reverse_iterator overlay = overlay_roots.rbegin();
              overlay != overlay_roots.rend();
              ++overlay) {
-            if (dispatch_semantic_child_action(
-                    *overlay, stable_id, action, value)) return true;
+            if (dispatch_semantic_child_action(*overlay, stable_id, action, value) ||
+                window_destroyed(*lifetime, presenting)) {
+                return true;
+            }
         }
         return false;
     }
@@ -3754,6 +3788,7 @@ bool SurfaceRoot::perform_semantic_action(std::string_view stable_id,
         // control's subtree, so focus is still refused where nothing there
         // can take it.
         const bool handled = (*control).on_semantic_action(action, value);
+        if (window_destroyed(*lifetime, presenting)) return handled;
         if (!handled || !(*control).is_alive() || (*control).surface_root_ != this) return false;
         const Control::Ptr now_focused = focused_.lock();
         const bool inside = contains_control(control, now_focused);

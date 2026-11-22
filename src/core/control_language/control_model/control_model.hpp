@@ -281,11 +281,27 @@ struct ControlPart final {
 };
 
 // One written attribute of a child: its registered (snake case) name and
-// its value as written.
+// its value as written, always a value (a binding is a `bind` element).
 struct ControlChildAttribute final {
     std::string name{};
     std::string value{};
-    bool bound{};
+};
+
+// One `bind` element of a child (form_model.hpp, Bindings): the child's
+// property bound to one of the composite's own, `to="self.<property>"`.
+// Each attribute as written, empty when it is not.
+struct ControlChildBinding final {
+    // The child's property, its registered (snake case) name.
+    std::string property{};
+    // `self.<property>`.
+    std::string to{};
+    // `one-way` or `two-way`.
+    std::string mode{};
+    // `on-change` or `on-validate`.
+    std::string update{};
+    // A reserved converter, refused (E999).
+    bool converter{};
+    ControlSource source{};
 };
 
 struct ControlChild final {
@@ -297,6 +313,8 @@ struct ControlChild final {
     // Its parent's position in ControlModel::children; none at the top.
     std::optional<std::size_t> parent{};
     std::vector<ControlChildAttribute> attributes{};
+    // Its `bind` elements, in document order.
+    std::vector<ControlChildBinding> bindings{};
     ControlSource source{};
 };
 

@@ -86,6 +86,15 @@ enum class PartMark : std::uint8_t {
     success,
     // A right-to-left menu's submenu chevron (the mirror of chevron_right).
     chevron_left,
+    // The window-state marks of a frame's caption buttons (the MDI
+    // follow-up to DK decisions 60 to 63): an in-window frame's minimize (a
+    // one-unit rule across the lower middle), maximize (a one-unit square
+    // with a two-unit top) and restore (two such squares, the back one up
+    // and to the right, showing only where the front one leaves it).
+    // Provisional drawings in glyph ink; their look is T4's.
+    minimize,
+    maximize,
+    restore,
     count,
 };
 

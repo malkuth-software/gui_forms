@@ -1,12 +1,15 @@
-// A form document's editor (stage FD, phase FD4; XML since cp34). Each edit
-// is one or two splices of the text, worked out from where the XML reader
-// found each element and attribute, then the whole edited text is read
-// again as a document; only a valid one replaces the caller's.
+// A form document's editor (stage FD, phase FD4; XML since cp34; binding
+// elements since 2026-11-21). Each edit is a few splices of the text,
+// worked out from where the XML reader found each element and attribute,
+// then the whole edited text is read again as a document; only a valid one
+// replaces the caller's.
 
 #include "form_editor.hpp"
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
 
+#include <algorithm>
+#include <array>
 #include <optional>
 #include <utility>
 #include <vector>
@@ -123,6 +126,31 @@ struct Splice final {
     return edited;
 }
 
+// Orders splices by where they begin, an insertion before a replacement
+// that begins at the same byte.
+struct SpliceOrder final {
+    bool operator()(const Splice& left, const Splice& right) const noexcept {
+        if (left.begin != right.begin) return left.begin < right.begin;
+        return left.end < right.end;
+    }
+};
+
+// `text` with every splice of `splices` made. The splices do not overlap
+// (each edit below makes them so); two may meet at a byte.
+[[nodiscard]] std::string spliced_text(std::string_view text, std::vector<Splice> splices) {
+    std::sort(splices.begin(), splices.end(), SpliceOrder{});
+    std::string edited{};
+    edited.reserve(text.size());
+    std::size_t cursor = 0U;
+    for (const Splice& splice : splices) {
+        edited.append(text.substr(cursor, splice.begin - cursor));
+        edited.append(splice.text);
+        cursor = splice.end;
+    }
+    edited.append(text.substr(cursor));
+    return edited;
+}
+
 // One element of the read document: the element, its position in
 // FormSyntax::locations, and its parent's position (none for the root).
 struct DocumentElement final {
@@ -158,9 +186,11 @@ struct DocumentElement final {
 }
 
 // Whether the element is an object of the document: neither a span (a
-// region of its container's grid, study 10.9) nor a refused style block.
+// region of its container's grid, study 10.9), a binding nor a refused
+// style block.
 [[nodiscard]] bool object_element(const XmlElement& element) noexcept {
-    const bool object = element.name != form_span_type_name && element.name != "style";
+    const bool object = element.name != form_span_type_name && element.name != form_bind_type_name &&
+                        element.name != "style";
     return object;
 }
 
@@ -206,6 +236,18 @@ public:
         const std::vector<XmlAttribute>& attributes = element(index).attributes;
         for (std::uint32_t attribute = 0U; attribute < attributes.size(); ++attribute) {
             if (attributes[attribute].name == name) return attribute;
+        }
+        return std::nullopt;
+    }
+    // The `bind` element of the object `object` that binds `property` (as
+    // written, kebab case); the first when a document wrote two.
+    [[nodiscard]] std::optional<std::uint32_t> find_bind(std::uint32_t object, std::string_view property) const {
+        const std::vector<std::uint32_t> held = children(object, false);
+        for (const std::uint32_t child : held) {
+            const XmlElement& candidate = element(child);
+            if (candidate.name != form_bind_type_name) continue;
+            const XmlAttribute* bound = candidate.find_attribute(form_bind_property_attribute);
+            if (bound != nullptr && (*bound).value == property) return child;
         }
         return std::nullopt;
     }
@@ -302,6 +344,36 @@ private:
     return splice;
 }
 
+// Removes the attributes of `element` that `removed` marks (by position;
+// one flag per attribute), each run of neighbours as one splice: with the
+// whitespace before the run, or, for a run that starts the element's
+// attributes, up to the attribute after it. An element keeps at least one
+// attribute.
+void remove_attributes(const TextLayout& layout, std::uint32_t element, const std::vector<bool>& removed,
+                       std::vector<Splice>& splices) {
+    const std::vector<XmlAttributeLocation>& attributes = layout.location(element).attributes;
+    std::size_t first = 0U;
+    while (first < removed.size()) {
+        if (!removed[first]) {
+            ++first;
+            continue;
+        }
+        std::size_t last = first;
+        while (last + 1U < removed.size() && removed[last + 1U]) ++last;
+        Splice splice{};
+        if (first > 0U) {
+            splice.begin = attribute_end(attributes[first - 1U]);
+            splice.end = attribute_end(attributes[last]);
+        } else {
+            splice.begin = attributes[0].name_offset;
+            splice.end = last + 1U < attributes.size() ? attributes[last + 1U].name_offset
+                                                         : attribute_end(attributes[last]);
+        }
+        splices.push_back(std::move(splice));
+        first = last + 1U;
+    }
+}
+
 // Places the element `item` before the sibling element `before`.
 [[nodiscard]] Splice insert_before(const TextLayout& layout, std::uint32_t before, std::string_view item) {
     Splice splice{};
@@ -376,6 +448,89 @@ private:
     return splice;
 }
 
+// Where a new `bind` element goes in the object `object`: after its last
+// `bind`, else before its first child element, else as its only child.
+[[nodiscard]] Splice place_bind(const TextLayout& layout, std::uint32_t object, std::string_view item) {
+    const std::vector<std::uint32_t> children = layout.children(object, false);
+    std::optional<std::uint32_t> last_bind{};
+    for (const std::uint32_t child : children) {
+        if (layout.element(child).name == form_bind_type_name) last_bind = child;
+    }
+    if (last_bind) return insert_after(layout, *last_bind, item);
+    if (!children.empty()) return insert_before(layout, children.front(), item);
+    return insert_first(layout, object, item);
+}
+
+// One attribute of a `bind` element as an edit writes it: its name and
+// its value, empty when it is not written.
+struct BindAttributeText final {
+    std::string_view name{};
+    std::string_view value{};
+};
+
+// The attributes set_form_binding writes, in the order a new element
+// writes them after `property`.
+[[nodiscard]] std::array<BindAttributeText, 4> bind_attribute_texts(const FormBindingText& binding) noexcept {
+    const std::array<BindAttributeText, 4> texts{{
+        {form_bind_source_attribute, binding.to},
+        {form_bind_field_attribute, binding.field},
+        {form_bind_mode_attribute, binding.mode},
+        {form_bind_update_attribute, binding.update},
+    }};
+    return texts;
+}
+std::array<BindAttributeText, 4> bind_attribute_texts(const FormBindingText&& binding) = delete;
+
+// A new `bind` element of `property` writing `binding`.
+[[nodiscard]] std::string bind_element_text(std::string_view property, const FormBindingText& binding) {
+    std::string item = "<" + std::string(form_bind_type_name) + " " + std::string(form_bind_property_attribute) +
+                       "=\"" + attribute_text(property, '"') + "\"";
+    const std::array<BindAttributeText, 4> texts = bind_attribute_texts(binding);
+    for (const BindAttributeText& text : texts) {
+        if (text.value.empty()) continue;
+        item += " " + std::string(text.name) + "=\"" + attribute_text(text.value, '"') + "\"";
+    }
+    item += "/>";
+    return item;
+}
+
+// The splices that make the written `bind` element `bind` write `binding`:
+// a changed value's bytes replaced, an attribute left empty removed, a new
+// one added after the last; none when it already writes it.
+void rewrite_bind(const FormDocument& document, const TextLayout& layout, std::uint32_t bind,
+                  const FormBindingText& binding, std::vector<Splice>& splices) {
+    const XmlElement& element = layout.element(bind);
+    const XmlElementLocation& where = layout.location(bind);
+    std::vector<bool> removed(element.attributes.size(), false);
+    Splice appended{};
+    appended.begin = attribute_end(where.attributes.back());
+    appended.end = appended.begin;
+    const std::array<BindAttributeText, 4> texts = bind_attribute_texts(binding);
+    for (const BindAttributeText& text : texts) {
+        const std::optional<std::uint32_t> found = layout.find_attribute(bind, text.name);
+        if (!found) {
+            if (text.value.empty()) continue;
+            const std::string item = std::string(text.name) + "=\"" + attribute_text(text.value, '"') + "\"";
+            appended.text += append_attribute(layout, bind, item).text;
+            continue;
+        }
+        if (text.value.empty()) {
+            removed[*found] = true;
+            continue;
+        }
+        if (element.attributes[*found].value == text.value) continue;
+        const XmlAttributeLocation& written = where.attributes[*found];
+        const char quote = document.text[written.value_end];
+        Splice replaced{};
+        replaced.begin = written.value_offset;
+        replaced.end = written.value_end;
+        replaced.text = attribute_text(text.value, quote);
+        splices.push_back(std::move(replaced));
+    }
+    remove_attributes(layout, bind, removed, splices);
+    if (!appended.text.empty()) splices.push_back(std::move(appended));
+}
+
 // Where an element goes among `parent`'s child objects at `position`; none
 // when the position is past them.
 [[nodiscard]] std::optional<Splice> place_object(const TextLayout& layout, std::uint32_t parent,
@@ -407,19 +562,48 @@ FormEditOutcome set_form_property(FormDocument& document, std::string_view objec
     const std::optional<std::uint32_t> object = layout.find_object(object_id);
     if (!object) return FormEditOutcome::object_missing;
     const std::optional<std::uint32_t> attribute = layout.find_attribute(*object, property);
-    Splice splice{};
+    std::vector<Splice> splices{};
     if (attribute) {
         // Only the value's bytes change, escaped for the quote it has.
         const XmlAttributeLocation& written = layout.location(*object).attributes[*attribute];
         const char quote = document.text[written.value_end];
-        splice.begin = written.value_offset;
-        splice.end = written.value_end;
-        splice.text = attribute_text(value, quote);
+        Splice replaced{};
+        replaced.begin = written.value_offset;
+        replaced.end = written.value_end;
+        replaced.text = attribute_text(value, quote);
+        splices.push_back(std::move(replaced));
     } else {
         const std::string item = std::string(property) + "=\"" + attribute_text(value, '"') + "\"";
-        splice = append_attribute(layout, *object, item);
+        splices.push_back(append_attribute(layout, *object, item));
     }
-    const FormEditOutcome outcome = commit(document, spliced_text(document.text, splice), schema, diagnostics);
+    // A set property is no longer bound.
+    const std::optional<std::uint32_t> bind = layout.find_bind(*object, property);
+    if (bind) splices.push_back(remove_element(document, layout, *bind));
+    const FormEditOutcome outcome =
+        commit(document, spliced_text(document.text, std::move(splices)), schema, diagnostics);
+    return outcome;
+}
+
+FormEditOutcome set_form_binding(FormDocument& document, std::string_view object_id, std::string_view property,
+                                 const FormBindingText& binding, const FormSchema& schema,
+                                 ThemeDiagnosticList& diagnostics) {
+    if (!property_name(property) || binding.to.empty()) return FormEditOutcome::not_admitted;
+    const TextLayout layout(document);
+    const std::optional<std::uint32_t> object = layout.find_object(object_id);
+    if (!object) return FormEditOutcome::object_missing;
+    std::vector<Splice> splices{};
+    // A bound property is no longer set.
+    const std::optional<std::uint32_t> attribute = layout.find_attribute(*object, property);
+    if (attribute) splices.push_back(remove_attribute(layout, *object, *attribute));
+    const std::optional<std::uint32_t> bind = layout.find_bind(*object, property);
+    if (bind) {
+        rewrite_bind(document, layout, *bind, binding, splices);
+    } else {
+        splices.push_back(place_bind(layout, *object, bind_element_text(property, binding)));
+    }
+    if (splices.empty()) return FormEditOutcome::unchanged;
+    const FormEditOutcome outcome =
+        commit(document, spliced_text(document.text, std::move(splices)), schema, diagnostics);
     return outcome;
 }
 
@@ -430,16 +614,21 @@ FormEditOutcome reset_form_property(FormDocument& document, std::string_view obj
     const std::optional<std::uint32_t> object = layout.find_object(object_id);
     if (!object) return FormEditOutcome::object_missing;
     const std::optional<std::uint32_t> attribute = layout.find_attribute(*object, property);
-    if (!attribute) return FormEditOutcome::unchanged;
-    const Splice splice = remove_attribute(layout, *object, *attribute);
-    const FormEditOutcome outcome = commit(document, spliced_text(document.text, splice), schema, diagnostics);
+    const std::optional<std::uint32_t> bind = layout.find_bind(*object, property);
+    std::vector<Splice> splices{};
+    if (attribute) splices.push_back(remove_attribute(layout, *object, *attribute));
+    if (bind) splices.push_back(remove_element(document, layout, *bind));
+    if (splices.empty()) return FormEditOutcome::unchanged;
+    const FormEditOutcome outcome =
+        commit(document, spliced_text(document.text, std::move(splices)), schema, diagnostics);
     return outcome;
 }
 
 FormEditOutcome add_form_object(FormDocument& document, std::string_view parent_id, std::size_t position,
                                 std::string_view type, std::string_view stable_id, const FormSchema& schema,
                                 ThemeDiagnosticList& diagnostics) {
-    if (!kebab_name(type) || type == form_span_type_name || !valid_stable_id(stable_id)) {
+    if (!kebab_name(type) || type == form_span_type_name || type == form_bind_type_name ||
+        !valid_stable_id(stable_id)) {
         return FormEditOutcome::not_admitted;
     }
     const TextLayout layout(document);

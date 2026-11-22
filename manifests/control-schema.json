@@ -9,7 +9,7 @@
     "part_roles": ["region", "shadow", "face", "edge", "keyline", "perimeter", "sheen", "seam", "divider", "caption", "cap", "well", "track", "fill", "thumb", "actuator", "indicator", "activity", "glyph", "icon", "label", "content", "caret", "disclosure", "grip", "chip", "focus", "preselect", "selection", "validation", "drop", "image", "plot", "graticule", "trace", "axis", "tick", "tick_label", "grid_major", "grid_minor", "legend", "legend_entry", "marker", "crosshair", "annotation", "color_scale", "series", "arc", "needle", "beak", "scrim", "node", "header", "port", "link", "lamp", "marquee"],
     "states": ["normal", "hot", "pressed", "captured", "focused", "focus_visible", "preselect", "selected", "checked", "indeterminate", "current", "active_tool", "enabled", "disabled", "unavailable", "read_only", "invalid", "pending", "open", "closed", "expanding", "collapsing", "interrupted", "drop_accepted", "drop_rejected", "key", "secondary_participating", "drag_proximate", "deactivated", "high_contrast", "reduced_motion"],
     "custom_states": ["modified", "pinned"],
-    "marks": ["check", "indeterminate", "radio_dot", "toggle_knob", "arrow_up", "arrow_down", "arrow_left", "arrow_right", "chevron_down", "chevron_right", "close", "grip_dots", "dialog_launcher", "more", "overflow", "customize", "pin", "dock_shape", "underline", "pencil", "asterisk", "error", "search", "information", "warning", "success", "chevron_left"],
+    "marks": ["check", "indeterminate", "radio_dot", "toggle_knob", "arrow_up", "arrow_down", "arrow_left", "arrow_right", "chevron_down", "chevron_right", "close", "grip_dots", "dialog_launcher", "more", "overflow", "customize", "pin", "dock_shape", "underline", "pencil", "asterisk", "error", "search", "information", "warning", "success", "chevron_left", "minimize", "maximize", "restore"],
     "engine_inputs": ["pointer_x", "pointer_y", "time_in_state", "display_scale", "text_scale"],
     "values": ["accent_index", "text_orientation", "dock_region", "content_color", "authored_color", "text_tone", "pointed_face", "part_profile", "arc_angles", "text_angle"],
     "families": ["window", "panel", "card", "button", "accent_button", "command_button", "choice", "editor", "menu_item", "selection", "progress", "tool_tip", "link", "visited_link", "notice", "badge"],
@@ -1788,7 +1788,7 @@
         {"name": "label", "role": "label", "composed_from": null, "states": []}
       ],
       "states": ["normal", "enabled", "disabled"],
-      "custom_states": ["on", "error"],
+      "custom_states": ["on", "error", "pinpoint"],
       "item_systems": [],
       "properties": [
         {"name": "accessible_description", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -1822,6 +1822,7 @@
         {"name": "justify_self", "kind": "enumeration", "category": "Layout", "enumeration": "self_alignment", "choices": ["automatic", "start", "center", "end", "stretch"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "lamp_color", "kind": "color", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": true, "serialization": "visible"},
+        {"name": "lamp_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_lamp_style", "choices": ["lens", "pinpoint"], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},
         {"name": "light_planes", "kind": "text", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "margin", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -4881,7 +4882,7 @@
         {"name": "help_line", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "hit_test_transparent", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "image", "kind": "image", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
-        {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle", "lamp"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "justify_self", "kind": "enumeration", "category": "Layout", "enumeration": "self_alignment", "choices": ["automatic", "start", "center", "end", "stretch"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},
@@ -4955,7 +4956,7 @@
         {"name": "focus", "role": "focus", "composed_from": null, "states": []}
       ],
       "states": ["normal", "hot", "pressed", "checked", "enabled", "disabled", "focused", "focus_visible", "open", "closed"],
-      "custom_states": [],
+      "custom_states": ["lamp"],
       "item_systems": [],
       "properties": [
         {"name": "accessible_description", "kind": "text", "category": "Accessibility", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
@@ -4991,7 +4992,7 @@
         {"name": "help_line", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "hit_test_transparent", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "image", "kind": "image", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
-        {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "indicator_style", "kind": "enumeration", "category": "Appearance", "enumeration": "indicator_style", "choices": ["classic", "modern", "toggle", "lamp"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "justify_self", "kind": "enumeration", "category": "Layout", "enumeration": "self_alignment", "choices": ["automatic", "start", "center", "end", "stretch"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},
@@ -10299,7 +10300,8 @@
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
         {"name": "item_invoked", "payload": "MenuStripInvocation", "mutable_payload": false},
-        {"name": "open_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false}
+        {"name": "open_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false},
+        {"name": "frame_button_pressed", "payload": "MenuStripFrameButton", "mutable_payload": false}
       ]
     },
     {
@@ -14665,7 +14667,8 @@
         {"name": "key_state_changed", "payload": "KeyStateChange", "mutable_payload": false},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "presentation_changed", "payload": "PresentationSettings", "mutable_payload": false},
-        {"name": "theme_changed", "payload": "Theme", "mutable_payload": false}
+        {"name": "theme_changed", "payload": "Theme", "mutable_payload": false},
+        {"name": "mdi_child_activate", "payload": "MdiChildActivation", "mutable_payload": false}
       ]
     }
   ],

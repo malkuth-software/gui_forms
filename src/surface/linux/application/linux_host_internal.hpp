@@ -32,6 +32,11 @@
 namespace gui_forms::host::linux_detail {
 class Runtime;
 class NativeWindow;
+// A position on the root window in X pixels (XTranslateCoordinates).
+struct X11RootPosition final {
+  int x{};
+  int y{};
+};
 // The device pixels a logical extent covers at `scale`, rounded to the
 // nearest and at least 1 (an X window has no empty side), at most 32768.
 [[nodiscard]] inline unsigned device_extent(double logical, double scale) noexcept {
@@ -360,6 +365,20 @@ public:
   // pixels, divided by the window's scale) when the window manager
   // publishes it.
   HostWindowFrame frame() const;
+  // ConfigureNotify: tells the model the window moved when its client
+  // area's root position changed since the last ConfigureNotify (not for a
+  // passive popup or a Splash, which nothing is placed against), so a
+  // menu's Popup windows close (SurfaceRoot::report_frame_moved). The
+  // position is read from the server, since a real event's position is
+  // relative to a reparenting window manager's frame and only a synthetic
+  // one is root-relative (ICCCM 4.1.5). A live resize under X11 is a run of
+  // ConfigureNotify events the window manager drives, with no start event
+  // to the client: a resize from the left or top edge moves the client
+  // area and is reported here; one from the right or bottom edge is not.
+  void report_moved_to_model();
+  // Whether moves of this window are reported to its model: every window
+  // but a passive popup and a Splash.
+  [[nodiscard]] bool reports_frame_moves() const noexcept;
   // Asks the window manager for a client rectangle in desktop logical units
   // (static gravity, so the position is the client area's, not the
   // frame's): the origin through desktop_device_point, the extent at the
@@ -422,6 +441,10 @@ public:
   // (ConfigureNotify), or as created.
   int device_width{};
   int device_height{};
+  // The client area's root position in X pixels at the last ConfigureNotify
+  // (report_moved_to_model); none before the first, which sets it without
+  // reporting a move.
+  std::optional<X11RootPosition> reported_root_position;
   bool closed{};
   bool visible{};
   // Holds the X input focus (FocusIn without a grab); the run is active

@@ -1,7 +1,8 @@
 #pragma once
 
-// The DockSite's private children, shared by its two sources: the PageView
-// realizing each stack, and the drag layer.
+// The DockSite's private children, shared by its sources: the PageView
+// realizing each stack, the drag layer, and the document frames of the
+// frames presentation.
 
 #include "gui_forms/controls/dock_site.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
@@ -128,6 +129,60 @@ private:
     // frame means the pulse was not painted since, so it is not shown.
     std::uint64_t pulse_paints_{};
     std::uint64_t pulse_paints_seen_{};
+};
+
+// -- the document frame ----------------------------------------------------------
+
+// A document's frame in the frames presentation (DK decisions 60 to 63;
+// dock_site_frames.cpp): a child of the site, an exposed `pane` named by the
+// document's title whose caption buttons are its semantic children, holding
+// the document's content (its only child) in the client area below its
+// caption. The site paints its chrome and takes its pointer input from the
+// frame geometry; the frame lays its content out from the same geometry and
+// takes no focus itself.
+class DockSite::DocumentFrame final : public Control {
+public:
+    DocumentFrame(StableId stable_id, DockSite& site, DockPanelId panel)
+        : Control(std::move(stable_id)), site_(&site), panel_(std::move(panel)) {
+        set_paint_plane(PaintPlane::control);
+        cursor = stxlib::Optional<CursorKind>::of(CursorKind::arrow);
+        focusable = false;
+    }
+
+    void release_site() noexcept { site_ = nullptr; }
+    [[nodiscard]] const DockPanelId& panel() const& noexcept { return panel_; }
+    const DockPanelId& panel() const&& = delete;
+    // The content shown, or null.
+    [[nodiscard]] Control::Ptr content() const { return content_.lock(); }
+    // Shows `content` in the frame, taking it out of another parent first
+    // (a stack view of another site that gave the panel up), and the
+    // previous content out of the frame.
+    void show_content(const Control::Ptr& content);
+    // Takes the content out of the frame; null when there was none.
+    Control::Ptr take_content() noexcept;
+
+    void arrange(Rect final_bounds) override;
+    void on_paint(Painter& painter, Rect) override {
+        if (site_ != nullptr) (*site_).paint_frame(painter, *this, panel_);
+    }
+    [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
+    [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
+    bool on_semantic_child_action(std::string_view stable_id, SemanticAction action,
+                                  std::string_view value) override;
+
+protected:
+    void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
+    void on_mouse_move(MouseEventArgs& arguments) override;
+    void on_mouse_leave() override;
+
+private:
+    // The stable ID of a caption button's semantic node.
+    [[nodiscard]] std::string button_identity(std::string_view button) const;
+
+    DockSite* site_{};
+    DockPanelId panel_{};
+    Control::WeakPtr content_{};
 };
 
 } // namespace gui_forms

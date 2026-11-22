@@ -37,7 +37,8 @@ appearance : default ``CheckBoxAppearance::normal``
     accessibility role, state and input behaviour stay those of a check box.
 indicator_style : default ``ChoiceIndicatorStyle::classic``
     The indicator drawn for `appearance` `normal`: a classic box, a modern
-    box or a toggle switch.
+    box or a toggle switch. `ChoiceIndicatorStyle::lamp` throws
+    `std::invalid_argument`: lamps form a radio choice, never a check box.
 
 Events
 ------

@@ -1309,6 +1309,39 @@ indicator-lamp::part(lens):state(error) {
   border: 1px solid #6e1619;
   box-shadow: inset 0 0 2px #fbdcddb0;
 }
+/* The pinpoint: a tiny status light, no bezel. Out, a muted Office 2003
+   blue-grey dot; lit, the lamp's colour, flat, with a pale core. */
+indicator-lamp::part(lens):state(pinpoint) {
+  background: #9aabc2;
+  border: none;
+  box-shadow: inset 0 0 1px #ffffff50;
+}
+indicator-lamp::part(lens):state(on):state(pinpoint) {
+  background: radial-gradient(circle at 50% 50%, #dcf7d9, #2e9e3e 60%);
+  border: none;
+  box-shadow: inset 0 0 1px #dcf7d980;
+}
+indicator-lamp::part(lens):state(error):state(pinpoint) {
+  background: radial-gradient(circle at 50% 50%, #fbdcdd, #d13438 60%);
+  border: none;
+  box-shadow: inset 0 0 1px #fbdcdd80;
+}
+/* A radio choice drawn with lamps (RadioButton's lamp look): the well is
+   the lamp's Office 2003 bezel and the mark its lens, dark glass until the
+   option is chosen, then lit green. */
+radio-button::part(well):state(lamp), radio-button:checked::part(well):state(lamp) {
+  background: linear-gradient(to bottom, #c3d3e8, #f3f7fc);
+  border: 1px solid #8ba2c1;
+}
+radio-button::part(indicator):state(lamp) {
+  background: radial-gradient(circle at 40% 35%, #7f8893, #2e343b 70%);
+  border: 1px solid #262b31;
+}
+radio-button:checked::part(indicator):state(lamp) {
+  background: radial-gradient(circle at 40% 35%, #dcf7d9, #2e9e3e 50%, #1b6a26);
+  border: 1px solid #165520;
+  box-shadow: inset 0 0 2px #dcf7d9b0;
+}
 /* A content surface whose frame is not current (ContentSurface: stale,
    abandoned or failed, the interrupted state) keeps its last frame under a
    veil of black at three eighths, legible beneath it, with the status

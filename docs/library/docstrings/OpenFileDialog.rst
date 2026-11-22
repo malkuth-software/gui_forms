@@ -40,6 +40,14 @@ filter_index : default ``0``
     An index past the filters starts the dialog on the first.
 multiselect : default ``false``
     Whether the user may choose more than one file.
+check_file_exists : default ``true``
+    Whether the dialog accepts only a file that exists (Windows Forms'
+    ``CheckFileExists``). A refused name leaves the dialog open with the
+    name kept. macOS's open panel always requires an existing file, so
+    ``false`` has no effect there.
+check_path_exists : default ``true``
+    Whether the dialog accepts only a name in a folder that exists (Windows
+    Forms' ``CheckPathExists``). macOS's panel always requires one.
 file_name
     The first chosen path, or empty. Before the dialog is shown, a name written
     here is the one the dialog suggests; it becomes the one
@@ -89,10 +97,8 @@ while another component's host dialog is on the modal stack. The name part of
 a path follows the rules of the platform the program runs on: Windows splits
 at ``\`` and ``/``, the other hosts at ``/`` only.
 
-Not yet supported: the filter index (the host request has no field for it),
-the read-only check box, checking that a typed name exists (each host's open
-dialog already accepts only existing files) and opening the chosen file;
-GUI.Forms reads no files for the program.
+Not supported: the read-only check box, and opening the chosen file
+(Windows Forms' ``OpenFile``); GUI.Forms reads no files for the program.
 
 Examples
 --------

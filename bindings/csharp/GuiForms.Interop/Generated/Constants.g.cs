@@ -7,7 +7,7 @@ namespace GuiForms.Interop;
 public static class Constants
 {
     public const uint GF_ABI_MAJOR = 1u;
-    public const uint GF_ABI_MINOR = 5u;
+    public const uint GF_ABI_MINOR = 6u;
     public const int GF_STATUS_OK = 0;
     public const int GF_STATUS_INVALID_ARGUMENT = 1;
     public const int GF_STATUS_STALE_HANDLE = 2;
@@ -136,6 +136,7 @@ public static class Constants
     public const uint GF_PROCEDURAL_PATTERN_FRESCO = 5u;
     public const uint GF_PROCEDURAL_PATTERN_CHECKER = 6u;
     public const uint GF_PROCEDURAL_PATTERN_HATCH = 7u;
+    public const uint GF_PROCEDURAL_PATTERN_CARBON_FIBRE = 8u;
     public const uint GF_HATCH_STYLE_HORIZONTAL = 0u;
     public const uint GF_HATCH_STYLE_VERTICAL = 1u;
     public const uint GF_HATCH_STYLE_FORWARD_DIAGONAL = 2u;
@@ -164,6 +165,10 @@ public static class Constants
     public const uint GF_WINDOW_SHAPING_NATIVE_BORDER = 8u;
     public const uint GF_WINDOW_SHAPING_FULL_SCREEN = 16u;
     public const uint GF_WINDOW_SHAPING_COMPLIED = 32u;
+    public const uint GF_MDI_LAYOUT_CASCADE = 0u;
+    public const uint GF_MDI_LAYOUT_TILE_HORIZONTAL = 1u;
+    public const uint GF_MDI_LAYOUT_TILE_VERTICAL = 2u;
+    public const uint GF_MDI_LAYOUT_ARRANGE_ICONS = 3u;
     public const uint GF_SCHEMA_KIND_CONTROL = 0u;
     public const uint GF_SCHEMA_KIND_COMPONENT = 1u;
     public const uint GF_SCHEMA_KIND_SERVICE = 2u;
@@ -548,6 +553,19 @@ public static class Constants
     public const uint GF_DOCK_EDIT_SELECT = 10u;
     public const uint GF_DOCK_EDIT_SET_RATIO = 11u;
     public const uint GF_DOCK_EDIT_SET_FLOATING_FRAME = 12u;
+    public const uint GF_DOCK_EDIT_SET_DOCUMENT_PRESENTATION = 13u;
+    public const uint GF_DOCK_EDIT_SET_FRAME_BOUNDS = 14u;
+    public const uint GF_DOCK_EDIT_SET_FRAME_STATE = 15u;
+    public const uint GF_DOCK_EDIT_SET_FRAME_ICON_SLOT = 16u;
+    public const uint GF_DOCK_DOCUMENT_PRESENTATION_TABS = 0u;
+    public const uint GF_DOCK_DOCUMENT_PRESENTATION_FRAMES = 1u;
+    public const uint GF_DOCK_FRAME_STATE_NORMAL = 0u;
+    public const uint GF_DOCK_FRAME_STATE_MINIMIZED = 1u;
+    public const uint GF_DOCK_FRAME_STATE_MAXIMIZED = 2u;
+    public const uint GF_DOCK_FRAME_ARRANGEMENT_CASCADE = 0u;
+    public const uint GF_DOCK_FRAME_ARRANGEMENT_TILE_HORIZONTAL = 1u;
+    public const uint GF_DOCK_FRAME_ARRANGEMENT_TILE_VERTICAL = 2u;
+    public const uint GF_DOCK_FRAME_ARRANGEMENT_ARRANGE_ICONS = 3u;
     public const uint GF_DOCK_REFUSAL_NONE = 0u;
     public const uint GF_DOCK_REFUSAL_UNKNOWN_PANEL = 1u;
     public const uint GF_DOCK_REFUSAL_UNKNOWN_NODE = 2u;

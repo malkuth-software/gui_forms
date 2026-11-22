@@ -557,6 +557,7 @@ __ZGVZN9gui_forms15DataGridViewRow*
 __ZGVZN9gui_forms15DevicePixelRect*
 __ZGVZN9gui_forms15DockDragOutcome*
 __ZGVZN9gui_forms15DockDropMetrics*
+__ZGVZN9gui_forms15DockFrameMemory*
 __ZGVZN9gui_forms15DockLayoutState*
 __ZGVZN9gui_forms15DockNamedLayout*
 __ZGVZN9gui_forms15DockPanelRecord*
@@ -673,6 +674,7 @@ __ZGVZN9gui_forms16DockCaptionReach*
 __ZGVZN9gui_forms16DockDockedMemory*
 __ZGVZN9gui_forms16DockFloatingSite*
 __ZGVZN9gui_forms16DockFlyoutChange*
+__ZGVZN9gui_forms16DockFrameMetrics*
 __ZGVZN9gui_forms16DockLayoutChange*
 __ZGVZN9gui_forms16DockUnknownChild*
 __ZGVZN9gui_forms16DockUnknownOwner*
@@ -943,6 +945,7 @@ __ZGVZN9gui_forms18MaskedTextProvider*
 __ZGVZN9gui_forms18MasterDetailLayout*
 __ZGVZN9gui_forms18MaterialDropShadow*
 __ZGVZN9gui_forms18MaterialReflection*
+__ZGVZN9gui_forms18MdiChildActivation*
 __ZGVZN9gui_forms18MenuItemInvocation*
 __ZGVZN9gui_forms18MotionRecordHandle*
 __ZGVZN9gui_forms18NativePopupOptions*
@@ -998,6 +1001,7 @@ __ZGVZN9gui_forms18WindowBandSnapshot*
 __ZGVZN9gui_forms18WindowChromeFields*
 __ZGVZN9gui_forms18WindowCornerReport*
 __ZGVZN9gui_forms18WindowCornerShapes*
+__ZGVZN9gui_forms18WindowDocumentArea*
 __ZGVZN9gui_forms19BackdropDeclaration*
 __ZGVZN9gui_forms19BindingConvertEvent*
 __ZGVZN9gui_forms19BindingNotification*
@@ -2241,6 +2245,7 @@ __ZGVZNK9gui_forms15DataGridViewRow*
 __ZGVZNK9gui_forms15DevicePixelRect*
 __ZGVZNK9gui_forms15DockDragOutcome*
 __ZGVZNK9gui_forms15DockDropMetrics*
+__ZGVZNK9gui_forms15DockFrameMemory*
 __ZGVZNK9gui_forms15DockLayoutState*
 __ZGVZNK9gui_forms15DockNamedLayout*
 __ZGVZNK9gui_forms15DockPanelRecord*
@@ -2357,6 +2362,7 @@ __ZGVZNK9gui_forms16DockCaptionReach*
 __ZGVZNK9gui_forms16DockDockedMemory*
 __ZGVZNK9gui_forms16DockFloatingSite*
 __ZGVZNK9gui_forms16DockFlyoutChange*
+__ZGVZNK9gui_forms16DockFrameMetrics*
 __ZGVZNK9gui_forms16DockLayoutChange*
 __ZGVZNK9gui_forms16DockUnknownChild*
 __ZGVZNK9gui_forms16DockUnknownOwner*
@@ -2627,6 +2633,7 @@ __ZGVZNK9gui_forms18MaskedTextProvider*
 __ZGVZNK9gui_forms18MasterDetailLayout*
 __ZGVZNK9gui_forms18MaterialDropShadow*
 __ZGVZNK9gui_forms18MaterialReflection*
+__ZGVZNK9gui_forms18MdiChildActivation*
 __ZGVZNK9gui_forms18MenuItemInvocation*
 __ZGVZNK9gui_forms18MotionRecordHandle*
 __ZGVZNK9gui_forms18NativePopupOptions*
@@ -2682,6 +2689,7 @@ __ZGVZNK9gui_forms18WindowBandSnapshot*
 __ZGVZNK9gui_forms18WindowChromeFields*
 __ZGVZNK9gui_forms18WindowCornerReport*
 __ZGVZNK9gui_forms18WindowCornerShapes*
+__ZGVZNK9gui_forms18WindowDocumentArea*
 __ZGVZNK9gui_forms19BackdropDeclaration*
 __ZGVZNK9gui_forms19BindingConvertEvent*
 __ZGVZNK9gui_forms19BindingNotification*
@@ -4121,6 +4129,7 @@ __ZN9gui_forms15DataGridViewRow*
 __ZN9gui_forms15DevicePixelRect*
 __ZN9gui_forms15DockDragOutcome*
 __ZN9gui_forms15DockDropMetrics*
+__ZN9gui_forms15DockFrameMemory*
 __ZN9gui_forms15DockLayoutState*
 __ZN9gui_forms15DockNamedLayout*
 __ZN9gui_forms15DockPanelRecord*
@@ -4289,6 +4298,7 @@ __ZN9gui_forms16DockCaptionReach*
 __ZN9gui_forms16DockDockedMemory*
 __ZN9gui_forms16DockFloatingSite*
 __ZN9gui_forms16DockFlyoutChange*
+__ZN9gui_forms16DockFrameMetrics*
 __ZN9gui_forms16DockLayoutChange*
 __ZN9gui_forms16DockUnknownChild*
 __ZN9gui_forms16DockUnknownOwner*
@@ -4721,6 +4731,7 @@ __ZN9gui_forms18MaskedTextProvider*
 __ZN9gui_forms18MasterDetailLayout*
 __ZN9gui_forms18MaterialDropShadow*
 __ZN9gui_forms18MaterialReflection*
+__ZN9gui_forms18MdiChildActivation*
 __ZN9gui_forms18MenuItemInvocation*
 __ZN9gui_forms18MotionRecordHandle*
 __ZN9gui_forms18NativePopupOptions*
@@ -4776,6 +4787,7 @@ __ZN9gui_forms18WindowBandSnapshot*
 __ZN9gui_forms18WindowChromeFields*
 __ZN9gui_forms18WindowCornerReport*
 __ZN9gui_forms18WindowCornerShapes*
+__ZN9gui_forms18WindowDocumentArea*
 __ZN9gui_forms18active_border_pathB*
 __ZN9gui_forms18active_border_pathE*
 __ZN9gui_forms18anatomy_state_nameB*
@@ -5541,6 +5553,8 @@ __ZN9gui_forms22convert_property_valueB*
 __ZN9gui_forms22convert_property_valueE*
 __ZN9gui_forms22default_compiled_themeB*
 __ZN9gui_forms22default_compiled_themeE*
+__ZN9gui_forms22dock_frame_icon_boundsB*
+__ZN9gui_forms22dock_frame_icon_boundsE*
 __ZN9gui_forms22dock_layout_xml_limitsB*
 __ZN9gui_forms22dock_layout_xml_limitsE*
 __ZN9gui_forms22export_locale_templateB*
@@ -5575,6 +5589,8 @@ __ZN9gui_forms22paint_surface_materialB*
 __ZN9gui_forms22paint_surface_materialE*
 __ZN9gui_forms22plan_dock_drop_targetsB*
 __ZN9gui_forms22plan_dock_drop_targetsE*
+__ZN9gui_forms22plan_frame_arrangementB*
+__ZN9gui_forms22plan_frame_arrangementE*
 __ZN9gui_forms22present_stock_specimenB*
 __ZN9gui_forms22present_stock_specimenE*
 __ZN9gui_forms22resolve_backdrop_chainB*
@@ -5682,6 +5698,8 @@ __ZN9gui_forms23decode_hosted_semanticsB*
 __ZN9gui_forms23decode_hosted_semanticsE*
 __ZN9gui_forms23disconnect_button_groupB*
 __ZN9gui_forms23disconnect_button_groupE*
+__ZN9gui_forms23dock_frame_shown_boundsB*
+__ZN9gui_forms23dock_frame_shown_boundsE*
 __ZN9gui_forms23effect_load_diagnosticsB*
 __ZN9gui_forms23effect_load_diagnosticsE*
 __ZN9gui_forms23encode_hosted_configureB*
@@ -7309,6 +7327,7 @@ __ZNK[RO]9gui_forms15DataGridViewRow*
 __ZNK[RO]9gui_forms15DevicePixelRect*
 __ZNK[RO]9gui_forms15DockDragOutcome*
 __ZNK[RO]9gui_forms15DockDropMetrics*
+__ZNK[RO]9gui_forms15DockFrameMemory*
 __ZNK[RO]9gui_forms15DockLayoutState*
 __ZNK[RO]9gui_forms15DockNamedLayout*
 __ZNK[RO]9gui_forms15DockPanelRecord*
@@ -7425,6 +7444,7 @@ __ZNK[RO]9gui_forms16DockCaptionReach*
 __ZNK[RO]9gui_forms16DockDockedMemory*
 __ZNK[RO]9gui_forms16DockFloatingSite*
 __ZNK[RO]9gui_forms16DockFlyoutChange*
+__ZNK[RO]9gui_forms16DockFrameMetrics*
 __ZNK[RO]9gui_forms16DockLayoutChange*
 __ZNK[RO]9gui_forms16DockUnknownChild*
 __ZNK[RO]9gui_forms16DockUnknownOwner*
@@ -7695,6 +7715,7 @@ __ZNK[RO]9gui_forms18MaskedTextProvider*
 __ZNK[RO]9gui_forms18MasterDetailLayout*
 __ZNK[RO]9gui_forms18MaterialDropShadow*
 __ZNK[RO]9gui_forms18MaterialReflection*
+__ZNK[RO]9gui_forms18MdiChildActivation*
 __ZNK[RO]9gui_forms18MenuItemInvocation*
 __ZNK[RO]9gui_forms18MotionRecordHandle*
 __ZNK[RO]9gui_forms18NativePopupOptions*
@@ -7750,6 +7771,7 @@ __ZNK[RO]9gui_forms18WindowBandSnapshot*
 __ZNK[RO]9gui_forms18WindowChromeFields*
 __ZNK[RO]9gui_forms18WindowCornerReport*
 __ZNK[RO]9gui_forms18WindowCornerShapes*
+__ZNK[RO]9gui_forms18WindowDocumentArea*
 __ZNK[RO]9gui_forms19BackdropDeclaration*
 __ZNK[RO]9gui_forms19BindingConvertEvent*
 __ZNK[RO]9gui_forms19BindingNotification*
@@ -8993,6 +9015,7 @@ __ZN[KRO]9gui_forms15DataGridViewRow*
 __ZN[KRO]9gui_forms15DevicePixelRect*
 __ZN[KRO]9gui_forms15DockDragOutcome*
 __ZN[KRO]9gui_forms15DockDropMetrics*
+__ZN[KRO]9gui_forms15DockFrameMemory*
 __ZN[KRO]9gui_forms15DockLayoutState*
 __ZN[KRO]9gui_forms15DockNamedLayout*
 __ZN[KRO]9gui_forms15DockPanelRecord*
@@ -9109,6 +9132,7 @@ __ZN[KRO]9gui_forms16DockCaptionReach*
 __ZN[KRO]9gui_forms16DockDockedMemory*
 __ZN[KRO]9gui_forms16DockFloatingSite*
 __ZN[KRO]9gui_forms16DockFlyoutChange*
+__ZN[KRO]9gui_forms16DockFrameMetrics*
 __ZN[KRO]9gui_forms16DockLayoutChange*
 __ZN[KRO]9gui_forms16DockUnknownChild*
 __ZN[KRO]9gui_forms16DockUnknownOwner*
@@ -9379,6 +9403,7 @@ __ZN[KRO]9gui_forms18MaskedTextProvider*
 __ZN[KRO]9gui_forms18MasterDetailLayout*
 __ZN[KRO]9gui_forms18MaterialDropShadow*
 __ZN[KRO]9gui_forms18MaterialReflection*
+__ZN[KRO]9gui_forms18MdiChildActivation*
 __ZN[KRO]9gui_forms18MenuItemInvocation*
 __ZN[KRO]9gui_forms18MotionRecordHandle*
 __ZN[KRO]9gui_forms18NativePopupOptions*
@@ -9434,6 +9459,7 @@ __ZN[KRO]9gui_forms18WindowBandSnapshot*
 __ZN[KRO]9gui_forms18WindowChromeFields*
 __ZN[KRO]9gui_forms18WindowCornerReport*
 __ZN[KRO]9gui_forms18WindowCornerShapes*
+__ZN[KRO]9gui_forms18WindowDocumentArea*
 __ZN[KRO]9gui_forms19BackdropDeclaration*
 __ZN[KRO]9gui_forms19BindingConvertEvent*
 __ZN[KRO]9gui_forms19BindingNotification*
@@ -10677,6 +10703,7 @@ __ZT[VIST]N9gui_forms15DataGridViewRow*E
 __ZT[VIST]N9gui_forms15DevicePixelRect*E
 __ZT[VIST]N9gui_forms15DockDragOutcome*E
 __ZT[VIST]N9gui_forms15DockDropMetrics*E
+__ZT[VIST]N9gui_forms15DockFrameMemory*E
 __ZT[VIST]N9gui_forms15DockLayoutState*E
 __ZT[VIST]N9gui_forms15DockNamedLayout*E
 __ZT[VIST]N9gui_forms15DockPanelRecord*E
@@ -10793,6 +10820,7 @@ __ZT[VIST]N9gui_forms16DockCaptionReach*E
 __ZT[VIST]N9gui_forms16DockDockedMemory*E
 __ZT[VIST]N9gui_forms16DockFloatingSite*E
 __ZT[VIST]N9gui_forms16DockFlyoutChange*E
+__ZT[VIST]N9gui_forms16DockFrameMetrics*E
 __ZT[VIST]N9gui_forms16DockLayoutChange*E
 __ZT[VIST]N9gui_forms16DockUnknownChild*E
 __ZT[VIST]N9gui_forms16DockUnknownOwner*E
@@ -11063,6 +11091,7 @@ __ZT[VIST]N9gui_forms18MaskedTextProvider*E
 __ZT[VIST]N9gui_forms18MasterDetailLayout*E
 __ZT[VIST]N9gui_forms18MaterialDropShadow*E
 __ZT[VIST]N9gui_forms18MaterialReflection*E
+__ZT[VIST]N9gui_forms18MdiChildActivation*E
 __ZT[VIST]N9gui_forms18MenuItemInvocation*E
 __ZT[VIST]N9gui_forms18MotionRecordHandle*E
 __ZT[VIST]N9gui_forms18NativePopupOptions*E
@@ -11118,6 +11147,7 @@ __ZT[VIST]N9gui_forms18WindowBandSnapshot*E
 __ZT[VIST]N9gui_forms18WindowChromeFields*E
 __ZT[VIST]N9gui_forms18WindowCornerReport*E
 __ZT[VIST]N9gui_forms18WindowCornerShapes*E
+__ZT[VIST]N9gui_forms18WindowDocumentArea*E
 __ZT[VIST]N9gui_forms19BackdropDeclaration*E
 __ZT[VIST]N9gui_forms19BindingConvertEvent*E
 __ZT[VIST]N9gui_forms19BindingNotification*E
@@ -12361,6 +12391,7 @@ __ZT[hvc]*9gui_forms15DataGridViewRow*
 __ZT[hvc]*9gui_forms15DevicePixelRect*
 __ZT[hvc]*9gui_forms15DockDragOutcome*
 __ZT[hvc]*9gui_forms15DockDropMetrics*
+__ZT[hvc]*9gui_forms15DockFrameMemory*
 __ZT[hvc]*9gui_forms15DockLayoutState*
 __ZT[hvc]*9gui_forms15DockNamedLayout*
 __ZT[hvc]*9gui_forms15DockPanelRecord*
@@ -12477,6 +12508,7 @@ __ZT[hvc]*9gui_forms16DockCaptionReach*
 __ZT[hvc]*9gui_forms16DockDockedMemory*
 __ZT[hvc]*9gui_forms16DockFloatingSite*
 __ZT[hvc]*9gui_forms16DockFlyoutChange*
+__ZT[hvc]*9gui_forms16DockFrameMetrics*
 __ZT[hvc]*9gui_forms16DockLayoutChange*
 __ZT[hvc]*9gui_forms16DockUnknownChild*
 __ZT[hvc]*9gui_forms16DockUnknownOwner*
@@ -12747,6 +12779,7 @@ __ZT[hvc]*9gui_forms18MaskedTextProvider*
 __ZT[hvc]*9gui_forms18MasterDetailLayout*
 __ZT[hvc]*9gui_forms18MaterialDropShadow*
 __ZT[hvc]*9gui_forms18MaterialReflection*
+__ZT[hvc]*9gui_forms18MdiChildActivation*
 __ZT[hvc]*9gui_forms18MenuItemInvocation*
 __ZT[hvc]*9gui_forms18MotionRecordHandle*
 __ZT[hvc]*9gui_forms18NativePopupOptions*
@@ -12802,6 +12835,7 @@ __ZT[hvc]*9gui_forms18WindowBandSnapshot*
 __ZT[hvc]*9gui_forms18WindowChromeFields*
 __ZT[hvc]*9gui_forms18WindowCornerReport*
 __ZT[hvc]*9gui_forms18WindowCornerShapes*
+__ZT[hvc]*9gui_forms18WindowDocumentArea*
 __ZT[hvc]*9gui_forms19BackdropDeclaration*
 __ZT[hvc]*9gui_forms19BindingConvertEvent*
 __ZT[hvc]*9gui_forms19BindingNotification*
@@ -14045,6 +14079,7 @@ __ZZN9gui_forms15DataGridViewRow*
 __ZZN9gui_forms15DevicePixelRect*
 __ZZN9gui_forms15DockDragOutcome*
 __ZZN9gui_forms15DockDropMetrics*
+__ZZN9gui_forms15DockFrameMemory*
 __ZZN9gui_forms15DockLayoutState*
 __ZZN9gui_forms15DockNamedLayout*
 __ZZN9gui_forms15DockPanelRecord*
@@ -14161,6 +14196,7 @@ __ZZN9gui_forms16DockCaptionReach*
 __ZZN9gui_forms16DockDockedMemory*
 __ZZN9gui_forms16DockFloatingSite*
 __ZZN9gui_forms16DockFlyoutChange*
+__ZZN9gui_forms16DockFrameMetrics*
 __ZZN9gui_forms16DockLayoutChange*
 __ZZN9gui_forms16DockUnknownChild*
 __ZZN9gui_forms16DockUnknownOwner*
@@ -14431,6 +14467,7 @@ __ZZN9gui_forms18MaskedTextProvider*
 __ZZN9gui_forms18MasterDetailLayout*
 __ZZN9gui_forms18MaterialDropShadow*
 __ZZN9gui_forms18MaterialReflection*
+__ZZN9gui_forms18MdiChildActivation*
 __ZZN9gui_forms18MenuItemInvocation*
 __ZZN9gui_forms18MotionRecordHandle*
 __ZZN9gui_forms18NativePopupOptions*
@@ -14486,6 +14523,7 @@ __ZZN9gui_forms18WindowBandSnapshot*
 __ZZN9gui_forms18WindowChromeFields*
 __ZZN9gui_forms18WindowCornerReport*
 __ZZN9gui_forms18WindowCornerShapes*
+__ZZN9gui_forms18WindowDocumentArea*
 __ZZN9gui_forms19BackdropDeclaration*
 __ZZN9gui_forms19BindingConvertEvent*
 __ZZN9gui_forms19BindingNotification*
@@ -15729,6 +15767,7 @@ __ZZNK9gui_forms15DataGridViewRow*
 __ZZNK9gui_forms15DevicePixelRect*
 __ZZNK9gui_forms15DockDragOutcome*
 __ZZNK9gui_forms15DockDropMetrics*
+__ZZNK9gui_forms15DockFrameMemory*
 __ZZNK9gui_forms15DockLayoutState*
 __ZZNK9gui_forms15DockNamedLayout*
 __ZZNK9gui_forms15DockPanelRecord*
@@ -15845,6 +15884,7 @@ __ZZNK9gui_forms16DockCaptionReach*
 __ZZNK9gui_forms16DockDockedMemory*
 __ZZNK9gui_forms16DockFloatingSite*
 __ZZNK9gui_forms16DockFlyoutChange*
+__ZZNK9gui_forms16DockFrameMetrics*
 __ZZNK9gui_forms16DockLayoutChange*
 __ZZNK9gui_forms16DockUnknownChild*
 __ZZNK9gui_forms16DockUnknownOwner*
@@ -16115,6 +16155,7 @@ __ZZNK9gui_forms18MaskedTextProvider*
 __ZZNK9gui_forms18MasterDetailLayout*
 __ZZNK9gui_forms18MaterialDropShadow*
 __ZZNK9gui_forms18MaterialReflection*
+__ZZNK9gui_forms18MdiChildActivation*
 __ZZNK9gui_forms18MenuItemInvocation*
 __ZZNK9gui_forms18MotionRecordHandle*
 __ZZNK9gui_forms18NativePopupOptions*
@@ -16170,6 +16211,7 @@ __ZZNK9gui_forms18WindowBandSnapshot*
 __ZZNK9gui_forms18WindowChromeFields*
 __ZZNK9gui_forms18WindowCornerReport*
 __ZZNK9gui_forms18WindowCornerShapes*
+__ZZNK9gui_forms18WindowDocumentArea*
 __ZZNK9gui_forms19BackdropDeclaration*
 __ZZNK9gui_forms19BindingConvertEvent*
 __ZZNK9gui_forms19BindingNotification*

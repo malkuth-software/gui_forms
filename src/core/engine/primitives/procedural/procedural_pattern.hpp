@@ -49,7 +49,10 @@ namespace gui_forms::engine_primitives {
 // (2026-10-22, with other builds running; the seven runs agreed within
 // 3 % but for one felt run). The runs: felt 28.30-32.71, wood grain
 // 13.21-13.75, paper fibre 66.57-68.74, pinstripe 0.69-0.70, brushed
-// metal 23.29-23.81, fresco 8.56-8.73.
+// metal 23.29-23.81, fresco 8.56-8.73. Carbon fibre's is an estimate, not
+// yet measured: its pixel loop reads three per-axis tables and does a few
+// integer multiplies, without a lattice, so it is set at half brushed
+// metal's (to be replaced by the --measure run's figure).
 struct ProceduralEffortWeights final {
     std::uint32_t felt{};
     std::uint32_t wood_grain{};
@@ -59,6 +62,7 @@ struct ProceduralEffortWeights final {
     std::uint32_t fresco{};
     std::uint32_t checker{};
     std::uint32_t hatch{};
+    std::uint32_t carbon_fibre{};
 };
 
 inline constexpr ProceduralEffortWeights procedural_effort_weights{
@@ -70,6 +74,7 @@ inline constexpr ProceduralEffortWeights procedural_effort_weights{
     .fresco = 45U,
     .checker = 5U,
     .hatch = 5U,
+    .carbon_fibre = 60U,
 };
 
 // The effort of generating `fill`'s pattern at `extent`. A generation is
@@ -92,8 +97,10 @@ inline constexpr std::size_t maximum_procedural_pattern_bytes = 2U * 1024U * 102
 // The working storage one generation reuses, filled by the generator
 // (reset-size) before its pixel loop, so that the loop allocates nothing:
 // per-axis lattice cells and weights; each octave's lattice values along
-// the two cell rows the current pixel row lies between; and the paper's
-// fibres, four values each.
+// the two cell rows the current pixel row lies between; the paper's
+// fibres, four values each; and the carbon fibre's weave terms (per-axis
+// tow profiles and streaks, and a tone per crossing; procedural_pattern.cpp,
+// WeaveLayout).
 struct ProceduralScratch final {
     std::vector<std::uint32_t> across_cells;
     std::vector<std::uint32_t> across_weights;
@@ -101,6 +108,7 @@ struct ProceduralScratch final {
     std::vector<std::uint32_t> down_weights;
     std::vector<std::uint32_t> lattice_rows;
     std::vector<std::uint32_t> fibres;
+    std::vector<std::int32_t> weave_terms;
 };
 
 // Generates `fill`'s pattern at `scale` into every pixel of `destination`

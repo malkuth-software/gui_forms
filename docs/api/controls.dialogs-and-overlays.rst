@@ -20,11 +20,11 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
    * - :cpp:class:`ThreadExceptionDialog <gui_forms::ThreadExceptionDialog>`
      - The dialog for an exception the application did not handle.
    * - :cpp:class:`Callout <gui_forms::Callout>`
-     - Non-modal teaching callout at a target control: a card with a beak pointing at the target, a title, wrapped text, a close mark and an optional action, placed below or above the target in an overlay, with optional light dismiss.
+     - A teaching callout: a card pointing out a target control, with an optional bold title, wrapped text, a close mark and an optional action button.
    * - :cpp:class:`ModalLayer <gui_forms::ModalLayer>`
-     - In-window modal layer: any control shown centred over a scrim dimming its owner's window, taking every press outside it and holding focus, closed with a DialogResult through a cancellable closing.
+     - An in-window modal layer: any control shown as a modal panel inside its owner's window, without a native window.
    * - :cpp:class:`AboutDialog <gui_forms::AboutDialog>`
-     - An application's About box: a TaskDialog preset with the information icon, the product and version, description and copyright, credits behind an expander, and OK.
+     - An application's About box: the information icon, the product and version as the heading, the description and copyright, the credits behind an expander, and OK.
    * - :cpp:class:`FolderBrowserDialog <gui_forms::FolderBrowserDialog>`
      - The host's dialog for choosing a folder.
    * - :cpp:class:`ColorDialog <gui_forms::ColorDialog>`
@@ -36,7 +36,7 @@ Anchored overlays, tooltips, owned dialogs and the host's file and colour dialog
    * - :cpp:class:`SaveFileDialog <gui_forms::SaveFileDialog>`
      - The host's dialog for choosing where to save a file.
    * - :cpp:class:`BusinessCard <gui_forms::BusinessCard>`
-     - The program's business card, one for every GUI.Forms program: the identity's vendor, product, version and website on a flat themed card, lying on a page or held in the hand over the window; D held with a secondary press on the vendor name toggles the diagnostic overlay.
+     - The program's business card: its vendor, product and version, website and copyright, on a card drawn through the theme, lying in a page or held in the hand.
 
 .. toctree::
    :hidden:
@@ -231,7 +231,7 @@ Related types
 
 .. cpp:struct:: AboutInfo final
 
-   ``#include <gui_forms/components/about_dialog/about_dialog.hpp>``
+   ``#include <gui_forms/components/about_dialog/about_dialog.hpp>`` (:src:`source <include/gui_forms/components/about_dialog/about_dialog.hpp>`)
 
    What an AboutDialog shows. ``product`` and ``version`` make the heading ("Product 1.2"); ``description`` and ``copyright`` are the body's paragraphs; ``credits`` (licences, acknowledgements) sit behind a "Show credits" expander, left out when empty. An empty caption gives "About <product>".
 
@@ -251,7 +251,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerCapabilities : public AnchoredOverlayLayerPlacementCapability<Declaring>, public AnchoredOverlayLayerDismissOnClickAwayCapability<Declaring>, public AnchoredOverlayLayerDismissOnEscapeCapability<Declaring>
 
-   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_layer_capabilities.hpp>`)
 
    Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
 
@@ -274,7 +274,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerDismissOnClickAwayCapability
 
-   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_layer_capabilities.hpp>`)
 
    Whether a press outside the content raises dismiss_requested(click_away). The layer only reports it; the owner closes the overlay.
 
@@ -291,7 +291,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerDismissOnEscapeCapability
 
-   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_layer_capabilities.hpp>`)
 
    Whether Escape raises dismiss_requested(escape_key). The layer only reports it; the owner closes the overlay.
 
@@ -308,7 +308,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> AnchoredOverlayLayerPlacementCapability
 
-   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_layer_capabilities.hpp>`)
 
    The overlay's preferred size, alignment, side, gap, margin and flip rule; resolved against the anchor on every arrangement (resolved_placement). An invalid placement throws std::invalid_argument.
 
@@ -323,7 +323,7 @@ Related types
 
 .. cpp:struct:: AnchoredOverlayPlacement final
 
-   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_placement.hpp>`)
 
    AnchoredOverlayPlacement is the caller-authored geometry policy for preferred size, horizontal alignment, preferred vertical side, gap, viewport margin, and optional vertical flipping. It contains no transient ownership or rendering state.
 
@@ -351,7 +351,7 @@ Related types
 
 .. cpp:struct:: AnchoredOverlayPlacementResult final
 
-   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_placement.hpp>`)
 
    AnchoredOverlayPlacementResult is the exact output of placement resolution: client-relative bounds plus whether the overlay moved above its anchor or had either dimension clamped.
 
@@ -367,7 +367,7 @@ Related types
 
 .. cpp:struct:: BundledFontFace final
 
-   ``#include <gui_forms/controls/font_dialog.hpp>``
+   ``#include <gui_forms/controls/font_dialog.hpp>`` (:src:`source <include/gui_forms/controls/font_dialog.hpp>`)
 
    One face GUI.Forms bundles for a FontRole, as every host registers it: its family name, what the role is for, and whether it has italic faces. Every face has regular (400) and bold (700) weights. The Noto faces are fallbacks for scripts and emoji, not choices, and are not listed.
 
@@ -385,7 +385,7 @@ Related types
 
 .. cpp:struct:: BusinessCard::Parts final
 
-   ``#include <gui_forms/components/business_card/business_card.hpp>``
+   ``#include <gui_forms/components/business_card/business_card.hpp>`` (:src:`source <include/gui_forms/components/business_card/business_card.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -415,7 +415,7 @@ Related types
 
 .. cpp:struct:: BusinessCardRemarkSource final
 
-   ``#include <gui_forms/components/business_card/business_card.hpp>``
+   ``#include <gui_forms/components/business_card/business_card.hpp>`` (:src:`source <include/gui_forms/components/business_card/business_card.hpp>`)
 
    The optional remark source (decision 2a): a program that speaks through its card (PlaySuite's remarks, the ones made when such cards are compared) names a function that writes one remark into ``remark`` (cleared before the call; UTF-8; the card shows at most maximum_business_card_remark bytes, cut at a character boundary; text that is not UTF-8 is dropped). While the pointer is over the card in the hand, the card asks for a remark a moment after the pointer arrives and then every one to two and a half seconds, and shows each around the card (the remark part, clear of the card and of the others), rising and fading over two and a half to nine seconds, at most maximum_business_card_remarks at once. It is called on the UI thread; ``context`` is passed back and must stay valid until the source is replaced or cleared. An empty source gives no remarks, and the card shows its copyright line alone.
 
@@ -429,7 +429,7 @@ Related types
 
 .. cpp:struct:: BusinessCardRequest final
 
-   ``#include <gui_forms/components/business_card/business_card.hpp>``
+   ``#include <gui_forms/components/business_card/business_card.hpp>`` (:src:`source <include/gui_forms/components/business_card/business_card.hpp>`)
 
    The argument of BusinessCard::open_requested and website_requested: a handler that answers the request itself sets handled.
 
@@ -441,7 +441,7 @@ Related types
 
 .. cpp:struct:: Callout::Parts final
 
-   ``#include <gui_forms/controls/callout.hpp>``
+   ``#include <gui_forms/controls/callout.hpp>`` (:src:`source <include/gui_forms/controls/callout.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts).
 
@@ -459,7 +459,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutActionTextCapability
 
-   ``#include <gui_forms/controls/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/callout_capabilities.hpp>`)
 
    The action button's text; empty for no action button. Must be valid UTF-8 (std::invalid_argument).
 
@@ -474,7 +474,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutCapabilities : public CalloutTitleCapability<Declaring>, public CalloutTextCapability<Declaring>, public CalloutActionTextCapability<Declaring>, public CalloutLightDismissCapability<Declaring>, public CalloutPrefersAboveCapability<Declaring>
 
-   ``#include <gui_forms/controls/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/callout_capabilities.hpp>`)
 
    Every Callout capability, in the order the declaring class takes them.
 
@@ -505,7 +505,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutLightDismissCapability
 
-   ``#include <gui_forms/controls/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/callout_capabilities.hpp>`)
 
    Whether a press anywhere outside the callout closes it; without it, presses outside reach the window and only the close mark, Escape or the action close it.
 
@@ -522,7 +522,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutPrefersAboveCapability
 
-   ``#include <gui_forms/controls/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/callout_capabilities.hpp>`)
 
    Whether the callout opens above its target rather than below; it moves to the other side when the preferred one has no room.
 
@@ -539,7 +539,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutTextCapability
 
-   ``#include <gui_forms/controls/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/callout_capabilities.hpp>`)
 
    The explanation under the title, wrapped to the callout's width. Must be valid UTF-8 (std::invalid_argument).
 
@@ -554,7 +554,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> CalloutTitleCapability
 
-   ``#include <gui_forms/controls/callout_capabilities.hpp>``
+   ``#include <gui_forms/controls/callout_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/callout_capabilities.hpp>`)
 
    The bold first line; empty for none. Must be valid UTF-8 (std::invalid_argument).
 
@@ -569,7 +569,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorDialogAllowAlphaCapability
 
-   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>`)
 
    Whether the user may choose a translucent color. Off by default, as in Windows Forms, where every chosen color is opaque: the dialog then takes the chosen color as opaque whatever the host returns.
 
@@ -584,7 +584,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorDialogCapabilities : public ColorDialogTitleCapability<Declaring>, public ColorDialogColorCapability<Declaring>, public ColorDialogAllowAlphaCapability<Declaring>
 
-   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>`)
 
    Every ColorDialog capability, in the order the declaring class takes them.
 
@@ -607,7 +607,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorDialogColorCapability
 
-   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>`)
 
    The chosen color, and before the dialog is shown the one it starts with (Windows Forms' Color; opaque black by default). An accepted show_dialog writes it.
 
@@ -624,7 +624,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ColorDialogTitleCapability
 
-   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp>`)
 
    The dialog's title; empty gives the host's own. Windows Forms' dialog has none; the hosts that title their dialog use it. Must be valid UTF-8 without NUL (std::invalid_argument).
 
@@ -639,7 +639,7 @@ Related types
 
 .. cpp:struct:: FileDialogFilterParse final
 
-   ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>``
+   ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>`` (:src:`source <include/gui_forms/components/file_dialog_types/file_dialog_types.hpp>`)
 
    The result of parsing a filter string: the host filters in order, or the first error with no filters.
 
@@ -653,7 +653,7 @@ Related types
 
 .. cpp:struct:: FileDialogOk final
 
-   ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>``
+   ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>`` (:src:`source <include/gui_forms/components/file_dialog_types/file_dialog_types.hpp>`)
 
    Raised by a file dialog after the user accepts and before the dialog takes the names (Windows Forms' FileOk). ``file_names`` holds the chosen paths and stays valid for the handler's call only (a call-scope borrow: the sanitizer tree reports a use after the raise). Setting ``cancel`` keeps the dialog's old names and shows the dialog again with the same settings, where Windows Forms keeps its dialog open.
 
@@ -665,7 +665,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FolderBrowserDialogCapabilities : public FolderBrowserDialogDescriptionCapability<Declaring>, public FolderBrowserDialogInitialDirectoryCapability<Declaring>, public FolderBrowserDialogSelectedPathCapability<Declaring>
 
-   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>`)
 
    Every FolderBrowserDialog capability, in the order the declaring class takes them.
 
@@ -688,7 +688,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FolderBrowserDialogDescriptionCapability
 
-   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>`)
 
    The text the dialog shows the user: above the tree on Windows, as the title elsewhere. Empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -703,7 +703,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FolderBrowserDialogInitialDirectoryCapability
 
-   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>`)
 
    The folder the dialog starts in when no folder is selected; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -718,7 +718,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FolderBrowserDialogSelectedPathCapability
 
-   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp>`)
 
    The chosen folder, or empty. A folder set here before the dialog is shown is the one it starts in; an accepted show_dialog moves it. Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -735,7 +735,7 @@ Related types
 
 .. cpp:struct:: FontDialog::Parts final
 
-   ``#include <gui_forms/controls/font_dialog.hpp>``
+   ``#include <gui_forms/controls/font_dialog.hpp>`` (:src:`source <include/gui_forms/controls/font_dialog.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -753,7 +753,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontDialogCapabilities : public FontDialogFontCapability<Declaring>, public FontDialogShowApplyCapability<Declaring>, public FontDialogPreviewTextCapability<Declaring>
 
-   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/font_dialog_capabilities.hpp>`)
 
    Every FontDialog capability, in the order the declaring class takes them.
 
@@ -776,7 +776,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontDialogFontCapability
 
-   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/font_dialog_capabilities.hpp>`)
 
    The font OK or Apply last took (initially 9-unit Carlito, like Windows Forms' default); not the dialog's own text font (G1). A view, since OK and Apply move it. A write also resets the selection to it and marks the font as set from code; an invalid FontSpec throws std::invalid_argument.
 
@@ -793,7 +793,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontDialogPreviewTextCapability
 
-   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/font_dialog_capabilities.hpp>`)
 
    The preview text; invalid UTF-8 throws std::invalid_argument.
 
@@ -810,7 +810,7 @@ Related types
 
 .. cpp:struct:: FontDialogResult final
 
-   ``#include <gui_forms/controls/font_dialog.hpp>``
+   ``#include <gui_forms/controls/font_dialog.hpp>`` (:src:`source <include/gui_forms/controls/font_dialog.hpp>`)
 
    How a FontDialog closed, and the font it holds then.
 
@@ -824,7 +824,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> FontDialogShowApplyCapability
 
-   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/font_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/font_dialog_capabilities.hpp>`)
 
    Whether the Apply button is shown.
 
@@ -841,7 +841,7 @@ Related types
 
 .. cpp:struct:: MessageBoxClosed final
 
-   ``#include <gui_forms/components/message_box/message_box.hpp>``
+   ``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
 
    A message box that closed: the button the user chose, as Windows Forms' DialogResult (none for a Yes/No box the host closed without a choice).
 
@@ -853,7 +853,7 @@ Related types
 
 .. cpp:struct:: MessageBoxRefused final
 
-   ``#include <gui_forms/components/message_box/message_box.hpp>``
+   ``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
 
    A message box that was not shown: the host's refusal, never HostServiceError::none.
 
@@ -865,7 +865,7 @@ Related types
 
 .. cpp:struct:: MessageBoxRequest final
 
-   ``#include <gui_forms/components/message_box/message_box.hpp>``
+   ``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
 
    The arguments of Windows Forms' MessageBox.Show: the message, the caption in the title bar, the buttons, the icon, the default button and the options.
 
@@ -897,7 +897,7 @@ Related types
 
 .. cpp:class:: MessageBoxResult final
 
-   ``#include <gui_forms/components/message_box/message_box.hpp>``
+   ``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
 
    What show_message_box returns: either the box closed, with the chosen button, or it was not shown, with the reason. Built only through :cpp:func:`closed <gui_forms::MessageBoxResult::closed>` and :cpp:func:`refused <gui_forms::MessageBoxResult::refused>`.
 
@@ -929,7 +929,7 @@ Related types
 
 .. cpp:struct:: ModalLayer::Parts final
 
-   ``#include <gui_forms/controls/modal_layer.hpp>``
+   ``#include <gui_forms/controls/modal_layer.hpp>`` (:src:`source <include/gui_forms/controls/modal_layer.hpp>`)
 
    Stage T1 anatomy, as dot members (see Control::Parts). ``scrim`` covers the client while content is shown; ``shadow`` lies under the content.
 
@@ -943,7 +943,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ModalLayerCapabilities : public ModalLayerCloseOnEscapeCapability<Declaring>
 
-   ``#include <gui_forms/controls/modal_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/modal_layer_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/modal_layer_capabilities.hpp>`)
 
    Every ModalLayer capability, in the order the declaring class takes them.
 
@@ -958,7 +958,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ModalLayerCloseOnEscapeCapability
 
-   ``#include <gui_forms/controls/modal_layer_capabilities.hpp>``
+   ``#include <gui_forms/controls/modal_layer_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/modal_layer_capabilities.hpp>`)
 
    Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
 
@@ -975,7 +975,7 @@ Related types
 
 .. cpp:struct:: ModalLayerClosingEvent final
 
-   ``#include <gui_forms/controls/modal_layer.hpp>``
+   ``#include <gui_forms/controls/modal_layer.hpp>`` (:src:`source <include/gui_forms/controls/modal_layer.hpp>`)
 
    The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
 
@@ -991,7 +991,7 @@ Related types
 
 .. cpp:struct:: ProgramIdentity final
 
-   ``#include <gui_forms/components/business_card/business_card.hpp>``
+   ``#include <gui_forms/components/business_card/business_card.hpp>`` (:src:`source <include/gui_forms/components/business_card/business_card.hpp>`)
 
    The program's identity, as the business card shows it. ``vendor`` is the display name printed large on the card (package names carry no vendor; this is display text only) and ``website`` the address the card's link names (https only; empty for no link). Every field is UTF-8 text; empty fields are left off the card.
 
@@ -1011,7 +1011,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonToolTipAutoPopDelayCapability
 
-   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>`)
 
    How long a tooltip stays without input; zero keeps it until the pointer leaves or focus moves. A negative delay throws std::invalid_argument.
 
@@ -1028,7 +1028,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonToolTipCapabilities : public RibbonToolTipInitialDelayCapability<Declaring>, public RibbonToolTipAutoPopDelayCapability<Declaring>, public RibbonToolTipHelpLineTextCapability<Declaring>
 
-   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>`)
 
    Every RibbonToolTip capability, in the order the declaring class takes them.
 
@@ -1051,7 +1051,7 @@ Related types
 
 .. cpp:struct:: RibbonToolTipContent final
 
-   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>``
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>`` (:src:`source <include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>`)
 
    What an enhanced tooltip shows (owner decision RB-13, E3-2): a title, a description, the shortcut, an image, the reason a disabled command is unavailable, and a help topic F1 opens while the tooltip shows. With a ``command``, an empty title, description, shortcut or disabled reason is taken from the command's state when the tooltip opens, and the command's enabled state says whether the target is disabled. A ToolStrip item with a command supplies that command when ``command`` is empty.
 
@@ -1075,7 +1075,7 @@ Related types
 
 .. cpp:struct:: RibbonToolTipEvent final
 
-   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>``
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>`` (:src:`source <include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>`)
 
    The tooltip opened or closed. ``item_id`` names the ToolStrip item it describes, or is empty for a whole control. ``content`` is what it shows, resolved from its command; ``disabled_reason`` is empty unless the target was disabled.
 
@@ -1093,7 +1093,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonToolTipHelpLineTextCapability
 
-   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>`)
 
    The line a tooltip with a help topic shows under a rule. Text that is not valid UTF-8 throws std::invalid_argument.
 
@@ -1110,7 +1110,7 @@ Related types
 
 .. cpp:struct:: RibbonToolTipHelpRequest final
 
-   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>``
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>`` (:src:`source <include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp>`)
 
    F1 was pressed while a tooltip with a help topic showed. GUI.Forms opens no help viewer: the application handles the topic.
 
@@ -1124,7 +1124,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonToolTipInitialDelayCapability
 
-   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/ribbon_tool_tip/ribbon_tool_tip_capabilities/ribbon_tool_tip_capabilities.hpp>`)
 
    How long the pointer rests before a tooltip shows. A negative delay throws std::invalid_argument.
 
@@ -1141,7 +1141,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogAddExtensionCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    Whether a chosen name without an extension is given one (Windows Forms' AddExtension; on by default): the chosen filter's first extension, unless that filter is any file, else default_ext.
 
@@ -1158,7 +1158,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogCapabilities : public SaveFileDialogTitleCapability<Declaring>, public SaveFileDialogInitialDirectoryCapability<Declaring>, public SaveFileDialogFilterCapability<Declaring>, public SaveFileDialogFilterIndexCapability<Declaring>, public SaveFileDialogDefaultExtCapability<Declaring>, public SaveFileDialogAddExtensionCapability<Declaring>, public SaveFileDialogOverwritePromptCapability<Declaring>, public SaveFileDialogFileNameCapability<Declaring>, public SaveFileDialogCheckFileExistsCapability<Declaring>, public SaveFileDialogCheckPathExistsCapability<Declaring>, public SaveFileDialogCreatePromptCapability<Declaring>
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    Every SaveFileDialog capability, in the order the declaring class takes them.
 
@@ -1213,7 +1213,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogCheckFileExistsCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    Whether the host accepts only a file that exists (Windows Forms' CheckFileExists; off by default for saving).
 
@@ -1230,7 +1230,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogCheckPathExistsCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    Whether the host accepts only a name in a folder that exists (Windows Forms' CheckPathExists; on by default). macOS's save panel always requires one.
 
@@ -1247,7 +1247,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogCreatePromptCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    Whether the host asks before the user chooses a file that does not exist yet (Windows Forms' CreatePrompt; off by default).
 
@@ -1264,7 +1264,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogDefaultExtCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    The extension a chosen name without one is given, without its dot (Windows Forms' DefaultExt; a leading dot is removed when set). An extension holding a wildcard, a path separator or a character Windows forbids in a name, or text that is not UTF-8 without NUL, throws std::invalid_argument.
 
@@ -1279,7 +1279,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogFileNameCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    The first chosen path, or empty. Before the dialog is shown, a name set here is the one the dialog suggests; writing it makes the chosen paths this one name (none for an empty name). Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -1296,7 +1296,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogFilterCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    The filter in Windows Forms' syntax, as set; filters() holds the host filters it parsed into. Anything but label\|patterns pairs of ``*``, ``*.*`` or ``*.extension`` throws std::invalid_argument.
 
@@ -1311,7 +1311,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogFilterIndexCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    The filter the dialog starts with, an index into filters() (Windows Forms' FilterIndex, which counts from one; this counts from zero). After the user accepts it is the filter they had selected, where the host tells; an index past the filters starts the dialog on the first.
 
@@ -1326,7 +1326,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogInitialDirectoryCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    The directory the dialog starts in; empty lets the host choose. Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -1341,7 +1341,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogOverwritePromptCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    Whether the host asks before the user chooses a file that exists (Windows Forms' OverwritePrompt; on by default).
 
@@ -1358,7 +1358,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> SaveFileDialogTitleCapability
 
-   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>``
+   ``#include <gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp>`)
 
    The dialog's title; empty gives the host's own. Valid UTF-8 without NUL (std::invalid_argument).
 
@@ -1373,7 +1373,7 @@ Related types
 
 .. cpp:struct:: TaskDialog::Parts final
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    Stage T1 anatomy, as dot members. Its states are Control's.
 
@@ -1425,7 +1425,7 @@ Related types
 
 .. cpp:struct:: TaskDialogButton final
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    One command button. ``stable_id`` names the button in results and events and is unique within the page; a standard button with an empty ID takes its standard name ("ok", "cancel", "try_again", ...), and a standard button with empty text shows its standard text. Any other ID is a stable-ID segment ([a-z0-9] runs joined by '-' or '.'), since it names the button's control; the standard "try_again" names a control segment "try-again". A button whose ``allow_close`` is false raises button_clicked and leaves the dialog open.
 
@@ -1449,7 +1449,7 @@ Related types
 
 .. cpp:struct:: TaskDialogButtonClick final
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    A click on a button, before the dialog closes. Setting ``keep_open`` keeps the dialog open, as a button whose allow_close is false does.
 
@@ -1461,7 +1461,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TaskDialogCapabilities : public TaskDialogExpandedCapability<Declaring>, public TaskDialogVerificationCheckedCapability<Declaring>
 
-   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog_capabilities.hpp>`)
 
    Every TaskDialog capability, in the order the declaring class takes them.
 
@@ -1480,7 +1480,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TaskDialogExpandedCapability
 
-   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog_capabilities.hpp>`)
 
    Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander. A change re-lays out the dialog and raises expanded_changed; a write to a page without an expander does nothing and reads false.
 
@@ -1497,7 +1497,7 @@ Related types
 
 .. cpp:struct:: TaskDialogExpander final
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    Expanded information, shown below the text while expanded. The expander button shows one text or the other.
 
@@ -1517,7 +1517,7 @@ Related types
 
 .. cpp:struct:: TaskDialogPage final
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    One page (Windows Forms' TaskDialogPage). Empty strings leave their part out: no caption row, heading, text, verification check box or footnote. A page without buttons gets an OK button. ``default_button`` names the button Enter clicks and that takes focus first; empty names the first. With ``allow_cancel``, Escape closes the dialog as its cancel button would.
 
@@ -1561,7 +1561,7 @@ Related types
 
 .. cpp:struct:: TaskDialogProgressBar final
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    A progress bar below the text: a value between the bounds, or a marquee.
 
@@ -1579,7 +1579,7 @@ Related types
 
 .. cpp:struct:: TaskDialogRadioButton final
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    One radio button; at most one of a page's radio buttons is checked. Its ``stable_id`` is a stable-ID segment, as a custom button's is.
 
@@ -1597,7 +1597,7 @@ Related types
 
 .. cpp:struct:: TaskDialogResult final
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
 
@@ -1611,7 +1611,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> TaskDialogVerificationCheckedCapability
 
-   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>``
+   ``#include <gui_forms/controls/task_dialog_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog_capabilities.hpp>`)
 
    The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page. While the check box exists a write goes through it and raises verification_changed; before it does, a write only stores the page's state.
 
@@ -1628,7 +1628,7 @@ Related types
 
 .. cpp:struct:: ThreadExceptionReport final
 
-   ``#include <gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp>``
+   ``#include <gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp>`` (:src:`source <include/gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp>`)
 
    What a ThreadExceptionDialog reports. ``message`` is the exception's own text and ``details`` the diagnostic text behind the details expander (a stack trace, the operation that failed); C++ exceptions carry neither a portable type name nor a stack trace, so the application supplies what it has. An empty caption gives "Unhandled exception"; empty details leave the expander out. A ``warning`` report (Windows Forms' WarningException) shows the warning icon and offers Continue only.
 
@@ -1644,7 +1644,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipAutoPopDelayCapability
 
-   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`)
 
    How long a tooltip stays (ToolTipSettings::auto_pop_delay); negative throws std::invalid_argument.
 
@@ -1661,7 +1661,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipCapabilities : public ToolTipInitialDelayCapability<Declaring>, public ToolTipReshowDelayCapability<Declaring>, public ToolTipAutoPopDelayCapability<Declaring>, public ToolTipShowOnHoverCapability<Declaring>, public ToolTipShowOnFocusCapability<Declaring>, public ToolTipShowAlwaysCapability<Declaring>, public ToolTipMaximumWidthCapability<Declaring>
 
-   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`)
 
    Every ToolTip capability, in the order the declaring class takes them.
 
@@ -1700,7 +1700,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipInitialDelayCapability
 
-   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`)
 
    How long the pointer rests on a target before its tooltip shows (ToolTipSettings::initial_delay); negative throws std::invalid_argument.
 
@@ -1717,7 +1717,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipMaximumWidthCapability
 
-   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`)
 
    The widest a tooltip wraps to (ToolTipSettings::maximum_width); outside 80 to 2048 throws std::invalid_argument.
 
@@ -1734,7 +1734,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipReshowDelayCapability
 
-   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`)
 
    How long the pointer rests on the next target while a tooltip shows (ToolTipSettings::reshow_delay); negative throws std::invalid_argument.
 
@@ -1751,7 +1751,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipShowAlwaysCapability
 
-   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`)
 
    Whether a disabled control's tooltip shows (ToolTipSettings::show_when_disabled).
 
@@ -1768,7 +1768,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipShowOnFocusCapability
 
-   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`)
 
    Whether a tooltip shows when its target takes the keyboard focus (ToolTipSettings::show_on_focus).
 
@@ -1785,7 +1785,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolTipShowOnHoverCapability
 
-   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>``
+   ``#include <gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`` (:src:`source <include/gui_forms/components/tool_tip/tool_tip_capabilities/tool_tip_capabilities.hpp>`)
 
    Whether a tooltip shows when the pointer rests on its target (ToolTipSettings::show_on_hover).
 
@@ -1805,7 +1805,7 @@ Enumerations
 
 .. cpp:enum-class:: BusinessCardLinkOutcome
 
-   ``#include <gui_forms/components/business_card/business_card.hpp>``
+   ``#include <gui_forms/components/business_card/business_card.hpp>`` (:src:`source <include/gui_forms/components/business_card/business_card.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1821,7 +1821,7 @@ Enumerations
 
 .. cpp:enum-class:: BusinessCardPresentation
 
-   ``#include <gui_forms/components/business_card/business_card.hpp>``
+   ``#include <gui_forms/components/business_card/business_card.hpp>`` (:src:`source <include/gui_forms/components/business_card/business_card.hpp>`)
 
    .. cpp:enumerator:: page
 
@@ -1831,7 +1831,7 @@ Enumerations
 
 .. cpp:enum-class:: CalloutCloseReason
 
-   ``#include <gui_forms/controls/callout.hpp>``
+   ``#include <gui_forms/controls/callout.hpp>`` (:src:`source <include/gui_forms/controls/callout.hpp>`)
 
    .. cpp:enumerator:: close_button
 
@@ -1849,7 +1849,7 @@ Enumerations
 
 .. cpp:enum-class:: FileDialogFilterError
 
-   ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>``
+   ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>`` (:src:`source <include/gui_forms/components/file_dialog_types/file_dialog_types.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1867,7 +1867,7 @@ Enumerations
 
 .. cpp:enum-class:: MessageBoxDefaultButton
 
-   ``#include <gui_forms/components/message_box/message_box.hpp>``
+   ``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
 
    .. cpp:enumerator:: button1
 
@@ -1881,7 +1881,7 @@ Enumerations
 
 .. cpp:enum-class:: MessageBoxOptions
 
-   ``#include <gui_forms/components/message_box/message_box.hpp>``
+   ``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1893,7 +1893,7 @@ Enumerations
 
 .. cpp:enum-class:: OverlayDismissReason
 
-   ``#include <gui_forms/controls/anchored_overlay_layer.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_layer.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_layer.hpp>`)
 
    .. cpp:enumerator:: click_away
 
@@ -1903,7 +1903,7 @@ Enumerations
 
 .. cpp:enum-class:: OverlayHorizontalAlignment
 
-   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_placement.hpp>`)
 
    .. cpp:enumerator:: start
 
@@ -1915,7 +1915,7 @@ Enumerations
 
 .. cpp:enum-class:: OverlayVerticalPreference
 
-   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
+   ``#include <gui_forms/controls/anchored_overlay_placement.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_placement.hpp>`)
 
    .. cpp:enumerator:: below
 
@@ -1925,7 +1925,7 @@ Enumerations
 
 .. cpp:enum-class:: TaskDialogIcon
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1941,7 +1941,7 @@ Enumerations
 
 .. cpp:enum-class:: TaskDialogStandardButton
 
-   ``#include <gui_forms/controls/task_dialog.hpp>``
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -1972,7 +1972,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/components/business_card/business_card.hpp>``
+``#include <gui_forms/components/business_card/business_card.hpp>`` (:src:`source <include/gui_forms/components/business_card/business_card.hpp>`)
 
 .. cpp:function:: void set_program_identity(const ProgramIdentity& identity)
 
@@ -2024,7 +2024,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>``
+``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>`` (:src:`source <include/gui_forms/components/file_dialog_types/file_dialog_types.hpp>`)
 
 .. cpp:function:: FileDialogFilterParse parse_file_dialog_filter(std::string_view filter)
 
@@ -2044,7 +2044,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/components/message_box/message_box.hpp>``
+``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
 
 .. cpp:function:: constexpr bool has_message_box_option(MessageBoxOptions options, MessageBoxOptions option) noexcept
 
@@ -2054,7 +2054,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp>``
+``#include <gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp>`` (:src:`source <include/gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp>`)
 
 .. cpp:function:: ThreadExceptionReport describe_exception(const std::exception_ptr& error)
 
@@ -2062,7 +2062,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/anchored_overlay_placement.hpp>``
+``#include <gui_forms/controls/anchored_overlay_placement.hpp>`` (:src:`source <include/gui_forms/controls/anchored_overlay_placement.hpp>`)
 
 .. cpp:function:: AnchoredOverlayPlacementResult resolve_anchored_overlay(Rect anchor_bounds, Size client_size, AnchoredOverlayPlacement placement)
 
@@ -2070,7 +2070,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/font_dialog.hpp>``
+``#include <gui_forms/controls/font_dialog.hpp>`` (:src:`source <include/gui_forms/controls/font_dialog.hpp>`)
 
 .. cpp:function:: std::span<const BundledFontFace> bundled_font_faces() noexcept
 
@@ -2078,7 +2078,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/modal_layer.hpp>``
+``#include <gui_forms/controls/modal_layer.hpp>`` (:src:`source <include/gui_forms/controls/modal_layer.hpp>`)
 
 .. cpp:var:: constexpr FrameInterval modal_scrim_fade
 

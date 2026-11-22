@@ -99,7 +99,7 @@ struct CheckBoxAppearanceStyleCapability {
     }
 };
 
-// How the check mark draws: classic, modern or toggle (std::invalid_argument outside them).
+// How the check mark draws: classic, modern or toggle (std::invalid_argument outside them; lamp too, as lamps form a radio choice, never a check box).
 template <typename Declaring>
 struct CheckBoxIndicatorStyleCapability {
     PropertyCell<ChoiceIndicatorStyle, CheckBoxIndicatorStyleCapability<Declaring>> indicator_style{ChoiceIndicatorStyle::classic};

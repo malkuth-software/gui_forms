@@ -34,23 +34,27 @@
     <check-box id="gallery.overlays.above"
         text="Prefer above"
         indicator-style="modern"
-        bounds="340 38 150 26"
-        checked="bind(above_)"/>
+        bounds="340 38 150 26">
+      <bind property="checked" to="above_"/>
+    </check-box>
     <check-box id="gallery.overlays.flip"
         text="Allow vertical flip"
         indicator-style="modern"
-        bounds="500 38 180 26"
-        checked="bind(flip_)"/>
+        bounds="500 38 180 26">
+      <bind property="checked" to="flip_"/>
+    </check-box>
     <check-box id="gallery.overlays.click-away"
         text="Dismiss on click-away"
         indicator-style="modern"
-        bounds="690 38 210 26"
-        checked="bind(click_away_)"/>
+        bounds="690 38 210 26">
+      <bind property="checked" to="click_away_"/>
+    </check-box>
     <check-box id="gallery.overlays.escape"
         text="Dismiss on Escape"
         indicator-style="modern"
-        bounds="22 76 200 26"
-        checked="bind(escape_)"/>
+        bounds="22 76 200 26">
+      <bind property="checked" to="escape_"/>
+    </check-box>
     <label id="gallery.overlays.options.note"
         text="Changes apply to an open overlay immediately; the layer also re-resolves on host resize."
         classes="muted note"

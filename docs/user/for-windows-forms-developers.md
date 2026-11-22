@@ -96,52 +96,76 @@ controls but play the role of the Forms type.
 | Windows Forms | GUI.Forms | Status | Notes |
 |---|---|---|---|
 | `Application` | [`Application`](../api/generated/gui_forms.Application.rst) | core | Runs one window or a set of windows on the native host. |
-| `BackgroundWorker` | [`BackgroundWorker`](../api/generated/gui_forms.BackgroundWorker.rst) | core | Or [`Worker`](../api/generated/gui_forms.Worker.rst) with [`CancellationFlag`](../api/generated/gui_forms.CancellationFlag.rst). |
+| `BackgroundWorker` | [`BackgroundWorker`](../api/generated/gui_forms.BackgroundWorker.rst) | provisional | Or [`Worker`](../api/generated/gui_forms.Worker.rst) with [`CancellationFlag`](../api/generated/gui_forms.CancellationFlag.rst). |
 | `Binding` | [`Binding`](../api/generated/gui_forms.Binding.rst) | stable | |
 | `BindingContext` | [`BindingContext`](../api/generated/gui_forms.BindingContext.rst) | stable | |
+| `BindingNavigator` | [`BindingNavigator`](../api/generated/gui_forms.BindingNavigator.rst) | stable | A `ToolStrip` that moves through a `BindingSource`: first, previous, position, count, next, last, add and delete, each a shared `Command`. |
 | `BindingSource` | [`BindingSource`](../api/generated/gui_forms.BindingSource.rst) | stable | Holds `BindingRecord` rows. |
 | `Button` | [`Button`](../api/generated/gui_forms.Button.rst) | stable | |
 | `ButtonBase` | [`ButtonBase`](../api/generated/gui_forms.ButtonBase.rst) | stable | |
 | `CheckBox` | [`CheckBox`](../api/generated/gui_forms.CheckBox.rst) | stable | |
 | `CheckedListBox` | [`CheckedListBox`](../api/generated/gui_forms.CheckedListBox.rst) | stable | |
+| `ColorDialog` | [`ColorDialog`](../api/generated/gui_forms.ColorDialog.rst) | provisional | The host's dialog, shown modally; opaque unless alpha is allowed. |
 | `ComboBox` | [`ComboBox`](../api/generated/gui_forms.ComboBox.rst) | stable | The `DropDownList` and `DropDown` styles (not `Simple`); auto-complete from the items or a custom list. |
 | `Component` | [`Component`](../api/generated/gui_forms.Component.rst) | core | |
 | `ContainerControl` | [`ContainerControl`](../api/generated/gui_forms.ContainerControl.rst) | stable | |
 | `ContextMenuStrip` | [`ContextMenu`](../api/generated/gui_forms.ContextMenu.rst) | stable | Rows are bound to [`Command`](../api/generated/gui_forms.Command.rst) objects. |
 | `Control` | [`Control`](../api/generated/gui_forms.Control.rst) | core | |
+| `DataGridView` | [`DataGridView`](../api/generated/gui_forms.DataGridView.rst) | provisional | Text, check box, combo box, button, image and link columns over unbound, virtual or `BindingSource` rows kept by stable row ID; only visible rows are realized. |
 | `DateTimePicker` | [`DateTimePicker`](../api/generated/gui_forms.DateTimePicker.rst) | stable | Calendar or spin presentation. |
+| `DomainUpDown` | [`DomainUpDown`](../api/generated/gui_forms.DomainUpDown.rst) | stable | Steps through an ordered string list, with optional wrapping and sorting. |
 | `ErrorProvider` | [`ErrorProvider`](../api/generated/gui_forms.ErrorProvider.rst) | stable | |
 | `FlowLayoutPanel` | [`FlowLayoutPanelCompat`](../api/generated/gui_forms.FlowLayoutPanelCompat.rst) | stable | Imported by its Windows Forms name; use `FlexPanel` for new work |
+| `FolderBrowserDialog` | [`FolderBrowserDialog`](../api/generated/gui_forms.FolderBrowserDialog.rst) | provisional | The host's dialog, shown modally. |
+| `FontDialog` | [`FontDialog`](../api/generated/gui_forms.FontDialog.rst) | stable | An in-window owned dialog choosing a bundled face by role, a style and a size; returns a `FontSpec`. |
 | `Form` | [`Window`](../api/generated/gui_forms.Window.rst) | core | Presented by `Application::run`. |
 | `GroupBox` | [`GroupBox`](../api/generated/gui_forms.GroupBox.rst) | stable | |
+| `Help` | [`HelpBookSystem`](../api/generated/gui_forms.HelpBookSystem.rst) | provisional | F1, What's This, help cards and the help window over a compiled help book. |
 | `HelpProvider` | [`HelpProvider`](../api/generated/gui_forms.HelpProvider.rst) | stable | |
 | `HScrollBar` | [`HScrollBar`](../api/generated/gui_forms.HScrollBar.rst) | stable | |
 | `ImageList` | [`ImageList`](../api/generated/gui_forms.ImageList.rst) | stable | Bound to one window. |
 | `Label` | [`Label`](../api/generated/gui_forms.Label.rst) | stable | |
 | `LinkLabel` | [`LinkLabel`](../api/generated/gui_forms.LinkLabel.rst) | stable | |
 | `ListBox` | [`ListBox`](../api/generated/gui_forms.ListBox.rst) | stable | |
+| `ListControl` | [`ListControl`](../api/generated/gui_forms.ListControl.rst) | provisional | Abstract base of `ListBox`, `CheckedListBox` and `ComboBox`. |
+| `ListView` | [`ListView`](../api/generated/gui_forms.ListView.rst) | stable | Details, list, small-icon and large-icon views, check boxes, column headers and a virtual mode. |
 | `ListView` | [`ObjectView`](../api/generated/gui_forms.ObjectView.rst) | stable | Icon and details views over stable item IDs. |
+| `MaskedTextBox` | [`MaskedTextBox`](../api/generated/gui_forms.MaskedTextBox.rst) | stable | Refused input is reported with its position and reason. |
 | `MenuStrip` | [`MenuStrip`](../api/generated/gui_forms.MenuStrip.rst) | stable | Drawn inside the window, not published to a native menu bar. |
+| `MonthCalendar` | [`MonthCalendar`](../api/generated/gui_forms.MonthCalendar.rst) | stable | One or more month pages; a date or a run of dates. |
+| `NotifyIcon` | [`NotifyIcon`](../api/generated/gui_forms.NotifyIcon.rst) | provisional | Refused explicitly where the host lacks a notification area ([Hosts and capabilities](hosts-and-capabilities.md)). |
 | `NumericUpDown` | [`NumericUpDown`](../api/generated/gui_forms.NumericUpDown.rst) | stable | Decimal or hexadecimal. |
+| `OpenFileDialog` | [`OpenFileDialog`](../api/generated/gui_forms.OpenFileDialog.rst) | provisional | The host's dialog, shown modally, with the Windows Forms filter string. |
 | `Panel` | [`Panel`](../api/generated/gui_forms.Panel.rst) | stable | |
 | `PictureBox` | [`PictureBox`](../api/generated/gui_forms.PictureBox.rst) | stable | All five size modes. |
 | `ProgressBar` | [`ProgressBar`](../api/generated/gui_forms.ProgressBar.rst) | stable | |
 | `PropertyGrid` | [`PropertyGrid`](../api/generated/gui_forms.PropertyGrid.rst) | stable | Edits the property descriptors of `Control` objects. |
 | `RadioButton` | [`RadioButton`](../api/generated/gui_forms.RadioButton.rst) | stable | |
+| `RichTextBox` | [`RichTextBox`](../api/generated/gui_forms.RichTextBox.rst) | provisional | The document is Markdown, shown styled in place; read and written as RTF. |
+| `SaveFileDialog` | [`SaveFileDialog`](../api/generated/gui_forms.SaveFileDialog.rst) | provisional | The host's dialog, shown modally, with the Windows Forms filter string. |
 | `ScrollableControl` | [`ScrollableControl`](../api/generated/gui_forms.ScrollableControl.rst) | stable | |
 | `ScrollBar` | [`ScrollBar`](../api/generated/gui_forms.ScrollBar.rst) | stable | |
 | `SplitContainer` | [`SplitContainer`](../api/generated/gui_forms.SplitContainer.rst) | stable | |
+| `Splitter` | [`Splitter`](../api/generated/gui_forms.Splitter.rst) | provisional | A migration facade over the dock layout; new code uses `SplitContainer`. |
 | `SplitterPanel` | [`SplitterPanel`](../api/generated/gui_forms.SplitterPanel.rst) | stable | |
+| `StatusStrip` | [`StatusStrip`](../api/generated/gui_forms.StatusStrip.rst) | stable | Laid out as a `ToolStrip` that never overflows, with spring labels and a sizing grip. |
 | `TabControl` | [`TabControl`](../api/generated/gui_forms.TabControl.rst) | stable | |
-| `TabPage` | [`TabPage`](../api/generated/gui_forms.TabPage.rst) | stable | |
 | `TableLayoutPanel` | [`TableLayoutPanelCompat`](../api/generated/gui_forms.TableLayoutPanelCompat.rst) | stable | Imported by its Windows Forms name; use `GridPanel` for new work |
+| `TabPage` | [`TabPage`](../api/generated/gui_forms.TabPage.rst) | stable | |
+| `TaskDialog` | [`TaskDialog`](../api/generated/gui_forms.TaskDialog.rst) | provisional | An in-window owned dialog of `TaskDialogPage` pages. |
 | `TextBox` | [`TextBox`](../api/generated/gui_forms.TextBox.rst) | stable | Single-line or multiline; password character; auto-complete from a custom list (`AutoCompleteMode`, `AutoCompleteCustomSource`). |
+| `TextBoxBase` | [`TextBoxBase`](../api/generated/gui_forms.TextBoxBase.rst) | provisional | Abstract base of `TextBox`, `MaskedTextBox` and `RichTextBox`. |
+| `ThreadExceptionDialog` | [`ThreadExceptionDialog`](../api/generated/gui_forms.ThreadExceptionDialog.rst) | provisional | A `TaskDialog` preset; Continue and Quit return cancel and abort. |
 | `Timer` | [`Timer`](../api/generated/gui_forms.Timer.rst) | stable | |
+| `ToolStrip` | [`ToolStrip`](../api/generated/gui_forms.ToolStrip.rst) | stable | Buttons, labels, separators, drop-down and split buttons, with an overflow menu. |
 | `ToolStrip` | [`CommandBar`](../api/generated/gui_forms.CommandBar.rst) | provisional | A row of command buttons built from a replaceable item list. |
+| `ToolStripContainer` | [`ToolStripContainer`](../api/generated/gui_forms.ToolStripContainer.rst) | stable | Four `ToolStripPanel`s around a content panel. |
+| `ToolStripPanel` | [`ToolStripPanel`](../api/generated/gui_forms.ToolStripPanel.rst) | stable | Stacks joined `ToolStrip`s along one edge. |
 | `ToolStripSplitButton` | [`DropDownButton`](../api/generated/gui_forms.DropDownButton.rst) | provisional | Whole-button or split drop-down. |
 | `ToolTip` | [`ToolTip`](../api/generated/gui_forms.ToolTip.rst) | stable | Sets the controls' own tooltip text and the window's timing. |
 | `TrackBar` | [`TrackBar`](../api/generated/gui_forms.TrackBar.rst) | stable | |
 | `TreeView` | [`TreeView`](../api/generated/gui_forms.TreeView.rst) | stable | |
+| `UpDownBase` | [`UpDownBase`](../api/generated/gui_forms.UpDownBase.rst) | provisional | Abstract base of `NumericUpDown` and `DomainUpDown`. |
 | `UserControl` | [`UserControl`](../api/generated/gui_forms.UserControl.rst) | stable | `loaded()` fires once, on first attachment. |
 | `VScrollBar` | [`VScrollBar`](../api/generated/gui_forms.VScrollBar.rst) | stable | |
 
@@ -169,9 +193,8 @@ These are outside the library by design, not missing work:
 - ActiveX and COM hosting (`AxHost`) and browser hosting (`WebBrowser`).
 - The designer and its serialization, and design-time services.
 - Obsolete families: the classic `DataGrid`, `MainMenu`, `MenuItem`, the
-  classic `ContextMenu`, `StatusBar`, `ToolBar` and the legacy `Splitter`.
-  Use `MenuStrip`, `ContextMenu` (for `ContextMenuStrip`) and
-  `SplitContainer`.
+  classic `ContextMenu`, `StatusBar` and `ToolBar`. Use `MenuStrip`,
+  `ContextMenu` (for `ContextMenuStrip`), `StatusStrip` and `ToolStrip`.
 - Per-control native handles and window-message processing.
 - GPU rendering of any kind, host font enumeration for control text, and
   image codecs other than PNG.

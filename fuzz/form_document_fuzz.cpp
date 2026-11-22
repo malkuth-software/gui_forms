@@ -143,10 +143,11 @@ extern "C" int LLVMFuzzerTestOneInput(const std::uint8_t* data, std::size_t size
 
 #if defined(GUI_FORMS_FUZZ_STANDALONE)
 // The seeds are documents of the sample schema's types, with properties,
-// a binding the load refuses (no sources) and a form root; the mutations
-// explore around them.
+// `bind` elements the load refuses (no sources), one with every attribute
+// and one refused by the model, and a form root; the mutations explore
+// around them.
 int main(int argument_count, char** argument_values) {
-    const std::array<std::string_view, 3> seeds{
+    const std::array<std::string_view, 4> seeds{
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"settings.root\" back-color=\"#336699\">\n"
         "  <group-box id=\"settings.general\">\n"
@@ -162,9 +163,19 @@ int main(int argument_count, char** argument_values) {
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         "<form xmlns=\"urn:gui-forms:form:1\" id=\"settings.dialog\" text=\"Settings\" size=\"480 320\"\n"
         "    accept-button=\"settings.ok\">\n"
-        "  <text-box id=\"settings.name\" text=\"bind(settings_, 'name', update on-change)\"/>\n"
-        "  <button id=\"settings.ok\" text=\"OK\" command=\"bind(accept_)\"/>\n"
+        "  <text-box id=\"settings.name\">\n"
+        "    <bind property=\"text\" to=\"settings_\" field=\"name\" mode=\"two-way\" update=\"on-change\"/>\n"
+        "  </text-box>\n"
+        "  <button id=\"settings.ok\" text=\"OK\"><bind property=\"command\" to=\"accept_\"/></button>\n"
         "</form>\n",
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"bound.root\">\n"
+        "  <check-box id=\"bound.flag\" text=\"bind(not_a_binding)\">\n"
+        "    <bind property=\"checked\" to=\"flag_\" mode=\"one-way\"/>\n"
+        "    <bind property=\"checked\" to=\"again_\" converter=\"x\"/>\n"
+        "  </check-box>\n"
+        "  <command id=\"bound.command\"><bind property=\"enabled\" to=\"on_\"/></command>\n"
+        "</user-control>\n",
         "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
         "<user-control xmlns=\"urn:gui-forms:form:1\" id=\"grid.root\">\n"
         "  <grid-panel id=\"grid.cells\"><span name=\"head\" anchor=\"0 0\" columns=\"2\"/>"

@@ -5,6 +5,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/toasts/toasts.hpp"
 #include "gui_forms/window/chrome/window_capabilities.hpp"
+#include "gui_forms/window/document_area/window_document_area.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -305,6 +306,55 @@ public:
     // image could not be decoded).
     [[nodiscard]] WindowChrome chrome() const;
 
+    // -- the multiple document interface (DK decisions 60 to 63;
+    // window_document_area.hpp) --
+    // WinForms' Form surface over the window's docking document area: an
+    // MDI child is a document of the area, named by its DockPanelId. The
+    // area is bound by the docking workspace's main DockSite while it is
+    // attached to this window; without one the children are empty and the
+    // calls change nothing (activate_mdi_child and layout_mdi answer false).
+    //
+    // Whether the window is an MDI container: its document area shows its
+    // documents as overlapping frames rather than tabs. Bound, it reads and
+    // sets the area's presentation; unbound, it is kept and given to the
+    // area that binds, once written. UI thread.
+    [[nodiscard]] bool is_mdi_container() const;
+    void set_is_mdi_container(bool container);
+    // The children (the area's documents), in tree and tab order. Read into
+    // storage the window keeps: valid until the next call. UI thread.
+    [[nodiscard]] BorrowedSpan<DockPanelId> mdi_children() const&;
+    BorrowedSpan<DockPanelId> mdi_children() const&& = delete;
+    // The active child, or none.
+    [[nodiscard]] stxlib::Optional<DockPanelId> active_mdi_child() const;
+    // Activates a child; false for one the area does not hold.
+    bool activate_mdi_child(const DockPanelId& child);
+    // Arranges the children's frames (WinForms' LayoutMdi); false when
+    // there is nothing to arrange. std::invalid_argument for a value
+    // outside MdiLayout, changing nothing.
+    bool layout_mdi(MdiLayout layout);
+    // Whether minimized children line the bottom of the area (the default),
+    // else its top (WinForms' MdiChildrenMinimizedAnchorBottom).
+    [[nodiscard]] bool mdi_children_minimized_anchor_bottom() const noexcept { return mdi_icons_at_bottom_; }
+    void set_mdi_children_minimized_anchor_bottom(bool bottom);
+    // Raised after the active child changed, on the UI thread.
+    [[nodiscard]] Event<const MdiChildActivation&>& mdi_child_activate() noexcept { return mdi_child_activate_; }
+    // The window's main menu strip (WinForms' MainMenuStrip): the strip the
+    // active child's menus merge into and whose end shows a maximized
+    // child's caption buttons. Held weakly; null when none was set or it
+    // is gone. A control of this window or not yet attached; the type is
+    // checked by its users (gui_forms_controls), so any control is held.
+    [[nodiscard]] Control::Ptr main_menu_strip() const noexcept { return main_menu_strip_.lock(); }
+    void set_main_menu_strip(const Control::Ptr& strip);
+    // Binds the document area (a DockSite calls it when it attaches), or
+    // unbinds it (when it leaves; nothing for another area). Binding an
+    // area unbinds the window's previous one and the area's previous
+    // window, then gives the area the written container and anchor
+    // settings. UI thread.
+    void bind_document_area(WindowDocumentArea& area);
+    void unbind_document_area(const WindowDocumentArea& area) noexcept;
+    // The bound area, or null.
+    [[nodiscard]] WindowDocumentArea* document_area() const noexcept { return document_area_; }
+
 private:
     friend struct WindowTextCapability<Window>;
     friend struct WindowIconCapability<Window>;
@@ -360,6 +410,19 @@ private:
     Application* application_{};
     Window* previous_in_application_{};
     Window* next_in_application_{};
+    // The multiple document interface (window_document_area.cpp). The bound
+    // area observes this window and this window it; each clears the other
+    // when it goes.
+    friend class WindowDocumentArea;
+    void release_document_area() noexcept;
+    WindowDocumentArea* document_area_{};
+    bool mdi_container_{};
+    bool mdi_container_written_{};
+    bool mdi_icons_at_bottom_{true};
+    bool mdi_icons_written_{};
+    mutable detail::LendingVector<DockPanelId> mdi_children_{};
+    Control::WeakPtr main_menu_strip_{};
+    Event<const MdiChildActivation&> mdi_child_activate_{};
     // Raises toast_dismissed.
     friend class detail::ToastPresenter;
     void raise_toast_dismissed(const ToastDismissal& dismissal);

@@ -335,7 +335,7 @@ Related types
 
 .. cpp:struct:: BackstageItemSpec final
 
-   ``#include <gui_forms/controls/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view.hpp>`)
 
    .. cpp:member:: std::string stable_id
 
@@ -357,7 +357,7 @@ Related types
 
 .. cpp:struct:: BackstageTopicChange final
 
-   ``#include <gui_forms/controls/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view.hpp>`)
 
    The selected topic after it changed.
 
@@ -371,7 +371,7 @@ Related types
 
 .. cpp:struct:: BackstageView::Item final
 
-   ``#include <gui_forms/controls/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -385,7 +385,7 @@ Related types
 
 .. cpp:struct:: BackstageView::ItemParts final
 
-   ``#include <gui_forms/controls/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view.hpp>`)
 
    The "backstage_item" item system: one column entry.
 
@@ -401,7 +401,7 @@ Related types
 
 .. cpp:struct:: BackstageView::ItemStates final
 
-   ``#include <gui_forms/controls/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view.hpp>`)
 
    .. cpp:member:: bool hot
 
@@ -417,7 +417,7 @@ Related types
 
 .. cpp:struct:: BackstageView::Parts final
 
-   ``#include <gui_forms/controls/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -433,7 +433,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BackstageViewCapabilities : public BackstageViewColumnWidthCapability<Declaring>, public BackstageViewSelectedTopicCapability<Declaring>
 
-   ``#include <gui_forms/controls/backstage_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/backstage_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view_capabilities.hpp>`)
 
    Every BackstageView capability, in the order the declaring class takes them.
 
@@ -452,7 +452,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BackstageViewColumnWidthCapability
 
-   ``#include <gui_forms/controls/backstage_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/backstage_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view_capabilities.hpp>`)
 
    The column's width in logical units at text scale 1 (132 by default). A width outside 48 to 480 throws std::invalid_argument.
 
@@ -469,7 +469,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BackstageViewSelectedTopicCapability
 
-   ``#include <gui_forms/controls/backstage_view_capabilities.hpp>``
+   ``#include <gui_forms/controls/backstage_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view_capabilities.hpp>`)
 
    The topic whose page shows, or none before the first topic exists. A write past the end throws std::out_of_range; an item that is not a topic, or none, throws std::invalid_argument. A view onto the view's selection.
 
@@ -486,7 +486,7 @@ Related types
 
 .. cpp:struct:: BindingNavigatorAddNew final
 
-   ``#include <gui_forms/controls/binding_navigator.hpp>``
+   ``#include <gui_forms/controls/binding_navigator.hpp>`` (:src:`source <include/gui_forms/controls/binding_navigator.hpp>`)
 
    Raised by a BindingNavigator's add command. A handler supplies the row to add, its values in the source's column order; without one nothing is added. The navigator adds it to the end of the binding source and moves to it.
 
@@ -498,7 +498,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BindingNavigatorBindingSourceCapability
 
-   ``#include <gui_forms/controls/binding_navigator_capabilities.hpp>``
+   ``#include <gui_forms/controls/binding_navigator_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/binding_navigator_capabilities.hpp>`)
 
    The source the navigator moves through, or null (Windows Forms' BindingSource). A write subscribes to the new source's list, position and disposal and shows its position and count at once; the source's disposal clears it.
 
@@ -515,7 +515,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> BindingNavigatorCapabilities : public BindingNavigatorBindingSourceCapability<Declaring>
 
-   ``#include <gui_forms/controls/binding_navigator_capabilities.hpp>``
+   ``#include <gui_forms/controls/binding_navigator_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/binding_navigator_capabilities.hpp>`)
 
    Every BindingNavigator capability, in the order the declaring class takes them.
 
@@ -530,7 +530,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ContextMenuCapabilities : public ContextMenuPreferredWidthCapability<Declaring>
 
-   ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>``
+   ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>`` (:src:`source <include/gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>`)
 
    Every ContextMenu capability, in the order the declaring class takes them.
 
@@ -545,7 +545,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ContextMenuPreferredWidthCapability
 
-   ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>``
+   ``#include <gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>`` (:src:`source <include/gui_forms/components/context_menu/context_menu_capabilities/context_menu_capabilities.hpp>`)
 
    The menu's width in logical units at text scale 1, 120 to 1024 (default 120): the narrowest a panel is; a panel is as wide as its widest row needs. A change closes an open menu. A width outside that range, or not finite, throws std::invalid_argument; a disposed menu throws std::logic_error.
 
@@ -562,7 +562,7 @@ Related types
 
 .. cpp:struct:: FontChoice final
 
-   ``#include <gui_forms/commands/font_command/font_command.hpp>``
+   ``#include <gui_forms/commands/font_command/font_command.hpp>`` (:src:`source <include/gui_forms/commands/font_command/font_command.hpp>`)
 
    A font as a font control shows and chooses it: a family name and a size in points. An empty family or a zero size is unknown, as for a selection whose text mixes fonts; the control shows that field empty.
 
@@ -574,7 +574,7 @@ Related types
 
 .. cpp:struct:: GalleryPreview final
 
-   ``#include <gui_forms/commands/gallery_command/gallery_command.hpp>``
+   ``#include <gui_forms/commands/gallery_command/gallery_command.hpp>`` (:src:`source <include/gui_forms/commands/gallery_command/gallery_command.hpp>`)
 
    A preview a gallery asks the application to show (preview_requested) or to withdraw (preview_cancelled): the gallery item's stable ID and the stable ID of the gallery that asked.
 
@@ -586,7 +586,7 @@ Related types
 
 .. cpp:struct:: MenuItemInvocation final
 
-   ``#include <gui_forms/components/context_menu/context_menu.hpp>``
+   ``#include <gui_forms/components/context_menu/context_menu.hpp>`` (:src:`source <include/gui_forms/components/context_menu/context_menu.hpp>`)
 
    MenuItemInvocation reports the exact stable item identity and source owner for one accepted menu activation.
 
@@ -602,7 +602,7 @@ Related types
 
 .. cpp:struct:: MenuItemSpec final
 
-   ``#include <gui_forms/components/context_menu/context_menu.hpp>``
+   ``#include <gui_forms/components/context_menu/context_menu.hpp>`` (:src:`source <include/gui_forms/components/context_menu/context_menu.hpp>`)
 
    MenuItemSpec owns stable identity, mnemonic text, shortcut display, enabled/checked/separator state, optional command, and nested items for one context-menu entry.
 
@@ -651,7 +651,7 @@ Related types
 
 .. cpp:struct:: MenuStrip::Item final
 
-   ``#include <gui_forms/controls/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -665,7 +665,7 @@ Related types
 
 .. cpp:struct:: MenuStrip::ItemParts final
 
-   ``#include <gui_forms/controls/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip.hpp>`)
 
    .. cpp:member:: PartGeometry menu_item
 
@@ -677,7 +677,7 @@ Related types
 
 .. cpp:struct:: MenuStrip::ItemStates final
 
-   ``#include <gui_forms/controls/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip.hpp>`)
 
    .. cpp:member:: bool hot
 
@@ -691,7 +691,7 @@ Related types
 
 .. cpp:struct:: MenuStrip::Parts final
 
-   ``#include <gui_forms/controls/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -711,7 +711,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MenuStripAllowMergeCapability
 
-   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip_capabilities.hpp>`)
 
    Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
 
@@ -728,7 +728,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MenuStripCapabilities : public MenuStripUseMnemonicCapability<Declaring>, public MenuStripItemPaddingCapability<Declaring>, public FontCapability<Declaring>, public MenuStripAllowMergeCapability<Declaring>, public MenuStripSelectedItemIdCapability<Declaring>
 
-   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip_capabilities.hpp>`)
 
    Every MenuStrip capability, in the order the declaring class takes them.
 
@@ -764,7 +764,7 @@ Related types
 
 .. cpp:struct:: MenuStripInvocation final
 
-   ``#include <gui_forms/controls/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip.hpp>`)
 
    MenuStripInvocation correlates a top-level menu and exact nested item identity after accepted activation.
 
@@ -778,7 +778,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MenuStripItemPaddingCapability
 
-   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip_capabilities.hpp>`)
 
    The horizontal padding on each side of a top-level item's text, 4 to 64 (default 11). A value outside that range throws std::invalid_argument and changes nothing; a change closes an open menu.
 
@@ -795,7 +795,7 @@ Related types
 
 .. cpp:struct:: MenuStripItemSpec final
 
-   ``#include <gui_forms/controls/menu_strip.hpp>``
+   ``#include <gui_forms/controls/menu_strip.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip.hpp>`)
 
    MenuStripItemSpec owns stable identity, mnemonic label, enabled state, and the overlay item tree for one top-level menu.
 
@@ -819,11 +819,15 @@ Related types
 
    .. cpp:member:: stxlib::Optional<std::size_t> merge_index
 
+   .. cpp:member:: bool window_list
+
+      Whether this menu lists the window's MDI children when it opens (WinForms' MdiWindowListItem; MenuStrip::mdi_window_list_item): a separator, then one checkable row per child of the window's document area ("&1 Title" to "&9 Title", the active child checked), then "More Windows..." when there are more than nine. Choosing a row activates its child (Window::activate_mdi_child) and raises no item_invoked; "More Windows..." raises item_invoked with the item ID "mdi-window-list.more", for the application's own chooser.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> MenuStripSelectedItemIdCapability
 
-   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip_capabilities.hpp>`)
 
    The stable ID of the top-level item shown as selected, or empty for none; an ID that names no visible top-level item throws std::out_of_range. set_items clears it. A view onto the strip's selection.
 
@@ -840,7 +844,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> MenuStripUseMnemonicCapability
 
-   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/menu_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip_capabilities.hpp>`)
 
    Whether an ampersand in an item's text marks its access key (Windows Forms' UseMnemonic; default true).
 
@@ -857,7 +861,7 @@ Related types
 
 .. cpp:struct:: QuickAccessToolbar::Parts final
 
-   ``#include <gui_forms/controls/quick_access_toolbar.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar.hpp>`` (:src:`source <include/gui_forms/controls/quick_access_toolbar.hpp>`)
 
    Stage T1 anatomy, as dot members: ToolStrip's parts and the customize button. Its states are Control's; its item system is ToolStrip's.
 
@@ -881,7 +885,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> QuickAccessToolbarCapabilities : public QuickAccessToolbarPlacementPropertyCapability<Declaring>
 
-   ``#include <gui_forms/controls/quick_access_toolbar_capabilities.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/quick_access_toolbar_capabilities.hpp>`)
 
    Every QuickAccessToolbar capability, in the order the declaring class takes them.
 
@@ -896,7 +900,7 @@ Related types
 
 .. cpp:struct:: QuickAccessToolbarCommand final
 
-   ``#include <gui_forms/controls/quick_access_toolbar.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar.hpp>`` (:src:`source <include/gui_forms/controls/quick_access_toolbar.hpp>`)
 
    One command the toolbar may show. Every declared command is listed, with a check, in the customize menu; ``shown`` is whether the toolbar shows it before the user customizes. ``image`` is the button's icon: a command with one shows only its icon, a command without one its text.
 
@@ -912,7 +916,7 @@ Related types
 
 .. cpp:struct:: QuickAccessToolbarCustomization final
 
-   ``#include <gui_forms/controls/quick_access_toolbar.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar.hpp>`` (:src:`source <include/gui_forms/controls/quick_access_toolbar.hpp>`)
 
    The user showed or hid a command from the customize menu, or the application did through set_command_shown.
 
@@ -926,7 +930,7 @@ Related types
 
 .. cpp:struct:: QuickAccessToolbarPlacementChange final
 
-   ``#include <gui_forms/controls/quick_access_toolbar.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar.hpp>`` (:src:`source <include/gui_forms/controls/quick_access_toolbar.hpp>`)
 
    .. cpp:member:: std::string toolbar_id
 
@@ -938,7 +942,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> QuickAccessToolbarPlacementPropertyCapability
 
-   ``#include <gui_forms/controls/quick_access_toolbar_capabilities.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/quick_access_toolbar_capabilities.hpp>`)
 
    Where the toolbar sits (see QuickAccessToolbarPlacement). A change rebuilds the customize menu and emits placement_changed. A value outside the enumeration throws std::invalid_argument.
 
@@ -955,7 +959,7 @@ Related types
 
 .. cpp:struct:: Ribbon::CommandItem final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:member:: std::size_t group
 
@@ -971,7 +975,7 @@ Related types
 
 .. cpp:struct:: Ribbon::CommandParts final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    The "command" item system: one command of the selected tab.
 
@@ -1005,7 +1009,7 @@ Related types
 
 .. cpp:struct:: Ribbon::CommandStates final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:member:: bool hot
 
@@ -1023,7 +1027,7 @@ Related types
 
 .. cpp:struct:: Ribbon::Group final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -1039,7 +1043,7 @@ Related types
 
 .. cpp:struct:: Ribbon::GroupParts final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    The "group" item system: one group of the selected tab. A collapsed group shows its button parts and no caption or launcher.
 
@@ -1069,7 +1073,7 @@ Related types
 
 .. cpp:struct:: Ribbon::Parts final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -1103,7 +1107,7 @@ Related types
 
 .. cpp:struct:: Ribbon::Tab final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -1117,7 +1121,7 @@ Related types
 
 .. cpp:struct:: Ribbon::TabParts final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    The "tab" item system: one core tab on the tab row.
 
@@ -1135,7 +1139,7 @@ Related types
 
 .. cpp:struct:: Ribbon::TabStates final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:member:: bool hot
 
@@ -1149,7 +1153,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonApplicationModesCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    The application modes now shown (one bit per mode; mode 0 by default). Changing them shows the tabs and groups that share a bit; a selected tab that no longer shows gives way as a set's tab does. Zero throws std::invalid_argument.
 
@@ -1166,7 +1170,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonApplicationTextCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    The File tab's text, with an optional mnemonic. Text that is not valid UTF-8 throws std::invalid_argument.
 
@@ -1183,7 +1187,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonBackstageCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    Backstage (phase 6; owner decisions 3, 26): a BackstageView the File tab opens over everything below the tab row, instead of the application menu, or null. Escape, the File tab, another tab or a definitive command closes it and returns to the document. A view that already has a parent throws std::invalid_argument.
 
@@ -1198,7 +1202,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonCapabilities : public RibbonApplicationModesCapability<Declaring>, public RibbonDocumentMinimumHeightCapability<Declaring>, public RibbonMinimizedCapability<Declaring>, public RibbonApplicationTextCapability<Declaring>, public RibbonRecentCaptionCapability<Declaring>, public RibbonBackstageCapability<Declaring>, public RibbonFocusRegionCapability<Declaring>, public FontCapability<Declaring>, public RibbonSelectedTabCapability<Declaring>, public RibbonTabsActivateOnReleaseCapability<Declaring>, public RibbonHelpButtonVisibleCapability<Declaring>
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    Every Ribbon capability, in the order the declaring class takes them.
 
@@ -1258,7 +1262,7 @@ Related types
 
 .. cpp:struct:: RibbonColorPicker::PaletteEntry final
 
-   ``#include <gui_forms/controls/ribbon_color_picker.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -1278,7 +1282,7 @@ Related types
 
 .. cpp:struct:: RibbonColorPicker::PaletteEntryParts final
 
-   ``#include <gui_forms/controls/ribbon_color_picker.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker.hpp>`)
 
    The palette's entries, as its "palette_entry" item system: Automatic, then the palette, then the recent colours.
 
@@ -1296,7 +1300,7 @@ Related types
 
 .. cpp:struct:: RibbonColorPicker::PaletteEntryStates final
 
-   ``#include <gui_forms/controls/ribbon_color_picker.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker.hpp>`)
 
    .. cpp:member:: bool hot
 
@@ -1308,7 +1312,7 @@ Related types
 
 .. cpp:struct:: RibbonColorPicker::Parts final
 
-   ``#include <gui_forms/controls/ribbon_color_picker.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -1332,7 +1336,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonColorPickerCapabilities : public RibbonColorPickerCommandCapability<Declaring>, public RibbonColorPickerValueCapability<Declaring>, public RibbonColorPickerImageCapability<Declaring>, public TextCapability<Declaring>
 
-   ``#include <gui_forms/controls/ribbon_color_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker_capabilities.hpp>`)
 
    Every RibbonColorPicker capability, in the order the declaring class takes them.
 
@@ -1364,7 +1368,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonColorPickerCommandCapability
 
-   ``#include <gui_forms/controls/ribbon_color_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker_capabilities.hpp>`)
 
    The colour command whose value the picker shows and commits, or null; without one the picker keeps its own value.
 
@@ -1379,7 +1383,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonColorPickerImageCapability
 
-   ``#include <gui_forms/controls/ribbon_color_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker_capabilities.hpp>`)
 
    The face's icon, over the colour bar.
 
@@ -1394,7 +1398,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonColorPickerValueCapability
 
-   ``#include <gui_forms/controls/ribbon_color_picker_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker_capabilities.hpp>`)
 
    The colour shown, or none for Automatic: the command's, or the picker's own. A write goes to the command's set_value when there is one.
 
@@ -1411,7 +1415,7 @@ Related types
 
 .. cpp:struct:: RibbonCommandClick final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    A click on a button-family command (or its split face), after its Command ran.
 
@@ -1423,7 +1427,7 @@ Related types
 
 .. cpp:struct:: RibbonCommandSpec final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    One command record. ``stable_id`` is unique within the ribbon (across tabs, groups and commands) and names the command in events, semantics and the published anatomy. A button, toggle or split takes its text (when ``text`` is empty), enabled, visible and checked state from its required ``command``, and runs it on a click; a drop-down's command is optional. ``text`` may carry a mnemonic ("&Paste"). Labels are always shown (owner decision 6); a compact command with an image may leave its label out (``show_label`` false: an authored icon-only command, decision 30). ``drop_down`` is the menu of a split or drop-down command. A hosted command's ``text`` is its control's accessible name (and a check box's caption); ``choices`` are a combo box's items and ``width`` its field's width in logical units (zero for the default). A text box or numeric up-down also shows its ``text`` as a label part (Office's field label): at the field's left when its group stacks rows, above the field when the group's layout has one row; ``show_label`` false leaves an unlabelled field. A gallery command's ``gallery`` is an in-ribbon RibbonGallery the application made and configured; the ribbon adds it as its child and sets its column count. A font control's ``font_control`` and a colour picker's ``color_picker`` are, likewise, the application's controls, which the ribbon adds and places on one row. ``beside_previous`` places a compact or hosted command in the previous command's row, to its right, instead of in a row of its own (the Windows Ribbon Framework's control groups, which stay together in a row): Save over Undo and Redo is Save, then Undo, then Redo beside Undo. A row of commands side by side counts as one of the layout's rows, and the column is as wide as its widest row. It is ignored where the command, or the one before it, is large or a gallery in the layout in force; the group's first command may not set it.
 
@@ -1465,7 +1469,7 @@ Related types
 
 .. cpp:struct:: RibbonDialogLaunch final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    A click on a group's dialog launcher.
 
@@ -1477,7 +1481,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonDocumentMinimumHeightCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    The document area's declared minimum height in logical units (owner decision 34). The height the ribbon's parent offers it holds the ribbon and the document area under it; the plane hides when that area would be shorter than the minimum, and shows again once it is at least the minimum plus hide_hysteresis. Zero (the default) declares none: the plane hides only when no document area would be left. A negative or non-finite height throws std::invalid_argument.
 
@@ -1494,7 +1498,7 @@ Related types
 
 .. cpp:struct:: RibbonDropDownInvocation final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    A choice from a split or drop-down command's menu.
 
@@ -1508,7 +1512,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonFocusRegionCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    Whether the ribbon adds itself to its window's F6 regions when it is attached (owner decision 17). On by default.
 
@@ -1525,7 +1529,7 @@ Related types
 
 .. cpp:struct:: RibbonFontControl::Parts final
 
-   ``#include <gui_forms/controls/ribbon_font_control.hpp>``
+   ``#include <gui_forms/controls/ribbon_font_control.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_font_control.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -1539,7 +1543,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonFontControlCapabilities : public RibbonFontControlCommandCapability<Declaring>, public RibbonFontControlValueCapability<Declaring>
 
-   ``#include <gui_forms/controls/ribbon_font_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_font_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_font_control_capabilities.hpp>`)
 
    Every RibbonFontControl capability, in the order the declaring class takes them.
 
@@ -1558,7 +1562,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonFontControlCommandCapability
 
-   ``#include <gui_forms/controls/ribbon_font_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_font_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_font_control_capabilities.hpp>`)
 
    The font command whose value the fields show and commit, or null; without one the control keeps its own value.
 
@@ -1573,7 +1577,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonFontControlValueCapability
 
-   ``#include <gui_forms/controls/ribbon_font_control_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_font_control_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_font_control_capabilities.hpp>`)
 
    The value shown: the command's, or the control's own. A write sets it as the program does (the command's set_value when there is one); a value FontCommand refuses throws std::invalid_argument.
 
@@ -1590,7 +1594,7 @@ Related types
 
 .. cpp:struct:: RibbonGallery::Category final
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -1602,7 +1606,7 @@ Related types
 
 .. cpp:struct:: RibbonGallery::CategoryParts final
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    The "gallery_category" item system: one realized item per caption in view (drop-down form only).
 
@@ -1614,7 +1618,7 @@ Related types
 
 .. cpp:struct:: RibbonGallery::Item final
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -1628,7 +1632,7 @@ Related types
 
 .. cpp:struct:: RibbonGallery::ItemParts final
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    The "gallery_item" item system: one realized item per item in view.
 
@@ -1646,7 +1650,7 @@ Related types
 
 .. cpp:struct:: RibbonGallery::ItemStates final
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    .. cpp:member:: bool hot
 
@@ -1664,7 +1668,7 @@ Related types
 
 .. cpp:struct:: RibbonGallery::Parts final
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -1692,7 +1696,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonGalleryCapabilities : public RibbonGalleryCommandCapability<Declaring>, public RibbonGalleryItemSizeCapability<Declaring>, public RibbonGalleryShowLabelsCapability<Declaring>, public RibbonGalleryVisibleRowsCapability<Declaring>, public RibbonGalleryColumnsCapability<Declaring>, public RibbonGallerySelectedIdCapability<Declaring>
 
-   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery_capabilities.hpp>`)
 
    Every RibbonGallery capability, in the order the declaring class takes them.
 
@@ -1727,7 +1731,7 @@ Related types
 
 .. cpp:struct:: RibbonGalleryCategory final
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    One category: its items show together under the caption in the drop-down form.
 
@@ -1739,7 +1743,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonGalleryColumnsCapability
 
-   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery_capabilities.hpp>`)
 
    In-ribbon form: the current column count, kept inside the column range (owner decision RB-8: the ribbon's scaling gives up one column at a time within it). A count outside the range throws std::out_of_range.
 
@@ -1756,7 +1760,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonGalleryCommandCapability
 
-   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery_capabilities.hpp>`)
 
    The value command whose value the selection follows, which a click or Enter commits and which receives previews, or null. Without one the gallery keeps its own selection and offers no preview.
 
@@ -1771,7 +1775,7 @@ Related types
 
 .. cpp:struct:: RibbonGalleryItem final
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    One item: an image with an optional label shown under it. ``label`` is also the item's accessible name. ``category`` names a category's stable ID, or is empty for an item shown before every category.
 
@@ -1791,7 +1795,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonGalleryItemSizeCapability
 
-   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery_capabilities.hpp>`)
 
    Every item's image area, in logical units at text scale 1. A size outside 16 to 256 on either side throws std::out_of_range.
 
@@ -1808,7 +1812,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonGallerySelectedIdCapability
 
-   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery_capabilities.hpp>`)
 
    The selected item's ID: the command's value, or the gallery's own selection; a write selects without committing (the command's set_value) and throws std::invalid_argument for an ID the gallery does not have. A view onto the command or the gallery's own selection.
 
@@ -1825,7 +1829,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonGalleryShowLabelsCapability
 
-   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery_capabilities.hpp>`)
 
    Whether labels show under the images.
 
@@ -1840,7 +1844,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonGalleryVisibleRowsCapability
 
-   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery_capabilities.hpp>`)
 
    In-ribbon form: the rows shown (1 to 8). A count outside that throws std::out_of_range.
 
@@ -1857,7 +1861,7 @@ Related types
 
 .. cpp:struct:: RibbonGroupLayout final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    One layout of a group (the WPF/MFC model, owner decision 5): the image size of each command and how many compact commands stack in a column. Labels never drop (decision 6), so a layout only changes image sizes and rows. ``command_sizes`` holds one size per command of the group, in command order, or is empty for the commands' own sizes (``RibbonCommandSpec::size``); entries for hosted and gallery commands are ignored. A collapsed layout has no sizes. ``rows`` (1 to 3) is the number of compact and hosted command rows per column. The rows stand from the top of the plane at the three-row pitch, so a column of one or two rows aligns with the tops of the large commands beside it rather than centring in the plane.
 
@@ -1875,7 +1879,7 @@ Related types
 
 .. cpp:struct:: RibbonGroupSpec final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    A group of commands on a tab, with a caption beneath and, when ``dialog_launcher`` is set, a launcher button in the caption's corner. ``image`` is the icon of the group's collapsed button (none: the first command image). ``layouts`` are its size definitions, largest first; empty layouts are generated (Ribbon::group_layouts). Authored layouts that do not end in the collapsed button gain it as their last step, so that a group never vanishes from a narrow plane (a group of one command never collapses). ``modes`` are the application modes it shows in.
 
@@ -1899,7 +1903,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonHelpButtonVisibleCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    Whether the help button (a question mark at the right end of the tab row, owner ruling N4) shows. Pressing and releasing it raises help_button_clicked; a HelpBookSystem attached with attach_ribbon answers it with the window's help card. False by default.
 
@@ -1916,7 +1920,7 @@ Related types
 
 .. cpp:struct:: RibbonHelpRequest final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    A click on the help button (help_button_visible): the ribbon and the tab selected then (empty when none is).
 
@@ -1928,7 +1932,7 @@ Related types
 
 .. cpp:struct:: RibbonLadderEntry final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    One entry of a tab's reduction ladder: every group's state and the width, in logical units, the groups need side by side. Entries run from the widest to the narrowest; widths strictly decrease.
 
@@ -1940,7 +1944,7 @@ Related types
 
 .. cpp:struct:: RibbonLadderGroupState final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    One group's place in a ladder entry: its layout (an index into Ribbon::group_layouts), that layout's size, and its gallery's column count (zero without a gallery).
 
@@ -1956,7 +1960,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonMinimizedCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    Whether the command plane is hidden, leaving the tab row. A change closes the menus and the group overlay and raises minimized_changed.
 
@@ -1973,7 +1977,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonRecentCaptionCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    The caption of the application menu's recent pane. Text that is not valid UTF-8 throws std::invalid_argument.
 
@@ -1990,7 +1994,7 @@ Related types
 
 .. cpp:struct:: RibbonRecentItem final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    One item of the application menu's recent pane (stage RB, phase 6): a recently used document, shown numbered under the pane's caption, with its ``description`` (a folder, say) for accessibility.
 
@@ -2004,7 +2008,7 @@ Related types
 
 .. cpp:struct:: RibbonRecentItemInvocation final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    A choice from the recent pane.
 
@@ -2016,7 +2020,7 @@ Related types
 
 .. cpp:struct:: RibbonReductionStep final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:member:: std::string group
 
@@ -2028,7 +2032,7 @@ Related types
 
 .. cpp:struct:: RibbonScalingCounters final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    Structured scaling instrumentation (RIBBON_SCALING_STUDY.md §5.7). ``ladder_builds`` counts ladders built, ``ladder_entries`` and ``nonshrinking_steps`` describe the last one (a step that did not narrow the tab is folded into the next entry), ``ladder_lookups`` counts layouts that chose an entry, and ``text_measurements`` counts the ribbon's own text measurements (labels, captions and tabs, each measured once per cache).
 
@@ -2046,7 +2050,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonSelectedTabCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    The selected tab, or none while no tab shows. A write past the end throws std::out_of_range; a tab not shown, or none, throws std::invalid_argument. The selection rules remember it as the user's choice. A view onto the ribbon's selection.
 
@@ -2063,7 +2067,7 @@ Related types
 
 .. cpp:struct:: RibbonState final
 
-   ``#include <gui_forms/controls/ribbon_state.hpp>``
+   ``#include <gui_forms/controls/ribbon_state.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_state.hpp>`)
 
    What a ribbon window keeps between sessions: the Quick Access Toolbar's command IDs in order, its placement, and whether the ribbon is minimized. The last selected tab is not kept. The ribbon is not a layout (owner decision RB-44, revising RB-12): these are a settings permutation the program saves with its own settings; the ribbon never saves them on its own. The program captures and applies the state (capture_ribbon_state, apply_ribbon_state) and stores it as text (serialize_ribbon_state, parse_ribbon_state).
 
@@ -2083,7 +2087,7 @@ Related types
 
 .. cpp:struct:: RibbonStateDiagnostic final
 
-   ``#include <gui_forms/controls/ribbon_state.hpp>``
+   ``#include <gui_forms/controls/ribbon_state.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_state.hpp>`)
 
    .. cpp:member:: std::size_t line
 
@@ -2097,7 +2101,7 @@ Related types
 
 .. cpp:struct:: RibbonStateParseResult final
 
-   ``#include <gui_forms/controls/ribbon_state.hpp>``
+   ``#include <gui_forms/controls/ribbon_state.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_state.hpp>`)
 
    A parse never fails as a whole: a malformed known entry is reported and its built-in default kept, as the configuration contract (§7) asks. A missing or unsupported header yields the default state.
 
@@ -2109,7 +2113,7 @@ Related types
 
 .. cpp:struct:: RibbonTabChange final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    The selected tab after it changed.
 
@@ -2123,7 +2127,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> RibbonTabsActivateOnReleaseCapability
 
-   ``#include <gui_forms/controls/ribbon_capabilities.hpp>``
+   ``#include <gui_forms/controls/ribbon_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_capabilities.hpp>`)
 
    Whether a tab is selected when the pointer is released over the tab it was pressed on (a click), instead of on the press (false, the default, as Office's ribbon does; the ribbon study does not decide it). The keyboard, mnemonics and accessibility select at once either way.
 
@@ -2140,7 +2144,7 @@ Related types
 
 .. cpp:struct:: RibbonTabSetSpec final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    A contextual tab set (stage RB, phase 5): tabs that show while the application makes the set available, such as while a picture is selected. A shown set is marked by a tint from the theme's accent ramp on its tabs and on the command plane of its selected tab (owner decisions 14, 22, 25), with no captioned band; ``caption`` ("Picture Tools") names the set to accessibility.
 
@@ -2152,7 +2156,7 @@ Related types
 
 .. cpp:struct:: RibbonTabSpec final
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    A tab. ``text`` may carry a mnemonic ("&Home"). ``reduction_order`` is the order in which its groups shrink as the ribbon narrows; after it (or without it) every group that can still shrink does so one step at a time, right to left, repeating (WPF's cycle, decision 32). ``tab_set`` names the contextual tab set the tab belongs to (empty: a core tab); ``modes`` are the application modes it shows in. ``width`` is an authored width in logical units, scaled with the text as the tab row is (none: the label's width, at its widest state font, plus the theme's padding; Plan Paint's tabs carry their own widths); above zero and at most Ribbon::maximum_tab_width. A tab that is not ``enabled`` shows in the disabled state and cannot be selected: the pointer, the keyboard, mnemonics and accessibility pass it by, and a selection that would fall on it falls back to another tab. A panel tab: ``panel`` is a control the application made, which the ribbon adds as its child and sizes to the whole command plane while the tab is selected, in place of groups (the application's own command area, such as a palette or an atlas). It has no groups and no reduction order, and is unowned or already this ribbon's; the ribbon removes it when a new definition no longer names it. Its keyboard stops and semantics are its own, as a hosted control's are.
 
@@ -2182,7 +2186,7 @@ Related types
 
 .. cpp:struct:: StatusStrip::Parts final
 
-   ``#include <gui_forms/controls/status_strip.hpp>``
+   ``#include <gui_forms/controls/status_strip.hpp>`` (:src:`source <include/gui_forms/controls/status_strip.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's, and its items are ToolStrip's "item" system.
 
@@ -2198,7 +2202,7 @@ Related types
 
 .. cpp:struct:: ToolStrip::Item final
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    .. cpp:member:: std::size_t index
 
@@ -2212,7 +2216,7 @@ Related types
 
 .. cpp:struct:: ToolStrip::ItemParts final
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    Item part names start with the word item (item_face): an item part may not repeat one of the strip's own part names (face, focus).
 
@@ -2242,7 +2246,7 @@ Related types
 
 .. cpp:struct:: ToolStrip::ItemStates final
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    .. cpp:member:: bool hot
 
@@ -2260,7 +2264,7 @@ Related types
 
 .. cpp:struct:: ToolStrip::Parts final
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -2280,7 +2284,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripAllowMergeCapability
 
-   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_capabilities.hpp>`)
 
    Whether the strip takes part in merging, as source or target (Windows Forms' AllowMerge; merge_strips). On by default.
 
@@ -2297,7 +2301,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripCapabilities : public ToolStripGripVisibleCapability<Declaring>, public ToolStripAllowMergeCapability<Declaring>, public FontCapability<Declaring>, public ToolStripOrientationCapability<Declaring>, public ToolStripSizingGripVisibleCapability<Declaring>, public ToolStripEndReserveCapability<Declaring>
 
-   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_capabilities.hpp>`)
 
    Every ToolStrip capability, in the order the declaring class takes them.
 
@@ -2337,7 +2341,7 @@ Related types
 
 .. cpp:struct:: ToolStripContainer::Parts final
 
-   ``#include <gui_forms/controls/tool_strip_container.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -2365,7 +2369,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripContainerBottomPanelVisibleCapability
 
-   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container_capabilities.hpp>`)
 
    Whether the bottom panel shows (Windows Forms' BottomToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
 
@@ -2382,7 +2386,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripContainerCapabilities : public ToolStripContainerTopPanelVisibleCapability<Declaring>, public ToolStripContainerBottomPanelVisibleCapability<Declaring>, public ToolStripContainerLeftPanelVisibleCapability<Declaring>, public ToolStripContainerRightPanelVisibleCapability<Declaring>, public ToolStripContainerDragThresholdCapability<Declaring>
 
-   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container_capabilities.hpp>`)
 
    Every ToolStripContainer capability, in the order the declaring class takes them.
 
@@ -2413,7 +2417,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripContainerDragThresholdCapability
 
-   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container_capabilities.hpp>`)
 
    How far the pointer moves from a grip press before it drags (4 units; a host may set 1 to 64). A value outside that range throws std::out_of_range and changes nothing.
 
@@ -2430,7 +2434,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripContainerLeftPanelVisibleCapability
 
-   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container_capabilities.hpp>`)
 
    Whether the left panel shows (Windows Forms' LeftToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
 
@@ -2447,7 +2451,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripContainerRightPanelVisibleCapability
 
-   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container_capabilities.hpp>`)
 
    Whether the right panel shows (Windows Forms' RightToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
 
@@ -2464,7 +2468,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripContainerTopPanelVisibleCapability
 
-   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container_capabilities.hpp>`)
 
    Whether the top panel shows (Windows Forms' TopToolStripPanelVisible; default true). A hidden panel takes no room and shows none of its strips.
 
@@ -2481,7 +2485,7 @@ Related types
 
 .. cpp:struct:: ToolStripDropDownInvocation final
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    A choice from a drop-down or split button's menu, or from the overflow menu's copy of one.
 
@@ -2495,7 +2499,7 @@ Related types
 
 .. cpp:struct:: ToolStripDropTarget final
 
-   ``#include <gui_forms/controls/tool_strip_container.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container.hpp>`)
 
    Where a dragged strip would go in the panel on ``edge``, its rows counted as they are without the dragged strip: a new row at ``row`` (0 before the first, the row count after the last), or, when ``joins_row``, the existing row ``row`` at ``position`` among its strips. ``marker`` is the insertion line (between rows, or across a row between its strips), in the container's coordinates.
 
@@ -2515,7 +2519,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripEndReserveCapability
 
-   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_capabilities.hpp>`)
 
    For QuickAccessToolbar: logical units kept free at the strip's far end for a part the derived control paints there (its customize button); items and the overflow button sit before it. Zero by default. A width that is negative, not finite or over 64 throws std::invalid_argument.
 
@@ -2532,7 +2536,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripGripVisibleCapability
 
-   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_capabilities.hpp>`)
 
    Whether the grip is shown at the strip's start (Windows Forms' GripStyle; default true).
 
@@ -2549,7 +2553,7 @@ Related types
 
 .. cpp:struct:: ToolStripItemClick final
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    A click on an item, after any command it carries has executed.
 
@@ -2561,7 +2565,7 @@ Related types
 
 .. cpp:struct:: ToolStripItemFocus final
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    The item the keyboard is on changed while the strip has focus: the strip took focus, or an arrow key or a semantic focus action moved it.
 
@@ -2573,7 +2577,7 @@ Related types
 
 .. cpp:struct:: ToolStripItemSpec final
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    One item. ``stable_id`` is unique within the strip and names the item in events, semantics and the published anatomy. An item with a ``command`` takes its text (when ``text`` is empty), enabled, visible and checked state from it, and a click executes it. An item without one uses ``text``, ``enabled``, ``visible`` and the strip's own checked state. ``drop_down`` is the menu of a drop-down or split button and must be empty for other kinds. ``spring`` is honoured only by StatusStrip, on labels: spring labels share the width the other items leave. A hosted item (combo box, text box, progress bar) takes no command, menu or check. Its ``text`` is the hosted control's accessible name, ``choices`` are a combo box's items, and ``width`` its width in logical units (zero for the default: 120 for a combo box, 100 otherwise). Hosted items never move to the overflow menu, whatever their ``overflow``: a menu row cannot hold a control. The application reaches the control through combo_box(), text_box() or progress_bar(); it keeps its state while set_items keeps an item of the same ID and kind. ``tool_tip_text`` is the item's plain tooltip (owner, 2026-10-28): the window's presenter shows it over the item, and keyboard focus on the item shows it below the item; empty shows none. It reaches the item's semantic node (SemanticNode::tool_tip), and a hosted item's control as that control's tooltip text.
 
@@ -2635,7 +2639,7 @@ Related types
 
 .. cpp:struct:: ToolStripMove final
 
-   ``#include <gui_forms/controls/tool_strip_container.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container.hpp>`)
 
    A strip that changed place, raised after the move (by a drag, move_strip or move_strip_into_row): its edge, row and position in the row before, and after (rows counted in the panel as it is after the move).
 
@@ -2661,7 +2665,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripOrientationCapability
 
-   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_capabilities.hpp>`)
 
    Horizontal strips run left to right; vertical strips run top to bottom and are as wide as their widest item. A StatusStrip stays horizontal and throws std::logic_error when set vertical; an unknown orientation throws std::invalid_argument.
 
@@ -2678,7 +2682,7 @@ Related types
 
 .. cpp:struct:: ToolStripPanel::Parts final
 
-   ``#include <gui_forms/controls/tool_strip_panel.hpp>``
+   ``#include <gui_forms/controls/tool_strip_panel.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_panel.hpp>`)
 
    Stage T1 anatomy, as dot members; its states are Control's.
 
@@ -2690,7 +2694,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripPanelCapabilities : public ToolStripPanelEdgePropertyCapability<Declaring>
 
-   ``#include <gui_forms/controls/tool_strip_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_panel_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_panel_capabilities.hpp>`)
 
    Every ToolStripPanel capability, in the order the declaring class takes them.
 
@@ -2705,7 +2709,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripPanelEdgePropertyCapability
 
-   ``#include <gui_forms/controls/tool_strip_panel_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_panel_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_panel_capabilities.hpp>`)
 
    The side of the container the panel lines; changing it turns the joined strips to its orientation. An invalid edge throws std::invalid_argument, and an edge that would turn a joined StatusStrip vertical throws std::logic_error; either changes nothing.
 
@@ -2722,7 +2726,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> ToolStripSizingGripVisibleCapability
 
-   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>``
+   ``#include <gui_forms/controls/tool_strip_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_capabilities.hpp>`)
 
    Whether a sizing grip is drawn at the strip's far end (StatusStrip's SizingGrip; default false).
 
@@ -2740,7 +2744,7 @@ Enumerations
 
 .. cpp:enum-class:: BackstageItemKind
 
-   ``#include <gui_forms/controls/backstage_view.hpp>``
+   ``#include <gui_forms/controls/backstage_view.hpp>`` (:src:`source <include/gui_forms/controls/backstage_view.hpp>`)
 
    .. cpp:enumerator:: command
 
@@ -2750,7 +2754,7 @@ Enumerations
 
 .. cpp:enum-class:: MenuItemKind
 
-   ``#include <gui_forms/components/context_menu/context_menu.hpp>``
+   ``#include <gui_forms/components/context_menu/context_menu.hpp>`` (:src:`source <include/gui_forms/components/context_menu/context_menu.hpp>`)
 
    .. cpp:enumerator:: command
 
@@ -2766,7 +2770,7 @@ Enumerations
 
 .. cpp:enum-class:: MenuOpenMode
 
-   ``#include <gui_forms/components/context_menu/context_menu.hpp>``
+   ``#include <gui_forms/components/context_menu/context_menu.hpp>`` (:src:`source <include/gui_forms/components/context_menu/context_menu.hpp>`)
 
    .. cpp:enumerator:: keyboard
 
@@ -2774,9 +2778,21 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: MenuStripFrameButton
+
+   ``#include <gui_forms/controls/menu_strip.hpp>`` (:src:`source <include/gui_forms/controls/menu_strip.hpp>`)
+
+   .. cpp:enumerator:: minimize
+
+   .. cpp:enumerator:: restore
+
+   .. cpp:enumerator:: close
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: MergeAction
 
-   ``#include <gui_forms/components/context_menu/context_menu.hpp>``
+   ``#include <gui_forms/components/context_menu/context_menu.hpp>`` (:src:`source <include/gui_forms/components/context_menu/context_menu.hpp>`)
 
    .. cpp:enumerator:: append
 
@@ -2792,7 +2808,7 @@ Enumerations
 
 .. cpp:enum-class:: QuickAccessToolbarPlacement
 
-   ``#include <gui_forms/controls/quick_access_toolbar_values.hpp>``
+   ``#include <gui_forms/controls/quick_access_toolbar_values.hpp>`` (:src:`source <include/gui_forms/controls/quick_access_toolbar_values.hpp>`)
 
    .. cpp:enumerator:: above_ribbon
 
@@ -2802,7 +2818,7 @@ Enumerations
 
 .. cpp:enum-class:: Ribbon::Hit::Kind
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2826,7 +2842,7 @@ Enumerations
 
 .. cpp:enum-class:: Ribbon::RealizedItem::Kind
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:enumerator:: none
 
@@ -2840,7 +2856,7 @@ Enumerations
 
 .. cpp:enum-class:: RibbonCommandKind
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:enumerator:: button
 
@@ -2870,7 +2886,7 @@ Enumerations
 
 .. cpp:enum-class:: RibbonCommandSize
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:enumerator:: large
 
@@ -2880,7 +2896,7 @@ Enumerations
 
 .. cpp:enum-class:: RibbonGalleryForm
 
-   ``#include <gui_forms/controls/ribbon_gallery.hpp>``
+   ``#include <gui_forms/controls/ribbon_gallery.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_gallery.hpp>`)
 
    .. cpp:enumerator:: in_ribbon
 
@@ -2890,7 +2906,7 @@ Enumerations
 
 .. cpp:enum-class:: RibbonGroupSize
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:enumerator:: large
 
@@ -2904,7 +2920,7 @@ Enumerations
 
 .. cpp:enum-class:: RibbonPaletteEntryKind
 
-   ``#include <gui_forms/controls/ribbon_color_picker.hpp>``
+   ``#include <gui_forms/controls/ribbon_color_picker.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_color_picker.hpp>`)
 
    .. cpp:enumerator:: automatic
 
@@ -2916,7 +2932,7 @@ Enumerations
 
 .. cpp:enum-class:: RibbonReductionKind
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:enumerator:: layout
 
@@ -2926,7 +2942,7 @@ Enumerations
 
 .. cpp:enum-class:: RibbonStateIssue
 
-   ``#include <gui_forms/controls/ribbon_state.hpp>``
+   ``#include <gui_forms/controls/ribbon_state.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_state.hpp>`)
 
    .. cpp:enumerator:: missing_header
 
@@ -2944,7 +2960,7 @@ Enumerations
 
 .. cpp:enum-class:: RibbonTabSetAvailability
 
-   ``#include <gui_forms/controls/ribbon.hpp>``
+   ``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
    .. cpp:enumerator:: not_available
 
@@ -2956,7 +2972,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolStripDragPhase
 
-   ``#include <gui_forms/controls/tool_strip_container.hpp>``
+   ``#include <gui_forms/controls/tool_strip_container.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_container.hpp>`)
 
    .. cpp:enumerator:: idle
 
@@ -2970,7 +2986,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolStripItemDisplay
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    .. cpp:enumerator:: text
 
@@ -2982,7 +2998,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolStripItemKind
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    .. cpp:enumerator:: button
 
@@ -3004,7 +3020,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolStripItemPlacement
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    .. cpp:enumerator:: start
 
@@ -3014,7 +3030,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolStripOverflow
 
-   ``#include <gui_forms/controls/tool_strip.hpp>``
+   ``#include <gui_forms/controls/tool_strip.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip.hpp>`)
 
    .. cpp:enumerator:: as_needed
 
@@ -3024,7 +3040,7 @@ Enumerations
 
 .. cpp:enum-class:: ToolStripPanelEdge
 
-   ``#include <gui_forms/controls/tool_strip_panel_values.hpp>``
+   ``#include <gui_forms/controls/tool_strip_panel_values.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_panel_values.hpp>`)
 
    .. cpp:enumerator:: top
 
@@ -3039,7 +3055,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/components/context_menu/context_menu.hpp>``
+``#include <gui_forms/components/context_menu/context_menu.hpp>`` (:src:`source <include/gui_forms/components/context_menu/context_menu.hpp>`)
 
 .. cpp:var:: constexpr std::size_t maximum_menu_depth
 
@@ -3051,7 +3067,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/ribbon.hpp>``
+``#include <gui_forms/controls/ribbon.hpp>`` (:src:`source <include/gui_forms/controls/ribbon.hpp>`)
 
 .. cpp:var:: constexpr std::uint32_t ribbon_all_modes
 
@@ -3059,7 +3075,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/ribbon_state.hpp>``
+``#include <gui_forms/controls/ribbon_state.hpp>`` (:src:`source <include/gui_forms/controls/ribbon_state.hpp>`)
 
 .. cpp:function:: std::string serialize_ribbon_state(const RibbonState& state)
 
@@ -3075,7 +3091,7 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
-``#include <gui_forms/controls/tool_strip_manager.hpp>``
+``#include <gui_forms/controls/tool_strip_manager.hpp>`` (:src:`source <include/gui_forms/controls/tool_strip_manager.hpp>`)
 
 .. cpp:function:: bool merge_strips(ToolStrip& source, ToolStrip& target)
 

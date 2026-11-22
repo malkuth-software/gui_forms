@@ -108,6 +108,9 @@ DockTransactionResult DockLayout::run(const DockTransaction& transaction, DockLa
             return result;
         }
     }
+    // In the frames presentation every document of the area has a frame,
+    // and the frames' orders are numbered from 1 (DK decision 61).
+    detail::sync_document_frames(scratch);
     // The side restrictions (DockAllowedPlacements::left to bottom) are
     // known only once the edits placed their stacks: a panel the
     // transaction moved onto a side or edge it does not allow refuses the

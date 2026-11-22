@@ -2,7 +2,7 @@
 
 This tutorial builds a small program from nothing: a window where you type a
 note, press **Add** (or Ctrl+Enter), and see it appear in a list. On the way
-it uses every part of the approach sealed in GUI.Forms 0.5:
+it uses every part of the approach GUI.Forms recommends:
 
 1. a **CMake project** that consumes the installed SDK;
 2. a **form document** (`.form`) that says which controls exist;
@@ -94,7 +94,9 @@ program code.
   <panel id="notes.root">
     <label id="notes.heading" text="Notes" bounds="16 12 388 28" classes="heading"/>
     <text-box id="notes.entry" bounds="16 48 300 28" placeholder-text="Type a note"/>
-    <button id="notes.add" text="Add" bounds="324 46 80 32" command="bind(add)"/>
+    <button id="notes.add" text="Add" bounds="324 46 80 32">
+      <bind property="command" to="add"/>
+    </button>
     <list-box id="notes.list" bounds="16 88 388 192"/>
     <label id="notes.status" text="No notes yet." bounds="16 288 388 24" classes="status"/>
   </panel>
@@ -108,7 +110,7 @@ program code.
   logs, automation and themes, and become the generated members' names:
   `notes.entry` becomes `notes_entry`.
 - **`classes`** names a role; the theme gives it a look.
-- **`command="bind(add)"`** binds the button to the model's `add` command
+- **`<bind property="command" to="add"/>`** binds the button to the model's `add` command
   when the button is created: a click runs the command, and the command's
   enabled state enables the button.
 - **`accept-button`** makes Enter press **Add** when the focused control does
@@ -122,7 +124,7 @@ colour or font (E813: those belong in the theme), or an `on-...:` handler
 
 ## 4. The model
 
-The model holds the state the form binds, found by name: `bind(add)` reads
+The model holds the state the form binds, found by name: `to="add"` reads
 the member `add`. Declare it before the window, so the window and its
 bindings end first.
 
