@@ -28,6 +28,7 @@
 #include "gallery_page_specs.hpp"
 
 #include <algorithm>
+#include <limits>
 #include <any>
 #include <array>
 #include <chrono>
@@ -460,7 +461,14 @@ bool reveal_gallery_control(Window& window, std::string_view stable_id) {
     }
     const double target_y = std::max(0.0, offset - 8.0);
     static_cast<void>((*viewport).scroll_to({0.0, target_y}));
-    const bool reached = (*viewport).scroll_position().y == target_y;
+    const double shown_y = (*viewport).scroll_position().y;
+    if (shown_y == target_y) return true;
+    // A control near the page's end cannot come to the top: the page stops
+    // at its furthest position, which still shows it.
+    static_cast<void>((*viewport).scroll_to({0.0, std::numeric_limits<double>::max()}));
+    const double furthest_y = (*viewport).scroll_position().y;
+    static_cast<void>((*viewport).scroll_to({0.0, shown_y}));
+    const bool reached = shown_y == std::min(target_y, furthest_y);
     return reached;
 }
 
