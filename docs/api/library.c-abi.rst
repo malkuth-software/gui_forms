@@ -3207,7 +3207,7 @@ Types
 
 .. cpp:struct:: gf_dock_frame_memory
 
-   ``#include <gui_forms/c/gf_abi.h>``
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
    .. cpp:member:: uint32_t struct_size
 

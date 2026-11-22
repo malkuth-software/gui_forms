@@ -1978,7 +1978,7 @@ Related types
 
 .. cpp:struct:: template <typename Declaring> IndicatorLampLampStyleCapability
 
-   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>``
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/indicator_lamp_capabilities.hpp>`)
 
    How the lamp draws: a lens in a bezel, or a pinpoint, a tiny accent light for status (a dot 6 units across, no bezel, the legend close beside it), which never shows a bake (std::invalid_argument outside them). Never clickable either way.
 
@@ -4806,7 +4806,7 @@ Enumerations
 
 .. cpp:enum-class:: IndicatorLampStyle
 
-   ``#include <gui_forms/controls/indicator_lamp_values.hpp>``
+   ``#include <gui_forms/controls/indicator_lamp_values.hpp>`` (:src:`source <include/gui_forms/controls/indicator_lamp_values.hpp>`)
 
    .. cpp:enumerator:: lens
 

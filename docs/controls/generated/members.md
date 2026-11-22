@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2334 | 13 | 367 | 4142 | 2464 |
+| 2375 | 3 | 370 | 4133 | 2489 |
 
 ## GUI.Forms types
 
@@ -51,9 +51,9 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TreeView` | `TreeView` | 13 | 0 | 2 | 73 | 10 |
 | `ObjectView` | `ListView` | 20 | 0 | 2 | 107 | 18 |
 | `ListView` | `ListView` | 49 | 0 | 2 | 101 | 40 |
-| `TreeListView` | GUI.Forms-only | 31 | 0 | 0 | 5 | 36 |
+| `TreeListView` | GUI.Forms-only | 32 | 0 | 0 | 4 | 36 |
 | `VirtualRowsView` | GUI.Forms-only | 46 | 0 | 0 | 2 | 48 |
-| `DataGridView` | `DataGridView` | 162 | 0 | 0 | 307 | 88 |
+| `DataGridView` | `DataGridView` | 163 | 0 | 0 | 306 | 88 |
 | `ChoiceGroup` | GUI.Forms-only | 6 | 0 | 0 | 3 | 9 |
 | `BreadcrumbTrail` | GUI.Forms-only | 12 | 0 | 0 | 3 | 15 |
 | `CheckBox` | `CheckBox` | 4 | 0 | 0 | 14 | 3 |
@@ -79,12 +79,12 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ExpandableSections` | GUI.Forms-only | 7 | 0 | 0 | 0 | 7 |
 | `ContainerControl` | `ContainerControl` | 9 | 0 | 0 | 11 | 4 |
 | `UserControl` | `UserControl` | 5 | 0 | 0 | 7 | 4 |
-| `CompositeControl` | GUI.Forms-only | 10 | 0 | 0 | 3 | 13 |
+| `CompositeControl` | GUI.Forms-only | 11 | 0 | 0 | 2 | 13 |
 | `TabControl` | `TabControl` | 16 | 1 | 2 | 38 | 12 |
 | `PageStrip` | GUI.Forms-only | 30 | 0 | 0 | 7 | 37 |
 | `PageView` | GUI.Forms-only | 8 | 0 | 0 | 1 | 9 |
 | `NavigationPane` | GUI.Forms-only | 17 | 0 | 0 | 3 | 20 |
-| `DockSite` | GUI.Forms-only | 46 | 0 | 0 | 7 | 53 |
+| `DockSite` | GUI.Forms-only | 51 | 0 | 0 | 7 | 58 |
 | `DockNavigator` | GUI.Forms-only | 10 | 0 | 0 | 4 | 14 |
 | `TabPage` | `TabPage` | 4 | 0 | 0 | 16 | 0 |
 | `FlexPanel` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
@@ -104,7 +104,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ScrollBar` | `ScrollBar` | 12 | 0 | 0 | 24 | 6 |
 | `HScrollBar` | `HScrollBar` | 1 | 0 | 0 | 0 | 0 |
 | `VScrollBar` | `VScrollBar` | 1 | 0 | 0 | 1 | 0 |
-| `MenuStrip` | `MenuStrip` | 9 | 0 | 0 | 9 | 7 |
+| `MenuStrip` | `MenuStrip` | 13 | 0 | 0 | 8 | 10 |
 | `ToolStrip` | `ToolStrip` | 16 | 0 | 2 | 75 | 18 |
 | `RibbonFontControl` | GUI.Forms-only | 9 | 0 | 0 | 1 | 10 |
 | `RibbonColorPicker` | GUI.Forms-only | 7 | 0 | 0 | 2 | 9 |
@@ -117,7 +117,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `BindingNavigator` | `BindingNavigator` | 8 | 0 | 0 | 18 | 8 |
 | `Ribbon` | GUI.Forms-only | 46 | 0 | 0 | 5 | 51 |
 | `ContextMenu` | `ContextMenuStrip` | 9 | 0 | 0 | 1 | 5 |
-| `DockWorkspace` | GUI.Forms-only | 42 | 0 | 0 | 14 | 56 |
+| `DockWorkspace` | GUI.Forms-only | 56 | 0 | 0 | 14 | 70 |
 | `Command` | GUI.Forms-only | 15 | 0 | 0 | 4 | 19 |
 | `FontCommand` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
 | `ColorCommand` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
@@ -132,7 +132,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `RadialGauge` | GUI.Forms-only | 0 | 0 | 0 | 0 | 0 |
 | `Dial` | GUI.Forms-only | 1 | 0 | 0 | 4 | 5 |
 | `StepIndicator` | GUI.Forms-only | 4 | 0 | 0 | 2 | 6 |
-| `Wizard` | GUI.Forms-only | 11 | 0 | 0 | 14 | 25 |
+| `Wizard` | GUI.Forms-only | 12 | 0 | 0 | 13 | 25 |
 | `WizardPage` | GUI.Forms-only | 0 | 0 | 0 | 4 | 4 |
 | `Callout` | GUI.Forms-only | 6 | 0 | 0 | 8 | 14 |
 | `ModalLayer` | GUI.Forms-only | 7 | 0 | 0 | 4 | 11 |
@@ -151,7 +151,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ContentTextEditor` | GUI.Forms-only | 26 | 0 | 0 | 2 | 28 |
 | `MetricsView` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
 | `PlotLinkGroup` | GUI.Forms-only | 6 | 0 | 0 | 1 | 7 |
-| `Timer` | `Timer` | 6 | 0 | 0 | 3 | 1 |
+| `Timer` | `Timer` | 7 | 0 | 0 | 2 | 1 |
 | `BackgroundWorker` | `BackgroundWorker` | 10 | 0 | 0 | 6 | 2 |
 | `NotifyIcon` | `NotifyIcon` | 12 | 0 | 0 | 14 | 6 |
 | `OpenFileDialog` | `OpenFileDialog` | 11 | 0 | 0 | 6 | 4 |
@@ -170,7 +170,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 236 | 10 | 10 | 138 | 254 |
+| `Window` | `Form` | 249 | 0 | 13 | 135 | 257 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -208,7 +208,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `AxHost` | excluded | Stage W excludes it: ActiveX hosting. | 0 | 0 | 78 | 0 | 0 |
 | `WebBrowserBase` | excluded | Stage W excludes it: browser hosting. | 0 | 0 | 45 | 0 | 0 |
 | `WebBrowser` | excluded | Stage W excludes it: browser hosting. | 0 | 0 | 59 | 0 | 0 |
-| `MdiClient` | excluded | Stage W excludes it: MDI (stage W's exclusion list; MDI was since admitted as a presentation of DK's document area, not as MdiClient). | 0 | 0 | 3 | 0 | 0 |
+| `MdiClient` | excluded | Stage W excludes it: MDI (stage W's exclusion list): MDI is a presentation of DK's document area, with no MdiClient control; the main DockSite realizes the frames (DK decisions 60 to 63). | 0 | 0 | 3 | 0 | 0 |
 | `PrintPreviewControl` | excluded | Stage W excludes it: printing. | 0 | 0 | 13 | 0 | 0 |
 | `PrintPreviewDialog` | excluded | Stage W excludes it: printing. | 0 | 0 | 66 | 0 | 0 |
 | `PrintDialog` | excluded | Stage W excludes it: printing. | 0 | 0 | 11 | 0 | 0 |
@@ -285,7 +285,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListView.SelectedListViewItemCollection` | unclassified | nested: nested in ListView; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 11 | 0 |
 | `ListViewItem.ListViewSubItem` | unclassified | nested: nested in ListViewItem; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 9 | 0 |
 | `ListViewItem.ListViewSubItemCollection` | unclassified | nested: nested in ListViewItem; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 16 | 0 |
-| `MdiClient.ControlCollection` | excluded | Stage W excludes it: nested in MdiClient: MDI (stage W's exclusion list; MDI was since admitted as a presentation of DK's document area, not as MdiClient). | 0 | 0 | 1 | 0 | 0 |
+| `MdiClient.ControlCollection` | excluded | Stage W excludes it: nested in MdiClient: MDI (stage W's exclusion list): MDI is a presentation of DK's document area, with no MdiClient control; the main DockSite realizes the frames (DK decisions 60 to 63). | 0 | 0 | 1 | 0 | 0 |
 | `MonthCalendar.HitArea` | unclassified | nested: nested in MonthCalendar; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 0 | 0 |
 | `MonthCalendar.HitTestInfo` | unclassified | nested: nested in MonthCalendar; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 3 | 0 |
 | `PropertyGrid.PropertyTabCollection` | unclassified | nested: nested in PropertyGrid; no GUI.Forms type stands for it yet | 0 | 0 | 0 | 6 | 0 |
@@ -312,6 +312,6 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `nested` | 641 |
 | `no-entry` | 497 |
 | `review` | 13 |
-| `unmatched` | 1590 |
-| `untested` | 967 |
+| `unmatched` | 1588 |
+| `untested` | 960 |
 | `w-open` | 5 |

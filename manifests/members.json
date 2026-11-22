@@ -4030,17 +4030,17 @@
       {"kind": "method", "winforms": null, "gui_forms": "tab_shown", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "text_box", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"}
     ]},
-    {"type": "ContextMenu", "winforms": "ContextMenuStrip", "gui_forms_base": "Component", "winforms_base": "ToolStripDropDownMenu", "status": "supported", "basis": "test", "evidence": "tests/command_chain_tests.cpp", "members": [
-      {"kind": "constructor", "winforms": "ContextMenuStrip", "scope": "admitted", "overloads": 2, "gui_forms": "ContextMenu", "status": "supported", "basis": "test", "evidence": "tests/command_chain_tests.cpp"},
+    {"type": "ContextMenu", "winforms": "ContextMenuStrip", "gui_forms_base": "Component", "winforms_base": "ToolStripDropDownMenu", "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp", "members": [
+      {"kind": "constructor", "winforms": "ContextMenuStrip", "scope": "admitted", "overloads": 2, "gui_forms": "ContextMenu", "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp"},
       {"kind": "property", "winforms": "SourceControl", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "property", "winforms": null, "gui_forms": "is_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/hostile_handlers/hostile_handlers_tests.cpp"},
-      {"kind": "property", "winforms": "ToolStrip.Items", "scope": "admitted", "gui_forms": "items", "status": "supported", "basis": "test", "evidence": "tests/command_chain_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "is_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp"},
+      {"kind": "property", "winforms": "ToolStrip.Items", "scope": "admitted", "gui_forms": "items", "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "stable_id", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "item_invoked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "open_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_compile_only.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "assign", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/command_chain_tests.cpp"},
-      {"kind": "method", "winforms": "ToolStripDropDown.Close", "scope": "admitted", "overloads": 2, "gui_forms": "close", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_compile_only.cpp"},
-      {"kind": "method", "winforms": "ToolStripDropDown.Show", "scope": "admitted", "overloads": 7, "gui_forms": "show", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_compile_only.cpp"}
+      {"kind": "method", "winforms": "ToolStripDropDown.Close", "scope": "admitted", "overloads": 2, "gui_forms": "close", "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp"},
+      {"kind": "method", "winforms": "ToolStripDropDown.Show", "scope": "admitted", "overloads": 7, "gui_forms": "show", "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp"}
     ]},
     {"type": "DockWorkspace", "winforms": null, "gui_forms_base": "Component", "status": "supported", "basis": "test", "evidence": "tests/borrowed_view_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "active_document", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_drag_tests.cpp"},
@@ -5382,7 +5382,7 @@
       {"kind": "method", "winforms": "ShowAsync", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "ShowDialog", "scope": "admitted", "overloads": 2, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "ShowDialogAsync", "scope": "admitted", "overloads": 2, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "property", "winforms": null, "gui_forms": "active", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/animation_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "active", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
       {"kind": "property", "winforms": "ContainerControl.ActiveControl", "scope": "admitted", "gui_forms": "active_control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "active_focus_scope_root", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/focus_scope_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "application", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_instance_tests.cpp"},
@@ -5576,7 +5576,7 @@
       {"kind": "method", "winforms": "Control.PerformLayout", "scope": "admitted", "overloads": 2, "gui_forms": "perform_layout", "status": "supported", "basis": "test", "evidence": "tests/abi/custom/gf_abi_custom_paint.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "perform_semantic_action", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/auto_complete_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "poll_frame_schedule", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/animation_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "popup_window_model", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/menu_popup_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "popup_window_model", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "popup_work_area", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "prepare_popup_window", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "publish_value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/abi/themes/gf_abi_theme_trace.cpp"},
@@ -5610,7 +5610,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "route_command", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/command_route_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "rules", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/drag_engine_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "schedule_paint", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/frame_scheduler_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "schedule_ui_timer", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dispatcher_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "schedule_ui_timer", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "semantic_snapshot", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "semantic_text_layout", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_text_editor_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_band_appearance", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/window_band_tests.cpp"},
