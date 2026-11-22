@@ -213,7 +213,9 @@ struct GUI_FORMS_API LightComposite final {
 // A jewel lamp's face filter for a lamp of `colour` (IndicatorLamp's and
 // RadioButton's lamp look): the colour scaled to a largest channel of 1,
 // mixed 60% from white, so an unlit jewel is tinted glass and a lit one
-// glows in its colour.
+// glows in its colour. Only a neutral colour gives clear glass: the
+// study's colours are filters over a white-hot lamp, and its white
+// (lamp_white) is warm, so a white jewel is faintly warm.
 [[nodiscard]] GUI_FORMS_API LampColour jewel_filter(LampColour colour) noexcept;
 
 // The power the study's dialog drives its jewels at (demo.html,
