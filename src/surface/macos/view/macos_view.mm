@@ -580,6 +580,14 @@ void link_view_categories() noexcept {
     if (active == YES) [self setNeedsDisplay:YES];
 }
 
+- (void)notifyFrameMoved {
+    if (_hostAttached == NO || !_model) return;
+    (*_model).report_frame_moved();
+    // Closing a menu hides its Popup windows and gives the owner back its
+    // focus: the owner repaints what changed.
+    [self collectDamage];
+}
+
 - (void)notifyOcclusion:(BOOL)occluded {
     if (_hostAttached == NO) return;
     static_cast<void>([self dispatchHostPayload:HostOcclusionEvent{occluded == YES}

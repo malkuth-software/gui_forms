@@ -388,8 +388,10 @@ bool valid_pointer_settings(const PointerSettings& settings) noexcept {
                        settings.hover_milliseconds <= maximum_hover_milliseconds &&
                        valid_pointer_distance(settings.hover_width) &&
                        valid_pointer_distance(settings.hover_height);
-    const bool origins = known_setting_origin(settings.drag_origin) && known_setting_origin(settings.hover_origin);
-    return drag && hover && origins;
+    const bool menu_show = settings.menu_show_milliseconds <= maximum_menu_show_milliseconds;
+    const bool origins = known_setting_origin(settings.drag_origin) && known_setting_origin(settings.hover_origin) &&
+                         known_setting_origin(settings.menu_show_origin);
+    return drag && hover && menu_show && origins;
 }
 
 bool valid_caret_settings(const CaretSettings& settings) noexcept {

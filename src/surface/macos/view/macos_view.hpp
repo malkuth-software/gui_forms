@@ -210,6 +210,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)notifyClosedWithReason:(HostCloseReason)reason;
 - (void)notifyActivation:(BOOL)active;
 - (void)notifyOcclusion:(BOOL)occluded;
+// The native window moved on the screen, or began a move or a live resize:
+// what is placed against it from outside (a menu's Popup windows) closes
+// (SurfaceRoot::report_frame_moved). The window delegate decides when; a
+// passive popup's or a Splash's delegate never calls it.
+- (void)notifyFrameMoved;
 - (void)notifyScaleChanged;
 - (void)notifyWindowState;
 - (void)notifyDisplaysChanged;

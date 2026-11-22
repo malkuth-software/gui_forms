@@ -1577,7 +1577,7 @@ Related types
 
    ``#include <gui_forms/window/presentation/input_settings.hpp>``
 
-   The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them. GUI.Forms recognizes no gestures: controls compare a press's movement against the drag rectangle in their MouseMove and start a drag themselves. - drag_width, drag_height: the rectangle, centred on the press, the pointer must leave before a drag starts (SystemInformation.DragSize; Windows SM_CXDRAG/SM_CYDRAG, X11 XSettings Net/DndDragThreshold; macOS offers none, so its host leaves the default). - hover_milliseconds, hover_width, hover_height: how long the pointer must rest within the hover rectangle before a control raises MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize). - native_hover: the host reports hover itself (HostHoverEvent, Windows WM_MOUSEHOVER); the window's own hover timer then stays off.
+   The pointer settings controls and the window read (the WinForms SystemInformation values), from the host where its platform offers them. GUI.Forms recognizes no gestures: controls compare a press's movement against the drag rectangle in their MouseMove and start a drag themselves. - drag_width, drag_height: the rectangle, centred on the press, the pointer must leave before a drag starts (SystemInformation.DragSize; Windows SM_CXDRAG/SM_CYDRAG, X11 XSettings Net/DndDragThreshold; macOS offers none, so its host leaves the default). - hover_milliseconds, hover_width, hover_height: how long the pointer must rest within the hover rectangle before a control raises MouseHover (SystemInformation.MouseHoverTime and MouseHoverSize). - native_hover: the host reports hover itself (HostHoverEvent, Windows WM_MOUSEHOVER); the window's own hover timer then stays off. - menu_show_milliseconds: how long the pointer rests on a menu row before its submenu opens, or before an open submenu of another row closes (Windows SPI_GETMENUSHOWDELAY; X11 and macOS publish none, so their hosts leave the default).
 
    .. cpp:member:: double drag_width
 
@@ -1608,6 +1608,14 @@ Related types
       Default: ``{SettingOrigin::default_value}``.
 
    .. cpp:member:: bool native_hover
+
+   .. cpp:member:: std::uint32_t menu_show_milliseconds
+
+      Default: ``{default_menu_show_milliseconds}``.
+
+   .. cpp:member:: SettingOrigin menu_show_origin
+
+      Default: ``{SettingOrigin::default_value}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3688,7 +3696,7 @@ Functions, constants and aliases
 
 .. cpp:function:: bool valid_pointer_settings(const PointerSettings& settings) noexcept
 
-   Whether every value lies in its range (each rectangle side finite and between 0 and maximum_pointer_distance, the hover time between 1 and maximum_hover_milliseconds) and every origin is in its enum.
+   Whether every value lies in its range (each rectangle side finite and between 0 and maximum_pointer_distance, the hover time between 1 and maximum_hover_milliseconds, the menu show delay at most maximum_menu_show_milliseconds) and every origin is in its enum.
 
 .. cpp:function:: bool valid_caret_settings(const CaretSettings& settings) noexcept
 
@@ -3719,6 +3727,14 @@ Functions, constants and aliases
    The largest drag or hover rectangle side and hover time a window takes. Value: ``64.0``.
 
 .. cpp:var:: constexpr std::uint32_t maximum_hover_milliseconds
+
+   Value: ``10000U``.
+
+.. cpp:var:: constexpr std::uint32_t default_menu_show_milliseconds
+
+   How long the pointer rests on a menu's submenu row before its submenu opens, or on another row before an open submenu closes, where the host reports none: Windows' own default for SPI_GETMENUSHOWDELAY. A perceptual duration, in milliseconds; 0 opens and closes at once. Value: ``400U``.
+
+.. cpp:var:: constexpr std::uint32_t maximum_menu_show_milliseconds
 
    Value: ``10000U``.
 
