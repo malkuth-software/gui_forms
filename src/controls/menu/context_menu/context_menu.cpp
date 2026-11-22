@@ -251,6 +251,20 @@ struct ContextMenu::Impl final {
             Control::on_mouse_down(arguments);
         }
 
+        // A move over an inert row (a separator, a disabled command), which
+        // takes no input and so lets the panel be hit: the row's move all
+        // the same, so resting there closes another row's submenu as
+        // resting on any row does. Moves over the panel's border and over
+        // input-taking rows are not the panel's.
+        void on_mouse_move(MouseEventArgs& arguments) override {
+            const std::optional<std::size_t> row = impl_.inert_row_at(depth_, arguments.window_position);
+            if (row.has_value()) {
+                impl_.pointer_moved(depth_, *row, arguments.window_position);
+                arguments.handled = true;
+            }
+            Control::on_mouse_move(arguments);
+        }
+
         void on_pointer_bubble(PointerEvent& event) override {
             if (!event.handled && event.action == PointerAction::wheel &&
                 event.wheel_delta.y != 0.0) {
@@ -552,8 +566,9 @@ struct ContextMenu::Impl final {
             return side;
         }
 
-        // A separator takes moves too: resting on it closes a submenu
-        // another row of the panel opened, as resting on any other row does.
+        // An inert row (a separator, a disabled command) is not enabled, so
+        // hit testing passes it by: its moves reach the panel instead
+        // (MenuPanel::on_mouse_move).
         void on_mouse_move(MouseEventArgs& arguments) override {
             impl_.pointer_moved(depth_, index_, arguments.window_position);
             arguments.handled = true;
@@ -1215,15 +1230,39 @@ struct ContextMenu::Impl final {
         return shown;
     }
 
+    // Whether `item` is an inert row: one that takes no input (a separator,
+    // a disabled command or submenu), as MenuRow's enabled says. It never
+    // turns hot; resting on it only closes another row's submenu.
+    [[nodiscard]] static bool inert_item(const MenuSnapshot& item) noexcept {
+        const bool inert = item.kind == MenuItemKind::separator || !snapshot_enabled(item);
+        return inert;
+    }
+
+    // The inert row of the panel at `depth` under `window_position` (in the
+    // window that hosts the panel), if any.
+    [[nodiscard]] std::optional<std::size_t> inert_row_at(std::size_t depth, const Point window_position) const {
+        std::optional<std::size_t> found;
+        if (depth >= panels.size() || panels[depth].items == nullptr) return found;
+        const std::vector<std::shared_ptr<MenuRow>>& rows = panels[depth].rows;
+        for (std::size_t index = 0U; index < rows.size() && index < (*panels[depth].items).size(); ++index) {
+            const bool inert = inert_item((*panels[depth].items)[index]);
+            if (inert && (*rows[index]).absolute_bounds().contains(window_position)) {
+                found = index;
+                break;
+            }
+        }
+        return found;
+    }
+
     // The pointer is on the row at `depth` and `index` now (a press, or a
     // rest that outlasted the menu show delay): the row turns hot, its
     // submenu opens, and a submenu of another row of the panel closes.
     void hover(std::size_t depth, std::size_t index) {
         cancel_settle();
         if (depth >= panels.size() || index >= panels[depth].rows.size()) return;
-        // A separator never turns hot; resting on it only closes the
+        // An inert row never turns hot; resting on it only closes the
         // submenu of another row.
-        if ((*panels[depth].items)[index].kind == MenuItemKind::separator) {
+        if (inert_item((*panels[depth].items)[index])) {
             remove_panels_after(depth);
             return;
         }
@@ -1359,8 +1398,8 @@ struct ContextMenu::Impl final {
         }
         const bool waiting_here = settle_target && (*settle_target).depth == depth && (*settle_target).index == index;
         const MenuSnapshot& item = (*panels[depth].items)[index];
-        const bool separator = item.kind == MenuItemKind::separator;
-        if (!separator && !mark_hot(depth, index)) return;
+        const bool inert = inert_item(item);
+        if (!inert && !mark_hot(depth, index)) return;
         const bool opens = item.kind == MenuItemKind::submenu && !item.children.empty() && snapshot_enabled(item);
         if (!opens && !submenu_shown) {
             cancel_settle();
