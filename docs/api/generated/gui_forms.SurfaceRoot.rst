@@ -620,6 +620,8 @@ gui_forms::SurfaceRoot
         - Delivers a pointer event, as the host does for mouse, pen and touch input, and returns whether a control handled it.
       * - :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`
         - Delivers a key event and returns whether anything handled it: the focused control, an accelerator, a dialog key or Tab traversal.
+      * - :cpp:func:`dispatch_gesture <gui_forms::SurfaceRoot::dispatch_gesture>`
+        - A touchpad gesture (gesture_events.hpp gives the routing): to the captured control, else the control its gesture began over (the latch), else the control under ``event.position``; then its ancestors, until one handles it.
       * - :cpp:func:`dispatch_context_request <gui_forms::SurfaceRoot::dispatch_context_request>`
         - Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`: a pointer request to the control under the position (the captured control while one is), a keyboard request to the focused control, then to each ancestor until one handles it, through ``Control::on_context_menu_requested`` and its ``context_menu_requested`` subscribers.
       * - :cpp:func:`dispatch_host_hover <gui_forms::SurfaceRoot::dispatch_host_hover>`
@@ -1698,6 +1700,10 @@ gui_forms::SurfaceRoot
 
       Delivers a key event and returns whether anything handled it: the
       focused control, an accelerator, a dialog key or Tab traversal.
+
+   .. cpp:function:: bool dispatch_gesture(GestureEvent event)
+
+      A touchpad gesture (gesture_events.hpp gives the routing): to the captured control, else the control its gesture began over (the latch), else the control under ``event.position``; then its ancestors, until one handles it. Returns whether one did. Nothing else is derived from an unhandled gesture. During a paint, as dispatch_pointer.
 
    .. cpp:function:: bool dispatch_context_request(ContextRequestOrigin origin, Point position)
 

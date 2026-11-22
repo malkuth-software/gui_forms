@@ -1489,6 +1489,12 @@ public:
     // result.
     bool dispatch_pointer(PointerEvent event);
     bool dispatch_key(KeyEvent event);
+    // A touchpad gesture (gesture_events.hpp gives the routing): to the
+    // captured control, else the control its gesture began over (the
+    // latch), else the control under `event.position`; then its ancestors,
+    // until one handles it. Returns whether one did. Nothing else is
+    // derived from an unhandled gesture. During a paint, as dispatch_pointer.
+    bool dispatch_gesture(GestureEvent event);
     // A context-menu request (owner's mouse-event rule): from the host's
     // HostContextRequestEvent, or a test. A pointer request goes to the
     // control under `position` (window coordinates; the captured control
@@ -1848,6 +1854,9 @@ private:
     // releasing the latch at the gesture's end (wheel_latch_); null to route
     // by hit test.
     [[nodiscard]] Control::Ptr wheel_latch_target(const PointerEvent& event);
+    // The target of a gesture event: the captured control, else the latch
+    // (a smart_magnify and a began event replace it), else the hit test.
+    [[nodiscard]] Control::Ptr gesture_target(const GestureEvent& event);
     // The route's target phase: the raiser of the event's action
     // (on_mouse_down, on_mouse_up, on_mouse_move or on_mouse_wheel) on
     // `target`, whose handled comes back into `event`; returns the
@@ -2337,7 +2346,7 @@ private:
     void append_drag_announcements(SemanticSnapshot& snapshot) const;
     using DeferredInput = std::variant<
         PointerEvent, KeyEvent, TextInputEvent, DragEvent,
-        DeferredSemanticInput, HostRelativeMotionEvent>;
+        DeferredSemanticInput, HostRelativeMotionEvent, GestureEvent>;
     [[nodiscard]] bool defer_input(DeferredInput input);
     void schedule_deferred_input_drain() noexcept;
     void drain_deferred_input();
@@ -2793,6 +2802,9 @@ private:
     // WheelPhase): its later events, momentum included, go to it while it
     // is eligible. Observed; empty between gestures.
     Control::WeakPtr wheel_latch_;
+    // The control the current touchpad gesture began over (dispatch_gesture),
+    // as wheel_latch_ for scrolling. Observed; empty between gestures.
+    Control::WeakPtr gesture_latch_;
     // The input state (detail::InteractionState), made by the first pointer
     // or key event; the clock it reads, borrowed (null for the steady
     // clock); and the wake for a pending hover.

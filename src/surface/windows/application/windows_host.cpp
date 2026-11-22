@@ -7,6 +7,7 @@
 #include "../services/windows_cursor.hpp"
 #include "../services/windows_notify_icons.hpp"
 #include "../compositor/windows_compositor.hpp"
+#include "../input/windows_direct_manipulation.hpp"
 #include "../input/windows_key_translation.hpp"
 #include "../input/windows_message_queue.hpp"
 #include "../locale/windows_locale.hpp"
@@ -125,6 +126,13 @@ bool present_bgra_area(HDC target, const std::byte* pixels, std::size_t row_byte
 // Retries automation commands deferred while the UI thread was inside a
 // dispatch or a native size/move loop (WindowsHostState::automation).
 constexpr UINT_PTR automation_retry_timer = 4;
+// Pumps DirectManipulation's update manager while a touchpad gesture or its
+// inertia runs (WindowsHostState::manipulation_status), about a frame apart.
+constexpr UINT_PTR manipulation_timer = 5;
+constexpr UINT manipulation_timer_milliseconds = 8;
+// DM_POINTERHITTEST (winuser.h for Windows 8 and later): a new touchpad or
+// touch contact DirectManipulation may take.
+constexpr UINT pointer_hit_test_message = 0x0250;
 constexpr UINT automation_retry_milliseconds = 10;
 // At most this many automation commands wait per window; more are refused.
 constexpr std::size_t maximum_deferred_automation = 64U;
@@ -1656,7 +1664,7 @@ struct RequestClientSize final {
     std::weak_ptr<ClientSizeCallbackState> owner{};
     HostServiceStatus operator()(Size client_size) const;
 };
-class WindowsHostState final {
+class WindowsHostState final : private windows_detail::DirectManipulationInput::Sink {
     // Reaches request_client_size through its revocable callback state.
     friend struct RequestClientSize;
 #if defined(GUI_FORMS_DIB_LIFECYCLE_TEST)
@@ -1789,6 +1797,10 @@ public:
         report_input_settings();
         report_window_state();
         accessibility_.attach(hwnd_, *model_, scale_);
+        // Precision-touchpad pinch and pan (windows_direct_manipulation.hpp);
+        // without DirectManipulation Windows keeps sending the pan as
+        // WM_MOUSEWHEEL and the pinch as Ctrl+wheel.
+        static_cast<void>(manipulation_.attach(hwnd_, *this));
         (*model_).set_dispatch_wake_handler(
             gui_forms::detail::BoundMemberFunction<
                 void (WindowsHostState::*)() noexcept>(
@@ -2073,6 +2085,7 @@ public:
             report_application_active_to_run(wparam != FALSE);
             break;
         case WM_SIZE:
+            manipulation_.resize(LOWORD(lparam), HIWORD(lparam));
             // Inside the native size/move loop the sizes arriving between two
             // frames are coalesced: the newest is laid out when the next frame
             // is painted or the live clock ticks (apply_pending_resize). The
@@ -2269,6 +2282,10 @@ public:
                 run_deferred_automation();
                 return 0;
             }
+            if (wparam == manipulation_timer) {
+                manipulation_.pump();
+                return 0;
+            }
             if (wparam == modal_live_surface_timer) {
                 // Do not enter retained polling/layout from the native modal
                 // loop. Sample and present only the newest live generation,
@@ -2303,6 +2320,7 @@ public:
         case WM_CONTEXTMENU: context_request(lparam); return 0;
         case WM_MOUSEHOVER: hover(lparam); return 0;
         case WM_MOUSEWHEEL: wheel(wparam, lparam, false); return 0;
+        case pointer_hit_test_message: manipulation_.pointer_hit_test(wparam); return 0;
         case WM_MOUSEHWHEEL: wheel(wparam, lparam, true); return 0;
         case WM_SYSKEYDOWN:
             // Preserve the native close gesture. Swallowing all system keys
@@ -2360,6 +2378,7 @@ public:
         case WM_QUERYENDSESSION: return query_end_session();
         case WM_ENDSESSION: return end_session(wparam != FALSE);
         case WM_DESTROY:
+            stop_manipulation();
             (*title_state_).window = nullptr;
             (*size_state_).host = nullptr;
             services_.revoke_cursor_interaction(CursorError::closing);
@@ -3719,6 +3738,54 @@ private:
         collect_damage();
     }
 
+    // DirectManipulation's reports (Sink): the viewport's status arms the
+    // update pump while a gesture runs; each status and transform becomes
+    // the wheel and gesture events windows_manipulation_rules.hpp names, at
+    // the pointer's position (on a touchpad, where the fingers work).
+    void manipulation_status(windows_detail::ManipulationStatus status) override {
+        const bool running = status == windows_detail::ManipulationStatus::running ||
+                             status == windows_detail::ManipulationStatus::inertia;
+        if (running && !manipulation_timer_armed_) {
+            manipulation_timer_armed_ = SetTimer(hwnd_, manipulation_timer, manipulation_timer_milliseconds, nullptr) != 0;
+        } else if (!running && manipulation_timer_armed_) {
+            KillTimer(hwnd_, manipulation_timer);
+            manipulation_timer_armed_ = false;
+        }
+        const windows_detail::ManipulationReport report =
+            windows_detail::manipulation_status(manipulation_tracker_, status, pointer_focal(), modifiers(), 0U);
+        dispatch_manipulation(report);
+    }
+
+    void manipulation_transform(double scale, Point device_offset) override {
+        const windows_detail::ManipulationReport report = windows_detail::manipulation_transform(
+            manipulation_tracker_, scale, device_offset, pointer_focal(), scale_, modifiers(), 0U);
+        dispatch_manipulation(report);
+    }
+
+    void dispatch_manipulation(const windows_detail::ManipulationReport& report) {
+        if (report.has_wheel) static_cast<void>(dispatch(report.wheel));
+        if (report.has_gesture) static_cast<void>(dispatch(report.gesture));
+        if (report.reset_content) manipulation_.reset_content();
+        if (report.has_wheel || report.has_gesture) collect_damage();
+    }
+
+    // The pointer's position in logical client coordinates.
+    Point pointer_focal() const {
+        POINT point{};
+        if (GetCursorPos(&point) == FALSE) return Point{};
+        ScreenToClient(hwnd_, &point);
+        return Point{point.x / scale_, point.y / scale_};
+    }
+
+    // Ends the window's DirectManipulation before its HWND goes (WM_DESTROY).
+    void stop_manipulation() noexcept {
+        if (manipulation_timer_armed_) {
+            KillTimer(hwnd_, manipulation_timer);
+            manipulation_timer_armed_ = false;
+        }
+        manipulation_.detach();
+    }
+
     // WM_MOUSEWHEEL (vertical) or WM_MOUSEHWHEEL (horizontal: a tilt wheel,
     // a precision touchpad's sideways pan). Both carry WHEEL_DELTA per
     // notch, or a fraction of one from a smooth device, as lines. A
@@ -4375,6 +4442,11 @@ private:
     };
 
     WindowsAccessibility accessibility_;
+    // The touchpad's DirectManipulation (attached in initialize, detached at
+    // WM_DESTROY), its gesture in progress and whether its pump runs.
+    windows_detail::DirectManipulationInput manipulation_;
+    windows_detail::ManipulationTracker manipulation_tracker_{};
+    bool manipulation_timer_armed_{};
     std::unique_ptr<Window> model_;
     WindowsHostOptions options_;
     WindowsHostServices services_;

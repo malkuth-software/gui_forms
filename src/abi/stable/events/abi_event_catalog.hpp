@@ -141,6 +141,7 @@
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/drawing/types/drawing_types.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
+#include "gui_forms/events/gesture_events/gesture_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
@@ -531,6 +532,30 @@ struct EnumerationChoices<FontRole> {
         {"control", static_cast<std::int64_t>(FontRole::control)},
         {"content", static_cast<std::int64_t>(FontRole::content)},
         {"monospace", static_cast<std::int64_t>(FontRole::monospace)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<GestureKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"magnify", static_cast<std::int64_t>(GestureKind::magnify)},
+        {"rotate", static_cast<std::int64_t>(GestureKind::rotate)},
+        {"smart_magnify", static_cast<std::int64_t>(GestureKind::smart_magnify)},
+        {"swipe", static_cast<std::int64_t>(GestureKind::swipe)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<GesturePhase> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 6> choices{{
+        {"began", static_cast<std::int64_t>(GesturePhase::began)},
+        {"changed", static_cast<std::int64_t>(GesturePhase::changed)},
+        {"ended", static_cast<std::int64_t>(GesturePhase::ended)},
+        {"cancelled", static_cast<std::int64_t>(GesturePhase::cancelled)},
+        {"momentum", static_cast<std::int64_t>(GesturePhase::momentum)},
+        {"momentum_ended", static_cast<std::int64_t>(GesturePhase::momentum_ended)},
     }};
 };
 
@@ -1444,6 +1469,7 @@ void read_field(EventFields& fields, std::string_view name, FontFamilyStackId& v
 void append_field(EventFields& fields, std::string_view name, const FontSpec& value);
 void read_field(EventFields& fields, std::string_view name, FontSpec& value);
 void append_field(EventFields& fields, std::string_view name, const GalleryPreview& value);
+void append_field(EventFields& fields, std::string_view name, const GestureEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const GradientStop& value);
 void append_field(EventFields& fields, std::string_view name, const HelpLinkActivation& value);
 void read_field(EventFields& fields, std::string_view name, HelpLinkActivation& value);
@@ -2424,6 +2450,22 @@ inline void append_field(EventFields& fields, std::string_view name, const Galle
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "item_id", value.item_id);
     append_field(fields, "source_id", value.source_id);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const GestureEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "gesture_phase", value.gesture_phase);
+    append_field(fields, "location", value.location);
+    append_field(fields, "window_position", value.window_position);
+    append_field(fields, "scale", value.scale);
+    append_field(fields, "rotation_degrees", value.rotation_degrees);
+    append_field(fields, "translation", value.translation);
+    append_field(fields, "modifiers", value.modifiers);
+    append_field(fields, "phase", value.phase);
+    append_field(fields, "handled", value.handled);
+    append_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
     fields.leave(prefix);
 }
 
@@ -5349,6 +5391,15 @@ inline SubscriptionToken connect_menu_strip_frame_button_pressed(Component& sour
     return token;
 }
 
+inline SubscriptionToken connect_control_gesture(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).gesture(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_node_canvas_graph_edited(Component& source, const EventSink& sink) {
     NodeCanvas* typed = dynamic_cast<NodeCanvas*>(&source);
     if (typed == nullptr) {
@@ -7344,7 +7395,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 383> event_connectors{{
+inline constexpr std::array<EventConnector, 384> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7510,6 +7561,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"focused_control_changed", "Window", &connect_window_focused_control_changed},
     {"format", "Binding", &connect_binding_format},
     {"frame_button_pressed", "MenuStrip", &connect_menu_strip_frame_button_pressed},
+    {"gesture", "Control", &connect_control_gesture},
     {"graph_edited", "NodeCanvas", &connect_node_canvas_graph_edited},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
     {"handle_committed", "PlotView", &connect_plot_view_handle_committed},

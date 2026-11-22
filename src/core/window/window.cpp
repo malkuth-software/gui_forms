@@ -561,6 +561,8 @@ void SurfaceRoot::DeferredInputVisitor::operator()(InputEvent&& event) const {
         static_cast<void>((*root).dispatch_drag(std::move(event)));
     } else if constexpr (std::is_same_v<EventType, HostRelativeMotionEvent>) {
         static_cast<void>((*root).dispatch_relative_motion(event));
+    } else if constexpr (std::is_same_v<EventType, GestureEvent>) {
+        static_cast<void>((*root).dispatch_gesture(std::move(event)));
     } else if (event.owner.value != 0U) {
         static_cast<void>((*root).perform_semantic_action(
             event.owner, event.stable_id, event.action, event.value));
@@ -2145,6 +2147,59 @@ bool SurfaceRoot::route_pointer(PointerEvent& event, Control::Ptr& pressed_for_r
             if (event.handled) {
                 break;
             }
+        }
+    }
+    return event.handled;
+}
+
+Control::Ptr SurfaceRoot::gesture_target(const GestureEvent& event) {
+    Control::Ptr target = captured_.lock();
+    if (target) return target;
+    const bool own_gesture = event.kind == GestureKind::smart_magnify;
+    if (!own_gesture && event.gesture_phase != GesturePhase::began) {
+        target = gesture_latch_.lock();
+        if (target && !eligible(target)) target.reset();
+    }
+    if (!target) target = hit_test(event.position);
+    if (!own_gesture && event.gesture_phase == GesturePhase::began) gesture_latch_ = target;
+    return target;
+}
+
+bool SurfaceRoot::dispatch_gesture(GestureEvent event) {
+    require_root_thread("gesture dispatch");
+    if (in_paint_) return defer_input(DeferredInput{std::move(event)});
+    metrics_.record_input();
+    if (event.timestamp_nanoseconds == 0U) {
+        const FrameTime stamped = input_now();
+        event.timestamp_nanoseconds = static_cast<std::uint64_t>(
+            std::chrono::duration_cast<std::chrono::nanoseconds>(stamped.time_since_epoch()).count());
+    }
+    const Control::Ptr target = gesture_target(event);
+    // The gesture's last event goes to its latched control and then
+    // releases the latch.
+    if (gesture_phase_final(event.gesture_phase)) gesture_latch_.reset();
+    if (!target || !eligible(target)) return false;
+    // A handler may close and destroy this window: its lifetime record then
+    // names no window, and nothing more is raised.
+    const std::shared_ptr<detail::WindowLifetime> lifetime = lifetime_;
+    Window* const presenting = (*lifetime).window;
+    // Target first, then the ancestors nearest first (route_to lists the
+    // root first and the target last).
+    const std::vector<Control::Ptr> route = route_to(target);
+    event.handled = false;
+    for (std::vector<Control::Ptr>::const_reverse_iterator iterator = route.rbegin(); iterator != route.rend();
+         ++iterator) {
+        const Control::Ptr& control = *iterator;
+        if (!eligible(control)) continue;
+        event.phase = control == target ? EventPhase::target : EventPhase::bubble;
+        const Rect bounds = (*control).absolute_bounds();
+        GestureEventArgs arguments = gesture_event_arguments(event, Point{bounds.x, bounds.y});
+        metrics_.record_callback_emitted();
+        (*control).on_gesture(arguments);
+        if (window_destroyed(*lifetime, presenting)) return true;
+        if (arguments.handled) {
+            event.handled = true;
+            break;
         }
     }
     return event.handled;

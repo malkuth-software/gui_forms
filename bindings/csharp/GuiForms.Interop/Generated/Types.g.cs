@@ -1918,7 +1918,7 @@ public unsafe struct gf_class_header
     public delegate* unmanaged[Cdecl]<void*, void> release;
 }
 
-/// <summary>gf_control_hooks (segment, 352 bytes).</summary>
+/// <summary>gf_control_hooks (segment, 360 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_control_hooks
 {
@@ -1967,6 +1967,7 @@ public unsafe struct gf_control_hooks
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_preview_key_down;
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_validated;
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_validating;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_gesture;
 }
 
 /// <summary>gf_masked_text_box_hooks (segment, 16 bytes).</summary>

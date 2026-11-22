@@ -4,10 +4,12 @@
 
 #include "macos_view.hpp"
 #include "../application/macos_values.hpp"
+#include "macos_gesture_phase.hpp"
 #include "macos_scroll_phase.hpp"
 #include "../services/appkit_relative_pointer.hpp"
 
 #include <algorithm>
+#include <cmath>
 
 static Modifier modifiers_for(NSEventModifierFlags flags) {
     Modifier result = Modifier::none;
@@ -500,6 +502,54 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
     static_cast<void>([self dispatchHostPayload:std::move(input)
                                timestampNanoseconds:host_event_nanoseconds(event)]);
     [self collectDamage];
+}
+
+// The touchpad gestures (gesture_events.hpp). Each event is one change of
+// the gesture, at the pointer's position (AppKit reports no separate focal
+// point for these: the pointer is where the fingers are working).
+- (void)dispatchGestureEvent:(NSEvent*)event
+                        kind:(gui_forms::GestureKind)kind
+                       phase:(gui_forms::GesturePhase)phase
+                       scale:(double)scale
+                    rotation:(double)rotation {
+    gui_forms::GestureEvent input{};
+    input.kind = kind;
+    input.gesture_phase = phase;
+    input.position = [self modelPointForEvent:event];
+    input.scale = scale;
+    input.rotation_degrees = std::isfinite(rotation) ? rotation : 0.0;
+    input.modifiers = modifiers_for(event.modifierFlags);
+    input.timestamp_nanoseconds = host_event_nanoseconds(event);
+    static_cast<void>([self dispatchHostPayload:std::move(input)
+                               timestampNanoseconds:host_event_nanoseconds(event)]);
+    [self collectDamage];
+}
+
+- (void)answerMagnifyWithEvent:(NSEvent*)event {
+    [self dispatchGestureEvent:event
+                          kind:gui_forms::GestureKind::magnify
+                         phase:gui_forms::host::macos::gesture_phase_for(event.phase)
+                         scale:gui_forms::host::macos::magnify_scale_for(event.magnification)
+                      rotation:0.0];
+}
+
+// NSEvent.rotation is degrees, counter-clockwise positive, as the portable
+// rotation_degrees.
+- (void)answerRotateWithEvent:(NSEvent*)event {
+    [self dispatchGestureEvent:event
+                          kind:gui_forms::GestureKind::rotate
+                         phase:gui_forms::host::macos::gesture_phase_for(event.phase)
+                         scale:1.0
+                      rotation:static_cast<double>(event.rotation)];
+}
+
+// A two-finger double tap: one event, a gesture of its own.
+- (void)answerSmartMagnifyWithEvent:(NSEvent*)event {
+    [self dispatchGestureEvent:event
+                          kind:gui_forms::GestureKind::smart_magnify
+                         phase:gui_forms::GesturePhase::ended
+                         scale:1.0
+                      rotation:0.0];
 }
 
 - (void)answerKeyDown:(NSEvent*)event {

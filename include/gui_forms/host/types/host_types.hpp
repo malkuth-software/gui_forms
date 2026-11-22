@@ -734,7 +734,8 @@ using HostEventPayload = std::variant<
     HostContextRequestEvent,
     HostHoverEvent,
     HostWindowStateEvent,
-    HostRelativeMotionEvent>;
+    HostRelativeMotionEvent,
+    GestureEvent>;
 
 struct GUI_FORMS_API HostEvent final {
     std::uint64_t sequence{};

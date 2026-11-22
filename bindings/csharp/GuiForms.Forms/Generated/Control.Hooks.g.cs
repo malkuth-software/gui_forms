@@ -1182,6 +1182,33 @@ public partial class Control : Component
         }
     }
 
+    /// <summary>Control::on_gesture: where gesture happens; base raises gesture; the event's fields are its GestureEventArgs, writable. Windows Forms'
+    /// Control.None. Call the base to run the subscribers.
+    /// </summary>
+    [Hook(Constants.GF_CLASS_CONTROL, 43u)]
+    protected virtual void OnGesture(GestureEventArgs e)
+    {
+        Hooks.call_base(this, HookKeys.control_on_gesture, "gesture"u8);
+    }
+
+    [UnmanagedCallersOnly(CallConvs = new[] { typeof(CallConvCdecl) })]
+    private static unsafe void OnGestureEntry(void* instance, gf_object self, gf_event* native,
+        delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status> base_raiser)
+    {
+        // No exception crosses into the library: it is recorded with the frames
+        // it was thrown under (CallbackFailure, the exception reflection path).
+        try
+        {
+            Control target = (Control)Instances.from(instance);
+            using HookFrame frame = HookFrame.enter(target, HookKeys.control_on_gesture, self, native, base_raiser);
+            target.OnGesture(GestureEventArgs.from_native(native));
+        }
+        catch (Exception failure)
+        {
+            CallbackFailure.record(failure);
+        }
+    }
+
     /// <summary>Fills gf_control_hooks: an entry for each hook in overridden.</summary>
     internal static unsafe void fill_control_segment(gf_control_hooks* segment, HookSet overridden)
     {
@@ -1358,6 +1385,10 @@ public partial class Control : Component
         if (overridden.contains(HookKeys.control_on_validating))
         {
             (*segment).on_validating = &OnValidatingEntry;
+        }
+        if (overridden.contains(HookKeys.control_on_gesture))
+        {
+            (*segment).on_gesture = &OnGestureEntry;
         }
     }
 }

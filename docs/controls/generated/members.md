@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2375 | 3 | 370 | 4133 | 2489 |
+| 2376 | 3 | 370 | 4135 | 2492 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 250 | 0 | 12 | 323 | 228 |
+| `Control` | `Control` | 251 | 0 | 12 | 324 | 230 |
 | `Component` | `Component` | 10 | 0 | 0 | 10 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
@@ -170,7 +170,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 249 | 0 | 13 | 135 | 257 |
+| `Window` | `Form` | 249 | 0 | 13 | 136 | 258 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -313,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 960 |
+| `untested` | 962 |
 | `w-open` | 5 |
