@@ -221,7 +221,7 @@ void ProcessControlRoot::build_strip() {
     constexpr std::array<std::string_view, 2> feeds{"Manual feed", "Automatic feed"};
     for (std::size_t index = 0U; index < feeds.size(); ++index) {
         std::shared_ptr<RadioButton> radio = make_control<RadioButton>(
-            StableId(index == 0U ? "process.feed.manual" : "process.feed.automatic"), std::string(feeds[index]));
+            index == 0U ? StableId("process.feed.manual") : StableId("process.feed.automatic"), std::string(feeds[index]));
         (*radio).group_name = "process-feed";
         (*radio).indicator_style = ChoiceIndicatorStyle::lamp;
         (*radio).checked = index == 0U;
