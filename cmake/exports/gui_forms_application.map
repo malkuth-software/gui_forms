@@ -924,6 +924,7 @@
     _ZGVZN9gui_forms18FirstFrameShowStep*;
     _ZGVZN9gui_forms18FlexContainerInput*;
     _ZGVZN9gui_forms18FlexContainerStyle*;
+    _ZGVZN9gui_forms18FormDocumentSource*;
     _ZGVZN9gui_forms18GridContainerInput*;
     _ZGVZN9gui_forms18GridContainerStyle*;
     _ZGVZN9gui_forms18GuiFormsThemeBuild*;
@@ -2612,6 +2613,7 @@
     _ZGVZNK9gui_forms18FirstFrameShowStep*;
     _ZGVZNK9gui_forms18FlexContainerInput*;
     _ZGVZNK9gui_forms18FlexContainerStyle*;
+    _ZGVZNK9gui_forms18FormDocumentSource*;
     _ZGVZNK9gui_forms18GridContainerInput*;
     _ZGVZNK9gui_forms18GridContainerStyle*;
     _ZGVZNK9gui_forms18GuiFormsThemeBuild*;
@@ -4710,6 +4712,7 @@
     _ZN9gui_forms18FirstFrameShowStep*;
     _ZN9gui_forms18FlexContainerInput*;
     _ZN9gui_forms18FlexContainerStyle*;
+    _ZN9gui_forms18FormDocumentSource*;
     _ZN9gui_forms18GridContainerInput*;
     _ZN9gui_forms18GridContainerStyle*;
     _ZN9gui_forms18GuiFormsThemeBuild*;
@@ -5249,6 +5252,8 @@
     _ZN9gui_forms20focus_inside_ellipseE*;
     _ZN9gui_forms20font_family_drawableB*;
     _ZN9gui_forms20font_family_drawableE*;
+    _ZN9gui_forms20form_document_sourceB*;
+    _ZN9gui_forms20form_document_sourceE*;
     _ZN9gui_forms20high_contrast_colourB*;
     _ZN9gui_forms20high_contrast_colourE*;
     _ZN9gui_forms20joined_segment_radiiB*;
@@ -5595,6 +5600,8 @@
     _ZN9gui_forms22plan_frame_arrangementE*;
     _ZN9gui_forms22present_stock_specimenB*;
     _ZN9gui_forms22present_stock_specimenE*;
+    _ZN9gui_forms22register_form_documentB*;
+    _ZN9gui_forms22register_form_documentE*;
     _ZN9gui_forms22resolve_backdrop_chainB*;
     _ZN9gui_forms22resolve_backdrop_chainE*;
     _ZN9gui_forms22rule_trigger_kind_nameB*;
@@ -7694,6 +7701,7 @@
     _ZNK[RO]9gui_forms18FirstFrameShowStep*;
     _ZNK[RO]9gui_forms18FlexContainerInput*;
     _ZNK[RO]9gui_forms18FlexContainerStyle*;
+    _ZNK[RO]9gui_forms18FormDocumentSource*;
     _ZNK[RO]9gui_forms18GridContainerInput*;
     _ZNK[RO]9gui_forms18GridContainerStyle*;
     _ZNK[RO]9gui_forms18GuiFormsThemeBuild*;
@@ -9382,6 +9390,7 @@
     _ZN[KRO]9gui_forms18FirstFrameShowStep*;
     _ZN[KRO]9gui_forms18FlexContainerInput*;
     _ZN[KRO]9gui_forms18FlexContainerStyle*;
+    _ZN[KRO]9gui_forms18FormDocumentSource*;
     _ZN[KRO]9gui_forms18GridContainerInput*;
     _ZN[KRO]9gui_forms18GridContainerStyle*;
     _ZN[KRO]9gui_forms18GuiFormsThemeBuild*;
@@ -11070,6 +11079,7 @@
     _ZT[VIST]N9gui_forms18FirstFrameShowStep*E;
     _ZT[VIST]N9gui_forms18FlexContainerInput*E;
     _ZT[VIST]N9gui_forms18FlexContainerStyle*E;
+    _ZT[VIST]N9gui_forms18FormDocumentSource*E;
     _ZT[VIST]N9gui_forms18GridContainerInput*E;
     _ZT[VIST]N9gui_forms18GridContainerStyle*E;
     _ZT[VIST]N9gui_forms18GuiFormsThemeBuild*E;
@@ -12758,6 +12768,7 @@
     _ZT[hvc]*9gui_forms18FirstFrameShowStep*;
     _ZT[hvc]*9gui_forms18FlexContainerInput*;
     _ZT[hvc]*9gui_forms18FlexContainerStyle*;
+    _ZT[hvc]*9gui_forms18FormDocumentSource*;
     _ZT[hvc]*9gui_forms18GridContainerInput*;
     _ZT[hvc]*9gui_forms18GridContainerStyle*;
     _ZT[hvc]*9gui_forms18GuiFormsThemeBuild*;
@@ -14446,6 +14457,7 @@
     _ZZN9gui_forms18FirstFrameShowStep*;
     _ZZN9gui_forms18FlexContainerInput*;
     _ZZN9gui_forms18FlexContainerStyle*;
+    _ZZN9gui_forms18FormDocumentSource*;
     _ZZN9gui_forms18GridContainerInput*;
     _ZZN9gui_forms18GridContainerStyle*;
     _ZZN9gui_forms18GuiFormsThemeBuild*;
@@ -16134,6 +16146,7 @@
     _ZZNK9gui_forms18FirstFrameShowStep*;
     _ZZNK9gui_forms18FlexContainerInput*;
     _ZZNK9gui_forms18FlexContainerStyle*;
+    _ZZNK9gui_forms18FormDocumentSource*;
     _ZZNK9gui_forms18GridContainerInput*;
     _ZZNK9gui_forms18GridContainerStyle*;
     _ZZNK9gui_forms18GuiFormsThemeBuild*;

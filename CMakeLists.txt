@@ -144,6 +144,10 @@ else()
     set(GUI_FORMS_FORM_COMPILER_DEFAULT ON)
 endif()
 option(GUI_FORMS_BUILD_FORM_COMPILER "Build and install the form compiler" ${GUI_FORMS_FORM_COMPILER_DEFAULT})
+# MCP G6: generated forms register their documents and bound members for
+# the automation's forms tools (export, validate, apply, revert). Off: a
+# program carries no form document.
+option(GUI_FORMS_FORM_EXPORT "Generated forms register their documents for the automation's forms tools" OFF)
 option(GUI_FORMS_BUILD_BENCHMARKS "Build measurement harnesses" OFF)
 option(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK "Build the renderer-neutral D1 measurement harness" OFF)
 option(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE "Build the private text shaping diagnostic" OFF)
@@ -1190,6 +1194,7 @@ gui_forms_verify_effects(gui_forms_plot_primitives
 
 add_library(gui_forms_controls STATIC
     src/controls/basic/basic_control_rendering.cpp
+    src/controls/form_document_export/form_document_export.cpp
     src/controls/connected_controls/connected_controls.cpp
     src/controls/panel/panel.cpp
     src/controls/panel/group_box/group_box.cpp

@@ -1,6 +1,8 @@
 #include "model_inspection.hpp"
 
 #include "gui_forms/binding/value/binding_value.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -87,6 +89,29 @@ private:
     const Size* const size = std::get_if<Size>(&*value);
     if (size == nullptr) return std::nullopt;
     return *size;
+}
+
+[[nodiscard]] std::string size_text(const Size& size) {
+    char buffer[64]{};
+    std::snprintf(buffer, sizeof(buffer), "%gx%g", size.width, size.height);
+    std::string text(buffer);
+    return text;
+}
+
+// The window's overflow records (stage VA) whose owner is `owner`, one
+// line each after `lead`.
+void append_overflow_records(const SurfaceRoot& window, const Control& owner, std::string_view lead,
+                             std::string& text) {
+    const stxlib::View<OverflowRecord> records = window.overflow_records();
+    for (stxlib::usize index = 0U; index < records.count(); ++index) {
+        const OverflowRecord& record = records[index];
+        if (record.owner != owner.runtime_id()) continue;
+        text.append(std::string(lead) + overflow_cause_name(record.cause) + ": content " +
+                    size_text(record.content_extent) + " in a viewport of " + size_text(record.viewport_extent) +
+                    ", answered by " + overflow_answer_name(record.answer));
+        if (record.effective_scale != 1.0) text.append(" at scale " + std::to_string(record.effective_scale));
+        text.append(record.answered ? std::string("\n") : std::string(" (not carried out)\n"));
+    }
 }
 
 // The layout properties a control states itself, when set locally.
@@ -206,6 +231,13 @@ std::string layout_reasons(const Control& control) {
             if (!value) continue;
             text.append("from the parent: " + descriptor.name + " = " + binding_value_to_string(*value) + "\n");
         }
+        const SurfaceRoot* const window = control.attached_surface_root();
+        if (window != nullptr) {
+            append_overflow_records(*window, control, "overflow: ", text);
+            append_overflow_records(*window, *parent, "the parent's overflow: ", text);
+        }
+        // Measured here as well: a placed child's overflow the parent
+        // answers by clipping is not always a record of its own.
         const Rect space = (*parent).committed_arranged_bounds();
         const double right = arranged.x + arranged.width - space.width;
         const double bottom = arranged.y + arranged.height - space.height;
@@ -214,6 +246,10 @@ std::string layout_reasons(const Control& control) {
             text.append("overflows its parent at the bottom by " + std::to_string(std::lround(bottom)) + "\n");
         }
         if (arranged.x < -0.5 || arranged.y < -0.5) text.append("starts outside its parent (negative position)\n");
+    }
+    if (parent == nullptr) {
+        const SurfaceRoot* const window = control.attached_surface_root();
+        if (window != nullptr) append_overflow_records(*window, control, "overflow: ", text);
     }
     return text;
 }

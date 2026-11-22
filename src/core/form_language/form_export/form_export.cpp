@@ -88,14 +88,13 @@ FormExportRegistry::Record* FormExportRegistry::find(const Control& root) {
 }
 
 bool FormExportRegistry::add(const Control::Ptr& root, std::string file, std::string document,
-                             const FormSchema& schema, const FormSources& sources) {
+                             const FormSources& sources) {
     if (root == nullptr) return false;
     Record made{};
     made.root = root;
     made.file = std::move(file);
     made.current_document = document;
     made.registered_document = std::move(document);
-    made.schema = &schema;
     made.sources = &sources;
     Record* const existing = find(*root);
     if (existing != nullptr) {
@@ -133,7 +132,8 @@ FormExportOutcome FormExportRegistry::export_document(const Control& root, std::
     return FormExportOutcome::done;
 }
 
-FormExportOutcome FormExportRegistry::validate(const Control& root, std::string_view file, std::string_view candidate,
+FormExportOutcome FormExportRegistry::validate(const Control& root, const FormSchema& schema, std::string_view file,
+                                               std::string_view candidate,
                                                theme_language::ThemeDiagnosticList& diagnostics) {
     const Record* const record = find(root);
     if (record == nullptr) return FormExportOutcome::not_registered;
@@ -142,7 +142,7 @@ FormExportOutcome FormExportRegistry::validate(const Control& root, std::string_
     source.text = candidate;
     FormSyntax syntax{};
     FormModel model{};
-    if (read_form_model(source, syntax, *(*record).schema, model, diagnostics) != FormModelOutcome::model_built) {
+    if (read_form_model(source, syntax, schema, model, diagnostics) != FormModelOutcome::model_built) {
         return FormExportOutcome::refused;
     }
     bool sourced = true;
@@ -156,10 +156,11 @@ FormExportOutcome FormExportRegistry::validate(const Control& root, std::string_
     return sourced ? FormExportOutcome::done : FormExportOutcome::refused;
 }
 
-FormExportOutcome FormExportRegistry::apply(const Control& root, std::string_view file, std::string_view candidate,
-                                            std::string_view target, theme_language::ThemeDiagnosticList& diagnostics) {
+FormExportOutcome FormExportRegistry::apply(const Control& root, const FormSchema& schema, std::string_view file,
+                                            std::string_view candidate, std::string_view target,
+                                            theme_language::ThemeDiagnosticList& diagnostics) {
     // validate first: it prunes, so a record found before it could move.
-    const FormExportOutcome checked = validate(root, file, candidate, diagnostics);
+    const FormExportOutcome checked = validate(root, schema, file, candidate, diagnostics);
     if (checked != FormExportOutcome::done) return checked;
     Record* const record = find(root);
     if (record == nullptr) return FormExportOutcome::not_registered;
@@ -174,11 +175,11 @@ FormExportOutcome FormExportRegistry::apply(const Control& root, std::string_vie
     source.text = candidate;
     FormSyntax syntax{};
     FormModel model{};
-    if (read_form_model(source, syntax, *(*record).schema, model, diagnostics) != FormModelOutcome::model_built) {
+    if (read_form_model(source, syntax, schema, model, diagnostics) != FormModelOutcome::model_built) {
         return FormExportOutcome::refused;
     }
     LoadedForm loaded{};
-    if (load_form(source, *(*record).schema, model, *(*record).sources, loaded, diagnostics) !=
+    if (load_form(source, schema, model, *(*record).sources, loaded, diagnostics) !=
         FormLoadOutcome::loaded) {
         return FormExportOutcome::refused;
     }
@@ -198,12 +199,13 @@ FormExportOutcome FormExportRegistry::apply(const Control& root, std::string_vie
     return FormExportOutcome::done;
 }
 
-FormExportOutcome FormExportRegistry::revert(const Control& root, theme_language::ThemeDiagnosticList& diagnostics) {
+FormExportOutcome FormExportRegistry::revert(const Control& root, const FormSchema& schema,
+                                             theme_language::ThemeDiagnosticList& diagnostics) {
     const Record* const record = find(root);
     if (record == nullptr) return FormExportOutcome::not_registered;
     const std::string original = (*record).registered_document;
     const std::string file = (*record).file;
-    const FormExportOutcome outcome = apply(root, file, original, std::string_view(), diagnostics);
+    const FormExportOutcome outcome = apply(root, schema, file, original, std::string_view(), diagnostics);
     // Found again: apply prunes.
     Record* const reverted = find(root);
     if (outcome == FormExportOutcome::done && reverted != nullptr) (*reverted).replaced = false;

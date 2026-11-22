@@ -243,6 +243,11 @@ private:
     [[nodiscard]] std::string object_pointer(std::size_t index, ObjectAccess access) const;
     // Whether any property is bound.
     [[nodiscard]] bool binds() const noexcept;
+    // The build toggle's registration (options_.export_document): the
+    // document's bytes and each bound source, registered for `root` (an
+    // expression giving the root control), the sources read through
+    // `sources` (`owner.`, `model.`, `model_.`). Nothing when off.
+    void write_export(std::string& out, const std::string& root, const std::string& sources) const;
     // The accept and cancel buttons' stable IDs a form root names.
     [[nodiscard]] std::string window_button(std::string_view property_name) const;
     // The member that holds the object at `index`.
@@ -408,6 +413,7 @@ void FormGenerator::write_includes(std::string& out) const {
     }
     if (options_.derived && form_root_) headers.insert("gui_forms/application/application.hpp");
     if (!options_.model_header.empty()) headers.insert(options_.model_header);
+    if (options_.export_document) headers.insert("gui_forms/binding/form_document_export/form_document_export.hpp");
     headers.insert("gui_forms/binding/value/binding_value.hpp");
     headers.insert("gui_forms/control.hpp");
     for (const FormProperty& property : model_.properties) {
@@ -488,6 +494,7 @@ void FormGenerator::write_initialize(std::string& out) const {
     write_values(out, ObjectAccess::through_made, "owner.");
     if (!binds()) out += "        static_cast<void>(owner);\n";
     out += "        *this = std::move(made);\n";
+    write_export(out, "root_control()", "owner.");
     out += "    }\n\n";
 }
 
@@ -629,6 +636,47 @@ void FormGenerator::write_binding(std::string& out, const FormProperty& property
            ", " + direction + ");\n";
 }
 
+void FormGenerator::write_export(std::string& out, const std::string& root, const std::string& sources) const {
+    if (!options_.export_document) return;
+    out += "        // GUI_FORMS_FORM_EXPORT: the document and the members it binds, for the\n";
+    out += "        // automation's forms tools.\n";
+    // The bytes as numbers (a literal this long would pass compilers' string
+    // limits), twenty to a line.
+    out += "        static constexpr char gui_forms_document[] = {";
+    const std::string_view text = source_.text;
+    for (std::size_t index = 0U; index < text.size(); ++index) {
+        out += index % 20U == 0U ? "\n            " : " ";
+        const unsigned int byte = static_cast<unsigned char>(text[index]);
+        out += byte < 0x80U ? std::to_string(byte) : "static_cast<char>(" + std::to_string(byte) + ")";
+        out += ',';
+    }
+    if (text.empty()) out += "0";
+    out += "};\n";
+    std::vector<std::string> named{};
+    std::string listed{};
+    for (const FormProperty& property : model_.properties) {
+        if (!property.binding) continue;
+        const FormBinding& binding = *property.binding;
+        if (std::find(named.begin(), named.end(), binding.source) != named.end()) continue;
+        named.push_back(binding.source);
+        // A field binding's source is the program's shared BindingSource.
+        const std::string expression = binding.field.empty() ? sources + binding.source : "*" + sources + binding.source;
+        listed += "            gui_forms::form_document_source(" + string_literal(binding.source) + ", " +
+                  std::to_string(binding.source.size()) + "U, " + expression + "),\n";
+    }
+    const std::string file = options_.source_name;
+    if (named.empty()) {
+        out += "        static_cast<void>(gui_forms::register_form_document(" + root + ", " + string_literal(file) +
+               ", " + std::to_string(file.size()) + "U, gui_forms_document, " + std::to_string(text.size()) +
+               "U, nullptr, 0U));\n";
+        return;
+    }
+    out += "        const gui_forms::FormDocumentSource gui_forms_sources[] = {\n" + listed + "        };\n";
+    out += "        static_cast<void>(gui_forms::register_form_document(" + root + ", " + string_literal(file) + ", " +
+           std::to_string(file.size()) + "U, gui_forms_document, " + std::to_string(text.size()) +
+           "U, gui_forms_sources, " + std::to_string(named.size()) + "U));\n";
+}
+
 void FormGenerator::write_derived_window(std::string& out) const {
     const std::string& name = options_.class_name;
     const bool bound = binds();
@@ -701,6 +749,7 @@ void FormGenerator::write_derived_window(std::string& out) const {
         if (stable_id == accept) out += "        set_accept_button(" + member(index) + ");\n";
         if (stable_id == cancel) out += "        set_cancel_button(" + member(index) + ");\n";
     }
+    write_export(out, "root()", "model.");
     out += "    }\n";
     out += "};\n";
 }
@@ -746,6 +795,7 @@ void FormGenerator::write_derived_control(std::string& out) const {
     out += "        initialize_base_tree<" + base + ">(*this);\n";
     write_objects(out, ObjectAccess::as_members);
     write_values(out, ObjectAccess::as_members, "model_.");
+    write_export(out, "gui_forms::Control::shared_from_this()", "model_.");
     out += "    }\n\n";
     out += "private:\n";
     out += "    // A template so that a base without the step names no member it lacks:\n";
@@ -794,6 +844,7 @@ void FormGenerator::write_composed_control(std::string& out) const {
     out += "        " + name + " made{};\n";
     write_objects(out, ObjectAccess::through_made);
     write_values(out, ObjectAccess::through_made, "model.");
+    write_export(out, "made." + root, "model.");
     out += "        return made;\n";
     out += "    }\n\n";
     out += "    // The root control: the one a window shows.\n";

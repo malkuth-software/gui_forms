@@ -11,8 +11,9 @@
 // - **layout reasons**: why a control has its place and size: what it
 //   asked for and what it was given, its own layout properties, the
 //   properties its parent gives it (cell, spans, flex), the constraints
-//   holding it (at its minimum or maximum size) and whether it overflows
-//   its parent.
+//   holding it (at its minimum or maximum size), the window's overflow
+//   records (stage VA: OverflowRecord, its cause, extents and answer) for
+//   the control and its parent, and whether it lies outside its parent.
 // - **resources**: the window's image registry and the process's counted
 //   allocations by subsystem.
 //

@@ -5,7 +5,10 @@
 // do, independent of any transport.
 //
 // A window takes part once its form document is registered here with the
-// sources it was bound to (its program's data and commands). Then:
+// sources it was bound to (its program's data and commands): by generated
+// code built with GUI_FORMS_FORM_EXPORT (register_form_document), or by
+// whoever loaded it. Each operation takes the schema to read against (the
+// registry's, from the caller: the library holds no catalog). Then:
 //
 // - **export** returns the document as the program has it: the applied
 //   one after an apply, the registered one otherwise;
@@ -66,11 +69,9 @@ class FormExportRegistry final {
 public:
     // Registers `root` (a window's root control) with the document it was
     // built from and the sources it was bound to, replacing a record of the
-    // same root. `schema` and `sources` are borrowed and must outlive the
-    // record (the program's own, as generated code holds them). False when
-    // maximum_exported_windows live records exist.
-    bool add(const Control::Ptr& root, std::string file, std::string document, const FormSchema& schema,
-             const FormSources& sources);
+    // same root. `sources` is borrowed and must outlive the record. False
+    // when maximum_exported_windows live records exist.
+    bool add(const Control::Ptr& root, std::string file, std::string document, const FormSources& sources);
     void forget(const Control& root) noexcept;
 
     [[nodiscard]] bool registered(const Control& root);
@@ -80,13 +81,16 @@ public:
 
     // The document as the program has it, into `document`.
     [[nodiscard]] FormExportOutcome export_document(const Control& root, std::string& document);
-    // Validates `candidate` against the registered schema and sources.
-    [[nodiscard]] FormExportOutcome validate(const Control& root, std::string_view file, std::string_view candidate,
+    // Validates `candidate` against `schema` and the registered sources.
+    [[nodiscard]] FormExportOutcome validate(const Control& root, const FormSchema& schema, std::string_view file,
+                                             std::string_view candidate,
                                              theme_language::ThemeDiagnosticList& diagnostics);
     // Replaces the window's structure, or `target`'s (empty: the whole).
-    [[nodiscard]] FormExportOutcome apply(const Control& root, std::string_view file, std::string_view candidate,
-                                          std::string_view target, theme_language::ThemeDiagnosticList& diagnostics);
-    [[nodiscard]] FormExportOutcome revert(const Control& root, theme_language::ThemeDiagnosticList& diagnostics);
+    [[nodiscard]] FormExportOutcome apply(const Control& root, const FormSchema& schema, std::string_view file,
+                                          std::string_view candidate, std::string_view target,
+                                          theme_language::ThemeDiagnosticList& diagnostics);
+    [[nodiscard]] FormExportOutcome revert(const Control& root, const FormSchema& schema,
+                                           theme_language::ThemeDiagnosticList& diagnostics);
 
 private:
     struct Record final {
@@ -94,7 +98,6 @@ private:
         std::string file{};
         std::string registered_document{};
         std::string current_document{};
-        const FormSchema* schema{};
         const FormSources* sources{};
         // What the last apply made that only the load owns (components).
         std::vector<Component::Ptr> applied_objects{};
