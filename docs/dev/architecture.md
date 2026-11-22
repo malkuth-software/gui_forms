@@ -14,9 +14,12 @@ extension follows. All of it is pre-1.0; see
 The installed CMake package exposes six main components (`Threading`,
 `Core`, `Drawing`, `Controls`, `Application` and `Audio`), the C ABI
 (`CAbi`, with `CAbiConformance` for its conformance kit) in a build with a
-native host, and optional components that a build must enable (`TextMasks`,
-`AudioLoopTransport`, `GalleryModel`, `Lab`,
-`DemoControls`). Their link-time use and the one linking rule are in
+native host, `HostedClient` (the library a program started as hosted
+content links; see [Content surfaces](../user/content-surfaces)), and
+optional components that a build must enable (`TextMasks`,
+`AudioLoopTransport`, `GalleryModel`, `Lab`, `DemoControls`, and `Module`,
+the C++20 named module `import gui_forms;`, with
+`GUI_FORMS_BUILD_MODULE`). Their link-time use and the one linking rule are in
 [Consume the SDK](../user/consume-the-sdk); this is how the main ones stack:
 
 ```text
@@ -59,27 +62,35 @@ retained set, which is why an application links it and nothing else from
 that set.
 
 Some build targets are never installed. The headless host
-(`src/host/headless/`) is the deterministic reference adapter the tests link.
-The drawing C ABI (`gd_*`, `src/abi/drawing_*`) is built and tested in
-the source tree; its library is not part of the package until the drawing
-ABI is sealed. The sealed C ABI (`gui_forms_abi`, installed as
+(`src/host/headless/`) is the deterministic reference adapter the tests
+link; it reaches them through the test cache this tree packs, since the
+tests live in their own repository, `malkuth-software/gui_forms_tests`. The
+drawing C ABI (`gd_*`, `src/abi/drawing_c_api.cpp`) is sealed and has no
+library of its own: its objects ship inside the C ABI library, which
+exports `gd_get_api_v0` beside the `gf_` entry points. The sealed C ABI (`gui_forms_abi`, installed as
 `GUIForms::CAbi`) is GUI.Forms' one C surface; the experimental 0.x C ABI
 was retired before it. The development text services refuse
 to install: configuring with them enabled makes `cmake --install` stop.
 
 ### Boundaries the build enforces
 
-The layering is checked, not only described. Audit targets and tests in the
-build inspect symbols, imports and sources:
+The layering is checked, not only described. These scripts inspect
+symbols, imports and sources; the build tree runs them as audit targets,
+and the tests repository runs them as boundary tests against the test
+cache:
 
 - `cmake/check_renderer_boundaries.cmake`: no Skia, CoreGraphics, CoreText,
   AppKit, Metal or OpenGL symbol in the renderer-free core.
-- `cmake/check_host_boundaries.cmake`, `cmake/check_windows_boundaries.cmake`:
-  AppKit symbols stay out of the core and headless host, Win32 and COM types
-  out of portable sources, and the Windows Gallery imports no GPU or managed
+- `cmake/check_windows_boundaries.cmake`: Win32 and COM types stay out of
+  portable sources, and the Windows Gallery imports no GPU or managed
   runtime.
-- `cmake/check_drawing_boundaries.cmake`: no renderer or host dependency in
-  the drawing libraries.
+- `cmake/CheckCAbiExports.cmake`: the C ABI library exports exactly its
+  entry points, the `gf_` allowlist and `gd_get_api_v0`.
+- `cmake/CheckSystemImports.cmake`: a shipped module (a program or the C
+  ABI library) imports no library but the system's: no GUI.Forms or
+  STXlib library and no C++ runtime.
+- `tools/check_platform_headers.py`: only files under `src/surface/`
+  include a platform header.
 
 One Apple-framework file is compiled into the private renderer:
 `src/surface/macos/fonts/core_text_font_bytes.cpp` recovers a named face's
@@ -173,20 +184,22 @@ subclassing. Text uses only the bundled faces; see
 
 ## Compatibility and versioning
 
-The package is version 0.6.0. `find_package(GUIForms 0.6)` accepts any 0.6.x
-installation and rejects other minor versions. The C++ libraries are static
-archives; the one shared library, the C ABI library, carries the ABI's major
-version as its `SOVERSION` (`libgui_forms_abi.so.1`). Within that range there is still no binary promise: object
+The package version is {{ gf_version }}. `find_package(GUIForms <version>)`
+accepts any installation with the same major and minor version and rejects
+other minor versions. The C++ libraries are static archives; the one shared
+library, the C ABI library, carries the ABI's major version as its
+`SOVERSION` (`libgui_forms_abi.so.<major>`). Within that range there is still no binary promise: object
 layouts change between releases, so rebuild your application against each
 new SDK ([Consume the SDK](../user/consume-the-sdk)).
 
 Contracts are versioned separately rather than under one number. The host
 protocol reports its own `protocol_version` in `HostCapabilities`
-([Hosts and capabilities](../user/hosts-and-capabilities)), at version 13.
-The C ABI carries its own version, 1.3: 1.1 is the seal, and each later
-minor version only adds, which a blocking breaking-change audit checks. The
-drawing ABI (`gd_*`, 0.3) stays experimental until it is sealed after the
-demonstrators.
+([Hosts and capabilities](../user/hosts-and-capabilities)), now version
+{{ gf_host_protocol }}. The C ABI carries its own version, now
+{{ gf_c_abi }}: 1.1 is the seal, and each later minor version only adds,
+which a blocking breaking-change audit checks. The drawing ABI (`gd_*`) is
+sealed too, now at version {{ gf_drawing_abi }}; its table only grows at
+its end, and a version not yet released is marked provisional.
 
 GUI.Forms is Forms-shaped, not a reimplementation of all of Windows Forms.
 ActiveX, browser hosting, device printing, obsolete control families and
