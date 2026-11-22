@@ -3,6 +3,7 @@
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "../../failure/fail_fast.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <functional>
 #include <stdexcept>
@@ -83,8 +84,17 @@ FrameRequestToken SurfaceRoot::request_motion_frames(FrameTime first_deadline) {
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
         throw std::length_error("GUI.Forms scheduled frame request limit reached");
     }
+    // Paced: the first refresh after one period before the deadline asked
+    // for (the clock asks for one period after its now), on the display's
+    // grid; assumed: as asked.
+    const FrameInterval period = motion_frame_period();
+    const FrameTime deadline = display_timing_.paced()
+        ? next_on_grid(display_timing_.presentation_phase, period, first_deadline - period)
+        : first_deadline;
     std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> request = std::make_shared<detail::ScheduledFrameRequest>(
-        detail::FrameRequestKind::motion_clock, Control::WeakPtr{}, first_deadline, motion_frame_interval);
+        detail::FrameRequestKind::motion_clock, Control::WeakPtr{}, deadline, period);
+    (*request).paced_to_display = true;
+    (*request).requested_interval = FrameInterval::zero();
     frame_requests_.push_back(request);
     metrics_.record_frame_request();
     request_schedule_wake();
@@ -92,12 +102,89 @@ FrameRequestToken SurfaceRoot::request_motion_frames(FrameTime first_deadline) {
 }
 
 void SurfaceRoot::set_motion_frame_deadline(FrameTime deadline) noexcept {
+    // Paced: the first refresh at or after the deadline.
+    const FrameTime due = display_timing_.paced()
+        ? next_on_grid(display_timing_.presentation_phase, display_timing_.refresh_period,
+                       deadline - FrameInterval(1))
+        : deadline;
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
         if ((*request).connected() && (*request).kind == detail::FrameRequestKind::motion_clock) {
-            (*request).deadline = deadline;
+            (*request).deadline = due;
         }
     }
     request_schedule_wake();
+}
+
+FrameInterval SurfaceRoot::motion_frame_period() const noexcept {
+    const FrameInterval result = display_timing_.paced() ? display_timing_.refresh_period : motion_frame_interval;
+    return result;
+}
+
+FrameInterval SurfaceRoot::display_paced_interval(FrameInterval requested) const noexcept {
+    const FrameInterval display = display_timing_.refresh_period;
+    if (requested <= FrameInterval::zero()) return display;
+    if (!display_timing_.paced() && requested < display) return requested;
+    const FrameInterval half = display / 2;
+    const FrameInterval::rep frames = std::max<FrameInterval::rep>((requested + half) / display, 1);
+    const FrameInterval period = display * frames;
+    return period;
+}
+
+FrameTime SurfaceRoot::presentation_time_for(FrameTime now) const noexcept {
+    if (!display_timing_.paced()) return now;
+    const FrameTime shown = next_presentation(display_timing_, now);
+    const FrameTime result = std::max(shown, last_presentation_time_);
+    return result;
+}
+
+FrameRequestToken SurfaceRoot::schedule_animation_frames(Component& owner, FrameInterval requested,
+                                                         std::function<void(FrameTime)> callback) {
+    // Timers whose periods are multiples of one another tick on the same
+    // grid points, phased to the display (the clock's epoch while the
+    // timing is assumed), so they fall due in the same frame poll.
+    const FrameInterval period = display_paced_interval(requested);
+    const FrameTime first_tick = next_on_grid(display_timing_.presentation_phase, period, FrameClock::now());
+    FrameRequestToken token = schedule_ui_timer(owner, period, first_tick, std::move(callback));
+    // schedule_ui_timer appends its request last; it returned, so the
+    // request is there.
+    detail::ScheduledFrameRequest& request = *frame_requests_.back();
+    request.paced_to_display = true;
+    request.requested_interval = requested;
+    return token;
+}
+
+bool SurfaceRoot::set_display_timing(const DisplayTiming& timing) {
+    require_root_thread("display timing");
+    if (!timing.valid()) return false;
+    display_timing_ = timing.paced() ? timing : DisplayTiming::assumed();
+    bool moved = false;
+    for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
+        if (!(*request).connected() || !(*request).paced_to_display) continue;
+        const FrameInterval interval = (*request).kind == detail::FrameRequestKind::motion_clock
+            ? motion_frame_period()
+            : display_paced_interval((*request).requested_interval);
+        // The nearest point of the new grid: the first after half a period
+        // before the deadline.
+        const FrameTime nearest =
+            next_on_grid(display_timing_.presentation_phase, interval, (*request).deadline - interval / 2);
+        const FrameInterval shift = nearest > (*request).deadline ? nearest - (*request).deadline
+                                                                   : (*request).deadline - nearest;
+        const bool within_jitter = shift <= interval / 8;
+        if (interval == (*request).interval && within_jitter) continue;
+        (*request).interval = interval;
+        if (!within_jitter) (*request).deadline = nearest;
+        moved = true;
+    }
+    if (moved) request_schedule_wake();
+    return true;
+}
+
+bool SurfaceRoot::wants_display_frames() const noexcept {
+    if (occluded_) return false;
+    for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
+        if ((*request).connected() && (*request).paced_to_display) return true;
+    }
+    return false;
 }
 
 FrameRequestToken SurfaceRoot::schedule_ui_timer(
@@ -147,6 +234,7 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
         deferred.damage_pending = needs_frame();
         deferred.suppressed_by_occlusion = occluded_;
         deferred.next_wake = next_wake();
+        deferred.presentation_time = presentation_time_for(now);
         return deferred;
     }
     in_frame_poll_ = true;
@@ -168,6 +256,11 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
     compact_frame_requests();
 
     FramePollResult result;
+    // The time this poll's frames are shown: motion and display-paced
+    // timers are evaluated at it (poll time while the timing is assumed).
+    const FrameTime presented = presentation_time_for(now);
+    if (display_timing_.paced()) last_presentation_time_ = presented;
+    result.presentation_time = presented;
     // The latest a due timer or motion frame was polled after its deadline.
     FrameInterval worst_lateness = FrameInterval::zero();
     result.suppressed_by_occlusion = occluded_;
@@ -199,7 +292,8 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             if (lateness > worst_lateness) worst_lateness = lateness;
             // The timer's callback is application code: an exception from
             // it ends the process at the fail-fast boundary.
-            if (callback) gui_forms::detail::call_failing_fast("scheduler.ui_timer", &run_ui_timer, callback, now);
+            const FrameTime tick_time = (*request).paced_to_display ? presented : now;
+            if (callback) gui_forms::detail::call_failing_fast("scheduler.ui_timer", &run_ui_timer, callback, tick_time);
             if ((*request).connected() && !(*request).callback) (*request).callback = std::move(callback);
             continue;
         }
@@ -220,7 +314,7 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             (*request).deadline += (*request).interval * (skipped + 1);
             if (lateness > worst_lateness) worst_lateness = lateness;
             metrics_.record_callback_emitted();
-            motion_clock_.advance(now);
+            motion_clock_.advance(presented);
             continue;
         }
         if ((*request).kind == detail::FrameRequestKind::engine_idle) {

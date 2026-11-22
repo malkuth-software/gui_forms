@@ -87,6 +87,8 @@ Related types
      - DispatchOperation observes and explicitly cancels one bounded FIFO work record; dropping it does not cancel fire-and-forget work.
    * - :cpp:class:`DisplayChunkInfo <gui_forms::DisplayChunkInfo>`
      - DisplayChunkInfo exposes immutable generation, paint plane, logical bounds, and command count for one retained recording without exposing its private commands.
+   * - :cpp:class:`DisplayTiming <gui_forms::DisplayTiming>`
+     - One window's display timing as its host last reported it (design note frame-source, section 2): frames are shown at presentation_phase + k * refresh_period for whole k.
    * - :cpp:class:`FocusedControlChange <gui_forms::FocusedControlChange>`
      - Focus moved from one control to another (or to or from none) through request_focus.
    * - :cpp:class:`FocusScopeChange <gui_forms::FocusScopeChange>`
@@ -904,6 +906,56 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DisplayTiming final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   One window's display timing as its host last reported it (design note frame-source, section 2): frames are shown at presentation_phase + k * refresh_period for whole k. A display link reports its target time as the phase on every tick; a fixed rate has its phase at the clock's epoch.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool paced() const noexcept
+
+      Frames are drawn for the time they are shown: any source but assumed.
+
+   .. cpp:function:: double refresh_hertz() const noexcept
+
+      Refreshes per second; 0 for assumed timing.
+
+   .. cpp:function:: bool valid() const noexcept
+
+      Whether a window may hold this timing: assumed, or a period within minimum_refresh_period and maximum_refresh_period.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static DisplayTiming assumed() noexcept
+
+      No report: assumed_refresh_period at the epoch, poll-time frames.
+
+   .. cpp:function:: static DisplayTiming fixed_rate(FrameInterval period, FrameTime phase = FrameTime{}) noexcept
+
+      A fixed rate for tests, benches and offscreen hosts: frames every ``period`` from ``phase``.
+
+   .. cpp:function:: static DisplayTiming reported(DisplayTimingSource source, FrameInterval period, FrameTime presentation) noexcept
+
+      A host's report: ``source`` timing with frames every ``period`` and one shown at ``presentation``.
+
+   .. cpp:member:: FrameInterval refresh_period
+
+      The current refresh interval; on a variable-rate display, the rate the system chose last. Default: ``{assumed_refresh_period}``.
+
+   .. cpp:member:: FrameTime presentation_phase
+
+      Any instant at which a frame is shown, in the frame clock's domain.
+
+   .. cpp:member:: DisplayTimingSource source
+
+      Default: ``{DisplayTimingSource::assumed}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FocusedControlChange final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
@@ -995,6 +1047,10 @@ Related types
    .. cpp:member:: bool suppressed_by_occlusion
 
    .. cpp:member:: stxlib::Optional<FrameTime> next_wake
+
+   .. cpp:member:: FrameTime presentation_time
+
+      The time the frames this poll produced are shown: the window's next presentation after the poll's time when its display timing is paced (SurfaceRoot::display_timing), else the poll's time. The motion clock and display-paced animation timers were advanced to it.
 
 .. cpp:namespace:: gui_forms
 
@@ -2993,6 +3049,20 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DisplayTimingSource
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   .. cpp:enumerator:: assumed
+
+   .. cpp:enumerator:: display
+
+   .. cpp:enumerator:: measured
+
+   .. cpp:enumerator:: fixed
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FocusScopeCloseReason
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
@@ -3631,6 +3701,34 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t paint_plane_count
 
    Value: ``3``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+.. cpp:function:: FrameTime next_on_grid(FrameTime phase, FrameInterval period, FrameTime after) noexcept
+
+   The first instant phase + k * period strictly after ``after`` (k may be negative). ``period`` must be positive.
+
+.. cpp:function:: FrameTime next_presentation(const DisplayTiming& timing, FrameTime now) noexcept
+
+   The time a frame drawn at ``now`` is shown: the first presentation strictly after ``now``, or ``now`` itself for timing that is not paced.
+
+.. cpp:function:: const char* display_timing_source_name(DisplayTimingSource source) noexcept
+
+   A short label of the source for diagnostics and benches: "assumed", "display", "measured" or "fixed".
+
+.. cpp:var:: constexpr FrameInterval assumed_refresh_period
+
+   The cadence a window without display timing paces its frames at. Value: ``std::chrono::milliseconds(16)``.
+
+.. cpp:var:: constexpr FrameInterval minimum_refresh_period
+
+   The bounds a reported refresh period must lie within (1000 Hz to 1 Hz); SurfaceRoot::set_display_timing rejects a period outside them. Value: ``std::chrono::milliseconds(1)``.
+
+.. cpp:var:: constexpr FrameInterval maximum_refresh_period
+
+   Value: ``std::chrono::seconds(1)``.
 
 .. cpp:namespace:: gui_forms
 
