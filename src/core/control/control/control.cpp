@@ -5127,6 +5127,12 @@ void Control::on_mouse_wheel(MouseEventArgs& arguments) {
     if (mouse_events_) (*mouse_events_).mouse_wheel.emit(arguments);
 }
 
+void Control::set_gesture_input(bool requested) noexcept {
+    if (gesture_input_ == requested) return;
+    gesture_input_ = requested;
+    if (surface_root_ != nullptr) detail::SurfaceTreeAccess::note_gesture_input_change(*surface_root_, *this);
+}
+
 void Control::on_gesture(GestureEventArgs& arguments) {
     if (mouse_events_) (*mouse_events_).gesture.emit(arguments);
 }

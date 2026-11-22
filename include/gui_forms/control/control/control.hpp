@@ -1051,6 +1051,13 @@ public:
     // smart magnify, swipe), raised by on_gesture's base. Kept with the
     // mouse events, in their record.
     [[nodiscard]] Event<const GestureEventArgs&>& gesture() { return mouse_events().gesture; }
+    // Whether this control handles touchpad gestures: a control that
+    // overrides on_gesture or subscribes to gesture() sets it, so that its
+    // window asks its host for them (SurfaceRoot::gesture_input_requested;
+    // on Windows that engages DirectManipulation, which a window without a
+    // gesture handler never does).
+    void set_gesture_input(bool requested) noexcept;
+    [[nodiscard]] bool gesture_input() const noexcept { return gesture_input_; }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Keeps `link`, a form binding's link of one of this control's
@@ -1493,7 +1500,9 @@ protected:
     virtual void on_mouse_wheel(MouseEventArgs& arguments);
     // A touchpad gesture (gesture_events.hpp), routed as the wheel: the
     // target's on_gesture, then each ancestor's (arguments.phase bubble),
-    // until one sets handled. The base raises gesture.
+    // until one sets handled. The base raises gesture. A control that
+    // overrides it calls set_gesture_input(true), so that its window asks
+    // the host for gestures.
     virtual void on_gesture(GestureEventArgs& arguments);
     virtual void on_mouse_enter();
     virtual void on_mouse_hover();
@@ -2165,6 +2174,8 @@ private:
     static void announce_direction_changes(const std::vector<Ptr>& announcements);
     detail::LendingPointer<Window> window_{};
     detail::LendingPointer<SurfaceRoot> surface_root_{};
+    // Control::set_gesture_input; counted by the root it is attached to.
+    bool gesture_input_{};
     // This control's slot in its surface root's control table while it is
     // attached (assigned and released with surface_root_); unassigned
     // otherwise.

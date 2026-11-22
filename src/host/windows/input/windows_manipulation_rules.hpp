@@ -18,6 +18,19 @@
 
 namespace gui_forms::host::windows_detail {
 
+// The diagnosis switch: GUI_FORMS_DIRECT_MANIPULATION=0 (the variable's
+// value, or null when it is unset) turns DirectManipulation off in every
+// window, which then keeps Windows' plain wheel path even where a control
+// handles gestures. Any other value, or none, leaves it to the window.
+[[nodiscard]] bool direct_manipulation_allowed(const char *variable) noexcept;
+
+// Whether a window engages DirectManipulation now: allowed by the switch,
+// requested by the window (SurfaceRoot::gesture_input_requested), and, to
+// let a running gesture finish, kept while `running` even after the
+// request ends.
+[[nodiscard]] bool direct_manipulation_wanted(bool allowed, bool requested, bool engaged,
+                                              bool running) noexcept;
+
 // A DirectManipulation viewport status (DIRECTMANIPULATION_STATUS) as the
 // rules read it: ready (no contact, no inertia), running (the fingers are
 // down), inertia (the fingers left and the system continues the pan), or

@@ -3082,6 +3082,7 @@ void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
     attached.push_back(control);
     (*control).surface_slot_ = control_table_.assign(*control);
     if ((*control).display_chunk_) ++display_cache_entries_;
+    if ((*control).gesture_input_) ++gesture_input_controls_;
     (*control).window_ = presenting_window_;
     (*control).surface_root_ = this;
     // A request deferred while detached commits in this root's passes.
@@ -3120,6 +3121,7 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     (*control).surface_root_ = nullptr;
     (*control).layout_deferred_listed_in_ = nullptr;
     if ((*control).display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
+    if ((*control).gesture_input_ && gesture_input_controls_ > 0U) --gesture_input_controls_;
     control_table_.release((*control).surface_slot_);
     (*control).surface_slot_ = {};
     {
@@ -3147,6 +3149,7 @@ void SurfaceRoot::forget_destroyed_subtree(Control& root) noexcept {
         motion_clock_.release_owner(control);
         erase_containing_block_entries(control.runtime_id());
         if (control.display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
+        if (control.gesture_input_ && gesture_input_controls_ > 0U) --gesture_input_controls_;
         control.layout_deferred_listed_in_ = nullptr;
         control_table_.release(control.surface_slot_);
         control.surface_slot_ = {};
@@ -3217,6 +3220,7 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
             (*(*current)).window_ = nullptr;
             (*(*current)).surface_root_ = nullptr;
             if ((*(*current)).display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
+            if ((*(*current)).gesture_input_ && gesture_input_controls_ > 0U) --gesture_input_controls_;
             control_table_.release((*(*current)).surface_slot_);
             (*(*current)).surface_slot_ = {};
             {
@@ -5749,6 +5753,22 @@ void SurfaceRoot::note_display_chunk_change(const Control& control, bool had_chu
     const bool has_chunk = control.display_chunk_ != nullptr;
     if (has_chunk && !had_chunk) ++display_cache_entries_;
     if (!has_chunk && had_chunk && display_cache_entries_ > 0U) --display_cache_entries_;
+}
+
+void SurfaceRoot::note_gesture_input_change(const Control& control) noexcept {
+    if (control.surface_root_ != this) return;
+    if (control.gesture_input_) {
+        ++gesture_input_controls_;
+    } else if (gesture_input_controls_ > 0U) {
+        --gesture_input_controls_;
+    }
+}
+
+void SurfaceRoot::set_gesture_input(bool requested) noexcept { gesture_input_ = requested; }
+
+bool SurfaceRoot::gesture_input_requested() const noexcept {
+    const bool requested = gesture_input_ || gesture_input_controls_ > 0U;
+    return requested;
 }
 
 void SurfaceRoot::compact_frame_requests() noexcept {

@@ -56,6 +56,18 @@ void close_gesture(ManipulationTracker &tracker, ManipulationReport &report, Poi
 
 } // namespace
 
+bool direct_manipulation_allowed(const char *variable) noexcept {
+  const bool off = variable != nullptr && variable[0] == '0' && variable[1] == '\0';
+  return !off;
+}
+
+bool direct_manipulation_wanted(bool allowed, bool requested, bool engaged, bool running) noexcept {
+  if (!allowed)
+    return false;
+  const bool wanted = requested || (engaged && running);
+  return wanted;
+}
+
 ManipulationReport manipulation_transform(ManipulationTracker &tracker, double scale, Point device_offset,
                                           Point focal, double window_scale, Modifier modifiers,
                                           std::uint64_t timestamp_nanoseconds) noexcept {
