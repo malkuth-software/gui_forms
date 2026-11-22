@@ -2695,6 +2695,12 @@ Related types
 
    .. cpp:member:: std::uint64_t clamped_follow_moves
 
+   .. cpp:member:: std::uint64_t size_clamped_frames
+
+      The visible-area guarantee (stage VA, decision 7): reported frames of primary, standard and tool windows larger than the work area of their monitor (and not covering its whole frame, as a full-screen window does) for which a smaller frame was requested, and those the window kept because the request was refused or did not take (a minimum size larger than the work area).
+
+   .. cpp:member:: std::uint64_t unfit_frames
+
    .. cpp:member:: bool application_active
 
       Default: ``{true}``.
@@ -4785,6 +4791,10 @@ Functions, constants and aliases
 .. cpp:function:: Rect clamp_to_work_area(Rect outer, Rect work_area) noexcept
 
    Moves ``outer`` the least distance that puts it inside ``work_area``; a rectangle wider or taller than the work area is aligned with its left or top edge. The size never changes.
+
+.. cpp:function:: Rect fit_to_work_area(Rect outer, Rect work_area) noexcept
+
+   The visible-area guarantee for windows (stage VA, decision 7): ``outer`` made no wider and no taller than ``work_area``, then moved the least distance that puts it inside (clamp_to_work_area). A rectangle that already fits only moves.
 
 .. cpp:namespace:: gui_forms::host
 

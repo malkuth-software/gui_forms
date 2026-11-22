@@ -4694,6 +4694,9 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
 void SurfaceRoot::flush_layout_in_frame() {
     in_layout_ = true;
     scroll_translating_ = nullptr;
+    // A new check sequence: each owner is checked once in this flush.
+    ++viewport_check_sequence_;
+    viewport_checks_.clear();
     try {
         std::uint32_t pass = 0;
         do {
@@ -4734,6 +4737,9 @@ void SurfaceRoot::flush_layout_in_frame() {
         } while (has_any_runnable_layout_dirty() &&
                  pass < maximum_layout_passes);
         ++layout_pass_sequence_;
+        // Every pass of this flush has placed what it will: the owners it
+        // arranged are checked against their viewports (stage VA).
+        check_viewports();
 
         const bool overlay_layout_dirty = has_popup_layout_dirty();
         if (has_any_runnable_layout_dirty()) {
@@ -4917,6 +4923,8 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
     if (!(*control).is_alive() || !(*control).visible.read() ||
         (*control).layout_collapsed_) {
         clear_layout_dirty_subtree(control);
+        // A hidden or collapsed owner's overflow records end (stage VA).
+        if ((*control).is_alive()) queue_viewport_check(*control);
         return;
     }
 
@@ -4950,6 +4958,10 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
                 return;
             }
         }
+        // The visible-area check after the passes (stage VA): this control
+        // as a viewport owner, and its parent, whose child it placed.
+        queue_viewport_check(*control);
+        if (const Control::Ptr placing_parent = (*control).parent_.lock()) queue_viewport_check(*placing_parent);
         // The resize registration (reduced M0.4): asked again whenever the
         // size changes, which costs one pass over the children that arrange
         // has just made, so no write has to keep it current. The first

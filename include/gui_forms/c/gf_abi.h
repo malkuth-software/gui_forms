@@ -94,9 +94,13 @@ extern "C" {
  * SET_FRAME_ICON_SLOT with gf_dock_edit's 1.6 fields, and the docking slots
  * marked since 1.6), the window's MDI slots (gf_mdi_layout and the windows
  * table's slots marked since 1.6) and the window's mdi_child_activate
- * interaction, additions only. */
+ * interaction, additions only; 1.7 adds the visible-area guarantee (stage
+ * VA: gf_overflow_answer, gf_overflow_cause, gf_content_alignment,
+ * gf_viewport_fit, gf_overflow_record, the windows table's overflow_records,
+ * unanswered_overflow_count and safe_insets and the controls table's
+ * set_viewport_fit and viewport_fit), additions only. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 6u
+#define GF_ABI_MINOR 7u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */
@@ -1220,6 +1224,84 @@ typedef uint32_t gf_mdi_layout;
 #define GF_MDI_LAYOUT_TILE_VERTICAL 2u
 #define GF_MDI_LAYOUT_ARRANGE_ICONS 3u
 
+/*
+ * The visible-area guarantee (since 1.7; stage VA): no content is outside
+ * its viewport unless the viewport's owner answers that overflow, and every
+ * overflow is recorded by the window. A viewport owner is any control: its
+ * children are checked against its child viewport and its design size (the
+ * design_size property, a SIZE, 0 x 0 for none) against the same rectangle;
+ * the root is also checked against the window's root slot. The answer is
+ * the control's viewport fit (controls.set_viewport_fit); an owner that
+ * scrolls its content answers by scrolling.
+ */
+/* gf_overflow_answer (since 1.7): what a viewport owner does when its
+ * content, after layout, does not fit (C++ OverflowAnswer). SCROLL keeps the
+ * content's size and is carried out only by an owner that scrolls; CONTAIN
+ * scales the content uniformly by the smaller axis ratio and aligns it;
+ * COVER scales by the larger and crops the excess; CLIP keeps the size and
+ * cuts it. */
+typedef uint32_t gf_overflow_answer;
+#define GF_OVERFLOW_ANSWER_SCROLL 0u
+#define GF_OVERFLOW_ANSWER_CONTAIN 1u
+#define GF_OVERFLOW_ANSWER_COVER 2u
+#define GF_OVERFLOW_ANSWER_CLIP 3u
+
+/* gf_overflow_cause (since 1.7): why content overflowed (C++ OverflowCause):
+ * a layout container's children did not fit after reflow; the design size
+ * exceeds the viewport; a child placed by position, dock or anchor lies
+ * outside; a window's minimum size exceeds its monitor's work area. */
+typedef uint32_t gf_overflow_cause;
+#define GF_OVERFLOW_CAUSE_MINIMUM_CONTENT_EXCEEDS_VIEWPORT 0u
+#define GF_OVERFLOW_CAUSE_DESIGN_SIZE_EXCEEDS_VIEWPORT 1u
+#define GF_OVERFLOW_CAUSE_PLACED_CHILD_OUTSIDE_VIEWPORT 2u
+#define GF_OVERFLOW_CAUSE_MINIMUM_SIZE_EXCEEDS_WORK_AREA 3u
+
+/* gf_content_alignment (since 1.7): where content sits in leftover space
+ * (C++ ContentAlignment, Windows Forms' ContentAlignment). */
+typedef uint32_t gf_content_alignment;
+#define GF_CONTENT_ALIGNMENT_TOP_LEFT 0u
+#define GF_CONTENT_ALIGNMENT_TOP_CENTER 1u
+#define GF_CONTENT_ALIGNMENT_TOP_RIGHT 2u
+#define GF_CONTENT_ALIGNMENT_MIDDLE_LEFT 3u
+#define GF_CONTENT_ALIGNMENT_MIDDLE_CENTER 4u
+#define GF_CONTENT_ALIGNMENT_MIDDLE_RIGHT 5u
+#define GF_CONTENT_ALIGNMENT_BOTTOM_LEFT 6u
+#define GF_CONTENT_ALIGNMENT_BOTTOM_CENTER 7u
+#define GF_CONTENT_ALIGNMENT_BOTTOM_RIGHT 8u
+
+/* A control's viewport fit (since 1.7; C++ ViewportFit): an input record
+ * for set_viewport_fit and an output record for viewport_fit, whose
+ * struct_size the caller sets, at least the 1.7 size. minimum_scale and
+ * maximum_scale bound the effective scale of CONTAIN and COVER; a CONTAIN
+ * whose ratio falls below minimum_scale takes below_minimum (SCROLL or
+ * CLIP) at minimum_scale. The default is CONTAIN, 0, 1, SCROLL,
+ * MIDDLE_CENTER. */
+typedef struct gf_viewport_fit {
+    uint32_t struct_size;
+    gf_overflow_answer answer;
+    double minimum_scale;
+    double maximum_scale;
+    gf_overflow_answer below_minimum;
+    gf_content_alignment alignment;
+} gf_viewport_fit;
+
+/* One overflow a window knows of now (since 1.7; C++ OverflowRecord): an
+ * output record of overflow_records. owner is the viewport owner's stable
+ * id, a view into the caller's text buffer (empty when the owner left the
+ * window during the call). content_extent and viewport_extent are in the
+ * owner's logical units; effective_scale is the scale carried out (1 where
+ * none is); answered is 0 only when the owner's answer is not carried out. */
+typedef struct gf_overflow_record {
+    uint32_t struct_size;
+    gf_overflow_cause cause;
+    gf_overflow_answer answer;
+    uint32_t answered;
+    gf_logical_size content_extent;
+    gf_logical_size viewport_extent;
+    double effective_scale;
+    gf_utf8_view owner;
+} gf_overflow_record;
+
 typedef struct gf_windows_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1413,6 +1495,25 @@ typedef struct gf_windows_table {
      * gone. */
     gf_status (GF_CALL* set_main_menu_strip)(gf_object window_or_root, gf_object strip);
     gf_status (GF_CALL* main_menu_strip)(gf_object window_or_root, gf_object* strip);
+    /* Since 1.7. The overflows the window knows of now, as of its last
+     * layout (stage VA), in the order they appeared: records is an array of
+     * capacity records (the array rule: each repeats the first's
+     * struct_size, at least the 1.7 size), text_buffer receives the owners'
+     * stable ids one after another and each record's owner points there.
+     * required receives the record count and text_required the text size,
+     * also with GF_STATUS_BUFFER_TOO_SMALL, which writes no record. records
+     * and text_buffer may be null when their capacity is zero; required
+     * and text_required may not. */
+    gf_status (GF_CALL* overflow_records)(gf_object window_or_root, gf_overflow_record* records, uint64_t capacity,
+                                          uint64_t* required, char* text_buffer, uint64_t text_capacity,
+                                          uint64_t* text_required);
+    /* Since 1.7. The number of the window's overflows whose answer is not
+     * carried out: zero for a window whose every overflow is answered. */
+    gf_status (GF_CALL* unanswered_overflow_count)(gf_object window_or_root, uint64_t* count);
+    /* Since 1.7. The edges of the window's client area the host or the
+     * device hides, in logical units, zero until the host reports any. The
+     * root slot keeps clear of them. */
+    gf_status (GF_CALL* safe_insets)(gf_object window_or_root, gf_logical_insets* insets);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -2850,6 +2951,16 @@ typedef struct gf_controls_table {
      * nothing. A custom control's painted pixels are inside its group too:
      * this is the group effect for custom paint. UI thread. */
     gf_status (GF_CALL* set_content_effect)(gf_object object, const gf_content_effect* effect);
+    /* Since 1.7. The control's viewport fit (stage VA): what it does when
+     * its content, after layout, does not fit its viewport. A record
+     * smaller than its 1.7 size, an answer or below_minimum outside
+     * gf_overflow_answer, a below_minimum other than SCROLL or CLIP, a
+     * scale that is not finite, a minimum_scale below 0, a maximum_scale
+     * not above 0, below minimum_scale or above 1024, or an alignment
+     * outside gf_content_alignment gives INVALID_ARGUMENT, changing
+     * nothing. UI thread. */
+    gf_status (GF_CALL* set_viewport_fit)(gf_object object, const gf_viewport_fit* fit);
+    gf_status (GF_CALL* viewport_fit)(gf_object object, gf_viewport_fit* fit);
 } gf_controls_table;
 
 /* gf_text_ink_role: a theme ink for decorated text (C++ TextInkRole): the

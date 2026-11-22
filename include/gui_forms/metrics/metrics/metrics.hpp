@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 #include "gui_forms/metrics/types/metrics_types.hpp"
 
 #include <atomic>
@@ -113,6 +114,10 @@ public:
     // at the 1st, 2nd, 4th, 8th... refusal, prints one diagnostic line
     // naming both controls' stable identities.
     void record_layout_arrange_refusal(std::string_view arranged, std::string_view arranging) noexcept;
+    // An overflow record made (stage VA; MetricsSnapshot::overflow_*): counts
+    // it under the answer the owner gives, and under overflow_unanswered
+    // when that answer is not carried out.
+    void record_overflow(OverflowAnswer answer, bool answered) noexcept;
     // `refusals` uses of an image identity the registry no longer holds
     // (ImageResourceError::stale_image_id), refused: `operation` names the
     // window call (a scoped patch, replace or update) or `draw` for a paint

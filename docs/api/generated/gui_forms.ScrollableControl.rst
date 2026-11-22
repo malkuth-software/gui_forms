@@ -563,6 +563,12 @@ gui_forms::ScrollableControl
 
       *Protected.*
 
+   .. cpp:function:: bool content_scrolls() const noexcept override
+
+      *Protected.*
+
+      With auto scroll its scroll range reaches every child, so it answers an overflow of its viewport by scrolling (stage VA).
+
    .. cpp:function:: void publish_part_geometry(std::span<PartGeometry> geometry) const override
 
       *Protected.*

@@ -110,6 +110,20 @@ Since pull request #484:
   targets, when fuzzers are enabled), and the test CMake options are gone.
   The C conformance kit's sources are in `src/abi/conformance`.
 
+Visible-area guarantee (stage VA, phase VA1):
+
+- **`ScaledPanel` and `ScaledGroupBox` have no `design_size` of their own.**
+  They use `Control::design_size`, which every control now has: the same
+  name and the same meaning for them, so code and form documents that set
+  it keep working. Its default is 0 x 0 (the panels then map from the unit
+  square, as their old default did), it refuses a size with one zero side,
+  and `ScaledPanelCapabilities`, `ScaledGroupBoxCapabilities` and their
+  `DesignSize` capabilities are gone.
+- Hosts shrink a primary, standard or tool window whose frame is larger
+  than its monitor's work area, unless it covers the whole monitor (full
+  screen); a minimum size larger than the work area keeps the window and is
+  counted (`HostWindowingSnapshot::unfit_frames`).
+
 ## Other changes
 
 ### Keys and focus
@@ -374,3 +388,23 @@ Since pull request #484:
 - The installed-notices check requires `THIRD_PARTY_NOTICES.md` and still
   refuses GPL text.
 - The README's documentation badge points at Read the Docs' new host.
+
+### Visible-area guarantee (stage VA, phase VA1)
+- Every control has `viewport_fit` (`ViewportFit`: what it does when its
+  content does not fit its viewport, contain by default; an owner that
+  scrolls its content answers by scrolling) and `design_size`.
+- The window checks each layout's owners against their viewports and keeps
+  `overflow_records()` (`OverflowRecord`, `OverflowCause`), diagnoses each
+  new or changed overflow (`LayoutDiagnosticCode::content_overflow`),
+  counts them (`MetricsSnapshot::overflow_*`) and reports the unanswered
+  ones (`unanswered_overflow_count`).
+- `SubSurfaceHost` with a design size lays its sub-surface out at that size
+  and contains or covers it in its region, rendered at the real pixel size.
+- Safe insets (`SafeInsets`, `set_safe_insets`, `visible_client_rectangle`):
+  the root slot keeps clear of the edges a host reports hidden.
+- `place_viewport_content` and `fit_to_work_area` are the pure
+  computations.
+- C ABI 1.7: `gf_viewport_fit`, `gf_overflow_record`, `gf_overflow_answer`,
+  `gf_overflow_cause`, `gf_content_alignment`, the windows table's
+  `overflow_records`, `unanswered_overflow_count` and `safe_insets`, and the
+  controls table's `set_viewport_fit` and `viewport_fit`.

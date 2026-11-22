@@ -145,6 +145,11 @@ std::string MetricsSnapshot::to_json() const {
            << "\"engine_material_assemblies\":" << engine_material_assemblies << ','
            << "\"paint_group_refusals\":" << paint_group_refusals << ','
            << "\"layout_arrange_refusals\":" << layout_arrange_refusals << ','
+           << "\"overflow_scrolled\":" << overflow_scrolled << ','
+           << "\"overflow_contained\":" << overflow_contained << ','
+           << "\"overflow_covered\":" << overflow_covered << ','
+           << "\"overflow_clipped\":" << overflow_clipped << ','
+           << "\"overflow_unanswered\":" << overflow_unanswered << ','
            << "\"stale_image_refusals\":" << stale_image_refusals << ','
            << "\"bundled_font_lookups_without_source\":" << bundled_font_lookups_without_source << ','
            << "\"renderer_name\":\"" << escaped_json(renderer_name) << "\","

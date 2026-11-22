@@ -84,6 +84,12 @@ gui_forms::Control
          unbounded; a nonzero dimension below :cpp:member:`minimum_size <gui_forms::Control::minimum_size>` throws
          ``std::invalid_argument``.
 
+      **viewport_fit** : ``ViewportFit``
+         What this control does when its content, after layout, does not fit its viewport (stage VA): contain by default; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+
+      **design_size** : ``Size``
+         The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent. Contain and cover scale content of this extent into the viewport. Throws std::invalid_argument unless both sides are finite and either both zero or both positive.
+
       **margin** : ``Insets``, default ``{3, 3, 3, 3}``
          Space that flow and table layout panels leave around the control. The
          base dock and anchor layout ignores it; auto-size measurement and scroll
@@ -883,6 +889,14 @@ gui_forms::Control
       The largest size layout may give the control. A zero dimension is
       unbounded; a nonzero dimension below :cpp:member:`minimum_size <gui_forms::Control::minimum_size>` throws
       ``std::invalid_argument``.
+
+   .. cpp:member:: ViewportFit viewport_fit
+
+      What this control does when its content, after layout, does not fit its viewport (stage VA): contain by default; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+
+   .. cpp:member:: Size design_size
+
+      The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent. Contain and cover scale content of this extent into the viewport. Throws std::invalid_argument unless both sides are finite and either both zero or both positive.
 
    .. cpp:member:: Insets margin
 
@@ -1877,6 +1891,14 @@ gui_forms::Control
 
       Whether a requested width or height of 0 means "from content" when this control is placed by its parent's dock and anchor layout without AutoSize (coordinator ruling, cp32 return 1: exhibit gap E12). The parent then measures it once, at the requested width (else the client's), and takes each zero axis from the answer: width first, then the height at that width (the A8 rule), so one layout pass converges. False by default, so a 0 stays 0 for every control that does not say otherwise; Label answers true.
 
+   .. cpp:function:: virtual bool content_scrolls() const noexcept
+
+      The visible-area guarantee (stage VA). Whether this control scrolls its content: its scroll range reaches every part of what overflows its viewport, so it answers an overflow by scrolling whatever its viewport_fit says (OverflowAnswer::scroll). False by default; ScrollableControl answers its auto_scroll, and a control that positions its children in a scrolled space of its own answers true.
+
+   .. cpp:function:: virtual stxlib::Optional<double> applied_viewport_scale() const noexcept
+
+      The scale this control applies to its content now, as the viewport owner carrying out a contain or cover of its viewport_fit; none while it applies none. The window counts an overflow answered by contain or cover only while this is present. None by default: a control inside a window applies no scale before the in-tree scale frame (VA2); a SubSurfaceHost applies its sub-surface's root scale.
+
    .. cpp:function:: virtual void on_paint(Painter& painter, Rect local_damage)
 
       Override to draw the control in local coordinates. The window records
@@ -2492,11 +2514,11 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``41U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``42U``.
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 250 supported, 0 deferred, 12 excluded, 323 unclassified; 228 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 250 supported, 0 deferred, 12 excluded, 325 unclassified; 230 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4349,6 +4371,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 250 supp
      - supported
    * - method
      - GUI.Forms-only
+     - ``applied_viewport_scale``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``apply_provider_semantics``
      - unclassified (untested)
    * - method
@@ -4422,6 +4448,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 250 supp
    * - method
      - GUI.Forms-only
      - ``command_dialog_result``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``content_scrolls``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

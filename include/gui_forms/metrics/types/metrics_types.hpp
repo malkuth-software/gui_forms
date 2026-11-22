@@ -246,6 +246,16 @@ struct GUI_FORMS_API MetricsSnapshot {
     // control (LayoutDiagnosticCode::arrange_outside_slot): a custom layout
     // that arranged a child directly instead of set_child_layout.
     std::uint64_t layout_arrange_refusals{};
+    // Overflow records made (stage VA: an overflow appeared, or its answer,
+    // cause or applied scale changed; LayoutDiagnosticCode::content_overflow),
+    // by the answer the owner gives, and of all of them the unanswered ones.
+    // A window's overflows now are SurfaceRoot::overflow_records; these
+    // only grow.
+    std::uint64_t overflow_scrolled{};
+    std::uint64_t overflow_contained{};
+    std::uint64_t overflow_covered{};
+    std::uint64_t overflow_clipped{};
+    std::uint64_t overflow_unanswered{};
     // Uses of a stale image identity refused: a window's scoped patch,
     // replace or update given one, and draws recorded with one (counted
     // when the control's paint is recorded, and drawn as nothing). A

@@ -860,6 +860,18 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         maximum_size.bindable = false;
         return maximum_size;
     }
+    case RegisteredProperty::design_size: {
+        PropertyDescriptor design_size;
+        design_size.name = "design_size";
+        design_size.kind = BindingValueKind::size;
+        design_size.category = "Layout";
+        design_size.description =
+            "The extent the control's content is designed at; zero is the content's own extent.";
+        design_size.default_value = BindingValue{Size{}};
+        design_size.invalidation_effects = invalidation::bounds;
+        design_size.bindable = false;
+        return design_size;
+    }
     case RegisteredProperty::margin: {
         PropertyDescriptor margin;
         margin.name = "margin";
@@ -1358,6 +1370,8 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::minimum_size>, nullptr, nullptr, nullptr, nullptr},
         {"maximum_size", &describe_registered<RegisteredProperty::maximum_size>, &read_registered<RegisteredProperty::maximum_size>,
          &write_registered<RegisteredProperty::maximum_size>, nullptr, nullptr, nullptr, nullptr},
+        {"design_size", &describe_registered<RegisteredProperty::design_size>, &read_registered<RegisteredProperty::design_size>,
+         &write_registered<RegisteredProperty::design_size>, nullptr, nullptr, nullptr, nullptr},
         {"margin", &describe_registered<RegisteredProperty::margin>, &read_registered<RegisteredProperty::margin>,
          &write_registered<RegisteredProperty::margin>, nullptr, nullptr, nullptr, nullptr},
         {"padding", &describe_registered<RegisteredProperty::padding>, &read_registered<RegisteredProperty::padding>,
@@ -3429,6 +3443,33 @@ void Control::written(const decltype(maximum_size)&) {
     }
 }
 
+void Control::prepare_write(const decltype(viewport_fit)&, ViewportFit& value) {
+    require_mutable();
+    if (!valid_viewport_fit(value)) {
+        throw std::invalid_argument("GUI.Forms viewport fit is invalid (valid_viewport_fit)");
+    }
+}
+
+// A new answer or new bounds change how the window answers an overflow of
+// this control's viewport: it is arranged again, and the pass checks it.
+void Control::written(const decltype(viewport_fit)&) {
+    invalidate(invalidation::bounds);
+}
+
+void Control::prepare_write(const decltype(design_size)&, Size& value) {
+    require_mutable();
+    const bool finite = std::isfinite(value.width) && std::isfinite(value.height);
+    const bool both_zero = value.width == 0.0 && value.height == 0.0;
+    const bool both_positive = value.width > 0.0 && value.height > 0.0;
+    if (!finite || !(both_zero || both_positive)) {
+        throw std::invalid_argument("GUI.Forms design size must be finite, and zero or positive on both sides");
+    }
+}
+
+void Control::written(const decltype(design_size)&) {
+    invalidate(invalidation::bounds);
+}
+
 void Control::prepare_write(const decltype(margin)&, Insets& value) {
     require_mutable();
     validate_insets(value, "GUI.Forms margin must be finite and nonnegative");
@@ -4624,6 +4665,12 @@ bool Control::sizes_children_from_content() const noexcept { return true; }
 bool Control::measures_children_in_arrange() const noexcept { return false; }
 
 bool Control::sizes_unrequested_extents_from_content() const noexcept { return false; }
+
+bool Control::content_scrolls() const noexcept { return false; }
+
+stxlib::Optional<double> Control::applied_viewport_scale() const noexcept {
+    return stxlib::Optional<double>::none();
+}
 
 LayoutDirection Control::effective_layout_direction() const noexcept {
     return resolved_direction_;

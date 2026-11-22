@@ -159,6 +159,14 @@ Rect clamp_to_work_area(Rect outer, Rect work_area) noexcept {
     return result;
 }
 
+Rect fit_to_work_area(Rect outer, Rect work_area) noexcept {
+    Rect fitted = outer;
+    fitted.width = std::min(outer.width, work_area.width);
+    fitted.height = std::min(outer.height, work_area.height);
+    const Rect placed = clamp_to_work_area(fitted, work_area);
+    return placed;
+}
+
 const char* host_window_kind_name(HostWindowKind kind) noexcept {
     switch (kind) {
     case HostWindowKind::primary: return "primary";
@@ -187,6 +195,8 @@ std::string HostWindowingSnapshot::to_json() const {
            << ",\"policy_shows\":" << policy_shows
            << ",\"follow_moves\":" << follow_moves
            << ",\"clamped_follow_moves\":" << clamped_follow_moves
+           << ",\"size_clamped_frames\":" << size_clamped_frames
+           << ",\"unfit_frames\":" << unfit_frames
            << ",\"application_active\":" << (application_active ? "true" : "false")
            << ",\"started\":" << (started ? "true" : "false")
            << ",\"shutdown\":" << (shutdown ? "true" : "false") << '}';
@@ -562,11 +572,85 @@ void HostWindowing::report_frame(HostWindowId window, const HostWindowFrame& fra
     // A handler may have destroyed the window; look it up again.
     WindowRecord* reported = record(window);
     if (reported == nullptr || snapshot_.shutdown) return;
+    const HostWindowKindTraits traits = host_window_kind_traits((*reported).kind);
     if (window == primary_) {
         if (!(*reported).minimized) follow_primary(*reported);
+    } else if (traits.follows_main_window) {
+        learn_offset(*reported);
+    }
+    // Floating windows follow the primary window and are clamped by that
+    // policy; popups are placed by their owners. The rest keep their size
+    // within the work area (stage VA). Looked up again: following may have
+    // reached handlers.
+    WindowRecord* placed = record(window);
+    // Only a window the adapter has finished creating (window_created): its
+    // first frame is reported before its model can hear of a change.
+    if (placed == nullptr || snapshot_.shutdown || !(*placed).created || traits.floating || traits.popup ||
+        (*placed).minimized) {
         return;
     }
-    if (host_window_kind_traits((*reported).kind).follows_main_window) learn_offset(*reported);
+    fit_frame_to_work_area(window);
+}
+
+namespace {
+
+// A full-screen window covers its monitor's whole frame, which is larger
+// than the work area wherever a taskbar, dock or menu bar takes part of it:
+// that is not an oversized window.
+constexpr double frame_tolerance = 0.5;
+
+bool covers_frame(Rect outer, Rect frame) noexcept {
+    const bool covers = std::abs(outer.x - frame.x) <= frame_tolerance &&
+                        std::abs(outer.y - frame.y) <= frame_tolerance &&
+                        std::abs(outer.width - frame.width) <= frame_tolerance &&
+                        std::abs(outer.height - frame.height) <= frame_tolerance;
+    return covers;
+}
+
+} // namespace
+
+void HostWindowing::fit_frame_to_work_area(HostWindowId window) {
+    // Without monitor geometry or frame requests there is nothing to fit
+    // against or with; asking would count a refusal at every report.
+    const bool able = snapshot_.capabilities.supports(HostCapability::monitor_geometry) &&
+                      snapshot_.capabilities.supports(HostCapability::window_frames);
+    if (!able) return;
+    const WindowRecord* entry = record(window);
+    if (entry == nullptr || !(*entry).frame.present()) return;
+    const HostWindowFrame frame = *(*entry).frame.value();
+    if (!query_monitors(fit_monitors_).accepted() || fit_monitors_.monitors.empty()) return;
+    const Rect outer = frame.outer;
+    const DesktopLogicalPoint centre{outer.x + outer.width * 0.5, outer.y + outer.height * 0.5};
+    const std::span<const HostMonitor> monitors(fit_monitors_.monitors.data(), fit_monitors_.monitors.size());
+    const HostMonitor& monitor = monitors[nearest_logical_monitor(monitors, centre)];
+    const Rect work = monitor.work_area;
+    const bool oversized = outer.width > work.width + frame_tolerance || outer.height > work.height + frame_tolerance;
+    WindowRecord* writable = record(window);
+    if (!oversized || covers_frame(outer, monitor.frame)) {
+        (*writable).size_clamp_request.reset();
+        return;
+    }
+    // The decorations keep their size: the client area gives up what the
+    // outer rectangle does.
+    const Rect fitted = fit_to_work_area(outer, work);
+    const Rect content{frame.content.x + (fitted.x - outer.x), frame.content.y + (fitted.y - outer.y),
+                       frame.content.width - (outer.width - fitted.width),
+                       frame.content.height - (outer.height - fitted.height)};
+    if ((*writable).size_clamp_request.present() && *(*writable).size_clamp_request.value() == content) {
+        // Asked for before, and the frame kept its size.
+        ++snapshot_.unfit_frames;
+        return;
+    }
+    (*writable).size_clamp_request.set(content);
+    // The request may report the new frame before it returns (report_frame
+    // runs again and finds it fits), or reach handlers that destroy the
+    // window: nothing of the record is read after it.
+    const HostServiceStatus status = request_frame(window, content);
+    if (status.accepted()) {
+        ++snapshot_.size_clamped_frames;
+    } else {
+        ++snapshot_.unfit_frames;
+    }
 }
 
 std::size_t HostWindowing::floating_window_count() const noexcept {
@@ -625,11 +709,22 @@ void HostWindowing::window_created(HostWindowId window, bool initially_visible) 
     if (entry == nullptr) return;
     (*entry).requested_visible = initially_visible;
     (*entry).shown = false;
+    (*entry).created = true;
+    const HostWindowKindTraits traits = host_window_kind_traits((*entry).kind);
     try {
         apply_visibility(*entry);
     } catch (...) {
         // The adapter's show failed; the window stays hidden and the next
         // policy change tries again.
+    }
+    // The first frame was reported before the window was wired to its
+    // model; now it is, an oversized frame can be fitted (stage VA).
+    if (traits.floating || traits.popup) return;
+    try {
+        fit_frame_to_work_area(window);
+    } catch (...) {
+        // The adapter's frame request failed; the window keeps its frame and
+        // its next report tries again.
     }
 }
 

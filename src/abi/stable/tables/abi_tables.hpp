@@ -63,6 +63,15 @@ gf_status GF_CALL windows_mdi_children_minimized_anchor_bottom(gf_object window_
                                                                std::uint32_t* bottom) noexcept;
 gf_status GF_CALL windows_set_main_menu_strip(gf_object window_or_root, gf_object strip) noexcept;
 gf_status GF_CALL windows_main_menu_strip(gf_object window_or_root, gf_object* strip) noexcept;
+// The visible-area guarantee's slots (since 1.7, abi_viewport.cpp): the
+// windows table's 31 to 33 and the controls table's 19 and 20.
+gf_status GF_CALL windows_overflow_records(gf_object window_or_root, gf_overflow_record* records,
+                                           std::uint64_t capacity, std::uint64_t* required, char* text_buffer,
+                                           std::uint64_t text_capacity, std::uint64_t* text_required) noexcept;
+gf_status GF_CALL windows_unanswered_overflow_count(gf_object window_or_root, std::uint64_t* count) noexcept;
+gf_status GF_CALL windows_safe_insets(gf_object window_or_root, gf_logical_insets* insets) noexcept;
+gf_status GF_CALL controls_set_viewport_fit(gf_object object, const gf_viewport_fit* fit) noexcept;
+gf_status GF_CALL controls_viewport_fit(gf_object object, gf_viewport_fit* fit) noexcept;
 #if defined(GF_ABI_HAS_WINDOWS_PAINT_ENDPOINT)
 [[nodiscard]] const gf_windows_paint_endpoint_table& windows_paint_endpoint_table() noexcept;
 #endif

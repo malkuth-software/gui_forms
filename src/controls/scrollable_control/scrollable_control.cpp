@@ -132,6 +132,11 @@ void ScrollableControl::prepare_write(const decltype(wheel_scrolls)&, bool&) {
 
 void ScrollableControl::written(const decltype(wheel_scrolls)&) {}
 
+bool ScrollableControl::content_scrolls() const noexcept {
+    const bool scrolls = auto_scroll.read();
+    return scrolls;
+}
+
 Rect ScrollableControl::display_rectangle() const noexcept {
     const Rect viewport = effective_viewport_rectangle();
     return {viewport.x - scroll_position_.x,

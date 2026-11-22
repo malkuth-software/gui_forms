@@ -22,6 +22,7 @@
 #include "gui_forms/window/band/window_band.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/layout/diagnostics/layout_diagnostics.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 #include "gui_forms/resources.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
@@ -52,6 +53,8 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/vector.hpp>
+#include <stxlib/view.hpp>
 
 namespace gui_forms {
 
@@ -574,9 +577,10 @@ public:
     // window (attaching a repeated one is refused). Changes nothing.
     [[nodiscard]] ControlLookup control(std::string_view stable_id) const;
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
-    // The root slot (stage B, B.2a): the client rectangle less the window's
-    // outer band (Window::declare_band) and, inside it, the chrome insets,
-    // in client coordinates. The layout pass measures the root at its size
+    // The root slot (stage B, B.2a): the client rectangle less, on each
+    // edge, the larger of the window's outer band (Window::declare_band) and
+    // its safe inset (safe_insets, stage VA), and, inside that, the chrome
+    // insets, in client coordinates. The layout pass measures the root at its size
     // and arranges it there, and a resize marks what it reaches through it;
     // damage and clipping stay in the whole client area. The inset band is
     // the window's own (chrome hit-testing, frame drag): no control is
@@ -593,6 +597,20 @@ public:
     // area and marks the root to be arranged again, and measured again on
     // an axis whose slot extent changed. Root thread.
     void set_chrome_insets(Insets insets);
+    // The visible-area guarantee (stage VA). The edges of the client area
+    // the host or the device hides (SafeInsets), zero until the host reports
+    // any. The root slot keeps clear of them; drawing and hit testing still
+    // cover the whole client area.
+    [[nodiscard]] SafeInsets safe_insets() const noexcept { return safe_insets_; }
+    // The host adapter's report of the safe insets (a headless or test host
+    // may report its own): std::invalid_argument, changing nothing, unless
+    // valid_safe_insets holds; otherwise damages the client area and marks
+    // the root to be arranged again, as set_chrome_insets does. Root thread.
+    void set_safe_insets(SafeInsets insets);
+    // The client rectangle less, on each edge, the larger of the outer band
+    // and the safe inset: the part of the client area content may count on
+    // being seen, in client coordinates. Empty on an axis they cover.
+    [[nodiscard]] Rect visible_client_rectangle() const noexcept;
     [[nodiscard]] double scale() const noexcept { return scale_; }
     // The settings in force: the window's own (presentation_base) with its
     // overrides applied.
@@ -1557,6 +1575,30 @@ public:
     [[nodiscard]] std::span<const LayoutDiagnostic> layout_diagnostics() const&& = delete;
     [[nodiscard]] std::uint64_t dropped_layout_diagnostics() const noexcept { return dropped_layout_diagnostics_; }
     void clear_layout_diagnostics() noexcept;
+    // The overflows this window knows of now (stage VA), one record per
+    // viewport owner and kind of overflow, in the order they appeared: at
+    // most maximum_overflow_records, later ones counted in
+    // dropped_overflow_records(). Each layout flush checks the owners it
+    // arranged and their parents, and the root against its slot: a record
+    // is added when an overflow appears (LayoutDiagnosticCode::
+    // content_overflow is recorded and MetricsSnapshot::overflow_* count
+    // it), replaced when its answer, cause or applied scale changes
+    // (recorded and counted again), updated silently when only its extents
+    // change, and removed when the content fits again, or its owner is
+    // hidden, collapsed or leaves the window. The view is valid until the
+    // next layout flush. UI thread.
+    [[nodiscard]] stxlib::View<OverflowRecord> overflow_records() const& noexcept {
+        const stxlib::View<OverflowRecord> records = overflow_records_.view();
+        return records;
+    }
+    [[nodiscard]] stxlib::View<OverflowRecord> overflow_records() const&& = delete;
+    [[nodiscard]] std::uint64_t dropped_overflow_records() const noexcept { return dropped_overflow_records_; }
+    // The records whose answer is not carried out. The guarantee's evidence:
+    // a window whose every overflow is answered reports zero.
+    [[nodiscard]] std::size_t unanswered_overflow_count() const noexcept;
+    // The control a record names, while it is attached to this window;
+    // empty otherwise.
+    [[nodiscard]] Control::Ptr overflow_owner(const OverflowRecord& record) const;
     // The control table (property-capabilities study, decision 6), for
     // inspection: each attached control's slot, the controls touched since
     // the last settle and the containers' resize registrations. Borrowed
@@ -2484,6 +2526,36 @@ private:
     // resolution to its parent is remembered and not recorded.
     void note_containing_block(const Control& child, const Control& ancestor);
     void record_layout_diagnostic(LayoutDiagnostic diagnostic);
+    // The visible-area guarantee's checks (stage VA; window_viewport.cpp).
+    // queue_viewport_check lists `owner` for this flush's check, once per
+    // flush (Control::viewport_check_pass_); an owner the list has no room
+    // for is not checked this flush. check_viewports runs after the
+    // layout passes: it checks each listed owner still attached here, the
+    // root against its slot when the root was arranged, then drops the
+    // records of owners that left. check_viewport_owner compares one
+    // owner's children and design size with its viewport and updates its
+    // records. None calls application code but the owners' const noexcept
+    // queries (child_viewport_rectangle, content_scrolls,
+    // applied_viewport_scale). A record that cannot be stored for want of
+    // memory is counted in dropped_overflow_records.
+    enum class OverflowScope : std::uint8_t {
+        // The owner's children against its child viewport.
+        children,
+        // The owner's design size against its child viewport.
+        design,
+        // The root control against the window's root slot.
+        root_slot,
+    };
+    void queue_viewport_check(Control& owner);
+    void check_viewports();
+    void check_viewport_owner(const Control::Ptr& owner);
+    void check_root_slot();
+    // Adds, replaces or updates the record of (`owner`, `scope`) with
+    // `record` (overflowing), or removes it (`overflowing` false).
+    void update_overflow_record(const Control::Ptr& owner, OverflowScope scope, bool overflowing,
+                                const OverflowRecord& record);
+    void remove_overflow_record(std::size_t index) noexcept;
+    void prune_overflow_records() noexcept;
     // Whether `control` may not be arranged now: true while the layout pass
     // is arranging (arrange and on_layout) a control other than `control`,
     // after recording arrange_outside_slot and counting it in
@@ -2570,6 +2642,8 @@ private:
     // Zero unless the window's chrome takes a band of the client area
     // (root_slot).
     Insets chrome_insets_{};
+    // The host's safe insets (set_safe_insets; stage VA); zero until reported.
+    SafeInsets safe_insets_{};
     // The window outer band (Window::declare_band; gui_forms/window/band/
     // window_band.hpp). Only a Window declares one, so a sub-surface's
     // stays undeclared and reserves nothing.
@@ -3073,6 +3147,20 @@ private:
     std::uint64_t containing_block_subtree_arranges_{};
     std::vector<LayoutDiagnostic> layout_diagnostics_{};
     std::uint64_t dropped_layout_diagnostics_{};
+    // The visible-area guarantee (stage VA). The owners queued for this
+    // flush's check (observing references, cleared after it, capacity
+    // kept); the flush's check sequence, advanced at each flush, which
+    // Control::viewport_check_pass_ compares with (zero is never a flush's);
+    // the records now and, at the same index, whose and which kind each is.
+    struct OverflowRecordKey final {
+        Control::WeakPtr owner{};
+        OverflowScope scope{OverflowScope::children};
+    };
+    stxlib::Vector<Control::WeakPtr> viewport_checks_{};
+    std::uint64_t viewport_check_sequence_{};
+    stxlib::Vector<OverflowRecord> overflow_records_{};
+    stxlib::Vector<OverflowRecordKey> overflow_record_keys_{};
+    std::uint64_t dropped_overflow_records_{};
     bool in_paint_{};
     // Holds in_paint_ for an offscreen capture's recording and replay
     // (capture_window, capture_control, snapshot_control), as paint holds

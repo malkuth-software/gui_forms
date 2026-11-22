@@ -388,6 +388,46 @@ Declare the layout effects of your properties with `invalidate_declared`
 (see [Update scopes and dirtiness](update-scopes-and-dirtiness)), so that
 changing a property re-measures only when it has to.
 
+## The visible-area guarantee
+
+No content is outside its viewport unless the viewport's owner answers that
+overflow, and the window records every overflow (stage VA).
+
+- Every control is a viewport owner: its children are checked against its
+  child viewport, its `design_size` (0 x 0 for none) against the same
+  rectangle, and the root against the window's root slot.
+- Layout reflows first. What it cannot fit, the owner answers with its
+  `viewport_fit`: `contain` (one uniform scale, the smaller axis ratio,
+  within `minimum_scale` and `maximum_scale`, aligned in the leftover
+  space), `cover` (the larger ratio, the excess cropped), `clip` (cut, by
+  explicit choice) or `scroll`. A control that scrolls its content (a panel
+  with `auto_scroll`) answers by scrolling. The default is `contain`.
+- `Window::overflow_records()` lists the overflows now; each new or changed
+  one is diagnosed as `content_overflow` in `layout_diagnostics()` and
+  counted in `MetricsSnapshot::overflow_*`. `unanswered_overflow_count()` is
+  the guarantee's evidence: zero when every overflow is answered.
+- In this phase contain and cover are carried out by `SubSurfaceHost` (with a
+  design size, its sub-surface is laid out at that size and scaled into its
+  region at the real pixel size) and by the scaled panels' stretch. Inside a
+  window they are recorded unanswered until the in-tree scale frame (VA2).
+- The root slot keeps clear of the window's safe insets (`safe_insets()`,
+  zero until a host reports hidden edges), and hosts shrink a window larger
+  than its monitor's work area (not a full-screen one).
+
+```cpp
+std::shared_ptr<gf::Panel> viewer = gf::make_control<gf::Panel>(gf::StableId("viewer"));
+std::shared_ptr<gf::Label> page = gf::make_control<gf::Label>(gf::StableId("viewer.page"), "A long page");
+(*page).set_requested_bounds({0.0, 0.0, 600.0, 900.0});
+(*viewer).add_child(page);
+
+gf::Window window(viewer, {300.0, 200.0});
+window.perform_layout();
+// overflow_records(): viewer, placed_child_outside_viewport, contain, unanswered
+(*viewer).auto_scroll = true;
+window.perform_layout();
+// the same overflow, now answered by scroll; unanswered_overflow_count() is 0
+```
+
 ## Instrumentation
 
 `MetricsSnapshot` reports these counters:

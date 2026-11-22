@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2375 | 3 | 370 | 4133 | 2489 |
+| 2375 | 3 | 370 | 4139 | 2495 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 250 | 0 | 12 | 323 | 228 |
+| `Control` | `Control` | 250 | 0 | 12 | 325 | 230 |
 | `Component` | `Component` | 10 | 0 | 0 | 10 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
@@ -73,7 +73,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `MonthCalendar` | `MonthCalendar` | 21 | 0 | 1 | 45 | 9 |
 | `Panel` | `Panel` | 8 | 0 | 0 | 8 | 7 |
 | `GroupBox` | `GroupBox` | 4 | 0 | 0 | 21 | 1 |
-| `ScaledGroupBox` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
+| `ScaledGroupBox` | GUI.Forms-only | 3 | 0 | 0 | 1 | 4 |
 | `MaterialPanel` | GUI.Forms-only | 1 | 0 | 0 | 0 | 1 |
 | `Card` | GUI.Forms-only | 10 | 0 | 0 | 1 | 11 |
 | `ExpandableSections` | GUI.Forms-only | 7 | 0 | 0 | 0 | 7 |
@@ -94,7 +94,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TableLayoutPanelCompat` | `TableLayoutPanel` | 13 | 0 | 0 | 26 | 13 |
 | `ResponsiveTrackPanel` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
 | `FormLayout` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
-| `ScaledPanel` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
+| `ScaledPanel` | GUI.Forms-only | 3 | 0 | 0 | 1 | 4 |
 | `SplitContainer` | `SplitContainer` | 12 | 0 | 0 | 37 | 14 |
 | `SplitterPanel` | `SplitterPanel` | 4 | 0 | 0 | 19 | 0 |
 | `Splitter` | `Splitter` | 9 | 0 | 0 | 19 | 5 |
@@ -170,7 +170,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 249 | 0 | 13 | 135 | 257 |
+| `Window` | `Form` | 249 | 0 | 13 | 141 | 263 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -313,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 960 |
+| `untested` | 966 |
 | `w-open` | 5 |

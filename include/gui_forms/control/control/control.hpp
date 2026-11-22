@@ -1056,7 +1056,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 41U;
+    static constexpr std::size_t control_property_count = 42U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -1196,6 +1196,20 @@ public:
     // converges. False by default, so a 0 stays 0 for every control that
     // does not say otherwise; Label answers true.
     [[nodiscard]] virtual bool sizes_unrequested_extents_from_content() const noexcept;
+    // The visible-area guarantee (stage VA). Whether this control scrolls
+    // its content: its scroll range reaches every part of what overflows
+    // its viewport, so it answers an overflow by scrolling whatever its
+    // viewport_fit says (OverflowAnswer::scroll). False by default;
+    // ScrollableControl answers its auto_scroll, and a control that
+    // positions its children in a scrolled space of its own answers true.
+    [[nodiscard]] virtual bool content_scrolls() const noexcept;
+    // The scale this control applies to its content now, as the viewport
+    // owner carrying out a contain or cover of its viewport_fit; none while
+    // it applies none. The window counts an overflow answered by contain or
+    // cover only while this is present. None by default: a control inside
+    // a window applies no scale before the in-tree scale frame (VA2); a
+    // SubSurfaceHost applies its sub-surface's root scale.
+    [[nodiscard]] virtual stxlib::Optional<double> applied_viewport_scale() const noexcept;
     // layout_direction stores the authored inline direction, `inherit` by
     // default (stage L, PLAN section 4): Windows Forms' RightToLeft. The
     // registry, the property grid and forms spell it `right_to_left` (No,
@@ -1823,6 +1837,8 @@ private:
     friend struct ForeColorCapability<Control>;
     friend struct MinimumSizeCapability<Control>;
     friend struct MaximumSizeCapability<Control>;
+    friend struct ViewportFitCapability<Control>;
+    friend struct DesignSizeCapability<Control>;
     friend struct MarginCapability<Control>;
     friend struct PaddingCapability<Control>;
     friend struct DockCapability<Control>;
@@ -1874,6 +1890,10 @@ private:
     void written(const decltype(minimum_size)& cell);
     void prepare_write(const decltype(maximum_size)& cell, Size& value);
     void written(const decltype(maximum_size)& cell);
+    void prepare_write(const decltype(viewport_fit)& cell, ViewportFit& value);
+    void written(const decltype(viewport_fit)& cell);
+    void prepare_write(const decltype(design_size)& cell, Size& value);
+    void written(const decltype(design_size)& cell);
     void prepare_write(const decltype(margin)& cell, Insets& value);
     void written(const decltype(margin)& cell);
     void prepare_write(const decltype(padding)& cell, Insets& value);
@@ -2203,6 +2223,10 @@ private:
     std::shared_ptr<const PaintGroupEffect> contrast_effect_source_{};
     double last_painted_effect_reach_{};
     bool layout_collapsed_{};
+    // The window's last viewport check of this control as an owner
+    // (SurfaceRoot::check_viewports): the layout pass sequence it was
+    // queued in, so one flush checks each owner once.
+    std::uint64_t viewport_check_pass_{};
     // Whether this is its window's hovered control, the one the pointer was
     // last over (stage T4, hot states). Only the window sets it, before the
     // control sees the enter or leave; base_anatomy_states reports it as
@@ -2376,6 +2400,7 @@ private:
         bounds,
         minimum_size,
         maximum_size,
+        design_size,
         margin,
         padding,
         auto_scroll_offset,
@@ -2481,6 +2506,9 @@ private:
             } else if constexpr (
                 Property == RegisteredProperty::maximum_size) {
                 return BindingValue{(*control).maximum_size.read()};
+            } else if constexpr (
+                Property == RegisteredProperty::design_size) {
+                return BindingValue{(*control).design_size.read()};
             } else if constexpr (Property == RegisteredProperty::margin) {
                 return BindingValue{(*control).margin.read()};
             } else if constexpr (Property == RegisteredProperty::padding) {
@@ -2599,6 +2627,9 @@ private:
             } else if constexpr (
                 Property == RegisteredProperty::maximum_size) {
                 (*control).maximum_size = std::get<Size>(value);
+            } else if constexpr (
+                Property == RegisteredProperty::design_size) {
+                (*control).design_size = std::get<Size>(value);
             } else if constexpr (Property == RegisteredProperty::margin) {
                 (*control).margin = std::get<Insets>(value);
             } else if constexpr (Property == RegisteredProperty::padding) {

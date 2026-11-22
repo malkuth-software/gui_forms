@@ -301,15 +301,44 @@ void SurfaceRoot::apply_client_resize(Rect old_bounds, Rect new_bounds, bool wid
 }
 
 Rect SurfaceRoot::root_slot() const noexcept {
-    // The outer band lies along the client area's edges; the chrome insets
-    // are measured inside it.
+    // The outer band and the safe insets both lie along the client area's
+    // edges, so each edge keeps clear of the larger; the chrome insets are
+    // measured inside that.
     const Insets& insets = chrome_insets_;
-    const Insets& band = band_.reserved;
-    const double width = client_size_.width - insets.left - insets.right - band.left - band.right;
-    const double height = client_size_.height - insets.top - insets.bottom - band.top - band.bottom;
-    const Rect slot{band.left + insets.left, band.top + insets.top, width > 0.0 ? width : 0.0,
+    const Rect visible = visible_client_rectangle();
+    const double width = visible.width - insets.left - insets.right;
+    const double height = visible.height - insets.top - insets.bottom;
+    const Rect slot{visible.x + insets.left, visible.y + insets.top, width > 0.0 ? width : 0.0,
                     height > 0.0 ? height : 0.0};
     return slot;
+}
+
+Rect SurfaceRoot::visible_client_rectangle() const noexcept {
+    const Insets& band = band_.reserved;
+    const double left = std::max(band.left, safe_insets_.left);
+    const double top = std::max(band.top, safe_insets_.top);
+    const double right = std::max(band.right, safe_insets_.right);
+    const double bottom = std::max(band.bottom, safe_insets_.bottom);
+    const double width = client_size_.width - left - right;
+    const double height = client_size_.height - top - bottom;
+    const Rect visible{left, top, width > 0.0 ? width : 0.0, height > 0.0 ? height : 0.0};
+    return visible;
+}
+
+void SurfaceRoot::set_safe_insets(SafeInsets insets) {
+    require_root_thread("safe insets report");
+    if (!valid_safe_insets(insets)) {
+        throw std::invalid_argument("GUI.Forms safe insets must be finite and not negative");
+    }
+    if (safe_insets_ == insets) return;
+    // Pending touches place their damage where the controls were.
+    settle_dirty();
+    const Rect old_slot = root_slot();
+    safe_insets_ = insets;
+    const Rect new_slot = root_slot();
+    add_damage_all_planes({0.0, 0.0, client_size_.width, client_size_.height});
+    mark_child_layout_slot(*root_);
+    mark_resized_measure(*root_, old_slot.width != new_slot.width, old_slot.height != new_slot.height);
 }
 
 void SurfaceRoot::set_chrome_insets(Insets insets) {

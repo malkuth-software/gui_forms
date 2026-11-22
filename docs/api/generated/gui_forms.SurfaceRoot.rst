@@ -65,12 +65,18 @@ gui_forms::SurfaceRoot
          The logical client size. ``resize`` changes it.
 
       **root_slot** : ``Rect``, read-only
-         The root slot (stage B, B.2a): the client rectangle less the window's outer band (Window::declare_band) and, inside it, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
+         The root slot (stage B, B.2a): the client rectangle less, on each edge, the larger of the window's outer band (Window::declare_band) and its safe inset (safe_insets, stage VA), and, inside that, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
 
       **content_rect** : ``Rect``, read-only
          The content rectangle: the client rectangle less the reserved outer band (the whole client area when none is reserved), in client coordinates. Live surfaces are clipped to it; points outside it hit nothing.
 
       **chrome_insets** : ``Insets``
+
+      **safe_insets** : ``SafeInsets``
+         The visible-area guarantee (stage VA). The edges of the client area the host or the device hides (SafeInsets), zero until the host reports any. The root slot keeps clear of them; drawing and hit testing still cover the whole client area.
+
+      **visible_client_rectangle** : ``Rect``, read-only
+         The client rectangle less, on each edge, the larger of the outer band and the safe inset: the part of the client area content may count on being seen, in client coordinates. Empty on an axis they cover.
 
       **scale** : ``double``, default ``1.0``, read-only
          Device pixels per logical unit. The host sets it from the display; a
@@ -350,6 +356,14 @@ gui_forms::SurfaceRoot
          Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in the order the layout passes recorded them: at most maximum_layout_diagnostics, the later ones counted in dropped_layout_diagnostics(). Clearing empties both. The span is valid until the next layout pass or clear.
 
       **dropped_layout_diagnostics** : ``std::uint64_t``, read-only
+
+      **overflow_records** : ``stxlib::View<OverflowRecord>``, read-only
+         The overflows this window knows of now (stage VA), one record per viewport owner and kind of overflow, in the order they appeared: at most maximum_overflow_records, later ones counted in dropped_overflow_records(). Each layout flush checks the owners it arranged and their parents, and the root against its slot: a record is added when an overflow appears (LayoutDiagnosticCode:: content_overflow is recorded and MetricsSnapshot::overflow_* count it), replaced when its answer, cause or applied scale changes (recorded and counted again), updated silently when only its extents change, and removed when the content fits again, or its owner is hidden, collapsed or leaves the window. The view is valid until the next layout flush. UI thread.
+
+      **dropped_overflow_records** : ``std::uint64_t``, read-only
+
+      **unanswered_overflow_count** : ``std::size_t``, read-only
+         The records whose answer is not carried out. The guarantee's evidence: a window whose every overflow is answered reports zero.
 
       **control_table** : ``detail::ControlTable``, read-only
          The control table (property-capabilities study, decision 6), for inspection: each attached control's slot, the controls touched since the last settle and the containers' resize registrations. Borrowed from this root.
@@ -642,6 +656,8 @@ gui_forms::SurfaceRoot
         - The value published under a name, or none.
       * - :cpp:func:`clear_layout_diagnostics <gui_forms::SurfaceRoot::clear_layout_diagnostics>`
         -  
+      * - :cpp:func:`overflow_owner <gui_forms::SurfaceRoot::overflow_owner>`
+        - The control a record names, while it is attached to this window; empty otherwise.
       * - :cpp:func:`containing_block_dependent_count <gui_forms::SurfaceRoot::containing_block_dependent_count>`
         - Containing-block dependencies (PLAN section 3.3), for inspection: how many containers resolved an absolutely positioned child's containing block through ``watched`` (the block's control, or one between it and the container), the number of controls watched, and how many times a watched control over maximum_containing_block_dependents marked its whole subtree for arrange instead.
       * - :cpp:func:`visual_inspection_snapshot <gui_forms::SurfaceRoot::visual_inspection_snapshot>`
@@ -735,7 +751,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: Rect root_slot() const noexcept
 
-      The root slot (stage B, B.2a): the client rectangle less the window's outer band (Window::declare_band) and, inside it, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
+      The root slot (stage B, B.2a): the client rectangle less, on each edge, the larger of the window's outer band (Window::declare_band) and its safe inset (safe_insets, stage VA), and, inside that, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
 
    .. cpp:function:: Rect content_rect() const noexcept
 
@@ -746,6 +762,18 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_chrome_insets(Insets insets)
 
       Sets the chrome insets: std::invalid_argument, changing nothing, unless each is finite and not negative; otherwise damages the client area and marks the root to be arranged again, and measured again on an axis whose slot extent changed. Root thread.
+
+   .. cpp:function:: SafeInsets safe_insets() const noexcept
+
+      The visible-area guarantee (stage VA). The edges of the client area the host or the device hides (SafeInsets), zero until the host reports any. The root slot keeps clear of them; drawing and hit testing still cover the whole client area.
+
+   .. cpp:function:: void set_safe_insets(SafeInsets insets)
+
+      The host adapter's report of the safe insets (a headless or test host may report its own): std::invalid_argument, changing nothing, unless valid_safe_insets holds; otherwise damages the client area and marks the root to be arranged again, as set_chrome_insets does. Root thread.
+
+   .. cpp:function:: Rect visible_client_rectangle() const noexcept
+
+      The client rectangle less, on each edge, the larger of the outer band and the safe inset: the part of the client area content may count on being seen, in client coordinates. Empty on an axis they cover.
 
    .. cpp:function:: double scale() const noexcept
 
@@ -1138,6 +1166,16 @@ gui_forms::SurfaceRoot
       Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in the order the layout passes recorded them: at most maximum_layout_diagnostics, the later ones counted in dropped_layout_diagnostics(). Clearing empties both. The span is valid until the next layout pass or clear.
 
    .. cpp:function:: std::uint64_t dropped_layout_diagnostics() const noexcept
+
+   .. cpp:function:: stxlib::View<OverflowRecord> overflow_records() const& noexcept
+
+      The overflows this window knows of now (stage VA), one record per viewport owner and kind of overflow, in the order they appeared: at most maximum_overflow_records, later ones counted in dropped_overflow_records(). Each layout flush checks the owners it arranged and their parents, and the root against its slot: a record is added when an overflow appears (LayoutDiagnosticCode:: content_overflow is recorded and MetricsSnapshot::overflow_* count it), replaced when its answer, cause or applied scale changes (recorded and counted again), updated silently when only its extents change, and removed when the content fits again, or its owner is hidden, collapsed or leaves the window. The view is valid until the next layout flush. UI thread.
+
+   .. cpp:function:: std::uint64_t dropped_overflow_records() const noexcept
+
+   .. cpp:function:: std::size_t unanswered_overflow_count() const noexcept
+
+      The records whose answer is not carried out. The guarantee's evidence: a window whose every overflow is answered reports zero.
 
    .. cpp:function:: const detail::ControlTable& control_table() const& noexcept
 
@@ -1757,6 +1795,10 @@ gui_forms::SurfaceRoot
       The value published under a name, or none.
 
    .. cpp:function:: void clear_layout_diagnostics() noexcept
+
+   .. cpp:function:: Control::Ptr overflow_owner(const OverflowRecord& record) const
+
+      The control a record names, while it is attached to this window; empty otherwise.
 
    .. cpp:function:: std::size_t containing_block_dependent_count(RuntimeId watched) const noexcept
 

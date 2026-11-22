@@ -620,6 +620,7 @@ add_library(gui_forms_core STATIC
     src/core/layout/block_flow_solver/block_flow_solver.cpp
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
+    src/core/layout/viewport_fit/viewport_fit.cpp
     src/core/diagnostics/shadow_frames/shadow_frames.cpp
     src/core/diagnostics/blend_study/blend_study.cpp
     src/core/diagnostics/blend_study/count_display_blend.cpp
@@ -628,6 +629,7 @@ add_library(gui_forms_core STATIC
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
     src/core/window/inspection/window_visual_inspection.cpp
+    src/core/window/viewport/window_viewport.cpp
     src/core/allocation/statistics/allocation_statistics.cpp
     src/core/resources/image_registry/image_registry.cpp
     src/core/resources/stock_icons/stock_icons.cpp

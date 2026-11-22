@@ -3,6 +3,7 @@
 #include "gui_forms/control.hpp"
 
 #include <cmath>
+#include <stxlib/optional.hpp>
 #include <stdexcept>
 #include <unordered_map>
 #include <unordered_set>
@@ -18,12 +19,27 @@ struct SlotForRemovedChild final {
     }
 };
 
-inline void validate_design_size(Size size) {
-    if (!std::isfinite(size.width) || !std::isfinite(size.height) ||
-        size.width <= 0.0 || size.height <= 0.0) {
-        throw std::invalid_argument(
-            "scaled layout design size must be finite and positive");
-    }
+// The design space a scaled container maps from: Control::design_size,
+// or 1 x 1 while that is zero (the unit square, the containers' default
+// before design_size moved to Control).
+[[nodiscard]] inline Size effective_design_size(Size design_size) noexcept {
+    const bool unset = design_size.width <= 0.0 || design_size.height <= 0.0;
+    const Size space = unset ? Size{1.0, 1.0} : design_size;
+    return space;
+}
+
+// The smaller axis ratio of the stretch from `design_size` to `arranged`:
+// what a scaled container reports as its applied viewport scale (stage VA).
+// None while design_size is zero or the arranged extent is empty.
+[[nodiscard]] inline stxlib::Optional<double> stretch_scale(Size design_size, Rect arranged) noexcept {
+    const bool unset = design_size.width <= 0.0 || design_size.height <= 0.0;
+    const bool empty = arranged.width <= 0.0 || arranged.height <= 0.0;
+    if (unset || empty) return stxlib::Optional<double>::none();
+    const double ratio_x = arranged.width / design_size.width;
+    const double ratio_y = arranged.height / design_size.height;
+    const double ratio = ratio_x < ratio_y ? ratio_x : ratio_y;
+    const stxlib::Optional<double> scale = stxlib::Optional<double>::of(ratio);
+    return scale;
 }
 
 inline void validate_design_bounds(Rect bounds) {

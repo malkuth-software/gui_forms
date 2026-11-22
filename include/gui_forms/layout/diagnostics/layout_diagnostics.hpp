@@ -30,6 +30,14 @@ enum class LayoutDiagnosticCode : std::uint16_t {
     // arranged, `ancestor` the control the pass was arranging. Recorded at
     // every refusal.
     arrange_outside_slot = 202,
+    // Content overflowed its viewport (stage VA): an overflow appeared, or
+    // its answer, cause or applied scale changed. `child` names the
+    // viewport owner, `ancestor` is empty; the window's overflow records
+    // (SurfaceRoot::overflow_records) hold the extents and the answer.
+    // Recorded when the overflow appears or changes, not on every pass. A
+    // warning when the overflow is answered, an error when it is not; the
+    // code's own severity (layout_diagnostic_severity) is the warning.
+    content_overflow = 203,
 };
 
 [[nodiscard]] GUI_FORMS_API LayoutDiagnosticSeverity layout_diagnostic_severity(LayoutDiagnosticCode code) noexcept;

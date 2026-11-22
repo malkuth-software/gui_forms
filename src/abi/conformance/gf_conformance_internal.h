@@ -117,6 +117,10 @@ void gf_kit_content_effect(gf_kit* kit);
 /* The window outer band and shaping (since 1.3), on a window that has not
  * run. */
 void gf_kit_band(gf_kit* kit);
+/* The visible-area guarantee (since 1.7): the controls table's viewport fit
+ * and the windows table's overflow records, unanswered count and safe
+ * insets, on a window that has not run. */
+void gf_kit_viewport(gf_kit* kit);
 void gf_kit_window_events(gf_kit* kit);
 void gf_kit_themes(gf_kit* kit);
 void gf_kit_proxies(gf_kit* kit);
