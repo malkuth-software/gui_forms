@@ -2,6 +2,8 @@
 
 #include "gui_forms/controls/dock_site.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_manager.hpp"
 #include "gui_forms/window.hpp"
 
@@ -94,6 +96,16 @@ DockFrameArrangement arrangement_of(MdiLayout layout) noexcept {
 std::shared_ptr<MenuStrip> menu_strip_of(const Control::Ptr& control) {
     std::shared_ptr<MenuStrip> strip = std::dynamic_pointer_cast<MenuStrip>(control);
     return strip;
+}
+
+std::shared_ptr<ToolStrip> tool_strip_of(const Control::Ptr& control) {
+    std::shared_ptr<ToolStrip> strip = std::dynamic_pointer_cast<ToolStrip>(control);
+    return strip;
+}
+
+std::shared_ptr<Ribbon> ribbon_of(const Control::Ptr& control) {
+    std::shared_ptr<Ribbon> ribbon = std::dynamic_pointer_cast<Ribbon>(control);
+    return ribbon;
 }
 
 } // namespace
@@ -232,7 +244,7 @@ void DockWorkspace::follow_area_activation() {
         }
         if (previous.present() && current.present()) carry_maximized(*previous.value(), *current.value());
     }
-    update_menu_merge();
+    update_merges();
     area_link_.follow_active();
 }
 
@@ -329,6 +341,214 @@ Control::Ptr DockWorkspace::panel_menu_strip(const DockPanelId& panel) const {
 stxlib::Optional<DockPanelId> DockWorkspace::merged_document() const {
     if (!merged_document_.present()) return stxlib::Optional<DockPanelId>::none();
     return some_panel(*merged_document_.value());
+}
+
+void DockWorkspace::update_merges() {
+    update_menu_merge();
+    update_tool_strip_merge();
+    update_ribbon_merge();
+}
+
+void DockWorkspace::revert_merges() noexcept {
+    revert_menu_merge();
+    revert_tool_strip_merge();
+    revert_ribbon_merge();
+}
+
+// -- tool strip merging -------------------------------------------------------------
+
+// The active area document's tool strip merges into the merge tool strip;
+// another document's merge is reverted first. A merge the strips refuse
+// leaves the merge strip as it was.
+void DockWorkspace::update_tool_strip_merge() {
+    const stxlib::Optional<DockPanelId> active = area_active_document();
+    Control::Ptr source_control{};
+    if (active.present()) {
+        const PanelEntry* const entry = find_entry(*active.value());
+        if (entry != nullptr) source_control = (*entry).tool_strip;
+    }
+    const std::shared_ptr<ToolStrip> target = tool_strip_of(merge_tool_strip_);
+    const std::shared_ptr<ToolStrip> source = tool_strip_of(source_control);
+    const bool unchanged = tool_merged_document_.present() && source && target &&
+                           tool_merged_source_.lock() == source_control &&
+                           tool_merged_target_.lock() == merge_tool_strip_;
+    if (unchanged) return;
+    revert_tool_strip_merge();
+    if (!source || !target || source == target) return;
+    bool merged = false;
+    try {
+        merged = merge_strips(*source, *target);
+    } catch (const std::invalid_argument&) {
+        merged = false;
+    } catch (const std::bad_weak_ptr&) {
+        merged = false;
+    }
+    if (!merged) return;
+    tool_merged_source_ = source_control;
+    tool_merged_target_ = merge_tool_strip_;
+    tool_merged_document_.set(DockPanelId(*active.value()));
+}
+
+void DockWorkspace::revert_tool_strip_merge() noexcept {
+    const std::shared_ptr<ToolStrip> target = tool_strip_of(tool_merged_target_.lock());
+    const std::shared_ptr<ToolStrip> source = tool_strip_of(tool_merged_source_.lock());
+    tool_merged_source_.reset();
+    tool_merged_target_.reset();
+    tool_merged_document_.reset();
+    if (!target || !source) return;
+    try {
+        static_cast<void>(revert_merge(*target, *source));
+    } catch (...) {
+        // The merge stays in the merge strip's history; the next revert of
+        // that strip takes it.
+    }
+}
+
+void DockWorkspace::set_merge_tool_strip(ToolStrip& strip) {
+    const Control::Ptr held = strip.shared_from_this();
+    if (merge_tool_strip_ == held) return;
+    revert_tool_strip_merge();
+    merge_tool_strip_ = held;
+    update_tool_strip_merge();
+}
+
+void DockWorkspace::clear_merge_tool_strip() {
+    revert_tool_strip_merge();
+    merge_tool_strip_.reset();
+}
+
+Control::Ptr DockWorkspace::merge_tool_strip() const {
+    return merge_tool_strip_;
+}
+
+bool DockWorkspace::set_panel_tool_strip(const DockPanelId& panel, ToolStrip& strip) {
+    PanelEntry* const entry = find_entry(panel);
+    if (entry == nullptr) return false;
+    const Control::Ptr held = strip.shared_from_this();
+    if ((*entry).tool_strip == held) return true;
+    if (tool_merged_document_.present() && *tool_merged_document_.value() == panel) revert_tool_strip_merge();
+    (*entry).tool_strip = held;
+    update_tool_strip_merge();
+    return true;
+}
+
+bool DockWorkspace::clear_panel_tool_strip(const DockPanelId& panel) {
+    PanelEntry* const entry = find_entry(panel);
+    if (entry == nullptr) return false;
+    if (tool_merged_document_.present() && *tool_merged_document_.value() == panel) revert_tool_strip_merge();
+    (*entry).tool_strip.reset();
+    update_tool_strip_merge();
+    return true;
+}
+
+Control::Ptr DockWorkspace::panel_tool_strip(const DockPanelId& panel) const {
+    const PanelEntry* const entry = find_entry(panel);
+    if (entry == nullptr) return Control::Ptr{};
+    return (*entry).tool_strip;
+}
+
+stxlib::Optional<DockPanelId> DockWorkspace::merged_tool_strip_document() const {
+    if (!tool_merged_document_.present()) return stxlib::Optional<DockPanelId>::none();
+    return some_panel(*tool_merged_document_.value());
+}
+
+// -- ribbon merging ------------------------------------------------------------------
+
+// The active area document's ribbon merges into the merge ribbon (holding
+// one merge at a time); another document's merge is reverted first. A merge
+// the ribbons refuse leaves both as they were.
+void DockWorkspace::update_ribbon_merge() {
+    const stxlib::Optional<DockPanelId> active = area_active_document();
+    Control::Ptr source_control{};
+    if (active.present()) {
+        const PanelEntry* const entry = find_entry(*active.value());
+        if (entry != nullptr) source_control = (*entry).ribbon;
+    }
+    const std::shared_ptr<Ribbon> target = ribbon_of(merge_ribbon_);
+    const std::shared_ptr<Ribbon> source = ribbon_of(source_control);
+    const bool unchanged = ribbon_merged_document_.present() && source && target &&
+                           ribbon_merged_source_.lock() == source_control &&
+                           ribbon_merged_target_.lock() == merge_ribbon_ && (*target).merge_source() == source;
+    if (unchanged) return;
+    revert_ribbon_merge();
+    if (!source || !target || source == target) return;
+    bool merged = false;
+    try {
+        merged = (*target).merge(*source);
+    } catch (const std::invalid_argument&) {
+        merged = false;
+    } catch (const std::logic_error&) {
+        merged = false;
+    } catch (const std::bad_weak_ptr&) {
+        merged = false;
+    }
+    if (!merged) return;
+    ribbon_merged_source_ = source_control;
+    ribbon_merged_target_ = merge_ribbon_;
+    ribbon_merged_document_.set(DockPanelId(*active.value()));
+}
+
+void DockWorkspace::revert_ribbon_merge() noexcept {
+    const std::shared_ptr<Ribbon> target = ribbon_of(ribbon_merged_target_.lock());
+    const Control::Ptr source = ribbon_merged_source_.lock();
+    ribbon_merged_source_.reset();
+    ribbon_merged_target_.reset();
+    ribbon_merged_document_.reset();
+    if (!target || (*target).merge_source() != ribbon_of(source)) return;
+    try {
+        static_cast<void>((*target).revert_merge());
+    } catch (...) {
+        // The target is restored and the merge forgotten; the source keeps
+        // what it could take back.
+    }
+}
+
+void DockWorkspace::set_merge_ribbon(Ribbon& ribbon) {
+    const Control::Ptr held = ribbon.shared_from_this();
+    if (merge_ribbon_ == held) return;
+    revert_ribbon_merge();
+    merge_ribbon_ = held;
+    update_ribbon_merge();
+}
+
+void DockWorkspace::clear_merge_ribbon() {
+    revert_ribbon_merge();
+    merge_ribbon_.reset();
+}
+
+Control::Ptr DockWorkspace::merge_ribbon() const {
+    return merge_ribbon_;
+}
+
+bool DockWorkspace::set_panel_ribbon(const DockPanelId& panel, Ribbon& ribbon) {
+    PanelEntry* const entry = find_entry(panel);
+    if (entry == nullptr) return false;
+    const Control::Ptr held = ribbon.shared_from_this();
+    if ((*entry).ribbon == held) return true;
+    if (ribbon_merged_document_.present() && *ribbon_merged_document_.value() == panel) revert_ribbon_merge();
+    (*entry).ribbon = held;
+    update_ribbon_merge();
+    return true;
+}
+
+bool DockWorkspace::clear_panel_ribbon(const DockPanelId& panel) {
+    PanelEntry* const entry = find_entry(panel);
+    if (entry == nullptr) return false;
+    if (ribbon_merged_document_.present() && *ribbon_merged_document_.value() == panel) revert_ribbon_merge();
+    (*entry).ribbon.reset();
+    update_ribbon_merge();
+    return true;
+}
+
+Control::Ptr DockWorkspace::panel_ribbon(const DockPanelId& panel) const {
+    const PanelEntry* const entry = find_entry(panel);
+    if (entry == nullptr) return Control::Ptr{};
+    return (*entry).ribbon;
+}
+
+stxlib::Optional<DockPanelId> DockWorkspace::merged_ribbon_document() const {
+    if (!ribbon_merged_document_.present()) return stxlib::Optional<DockPanelId>::none();
+    return some_panel(*ribbon_merged_document_.value());
 }
 
 // -- AreaLink ----------------------------------------------------------------------

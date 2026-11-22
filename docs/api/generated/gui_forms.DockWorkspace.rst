@@ -135,6 +135,22 @@ gui_forms::DockWorkspace
       **merged_document** : ``stxlib::Optional<DockPanelId>``, read-only
          The document whose menu strip is merged into the main menu strip, or none.
 
+      **merge_tool_strip** : ``Control::Ptr``
+         The tool strip the active document's tool strip merges into (the main
+         window's), or null; :cpp:func:`set_merge_tool_strip <gui_forms::DockWorkspace::set_merge_tool_strip>` names it and
+         :cpp:func:`clear_merge_tool_strip <gui_forms::DockWorkspace::clear_merge_tool_strip>` reverts any merge and forgets it.
+
+      **merged_tool_strip_document** : ``stxlib::Optional<DockPanelId>``, read-only
+         The document whose tool strip is merged, or none.
+
+      **merge_ribbon** : ``Control::Ptr``
+         The ribbon the active document's ribbon merges into, or null;
+         :cpp:func:`set_merge_ribbon <gui_forms::DockWorkspace::set_merge_ribbon>` names it and :cpp:func:`clear_merge_ribbon <gui_forms::DockWorkspace::clear_merge_ribbon>` reverts any merge
+         and forgets it.
+
+      **merged_ribbon_document** : ``stxlib::Optional<DockPanelId>``, read-only
+         The document whose ribbon is merged, or none.
+
    :Events:
 
       **document_closing** : ``Event<DockDocumentClosing&>``
@@ -233,6 +249,18 @@ gui_forms::DockWorkspace
         -  
       * - :cpp:func:`panel_menu_strip <gui_forms::DockWorkspace::panel_menu_strip>`
         -  
+      * - :cpp:func:`clear_merge_tool_strip <gui_forms::DockWorkspace::clear_merge_tool_strip>`
+        -  
+      * - :cpp:func:`clear_panel_tool_strip <gui_forms::DockWorkspace::clear_panel_tool_strip>`
+        -  
+      * - :cpp:func:`panel_tool_strip <gui_forms::DockWorkspace::panel_tool_strip>`
+        -  
+      * - :cpp:func:`clear_merge_ribbon <gui_forms::DockWorkspace::clear_merge_ribbon>`
+        -  
+      * - :cpp:func:`clear_panel_ribbon <gui_forms::DockWorkspace::clear_panel_ribbon>`
+        -  
+      * - :cpp:func:`panel_ribbon <gui_forms::DockWorkspace::panel_ribbon>`
+        -  
       * - :cpp:func:`set_panel_title <gui_forms::DockWorkspace::set_panel_title>`
         - Retitles a panel's caption, tab and navigator row; false for an unregistered panel.
       * - :cpp:func:`set_floating_window_shown_while_inactive <gui_forms::DockWorkspace::set_floating_window_shown_while_inactive>`
@@ -243,6 +271,10 @@ gui_forms::DockWorkspace
         -  
       * - :cpp:func:`set_panel_menu_strip <gui_forms::DockWorkspace::set_panel_menu_strip>`
         - A panel's menu strip: while its document is the area's active document, the strip's items merge into the main window's main menu strip (Window::main_menu_strip, when it is a MenuStrip) by the existing merge (merge_strips, the items' MergeAction and MergeIndex), and the merge is reverted when another document becomes active or the panel leaves (WinForms' MDI menu merging).
+      * - :cpp:func:`set_panel_tool_strip <gui_forms::DockWorkspace::set_panel_tool_strip>`
+        - A panel's tool strip: while its document is the area's active document, its items merge into the merge tool strip (``merge_strips``), reverted when another document becomes active or the panel leaves.
+      * - :cpp:func:`set_panel_ribbon <gui_forms::DockWorkspace::set_panel_ribbon>`
+        - A panel's ribbon: while its document is the area's active document, its tabs merge into the merge ribbon (``Ribbon::merge``), reverted as the tool strip's.
 
    .. seealso::
 
@@ -509,6 +541,34 @@ gui_forms::DockWorkspace
 
       The document whose menu strip is merged into the main menu strip, or none.
 
+   .. cpp:function:: Control::Ptr merge_tool_strip() const
+
+      The tool strip the active document's tool strip merges into (the main
+      window's), or null; :cpp:func:`set_merge_tool_strip <gui_forms::DockWorkspace::set_merge_tool_strip>` names it and
+      :cpp:func:`clear_merge_tool_strip <gui_forms::DockWorkspace::clear_merge_tool_strip>` reverts any merge and forgets it.
+
+   .. cpp:function:: void set_merge_tool_strip(ToolStrip& strip)
+
+      Sets :cpp:func:`merge_tool_strip <gui_forms::DockWorkspace::merge_tool_strip>`; see the property's description above.
+
+   .. cpp:function:: stxlib::Optional<DockPanelId> merged_tool_strip_document() const
+
+      The document whose tool strip is merged, or none.
+
+   .. cpp:function:: Control::Ptr merge_ribbon() const
+
+      The ribbon the active document's ribbon merges into, or null;
+      :cpp:func:`set_merge_ribbon <gui_forms::DockWorkspace::set_merge_ribbon>` names it and :cpp:func:`clear_merge_ribbon <gui_forms::DockWorkspace::clear_merge_ribbon>` reverts any merge
+      and forgets it.
+
+   .. cpp:function:: void set_merge_ribbon(Ribbon& ribbon)
+
+      Sets :cpp:func:`merge_ribbon <gui_forms::DockWorkspace::merge_ribbon>`; see the property's description above.
+
+   .. cpp:function:: stxlib::Optional<DockPanelId> merged_ribbon_document() const
+
+      The document whose ribbon is merged, or none.
+
 
    .. rubric:: Events
 
@@ -712,6 +772,18 @@ gui_forms::DockWorkspace
 
    .. cpp:function:: Control::Ptr panel_menu_strip(const DockPanelId& panel) const
 
+   .. cpp:function:: void clear_merge_tool_strip()
+
+   .. cpp:function:: bool clear_panel_tool_strip(const DockPanelId& panel)
+
+   .. cpp:function:: Control::Ptr panel_tool_strip(const DockPanelId& panel) const
+
+   .. cpp:function:: void clear_merge_ribbon()
+
+   .. cpp:function:: bool clear_panel_ribbon(const DockPanelId& panel)
+
+   .. cpp:function:: Control::Ptr panel_ribbon(const DockPanelId& panel) const
+
    .. cpp:function:: bool set_panel_title(const DockPanelId& panel, std::string title)
 
       Retitles a panel's caption, tab and navigator row; false for an
@@ -731,6 +803,19 @@ gui_forms::DockWorkspace
 
       A panel's menu strip: while its document is the area's active document, the strip's items merge into the main window's main menu strip (Window::main_menu_strip, when it is a MenuStrip) by the existing merge (merge_strips, the items' MergeAction and MergeIndex), and the merge is reverted when another document becomes active or the panel leaves (WinForms' MDI menu merging). The strip is held by the workspace; it need not be shown. False for an unknown panel. Setting or clearing it merges again.
 
+   .. cpp:function:: bool set_panel_tool_strip(const DockPanelId& panel, ToolStrip& strip)
+
+      A panel's tool strip: while its document is the area's active document,
+      its items merge into the merge tool strip (``merge_strips``), reverted
+      when another document becomes active or the panel leaves. False for an
+      unknown panel; :cpp:func:`clear_panel_tool_strip <gui_forms::DockWorkspace::clear_panel_tool_strip>` removes it.
+
+   .. cpp:function:: bool set_panel_ribbon(const DockPanelId& panel, Ribbon& ribbon)
+
+      A panel's ribbon: while its document is the area's active document, its
+      tabs merge into the merge ribbon (``Ribbon::merge``), reverted as the tool
+      strip's. False for an unknown panel; :cpp:func:`clear_panel_ribbon <gui_forms::DockWorkspace::clear_panel_ribbon>` removes it.
+
 
    .. rubric:: Extension points
 
@@ -744,7 +829,7 @@ gui_forms::DockWorkspace
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 56 supported, 0 deferred, 0 excluded, 14 unclassified; 70 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 56 supported, 0 deferred, 0 excluded, 26 unclassified; 82 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -833,8 +918,24 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
      - unclassified (untested)
    * - property
      - GUI.Forms-only
+     - ``merge_ribbon``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``merge_tool_strip``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``merged_document``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``merged_ribbon_document``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``merged_tool_strip_document``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``named_layouts``
@@ -917,8 +1018,24 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``clear_merge_ribbon``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_merge_tool_strip``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``clear_panel_menu_strip``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_panel_ribbon``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``clear_panel_tool_strip``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``close_all_documents``
@@ -989,8 +1106,16 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``panel_ribbon``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``panel_title``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``panel_tool_strip``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``register_panel``
@@ -1025,8 +1150,16 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 56 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``set_panel_ribbon``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
      - ``set_panel_title``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``set_panel_tool_strip``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``show_panel``

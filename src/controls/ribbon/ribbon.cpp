@@ -638,6 +638,7 @@ void Ribbon::abandon_definition(HostedCarryOver& carried) noexcept {
 // controls and the sets' states over, commits, and restores the selection.
 void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets) {
     require_mutable();
+    if (merge_ && !merging_) throw std::logic_error("Ribbon holds a merge: revert it before replacing the tabs");
     PreparedTabs prepared = prepare_tabs(tabs, sets);
     close_menus();
     close_group_overlay();

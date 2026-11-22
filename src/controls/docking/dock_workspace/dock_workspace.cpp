@@ -153,7 +153,7 @@ void DockWorkspace::on_dispose() noexcept {
 // list cannot be copied (no memory) is unbound without being told.
 void DockWorkspace::release_sites() noexcept {
     layout_token_.disconnect();
-    revert_menu_merge();
+    revert_merges();
     Window* const presented = area_link_.bound_window();
     if (presented != nullptr) (*presented).unbind_document_area(area_link_);
     detach_windows();

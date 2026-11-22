@@ -292,7 +292,7 @@ gui_forms::CheckedComboBox
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 0 supported, 0 deferred, 0 excluded, 17 unclassified; 17 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 11 supported, 0 deferred, 0 excluded, 6 unclassified; 17 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -306,19 +306,19 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``checked_ids``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``drop_down_list``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``dropped_down``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``items``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``max_drop_down_items``
@@ -334,15 +334,15 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - property
      - GUI.Forms-only
      - ``text``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``drop_down_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``item_check_changed``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``checked_combo_box_property_entries``
@@ -358,16 +358,16 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 0 su
    * - method
      - GUI.Forms-only
      - ``item_checked``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_all_checked``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``set_item_checked``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``show_drop_down``
-     - unclassified (untested)
+     - supported

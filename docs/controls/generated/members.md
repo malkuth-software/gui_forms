@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2418 | 3 | 370 | 4167 | 2566 |
+| 2429 | 3 | 370 | 4171 | 2581 |
 
 ## GUI.Forms types
 
@@ -117,9 +117,9 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ToolStripPanel` | `ToolStripPanel` | 8 | 0 | 1 | 17 | 5 |
 | `ToolStripContainer` | `ToolStripContainer` | 16 | 0 | 0 | 25 | 16 |
 | `BindingNavigator` | `BindingNavigator` | 8 | 0 | 0 | 18 | 8 |
-| `Ribbon` | GUI.Forms-only | 46 | 0 | 0 | 5 | 51 |
+| `Ribbon` | GUI.Forms-only | 46 | 0 | 0 | 8 | 54 |
 | `ContextMenu` | `ContextMenuStrip` | 9 | 0 | 0 | 1 | 5 |
-| `DockWorkspace` | GUI.Forms-only | 56 | 0 | 0 | 14 | 70 |
+| `DockWorkspace` | GUI.Forms-only | 56 | 0 | 0 | 26 | 82 |
 | `Command` | GUI.Forms-only | 15 | 0 | 0 | 4 | 19 |
 | `FontCommand` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
 | `ColorCommand` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
@@ -140,7 +140,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ModalLayer` | GUI.Forms-only | 7 | 0 | 0 | 4 | 11 |
 | `LookupComboBox` | GUI.Forms-only | 9 | 0 | 0 | 7 | 16 |
 | `PopupContainerBox` | GUI.Forms-only | 9 | 0 | 0 | 2 | 11 |
-| `CheckedComboBox` | GUI.Forms-only | 0 | 0 | 0 | 17 | 17 |
+| `CheckedComboBox` | GUI.Forms-only | 11 | 0 | 0 | 6 | 17 |
 | `AboutDialog` | GUI.Forms-only | 5 | 0 | 0 | 1 | 6 |
 | `FolderBrowserDialog` | `FolderBrowserDialog` | 6 | 0 | 0 | 15 | 3 |
 | `ColorDialog` | `ColorDialog` | 5 | 0 | 0 | 9 | 2 |
@@ -318,5 +318,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 994 |
+| `untested` | 998 |
 | `w-open` | 5 |

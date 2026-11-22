@@ -1246,6 +1246,7 @@ add_library(gui_forms_controls STATIC
     src/controls/tool_strip_container/tool_strip_container.cpp
     src/controls/binding_navigator/binding_navigator.cpp
     src/controls/ribbon/ribbon.cpp
+    src/controls/ribbon/ribbon_merge.cpp
     src/controls/ribbon/ribbon_contextual.cpp
     src/controls/ribbon/ribbon_application_menu.cpp
     src/controls/ribbon/ribbon_file_area.cpp
