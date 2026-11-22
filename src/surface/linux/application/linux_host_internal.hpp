@@ -376,6 +376,9 @@ public:
   // to the client: a resize from the left or top edge moves the client
   // area and is reported here; one from the right or bottom edge is not.
   void report_moved_to_model();
+  // The client area's root position in X pixels, read from the server
+  // (XTranslateCoordinates); none when the server cannot translate it.
+  [[nodiscard]] std::optional<X11RootPosition> root_position() const;
   // Whether moves of this window are reported to its model: every window
   // but a passive popup and a Splash.
   [[nodiscard]] bool reports_frame_moves() const noexcept;
@@ -441,9 +444,11 @@ public:
   // (ConfigureNotify), or as created.
   int device_width{};
   int device_height{};
-  // The client area's root position in X pixels at the last ConfigureNotify
-  // (report_moved_to_model); none before the first, which sets it without
-  // reporting a move.
+  // The client area's root position in X pixels at the first map, then at
+  // each ConfigureNotify (report_moved_to_model); none before the first map
+  // or ConfigureNotify, whichever comes first, which sets it without
+  // reporting a move. The map sets it because without a window manager
+  // the first ConfigureNotify is the window's first move.
   std::optional<X11RootPosition> reported_root_position;
   bool closed{};
   bool visible{};
