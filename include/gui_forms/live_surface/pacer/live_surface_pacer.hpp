@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
+#include "gui_forms/scheduler/display_timing/display_timing.hpp"
 
 #include <atomic>
 #include <cstdint>
@@ -41,6 +42,17 @@ struct GUI_FORMS_API LivePacingResult final {
     // the frames the presenter did not show.
     std::uint64_t missed_frames{};
 };
+
+// The live display timing a presenter reports for a window that holds
+// `timing` (SurfaceRoot::display_timing), at `now`: the display's own timing
+// as display_phased, a measured, nominal or fixed rate as phased_timer, each
+// with its period and the latest presentation at or before `now` as the
+// vertical blank; nothing (source none: the pacer's 60 Hz fallback, frames
+// for the time they are made) for assumed timing. Hosts report it with each
+// presentation (LiveSurface::notify_presented), so a producer paces to the
+// same frame source as the window's own motion.
+[[nodiscard]] GUI_FORMS_API LiveDisplayTiming live_display_timing(const DisplayTiming& timing,
+                                                                  FrameTime now) noexcept;
 
 // One producer's presentation clock (design note section 8, decision 7):
 // paces a producer to the display through its presenter's reports

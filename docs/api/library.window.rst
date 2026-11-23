@@ -87,6 +87,10 @@ Related types
      - DispatchOperation observes and explicitly cancels one bounded FIFO work record; dropping it does not cancel fire-and-forget work.
    * - :cpp:class:`DisplayChunkInfo <gui_forms::DisplayChunkInfo>`
      - DisplayChunkInfo exposes immutable generation, paint plane, logical bounds, and command count for one retained recording without exposing its private commands.
+   * - :cpp:class:`DisplayTiming <gui_forms::DisplayTiming>`
+     - One window's display timing as its host last reported it (design note frame-source, section 2): frames are shown at presentation_phase + k * refresh_period for whole k.
+   * - :cpp:class:`DisplayTimingEstimator <gui_forms::DisplayTimingEstimator>`
+     - Display timing measured from the times a host's presentations completed, for a host whose system reports no timing (design note frame-source, section 4): an X11 copy presenter without Present, the shared single-surface manager, a vertical-blank waiter that stamps each refresh.
    * - :cpp:class:`FocusedControlChange <gui_forms::FocusedControlChange>`
      - Focus moved from one control to another (or to or from none) through request_focus.
    * - :cpp:class:`FocusScopeChange <gui_forms::FocusScopeChange>`
@@ -163,6 +167,8 @@ Related types
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
    * - :cpp:class:`PressTrace <gui_forms::PressTrace>`
      - The last primary press: where it landed and how the route treated it.
+   * - :cpp:class:`RefreshCounterTiming <gui_forms::RefreshCounterTiming>`
+     - Display timing from a presenter's completion stamps that count the display's refreshes (X11 Present's ust and msc; design note frame-source, section 3): each stamp is the time a frame was shown and the refresh it was shown on.
    * - :cpp:class:`ScrollCopy <gui_forms::ScrollCopy>`
      - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
@@ -904,6 +910,90 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DisplayTiming final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   One window's display timing as its host last reported it (design note frame-source, section 2): frames are shown at presentation_phase + k * refresh_period for whole k. A display link reports its target time as the phase on every tick; a fixed rate has its phase at the clock's epoch.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool paced() const noexcept
+
+      Frames are drawn for the time they are shown: any source but assumed.
+
+   .. cpp:function:: double refresh_hertz() const noexcept
+
+      Refreshes per second; 0 for assumed timing.
+
+   .. cpp:function:: bool valid() const noexcept
+
+      Whether a window may hold this timing: assumed, or a period within minimum_refresh_period and maximum_refresh_period.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static DisplayTiming assumed() noexcept
+
+      No report: assumed_refresh_period at the epoch, poll-time frames.
+
+   .. cpp:function:: static DisplayTiming fixed_rate(FrameInterval period, FrameTime phase = FrameTime{}) noexcept
+
+      A fixed rate for tests, benches and offscreen hosts: frames every ``period`` from ``phase``.
+
+   .. cpp:function:: static DisplayTiming reported(DisplayTimingSource source, FrameInterval period, FrameTime presentation) noexcept
+
+      A host's report: ``source`` timing with frames every ``period`` and one shown at ``presentation``.
+
+   .. cpp:member:: FrameInterval refresh_period
+
+      The current refresh interval; on a variable-rate display, the rate the system chose last. Default: ``{assumed_refresh_period}``.
+
+   .. cpp:member:: FrameTime presentation_phase
+
+      Any instant at which a frame is shown, in the frame clock's domain.
+
+   .. cpp:member:: DisplayTimingSource source
+
+      Default: ``{DisplayTimingSource::assumed}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DisplayTimingEstimator final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   Display timing measured from the times a host's presentations completed, for a host whose system reports no timing (design note frame-source, section 4): an X11 copy presenter without Present, the shared single-surface manager, a vertical-blank waiter that stamps each refresh. The period is the median of the last 16 intervals between completions; once three are known, an interval longer than 1.75 periods counts as that many whole refreshes (the window drew nothing in between) when it is within a tenth of a whole number of them, and is dropped otherwise. The timing is reported, phased at the latest completion, once 8 of the intervals agree with the median within a tenth. One instance per window, on its thread.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t interval_count() const noexcept
+
+      The intervals held, at most interval_capacity.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: stxlib::Optional<DisplayTiming> take(FrameTime completed) noexcept
+
+      Takes a presentation that completed at ``completed``. Returns measured timing (DisplayTimingSource::measured) once the intervals agree, and nothing before. A completion within minimum_refresh_period of the last is ignored (two stamps for one refresh); one after a gap longer than maximum_refresh_period (the window rested) starts the next interval from it, keeping the intervals; one earlier than the last (another clock, a reset presenter) forgets every interval and starts again.
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets every completion (the window moved to another display).
+
+   .. cpp:member:: constexpr std::size_t interval_capacity
+
+      The intervals the median is taken over, and how many of them must agree with it before a timing is reported. Default: ``16U``.
+
+   .. cpp:member:: constexpr std::size_t agreeing_intervals
+
+      Default: ``8U``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FocusedControlChange final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
@@ -995,6 +1085,10 @@ Related types
    .. cpp:member:: bool suppressed_by_occlusion
 
    .. cpp:member:: stxlib::Optional<FrameTime> next_wake
+
+   .. cpp:member:: FrameTime presentation_time
+
+      The time the frames this poll produced are shown: the window's next presentation after the poll's time when its display timing is paced (SurfaceRoot::display_timing), else the poll's time. The motion clock and display-paced animation timers were advanced to it.
 
 .. cpp:namespace:: gui_forms
 
@@ -1841,6 +1935,25 @@ Related types
    .. cpp:member:: PressOutcome outcome
 
       Default: ``{PressOutcome::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: RefreshCounterTiming final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   Display timing from a presenter's completion stamps that count the display's refreshes (X11 Present's ust and msc; design note frame-source, section 3): each stamp is the time a frame was shown and the refresh it was shown on. The period is the time between an anchor stamp and the latest over the refreshes between them, so it is as fine as a long span makes it; the anchor moves forward every 240 refreshes, to a stamp taken 120 or more after it, so the span stays between 120 and 240 refreshes once that many have passed. One instance per window, on its thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: stxlib::Optional<DisplayTiming> take(FrameTime shown, std::uint64_t count) noexcept
+
+      Takes a frame shown at ``shown`` on refresh ``count``. Returns display timing with that period, phased at ``shown``; nothing for the first stamp, and nothing (starting again from this stamp) when the count does not advance or the time does not (a reset presenter, another display).
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets every stamp (the window moved to another display).
 
 .. cpp:namespace:: gui_forms
 
@@ -2993,6 +3106,22 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DisplayTimingSource
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   .. cpp:enumerator:: assumed
+
+   .. cpp:enumerator:: display
+
+   .. cpp:enumerator:: measured
+
+   .. cpp:enumerator:: nominal
+
+   .. cpp:enumerator:: fixed
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FocusScopeCloseReason
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
@@ -3631,6 +3760,34 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t paint_plane_count
 
    Value: ``3``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+.. cpp:function:: FrameTime next_on_grid(FrameTime phase, FrameInterval period, FrameTime after) noexcept
+
+   The first instant phase + k * period strictly after ``after`` (k may be negative). ``period`` must be positive.
+
+.. cpp:function:: FrameTime next_presentation(const DisplayTiming& timing, FrameTime now) noexcept
+
+   The time a frame drawn at ``now`` is shown: the first presentation strictly after ``now``, or ``now`` itself for timing that is not paced.
+
+.. cpp:function:: const char* display_timing_source_name(DisplayTimingSource source) noexcept
+
+   A short label of the source for diagnostics and benches: "assumed", "display", "measured", "nominal" or "fixed".
+
+.. cpp:var:: constexpr FrameInterval assumed_refresh_period
+
+   The cadence a window without display timing paces its frames at. Value: ``std::chrono::milliseconds(16)``.
+
+.. cpp:var:: constexpr FrameInterval minimum_refresh_period
+
+   The bounds a reported refresh period must lie within (1000 Hz to 1 Hz); SurfaceRoot::set_display_timing rejects a period outside them. Value: ``std::chrono::milliseconds(1)``.
+
+.. cpp:var:: constexpr FrameInterval maximum_refresh_period
+
+   Value: ``std::chrono::seconds(1)``.
 
 .. cpp:namespace:: gui_forms
 

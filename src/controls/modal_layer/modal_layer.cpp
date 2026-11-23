@@ -198,7 +198,7 @@ bool ModalLayer::show(const Control::Ptr& owner, Control::Ptr content) {
         scrim_fade_.start(FrameClock::now());
         scrim_opacity_ = 0.0;
         const std::shared_ptr<ModalLayer> self = std::static_pointer_cast<ModalLayer>(shared_from_this());
-        scrim_fade_frames_.start(*this, display_frame_interval, ScrimFadeTick{self});
+        scrim_fade_frames_.start_every_frame(*this, ScrimFadeTick{self});
     }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;

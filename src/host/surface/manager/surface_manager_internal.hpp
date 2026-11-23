@@ -323,6 +323,8 @@ public:
     // The live frames, as the X11 host keeps them (linux_host_internal.hpp).
     std::vector<LiveSurfacePresentation> live_updates;
     std::vector<LiveSurfaceFrame> live_frames;
+    // The sources this tick reported shown (report_live_shown).
+    std::vector<bool> live_reported;
     std::vector<std::size_t> live_frame_sources;
     std::vector<Rect> live_regions;
     std::vector<std::uint64_t> live_frame_pixels;
@@ -337,6 +339,7 @@ public:
 private:
     bool gather_live_frames();
     void compose_live_frames();
+    void report_live_shown(std::size_t source);
     bool report_presented(const stxlib::Optional<PaintReceipt>& receipt, std::uint64_t elapsed, PresentedArea copied);
     void paint(DamageRegion& screen, bool regions_taken);
 };

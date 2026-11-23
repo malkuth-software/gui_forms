@@ -550,6 +550,56 @@ void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result) {
   monitor.primary = true;
 }
 
+FrameInterval x11_refresh_period_at(Display *display, int x, int y) {
+#if defined(GUI_FORMS_HAVE_XRANDR)
+  XRRScreenResources *resources = XRRGetScreenResourcesCurrent(display, DefaultRootWindow(display));
+  if (resources == nullptr)
+    return FrameInterval::zero();
+  // The mode of the first enabled CRTC containing the point.
+  RRMode mode = None;
+  for (int index = 0; index < (*resources).ncrtc && mode == None; ++index) {
+    XRRCrtcInfo *crtc = XRRGetCrtcInfo(display, resources, (*resources).crtcs[index]);
+    if (crtc == nullptr)
+      continue;
+    const bool inside = (*crtc).mode != None && x >= (*crtc).x && y >= (*crtc).y &&
+                        x < (*crtc).x + static_cast<int>((*crtc).width) &&
+                        y < (*crtc).y + static_cast<int>((*crtc).height);
+    if (inside)
+      mode = (*crtc).mode;
+    XRRFreeCrtcInfo(crtc);
+  }
+  // Its rate: the pixel clock over the pixels a refresh scans, a double-
+  // scanned mode scanning each line twice and an interlaced one half of
+  // them.
+  double hertz = 0.0;
+  for (int index = 0; index < (*resources).nmode && mode != None; ++index) {
+    const XRRModeInfo &info = (*resources).modes[index];
+    if (info.id != mode)
+      continue;
+    double lines = static_cast<double>(info.vTotal);
+    if ((info.modeFlags & RR_DoubleScan) != 0U)
+      lines = lines * 2.0;
+    if ((info.modeFlags & RR_Interlace) != 0U)
+      lines = lines / 2.0;
+    const double scanned = static_cast<double>(info.hTotal) * lines;
+    if (scanned > 0.0)
+      hertz = static_cast<double>(info.dotClock) / scanned;
+    break;
+  }
+  XRRFreeScreenResources(resources);
+  if (!(hertz >= 1.0 && hertz <= 1000.0))
+    return FrameInterval::zero();
+  const FrameInterval period =
+      std::chrono::duration_cast<FrameInterval>(std::chrono::duration<double>(1.0 / hertz));
+  return period;
+#else
+  static_cast<void>(display);
+  static_cast<void>(x);
+  static_cast<void>(y);
+  return FrameInterval::zero();
+#endif
+}
+
 HostWindowAdmission RunOpen::operator()(LinuxApplicationWindow entry) const {
   HostWindowAdmission refused;
   const std::shared_ptr<RunOpenState> state = owner.lock();

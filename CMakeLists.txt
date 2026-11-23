@@ -777,6 +777,7 @@ add_library(gui_forms_core STATIC
     src/core/thread_records/thread_records_end.cpp
     src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
     src/core/scheduler/frame_request_token/frame_request_token.cpp
+    src/core/scheduler/display_timing/display_timing.cpp
     src/core/scheduler/request/scheduled_frame_request.cpp
     src/core/surface_root/dispatcher/surface_root_dispatcher.cpp
     src/core/surface_root/surface_root.cpp
@@ -1989,6 +1990,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/surface/linux/application/x11_shm_present.cpp
         src/surface/linux/application/x11_present_direct.cpp
         src/host/linux/settings/xsettings_parse.cpp
+        src/host/linux/frame_sync/x11_frame_sync.cpp
         src/host/linux/locale/strftime_date_pattern.cpp
         src/host/linux/application/linux_input_rules.cpp
         src/surface/linux/settings/xsettings_watch.cpp
@@ -2022,9 +2024,12 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     endif()
     # Audit G4/N67: MIT-SHM presentation where libXext is present; without
     # it every present uses XPutImage.
+    # The compositor's frame timings (_NET_WM_FRAME_TIMINGS) need XSync
+    # counters, also in libXext; without it the window offers no
+    # _NET_WM_SYNC_REQUEST and keeps Present's and RandR's timing.
     if(TARGET X11::Xext)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
-        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1 GUI_FORMS_HAVE_XSYNC=1)
     endif()
     # The X11 direct presentation path (docs/user/presentation.md): MIT-SHM
     # pixmaps presented with the Present extension, where libXpresent and
@@ -2167,6 +2172,7 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         src/surface/windows/locale/windows_locale.cpp
         src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
         src/surface/windows/compositor/windows_compositor.cpp
+        src/surface/windows/display/windows_vblank_clock.cpp
     )
     target_include_directories(gui_forms_windows_host_objects PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows)
     target_compile_definitions(gui_forms_windows_host_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})

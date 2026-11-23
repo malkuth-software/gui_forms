@@ -338,6 +338,7 @@
     _ZGVZN9gui_forms13ControlLookup*;
     _ZGVZN9gui_forms13CursorMetrics*;
     _ZGVZN9gui_forms13DateTimeValue*;
+    _ZGVZN9gui_forms13DisplayTiming*;
     _ZGVZN9gui_forms13DisposedError*;
     _ZGVZN9gui_forms13DockNavigator*;
     _ZGVZN9gui_forms13DockWorkspace*;
@@ -1160,6 +1161,7 @@
     _ZGVZN9gui_forms20PropertyObjectMember*;
     _ZGVZN9gui_forms20PropertyRegistration*;
     _ZGVZN9gui_forms20PropertyResetRequest*;
+    _ZGVZN9gui_forms20RefreshCounterTiming*;
     _ZGVZN9gui_forms20RelativePointerEnded*;
     _ZGVZN9gui_forms20RelativePointerGrant*;
     _ZGVZN9gui_forms20ResponsiveTrackPanel*;
@@ -1269,6 +1271,7 @@
     _ZGVZN9gui_forms22DataGridViewRowHeights*;
     _ZGVZN9gui_forms22DateTimeFormatProvider*;
     _ZGVZN9gui_forms22DispatchCancelledError*;
+    _ZGVZN9gui_forms22DisplayTimingEstimator*;
     _ZGVZN9gui_forms22EffectInstanceCounters*;
     _ZGVZN9gui_forms22ExpressionDependencies*;
     _ZGVZN9gui_forms22FirstFrameShowSnapshot*;
@@ -2026,6 +2029,7 @@
     _ZGVZNK9gui_forms13ControlLookup*;
     _ZGVZNK9gui_forms13CursorMetrics*;
     _ZGVZNK9gui_forms13DateTimeValue*;
+    _ZGVZNK9gui_forms13DisplayTiming*;
     _ZGVZNK9gui_forms13DisposedError*;
     _ZGVZNK9gui_forms13DockNavigator*;
     _ZGVZNK9gui_forms13DockWorkspace*;
@@ -2848,6 +2852,7 @@
     _ZGVZNK9gui_forms20PropertyObjectMember*;
     _ZGVZNK9gui_forms20PropertyRegistration*;
     _ZGVZNK9gui_forms20PropertyResetRequest*;
+    _ZGVZNK9gui_forms20RefreshCounterTiming*;
     _ZGVZNK9gui_forms20RelativePointerEnded*;
     _ZGVZNK9gui_forms20RelativePointerGrant*;
     _ZGVZNK9gui_forms20ResponsiveTrackPanel*;
@@ -2957,6 +2962,7 @@
     _ZGVZNK9gui_forms22DataGridViewRowHeights*;
     _ZGVZNK9gui_forms22DateTimeFormatProvider*;
     _ZGVZNK9gui_forms22DispatchCancelledError*;
+    _ZGVZNK9gui_forms22DisplayTimingEstimator*;
     _ZGVZNK9gui_forms22EffectInstanceCounters*;
     _ZGVZNK9gui_forms22ExpressionDependencies*;
     _ZGVZNK9gui_forms22FirstFrameShowSnapshot*;
@@ -3817,6 +3823,8 @@
     _ZN9gui_forms12marker_linesE*;
     _ZN9gui_forms12merge_stripsB*;
     _ZN9gui_forms12merge_stripsE*;
+    _ZN9gui_forms12next_on_gridB*;
+    _ZN9gui_forms12next_on_gridE*;
     _ZN9gui_forms12revert_mergeB*;
     _ZN9gui_forms12revert_mergeE*;
     _ZN9gui_forms12scene_framedB*;
@@ -3850,6 +3858,7 @@
     _ZN9gui_forms13ControlLookup*;
     _ZN9gui_forms13CursorMetrics*;
     _ZN9gui_forms13DateTimeValue*;
+    _ZN9gui_forms13DisplayTiming*;
     _ZN9gui_forms13DisposedError*;
     _ZN9gui_forms13DockNavigator*;
     _ZN9gui_forms13DockWorkspace*;
@@ -4634,6 +4643,8 @@
     _ZN9gui_forms17locale_xml_limitsE*;
     _ZN9gui_forms17measure_paragraphB*;
     _ZN9gui_forms17measure_paragraphE*;
+    _ZN9gui_forms17next_presentationB*;
+    _ZN9gui_forms17next_presentationE*;
     _ZN9gui_forms17paint_canvas_lampB*;
     _ZN9gui_forms17paint_canvas_lampE*;
     _ZN9gui_forms17paint_canvas_linkB*;
@@ -5075,6 +5086,8 @@
     _ZN9gui_forms19host_sound_cue_nameE*;
     _ZN9gui_forms19is_stock_icon_imageB*;
     _ZN9gui_forms19is_stock_icon_imageE*;
+    _ZN9gui_forms19live_display_timingB*;
+    _ZN9gui_forms19live_display_timingE*;
     _ZN9gui_forms19locale_record_emptyB*;
     _ZN9gui_forms19locale_record_emptyE*;
     _ZN9gui_forms19locale_record_fieldB*;
@@ -5204,6 +5217,7 @@
     _ZN9gui_forms20PropertyObjectMember*;
     _ZN9gui_forms20PropertyRegistration*;
     _ZN9gui_forms20PropertyResetRequest*;
+    _ZN9gui_forms20RefreshCounterTiming*;
     _ZN9gui_forms20RelativePointerEnded*;
     _ZN9gui_forms20RelativePointerGrant*;
     _ZN9gui_forms20ResponsiveTrackPanel*;
@@ -5501,6 +5515,7 @@
     _ZN9gui_forms22DataGridViewRowHeights*;
     _ZN9gui_forms22DateTimeFormatProvider*;
     _ZN9gui_forms22DispatchCancelledError*;
+    _ZN9gui_forms22DisplayTimingEstimator*;
     _ZN9gui_forms22EffectInstanceCounters*;
     _ZN9gui_forms22ExpressionDependencies*;
     _ZN9gui_forms22FirstFrameShowSnapshot*;
@@ -6011,6 +6026,8 @@
     _ZN9gui_forms26content_layout_result_nameE*;
     _ZN9gui_forms26copy_failure_shadow_framesB*;
     _ZN9gui_forms26copy_failure_shadow_framesE*;
+    _ZN9gui_forms26display_timing_source_nameB*;
+    _ZN9gui_forms26display_timing_source_nameE*;
     _ZN9gui_forms26end_surface_material_shapeB*;
     _ZN9gui_forms26end_surface_material_shapeE*;
     _ZN9gui_forms26engine_sine_cosine_degreesB*;
@@ -7116,6 +7133,7 @@
     _ZNK[RO]9gui_forms13ControlLookup*;
     _ZNK[RO]9gui_forms13CursorMetrics*;
     _ZNK[RO]9gui_forms13DateTimeValue*;
+    _ZNK[RO]9gui_forms13DisplayTiming*;
     _ZNK[RO]9gui_forms13DisposedError*;
     _ZNK[RO]9gui_forms13DockNavigator*;
     _ZNK[RO]9gui_forms13DockWorkspace*;
@@ -7938,6 +7956,7 @@
     _ZNK[RO]9gui_forms20PropertyObjectMember*;
     _ZNK[RO]9gui_forms20PropertyRegistration*;
     _ZNK[RO]9gui_forms20PropertyResetRequest*;
+    _ZNK[RO]9gui_forms20RefreshCounterTiming*;
     _ZNK[RO]9gui_forms20RelativePointerEnded*;
     _ZNK[RO]9gui_forms20RelativePointerGrant*;
     _ZNK[RO]9gui_forms20ResponsiveTrackPanel*;
@@ -8047,6 +8066,7 @@
     _ZNK[RO]9gui_forms22DataGridViewRowHeights*;
     _ZNK[RO]9gui_forms22DateTimeFormatProvider*;
     _ZNK[RO]9gui_forms22DispatchCancelledError*;
+    _ZNK[RO]9gui_forms22DisplayTimingEstimator*;
     _ZNK[RO]9gui_forms22EffectInstanceCounters*;
     _ZNK[RO]9gui_forms22ExpressionDependencies*;
     _ZNK[RO]9gui_forms22FirstFrameShowSnapshot*;
@@ -8804,6 +8824,7 @@
     _ZN[KRO]9gui_forms13ControlLookup*;
     _ZN[KRO]9gui_forms13CursorMetrics*;
     _ZN[KRO]9gui_forms13DateTimeValue*;
+    _ZN[KRO]9gui_forms13DisplayTiming*;
     _ZN[KRO]9gui_forms13DisposedError*;
     _ZN[KRO]9gui_forms13DockNavigator*;
     _ZN[KRO]9gui_forms13DockWorkspace*;
@@ -9626,6 +9647,7 @@
     _ZN[KRO]9gui_forms20PropertyObjectMember*;
     _ZN[KRO]9gui_forms20PropertyRegistration*;
     _ZN[KRO]9gui_forms20PropertyResetRequest*;
+    _ZN[KRO]9gui_forms20RefreshCounterTiming*;
     _ZN[KRO]9gui_forms20RelativePointerEnded*;
     _ZN[KRO]9gui_forms20RelativePointerGrant*;
     _ZN[KRO]9gui_forms20ResponsiveTrackPanel*;
@@ -9735,6 +9757,7 @@
     _ZN[KRO]9gui_forms22DataGridViewRowHeights*;
     _ZN[KRO]9gui_forms22DateTimeFormatProvider*;
     _ZN[KRO]9gui_forms22DispatchCancelledError*;
+    _ZN[KRO]9gui_forms22DisplayTimingEstimator*;
     _ZN[KRO]9gui_forms22EffectInstanceCounters*;
     _ZN[KRO]9gui_forms22ExpressionDependencies*;
     _ZN[KRO]9gui_forms22FirstFrameShowSnapshot*;
@@ -10492,6 +10515,7 @@
     _ZT[VIST]N9gui_forms13ControlLookup*E;
     _ZT[VIST]N9gui_forms13CursorMetrics*E;
     _ZT[VIST]N9gui_forms13DateTimeValue*E;
+    _ZT[VIST]N9gui_forms13DisplayTiming*E;
     _ZT[VIST]N9gui_forms13DisposedError*E;
     _ZT[VIST]N9gui_forms13DockNavigator*E;
     _ZT[VIST]N9gui_forms13DockWorkspace*E;
@@ -11314,6 +11338,7 @@
     _ZT[VIST]N9gui_forms20PropertyObjectMember*E;
     _ZT[VIST]N9gui_forms20PropertyRegistration*E;
     _ZT[VIST]N9gui_forms20PropertyResetRequest*E;
+    _ZT[VIST]N9gui_forms20RefreshCounterTiming*E;
     _ZT[VIST]N9gui_forms20RelativePointerEnded*E;
     _ZT[VIST]N9gui_forms20RelativePointerGrant*E;
     _ZT[VIST]N9gui_forms20ResponsiveTrackPanel*E;
@@ -11423,6 +11448,7 @@
     _ZT[VIST]N9gui_forms22DataGridViewRowHeights*E;
     _ZT[VIST]N9gui_forms22DateTimeFormatProvider*E;
     _ZT[VIST]N9gui_forms22DispatchCancelledError*E;
+    _ZT[VIST]N9gui_forms22DisplayTimingEstimator*E;
     _ZT[VIST]N9gui_forms22EffectInstanceCounters*E;
     _ZT[VIST]N9gui_forms22ExpressionDependencies*E;
     _ZT[VIST]N9gui_forms22FirstFrameShowSnapshot*E;
@@ -12180,6 +12206,7 @@
     _ZT[hvc]*9gui_forms13ControlLookup*;
     _ZT[hvc]*9gui_forms13CursorMetrics*;
     _ZT[hvc]*9gui_forms13DateTimeValue*;
+    _ZT[hvc]*9gui_forms13DisplayTiming*;
     _ZT[hvc]*9gui_forms13DisposedError*;
     _ZT[hvc]*9gui_forms13DockNavigator*;
     _ZT[hvc]*9gui_forms13DockWorkspace*;
@@ -13002,6 +13029,7 @@
     _ZT[hvc]*9gui_forms20PropertyObjectMember*;
     _ZT[hvc]*9gui_forms20PropertyRegistration*;
     _ZT[hvc]*9gui_forms20PropertyResetRequest*;
+    _ZT[hvc]*9gui_forms20RefreshCounterTiming*;
     _ZT[hvc]*9gui_forms20RelativePointerEnded*;
     _ZT[hvc]*9gui_forms20RelativePointerGrant*;
     _ZT[hvc]*9gui_forms20ResponsiveTrackPanel*;
@@ -13111,6 +13139,7 @@
     _ZT[hvc]*9gui_forms22DataGridViewRowHeights*;
     _ZT[hvc]*9gui_forms22DateTimeFormatProvider*;
     _ZT[hvc]*9gui_forms22DispatchCancelledError*;
+    _ZT[hvc]*9gui_forms22DisplayTimingEstimator*;
     _ZT[hvc]*9gui_forms22EffectInstanceCounters*;
     _ZT[hvc]*9gui_forms22ExpressionDependencies*;
     _ZT[hvc]*9gui_forms22FirstFrameShowSnapshot*;
@@ -13868,6 +13897,7 @@
     _ZZN9gui_forms13ControlLookup*;
     _ZZN9gui_forms13CursorMetrics*;
     _ZZN9gui_forms13DateTimeValue*;
+    _ZZN9gui_forms13DisplayTiming*;
     _ZZN9gui_forms13DisposedError*;
     _ZZN9gui_forms13DockNavigator*;
     _ZZN9gui_forms13DockWorkspace*;
@@ -14690,6 +14720,7 @@
     _ZZN9gui_forms20PropertyObjectMember*;
     _ZZN9gui_forms20PropertyRegistration*;
     _ZZN9gui_forms20PropertyResetRequest*;
+    _ZZN9gui_forms20RefreshCounterTiming*;
     _ZZN9gui_forms20RelativePointerEnded*;
     _ZZN9gui_forms20RelativePointerGrant*;
     _ZZN9gui_forms20ResponsiveTrackPanel*;
@@ -14799,6 +14830,7 @@
     _ZZN9gui_forms22DataGridViewRowHeights*;
     _ZZN9gui_forms22DateTimeFormatProvider*;
     _ZZN9gui_forms22DispatchCancelledError*;
+    _ZZN9gui_forms22DisplayTimingEstimator*;
     _ZZN9gui_forms22EffectInstanceCounters*;
     _ZZN9gui_forms22ExpressionDependencies*;
     _ZZN9gui_forms22FirstFrameShowSnapshot*;
@@ -15556,6 +15588,7 @@
     _ZZNK9gui_forms13ControlLookup*;
     _ZZNK9gui_forms13CursorMetrics*;
     _ZZNK9gui_forms13DateTimeValue*;
+    _ZZNK9gui_forms13DisplayTiming*;
     _ZZNK9gui_forms13DisposedError*;
     _ZZNK9gui_forms13DockNavigator*;
     _ZZNK9gui_forms13DockWorkspace*;
@@ -16378,6 +16411,7 @@
     _ZZNK9gui_forms20PropertyObjectMember*;
     _ZZNK9gui_forms20PropertyRegistration*;
     _ZZNK9gui_forms20PropertyResetRequest*;
+    _ZZNK9gui_forms20RefreshCounterTiming*;
     _ZZNK9gui_forms20RelativePointerEnded*;
     _ZZNK9gui_forms20RelativePointerGrant*;
     _ZZNK9gui_forms20ResponsiveTrackPanel*;
@@ -16487,6 +16521,7 @@
     _ZZNK9gui_forms22DataGridViewRowHeights*;
     _ZZNK9gui_forms22DateTimeFormatProvider*;
     _ZZNK9gui_forms22DispatchCancelledError*;
+    _ZZNK9gui_forms22DisplayTimingEstimator*;
     _ZZNK9gui_forms22EffectInstanceCounters*;
     _ZZNK9gui_forms22ExpressionDependencies*;
     _ZZNK9gui_forms22FirstFrameShowSnapshot*;

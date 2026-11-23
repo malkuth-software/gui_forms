@@ -1053,6 +1053,44 @@ public:
     void cancel_frame_requests();
     void set_occluded(bool occluded, FrameTime transition_time);
     [[nodiscard]] bool occluded() const noexcept { return occluded_; }
+    // The display timing this window's frames are paced to (DisplayTiming;
+    // design note frame-source): what its host last reported, or a test's
+    // fixed rate; DisplayTiming::assumed() until either.
+    [[nodiscard]] DisplayTiming display_timing() const noexcept { return display_timing_; }
+    // Called by the host on the window's thread whenever the display's
+    // timing is known or changes (a display link's tick, a move to another
+    // display), and by tests, benches and offscreen hosts with
+    // DisplayTiming::fixed_rate. Returns false, changing nothing, when the
+    // timing is not valid (DisplayTiming::valid). Otherwise it is stored
+    // (an assumed report as DisplayTiming::assumed() itself; a paced
+    // report whose period is within a thousandth of the held paced one
+    // keeps the held period, so a display link's per-tick measurement does
+    // not re-derive every interval), and each
+    // display-paced request (the motion clock's, the animation timers')
+    // takes the new refresh period and moves its deadline to the nearest
+    // point of the new grid, unless it lies within an eighth of a period of
+    // it: a report that restates the phase, with a display link's jitter,
+    // moves nothing. A moved deadline calls the schedule wake seam. Throws
+    // std::logic_error off the window's thread.
+    [[nodiscard]] bool set_display_timing(const DisplayTiming& timing);
+    // Whether this window wants frames at its display's rate now: a
+    // display-paced request is connected (motion moves, or an animation
+    // timer ticks) and the window is not occluded. A host keeps its display
+    // link running while this holds and may pause it once it does not; it is
+    // false whenever the window is at rest.
+    [[nodiscard]] bool wants_display_frames() const noexcept;
+    // Called by a host whose system reports no display timing, on the
+    // window's thread, with the time each presentation completed (a copy
+    // presenter's flush, a vertical-blank waiter's wake). The completions
+    // feed a DisplayTimingEstimator; once it reports, the measured timing is
+    // set (set_display_timing) while the window's timing is assumed, nominal
+    // or measured, so a display or fixed timing is never overridden. Returns
+    // whether a timing was set. Throws std::logic_error off the window's
+    // thread.
+    bool note_presentation_completed(FrameTime completed);
+    // Forgets the completions noted so far (the window moved to another
+    // display); the timing held stays until the next measured report.
+    void reset_presentation_estimate() noexcept;
     // Host adapters also install a paint wake seam. Retained invalidation may
     // originate from another Window's callback, so relying only on the host
     // currently dispatching input can strand valid dirty state indefinitely.
@@ -1719,14 +1757,38 @@ private:
         Component& owner, FrameInterval interval, FrameTime first_deadline,
         std::function<void(FrameTime)> callback);
     // Called by the motion clock: its single frame request, first due at
-    // `first_deadline` and then every motion_frame_interval. Each frame
-    // calls the clock's advance; the clock disconnects the request when
-    // nothing moves. Throws std::length_error at the request limit.
+    // `first_deadline` and then every motion_frame_interval; with paced
+    // display timing, first due at the first refresh after one period before
+    // `first_deadline` and then every refresh. Each frame calls the clock's
+    // advance with the frame's presentation time; the clock disconnects the
+    // request when nothing moves. Throws std::length_error at the request
+    // limit.
     [[nodiscard]] FrameRequestToken request_motion_frames(FrameTime first_deadline);
     // Called by the motion clock while only ambient effects run (E7): its
-    // request's next frame is due at `deadline`, the earliest effect's,
-    // rather than one motion_frame_interval after the last.
+    // request's next frame is due at `deadline`, the earliest effect's
+    // (rounded up to the display's grid when the timing is paced), rather
+    // than one period after the last.
     void set_motion_frame_deadline(FrameTime deadline) noexcept;
+    // Called by AnimationTimer: a UI timer paced to the display. Its period
+    // is display_paced_interval(`requested`), its first tick the first point
+    // of that period's grid (phased to the display) after now, and its
+    // callback receives each frame's presentation time. Throws as
+    // schedule_ui_timer does.
+    [[nodiscard]] FrameRequestToken schedule_animation_frames(Component& owner, FrameInterval requested,
+                                                              std::function<void(FrameTime)> callback);
+    // The period a display-paced timer asking for `requested` ticks at: zero
+    // asks for every refresh; an interval of at least one refresh rounds to
+    // the nearest whole number of refreshes, so that animations of different
+    // speeds share frames; a shorter one is one refresh when the timing is
+    // paced and is kept, paced by its owner's paints, when it is assumed.
+    [[nodiscard]] FrameInterval display_paced_interval(FrameInterval requested) const noexcept;
+    // The motion clock's period: the refresh period when paced, else
+    // motion_frame_interval.
+    [[nodiscard]] FrameInterval motion_frame_period() const noexcept;
+    // The time a frame drawn at `now` is shown (next_presentation), never
+    // before the last one handed to a frame: `now` while the timing is
+    // assumed.
+    [[nodiscard]] FrameTime presentation_time_for(FrameTime now) const noexcept;
     // Posts `outcome` to `answer` through this root's dispatcher; a target
     // released by then receives nothing.
     void deliver_request_answer(const std::weak_ptr<SurfaceRequestAnswer>& answer,
@@ -3144,6 +3206,14 @@ private:
     bool in_lifecycle_notification_{};
     bool second_layout_pass_requested_{};
     bool occluded_{};
+    // The display timing frames are paced to (set_display_timing), and the
+    // latest presentation time a poll handed to its frames, which the next
+    // never precedes.
+    DisplayTiming display_timing_{};
+    // Measures the timing from noted presentation completions
+    // (note_presentation_completed).
+    DisplayTimingEstimator presentation_estimator_{};
+    FrameTime last_presentation_time_{};
     std::function<void()> paint_wake_handler_;
     bool paint_wake_pending_{};
     std::function<void()> schedule_wake_handler_;

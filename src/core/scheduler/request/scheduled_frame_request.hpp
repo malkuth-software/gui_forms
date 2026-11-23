@@ -42,6 +42,14 @@ public:
     // (SurfaceRoot::schedule_resting_ui_timer, the caret blink). Other
     // UI timers run while the window is hidden.
     bool rests_while_occluded{};
+    // Paced to the window's display (the motion clock's request and the
+    // animation timers'): `interval` is derived from `requested_interval`
+    // and the window's refresh period and re-derived when that changes, the
+    // deadline stays on the display's grid, and a UI timer's callback
+    // receives the frame's presentation time rather than the poll's.
+    bool paced_to_display{};
+    // The interval asked for, before pacing; zero asks for every refresh.
+    FrameInterval requested_interval{};
 
 private:
     bool connected_{true};

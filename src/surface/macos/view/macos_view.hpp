@@ -262,6 +262,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)armWakeTimer;
 - (void)startDisplayLinkIfNeeded;
 - (void)stopDisplayLink;
+- (void)restDisplayLink;
+- (void)reportDisplayTiming;
 - (void)setDisplayTraceEnabled:(BOOL)enabled;
 - (MacDisplayLinkTrace)displayTraceSnapshot;
 - (void)answerDisplayLinkTick;

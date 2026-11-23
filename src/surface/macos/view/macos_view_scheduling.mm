@@ -1,5 +1,6 @@
-// GUIFormsView (Scheduling): damage collection, the display link that
-// presents live surfaces, posted work and the wake timer.
+// GUIFormsView (Scheduling): damage collection, the display link (the
+// window's frame source: it reports the display's timing, polls the frames
+// paced to it and presents live surfaces), posted work and the wake timer.
 
 #include "macos_view.hpp"
 #include "../application/macos_main_work.hpp"
@@ -146,9 +147,15 @@ void perform_first_show_on_main(void* context) {
     }
 }
 
+// The link runs while the model wants display-paced frames (motion, a
+// running animation timer: SurfaceRoot::wants_display_frames) or has live
+// presentations; a request made outside a tick reaches here through the
+// schedule wake (CollectDamageWake), so a paused link is never left behind
+// by new motion.
 - (void)startDisplayLinkIfNeeded {
-    if (!_model || self.window == nil || _hostOccluded == YES ||
-        !(*_model).has_live_surface_presentations()) return;
+    if (!_model || self.window == nil || _hostOccluded == YES) return;
+    const bool wanted = (*_model).has_live_surface_presentations() || (*_model).wants_display_frames();
+    if (!wanted) return;
     if (_displayLink == nil) {
         GUIFormsDisplayTarget* target = [[GUIFormsDisplayTarget alloc] initWithView:self];
         _displayLink = [self displayLinkWithTarget:target selector:@selector(tick:)];
@@ -161,6 +168,42 @@ void perform_first_show_on_main(void* context) {
 - (void)stopDisplayLink {
     _displayLink.paused = YES;
     if (_model) (*_model).set_live_surface_idle_waiting(false);
+}
+
+// The live-surface path is done with the link: it pauses unless the model
+// still wants display-paced frames, which keep it running (it no longer
+// stops itself under running motion). Either way the live surfaces wait
+// as stopDisplayLink leaves them; the caller then marks them idle.
+- (void)restDisplayLink {
+    if (_model && (*_model).wants_display_frames()) {
+        (*_model).set_live_surface_idle_waiting(false);
+        return;
+    }
+    [self stopDisplayLink];
+}
+
+// Reports the display's timing from the link's tick (design note
+// frame-source, section 3): the refresh period is this frame's interval,
+// targetTimestamp - timestamp (on a variable-rate display, the rate the
+// system chose), and the phase is targetTimestamp, the time the frame
+// drawn now is shown. CADisplayLink times are CACurrentMediaTime seconds;
+// the target's distance from now carries it over to the steady clock. A
+// tick without a usable interval reports nothing.
+- (void)reportDisplayTiming {
+    const CFTimeInterval target = _displayLink.targetTimestamp;
+    const CFTimeInterval period = target - _displayLink.timestamp;
+    if (!(target > 0.0) || !(period > 0.0)) return;
+    const CFTimeInterval ahead = target - CACurrentMediaTime();
+    const gui_forms::FrameTime now = gui_forms::FrameClock::now();
+    const gui_forms::FrameTime presentation =
+        now + std::chrono::duration_cast<gui_forms::FrameInterval>(std::chrono::duration<double>(ahead));
+    const gui_forms::FrameInterval refresh =
+        std::chrono::duration_cast<gui_forms::FrameInterval>(std::chrono::duration<double>(period));
+    const gui_forms::DisplayTiming timing =
+        gui_forms::DisplayTiming::reported(gui_forms::DisplayTimingSource::display, refresh, presentation);
+    // A period outside the model's bounds (a link's first tick) is
+    // refused and changes nothing.
+    static_cast<void>((*_model).set_display_timing(timing));
 }
 
 - (void)setDisplayTraceEnabled:(BOOL)enabled {
@@ -190,6 +233,19 @@ void perform_first_show_on_main(void* context) {
         [self stopDisplayLink];
         return;
     }
+    // The frame source: the display's timing first, then, while frames
+    // are wanted, the poll that advances them (collectDamage polls at
+    // now, just past this refresh, so the frame due on it fires and is
+    // drawn for targetTimestamp). The wake timer stays armed as well; a
+    // poll that finds nothing due does nothing.
+    [self reportDisplayTiming];
+    if ((*_model).wants_display_frames()) [self collectDamage];
+    // No live surface: the frames alone keep the link, which pauses on
+    // the first tick that finds none wanted.
+    if (!(*_model).has_live_surface_presentations()) {
+        [self restDisplayLink];
+        return;
+    }
     // A failed batch needs a fresh composition, including unchanged surfaces.
     // Reusing cached clips could cover a newly opened overlay or hidden control.
     const bool retry = !_pendingLivePresentations.empty();
@@ -198,13 +254,13 @@ void perform_first_show_on_main(void* context) {
         (*_model).take_live_surface_presentations(retry, &publicationChanged);
     _pendingLivePresentations = std::move(updates);
     if (!(*_model).has_live_surface_presentations()) {
-        [self stopDisplayLink];
+        [self restDisplayLink];
         return;
     }
     if (_pendingLivePresentations.empty()) {
         // Publication posts CollectDamageWake, which restarts this paused link.
         // Arm after pausing, then recheck generations to avoid a lost wake.
-        [self stopDisplayLink];
+        [self restDisplayLink];
         (*_model).set_live_surface_idle_waiting(true);
         return;
     }
@@ -251,7 +307,7 @@ void perform_first_show_on_main(void* context) {
     if (!publicationChanged && _pendingLivePresentations.empty()) {
         // Unchanged surfaces may still need one composition for an overlay
         // edit. Once presented, a static overlay must not keep us ticking.
-        [self stopDisplayLink];
+        [self restDisplayLink];
         (*_model).set_live_surface_idle_waiting(true);
     }
 }
