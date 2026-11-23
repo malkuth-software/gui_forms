@@ -1,5 +1,7 @@
-#include "../support/drawing_support.hpp"
+// Before drawing_support.hpp, which leaves namespace gui_drawing open for
+// the rest of this file.
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "../support/drawing_support.hpp"
 
 Bitmap::Bitmap(std::uint32_t width, std::uint32_t height,
                PixelFormat pixel_format) {
