@@ -2,14 +2,9 @@ To the Holy One, blessed be He, from whom all good things come. We dedicate this
 
 # GUI.Forms
 
-GUI.Forms is a desktop interface toolkit written in C++20 for macOS,
-Windows and Linux. Its programming model comes from Windows Forms: a tree of
-controls with properties, events, Dock and Anchor, data binding, validation
-and dialogs. It is an independent implementation, not a port of Windows
-Forms. It draws every control itself on the CPU, sets all text with one
-engine and bundled fonts, and publishes each window to the platform's
-accessibility services. A stable C ABI carries the same controls to C, C#
-and Python.
+GUI.Forms is a C++20 toolkit for macOS, Windows and Linux. It keeps Windows
+Forms' model of controls, properties and events, draws every control on the
+CPU, and opens to C, C# and Python through a C ABI.
 
 [![CI](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml/badge.svg)](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml) [![Docs](https://app.readthedocs.org/projects/gui-forms/badge/?version=latest)](https://gui-forms.readthedocs.io/) [![Release](https://img.shields.io/github/v/release/malkuth-software/gui_forms?display_name=tag)](https://github.com/malkuth-software/gui_forms/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg) ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)
 
@@ -22,174 +17,82 @@ drawing ABI 1.0). See the
 and [what 1.0 promises](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.html#conditions-for-10).
 <!-- numbers:end -->
 
-## How it differs
+## Design
 
-Each point below says what the usual toolkits do, where that goes wrong,
-what GUI.Forms does instead and where to check it. The most consequential
-come first. The alternatives are described from their own documentation.
+**Consistent by design.** Every window is one retained tree, painted by one
+CPU renderer, its text set by one engine from fonts the program carries. The
+host only shows the finished pixels. Toolkits that hand text to each
+platform's font system, or draw through the graphics driver, give a form
+that wraps differently on another machine; Qt's documentation says its font
+matching and hinting vary by platform
+([QFont](https://doc.qt.io/qt-6/qfont.html)). GUI.Forms' engine gate draws
+every primitive at four scales and three states on each CI host and fails
+if one image differs.
 
-### The same pixels and the same behaviour on every machine
-
-**Usually:** Qt, GTK and Windows Forms hand text to the platform. Qt's own
-documentation says font matching "varies from platform to platform" and
-that hinting has "varying support across platforms"
-([QFont](https://doc.qt.io/qt-6/qfont.html)). Qt Quick draws through
-Direct3D, Metal, Vulkan or OpenGL
-([scene graph renderer](https://doc.qt.io/qt-6/qtquick-visualcanvas-scenegraph-renderer.html));
-GTK 4 has OpenGL and Vulkan renderers with a Cairo fallback
-([running GTK](https://docs.gtk.org/gtk4/running.html)); Avalonia tries
-OpenGL first and its documentation advises adding a software fallback for
-the widest range of devices
-([Win32RenderingMode](https://api-docs.avaloniaui.net/docs/T_Avalonia_Win32RenderingMode)).
-
-**Where it fails:** the screen a user sees depends on the fonts, the text
-stack and the graphics driver of that machine. A layout that fits on the
-developer's computer wraps differently on a customer's, and a rendering
-fault that only one driver produces is hard to reproduce.
-
-**What GUI.Forms does:** one renderer, on the CPU, on every host, with no
-GPU path to fall back from. Text is shaped, hinted and rasterized by
-STXlib's own text engine from fonts that ship with the program; controls
-never load system fonts. The hosts only copy finished pixels to the
-screen ([Presentation](https://gui-forms.readthedocs.io/en/latest/user/presentation.html)).
-
-**Evidence:** a cross-platform identity test in
-[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests)
-renders a fixed corpus and compares it with checked-in hashes on every CI
-platform, so a change to one pixel on one platform fails
-([Text engine](https://gui-forms.readthedocs.io/en/latest/user/text-engine.html)).
-The CPU path keeps up with real work: the Code Zoom demonstrator redraws a
-syntax-highlighted C++ file at 1280 by 800, zooming from 0.1x to 40x, at a
-median of 1.07 ms and a 95th percentile of 4.43 ms per frame over 600 frames
-on an Apple M4 (its `--bench` mode, measured on the 1.0 preview build).
-
-### An error stops where it happens
-
-**Usually:** Qt calls an exception thrown from a slot "undefined behaviour"
-unless the slot handles it
-([Exception Safety](https://doc.qt.io/qt-6/exceptionsafety.html)); GLib
-logs a failed precondition and returns, after which the function "should be
-considered to have undefined behaviour"
-([Warnings and Assertions](https://docs.gtk.org/glib/warnings.html));
-Windows Forms lets an application catch unhandled exceptions "and continue
-operating"
-([SetUnhandledExceptionMode](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.application.setunhandledexceptionmode)).
-
-**Where it fails:** a program that continues after a half-finished handler
-runs in a state no test covered: a list cleared but not its selection, a
-value saved but not redrawn. The user sees a wrong value, and the report,
-if any, names the place the exception was caught, not where it began.
-
-**What GUI.Forms does:** an expected failure comes back as a value and
-leaves the program unchanged; a defect stops the process at once with a
-record of what happened and where. Every C ABI slot, every entry from the
-operating system and every call into your code passes through a gate, and
-a control finishes its state change before it tells your handlers, so a
-handler that clears a list or closes the window leaves a consistent
-program.
-
-**Evidence:** `tools/check_native_boundaries.py` fails the build when a
-native entry point bypasses its gate. A test in gui_forms_tests attaches a
-handler to each event of each stock control that, from inside the first
-notification, clears the items, detaches the control or destroys the
-window; the program must stay consistent, with no sanitizer report
+**Fault control.** An expected failure comes back as a value and leaves the
+program as it was; a defect stops the process at once with a record of
+where it began. Every C ABI call, every entry from the operating system and
+every call into program code passes a gate, and controls finish changing
+before they notify, so a handler may clear a list or close the window
 ([Reliability](https://gui-forms.readthedocs.io/en/latest/user/reliability.html)).
 
-### One contract for every language
+**Speed.** On an Apple M4, the Code Zoom demonstrator redraws a
+syntax-coloured C++ file at 1280 by 800 every frame while zooming from 0.1x
+to 40x: 1.07 ms a frame at the median, 4.43 ms at the 95th percentile. The
+hot paths were replaced in rounds, each held bit-identical to the code
+before it. A window with nothing to change does no work.
 
-**Usually:** Qt is a C++ API, so other languages reach it through compiled
-extension modules generated from its headers (PySide6 for Python); Windows
-Forms and Avalonia are .NET libraries, usable from .NET languages.
+**Integrity.** Each stateful component declares its states, the calls each
+state admits, its refusals, thread rules and transfers beside its header.
+The header's contract lines, the entry checks, the member manifest's
+constraints, fuzz sequences and proof obligations are generated from that
+one declaration, and a deducer discharges the obligations it can.
 
-**Where it fails:** a binding tied to a C++ ABI has to be rebuilt with the
-library for each platform and compiler, and a .NET library cannot be called
-from a C or Python program at all.
+**Model Context Protocol.** A GUI.Forms program can be driven by a model
+over MCP without added code: the windows and control tree with stable IDs,
+semantic actions, the program's own pointer and keyboard path, waits,
+captures and inspection. Commands appear as tools, and a program adds its
+own from C++, C or C#. Password fields are painted out of captures, dialogs
+refuse the model unless instrumented, and a destructive act asks once per
+launch.
 
-**What GUI.Forms does:** a C ABI (`include/gui_forms/c/gf_abi.h`) of
-function tables negotiated through one exported function,
-`gf_abi_get_table`. The header is the contract: fixed-width types only, no
-implicit padding, UTF-8 text in caller buffers, and every call returns a
-status that leaves its outputs unchanged on failure. Within a major version a table only grows at its tail. The C#
-bindings and PyGUIForms are built on it, and the C++ API is the same
-engine without the boundary.
+**Themes and forms.** A form document says what exists and what it binds; a
+theme in CSS says how it looks. The build turns the form into a typed window
+class.
 
-**Evidence:** `tools/abi_audit.py` records the header and rejects any
-change that breaks the sealed baseline, and the installed conformance kit
-(`GUIForms::CAbiConformance`) runs the ABI's ownership, thread, callback
-and control checks inside your own test suite
-([C ABI conformance kit](https://gui-forms.readthedocs.io/en/latest/user/c-abi-conformance-kit.html)).
+```xml
+<label id="greeter.status" text="Ready." bounds="24 24 432 32" classes="status"/>
+<button id="greeter.run" text="Run" bounds="24 72 120 36">
+  <bind property="command" to="run"/>
+</button>
+```
 
-### The Windows Forms model, on three platforms, in native code
+```css
+:root { ink-on-paper: #1d3557 on #ffffff; }
+.status { color: role(ink-on-paper); font-family: content; font-size: 15px; font-weight: 600; }
+```
 
-**Usually:** Windows Forms is, in Microsoft's words, "a UI framework for
-building Windows desktop apps"
-([overview](https://learn.microsoft.com/en-us/dotnet/desktop/winforms/overview/)),
-and each control is bound to a Win32 window handle
-([Control.Handle](https://learn.microsoft.com/en-us/dotnet/api/system.windows.forms.control.handle)).
-Electron replaces the native model with a web page, "embedding Chromium and
-Node.js into its binary"
-([Electron](https://www.electronjs.org/docs/latest/)).
+**Accessible and translatable.** Stock controls publish their role, name,
+state and actions by default, through NSAccessibility, MSAA and UI
+Automation, and ATK/AT-SPI. A compiler plugin finds every string literal
+written to a localizable property, so text set in code reaches the
+translator too.
 
-**Where it fails:** a team that knows Forms has to learn a second model to
-reach macOS and Linux, or ship a browser engine with every program.
+**WinForms compatible, Windows optional.** Control families, Dock and
+Anchor, tab order, mnemonics, validation, `Invoke` and `BindingSource`, over
+controls that own no native handles. Every Forms type is mapped in
+[GUI.Forms for Windows Forms developers](https://gui-forms.readthedocs.io/en/latest/user/for-windows-forms-developers.html).
 
-**What GUI.Forms does:** the Forms vocabulary (control families, Dock and
-Anchor, tab order, mnemonics, `Validating`, accept and cancel buttons,
-`Invoke`, `BindingSource`) over a retained tree that owns no native
-handles: controls are not native windows. It is Forms-shaped, not all
-of Windows Forms: ActiveX, browser hosting, device printing and
-window-message emulation are outside its scope, and the guide says where
-event order or layout differs on purpose.
+**Dependency-free and compact.** STXlib stands between GUI.Forms and the C
+library, the C++ runtime, threads, files, math and the allocator, and
+behaves the same over glibc, musl, FreeBSD's libc and the Windows UCRT.
+Each program imports only the operating system's libraries; the Gallery
+downloads as 12.6 to 15.7 MB.
 
-**Evidence:** every Forms type is mapped to its GUI.Forms counterpart, with
-a status, in
-[GUI.Forms for Windows Forms developers](https://gui-forms.readthedocs.io/en/latest/user/for-windows-forms-developers.html);
-the member manifest (`manifests/members.json`) lists every property, event
-and method against Windows Forms with a status, and CI checks it against
-the headers.
-
-### Nothing to install beside the program
-
-**Usually:** an Electron program carries a browser engine; a .NET program
-needs the runtime; a C++ program commonly links the machine's shared C++
-library.
-
-**Where it fails:** the program's behaviour changes when the machine's
-runtime is updated, and the download grows with whatever was bundled.
-
-**What GUI.Forms does:** each shipped program, and the C ABI library, is
-one module that imports only the operating system's libraries. The C++
-library is a pinned copy linked in, and the fonts are compiled into the
-program.
-
-**Evidence:** `cmake/CheckSystemImports.cmake` refuses any other import at
-build time. The Gallery, which shows every stock control, downloads as
-12.6 to 15.7 MB per platform, fonts included.
-
-### Retained, so it can be accessible and idle
-
-**Usually:** Dear ImGui, an immediate-mode library, keeps the application's
-state as the truth, and "even the fact that a checkbox exists on screen is
-not stored in the GUI library"
-([the IMGUI paradigm](https://github.com/ocornut/imgui/wiki/About-the-IMGUI-paradigm));
-its README states that "accessibility features are not supported"
-([Dear ImGui](https://github.com/ocornut/imgui)).
-
-**Where it fails:** a screen reader, a test driver or an automation tool
-needs objects that persist between frames, with identities and states.
-
-**What GUI.Forms does:** a retained tree in which every control has a
-stable ID, and a property write says what changed (measure, arrange, paint,
-hit test, text, semantics). The window paints only the damaged area on the
-next frame and waits for input when nothing changes. The semantic tree is
-published through NSAccessibility on macOS, MSAA and UI Automation on
-Windows, and ATK/AT-SPI on Linux.
-
-**Evidence:** the Linux CI compares every Gallery page with the semantic
-tree from an AT-SPI client's side and performs one default action per
-control type; `print_metrics_on_close` prints the counters of layout, paint and
-damage work as JSON
-([Update scopes and dirtiness](https://gui-forms.readthedocs.io/en/latest/user/update-scopes-and-dirtiness.html)).
+**Allocator.** STXlib's allocator, inspired by mimalloc and extended well
+past it, keeps its bookkeeping outside the memory it hands out and checks
+every release in every build. Its page protocol is proved, relative to
+stated premises, for any number of threads.
 
 ## Get it
 
@@ -304,23 +207,18 @@ do is reported at run time and listed in
   ([`demo/`](demo/), [`file_manager_demoboard/`](file_manager_demoboard/)),
   built from the public headers only.
 
-## Where it comes from
+## Where the designs come from
 
-The programming model follows Windows Forms; no Windows Forms source is
-used. The CPU renderer, stx_skia, is derived from Skia and converted to the
-project's house style. STXlib's font reader follows the designs of
-ttf-parser and Skrifa, and its hinter is a conversion of Skrifa's
-auto-hinter, which follows FreeType's, with FreeType's accent handling.
-STXlib's allocator is inspired by and derived from mimalloc v3. Each
-origin, with its version and licence, is listed in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
+The programming model is inspired by Windows Forms. The CPU renderer
+extends Skia's. The font reader is inspired by ttf-parser and Skrifa, and
+the hinter extends Skrifa's auto-hinter, itself after FreeType's. The
+allocator is inspired by mimalloc, with TLSF for its free runs. Each origin
+is listed with its licence in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Learn more
 
 - **Documentation:** [gui-forms.readthedocs.io](https://gui-forms.readthedocs.io/),
   with the user guide, the controls by function and the API reference.
-- **Reliability:** [how GUI.Forms handles errors, memory, state, threads and
-  math](https://gui-forms.readthedocs.io/en/latest/user/reliability.html).
 - **Examples:** [`examples/reference/`](examples/reference/) is a complete
   consumer, built against the installed SDK in CI.
 
@@ -498,8 +396,7 @@ the [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.h
 
 ## License
 
-GUI.Forms is released under the [MIT licence](LICENSE), and so is
-PyGUIForms. Every component a program or the SDK carries is listed, with its
-licence, in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md); the bundled
-fonts carry their own notices in
-[`assets/fonts/ATTRIBUTION.md`](assets/fonts/ATTRIBUTION.md).
+GUI.Forms and PyGUIForms are MIT licensed ([LICENSE](LICENSE)). What they
+carry from elsewhere keeps its notice, all permissive, listed in
+[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md); the bundled fonts carry
+their own in [`assets/fonts/ATTRIBUTION.md`](assets/fonts/ATTRIBUTION.md).
