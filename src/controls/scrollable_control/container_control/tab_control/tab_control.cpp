@@ -619,11 +619,10 @@ TabControl::ItemParts TabControl::tab_parts(const TabPage& page) const {
     if (!strip_) return record;
     const PageStrip::ItemParts strip_parts = (*strip_).tab_parts_of(tab_page_id(page));
     // The strip's parts are in its coordinates; the control's lie one
-    // offset away.
-    const Rect strip_bounds = (*strip_).absolute_bounds();
-    const Rect own = absolute_bounds();
-    const double dx = strip_bounds.x - own.x;
-    const double dy = strip_bounds.y - own.y;
+    // offset away (the strip's origin in the control's coordinates).
+    const Point strip_origin = point_from_window((*strip_).point_to_window(Point{}));
+    const double dx = strip_origin.x;
+    const double dy = strip_origin.y;
     const std::array<const PartGeometry*, 5> sources{&strip_parts.tab, &strip_parts.tab_label,
                                                      &strip_parts.tab_focus, &strip_parts.tab_seam,
                                                      &strip_parts.tab_icon};
@@ -827,7 +826,7 @@ std::vector<SemanticNode> TabControl::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
     const std::vector<std::shared_ptr<TabPage>> live = pages();
     nodes.reserve(live.size());
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::shared_ptr<TabPage> selected = selected_page_.lock();
     for (std::size_t index = 0U; index < live.size(); ++index) {
         SemanticNode node{};
@@ -838,8 +837,7 @@ std::vector<SemanticNode> TabControl::semantic_virtual_children() const {
         node.tool_tip = (*live[index]).tool_tip_text.read();
         const Rect local = tab_parts(*live[index]).tab.bounds;
         if (!local.empty()) {
-            node.bounds = {absolute.x + local.x, absolute.y + local.y,
-                           local.width, local.height};
+            node.bounds = frame_to_outer(local_frame, local);
             node.states |= SemanticState::visible;
         }
         if (effectively_enabled()) node.states |= SemanticState::enabled;

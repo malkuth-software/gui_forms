@@ -977,8 +977,8 @@ bool HelpBook::activate_link(std::size_t link) {
     const stxlib::Optional<Rect> found_local = link_bounds(link);
     const Rect* const local = found_local.value();
     if (local != nullptr) {
-        const Rect absolute = absolute_bounds();
-        activation.bounds = Rect{absolute.x + (*local).x, absolute.y + (*local).y, (*local).width, (*local).height};
+        const ScaleFrame local_frame = window_frame();
+        activation.bounds = frame_to_outer(local_frame, (*local));
     }
     if (page_link.kind == HelpLinkKind::topic || page_link.kind == HelpLinkKind::popup) mark_visited(page_link.target);
     link_activated_.emit(activation);

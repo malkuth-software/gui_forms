@@ -252,12 +252,13 @@ void ProgressBar::written(const decltype(effect_input)&) {
     invalidate(Dirty::paint);
 }
 
-// The effect's input: the part is the bar's bounds, whose origin is the
-// bar's absolute origin. The move that enters the bar marks the pointer
-// inside.
+// The effect's input: the part is the bar's bounds, in the bar's own
+// coordinates, and so is the pointer (through its window frame, stage VA).
+// The move that enters the bar marks the pointer inside.
 void ProgressBar::note_effect_pointer(const PointerEvent& event) {
-    const Rect absolute = absolute_bounds();
-    if (effect_instance_.note_pointer(event, Point{absolute.x, absolute.y})) invalidate(animated_extent());
+    PointerEvent local_event = event;
+    local_event.position = point_from_window(event.position);
+    if (effect_instance_.note_pointer(local_event, Point{})) invalidate(animated_extent());
 }
 
 void ProgressBar::on_mouse_down(MouseEventArgs& arguments) {

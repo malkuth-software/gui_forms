@@ -25,8 +25,11 @@ PictureBox::PictureBox(StableId stable_id) : Panel(std::move(stable_id)) {
     // (no colour written here, which would fix the light paper in every
     // scheme).
     visual_role = ControlVisualRole::editor;
-
+    // Media: contained with no floor (stage VA, section 8).
+    viewport_fit = media_viewport_fit;
 }
+
+bool PictureBox::shows_media_content() const noexcept { return true; }
 
 bool PictureBox::should_serialize_image() const noexcept {
     return image.read().value != 0U;
@@ -85,13 +88,14 @@ Rect PictureBox::image_bounds() const noexcept {
                 content.y + (content.height - source.height) * 0.5,
                 source.width, source.height};
     case PictureBoxSizeMode::zoom: {
-        const double scale = std::min(content.width / source.width,
-                                      content.height / source.height);
-        const double width = source.width * scale;
-        const double height = source.height * scale;
-        return {content.x + (content.width - width) * 0.5,
-                content.y + (content.height - height) * 0.5,
-                width, height};
+        // The visible-area guarantee's one contain computation (stage VA,
+        // section 8): the box's viewport_fit with its answer a contain, so
+        // its alignment and scale bounds hold (centred, unbounded below and
+        // up to maximum_viewport_scale by default, as Windows Forms' zoom).
+        ViewportFit fit = viewport_fit.read();
+        fit.answer = OverflowAnswer::contain;
+        const ViewportPlacement placed = place_viewport_content(source, content, fit);
+        return placed.destination;
     }
     case PictureBoxSizeMode::normal:
     case PictureBoxSizeMode::auto_size:

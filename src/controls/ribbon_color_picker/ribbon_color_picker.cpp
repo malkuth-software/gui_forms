@@ -538,8 +538,8 @@ void RibbonColorPicker::on_focus_changed(bool focused) {
 
 void RibbonColorPicker::palette_pointer(PointerEvent& event) {
     if (!palette_open_ || !palette_overlay_) return;
-    const Rect absolute = (*palette_overlay_).absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = (*palette_overlay_).window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const std::vector<Cell> all = cells();
     stxlib::Optional<std::size_t> hit{};
     for (std::size_t entry = 0; entry < all.size(); ++entry) {
@@ -793,7 +793,7 @@ std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
     std::vector<SemanticNode> nodes;
     if (!palette_open_ || !palette_overlay_) return nodes;
     const std::vector<Cell> all = cells();
-    const Rect absolute = (*palette_overlay_).absolute_bounds();
+    const ScaleFrame local_frame = (*palette_overlay_).window_frame();
     const stxlib::Optional<std::size_t> current = current_entry(all);
     const std::string prefix(stable_id().value());
     for (std::size_t entry = 0; entry < all.size(); ++entry) {
@@ -805,7 +805,7 @@ std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
         node.position_in_set.set(entry + 1U);
         node.set_size.set(all.size());
         const Rect bounds = all[entry].bounds;
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
         if (current == stxlib::Optional<std::size_t>::of(entry)) node.states |= SemanticState::selected;
         if (palette_focused_ && focus_entry_ == stxlib::Optional<std::size_t>::of(entry)) node.states |= SemanticState::focused;

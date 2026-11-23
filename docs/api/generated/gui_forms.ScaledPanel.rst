@@ -9,7 +9,7 @@ gui_forms::ScaledPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScaledPanel : public Panel, public ScaledPanelCapabilities<ScaledPanel>
+.. cpp:class:: ScaledPanel : public Panel
 
    ``#include <gui_forms/controls/scaled_panel.hpp>`` (:src:`source <include/gui_forms/controls/scaled_panel.hpp>`)
 
@@ -35,15 +35,9 @@ gui_forms::ScaledPanel
          Identity of the panel, unique within its window.
 
       **initial_design_size** : ``Size``, default ``{1.0, 1.0}``
-         The width and height of the design space, by default 1 by 1. Both must
-         be finite and positive, or the constructor throws
-         ``std::invalid_argument``.
-
-   :Properties:
-
-      **design_size** : ``Size``, default ``{1.0, 1.0}``
-         The width and height of the design space. Both must be finite and
-         positive, or ``std::invalid_argument`` is thrown.
+         The width and height of the design space, by default 1 by 1, written to
+         the panel's ``design_size`` (a :cpp:class:`Control <gui_forms::Control>` property). Both must be finite
+         and positive, or the constructor throws ``std::invalid_argument``.
 
    :Inherited:
 
@@ -63,8 +57,6 @@ gui_forms::ScaledPanel
         - ``add_at(child, design_bounds)`` adds ``child`` to the panel and gives it a rectangle in design coordinates.
       * - :cpp:func:`design_bounds <gui_forms::ScaledPanel::design_bounds>`
         - The design rectangle of ``child``, or no value if it has none.
-      * - :cpp:func:`scaled_panel_property_entries <gui_forms::ScaledPanel::scaled_panel_property_entries>`
-        -  
       * - :cpp:func:`set_design_bounds <gui_forms::ScaledPanel::set_design_bounds>`
         - Moves or resizes an existing child in design coordinates.
 
@@ -90,7 +82,14 @@ gui_forms::ScaledPanel
    are not applied, and the child's own ``requested_bounds`` are never rewritten.
    A child without a design rectangle is not scaled and stays at its requested
    bounds. Changing the design size or a design rectangle takes effect at the
-   next layout pass.
+   next layout pass. The design space is the panel's ``design_size``, which every
+   control has (the visible-area guarantee); while it is zero the panel maps
+   from the unit square.
+
+   The stretch is the panel's explicit answer to fitting its design content in
+   its bounds, and the window records it: ``applied_viewport_scale`` reports the
+   stretch's smaller axis ratio, so a design larger than the panel is a
+   recorded, answered overflow (``SurfaceRoot::overflow_records``).
 
    The panel publishes the accessibility role ``group`` only when it has an
    accessible name or description.
@@ -122,14 +121,6 @@ gui_forms::ScaledPanel
    .. cpp:function:: explicit ScaledPanel(StableId stable_id, Size initial_design_size = {1.0, 1.0})
 
 
-   .. rubric:: Properties
-
-   .. cpp:member:: Size design_size
-
-      The width and height of the design space. Both must be finite and
-      positive, or ``std::invalid_argument`` is thrown.
-
-
    .. rubric:: Methods
 
    .. cpp:function:: void add_at(Control::Ptr child, Rect design_bounds)
@@ -145,8 +136,6 @@ gui_forms::ScaledPanel
       The design rectangle of ``child``, or no value if it has none. The
       rectangles of removed children are discarded at the next layout.
 
-   .. cpp:function:: static const std::array<PropertyEntry, scaled_panel_property_count>& scaled_panel_property_entries() noexcept
-
    .. cpp:function:: void set_design_bounds(const Control& child, Rect design_bounds)
 
       Moves or resizes an existing child in design coordinates. Invalid bounds
@@ -161,15 +150,13 @@ gui_forms::ScaledPanel
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
-   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+   .. cpp:function:: stxlib::Optional<double> applied_viewport_scale() const noexcept override
 
-   .. cpp:member:: constexpr std::size_t scaled_panel_property_count
-
-      ScaledPanel's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+      Its children are stretched from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). Reports the stretch's smaller axis ratio; none while design_size is zero or it has no extent.
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 2 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 1 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -192,10 +179,6 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
      - GUI.Forms-only
      - ``design_bounds``
      - supported
-   * - method
-     - GUI.Forms-only
-     - ``scaled_panel_property_entries``
-     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``set_design_bounds``

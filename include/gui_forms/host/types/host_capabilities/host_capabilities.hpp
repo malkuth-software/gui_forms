@@ -24,7 +24,7 @@ struct GUI_FORMS_API HostProtocolRevision final {
 // change to the protocol adds a row at the end, so two changes that claim
 // the same version both add the same line and conflict when merged, and
 // the checks below refuse a skipped or repeated version.
-inline constexpr std::array<HostProtocolRevision, 8> host_protocol_revisions{
+inline constexpr std::array<HostProtocolRevision, 9> host_protocol_revisions{
     {{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"},
     {9U, "the compositor state report (HostCompositorEvent, stage T5)"},
     {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"},
@@ -35,6 +35,7 @@ inline constexpr std::array<HostProtocolRevision, 8> host_protocol_revisions{
     {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"},
     {15U, "relative pointer mode (HostRelativeMotionEvent, HostServices::set_relative_pointer and "
           "warp_pointer) and pointer event timestamps and scroll phases"},
+    {16U, "the client area's safe insets (HostSafeInsetsEvent, HostCapability::safe_insets; stage VA)"},
 }};
 
 // Whether the rows run consecutively from 8, each with a feature.

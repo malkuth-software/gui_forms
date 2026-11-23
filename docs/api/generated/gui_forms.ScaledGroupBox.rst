@@ -9,7 +9,7 @@ gui_forms::ScaledGroupBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScaledGroupBox final : public GroupBox, public ScaledGroupBoxCapabilities<ScaledGroupBox>
+.. cpp:class:: ScaledGroupBox final : public GroupBox
 
    ``#include <gui_forms/controls/scaled_group_box.hpp>`` (:src:`source <include/gui_forms/controls/scaled_group_box.hpp>`)
 
@@ -38,16 +38,11 @@ gui_forms::ScaledGroupBox
          The caption, with ``&`` marking the mnemonic as in :cpp:class:`GroupBox <gui_forms::GroupBox>`.
 
       **initial_design_size** : ``Size``, default ``{1.0, 1.0}``
-         The width and height of the design space. Both must be finite and
-         positive, or the constructor throws ``std::invalid_argument``. The default
-         unit square lets you give design bounds as fractions of the box.
-
-   :Properties:
-
-      **design_size** : ``Size``
-         The size of the design space that child slots are given in. Setting it
-         relays out every child; a size that is not finite and positive throws
-         ``std::invalid_argument``.
+         The width and height of the design space, written to the box's
+         ``design_size`` (a :cpp:class:`Control <gui_forms::Control>` property; while it is zero the box maps from
+         the unit square). Both must be finite and positive, or the constructor
+         throws ``std::invalid_argument``. The default unit square lets you give
+         design bounds as fractions of the box.
 
    :Inherited:
 
@@ -69,8 +64,6 @@ gui_forms::ScaledGroupBox
         - ``add_at(child, design_bounds)`` adds a child and gives it a slot in design coordinates.
       * - :cpp:func:`design_bounds <gui_forms::ScaledGroupBox::design_bounds>`
         - The child's slot in design coordinates, or empty if it has none.
-      * - :cpp:func:`scaled_group_box_property_entries <gui_forms::ScaledGroupBox::scaled_group_box_property_entries>`
-        -  
       * - :cpp:func:`set_design_bounds <gui_forms::ScaledGroupBox::set_design_bounds>`
         - Moves an existing child to a new slot.
 
@@ -123,15 +116,6 @@ gui_forms::ScaledGroupBox
    .. cpp:function:: explicit ScaledGroupBox(StableId stable_id, std::string initial_text = {}, Size initial_design_size = {1.0, 1.0})
 
 
-   .. rubric:: Properties
-
-   .. cpp:member:: Size design_size
-
-      The size of the design space that child slots are given in. Setting it
-      relays out every child; a size that is not finite and positive throws
-      ``std::invalid_argument``.
-
-
    .. rubric:: Methods
 
    .. cpp:function:: void add_at(Control::Ptr child, Rect design_bounds)
@@ -144,8 +128,6 @@ gui_forms::ScaledGroupBox
    .. cpp:function:: stxlib::Optional<Rect> design_bounds(const Control& child) const
 
       The child's slot in design coordinates, or empty if it has none.
-
-   .. cpp:function:: static const std::array<PropertyEntry, scaled_group_box_property_count>& scaled_group_box_property_entries() noexcept
 
    .. cpp:function:: void set_design_bounds(const Control& child, Rect design_bounds)
 
@@ -163,15 +145,13 @@ gui_forms::ScaledGroupBox
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
-   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+   .. cpp:function:: stxlib::Optional<double> applied_viewport_scale() const noexcept override
 
-   .. cpp:member:: constexpr std::size_t scaled_group_box_property_count
-
-      ScaledGroupBox's property table: GroupBox's entries, then its own. Default: ``GroupBox::group_box_property_count + 1U``.
+      Its children are stretched from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). Reports the stretch's smaller axis ratio; none while design_size is zero or it has no extent.
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 2 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 1 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -194,10 +174,6 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
      - GUI.Forms-only
      - ``design_bounds``
      - supported
-   * - method
-     - GUI.Forms-only
-     - ``scaled_group_box_property_entries``
-     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``set_design_bounds``

@@ -356,15 +356,14 @@ void ToolStripContainer::move_to(const std::shared_ptr<ToolStrip>& strip, StripP
 // -- dragging strips -----------------------------------------------------------
 
 Rect ToolStripContainer::local_bounds_of(const Control& control) const noexcept {
-    const Rect mine = absolute_bounds();
     const Rect theirs = control.absolute_bounds();
-    const Rect local{theirs.x - mine.x, theirs.y - mine.y, theirs.width, theirs.height};
+    const Rect local = rectangle_from_window(theirs);
     return local;
 }
 
 Point ToolStripContainer::local_point(Point window_point) const noexcept {
-    const Rect mine = absolute_bounds();
-    const Point local{window_point.x - mine.x, window_point.y - mine.y};
+    const ScaleFrame mine_frame = window_frame();
+    const Point local = frame_to_inner(mine_frame, window_point);
     return local;
 }
 
@@ -376,8 +375,8 @@ std::shared_ptr<ToolStrip> ToolStripContainer::grip_strip_at(Point window_point)
             if (!(*strip).visible.read() || !(*strip).grip_visible.read()) continue;
             const Rect grip = (*strip).parts().grip.bounds;
             if (grip.empty()) continue;
-            const Rect placed = (*strip).absolute_bounds();
-            const Rect window_grip{placed.x + grip.x, placed.y + grip.y, grip.width, grip.height};
+            const ScaleFrame placed_frame = (*strip).window_frame();
+            const Rect window_grip = frame_to_outer(placed_frame, grip);
             if (window_grip.contains(window_point)) return strip;
         }
     }

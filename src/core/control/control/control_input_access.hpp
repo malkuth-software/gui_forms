@@ -32,9 +32,9 @@ public:
     // carry no arguments (a handler's Control::pointer_location reads the
     // window's last pointer event, not this one: nothing is dispatched). A
     // press, release, move or wheel raises its mouse raiser with
-    // mouse_event_arguments: location relative to the control's absolute
-    // bounds, clicks the event's click_count for a press or release (zero
-    // otherwise), the target phase.
+    // mouse_event_arguments: location in the control's local coordinates
+    // (through its window frame), clicks the event's click_count for a
+    // press or release (zero otherwise), the target phase.
     static void on_pointer(Control& target, PointerEvent& event) {
         if (event.action == PointerAction::enter) {
             target.on_mouse_enter();
@@ -44,9 +44,8 @@ public:
             target.on_mouse_leave();
             return;
         }
-        const Rect bounds = target.absolute_bounds();
-        const Point origin{bounds.x, bounds.y};
-        MouseEventArgs arguments = mouse_event_arguments(event, origin, event.click_count);
+        const ScaleFrame frame = target.window_frame();
+        MouseEventArgs arguments = mouse_event_arguments(event, frame, event.click_count);
         arguments.phase = EventPhase::target;
         switch (event.action) {
         case PointerAction::down:

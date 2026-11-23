@@ -563,6 +563,7 @@ void NativeWindow::attach() {
     if (!dispatch(HostAttachEvent{Size{content.width, content.height}, scale}).accepted())
         throw std::runtime_error("Surface window attach rejected");
     static_cast<void>(dispatch(HostCompositorEvent{surface_compositor_state()}));
+    report_safe_insets();
     if (entry.options.initially_visible) set_visible(true);
 }
 
@@ -658,8 +659,26 @@ void NativeWindow::apply_content(Rect next) {
         damage.add({0.0, 0.0, after.width, after.height});
         if (chrome) (*chrome).resize(after.width, scale);
     }
+    report_safe_insets();
     runtime.scene_changed();
     if (runtime.windowing) (*runtime.windowing).report_native_frame(*this);
+}
+
+void NativeWindow::report_safe_insets() {
+    if (closed) return;
+    const SafeInsets& surface = runtime.safe_insets;
+    const Size extent = runtime.extent;
+    // How far each hidden band reaches into the client area.
+    const double left = std::clamp(surface.left - content.x, 0.0, content.width);
+    const double top = std::clamp(surface.top - content.y, 0.0, content.height);
+    const double right = std::clamp(content.x + content.width - (extent.width - surface.right), 0.0, content.width);
+    const double bottom =
+        std::clamp(content.y + content.height - (extent.height - surface.bottom), 0.0, content.height);
+    const SafeInsets insets{left, top, right, bottom};
+    if (safe_insets_reported && reported_safe_insets == insets) return;
+    if (!dispatch(HostSafeInsetsEvent{insets}).accepted()) return;
+    safe_insets_reported = true;
+    reported_safe_insets = insets;
 }
 
 void NativeWindow::apply_scale(double next) {
@@ -1704,6 +1723,9 @@ void Runtime::handle(SurfaceInputRecord& record) {
     case SurfaceInputKind::resize:
         handle_resize(record);
         break;
+    case SurfaceInputKind::safe_insets:
+        handle_safe_insets(record);
+        break;
     case SurfaceInputKind::focus: {
         host_focused = record.down;
         NativeWindow* active_window = window(desk.active());
@@ -2056,6 +2078,18 @@ void Runtime::handle_resize(const SurfaceInputRecord& record) {
         } else if (windowing) {
             (*windowing).report_native_frame(candidate);
         }
+    }
+}
+
+void Runtime::handle_safe_insets(const SurfaceInputRecord& record) {
+    // A report that is not valid_safe_insets is dropped: the last one stands.
+    if (!valid_safe_insets(record.insets)) return;
+    safe_insets = record.insets;
+    const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+    for (std::size_t index = 0U; index < snapshot.size(); ++index) {
+        NativeWindow& candidate = *snapshot[index];
+        if (candidate.closed) continue;
+        candidate.report_safe_insets();
     }
 }
 

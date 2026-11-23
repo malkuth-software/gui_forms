@@ -105,8 +105,8 @@ bool ModalLayer::hit_test_local(Point) const {
 // The layer takes the press, release and wheel, so nothing beneath it sees
 // them.
 void ModalLayer::on_mouse_down(MouseEventArgs& arguments) {
-    const Rect origin = absolute_bounds();
-    const Point local{arguments.window_position.x - origin.x, arguments.window_position.y - origin.y};
+    const ScaleFrame origin_frame = window_frame();
+    const Point local = frame_to_inner(origin_frame, arguments.window_position);
     const bool button = arguments.button == PointerButton::primary || arguments.button == PointerButton::secondary;
     const bool beside = shown_ && button && !content_bounds_.contains(local);
     arguments.handled = true;

@@ -4,6 +4,7 @@
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/control/control_layout_styles/control_layout_styles.hpp"
 #include "gui_forms/control/control_property_traits/control_property_traits.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/types/cursor_image/cursor_image.hpp"
@@ -172,6 +173,32 @@ struct MaximumSizeCapability {
         control.prepare_write(std::as_const(capability.maximum_size), incoming);
         if (!capability.maximum_size.replace(std::move(incoming))) return;
         control.written(std::as_const(capability.maximum_size));
+    }
+};
+
+// What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+template <typename Declaring>
+struct ViewportFitCapability {
+    PropertyCell<ViewportFit, ViewportFitCapability<Declaring>> viewport_fit{ViewportFit{OverflowAnswer::clip}};
+
+    static void assign(ViewportFitCapability& capability, ViewportFit incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.viewport_fit), incoming);
+        if (!capability.viewport_fit.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.viewport_fit));
+    }
+};
+
+// The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent. Contain and cover scale content of this extent into the viewport. Throws std::invalid_argument unless both sides are finite and either both zero or both positive.
+template <typename Declaring>
+struct DesignSizeCapability {
+    PropertyCell<Size, DesignSizeCapability<Declaring>> design_size{Size{}};
+
+    static void assign(DesignSizeCapability& capability, Size incoming) {
+        Declaring& control = static_cast<Declaring&>(capability);
+        control.prepare_write(std::as_const(capability.design_size), incoming);
+        if (!capability.design_size.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.design_size));
     }
 };
 
@@ -494,6 +521,8 @@ struct ControlCapabilities : public NameCapability<Declaring>,
                              public ForeColorCapability<Declaring>,
                              public MinimumSizeCapability<Declaring>,
                              public MaximumSizeCapability<Declaring>,
+                             public ViewportFitCapability<Declaring>,
+                             public DesignSizeCapability<Declaring>,
                              public MarginCapability<Declaring>,
                              public PaddingCapability<Declaring>,
                              public DockCapability<Declaring>,

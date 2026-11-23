@@ -322,8 +322,8 @@ void SurfaceRoot::resume_relative_pointer() {
 
 void SurfaceRoot::raise_relative_sample(const Control::Ptr& owner, RelativePointerEventArgs& arguments,
                                         Point window_position) {
-    const Rect bounds = (*owner).absolute_bounds();
-    arguments.position = Point{window_position.x - bounds.x, window_position.y - bounds.y};
+    // The owner's own coordinates, through its window frame (stage VA).
+    arguments.position = (*owner).point_from_window(window_position);
     arguments.mode = relative_pointer_.grant.mode;
     ++relative_pointer_.samples;
     metrics_.record_callback_emitted();

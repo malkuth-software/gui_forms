@@ -145,6 +145,8 @@ Related types
      - OffscreenRaster::create's outcome: the raster, or why there is none.
    * - :cpp:class:`OffscreenRasterOptions <gui_forms::OffscreenRasterOptions>`
      -  
+   * - :cpp:class:`OverflowOutline <gui_forms::OverflowOutline>`
+     - One overflowing owner's outline: its child viewport (or, for the root, the root slot) in window logical units.
    * - :cpp:class:`OverlayOptions <gui_forms::OverlayOptions>`
      - OverlayOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment.
    * - :cpp:class:`OverlayToken <gui_forms::OverlayToken>`
@@ -1255,6 +1257,12 @@ Related types
 
       Replaces the counters card's lines (the window fills them from its metrics after each paint): the first maximum_overlay_counter_lines, each cut to maximum_overlay_counter_characters bytes. The lines' storage is reused, so a steady card allocates nothing. No lines, no card.
 
+   .. cpp:function:: stxlib::View<OverflowOutline> overflow_outlines() const& noexcept
+
+   .. cpp:function:: void set_overflow_outlines(stxlib::View<OverflowOutline> outlines)
+
+      Replaces the overflow outlines (the window fills them from its overflow records after each paint; stage VA): the first maximum_overflow_outlines of :cpp:func:`outlines <gui_forms::InvalidationOverlay::outlines>`. The storage is reused, so a steady set allocates nothing after the first.
+
    .. cpp:function:: std::span<const InvalidationOutline> outlines() const& noexcept
 
       Oldest first.
@@ -1280,7 +1288,7 @@ Related types
 
    .. cpp:function:: void fill_regions(double scale, std::uint32_t width, std::uint32_t height, std::vector<DevicePixelRect>& regions) const
 
-      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, the legend while any outline shows, and the counters card at the top left while it has lines. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
+      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, each overflow outline's four bands, the legend while any outline shows, and the counters card at the top left while it has lines. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
 
    .. cpp:function:: void compose(const InvalidationOverlayTarget& target, double scale, InvalidationClock::time_point now, DevicePixelRect clip) const
 
@@ -1618,6 +1626,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: OverflowOutline final
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
+
+   One overflowing owner's outline: its child viewport (or, for the root, the root slot) in window logical units. Steady: drawn at full opacity while the overflow lasts, never fading.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: OverflowOutlineKind kind
+
+      Default: ``{OverflowOutlineKind::unanswered}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: OverlayOptions final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
@@ -1947,6 +1969,10 @@ Related types
    .. cpp:member:: ColourScheme colour_scheme
 
       The preferred colour scheme (EC3). A change re-resolves every part: a theme's rules may hold for one scheme only. Default: ``{ColourScheme::light}``.
+
+   .. cpp:member:: double minimum_content_scale
+
+      The smallest effective scale controls are contained at (stage VA, decision 5): a contain of controls that would go smaller takes its viewport_fit's below_minimum at this scale instead. Media (Control:: shows_media_content) is bounded by its own minimum_scale alone. Above 0 and at most 1. Default: ``{0.5}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3318,6 +3344,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: OverflowOutlineKind
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
+
+   .. cpp:enumerator:: unanswered
+
+   .. cpp:enumerator:: clipped
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: PaintLeaseState
 
    ``#include <gui_forms/window/presentation/presentation_types.hpp>`` (:src:`source <include/gui_forms/window/presentation/presentation_types.hpp>`)
@@ -3685,6 +3721,8 @@ Functions, constants and aliases
 
    Counts each change of the process switch, so a window notices one with a single relaxed load. Any thread.
 
+.. cpp:function:: InvalidationOutlineStyle overflow_outline_style(OverflowOutlineKind kind) noexcept
+
 .. cpp:var:: constexpr std::size_t invalidation_cause_count
 
    Value: ``6U``.
@@ -3712,6 +3750,10 @@ Functions, constants and aliases
 .. cpp:type:: InvalidationClock = std::chrono::steady_clock
 
    The time outlines are stamped and aged with.
+
+.. cpp:var:: constexpr std::size_t maximum_overflow_outlines
+
+   The overflow outlines a window keeps at once; later ones are not shown. Value: ``256U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4061,7 +4103,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void validate_presentation_settings(const PresentationSettings& settings)
 
-   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, caret settings that are not valid_caret_settings, or an origin or scheme outside its enum.
+   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a minimum content scale not above 0 or above 1, a double-click interval outside 1 to maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, caret settings that are not valid_caret_settings, or an origin or scheme outside its enum.
 
 .. cpp:function:: PresentationSettings overridden_presentation(PresentationSettings settings, const PresentationOverrides& overrides) noexcept
 

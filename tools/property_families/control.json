@@ -9,6 +9,7 @@
   "includes": [
     "gui_forms/control/control_layout_styles/control_layout_styles.hpp",
     "gui_forms/control/control_property_traits/control_property_traits.hpp",
+    "gui_forms/layout/viewport_fit/viewport_fit.hpp",
     "gui_forms/layout/types/layout_types.hpp",
     "gui_forms/types.hpp",
     "gui_forms/types/cursor_image/cursor_image.hpp",
@@ -212,6 +213,44 @@
       "value": "Size",
       "initial": null,
       "comment": "The largest size layout gives the control; zero is unbounded.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "viewport_fit",
+      "capability": "ViewportFit",
+      "value": "ViewportFit",
+      "initial": "ViewportFit{OverflowAnswer::clip}",
+      "comment": "What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.",
+      "getter": null,
+      "setter": null,
+      "clear": null,
+      "field": null,
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "hand",
+      "hand": [
+        "Control's hooks, descriptors and table are hand-written (M2, src/core/control/control/control.cpp)"
+      ]
+    },
+    {
+      "name": "design_size",
+      "capability": "DesignSize",
+      "value": "Size",
+      "initial": "Size{}",
+      "comment": "The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent. Contain and cover scale content of this extent into the viewport. Throws std::invalid_argument unless both sides are finite and either both zero or both positive.",
       "getter": null,
       "setter": null,
       "clear": null,

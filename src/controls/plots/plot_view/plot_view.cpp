@@ -515,8 +515,8 @@ void PlotView::handle_pointer(PointerEvent& event) {
         return;
     }
     gather_series();
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     // A primary press on a handle arms its drag, ahead of panning.
     if (event.action == PointerAction::down && event.button == PointerButton::primary) {
         const stxlib::Optional<std::size_t> hit_found = handle_at(local);
@@ -528,9 +528,9 @@ void PlotView::handle_pointer(PointerEvent& event) {
             if (centre != nullptr) {
                 DragStart start{};
                 start.key = handle.id;
-                start.source.set(Rect{absolute.x + (*centre).x - handle_pick_radius,
-                                    absolute.y + (*centre).y - handle_pick_radius, handle_pick_radius * 2.0,
-                                    handle_pick_radius * 2.0});
+                start.source.set(frame_to_outer(local_frame, Rect{(*centre).x - handle_pick_radius,
+                                                                 (*centre).y - handle_pick_radius,
+                                                                 handle_pick_radius * 2.0, handle_pick_radius * 2.0}));
                 handle_drag_state_.set(HandleDrag{handle.id, handle.x, handle.y});
                 const DragStartResult result = handle_drag_.press(event, start);
                 if (result == DragStartResult::armed || result == DragStartResult::started) {
@@ -643,9 +643,9 @@ stxlib::Optional<std::size_t> PlotView::handle_at(Point local) const {
 stxlib::Optional<Point> PlotView::handle_data_at(Point window_top_left) const {
     const plots::PlotTransformResult made = (*engine_).first_axes_transform(device_scale());
     if (made.check != plots::PlotTransformCheck::valid) return stxlib::Optional<Point>::none();
-    const Rect absolute = absolute_bounds();
-    const double local_x = window_top_left.x + handle_pick_radius - absolute.x;
-    const double local_y = window_top_left.y + handle_pick_radius - absolute.y;
+    const Point top_left = point_from_window(window_top_left);
+    const double local_x = top_left.x + handle_pick_radius;
+    const double local_y = top_left.y + handle_pick_radius;
     const Point data{made.transform.x_from_device(local_x), made.transform.y_from_device(local_y)};
     if (!std::isfinite(data.x) || !std::isfinite(data.y)) return stxlib::Optional<Point>::none();
     return stxlib::Optional<Point>::of(data);
@@ -663,11 +663,12 @@ void PlotView::plan_handle_drag(DragPlan& plan) {
     }
     // The subject is a square of twice the pick radius centred on the grab
     // point; its top-left stays where its centre stays inside the plot.
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect plot = made.transform.plot();
     plan.kind = DragKind::placement;
-    plan.placement.bounds = Rect{absolute.x + plot.x - handle_pick_radius, absolute.y + plot.y - handle_pick_radius,
-                                 plot.width + handle_pick_radius * 2.0, plot.height + handle_pick_radius * 2.0};
+    const Rect picked{plot.x - handle_pick_radius, plot.y - handle_pick_radius, plot.width + handle_pick_radius * 2.0,
+                      plot.height + handle_pick_radius * 2.0};
+    plan.placement.bounds = frame_to_outer(local_frame, picked);
     plan.placement.grid = Size{};
     plan.placement.free_drop = true;
     const PlotHandleKind kind = handles_[*index].kind;

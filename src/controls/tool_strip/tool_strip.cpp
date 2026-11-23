@@ -796,9 +796,10 @@ void ToolStrip::on_paint(Painter& painter, Rect) {
 
 stxlib::Optional<std::size_t> ToolStrip::index_at(Point window_point, ItemZone& zone) const {
     zone = ItemZone::none;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
+    const Rect absolute = frame_to_outer(local_frame, client_rectangle());
     if (!absolute.contains(window_point)) return stxlib::Optional<std::size_t>::none();
-    const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point local = frame_to_inner(local_frame, window_point);
     const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (placed.items[index].empty() || !placed.items[index].contains(local)) continue;
@@ -810,10 +811,10 @@ stxlib::Optional<std::size_t> ToolStrip::index_at(Point window_point, ItemZone& 
 }
 
 bool ToolStrip::overflow_at(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect button = layout().overflow_button;
     const bool result = !button.empty() &&
-        button.contains(Point{window_point.x - absolute.x, window_point.y - absolute.y});
+        button.contains(frame_to_inner(local_frame, window_point));
     return result;
 }
 
@@ -1049,13 +1050,13 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     if (holds(open_index_, *index) && (*overlay_).is_open()) return true;
     close_drop_down();
     (*overlay_).set_items(std::move(menu));
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     // A menu opens below an item, or beside it on a vertical strip.
     // Right to left it hangs leftward from the item's right edge.
     const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
     const double drop_x = right_to_left ? bounds.x + bounds.width : bounds.x;
-    Point anchor{absolute.x + drop_x, absolute.y + bounds.y + bounds.height};
-    if (vertical()) anchor = {absolute.x + bounds.x + bounds.width, absolute.y + bounds.y};
+    Point anchor = frame_to_outer(local_frame, Point{drop_x, bounds.y + bounds.height});
+    if (vertical()) anchor = frame_to_outer(local_frame, Point{bounds.x + bounds.width, bounds.y});
     // show opens a focus scope, which runs the previous control's focus and
     // validation handlers before it returns; one may close the menu or
     // replace the items (A-gf-controls-14-F2). The open item is recorded
@@ -1120,16 +1121,16 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
     if (menu.empty()) return false;
     close_drop_down();
     (*overlay_).set_items(std::move(menu));
-    const Rect absolute = absolute_bounds();
-    const double right = absolute.x + placed.overflow_button.x + placed.overflow_button.width;
-    Point anchor{std::max(absolute.x, right - (*overlay_).preferred_width.read()),
-                 absolute.y + placed.overflow_button.y + placed.overflow_button.height};
+    // The button's corners in window coordinates (through the window
+    // frame, stage VA); the menu's own width is the window's.
+    const Rect button = rectangle_to_window(placed.overflow_button);
+    const double left = point_to_window(Point{}).x;
+    const double right = button.right();
+    Point anchor{std::max(left, right - (*overlay_).preferred_width.read()), button.bottom()};
     // Right to left the button is at the strip's left; the menu hangs
     // leftward from its right edge and the overlay keeps it on screen.
-    if (effective_layout_direction() == LayoutDirection::right_to_left) {
-        anchor = {right, absolute.y + placed.overflow_button.y + placed.overflow_button.height};
-    }
-    if (vertical()) anchor = {right, absolute.y + placed.overflow_button.y};
+    if (effective_layout_direction() == LayoutDirection::right_to_left) anchor = {right, button.bottom()};
+    if (vertical()) anchor = {right, button.y};
     // As in show_drop_down: the menu is marked open only if the focus
     // handlers show runs left it open (A-gf-controls-14-F2).
     const Control::Ptr lifetime = shared_from_this();
@@ -1217,7 +1218,7 @@ SemanticDescriptor ToolStrip::semantic_descriptor() const {
 
 std::vector<SemanticNode> ToolStrip::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         const Rect bounds = placed.items[index];
@@ -1230,7 +1231,7 @@ std::vector<SemanticNode> ToolStrip::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.name = item_text(item);
         node.tool_tip = item.tool_tip_text;
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible;
         if (item_enabled(item)) node.states |= SemanticState::enabled;
         if (item.kind == ToolStripItemKind::separator) {

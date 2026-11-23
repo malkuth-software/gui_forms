@@ -27,6 +27,13 @@ public:
     // (declare_paint_follows_view) and the view is exact (pan_copies_exactly);
     // otherwise, and for a change of zoom, the canvas is repainted.
     void set_view(double zoom, gui_drawing::PointF origin);
+    // The whole bitmap in view (stage VA, section 8): the visible-area
+    // guarantee's contain computation (place_viewport_content) of the
+    // bitmap into the client rectangle under this canvas's viewport_fit
+    // (media: no floor, centred by default), its scale kept within the zoom
+    // bounds [1/64, 256], then set_view. Nothing without a bitmap or with
+    // an empty client rectangle.
+    void view_whole_bitmap();
 
     void set_transparency_colors(Color first, Color second);
 
@@ -46,6 +53,8 @@ public:
     [[nodiscard]] gui_drawing::RectF visible_bitmap_bounds() const;
 
     void on_paint(Painter& painter, Rect local_damage) override;
+    // Media (stage VA, section 8): its contain has no floor but its fit's.
+    [[nodiscard]] bool shows_media_content() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).

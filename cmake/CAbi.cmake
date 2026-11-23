@@ -166,6 +166,7 @@ add_library(gui_forms_abi_objects OBJECT
     src/abi/stable/tables/abi_themes.cpp
     src/abi/stable/tables/abi_windows.cpp
     src/abi/stable/tables/abi_window_mdi.cpp
+    src/abi/stable/tables/abi_viewport.cpp
     src/abi/stable/values/abi_values.cpp
     src/abi/stable/windows/abi_window_handle.cpp
     src/abi/stable/windows/abi_window_properties.cpp
@@ -339,6 +340,7 @@ add_library(gui_forms_abi_conformance_kit STATIC
     src/abi/conformance/gf_conformance_callbacks.c
     src/abi/conformance/gf_conformance_classes.c
     src/abi/conformance/gf_conformance_band.c
+    src/abi/conformance/gf_conformance_viewport.c
     src/abi/conformance/gf_conformance_content.c
     src/abi/conformance/gf_conformance_create.c
     src/abi/conformance/gf_conformance_custom.c

@@ -141,10 +141,10 @@ Rect Dial::needle_bounds() const noexcept {
 }
 
 double Dial::value_from_window_point(Point point, double previous) const noexcept {
-    const Rect absolute = absolute_bounds();
+    const Point local = point_from_window(point);
     const Face placed = face();
-    const double dx = point.x - (absolute.x + placed.centre.x);
-    const double dy = point.y - (absolute.y + placed.centre.y);
+    const double dx = local.x - placed.centre.x;
+    const double dy = local.y - placed.centre.y;
     if (dx == 0.0 && dy == 0.0) return previous;
     // Clockwise from twelve o'clock, from -pi to pi.
     // 0.0 - dy, never -0: STXlib's atan2 follows Annex F at signed zeros

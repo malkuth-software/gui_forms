@@ -48,13 +48,14 @@ constexpr std::string_view request_item_prefix = "sub-surface-request.";
 
 // Translates the sub-surface's nodes into the window, in place (the class
 // comment of SubSurfaceHost): `prefix` is the host's stable identity and a
-// '.', `offset` the host's position in the window, `keep_focus` whether the
-// sub-surface has keyboard focus.
+// '.', `offset` where the sub-surface's origin lies in the window and
+// `scale` its content scale there (stage VA; 1 without a design size),
+// `keep_focus` whether the sub-surface has keyboard focus.
 // Recurses once per semantic level: at most the control nesting limit
 // (64) plus maximum_virtual_semantic_depth (16) levels, both enforced
 // before a snapshot is published (semantic_types.hpp).
 void translate_sub_surface_nodes(std::vector<SemanticNode>& nodes, const std::string& prefix, Point offset,
-                                 bool keep_focus) {
+                                 double scale, bool keep_focus) {
     for (SemanticNode& node : nodes) {
         std::string identity = prefix;
         identity.back() = '#';
@@ -62,13 +63,13 @@ void translate_sub_surface_nodes(std::vector<SemanticNode>& nodes, const std::st
         node.runtime_id = virtual_semantic_runtime_id(identity);
         node.stable_id.insert(0U, prefix);
         if (!node.controlled_panel.empty()) node.controlled_panel.insert(0U, prefix);
-        node.bounds.x += offset.x;
-        node.bounds.y += offset.y;
+        node.bounds = Rect{offset.x + node.bounds.x * scale, offset.y + node.bounds.y * scale,
+                           node.bounds.width * scale, node.bounds.height * scale};
         if (!keep_focus) {
             const std::uint32_t focused_bit = static_cast<std::uint32_t>(SemanticState::focused);
             node.states = static_cast<SemanticState>(static_cast<std::uint32_t>(node.states) & ~focused_bit);
         }
-        translate_sub_surface_nodes(node.children, prefix, offset, keep_focus);
+        translate_sub_surface_nodes(node.children, prefix, offset, scale, keep_focus);
     }
 }
 
@@ -237,7 +238,12 @@ SubSurfaceHost::SubSurfaceHost(StableId stable_id)
     focusable = true;
     // The sub-surface's tooltip requests are this host's tooltip parts.
     set_publishes_item_tool_tips(true);
+    // Media: a design size is contained with no floor and enlarged up to
+    // maximum_viewport_scale (stage VA, section 8).
+    viewport_fit = media_viewport_fit;
 }
+
+bool SubSurfaceHost::shows_media_content() const noexcept { return true; }
 
 SubSurfaceHost::~SubSurfaceHost() {
     // Notices already posted find the host gone; the stop below posts one
@@ -335,7 +341,50 @@ void SubSurfaceHost::arrange(Rect final_bounds) {
 void SubSurfaceHost::on_paint(Painter& painter, Rect) {
     if (!surface_) return;
     const Rect bounds{0.0, 0.0, committed_arranged_bounds().width, committed_arranged_bounds().height};
-    painter.draw_live_surface(surface_, bounds, 1.0);
+    // A cover reaches past the region; the region cuts it.
+    painter.save();
+    painter.clip_rect(bounds);
+    painter.draw_live_surface(surface_, placement_.destination, 1.0);
+    painter.restore();
+}
+
+stxlib::Optional<double> SubSurfaceHost::applied_viewport_scale() const noexcept {
+    if (!placement_.applied) return stxlib::Optional<double>::none();
+    const stxlib::Optional<double> scale = stxlib::Optional<double>::of(placement_.scale);
+    return scale;
+}
+
+SubSurfaceHost::ContentPlacement SubSurfaceHost::content_placement() const noexcept {
+    const Rect bounds = committed_arranged_bounds();
+    const Rect region{0.0, 0.0, bounds.width, bounds.height};
+    const Size design = design_size.read();
+    ContentPlacement placement{};
+    if (design.width <= 0.0 || design.height <= 0.0) {
+        placement.logical = Size{bounds.width, bounds.height};
+        placement.scale = 1.0;
+        placement.destination = region;
+        placement.applied = false;
+        return placement;
+    }
+    const ViewportPlacement placed = place_viewport_content(design, region, viewport_fit.read());
+    placement.logical = design;
+    placement.scale = placed.scale;
+    placement.destination = placed.destination;
+    placement.applied = placed.applied == OverflowAnswer::contain || placed.applied == OverflowAnswer::cover;
+    return placement;
+}
+
+Point SubSurfaceHost::content_point(Point local) const noexcept {
+    const Point content{(local.x - placement_.destination.x) / placement_.scale,
+                        (local.y - placement_.destination.y) / placement_.scale};
+    return content;
+}
+
+Rect SubSurfaceHost::local_rectangle(Rect content) const noexcept {
+    const Rect local{placement_.destination.x + content.x * placement_.scale,
+                     placement_.destination.y + content.y * placement_.scale, content.width * placement_.scale,
+                     content.height * placement_.scale};
+    return local;
 }
 
 namespace {
@@ -411,8 +460,11 @@ std::vector<SemanticNode> SubSurfaceHost::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes = (*semantics_).roots;
     std::string prefix(stable_id().value());
     prefix += '.';
-    const Rect bounds = absolute_bounds();
-    translate_sub_surface_nodes(nodes, prefix, Point{bounds.x, bounds.y}, keyboard_inside_);
+    // Through the host's window frame too (stage VA): a host inside a
+    // contained subtree publishes its nodes where they are seen.
+    const ScaleFrame frame = window_frame();
+    const Point origin = frame_to_outer(frame, Point{placement_.destination.x, placement_.destination.y});
+    translate_sub_surface_nodes(nodes, prefix, origin, placement_.scale * frame.scale, keyboard_inside_);
     return nodes;
 }
 
@@ -520,7 +572,7 @@ void SubSurfaceHost::forward_pointer(const PointerEvent& event) {
     SubSurfaceInput input;
     input.kind = SubSurfaceInputKind::pointer;
     input.pointer = event;
-    input.pointer.position = point_from_window(event.position);
+    input.pointer.position = content_point(point_from_window(event.position));
     input.pointer.phase = EventPhase::target;
     input.pointer.handled = false;
     const std::uint64_t sequence = (*thread_).post_input(input);
@@ -607,7 +659,9 @@ void SubSurfaceHost::hold_capture_for(const PointerEvent& event) {
 stxlib::Optional<Rect> SubSurfaceHost::text_input_caret() const {
     if (!thread_) return stxlib::Optional<Rect>::none();
     const stxlib::Optional<Rect> caret = (*thread_).text_input_caret();
-    return caret;
+    if (!caret.present()) return caret;
+    const stxlib::Optional<Rect> local = stxlib::Optional<Rect>::of(local_rectangle(*caret.value()));
+    return local;
 }
 
 void SubSurfaceHost::forward_key(KeyEventArgs& arguments, KeyAction action) {
@@ -680,7 +734,6 @@ std::vector<SemanticNode> SubSurfaceHost::tool_tip_items() const {
     std::vector<SemanticNode> items;
     if (requests_.empty()) return items;
     items.reserve(requests_.size());
-    const Rect origin = absolute_bounds();
     for (const SubSurfaceRequest& request : requests_) {
         SemanticNode item;
         item.runtime_id = runtime_id().value;
@@ -690,8 +743,8 @@ std::vector<SemanticNode> SubSurfaceHost::tool_tip_items() const {
         item.tool_tip = request.text;
         item.states = SemanticState::enabled;
         if (request.origin != SubSurfaceToolTipOrigin::program) {
-            item.bounds = Rect{origin.x + request.anchor.x, origin.y + request.anchor.y, request.anchor.width,
-                               request.anchor.height};
+            const Rect anchor = local_rectangle(request.anchor);
+            item.bounds = rectangle_to_window(anchor);
         }
         if (request.origin == SubSurfaceToolTipOrigin::keyboard) item.states |= SemanticState::focused;
         items.push_back(std::move(item));
@@ -739,9 +792,7 @@ void SubSurfaceHost::receive_request(const SubSurfaceRequest& request) {
     requests_.erase(kept, requests_.end());
     requests_.push_back(request);
     if (request.origin == SubSurfaceToolTipOrigin::program) {
-        const Rect origin = absolute_bounds();
-        const Rect anchor{origin.x + request.anchor.x, origin.y + request.anchor.y, request.anchor.width,
-                          request.anchor.height};
+        const Rect anchor = rectangle_to_window(local_rectangle(request.anchor));
         detail::SurfaceRequestAccess::show_requested_tool_tip(*window, shared_from_this(), request_item_id(request.id),
                                                               request.text, anchor, request.duration);
         return;
@@ -867,17 +918,28 @@ void SubSurfaceHost::configure_region() {
     Window* const window = attached_window();
     if (window == nullptr) return;
     if (!thread_ && !content_) return;
-    const Rect bounds = committed_arranged_bounds();
-    const double scale = (*window).scale();
-    const std::uint32_t pixel_width = device_extent(bounds.width, scale);
-    const std::uint32_t pixel_height = device_extent(bounds.height, scale);
+    // The root's placement in the region (stage VA): its logical size and
+    // scale are the design size and the window's scale times the
+    // placement's when the host has a design size, the region's otherwise.
+    const ContentPlacement placement = content_placement();
+    const double scale = (*window).scale() * placement.scale;
+    const Size logical = placement.logical;
+    const std::uint32_t pixel_width = device_extent(logical.width, scale);
+    const std::uint32_t pixel_height = device_extent(logical.height, scale);
     if (pixel_width == 0U || pixel_height == 0U) return;
+    // A placement that only moved repaints the region, signalling nothing
+    // to the sub-surface.
+    const bool moved = placement.destination != placement_.destination;
+    placement_ = placement;
     // Per axis (resize rules): only a changed device size or scale
     // reconfigures; a new arrangement at the same size signals nothing.
     const bool unchanged = thread_ && !environment_changed_ && !redraw_requested_ && pixel_width == pixel_width_ &&
-                           pixel_height == pixel_height_ && scale == configured_scale_;
-    if (unchanged) return;
-    const Size logical{bounds.width, bounds.height};
+                           pixel_height == pixel_height_ && scale == configured_scale_ &&
+                           logical == configured_logical_;
+    if (unchanged) {
+        if (moved) invalidate(Dirty::paint);
+        return;
+    }
     const bool started_now = !thread_;
     if (!thread_) {
         LiveSurfaceDescription description;
@@ -930,7 +992,8 @@ void SubSurfaceHost::configure_region() {
     configuration.opaque = opaque_;
     // A framebuffer only for a new device size: an environment change
     // repaints into the one the sub-surface has.
-    const bool resized = pixel_width != pixel_width_ || pixel_height != pixel_height_ || scale != configured_scale_;
+    const bool resized = pixel_width != pixel_width_ || pixel_height != pixel_height_ || scale != configured_scale_ ||
+                         logical != configured_logical_;
     if (resized) configuration.framebuffer = (*window).create_framebuffer(logical, scale);
     const std::shared_ptr<ApplicationResources> resources = (*window).resources();
     configuration.theme = (*resources).theme_ptr();
@@ -942,6 +1005,7 @@ void SubSurfaceHost::configure_region() {
     pixel_width_ = pixel_width;
     pixel_height_ = pixel_height;
     configured_scale_ = scale;
+    configured_logical_ = logical;
     const Control::Ptr self = shared_from_this();
     static_cast<void>((*window).queue_live_surface_presentation(self, surface_));
     static_cast<void>((*window).require_live_surface_content(self, content_epoch_));
@@ -950,7 +1014,7 @@ void SubSurfaceHost::configure_region() {
     // composes each new frame through the live surface path, and a
     // redraw-all sent while its owner paints (a DataGridView's cell region)
     // must not damage that owner again.
-    if (resized || started_now) invalidate(Dirty::paint);
+    if (resized || started_now || moved) invalidate(Dirty::paint);
 }
 
 void SubSurfaceHost::stop_thread() noexcept {
@@ -1005,6 +1069,8 @@ void SubSurfaceHost::stop_thread() noexcept {
     pixel_width_ = 0U;
     pixel_height_ = 0U;
     configured_scale_ = 0.0;
+    configured_logical_ = Size{};
+    placement_ = ContentPlacement{};
 }
 
 } // namespace gui_forms

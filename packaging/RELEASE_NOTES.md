@@ -110,6 +110,35 @@ Since pull request #484:
   targets, when fuzzers are enabled), and the test CMake options are gone.
   The C conformance kit's sources are in `src/abi/conformance`.
 
+Visible-area guarantee (stage VA):
+
+- **Windows Forms panels contain what overflows them** (owner decision 4):
+  a `Panel`, `GroupBox`, `TabPage`, `UserControl` or `SplitterPanel` without
+  `auto_scroll` whose children reach past it now shows them scaled to fit
+  (never below `PresentationSettings::minimum_content_scale`, 0.5), where
+  Windows Forms clips. Positions read through `absolute_bounds`,
+  `point_to_window` and the pointer follow the scale. Set `viewport_fit` to
+  `clip` for the old cut. A root larger than its window is contained the
+  same way.
+- **`absolute_bounds` and the window mapping functions are scaled under a
+  contain**: code that adds local lengths to `absolute_bounds()` by hand
+  should use `rectangle_to_window` and `point_from_window` (every control
+  in the library now does).
+- **Host protocol 16** adds `HostSafeInsetsEvent` to `HostEventPayload`; a
+  visitor over the payload needs its case.
+
+- **`ScaledPanel` and `ScaledGroupBox` have no `design_size` of their own.**
+  They use `Control::design_size`, which every control now has: the same
+  name and the same meaning for them, so code and form documents that set
+  it keep working. Its default is 0 x 0 (the panels then map from the unit
+  square, as their old default did), it refuses a size with one zero side,
+  and `ScaledPanelCapabilities`, `ScaledGroupBoxCapabilities` and their
+  `DesignSize` capabilities are gone.
+- Hosts shrink a primary, standard or tool window whose frame is larger
+  than its monitor's work area, unless it covers the whole monitor (full
+  screen); a minimum size larger than the work area keeps the window and is
+  counted (`HostWindowingSnapshot::unfit_frames`).
+
 ## Other changes
 
 ### Keys and focus
@@ -406,3 +435,43 @@ Since pull request #484:
   tab shows the pressed dent. A checked command or a selected gallery item
   stands in the gold dithered bulge (the `gold` parameter of `smooth_bulge`
   and `dithered_bulge`). Split commands publish checked.
+
+### Visible-area guarantee (stage VA)
+- Every control has `viewport_fit` (`ViewportFit`: what it does when its
+  content does not fit its viewport; an owner that scrolls its content
+  answers by scrolling) and `design_size`. Defaults by kind: Windows Forms
+  panels contain (a deliberate difference from Windows Forms, which clips),
+  media contains with no floor, CSS panels scroll, a plain control clips.
+- Contain and cover on any control, the root included, through the in-tree
+  scale frame (`ScaleFrame`, `Control::window_frame`, `content_frame`,
+  `Window::root_frame`): contained controls are recorded again at their
+  effective scale and replayed through the frame; hit testing, the pointer,
+  the caret, semantics (`SemanticNode::effective_scale`), anchors and damage
+  map through it. A floor on the effective scale for controls
+  (`PresentationSettings::minimum_content_scale`, 0.5).
+- `PictureBox`'s zoom, `RasterCanvas::view_whole_bitmap` and `scene_framed`
+  use the one contain computation.
+- `ScaledPanel` and `ScaledGroupBox` stay an explicit stretch and gain
+  `aspect` (`ScaledAspect::stretch`, the default, or `uniform`: one scale
+  keeping the design's proportions, aligned by `viewport_fit`'s alignment).
+- Safe insets from hosts (`HostSafeInsetsEvent`, `HostCapability::
+  safe_insets`, host protocol 16): macOS in full screen, and the web host's
+  visual viewport.
+- The diagnostic overlay outlines unanswered (red) and clipped (amber)
+  overflows; the visual inspection lists them as layout reasons.
+- The window checks each layout's owners against their viewports and keeps
+  `overflow_records()` (`OverflowRecord`, `OverflowCause`), diagnoses each
+  new or changed overflow (`LayoutDiagnosticCode::content_overflow`),
+  counts them (`MetricsSnapshot::overflow_*`) and reports the unanswered
+  ones (`unanswered_overflow_count`).
+- `SubSurfaceHost` with a design size lays its sub-surface out at that size
+  and contains or covers it in its region, rendered at the real pixel size.
+- Safe insets (`SafeInsets`, `set_safe_insets`, `visible_client_rectangle`):
+  the root slot keeps clear of the edges a host reports hidden.
+- `place_viewport_content` and `fit_to_work_area` are the pure
+  computations.
+- C ABI 1.7: `gf_viewport_fit`, `gf_overflow_record`, `gf_overflow_answer`,
+  `gf_overflow_cause`, `gf_content_alignment`, the windows table's
+  `overflow_records`, `unanswered_overflow_count` and `safe_insets`, and the
+  controls table's `set_viewport_fit` and `viewport_fit`, and
+  `GF_HOST_CAPABILITY_SAFE_INSETS`.

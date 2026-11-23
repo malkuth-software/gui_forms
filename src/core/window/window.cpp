@@ -115,14 +115,40 @@ std::size_t next_child_position(const Control& parent, const Control* visited, s
     return position;
 }
 
-// `control`'s arranged bounds placed at its parent's window origin.
-Rect placed_bounds(const Control& control, Point parent_origin) noexcept {
+// `control`'s arranged bounds placed through its parent's window frame
+// (stage VA: a uniform scale and a translation).
+Rect placed_bounds(const Control& control, const ScaleFrame& parent_frame) noexcept {
     // The committed bounds: a descent reads them as they are, never laying
     // out (arranged_bounds() would).
     const Rect arranged = control.committed_arranged_bounds();
-    const Rect placed{parent_origin.x + arranged.x, parent_origin.y + arranged.y, arranged.width,
-                      arranged.height};
+    const Rect placed = frame_to_outer(parent_frame, arranged);
     return placed;
+}
+
+// `control`'s window frame, from its parent's: its position, at the
+// parent's scale.
+ScaleFrame local_frame_at(const Control& control, const ScaleFrame& parent_frame) noexcept {
+    const Rect arranged = control.committed_arranged_bounds();
+    const ScaleFrame position{Point{arranged.x, arranged.y}, 1.0};
+    const ScaleFrame frame = compose_frames(parent_frame, position);
+    return frame;
+}
+
+// The frame `control`'s children are placed through, from its own window
+// frame: its content frame inside it (identity unless the window carries
+// out a contain or cover of its viewport).
+ScaleFrame children_frame_at(const Control& control, const ScaleFrame& local_frame) noexcept {
+    const ScaleFrame frame = compose_frames(local_frame, control.content_frame());
+    return frame;
+}
+
+// `outsets` (logical units of a control) as long as they are seen through a
+// frame of `scale`, never shorter than they are: a damage grown by them
+// stays on the safe side under a contain, and covers them under a cover.
+Insets outsets_at_scale(Insets outsets, double scale) noexcept {
+    const double factor = std::max(scale, 1.0);
+    const Insets scaled{outsets.left * factor, outsets.top * factor, outsets.right * factor, outsets.bottom * factor};
+    return scaled;
 }
 
 // Whether `candidate` is `root` or inside it. Walks up from the candidate
@@ -386,7 +412,9 @@ void append_semantic_nodes(const Control::Ptr& control,
     node.multiline = descriptor.multiline;
     node.announces_on_appearance = descriptor.announces_on_appearance;
     node.tool_tip = (*control).tool_tip_text.read();
-    node.bounds = (*control).absolute_bounds();
+    const ScaleFrame seen = (*control).window_frame();
+    node.bounds = frame_to_outer(seen, (*control).client_rectangle());
+    node.effective_scale = seen.scale;
     if (!current_semantic_identity(control, expected_parent, owner)) return;
     node.states |= descriptor.states;
     if ((*control).effectively_enabled()) node.states |= SemanticState::enabled;
@@ -856,11 +884,11 @@ Control::Ptr SurfaceRoot::hit_test(Point position) {
              ++overlay) {
             if (const Control::Ptr& overlay_root = *overlay;
                 overlay_root && (*overlay_root).is_alive() && (*overlay_root).surface_root_ == this) {
-                target = hit_test_recursive(overlay_root, parent_origin_of(*overlay_root), position);
+                target = hit_test_recursive(overlay_root, parent_frame_of(*overlay_root), position);
                 if (target) break;
             }
         }
-        if (!target) target = hit_test_recursive(root_, parent_origin_of(*root_), position);
+        if (!target) target = hit_test_recursive(root_, parent_frame_of(*root_), position);
         if (generation == semantic_generation_) return target;
         metrics_.record_callback_arbitration_retry(pass + 1U == maximum_hit_test_passes);
         last_target = std::move(target);
@@ -1670,13 +1698,12 @@ stxlib::Optional<Rect> SurfaceRoot::text_input_caret() {
     require_root_thread("text input caret");
     const Control::Ptr focused = focused_.lock();
     if (!focused || !eligible(focused)) return stxlib::Optional<Rect>::none();
-    const Rect bounds = (*focused).absolute_bounds();
+    // In the control's coordinates, then through its window frame, so the
+    // input method's window follows a contained control (stage VA).
     const stxlib::Optional<Rect> local = (*focused).text_input_caret();
-    Rect caret{bounds.x, bounds.y, 1.0, bounds.height};
-    if (local.present()) {
-        const Rect& own = *local.value();
-        caret = Rect{bounds.x + own.x, bounds.y + own.y, own.width, own.height};
-    }
+    Rect own{0.0, 0.0, 1.0, (*focused).arranged_bounds_.height};
+    if (local.present()) own = *local.value();
+    const Rect caret = (*focused).rectangle_to_window(own);
     return stxlib::Optional<Rect>::of(caret);
 }
 
@@ -2257,10 +2284,9 @@ MouseEventArgs SurfaceRoot::mouse_event_arguments(const Control& target, const P
     // WinForms' MouseEventArgs: the press's click count (the release
     // carries the count of the press it ends), the control-relative
     // position and the wheel delta; then the routed event's own fields.
-    const Rect bounds = target.absolute_bounds();
-    const Point origin{bounds.x, bounds.y};
+    const ScaleFrame frame = target.window_frame();
     const std::uint32_t press_clicks = interaction_ ? (*interaction_).last_click_count() : 0U;
-    const MouseEventArgs arguments = gui_forms::mouse_event_arguments(event, origin, press_clicks);
+    const MouseEventArgs arguments = gui_forms::mouse_event_arguments(event, frame, press_clicks);
     return arguments;
 }
 
@@ -3121,6 +3147,8 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     (*control).window_ = nullptr;
     (*control).surface_root_ = nullptr;
     (*control).layout_deferred_listed_in_ = nullptr;
+    // The window's frame of its children goes with it (stage VA).
+    (*control).content_frame_ = ScaleFrame{};
     if ((*control).display_chunk_ && display_cache_entries_ > 0U) --display_cache_entries_;
     if ((*control).gesture_input_ && gesture_input_controls_ > 0U) --gesture_input_controls_;
     control_table_.release((*control).surface_slot_);
@@ -4149,6 +4177,7 @@ void SurfaceRoot::attribute_painted_damage(std::span<const Rect> painted) {
     }
     invalidation_causes_.clear();
     fill_overlay_counters();
+    fill_overlay_overflows();
 }
 
 namespace {
@@ -4171,7 +4200,7 @@ unsigned long long counter_value(std::uint64_t value) noexcept {
 
 void SurfaceRoot::fill_overlay_counters() {
     const MetricsSnapshot figures = metrics_.snapshot();
-    constexpr std::size_t line_count = 7U;
+    constexpr std::size_t line_count = 8U;
     std::array<CounterLine, line_count> lines{};
     std::array<std::string_view, line_count> views{};
     views[0] = counter_text(lines[0], std::snprintf(lines[0].data(), lines[0].size(), "renderer %s",
@@ -4194,6 +4223,11 @@ void SurfaceRoot::fill_overlay_counters() {
     const double worst = static_cast<double>(figures.worst_present_duration_nanoseconds) / 1'000'000.0;
     views[6] = counter_text(lines[6], std::snprintf(lines[6].data(), lines[6].size(), "present %llu worst %.2f ms",
                                                     counter_value(figures.frames_presented), worst));
+    // The visible-area guarantee's evidence (stage VA): overflows now, and
+    // how many of them are unanswered (a healthy window shows 0).
+    views[7] = counter_text(lines[7], std::snprintf(lines[7].data(), lines[7].size(), "overflow %llu open %llu",
+                                                    counter_value(overflow_records_.count()),
+                                                    counter_value(unanswered_overflow_count())));
     (*invalidation_overlay_).set_counters(std::span<const std::string_view>(views.data(), views.size()));
 }
 
@@ -4271,9 +4305,8 @@ bool device_aligned_rect(Rect rect, double scale) noexcept {
 bool SurfaceRoot::opaque_fill_covers(const Control& control, Rect clip) const {
     const std::shared_ptr<const detail::DisplayChunk>& chunk = control.display_chunk_;
     if (!chunk || !(*chunk).opaque_cover()) return false;
-    const Rect bounds = absolute_bounds_of(control);
     const Rect cover = *(*chunk).opaque_cover();
-    const Rect window_cover{bounds.x + cover.x, bounds.y + cover.y, cover.width, cover.height};
+    const Rect window_cover = frame_to_outer(local_frame_of(control), cover);
     return window_cover.contains(clip);
 }
 
@@ -4343,6 +4376,9 @@ bool SurfaceRoot::request_scroll_copy(Control& scroller, Point offset) {
         offset == Point{}) {
         return false;
     }
+    // Under a contain or cover the offset is not the pixels' (stage VA):
+    // the viewport is painted instead.
+    if (local_frame_of(scroller).scale != 1.0) return false;
     // The visible part of the viewport: its child viewport within each
     // ancestor's and the client area.
     Rect clip = Rect::intersection(absolute_child_viewport_of(scroller),
@@ -4392,15 +4428,16 @@ bool SurfaceRoot::request_content_scroll(Control& owner, Rect local_area, Point 
         !whole_device_pixels(offset.y, scale_) || offset == Point{}) {
         return false;
     }
+    // Under a contain or cover the offset is not the pixels' (stage VA).
+    if (local_frame_of(owner).scale != 1.0) return false;
     // Damage marked before the move lies where the pixels were: place it
     // now, so that the copy moves it with them.
     settle_dirty();
     // The visible part of the area: within the control, each ancestor's
     // child viewport and the client area.
-    const Rect bounds = absolute_bounds_of(owner);
+    const ScaleFrame frame = local_frame_of(owner);
     const Rect area = Rect::intersection(local_area, owner.client_rectangle());
-    Rect clip = Rect::intersection({bounds.x + area.x, bounds.y + area.y, area.width, area.height},
-                                   {0.0, 0.0, client_size_.width, client_size_.height});
+    Rect clip = Rect::intersection(frame_to_outer(frame, area), {0.0, 0.0, client_size_.width, client_size_.height});
     for (Control::Ptr ancestor = owner.parent(); ancestor; ancestor = (*ancestor).parent()) {
         if (!(*ancestor).is_alive() || (*ancestor).surface_root_ != this || !(*ancestor).visible.read()) {
             return false;
@@ -4561,35 +4598,37 @@ void SurfaceRoot::add_subtree_damage(const Control::Ptr& control) {
     (*control).refresh_theme_content_effect();
     const Rect covered = paint_damage_bounds_of(*control);
     add_damage_all_planes(covered);
-    const Rect placed = absolute_bounds_of(*control);
-    add_descendant_damage(*control, Point{placed.x, placed.y}, covered, effect_reach_above(*control));
+    const ScaleFrame placed = children_frame_at(*control, local_frame_of(*control));
+    add_descendant_damage(*control, placed, covered, effect_reach_above(*control));
 }
 
-// Each descendant's paint bounds, placed from its parent's origin; a
+// Each descendant's paint bounds, placed through its parent's frame
+// (`parent_frame`, the frame `parent`'s children are placed through); a
 // rectangle inside `covered` (the subtree root's damage, already added)
 // adds nothing to the damage's union, so only those leaving it are added.
 // Recurses once per control level: bounded by maximum_control_tree_depth
 // (control.hpp), within its stack budget of 4 KiB per level.
-void SurfaceRoot::add_descendant_damage(const Control& parent, Point parent_origin, Rect covered,
+void SurfaceRoot::add_descendant_damage(const Control& parent, const ScaleFrame& parent_frame, Rect covered,
                                         double parent_reach) {
     for (const std::shared_ptr<gui_forms::Control>& child : parent.children_) {
         if (!child) continue;
         const Control& current = *child;
-        const Rect placed{parent_origin.x + current.arranged_bounds_.x,
-                          parent_origin.y + current.arranged_bounds_.y,
-                          current.arranged_bounds_.width, current.arranged_bounds_.height};
-        const Rect united = Rect::united(visual_bounds_at(placed, current.effective_visual_outsets()),
-                                         visual_bounds_at(placed, current.last_painted_visual_outsets_));
+        const Rect placed = frame_to_outer(parent_frame, current.arranged_bounds_);
+        const Insets shown_outsets = outsets_at_scale(current.effective_visual_outsets(), parent_frame.scale);
+        const Insets painted_outsets = outsets_at_scale(current.last_painted_visual_outsets_, parent_frame.scale);
+        const Rect united =
+            Rect::united(visual_bounds_at(placed, shown_outsets), visual_bounds_at(placed, painted_outsets));
         // Spread by the effects above and at the child, as
         // paint_damage_bounds_of spreads a damage.
-        const double reach = parent_reach + own_effect_reach(current);
+        const double reach = parent_reach + own_effect_reach(current) * std::max(parent_frame.scale, 1.0);
         Rect damage = united;
         if (reach > 0.0 && !united.empty()) {
             damage = Rect{united.x - reach, united.y - reach, united.width + 2.0 * reach,
                           united.height + 2.0 * reach};
         }
         if (!covered.contains(damage)) add_damage_all_planes(damage);
-        add_descendant_damage(current, Point{placed.x, placed.y}, covered, reach);
+        const ScaleFrame placed_frame = local_frame_at(current, parent_frame);
+        add_descendant_damage(current, children_frame_at(current, placed_frame), covered, reach);
     }
 }
 
@@ -4695,11 +4734,12 @@ void SurfaceRoot::settle_dirty() {
     for (const PendingLocalDamage& pending : pending_local_damage_) {
         const Control* const control = control_table_.control_at(pending.slot);
         if (control == nullptr) continue;
-        const Rect bounds = absolute_bounds_of(*control);
+        const ScaleFrame frame = local_frame_of(*control);
+        const Rect placed = frame_to_outer(frame, pending.local_damage);
         // Spread by the content effects above it, as paint_damage_bounds_of.
-        const double reach = effect_reach_above(*control);
-        const Rect window_damage{bounds.x + pending.local_damage.x - reach, bounds.y + pending.local_damage.y - reach,
-                                 pending.local_damage.width + 2.0 * reach, pending.local_damage.height + 2.0 * reach};
+        const double reach = effect_reach_above(*control) * std::max(frame.scale, 1.0);
+        const Rect window_damage{placed.x - reach, placed.y - reach, placed.width + 2.0 * reach,
+                                 placed.height + 2.0 * reach};
         const DamageCauseScope cause(*this, InvalidationCause::control, control);
         add_damage(window_damage, (*control).paint_plane_);
         metrics_.record_requested_damage(window_damage.area());
@@ -4754,6 +4794,9 @@ void SurfaceRoot::ensure_layout(bool read_barrier) {
 void SurfaceRoot::flush_layout_in_frame() {
     in_layout_ = true;
     scroll_translating_ = nullptr;
+    // A new check sequence: each owner is checked once in this flush.
+    ++viewport_check_sequence_;
+    viewport_checks_.clear();
     try {
         std::uint32_t pass = 0;
         do {
@@ -4761,8 +4804,9 @@ void SurfaceRoot::flush_layout_in_frame() {
             second_layout_pass_requested_ = false;
             std::uint64_t measure_visited = 0;
             std::uint64_t measured = 0;
-            // The root in its slot (B.2a); overlays keep the whole client.
-            const Rect slot = root_slot();
+            // The root in its slot (B.2a), or at its design size there when
+            // it contains (stage VA); overlays keep the whole client.
+            const Rect slot = root_layout_rectangle();
             const Size slot_size{slot.width, slot.height};
             measure_dirty_recursive(root_, slot_size, measure_visited, measured);
             for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
@@ -4794,6 +4838,9 @@ void SurfaceRoot::flush_layout_in_frame() {
         } while (has_any_runnable_layout_dirty() &&
                  pass < maximum_layout_passes);
         ++layout_pass_sequence_;
+        // Every pass of this flush has placed what it will: the owners it
+        // arranged are checked against their viewports (stage VA).
+        check_viewports();
 
         const bool overlay_layout_dirty = has_popup_layout_dirty();
         if (has_any_runnable_layout_dirty()) {
@@ -4835,13 +4882,13 @@ std::vector<Control::Ptr> SurfaceRoot::route_to(const Control::Ptr& target) cons
 
 // Recurses once per control level: bounded by maximum_control_tree_depth
 // (control.hpp), within its stack budget of 4 KiB per level.
-Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, Point parent_origin,
+Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, const ScaleFrame& parent_frame,
                                         Point window_position) const {
     if (!eligible(control) || (*control).surface_root_ != this) {
         return {};
     }
     Control* const retained_parent = (*control).parent_.lock().get();
-    const Rect bounds = placed_bounds(*control, parent_origin);
+    const Rect bounds = placed_bounds(*control, parent_frame);
     if (!bounds.contains(window_position)) {
         return {};
     }
@@ -4850,15 +4897,13 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, Point 
         (*control).parent_.lock().get() != retained_parent) {
         return {};
     }
-    const Rect child_viewport{bounds.x + local_child_viewport.x,
-                              bounds.y + local_child_viewport.y,
-                              local_child_viewport.width,
-                              local_child_viewport.height};
+    const ScaleFrame local_frame = local_frame_at(*control, parent_frame);
+    const Rect child_viewport = frame_to_outer(local_frame, local_child_viewport);
     if (child_viewport.contains(window_position)) {
         // Front to back over the live list (audit N84): a hit test runs no
         // callback that changes the tree, so it is not copied; the bound is
         // read again each step all the same.
-        const Point origin{bounds.x, bounds.y};
+        const ScaleFrame origin = children_frame_at(*control, local_frame);
         for (std::size_t position = (*control).children_.size(); position > 0U; --position) {
             if (position > (*control).children_.size()) continue;
             const Control::Ptr child = (*control).children_[position - 1U];
@@ -4873,7 +4918,9 @@ Control::Ptr SurfaceRoot::hit_test_recursive(const Control::Ptr& control, Point 
             }
         }
     }
-    const Point local{window_position.x - bounds.x, window_position.y - bounds.y};
+    // Back through the frame: the control tests its own, unscaled
+    // coordinates.
+    const Point local = frame_to_inner(local_frame, window_position);
     const bool hit = !(*control).hit_test_transparent.read() &&
                      (*control).hit_test_local(local);
     return hit && eligible(control) && (*control).surface_root_ == this &&
@@ -4977,6 +5024,8 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
     if (!(*control).is_alive() || !(*control).visible.read() ||
         (*control).layout_collapsed_) {
         clear_layout_dirty_subtree(control);
+        // A hidden or collapsed owner's overflow records end (stage VA).
+        if ((*control).is_alive()) queue_viewport_check(*control);
         return;
     }
 
@@ -5010,6 +5059,10 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
                 return;
             }
         }
+        // The visible-area check after the passes (stage VA): this control
+        // as a viewport owner, and its parent, whose child it placed.
+        queue_viewport_check(*control);
+        if (const Control::Ptr placing_parent = (*control).parent_.lock()) queue_viewport_check(*placing_parent);
         // The resize registration (reduced M0.4): asked again whenever the
         // size changes, which costs one pass over the children that arrange
         // has just made, so no write has to keep it current. The first
@@ -5355,11 +5408,27 @@ void SurfaceRoot::commit_layout_requests() noexcept {
     layout_deferred_controls_.resize(kept);
 }
 
-Point SurfaceRoot::parent_origin_of(const Control& control) const {
-    const Control* const parent = control.parent_link_;
-    if (parent == nullptr) return Point{0.0, 0.0};
-    const Rect placed = absolute_bounds_of(*parent);
-    return Point{placed.x, placed.y};
+ScaleFrame SurfaceRoot::parent_frame_of(const Control& control) const {
+    // Up the chain: each ancestor's content frame inside its position, so
+    // the frame composes from the parent outwards; the root's frame above
+    // the window's root (root_frame_, a contain of the root by its slot).
+    ScaleFrame frame{};
+    const Control* top = &control;
+    for (const Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
+        const ScaleFrame position{Point{(*ancestor).arranged_bounds_.x, (*ancestor).arranged_bounds_.y}, 1.0};
+        const ScaleFrame ancestor_frame = compose_frames(position, (*ancestor).content_frame_);
+        frame = compose_frames(ancestor_frame, frame);
+        top = ancestor;
+    }
+    if (top == root_.get()) frame = compose_frames(root_frame_, frame);
+    return frame;
+}
+
+ScaleFrame SurfaceRoot::local_frame_of(const Control& control) const {
+    const ScaleFrame parent_frame = parent_frame_of(control);
+    const ScaleFrame position{Point{control.arranged_bounds_.x, control.arranged_bounds_.y}, 1.0};
+    const ScaleFrame frame = compose_frames(parent_frame, position);
+    return frame;
 }
 
 void SurfaceRoot::refresh_ancestor_summaries(Control& first) noexcept {
@@ -5408,7 +5477,7 @@ void SurfaceRoot::clear_paint_dirty_subtree(const Control::Ptr& control) noexcep
 
 // Recurses once per control level: bounded by maximum_control_tree_depth
 // (control.hpp), within its stack budget of 4 KiB per level.
-bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Point parent_origin, const Rect damage,
+bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const ScaleFrame& parent_frame, const Rect damage,
                               const PaintPlane plane, std::vector<Control::Ptr>& path) const {
     if (!(*control).is_alive() || (*control).surface_root_ != this || !(*control).visible.read() ||
         (*control).layout_collapsed_) {
@@ -5417,14 +5486,14 @@ bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Point pare
     // A content effect needs its whole subtree drawn inside its group: no
     // cover path passes through it.
     if ((*control).shown_content_effect()) return false;
-    const Rect bounds = placed_bounds(*control, parent_origin);
+    const Rect bounds = placed_bounds(*control, parent_frame);
+    const ScaleFrame local_frame = local_frame_at(*control, parent_frame);
     const Rect local_viewport = (*control).child_viewport_rectangle();
-    const Rect child_viewport{bounds.x + local_viewport.x, bounds.y + local_viewport.y, local_viewport.width,
-                              local_viewport.height};
+    const Rect child_viewport = frame_to_outer(local_frame, local_viewport);
     // A child paints all of `damage` only inside the child viewport. Later
     // children paint later, and a control's subtree after the control.
     if (child_viewport.contains(damage)) {
-        const Point origin{bounds.x, bounds.y};
+        const ScaleFrame origin = children_frame_at(*control, local_frame);
         const std::vector<Control::Ptr>& children = (*control).children_;
         for (std::size_t index = children.size(); index > 0U; --index) {
             const Control::Ptr& child = children[index - 1U];
@@ -5439,18 +5508,20 @@ bool SurfaceRoot::find_paint_cover(const Control::Ptr& control, const Point pare
             }
         }
     }
-    // Only a current chunk: one paint_recursive replays without rebuilding.
-    const Rect logical_bounds{0.0, 0.0, bounds.width, bounds.height};
+    // Only a current chunk, recorded at this frame's scale: one
+    // paint_recursive replays without rebuilding.
+    const Rect arranged = (*control).committed_arranged_bounds();
+    const Rect logical_bounds{0.0, 0.0, arranged.width, arranged.height};
     const std::shared_ptr<const detail::DisplayChunk>& chunk = (*control).display_chunk_;
     if ((*control).paint_plane_ != plane || has_dirty((*control).dirty_, Dirty::paint) || !chunk ||
-        (*chunk).plane() != plane || (*chunk).logical_bounds() != logical_bounds) {
+        (*chunk).plane() != plane || (*chunk).logical_bounds() != logical_bounds ||
+        (*control).recorded_frame_scale_ != local_frame.scale) {
         return false;
     }
     const std::optional<Rect> cover = (*chunk).opaque_cover();
     if (!cover) return false;
     // It paints nothing outside its visual bounds, which hold its bounds.
-    const Rect covered = Rect::intersection({bounds.x + (*cover).x, bounds.y + (*cover).y, (*cover).width,
-                                             (*cover).height}, bounds);
+    const Rect covered = Rect::intersection(frame_to_outer(local_frame, *cover), bounds);
     if (covered.empty() || !cover_spans(covered, damage, scale_, client_size_)) return false;
     path.push_back(control);
     return true;
@@ -5481,7 +5552,7 @@ void SurfaceRoot::paint_from_cover(const std::span<const Control::Ptr> path,
         siblings.push_back(detail::lent_storage(ancestor.children_));
         retained_parents.push_back(ancestor.parent_.lock().get());
     }
-    paint_recursive(path.back(), parent_origin_of(*path.back()), painter, level_damage.back(), plane,
+    paint_recursive(path.back(), parent_frame_of(*path.back()), painter, level_damage.back(), plane,
                     visited_nodes, painted_controls, consumed_invalidations, chunks_rebuilt, chunks_reused,
                     commands_replayed);
     // Then what follows on each level up, as each ancestor's loop goes on.
@@ -5490,8 +5561,7 @@ void SurfaceRoot::paint_from_cover(const std::span<const Control::Ptr> path,
         const std::vector<Control::Ptr>& children = siblings[level - 1U];
         std::vector<Control::Ptr>::const_iterator child = std::find(children.begin(), children.end(), path[level]);
         if (child != children.end()) ++child;
-        const Rect ancestor_bounds = absolute_bounds_of(*ancestor);
-        const Point ancestor_origin{ancestor_bounds.x, ancestor_bounds.y};
+        const ScaleFrame ancestor_origin = children_frame_at(*ancestor, local_frame_of(*ancestor));
         for (; child != children.end(); ++child) {
             if (!*child || !(**child).is_alive() || (**child).parent_.lock().get() != ancestor.get() ||
                 (**child).surface_root_ != this) {
@@ -5510,9 +5580,9 @@ void SurfaceRoot::paint_from_cover(const std::span<const Control::Ptr> path,
 }
 
 Rect SurfaceRoot::absolute_child_viewport_of(const Control& control) const {
-    const Rect bounds = absolute_bounds_of(control);
+    const ScaleFrame frame = local_frame_of(control);
     const Rect local = control.child_viewport_rectangle();
-    const Rect viewport{bounds.x + local.x, bounds.y + local.y, local.width, local.height};
+    const Rect viewport = frame_to_outer(frame, local);
     return viewport;
 }
 
@@ -5527,7 +5597,7 @@ void SurfaceRoot::summarize_subtree_paint(Control& control) const noexcept {
 // Recurses once per control level: bounded by maximum_control_tree_depth
 // (control.hpp), within its stack budget of 4 KiB per level.
 void SurfaceRoot::paint_recursive(const Control::Ptr& control,
-                             const Point parent_origin,
+                             const ScaleFrame& parent_frame,
                              Painter& painter,
                              Rect window_damage,
                              PaintPlane plane,
@@ -5544,13 +5614,18 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         return;
     }
     Control* const retained_parent = (*control).parent_.lock().get();
-    const Rect bounds = placed_bounds(*control, parent_origin);
+    const Rect bounds = placed_bounds(*control, parent_frame);
+    // The control's window frame: under a contain or cover above it, its
+    // chunk is recorded at the window's scale times the frame's and
+    // replayed through the frame (stage VA, decision 6).
+    const ScaleFrame local_frame = local_frame_at(*control, parent_frame);
+    const Rect arranged = (*control).committed_arranged_bounds();
     const Insets current_outsets = (*control).effective_visual_outsets();
     if (!(*control).is_alive() || (*control).surface_root_ != this ||
         (*control).parent_.lock().get() != retained_parent) {
         return;
     }
-    const Rect visual_bounds = visual_bounds_at(bounds, current_outsets);
+    const Rect visual_bounds = visual_bounds_at(bounds, outsets_at_scale(current_outsets, local_frame.scale));
     // A content effect in this plane (Control::set_content_effect): the
     // control and its descendants draw inside one group carrying it, and
     // what they draw within the damage grown by the effect's reach is
@@ -5570,10 +5645,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         (*control).parent_.lock().get() != retained_parent) {
         return;
     }
-    const Rect child_viewport{bounds.x + local_child_viewport.x,
-                              bounds.y + local_child_viewport.y,
-                              local_child_viewport.width,
-                              local_child_viewport.height};
+    const Rect child_viewport = frame_to_outer(local_frame, local_child_viewport);
     const Rect child_intersection = Rect::intersection(
         child_viewport, window_damage);
     if (paint_intersection.empty() && child_intersection.empty()) {
@@ -5593,7 +5665,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
     }
 
     if ((*control).paint_plane_ == plane && !paint_intersection.empty()) {
-        const Rect logical_bounds{0.0, 0.0, bounds.width, bounds.height};
+        const Rect logical_bounds{0.0, 0.0, arranged.width, arranged.height};
         // A capture at another scale records afresh at its scale, into
         // transient_chunk, and leaves the control's retained chunk and dirt
         // alone (transient_recording_scale_).
@@ -5602,13 +5674,15 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         const bool invalidated = !transient && has_dirty((*control).dirty_, Dirty::paint);
         const bool rebuild = transient || invalidated || !(*control).display_chunk_ ||
                              (*(*control).display_chunk_).plane() != plane ||
-                             (*(*control).display_chunk_).logical_bounds() != logical_bounds;
+                             (*(*control).display_chunk_).logical_bounds() != logical_bounds ||
+                             (*control).recorded_frame_scale_ != local_frame.scale;
         if (rebuild) {
             if (!transient) {
                 if (paint_checkpointing_) paint_checkpoints_.push_back({control, (*control).display_chunk_});
                 (*control).clear_dirty(Dirty::paint);
             }
-            const double recording_scale = transient ? transient_recording_scale_ : scale();
+            const double surface_scale = transient ? transient_recording_scale_ : scale();
+            const double recording_scale = surface_scale * local_frame.scale;
             detail::RecordingPainter recorder(text_metrics_provider_, DeviceScale{recording_scale});
             if (!transient) recorder.inherit_caches((*control).display_chunk_);
             recorder.refuse_stale_images(image_resources());
@@ -5665,6 +5739,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
                 const bool had_chunk = (*control).display_chunk_ != nullptr;
                 (*control).display_chunk_ = recorder.finish(++display_generation_, plane,
                                                           logical_bounds);
+                (*control).recorded_frame_scale_ = local_frame.scale;
                 note_display_chunk_change(*control, had_chunk);
                 ++chunks_rebuilt;
                 consumed_invalidations += invalidated ? 1U : 0U;
@@ -5679,15 +5754,24 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
         }
 
         const detail::DisplayChunk& shown = transient ? *transient_chunk : *(*control).display_chunk_;
-        painter.save();
-        painter.translate({bounds.x, bounds.y});
-        const Rect local_damage{paint_intersection.x - bounds.x,
-                                paint_intersection.y - bounds.y,
-                                paint_intersection.width,
-                                paint_intersection.height};
-        painter.clip_rect(local_damage);
-        commands_replayed += detail::replay_display_chunk(shown, painter);
-        painter.restore();
+        const Rect local_damage = frame_to_inner(local_frame, paint_intersection);
+        if (local_frame.scale == 1.0) {
+            painter.save();
+            painter.translate(local_frame.origin);
+            painter.clip_rect(local_damage);
+            commands_replayed += detail::replay_display_chunk(shown, painter);
+            painter.restore();
+        } else {
+            // A scoped transform (Painter::begin_transform), clipped to the
+            // damage in the control's own coordinates.
+            PaintTransformGroup scaled{};
+            scaled.bounds = local_damage;
+            scaled.transform = PaintTransform{local_frame.scale, 0.0, 0.0, local_frame.scale, local_frame.origin.x,
+                                              local_frame.origin.y};
+            painter.begin_transform(scaled);
+            commands_replayed += detail::replay_display_chunk(shown, painter);
+            painter.end_transform();
+        }
         if (!transient) (*control).last_painted_visual_outsets_ = current_outsets;
         ++painted_controls;
     }
@@ -5696,7 +5780,7 @@ void SurfaceRoot::paint_recursive(const Control::Ptr& control,
     }
 
     if (!child_intersection.empty()) {
-        const Point origin{bounds.x, bounds.y};
+        const ScaleFrame origin = children_frame_at(*control, local_frame);
         std::uint64_t revision = (*control).children_revision_;
         const std::uint64_t walk_start = revision;
         for (std::size_t position = 0U; position < (*control).children_.size();) {
@@ -5795,11 +5879,8 @@ void SurfaceRoot::compact_frame_requests() noexcept {
 }
 
 Rect SurfaceRoot::absolute_bounds_of(const Control& control) const {
-    Rect result = control.arranged_bounds_;
-    for (const Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
-        result.x += (*ancestor).arranged_bounds_.x;
-        result.y += (*ancestor).arranged_bounds_.y;
-    }
+    const ScaleFrame parent_frame = parent_frame_of(control);
+    const Rect result = frame_to_outer(parent_frame, control.arranged_bounds_);
     return result;
 }
 
@@ -5812,8 +5893,9 @@ bool SurfaceRoot::arranged_in_window(const Control& control) const {
 }
 
 Rect SurfaceRoot::visual_bounds_of(const Control& control, Insets outsets) const {
-    const Rect bounds = absolute_bounds_of(control);
-    const Rect result = visual_bounds_at(bounds, outsets);
+    const ScaleFrame parent_frame = parent_frame_of(control);
+    const Rect bounds = frame_to_outer(parent_frame, control.arranged_bounds_);
+    const Rect result = visual_bounds_at(bounds, outsets_at_scale(outsets, parent_frame.scale));
     return result;
 }
 
@@ -5824,16 +5906,18 @@ Rect SurfaceRoot::paint_damage_bounds_of(const Control& control) const {
     // its parent's origin would damage pixels it never touches. One walk
     // up both checks that and places the control (audit B9: it was three).
     if (control.arranged_bounds_.empty()) return Rect{};
-    Rect placed = control.arranged_bounds_;
     for (const Control* ancestor = control.parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
         if ((*ancestor).arranged_bounds_.empty()) return Rect{};
-        placed.x += (*ancestor).arranged_bounds_.x;
-        placed.y += (*ancestor).arranged_bounds_.y;
     }
-    const Rect united = Rect::united(visual_bounds_at(placed, control.effective_visual_outsets()),
-                                     visual_bounds_at(placed, control.last_painted_visual_outsets_));
-    // An ancestor's content effect spreads the damage by its blur's reach.
-    const double reach = effect_reach_above(control);
+    const ScaleFrame parent_frame = parent_frame_of(control);
+    const Rect placed = frame_to_outer(parent_frame, control.arranged_bounds_);
+    const Insets shown_outsets = outsets_at_scale(control.effective_visual_outsets(), parent_frame.scale);
+    const Insets painted_outsets = outsets_at_scale(control.last_painted_visual_outsets_, parent_frame.scale);
+    const Rect united =
+        Rect::united(visual_bounds_at(placed, shown_outsets), visual_bounds_at(placed, painted_outsets));
+    // An ancestor's content effect spreads the damage by its blur's reach,
+    // never less than it is under a frame that enlarges.
+    const double reach = effect_reach_above(control) * std::max(parent_frame.scale, 1.0);
     if (!(reach > 0.0) || united.empty()) return united;
     const Rect result{united.x - reach, united.y - reach, united.width + 2.0 * reach, united.height + 2.0 * reach};
     return result;

@@ -105,6 +105,8 @@ gui_forms::RasterCanvas
 
       * - :cpp:func:`clear_bitmap <gui_forms::RasterCanvas::clear_bitmap>`
         - Removes the bitmap and releases its uploaded tiles from the window.
+      * - :cpp:func:`view_whole_bitmap <gui_forms::RasterCanvas::view_whole_bitmap>`
+        - The whole bitmap in view (stage VA, section 8): the visible-area guarantee's contain computation (place_viewport_content) of the bitmap into the client rectangle under this canvas's viewport_fit (media: no floor, centred by default), its scale kept within the zoom bounds [1/64, 256], then set_view.
       * - :cpp:func:`synchronize_bitmap <gui_forms::RasterCanvas::synchronize_bitmap>`
         - Brings the window's copy of the bitmap up to date after the application has edited it.
       * - :cpp:func:`bitmap_to_client <gui_forms::RasterCanvas::bitmap_to_client>`
@@ -315,6 +317,10 @@ gui_forms::RasterCanvas
 
       Removes the bitmap and releases its uploaded tiles from the window.
 
+   .. cpp:function:: void view_whole_bitmap()
+
+      The whole bitmap in view (stage VA, section 8): the visible-area guarantee's contain computation (place_viewport_content) of the bitmap into the client rectangle under this canvas's viewport_fit (media: no floor, centred by default), its scale kept within the zoom bounds [1/64, 256], then set_view. Nothing without a bitmap or with an empty client rectangle.
+
    .. cpp:function:: bool synchronize_bitmap()
 
       Brings the window's copy of the bitmap up to date after the application
@@ -352,6 +358,10 @@ gui_forms::RasterCanvas
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
+   .. cpp:function:: bool shows_media_content() const noexcept override
+
+      Media (stage VA, section 8): its contain has no floor but its fit's.
+
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
@@ -384,7 +394,7 @@ gui_forms::RasterCanvas
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 1 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 2 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -431,3 +441,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 8 su
      - GUI.Forms-only
      - ``synchronize_bitmap``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``view_whole_bitmap``
+     - unclassified (untested)

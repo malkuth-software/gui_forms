@@ -649,7 +649,30 @@ void link_view_categories() noexcept {
     if (!reported.accepted()) return;
     _windowStateReported = YES;
     _reportedFullScreen = fullScreen;
+    [self notifySafeInsets];
     [self collectDamage];
+}
+
+- (void)notifySafeInsets {
+    if (_hostAttached == NO || self.window == nil) return;
+    gui_forms::SafeInsets insets{};
+    const BOOL fullScreen = ([self.window styleMask] & NSWindowStyleMaskFullScreen) != 0 ? YES : NO;
+    NSScreen* const screen = self.window.screen;
+    if (fullScreen == YES && screen != nil) {
+        if (@available(macOS 12.0, *)) {
+            // In full screen the content view covers the screen, so the
+            // screen's safe area is the client area's, in points.
+            const NSEdgeInsets edges = screen.safeAreaInsets;
+            insets = gui_forms::SafeInsets{static_cast<double>(edges.left), static_cast<double>(edges.top),
+                                           static_cast<double>(edges.right), static_cast<double>(edges.bottom)};
+        }
+    }
+    if (_safeInsetsReported == YES && _reportedSafeInsets == insets) return;
+    const HostDispatchResult reported = [self dispatchHostPayload:gui_forms::HostSafeInsetsEvent{insets}
+                                              timestampNanoseconds:host_now_nanoseconds()];
+    if (!reported.accepted()) return;
+    _safeInsetsReported = YES;
+    _reportedSafeInsets = insets;
 }
 
 - (NSRect)accessibilityFrame {
@@ -667,6 +690,7 @@ void link_view_categories() noexcept {
     static_cast<void>([self dispatchHostPayload:
         HostDisplayEvent{std::move(monitors.monitors)}
                                timestampNanoseconds:host_now_nanoseconds()]);
+    [self notifySafeInsets];
 }
 
 - (void)screenParametersChanged:(NSNotification*)notification {
@@ -841,6 +865,7 @@ void link_view_categories() noexcept {
         static_cast<void>([self dispatchHostPayload:
             HostResizeEvent{GFSize{newSize.width, newSize.height}}
                                    timestampNanoseconds:host_now_nanoseconds()]);
+        [self notifySafeInsets];
         [self collectDamage];
     }
 }

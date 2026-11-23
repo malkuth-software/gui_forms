@@ -432,7 +432,7 @@ SemanticDescriptor BackstageView::semantic_descriptor() const {
 std::vector<SemanticNode> BackstageView::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes;
     const Geometry placed = geometry();
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::string view_id(stable_id().value());
     nodes.reserve(items_.size());
     for (std::size_t item = 0; item < items_.size(); ++item) {
@@ -446,7 +446,7 @@ std::vector<SemanticNode> BackstageView::semantic_virtual_children() const {
         node.position_in_set.set(item + 1U);
         node.set_size.set(items_.size());
         const Rect bounds = placed.items[item];
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (item_enabled(spec)) node.states |= SemanticState::enabled;
         if (selected_ == stxlib::Optional<std::size_t>::of(item)) node.states |= SemanticState::selected;

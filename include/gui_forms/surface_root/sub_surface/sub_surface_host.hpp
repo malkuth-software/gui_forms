@@ -179,8 +179,24 @@ public:
     // settings travel with every configuration, and a change of either
     // sends one.
     void arrange(Rect final_bounds) override;
-    // Composes the newest frame into the region (Painter::draw_live_surface).
+    // Composes the newest frame into the region (Painter::draw_live_surface),
+    // at the content's placement, clipped to the region.
     void on_paint(Painter& painter, Rect local_damage) override;
+    // The visible-area guarantee at a root (stage VA, phase VA1). With a
+    // design size (Control::design_size) the sub-surface's root is laid out
+    // at that size and placed in the region by the host's viewport_fit
+    // (place_viewport_content): contain and cover render it at the window's
+    // scale times the placement's, so text and pictures are drawn at their
+    // real pixel size, never stretched; scroll and clip show it at its own
+    // size from the region's top left (a sub-surface does not scroll: a
+    // scroll is recorded unanswered). Pointer positions, the semantic nodes,
+    // the input method's caret and tooltip anchors map through the
+    // placement. Without a design size the content fills the region at the
+    // window's scale, as before. Reports the placement's scale while it
+    // carries out a contain or cover; none otherwise.
+    [[nodiscard]] stxlib::Optional<double> applied_viewport_scale() const noexcept override;
+    // Media (stage VA, section 8): its contain has no floor but its fit's.
+    [[nodiscard]] bool shows_media_content() const noexcept override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // A pane of its own, named by the accessible name ("Sub-surface"
     // without one), whose default action focuses it: the host is the tab
@@ -311,6 +327,21 @@ private:
     // (resize rule 3).
     void configure_region();
     void stop_thread() noexcept;
+    // Where the sub-surface's root goes in the region now (stage VA): its
+    // logical size, its scale relative to the window's, its rectangle in
+    // the host's local coordinates, and whether that carries out a contain
+    // or cover.
+    struct ContentPlacement final {
+        Size logical{};
+        double scale{1.0};
+        Rect destination{};
+        bool applied{};
+    };
+    [[nodiscard]] ContentPlacement content_placement() const noexcept;
+    // A point of the host's local coordinates in the sub-surface's, and a
+    // rectangle of the sub-surface's in the host's, through placement_.
+    [[nodiscard]] Point content_point(Point local) const noexcept;
+    [[nodiscard]] Rect local_rectangle(Rect content) const noexcept;
     // The window's theme or presentation settings changed: the next
     // configuration carries them under a new content epoch.
     void on_window_theme_changed(const Theme& theme);
@@ -324,6 +355,10 @@ private:
     std::uint32_t pixel_width_{};
     std::uint32_t pixel_height_{};
     double configured_scale_{};
+    // The placement of the last configuration sent (identity before the
+    // first), and its logical size.
+    ContentPlacement placement_{};
+    Size configured_logical_{};
     bool opaque_{};
     // An environment change not yet sent.
     bool environment_changed_{};

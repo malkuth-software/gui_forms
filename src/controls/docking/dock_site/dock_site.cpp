@@ -1677,8 +1677,8 @@ void DockSite::on_pointer_preview(PointerEvent& event) {
         event.handled = true;
         return;
     }
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const Hit hit = hit_at(local);
     Window* const host = attached_window();
     if (hit.zone == Zone::seam && host != nullptr) {
@@ -2361,13 +2361,13 @@ bool DockSite::show_position_menu(const DockPanelId& panel, MenuOpenMode mode) {
     items.emplace_back(prefix + ".position.move", MenuItemKind::command, menu_commands_[move],
                        std::string(position_texts[move]));
     (*menu_).set_items(std::move(items));
-    const Rect absolute = absolute_bounds();
-    Point anchor{absolute.x + slot.bounds.x, absolute.y + slot.bounds.y};
+    const ScaleFrame local_frame = window_frame();
+    Point anchor = frame_to_outer(local_frame, Point{slot.bounds.x, slot.bounds.y});
     // From the flyout, focus in the menu does not count as leaving it.
     menu_from_flyout_ = from_flyout;
     if (slot.kind == DockNodeKind::tool_stack) {
         const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot), close_shown(slot));
-        anchor = {absolute.x + placed.menu.x, absolute.y + placed.menu.y + placed.menu.height};
+        anchor = frame_to_outer(local_frame, Point{placed.menu.x, placed.menu.y + placed.menu.height});
     } else {
         anchor.y += strip_extent(*this);
     }

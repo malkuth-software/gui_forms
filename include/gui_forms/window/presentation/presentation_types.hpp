@@ -75,6 +75,12 @@ struct GUI_FORMS_API PresentationSettings final {
     // The preferred colour scheme (EC3). A change re-resolves every part:
     // a theme's rules may hold for one scheme only.
     ColourScheme colour_scheme{ColourScheme::light};
+    // The smallest effective scale controls are contained at (stage VA,
+    // decision 5): a contain of controls that would go smaller takes its
+    // viewport_fit's below_minimum at this scale instead. Media (Control::
+    // shows_media_content) is bounded by its own minimum_scale alone.
+    // Above 0 and at most 1.
+    double minimum_content_scale{0.5};
     friend constexpr bool operator==(const PresentationSettings& left,
                                      const PresentationSettings& right) noexcept {
         return left.text_scale == right.text_scale &&
@@ -87,12 +93,14 @@ struct GUI_FORMS_API PresentationSettings final {
                left.double_click_origin == right.double_click_origin &&
                left.pointer == right.pointer &&
                left.caret == right.caret &&
-               left.colour_scheme == right.colour_scheme;
+               left.colour_scheme == right.colour_scheme &&
+               left.minimum_content_scale == right.minimum_content_scale;
     }
 };
 
 // Throws std::invalid_argument for settings no window takes: a text scale
-// outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to
+// outside 0.5 to 4.0 or not finite, a minimum content scale not above 0 or
+// above 1, a double-click interval outside 1 to
 // maximum_double_click_milliseconds, pointer settings that are not
 // valid_pointer_settings, caret settings that are not valid_caret_settings,
 // or an origin or scheme outside its enum.

@@ -805,9 +805,11 @@ Rect BusinessCard::remark_room() const noexcept {
     const SurfaceRoot* const root = attached_surface_root();
     if (root == nullptr) return client_rectangle();
     const Size client = (*root).client_size();
-    const Rect absolute = absolute_bounds();
-    const Rect room{remark_margin - absolute.x, remark_margin - absolute.y,
-                    std::max(0.0, client.width - remark_margin * 2.0), std::max(0.0, client.height - remark_margin * 2.0)};
+    // The window's client area less the margin, in this card's coordinates
+    // (through its window frame, stage VA).
+    const Rect window_room{remark_margin, remark_margin, std::max(0.0, client.width - remark_margin * 2.0),
+                           std::max(0.0, client.height - remark_margin * 2.0)};
+    const Rect room = rectangle_from_window(window_room);
     return room;
 }
 
@@ -815,10 +817,13 @@ Insets BusinessCard::visual_outsets() const noexcept {
     const SurfaceRoot* const root = attached_surface_root();
     if (presentation_ != BusinessCardPresentation::hand || root == nullptr) return Control::visual_outsets();
     const Size client = (*root).client_size();
-    const Rect absolute = absolute_bounds();
-    const Insets outsets{std::max(0.0, absolute.x), std::max(0.0, absolute.y),
-                         std::max(0.0, client.width - absolute.right()),
-                         std::max(0.0, client.height - absolute.bottom())};
+    // The window's client area in this card's coordinates: the outsets
+    // reach its edges.
+    const Rect window_area = rectangle_from_window(Rect{0.0, 0.0, client.width, client.height});
+    const Rect own = client_rectangle();
+    const Insets outsets{std::max(0.0, own.x - window_area.x), std::max(0.0, own.y - window_area.y),
+                         std::max(0.0, window_area.right() - own.right()),
+                         std::max(0.0, window_area.bottom() - own.bottom())};
     return outsets;
 }
 
@@ -1244,7 +1249,9 @@ stxlib::Optional<double> BusinessCard::heading_band_bottom() const noexcept {
     const SurfaceRoot* const mine = attached_surface_root();
     const SurfaceRoot* const theirs = (*band).attached_surface_root();
     if (mine == nullptr || mine != theirs) return stxlib::Optional<double>::none();
-    const double bottom = (*band).absolute_bounds().bottom() - absolute_bounds().y;
+    // The band's bottom edge in this card's coordinates.
+    const double band_bottom = (*band).absolute_bounds().bottom();
+    const double bottom = point_from_window(Point{0.0, band_bottom}).y;
     return stxlib::Optional<double>::of(bottom);
 }
 

@@ -16,7 +16,10 @@
 namespace gui_forms {
 
 SplitterPanel::SplitterPanel(StableId stable_id)
-    : ContainerControl(std::move(stable_id)) {}
+    : ContainerControl(std::move(stable_id)) {
+    // A Windows Forms panel contains what overflows it (stage VA, decision 4).
+    viewport_fit = panel_viewport_fit;
+}
 
 void SplitterPanel::on_paint(Painter& painter, Rect) {
     if (background.read().alpha == 0U) return;

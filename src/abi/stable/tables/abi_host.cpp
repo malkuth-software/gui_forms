@@ -100,6 +100,7 @@ constexpr std::array<CapabilityBit, 45> capability_bits{{
     {HostCapability::host_scroll, GF_HOST_CAPABILITY_HOST_SCROLL},
     {HostCapability::reference_presentation, GF_HOST_CAPABILITY_REFERENCE_PRESENTATION},
     {HostCapability::desktop_notifications, GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS},
+    {HostCapability::safe_insets, GF_HOST_CAPABILITY_SAFE_INSETS},
 }};
 
 // The corner shapes a host with window_corners may report, as the host

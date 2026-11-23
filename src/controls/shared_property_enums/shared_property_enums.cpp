@@ -4,6 +4,7 @@
 
 #include "../button_base/choice_indicator_property.hpp"
 #include "../label/horizontal_alignment_property.hpp"
+#include "../scrollable_control/container_control/scaled_aspect_property.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -48,6 +49,25 @@ BindingValue PropertyValueTraits<HorizontalAlignment>::to_binding(HorizontalAlig
 HorizontalAlignment PropertyValueTraits<HorizontalAlignment>::from_binding(const BindingValue& value) {
     const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
     return static_cast<HorizontalAlignment>(choice.value);
+}
+
+PropertyType PropertyValueTraits<ScaledAspect>::type() {
+    return PropertyType{BindingValueKind::enumeration, false, scaled_layout_detail::scaled_aspect_enum()};
+}
+
+BindingValue PropertyValueTraits<ScaledAspect>::to_binding(ScaledAspect value) {
+    PropertyDescriptor descriptor;
+    descriptor.kind = BindingValueKind::enumeration;
+    descriptor.enumeration = scaled_layout_detail::scaled_aspect_enum();
+    const std::optional<BindingValue> converted =
+        convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
+    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    return *converted;
+}
+
+ScaledAspect PropertyValueTraits<ScaledAspect>::from_binding(const BindingValue& value) {
+    const PropertyEnumValue& choice = std::get<PropertyEnumValue>(value);
+    return static_cast<ScaledAspect>(choice.value);
 }
 
 } // namespace gui_forms

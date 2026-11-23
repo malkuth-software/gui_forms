@@ -273,7 +273,15 @@ gui_forms::SubSurfaceHost
 
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
-      Composes the newest frame into the region (Painter::draw_live_surface).
+      Composes the newest frame into the region (Painter::draw_live_surface), at the content's placement, clipped to the region.
+
+   .. cpp:function:: stxlib::Optional<double> applied_viewport_scale() const noexcept override
+
+      The visible-area guarantee at a root (stage VA, phase VA1). With a design size (Control::design_size) the sub-surface's root is laid out at that size and placed in the region by the host's viewport_fit (place_viewport_content): contain and cover render it at the window's scale times the placement's, so text and pictures are drawn at their real pixel size, never stretched; scroll and clip show it at its own size from the region's top left (a sub-surface does not scroll: a scroll is recorded unanswered). Pointer positions, the semantic nodes, the input method's caret and tooltip anchors map through the placement. Without a design size the content fills the region at the window's scale, as before. Reports the placement's scale while it carries out a contain or cover; none otherwise.
+
+   .. cpp:function:: bool shows_media_content() const noexcept override
+
+      Media (stage VA, section 8): its contain has no floor but its fit's.
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 

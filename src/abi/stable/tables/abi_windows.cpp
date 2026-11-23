@@ -1525,6 +1525,9 @@ constexpr gf_windows_table table{
     .mdi_children_minimized_anchor_bottom = &windows_mdi_children_minimized_anchor_bottom,
     .set_main_menu_strip = &windows_set_main_menu_strip,
     .main_menu_strip = &windows_main_menu_strip,
+    .overflow_records = &windows_overflow_records,
+    .unanswered_overflow_count = &windows_unanswered_overflow_count,
+    .safe_insets = &windows_safe_insets,
 };
 
 } // namespace

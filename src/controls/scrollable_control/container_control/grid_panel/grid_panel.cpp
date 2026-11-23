@@ -480,7 +480,10 @@ constexpr ControlAnatomy grid_panel_anatomy{
 
 } // namespace
 
-GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
+GridPanel::GridPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
+    // A CSS panel reflows, then scrolls (stage VA, section 8).
+    viewport_fit = reflowing_viewport_fit;
+}
 
 BindingValue GridPanel::style_property() const {
     const LayoutStyle base{};

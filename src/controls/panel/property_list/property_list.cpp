@@ -478,7 +478,7 @@ struct PropertyList::Impl final {
     std::optional<std::size_t> group_at(Point absolute) const {
         const Rect bounds = owner.absolute_bounds();
         if (!bounds.contains(absolute)) return {};
-        const double y_target = absolute.y - bounds.y + scroll_offset;
+        const double y_target = owner.point_from_window(absolute).y + scroll_offset;
         const double group_height = group_extent();
         double y{header_height};
         for (std::size_t group_index = 0; group_index < groups.size(); ++group_index) {
@@ -497,8 +497,8 @@ struct PropertyList::Impl final {
     RowState* disclosure_at(Point absolute) noexcept {
         const Rect bounds = owner.absolute_bounds();
         if (!bounds.contains(absolute)) return nullptr;
-        const Point local{absolute.x - bounds.x,
-                          absolute.y - bounds.y + scroll_offset};
+        const Point pointer = owner.point_from_window(absolute);
+        const Point local{pointer.x, pointer.y + scroll_offset};
         for (RowState& state : rows) {
             const PropertyRowSpec& row = spec(state);
             if (!groups[state.group_index].expanded || !row_visible(state) ||
@@ -1208,7 +1208,8 @@ SemanticDescriptor PropertyList::semantic_descriptor() const {
 
 std::vector<SemanticNode> PropertyList::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
+    const double width = arranged_bounds().width;
     const double group_height = (*impl_).group_extent();
     double y = (*impl_).header_height - (*impl_).scroll_offset;
     for (std::size_t group_index = 0;
@@ -1219,8 +1220,7 @@ std::vector<SemanticNode> PropertyList::semantic_virtual_children() const {
         header.runtime_id = virtual_semantic_runtime_id(header.stable_id);
         header.role = SemanticRole::property_group;
         header.name = group.title;
-        header.bounds = {absolute.x, absolute.y + y, absolute.width,
-                         group_height};
+        header.bounds = frame_to_outer(local_frame, Rect{0.0, y, width, group_height});
         header.states = SemanticState::visible | SemanticState::focusable |
                         SemanticState::enabled;
         if (group.expanded) header.states |= SemanticState::expanded;
@@ -1243,9 +1243,8 @@ std::vector<SemanticNode> PropertyList::semantic_virtual_children() const {
                 node.description = row.validation_message.empty()
                     ? row.description : row.description + " · Error: " +
                                             row.validation_message;
-                node.bounds = {absolute.x,
-                    absolute.y + row_state.row_bounds.y - (*impl_).scroll_offset,
-                    absolute.width, row_state.row_bounds.height};
+                node.bounds = frame_to_outer(local_frame,
+                    Rect{0.0, row_state.row_bounds.y - (*impl_).scroll_offset, width, row_state.row_bounds.height});
                 node.states = SemanticState::visible;
                 if (row.enabled) node.states |= SemanticState::enabled;
                 if (row.expandable) {

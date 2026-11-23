@@ -767,6 +767,8 @@ constexpr gf_controls_table table{
     .warp_pointer = &controls_warp_pointer,
     .set_pointer_release_regions = &controls_set_pointer_release_regions,
     .set_content_effect = &controls_set_content_effect,
+    .set_viewport_fit = &controls_set_viewport_fit,
+    .viewport_fit = &controls_viewport_fit,
 };
 
 } // namespace

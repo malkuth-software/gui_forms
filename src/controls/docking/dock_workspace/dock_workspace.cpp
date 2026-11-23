@@ -1361,8 +1361,8 @@ stxlib::Optional<Point> DockWorkspace::desktop_origin(const DockSite& site) cons
     if (!handle.active()) return stxlib::Optional<Point>::none();
     const HostWindowFrameResult frame = handle.frame();
     if (!frame.status.accepted()) return stxlib::Optional<Point>::none();
-    const Rect absolute = site.absolute_bounds();
-    const Point origin{frame.frame.content.x + absolute.x, frame.frame.content.y + absolute.y};
+    const Point placed = site.point_to_window(Point{});
+    const Point origin{frame.frame.content.x + placed.x, frame.frame.content.y + placed.y};
     return stxlib::Optional<Point>::of(origin);
 }
 

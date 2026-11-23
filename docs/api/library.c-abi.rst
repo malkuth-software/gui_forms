@@ -286,6 +286,8 @@ Types
      -  
    * - :cpp:class:`gf_objects_table <gf_objects_table>`
      -  
+   * - :cpp:class:`gf_overflow_record <gf_overflow_record>`
+     -  
    * - :cpp:class:`gf_overlays_table <gf_overlays_table>`
      -  
    * - :cpp:class:`gf_owned_window_options <gf_owned_window_options>`
@@ -413,6 +415,8 @@ Types
    * - :cpp:class:`gf_utf8_view <gf_utf8_view>`
      - gf_utf8_view (C ABI 1) borrows size bytes of UTF-8 text, not terminated; the callee copies what it keeps.
    * - :cpp:class:`gf_value <gf_value>`
+     -  
+   * - :cpp:class:`gf_viewport_fit <gf_viewport_fit>`
      -  
    * - :cpp:class:`gf_window_band_appearance <gf_window_band_appearance>`
      -  
@@ -2693,6 +2697,10 @@ Types
 
    .. cpp:member:: gf_status (*set_content_effect)(gf_object object, const gf_content_effect* effect)
 
+   .. cpp:member:: gf_status (*set_viewport_fit)(gf_object object, const gf_viewport_fit* fit)
+
+   .. cpp:member:: gf_status (*viewport_fit)(gf_object object, gf_viewport_fit* fit)
+
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
@@ -4092,6 +4100,28 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_overflow_record
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_overflow_cause cause
+
+   .. cpp:member:: gf_overflow_answer answer
+
+   .. cpp:member:: uint32_t answered
+
+   .. cpp:member:: gf_logical_size content_extent
+
+   .. cpp:member:: gf_logical_size viewport_extent
+
+   .. cpp:member:: double effective_scale
+
+   .. cpp:member:: gf_utf8_view owner
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_overlays_table
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
@@ -5391,6 +5421,24 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_viewport_fit
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_overflow_answer answer
+
+   .. cpp:member:: double minimum_scale
+
+   .. cpp:member:: double maximum_scale
+
+   .. cpp:member:: gf_overflow_answer below_minimum
+
+   .. cpp:member:: gf_content_alignment alignment
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_window_band_appearance
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
@@ -5594,6 +5642,12 @@ Types
    .. cpp:member:: gf_status (*set_main_menu_strip)(gf_object window_or_root, gf_object strip)
 
    .. cpp:member:: gf_status (*main_menu_strip)(gf_object window_or_root, gf_object* strip)
+
+   .. cpp:member:: gf_status (*overflow_records)(gf_object window_or_root, gf_overflow_record* records, uint64_t capacity, uint64_t* required, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*unanswered_overflow_count)(gf_object window_or_root, uint64_t* count)
+
+   .. cpp:member:: gf_status (*safe_insets)(gf_object window_or_root, gf_logical_insets* insets)
 
    .. cpp:member:: uint32_t struct_size
 

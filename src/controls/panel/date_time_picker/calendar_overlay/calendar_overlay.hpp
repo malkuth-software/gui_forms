@@ -156,7 +156,8 @@ public:
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override {
         std::vector<SemanticNode> nodes;
         const std::array<DateTimeValue, 42> dates = cell_dates();
-        const Rect overlay = absolute_bounds();
+        const ScaleFrame overlay_frame = window_frame();
+        const Rect overlay = frame_to_outer(overlay_frame, client_rectangle());
         const double s = effective_text_scale();
         nodes.reserve(dates.size() + 2U);
         for (const int direction : {-1, 1}) {
@@ -167,10 +168,8 @@ public:
             node.role = SemanticRole::button;
             node.name = direction < 0 ? "Previous month" : "Next month";
             node.bounds = direction < 0
-                ? Rect{overlay.x + 4.0 * s, overlay.y + 3.0 * s,
-                       42.0 * s, 34.0 * s}
-                : Rect{overlay.x + overlay.width - 49.0 * s, overlay.y + 3.0 * s,
-                       42.0 * s, 34.0 * s};
+                ? frame_to_outer(overlay_frame, Rect{4.0 * s, 3.0 * s, 42.0 * s, 34.0 * s})
+                : frame_to_outer(overlay_frame, Rect{overlay.width - 49.0 * s, 3.0 * s, 42.0 * s, 34.0 * s});
             node.states = SemanticState::visible | SemanticState::focusable;
             if (can_change_month(direction)) {
                 node.states |= SemanticState::enabled;
@@ -188,8 +187,7 @@ public:
             node.value = iso_date(date);
             const Rect cell_bounds =
                 calendar_detail::month_grid_cell_bounds(calendar_overlay_grid, cell, s);
-            node.bounds = {overlay.x + cell_bounds.x, overlay.y + cell_bounds.y,
-                           cell_bounds.width, cell_bounds.height};
+            node.bounds = frame_to_outer(overlay_frame, cell_bounds);
             node.states |= SemanticState::visible | SemanticState::focusable;
             if (civil_in_range(date, minimum_, maximum_)) {
                 node.states |= SemanticState::enabled;

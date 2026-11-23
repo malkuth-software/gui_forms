@@ -1,5 +1,6 @@
 #include "gui_forms/scene/scene_view/scene_view.hpp"
 #include "stxlib/math.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 
 #include <algorithm>
 #include <array>
@@ -115,7 +116,16 @@ SceneViewTransform scene_framed(const SceneViewTransform& view, const WorldRect&
     SceneViewTransform framed{};
     framed.zoom = view.zoom;
     if (world.width > 0.0 && world.height > 0.0) {
-        framed.zoom = clamp_scene_zoom(std::min(usable_width / world.width, usable_height / world.height), range);
+        // The visible-area guarantee's contain computation (stage VA): the
+        // world box into the usable area, its scale kept within the zoom
+        // range (below it, the range's minimum).
+        ViewportFit fit{};
+        fit.answer = OverflowAnswer::contain;
+        fit.minimum_scale = std::min(std::max(range.minimum, 0.0), maximum_viewport_scale);
+        fit.maximum_scale = std::clamp(range.maximum, fit.minimum_scale, maximum_viewport_scale);
+        const Rect usable{margin, margin, usable_width, usable_height};
+        const ViewportPlacement placed = place_viewport_content(Size{world.width, world.height}, usable, fit);
+        framed.zoom = clamp_scene_zoom(placed.scale, range);
     } else if (world.width > 0.0) {
         framed.zoom = clamp_scene_zoom(usable_width / world.width, range);
     } else if (world.height > 0.0) {

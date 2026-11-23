@@ -1541,9 +1541,9 @@ bool NavigationPane::show_configure_menu(MenuOpenMode mode) {
     items.emplace_back(prefix + ".options-separator", MenuItemKind::separator);
     items.emplace_back(prefix + ".options", MenuItemKind::command, options_command_, std::string(options_text));
     (*menu_).set_items(std::move(items));
-    const Rect absolute = absolute_bounds();
-    const Point anchor{absolute.x + placed.configure_button.x + placed.configure_button.width,
-                       absolute.y + placed.configure_button.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point anchor = frame_to_outer(
+        local_frame, Point{placed.configure_button.x + placed.configure_button.width, placed.configure_button.y});
     (*menu_).show(shared_from_this(), anchor, mode);
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
@@ -1931,9 +1931,9 @@ void NavigationPane::publish_part_geometry(std::span<PartGeometry> geometry) con
     record.collapsed_label = part_with_states(placed.collapsed_label, target_states(target), caption_states);
     if (overlay_open_) {
         const FlyoutLayout overlay = flyout_layout();
-        const Rect absolute = absolute_bounds();
-        const double dx = overlay.window_bounds.x - absolute.x;
-        const double dy = overlay.window_bounds.y - absolute.y;
+        const Point overlay_origin = point_from_window(Point{overlay.window_bounds.x, overlay.window_bounds.y});
+        const double dx = overlay_origin.x;
+        const double dy = overlay_origin.y;
         record.overlay_shadow = PartGeometry::from_bounds(offset_rect(overlay.face, dx, dy));
         record.overlay_face = PartGeometry::from_bounds(offset_rect(overlay.face, dx, dy));
         record.overlay_header = PartGeometry::from_bounds(offset_rect(overlay.header, dx, dy));

@@ -85,6 +85,7 @@ std::string HostCapabilities::to_json() const {
         {HostCapability::host_scroll, "host_scroll"},
         {HostCapability::reference_presentation, "reference_presentation"},
         {HostCapability::desktop_notifications, "desktop_notifications"},
+        {HostCapability::safe_insets, "safe_insets"},
     }};
     std::ostringstream output;
     // Numbers in the classic locale whatever the global one (the pattern of

@@ -91,8 +91,8 @@ void SpinButtons::on_paint(Painter&, Rect) {}
 SpinHalf SpinButtons::half_at(Point window_position) const {
     const Rect bounds = absolute_bounds();
     if (!bounds.contains(window_position)) return SpinHalf::none;
-    const SpinHalves halves = spin_halves({0.0, 0.0, bounds.width, bounds.height});
-    const double local_y = window_position.y - bounds.y;
+    const SpinHalves halves = spin_halves(client_rectangle());
+    const double local_y = point_from_window(window_position).y;
     const SpinHalf half = local_y < halves.lower.y ? SpinHalf::upper : SpinHalf::lower;
     return half;
 }

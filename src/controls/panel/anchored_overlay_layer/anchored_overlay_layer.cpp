@@ -104,8 +104,8 @@ void AnchoredOverlayLayer::arrange(Rect final_bounds) {
 
 bool AnchoredOverlayLayer::hit_test_local(Point local_point) const {
     const Control::Ptr anchor = anchor_.lock();
-    const Rect bounds = absolute_bounds();
-    const Point absolute{bounds.x + local_point.x, bounds.y + local_point.y};
+    const ScaleFrame bounds_frame = window_frame();
+    const Point absolute = frame_to_outer(bounds_frame, local_point);
     if (anchor && (*anchor).effectively_visible() &&
         (*anchor).absolute_bounds().contains(absolute)) {
         return false;

@@ -16,16 +16,11 @@ stable_id
 initial_text
     The caption, with `&` marking the mnemonic as in `GroupBox`.
 initial_design_size
-    The width and height of the design space. Both must be finite and
-    positive, or the constructor throws `std::invalid_argument`. The default
-    unit square lets you give design bounds as fractions of the box.
-
-Properties
-----------
-design_size
-    The size of the design space that child slots are given in. Setting it
-    relays out every child; a size that is not finite and positive throws
-    `std::invalid_argument`.
+    The width and height of the design space, written to the box's
+    `design_size` (a `Control` property; while it is zero the box maps from
+    the unit square). Both must be finite and positive, or the constructor
+    throws `std::invalid_argument`. The default unit square lets you give
+    design bounds as fractions of the box.
 
 Methods
 -------

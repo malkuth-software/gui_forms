@@ -88,10 +88,9 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
             make_control<RibbonApplicationMenu>(StableId(std::string(stable_id().value()) + ".application-menu"), *this);
     }
     const Layout placed = layout();
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Size client = (*window).client_size();
-    const Rect file{absolute.x + placed.application.x, absolute.y + placed.application.y, placed.application.width,
-                    placed.application.height};
+    const Rect file = frame_to_outer(local_frame, placed.application);
     const bool keyboard = mode == MenuOpenMode::keyboard;
     (*application_overlay_).set_mode(RibbonApplicationMenu::Mode::whole);
     (*application_overlay_).set_requested_bounds({0.0, 0.0, client.width, client.height});
@@ -286,9 +285,8 @@ void Ribbon::written(const decltype(backstage)&) {
 void Ribbon::place_backstage() {
     Window* const window = attached_window();
     if (window == nullptr || !backstage.read()) return;
-    const Rect absolute = absolute_bounds();
     const Size client = (*window).client_size();
-    const double top = std::min(client.height, absolute.y + tab_row_height());
+    const double top = std::min(client.height, point_to_window(Point{0.0, tab_row_height()}).y);
     (*backstage.read()).set_requested_bounds({0.0, top, client.width, std::max(0.0, client.height - top)});
 }
 

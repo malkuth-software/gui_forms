@@ -18,6 +18,8 @@ UserControl::UserControl(StableId stable_id)
     // An application's own paint may read the size: the Control default
     // (ScrollableControl clears resize_redraw for its bar-only paint).
     Control::set_style(ControlStyles::resize_redraw, true);
+    // A Windows Forms panel contains what overflows it (stage VA, decision 4).
+    viewport_fit = panel_viewport_fit;
 }
 
 void UserControl::on_attached_to_window() {

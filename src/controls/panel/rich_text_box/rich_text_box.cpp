@@ -450,10 +450,9 @@ void RichTextBox::on_text_input(TextInputEvent& event) {
 
 void RichTextBox::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const double local_x = event.position.x - absolute.x;
-    const double local_y = event.position.y - absolute.y;
-    const Point local{local_x, local_y};
+    const Point local = point_from_window(event.position);
+    const double local_x = local.x;
+    const double local_y = local.y;
     if (!selecting_ && control_bar_visible.read() && event.action != PointerAction::wheel && bar_pointer(event, local)) {
         return;
     }

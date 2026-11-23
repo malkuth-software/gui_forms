@@ -228,7 +228,10 @@ bool item_style_serialized(const Component& container, const Control& child) {
 
 } // namespace
 
-FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
+FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
+    // A CSS panel reflows, then scrolls (stage VA, section 8).
+    viewport_fit = reflowing_viewport_fit;
+}
 
 std::span<const ChildPropertyEntry> FlexPanel::child_property_table() const noexcept {
     static constexpr std::array<ChildPropertyEntry, 1U> entries{{

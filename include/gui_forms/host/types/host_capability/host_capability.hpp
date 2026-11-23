@@ -156,7 +156,12 @@ enum class HostCapability : std::uint64_t {
     // GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS (1.7). Additive flag; no
     // protocol version change.
     desktop_notifications = 1ULL << 49U,
-    // The next flag is 1ULL << 50U.
+    // safe_insets: the host reports the edges of the client area it or the
+    // device hides (HostSafeInsetsEvent; stage VA): a notch or rounded
+    // corners in full screen on macOS, the part of the canvas the browser
+    // does not show on the web. Host protocol version 16. The next flag is
+    // 1ULL << 51U.
+    safe_insets = 1ULL << 50U,
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,

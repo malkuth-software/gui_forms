@@ -325,6 +325,10 @@ Related types
 
       A control arranged while the layout pass was arranging another (LayoutDiagnosticCode::arrange_outside_slot), refused. Counts it and, at the 1st, 2nd, 4th, 8th... refusal, prints one diagnostic line naming both controls' stable identities.
 
+   .. cpp:function:: void record_overflow(OverflowAnswer answer, bool answered) noexcept
+
+      An overflow record made (stage VA; MetricsSnapshot::overflow_*): counts it under the answer the owner gives, and under overflow_unanswered when that answer is not carried out.
+
    .. cpp:function:: void record_stale_image_refusals(std::string_view operation, std::uint64_t image, std::uint64_t refusals) noexcept
 
       ``refusals`` uses of an image identity the registry no longer holds (ImageResourceError::stale_image_id), refused: ``operation`` names the window call (a scoped patch, replace or update) or ``draw`` for a paint that drew it. Counts them and, each time the count reaches a new power of two, prints one diagnostic line naming the operation and the identity's value.
@@ -672,6 +676,18 @@ Related types
 
       Arrangements refused because the layout pass was arranging another control (LayoutDiagnosticCode::arrange_outside_slot): a custom layout that arranged a child directly instead of set_child_layout.
 
+   .. cpp:member:: std::uint64_t overflow_scrolled
+
+      Overflow records made (stage VA: an overflow appeared, or its answer, cause or applied scale changed; LayoutDiagnosticCode::content_overflow), by the answer the owner gives, and of all of them the unanswered ones. A window's overflows now are SurfaceRoot::overflow_records; these only grow.
+
+   .. cpp:member:: std::uint64_t overflow_contained
+
+   .. cpp:member:: std::uint64_t overflow_covered
+
+   .. cpp:member:: std::uint64_t overflow_clipped
+
+   .. cpp:member:: std::uint64_t overflow_unanswered
+
    .. cpp:member:: std::uint64_t stale_image_refusals
 
       Uses of a stale image identity refused: a window's scoped patch, replace or update given one, and draws recorded with one (counted when the control's paint is recorded, and drawn as nothing). A replace or a generation-advancing patch returns the identity that replaces the one passed in.
@@ -920,6 +936,14 @@ Related types
    .. cpp:member:: std::size_t ancestor_clip_count
 
    .. cpp:member:: LayoutTransactionState transaction
+
+   .. cpp:member:: double effective_scale
+
+      The visible-area guarantee's layout reasons (stage VA, section 10; what MCP's inspect reads, MCP study 18.1): the scale the control is seen at (its window frame's), the frame the window applies to its children while it carries out a contain or cover, and the overflows it owns now, as SurfaceRoot::overflow_records lists them. The JSON writes them as "viewport" only when one differs from the default. Default: ``{1.0}``.
+
+   .. cpp:member:: ScaleFrame content_frame
+
+   .. cpp:member:: stxlib::Vector<OverflowRecord> overflows
 
 .. cpp:namespace:: gui_forms
 

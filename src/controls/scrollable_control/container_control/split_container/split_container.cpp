@@ -717,11 +717,11 @@ double SplitContainer::axis_extent(Rect bounds) const noexcept {
 }
 
 double SplitContainer::pointer_axis(Point point) const noexcept {
-    const Rect absolute = absolute_bounds();
-    if (orientation.read() != Orientation::vertical) return point.y - absolute.y;
+    const Point local = point_from_window(point);
+    if (orientation.read() != Orientation::vertical) return local.y;
     // Mirrored, the distance is measured from the right edge.
-    const double from_left = point.x - absolute.x;
-    const double along = mirrored_split() ? absolute.width - from_left : from_left;
+    const double from_left = local.x;
+    const double along = mirrored_split() ? client_rectangle().width - from_left : from_left;
     return along;
 }
 
@@ -788,11 +788,10 @@ double SplitContainer::constrained_distance(double requested,
 }
 
 Rect SplitContainer::collapse_tab_bounds() const noexcept {
-    const Rect bounds = (*splitter_).absolute_bounds();
+    const ScaleFrame bounds_frame = (*splitter_).window_frame();
     const Rect actuator =
         static_cast<const SplitterGrip&>(*splitter_).actuator_bounds();
-    return {bounds.x + actuator.x, bounds.y + actuator.y,
-            actuator.width, actuator.height};
+    return frame_to_outer(bounds_frame, actuator);
 }
 
 bool SplitContainer::collapse_target_is_collapsed() const noexcept {

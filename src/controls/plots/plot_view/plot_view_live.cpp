@@ -281,8 +281,8 @@ void PlotLiveFrame::report(const PlotEngineOutcome& outcome) {
 void PlotLiveFrame::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     gather();
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     PlotEngineOptions options{};
     options.crosshair = state_.crosshair;
     const PlotEngineOutcome outcome = engine_.pointer(event, local, gathered_, device_scale(), options);

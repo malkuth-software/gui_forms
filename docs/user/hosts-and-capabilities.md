@@ -63,6 +63,7 @@ whole record for logs.
 | `open_url` | a web or mail address (`https://`, `http://`, `mailto:`) opened in the user's own browser or mail program (`HostServices::open_url`; the business card's website; C: `GF_HOST_CAPABILITY_OPEN_URL`) | yes (NSWorkspace) | yes (`ShellExecuteW`) | yes (`xdg-open`, found when the address is opened) |
 | `reference_presentation` | the host is GUI.Forms' own window manager, the reference behaviour for the others (C: `GF_HOST_CAPABILITY_REFERENCE_PRESENTATION`) | no | no | no |
 | `desktop_notifications` | a notification shown by the platform's notification service outside the application's windows, with activation, dismissal and refusal reported (`ToastNotification`, `HostServices::show_desktop_notification`; C: `GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS`; compiled out of high-integrity builds) | in a signed application bundle (`UNUserNotificationCenter`, after the user's permission) | for a packaged process or one with an explicit AppUserModelID (toasts) | where the session bus has `org.freedesktop.Notifications` |
+| `safe_insets` | the edges of the client area the host or the device hides (`HostSafeInsetsEvent`, protocol version 16; `SurfaceRoot::safe_insets`, the root slot keeps clear of them; C: `GF_HOST_CAPABILITY_SAFE_INSETS`, since 1.7). The browser host reports the part of the canvas outside the visual viewport | yes (the screen's safe area in full screen, macOS 12 and later) | no | no |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.

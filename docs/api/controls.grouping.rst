@@ -207,10 +207,6 @@ Related types
      - Stage T1 anatomy, as dot members: the scrollable parts, a face and an edge.
    * - :cpp:class:`PanelCapabilities <gui_forms::PanelCapabilities>`
      - Every Panel capability, in the order the declaring class takes them.
-   * - :cpp:class:`ScaledGroupBoxCapabilities <gui_forms::ScaledGroupBoxCapabilities>`
-     - Every ScaledGroupBox capability, in the order the declaring class takes them.
-   * - :cpp:class:`ScaledGroupBoxDesignSizeCapability <gui_forms::ScaledGroupBoxDesignSizeCapability>`
-     - The coordinate space the children's design bounds are written in; it scales to the arranged size.
    * - :cpp:class:`SectionItem <gui_forms::SectionItem>`
      -  
    * - :cpp:class:`TabControl::Item <gui_forms::TabControl::Item>`
@@ -1569,38 +1565,6 @@ Related types
    .. cpp:member:: ControlVisualRole visual_role
 
       The recipe family the panel paints with: window, panel, card, editor (the recessed field ground of the Panel-derived editors such as NumericUpDown and TreeView), or notice (a staged InstrumentRack module).
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> ScaledGroupBoxCapabilities : public ScaledGroupBoxDesignSizeCapability<Declaring>
-
-   ``#include <gui_forms/controls/scaled_group_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/scaled_group_box_capabilities.hpp>`)
-
-   Every ScaledGroupBox capability, in the order the declaring class takes them.
-
-
-   .. rubric:: Properties
-
-   .. cpp:member:: Size design_size
-
-      The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> ScaledGroupBoxDesignSizeCapability
-
-   ``#include <gui_forms/controls/scaled_group_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/scaled_group_box_capabilities.hpp>`)
-
-   The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(ScaledGroupBoxDesignSizeCapability& capability, Size incoming)
-
-   .. cpp:member:: PropertyCell<Size, ScaledGroupBoxDesignSizeCapability<Declaring>> design_size
-
-      Default: ``{Size{1.0, 1.0}}``.
 
 .. cpp:namespace:: gui_forms
 

@@ -186,7 +186,9 @@ HostCapabilities web_capabilities() {
                 HostCapability::runtime_windows | HostCapability::window_frames |
                 HostCapability::screen_pointer | HostCapability::window_at_point |
                 HostCapability::window_ordering | HostCapability::transparent_windows |
-                HostCapability::compositor_notifications | HostCapability::transient_surfaces,
+                HostCapability::compositor_notifications | HostCapability::transient_surfaces |
+                // The canvas outside the browser's visual viewport (stage VA).
+                HostCapability::safe_insets,
             pc_key_map()};
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
     // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).

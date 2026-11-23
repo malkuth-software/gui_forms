@@ -292,15 +292,16 @@ void TrackBar::on_paint(Painter& painter, Rect) {
 }
 
 double TrackBar::value_from_window_point(Point point) const noexcept {
-    const Rect absolute = absolute_bounds();
+    const Point local = point_from_window(point);
+    const Rect own = client_rectangle();
     double ratio = 0.0;
     if (orientation.read() == Orientation::horizontal) {
-        const double span = std::max(1.0, absolute.width - track_inset * 2.0);
-        const double from_left = (point.x - absolute.x - track_inset) / span;
+        const double span = std::max(1.0, own.width - track_inset * 2.0);
+        const double from_left = (local.x - track_inset) / span;
         ratio = mirrored_axis() ? 1.0 - from_left : from_left;
     } else {
-        const double span = std::max(1.0, absolute.height - track_inset * 2.0);
-        ratio = 1.0 - (point.y - absolute.y - track_inset) / span;
+        const double span = std::max(1.0, own.height - track_inset * 2.0);
+        ratio = 1.0 - (local.y - track_inset) / span;
     }
     ratio = std::clamp(ratio, 0.0, 1.0);
     return minimum.read() + ratio * (maximum.read() - minimum.read());
