@@ -631,7 +631,7 @@ bool TaskDialog::show(const Control::Ptr& owner) {
     if (shown_ || window == nullptr || parent()) return false;
     Window& host = *window;
     // A page never set has no buttons; setting it gives it the OK button.
-    if (page_.buttons.empty()) set_page(page_);
+    if (page_.buttons.empty()) set_page(std::move(page_));
     const Size client = host.client_size();
     Control::Ptr layer = make_control<TaskDialogLayer>(StableId(std::string(stable_id().value()) + ".layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
