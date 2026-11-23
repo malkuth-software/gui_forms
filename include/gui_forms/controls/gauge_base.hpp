@@ -23,6 +23,8 @@ namespace gui_forms {
 // still shows). To assistive technology it is a meter
 // (a level indicator, a progress bar on hosts without one) with its value,
 // range and value text. LinearGauge and RadialGauge draw it.
+// ic: gui_forms::GaugeBase: generated from include/gui_forms/controls/gauge_base.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API GaugeBase : public RangeControl, public GaugeBaseCapabilities<GaugeBase> {
 public:
     // Whether the value lies outside the alarm limits that are set.
@@ -65,10 +67,12 @@ private:
     friend struct GaugeBaseLowAlarmCapability<GaugeBase>;
     friend struct GaugeBaseHighAlarmCapability<GaugeBase>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(tick_frequency)& cell, double& incoming);
     void written(const decltype(tick_frequency)& cell);
     void prepare_write(const decltype(units)& cell, std::string& incoming);
     void written(const decltype(units)& cell);
+    // ic: Requires incoming <= 6, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(decimal_places)& cell, std::uint32_t& incoming);
     void written(const decltype(decimal_places)& cell);
     void prepare_write(const decltype(show_value)& cell, bool& incoming);

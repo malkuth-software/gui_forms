@@ -6,6 +6,7 @@
 #include "abi_tables.hpp"
 
 #include "../values/abi_values.hpp"
+#include "../ic/abi_data_grid_ic_checks.hpp"
 
 #include "gui_forms/controls/data_grid_view.hpp"
 
@@ -252,7 +253,7 @@ const BindingValue& cell_reference(const DataGridView& grid, std::span<const Dat
 // -- columns -----------------------------------------------------------------------
 
 gf_status data_grid_column_count_body(gf_object grid, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_data_grid::admits_column_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, column_count_slot, "column_count needs a count output");
     }
     GridPtr typed;
@@ -399,7 +400,7 @@ gf_status GF_CALL data_grid_remove_column(gf_object grid, std::uint64_t index) n
 }
 
 gf_status data_grid_column_index_body(gf_object grid, gf_utf8_view name, std::uint64_t* index) {
-    if (index == nullptr) {
+    if (!ic_data_grid::admits_column_index_index(index)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, column_index_slot, "column_index needs an index output");
     }
     std::string_view text;
@@ -554,7 +555,7 @@ gf_status GF_CALL data_grid_insert_rows(gf_object grid, std::uint64_t index, con
 
 gf_status data_grid_append_rows_body(gf_object grid, const gf_data_grid_row* rows, std::uint64_t count,
                                      std::uint64_t* first) {
-    if (first == nullptr) {
+    if (!ic_data_grid::admits_append_rows_first(first)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, append_rows_slot, "append_rows needs a first output");
     }
     GridPtr typed;
@@ -593,7 +594,7 @@ gf_status GF_CALL data_grid_erase_rows(gf_object grid, std::uint64_t index, std:
 }
 
 gf_status data_grid_replace_row_body(gf_object grid, std::uint64_t index, const gf_data_grid_row* row) {
-    if (row == nullptr || (*row).struct_size < row_size_1_1) {
+    if (!ic_data_grid::admits_replace_row_row(row) || !ic_data_grid::admits_replace_row_row_size((*row).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, replace_row_slot, "replace_row needs a row of at least the 1.1 size");
     }
     GridPtr typed;
@@ -648,7 +649,7 @@ gf_status GF_CALL data_grid_row_id(gf_object grid, std::uint64_t position, char*
 }
 
 gf_status data_grid_row_position_body(gf_object grid, gf_utf8_view row_id, std::uint64_t* position) {
-    if (position == nullptr) {
+    if (!ic_data_grid::admits_row_position_position(position)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, row_position_slot, "row_position needs a position output");
     }
     GridPtr typed;
@@ -708,7 +709,7 @@ gf_status GF_CALL data_grid_cell_value(gf_object grid, gf_utf8_view row_id, std:
 
 gf_status data_grid_set_cell_value_body(gf_object grid, gf_utf8_view row_id, std::uint64_t column,
                                         const gf_value* value, std::uint32_t* accepted) {
-    if (accepted == nullptr) {
+    if (!ic_data_grid::admits_set_cell_value_accepted(accepted)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_cell_value_slot, "set_cell_value needs an accepted output");
     }
     BindingValue stored;
@@ -752,7 +753,7 @@ gf_status GF_CALL data_grid_cell_text(gf_object grid, gf_utf8_view row_id, std::
 gf_status data_grid_read_cells_body(gf_object grid, std::uint64_t column, std::uint64_t first_row,
                                     std::uint64_t row_count, gf_value* values, char* text_buffer,
                                     std::uint64_t text_capacity, std::uint64_t* text_required) {
-    if (text_required == nullptr || (text_buffer == nullptr && text_capacity != 0U)) {
+    if (!ic_data_grid::admits_read_cells_text_buffer(text_required, text_buffer, text_capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, read_cells_slot,
                     "read_cells needs a text size output, and a buffer unless its capacity is zero");
     }
@@ -861,7 +862,7 @@ gf_status GF_CALL data_grid_current_cell(gf_object grid, std::uint32_t* present,
 
 gf_status data_grid_set_current_cell_body(gf_object grid, gf_utf8_view row_id, std::uint64_t column,
                                           std::uint32_t* moved) {
-    if (moved == nullptr) {
+    if (!ic_data_grid::admits_set_current_cell_moved(moved)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_current_cell_slot, "set_current_cell needs a moved output");
     }
     std::string_view text;
@@ -896,7 +897,7 @@ gf_status GF_CALL data_grid_set_current_cell(gf_object grid, gf_utf8_view row_id
 
 gf_status data_grid_selected_rows_body(gf_object grid, std::uint64_t* positions, std::uint64_t capacity,
                                        std::uint64_t* count) {
-    if (count == nullptr || (positions == nullptr && capacity != 0U)) {
+    if (!ic_data_grid::admits_selected_rows_positions(count, positions, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, selected_rows_slot,
                     "selected_rows needs a count output, and positions unless the capacity is zero");
     }
@@ -923,7 +924,7 @@ gf_status GF_CALL data_grid_selected_rows(gf_object grid, std::uint64_t* positio
 
 gf_status data_grid_selected_cells_body(gf_object grid, gf_data_grid_cell* cells, std::uint64_t capacity,
                                         std::uint64_t* count) {
-    if (count == nullptr || (cells == nullptr && capacity != 0U)) {
+    if (!ic_data_grid::admits_selected_cells_cells(count, cells, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, selected_cells_slot,
                     "selected_cells needs a count output, and cells unless the capacity is zero");
     }
@@ -1038,7 +1039,7 @@ gf_status GF_CALL data_grid_begin_edit(gf_object grid, std::uint32_t select_all,
 }
 
 gf_status data_grid_end_edit_body(gf_object grid, std::uint32_t* committed) {
-    if (committed == nullptr) {
+    if (!ic_data_grid::admits_end_edit_committed(committed)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, end_edit_slot, "end_edit needs a committed output");
     }
     GridPtr typed;

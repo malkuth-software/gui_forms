@@ -55,7 +55,7 @@
       "hand": [],
       "effects": "Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0) {",
+        "if (!ic::admits_document_minimum_height(incoming)) {",
         "    throw std::invalid_argument(\"Ribbon document minimum height must be finite and not negative\");",
         "}"
       ],

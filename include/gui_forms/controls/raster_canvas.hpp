@@ -16,6 +16,8 @@ namespace gui_forms {
 // Retained viewport over an owned GUI.Drawing bitmap. Applications own tools,
 // document history, and selection state; RasterCanvas owns presentation,
 // coordinate transforms, resource synchronization, and local invalidation.
+// ic: gui_forms::RasterCanvas: generated from include/gui_forms/controls/raster_canvas.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API RasterCanvas : public Control, public RasterCanvasCapabilities<RasterCanvas> {
 public:
     explicit RasterCanvas(StableId stable_id);
@@ -149,6 +151,8 @@ private:
     void written(const decltype(transparency_grid)& cell);
     void prepare_write(const decltype(canvas_background)& cell, Color& incoming);
     void written(const decltype(canvas_background)& cell);
+    // ic: Requires finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128)), else failure
+    // ic: invalid_argument, unchanged.
     void prepare_write(const decltype(transparency_cell_size)& cell, double& incoming);
     void written(const decltype(transparency_cell_size)& cell);
     // property_codemod end RasterCanvas

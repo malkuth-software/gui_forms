@@ -20,8 +20,15 @@ struct PointerCaptureChange;
 // then ends without it. dispatch refuses every later event with
 // after_shutdown, and shutdown (and so the destructor) does none of the
 // window's teardown, which the window's own destructor has done.
+// ic: gui_forms::HostSession: generated from include/gui_forms/host/session/host_session.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. States: constructed (initial), attached,
+// ic: close_authorized, closed, shutdown. Observed by snapshot(): constructed phase == HostLifecyclePhase::constructed,
+// ic: attached phase == HostLifecyclePhase::attached, close_authorized phase == HostLifecyclePhase::close_authorized,
+// ic: closed phase == HostLifecyclePhase::closed, shutdown phase == HostLifecyclePhase::shutdown. Thread: ui, unless a
+// ic: call says otherwise.
 class GUI_FORMS_API HostSession final {
 public:
+    // ic: Returns a borrow of window, valid until the window is destroyed: the session then ends without it.
     HostSession(Window& window,
                 HostCapabilities capabilities,
                 HostServices* services = nullptr);
@@ -29,7 +36,21 @@ public:
     HostSession(const HostSession&) = delete;
     HostSession& operator=(const HostSession&) = delete;
 
+    // ic: Admitted in constructed, attached, close_authorized, closed. In shutdown: returns
+    // ic: HostDispatchError::after_shutdown, unchanged. Requires sequence != 0, else returns
+    // ic: HostDispatchError::sequence_zero, unchanged. Requires sequence > last_sequence, else returns
+    // ic: HostDispatchError::non_monotonic_sequence, unchanged. Requires (phase != phase_constructed or attach != 0 or
+    // ic: shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed !=
+    // ic: 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0), else returns
+    // ic: HostDispatchError::invalid_lifecycle, unchanged. Requires finite(width) and finite(height) and width > 0 and
+    // ic: height > 0, else returns HostDispatchError::invalid_geometry, unchanged. Requires finite(scale) and scale >
+    // ic: 0, else returns HostDispatchError::invalid_geometry, unchanged. When several refusals apply:
+    // ic: dispatch_sequence, then dispatch_order, then the state refusal, then dispatch_lifecycle, then dispatch_size,
+    // ic: then dispatch_scale. Fails wrong_thread (off the thread that constructed the session
+    // ic: (HostDispatchError::wrong_thread)), unchanged; invalid_payload (a payload its own rules refuse: invalid UTF-8
+    // ic: text, input settings out of range, a stale compositor report), unchanged.
     [[nodiscard]] HostDispatchResult dispatch(HostEvent event);
+    // ic: Admitted in any state; then shutdown.
     void shutdown() noexcept;
 
     [[nodiscard]] Event<HostCloseRequest&>& closing() noexcept {
@@ -39,6 +60,7 @@ public:
     observed() noexcept {
         return observed_;
     }
+    // ic: Returns HostSessionSnapshot, owned by the caller.
     [[nodiscard]] HostSessionSnapshot snapshot() const;
 
 private:
@@ -50,6 +72,9 @@ private:
     // Ends the session after its window was destroyed: the snapshot is
     // marked shut down and the observations dropped; no window is touched.
     void end_without_window() noexcept;
+    // Writes the snapshot's phase and, while the window is alive, the
+    // window's (Window::host_lifecycle_phase), so the two never disagree.
+    void set_phase(HostLifecyclePhase phase) noexcept;
 
     struct DispatchVisitor final {
         HostSession* session{};

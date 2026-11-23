@@ -24,6 +24,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../windows/abi_window_handle.hpp"
+#include "../ic/abi_rules_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <cstdint>
@@ -676,7 +677,7 @@ gf_status GF_CALL rules_remove(gf_rule_token token) noexcept {
 }
 
 gf_status rules_state_body(gf_rule_token token, gf_rule_state* state) {
-    if (state == nullptr) {
+    if (!ic_rules::admits_state_state(state)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
     const gf_status entered = registry().enter_ui(state_slot, false);

@@ -1,0 +1,263 @@
+# The C ABI's gf_bindings_table (GF_TABLE_BINDINGS): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_bindings_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_bindings_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_bindings_table {"
+keys = { manifest = "gf_abi::bindings", abi = "GF_TABLE_BINDINGS" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_bindings_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_bindings"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_bindings.cpp"]
+
+[[call]]
+name = "bind"
+declarations = ["gf_status (GF_CALL* bind)("]
+kind = "static"
+thread = "ui"
+returns = { type = "gf_object", owns = "caller" }
+fails = [
+  { failure = "disposed", when = "code: the target has been disposed" },
+  { failure = "invalid_argument", when = "A property that is not bindable gives GF_STATUS_INVALID_ARGUMENT." },
+]
+
+[[call]]
+name = "unbind"
+declarations = ["gf_status (GF_CALL* unbind)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "code: the binding is no longer bound" },
+]
+
+[[call]]
+name = "read_value"
+declarations = ["gf_status (GF_CALL* read_value)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { updated = "uint32_t*" }
+requires = [
+  { holds = "not_null(updated)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "read_value_updated" },
+]
+refusal_order = ["read_value_updated", "outside"]
+
+[[call]]
+name = "write_value"
+declarations = ["gf_status (GF_CALL* write_value)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { updated = "uint32_t*" }
+requires = [
+  { holds = "not_null(updated)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "write_value_updated" },
+]
+refusal_order = ["write_value_updated", "outside"]
+
+[[call]]
+name = "add_record"
+declarations = ["gf_status (GF_CALL* add_record)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { index = "uint64_t*" }
+requires = [
+  { holds = "not_null(index)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "add_record_index" },
+]
+refusal_order = ["add_record_index", "outside"]
+fails = [
+  { failure = "invalid_state", when = "code: the source's provider does not insert rows" },
+]
+
+[[call]]
+name = "insert_record"
+declarations = ["gf_status (GF_CALL* insert_record)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the records" },
+  { failure = "invalid_state", when = "code: the source's provider does not insert rows" },
+]
+
+[[call]]
+name = "remove_record"
+declarations = ["gf_status (GF_CALL* remove_record)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { removed = "uint32_t*" }
+requires = [
+  { holds = "not_null(removed)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "remove_record_removed" },
+]
+refusal_order = ["remove_record_removed", "outside"]
+fails = [
+  { failure = "invalid_state", when = "A source that allows no removal gives GF_STATUS_INVALID_STATE." },
+]
+
+[[call]]
+name = "clear_records"
+declarations = ["gf_status (GF_CALL* clear_records)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+
+[[call]]
+name = "set_position"
+declarations = ["gf_status (GF_CALL* set_position)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { moved = "uint32_t*" }
+requires = [
+  { holds = "not_null(moved)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_position_moved" },
+]
+refusal_order = ["set_position_moved", "outside"]
+fails = [
+  { failure = "invalid_argument", when = "A position past the records gives GF_STATUS_INVALID_ARGUMENT." },
+]
+
+[[call]]
+name = "position"
+declarations = ["gf_status (GF_CALL* position)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: position needs both outputs" },
+]
+
+[[call]]
+name = "current_field"
+declarations = ["gf_status (GF_CALL* current_field)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "not_found", when = "The current record's field, as properties.get gives a value; no current record or no such field gives GF_STATUS_NOT_FOUND." },
+]
+
+[[call]]
+name = "set_current_field"
+declarations = ["gf_status (GF_CALL* set_current_field)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { accepted = "uint32_t*" }
+requires = [
+  { holds = "not_null(accepted)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_current_field_accepted" },
+]
+refusal_order = ["set_current_field_accepted", "outside"]
+
+[[call]]
+name = "add_records"
+declarations = ["gf_status (GF_CALL* add_records)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { first = "uint64_t*", records = "gf_binding_record*", count = "uint64_t" }
+requires = [
+  { holds = "not_null(first) and (not_null(records) or count == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "add_records_records" },
+]
+refusal_order = ["add_records_records", "outside"]
+fails = [
+  { failure = "invalid_argument", when = "code: add_records needs records and a first output" },
+  { failure = "invalid_state", when = "code: the source's provider does not insert rows" },
+  { failure = "limit_exceeded", when = "More than GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first." },
+]
+
+[[call]]
+name = "set_provider"
+declarations = ["gf_status (GF_CALL* set_provider)("]
+kind = "member"
+thread = "ui"
+parameters = { column_count = "uint64_t", callbacks = "gf_binding_provider_callbacks*", provider = "uint64_t*" }
+requires = [
+  { holds = "not_null(provider)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_provider_provider" },
+  { holds = "not_null(callbacks) or column_count == 0", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "set_provider_columns" },
+]
+refusal_order = ["set_provider_provider", "set_provider_columns"]
+fails = [
+  { failure = "invalid_argument", when = "code: provider callbacks or columns their checks refuse" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a binding source" },
+]
+
+[[call]]
+name = "notify"
+declarations = ["gf_status (GF_CALL* notify)("]
+kind = "static"
+thread = "any"
+fails = [
+  { failure = "invalid_argument", when = "code: kind is a gf_binding_notification_kind" },
+  { failure = "removed", when = "An id the source has let go, or whose source is disposed, gives GF_STATUS_REMOVED." },
+]
+
+[[call]]
+name = "set_sort"
+declarations = ["gf_status (GF_CALL* set_sort)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "not_found", when = "Sorts the source's rows by count keys (0 clears), through the provider when it sorts, otherwise through the source's own index; an unknown column gives GF_STATUS_NOT_FOUND and changes nothing." },
+]
+
+[[call]]
+name = "set_filter"
+declarations = ["gf_status (GF_CALL* set_filter)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "not_found", when = "code: a predicate names a column the source has not got" },
+]
+
+[[call]]
+name = "generation"
+declarations = ["gf_status (GF_CALL* generation)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: generation needs its two outputs" },
+]
+
+[[call]]
+name = "read_cell"
+declarations = ["gf_status (GF_CALL* read_cell)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "The cell (row, column) of the shown rows, read at generation, as properties.get gives a value; a generation that is no longer the source's gives GF_STATUS_STALE_HANDLE, a row or column past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave no valid answer for GF_STATUS_INVALID_STATE with its error as the failure's message." },
+  { failure = "not_found", when = "The cell (row, column) of the shown rows, read at generation, as properties.get gives a value; a generation that is no longer the source's gives GF_STATUS_STALE_HANDLE, a row or column past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave no valid answer for GF_STATUS_INVALID_STATE with its error as the failure's message." },
+]

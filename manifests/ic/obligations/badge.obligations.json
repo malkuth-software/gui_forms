@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Badge",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/badge.ic.toml",
+    "sha256": "fa3e49cc30ed981294279ac5bc66e746cf816bd2283b883bdba333928da4e6ea"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.badge.maximum_write.requires.maximum",
+      "kind": "entry-check",
+      "statement": "maximum runs only when incoming != 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::badge::admits_maximum, called in src/controls/badge/badge.cpp"
+    },
+    {
+      "id": "gui_forms.badge.maximum_write.refusal.maximum",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming != 0, maximum changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

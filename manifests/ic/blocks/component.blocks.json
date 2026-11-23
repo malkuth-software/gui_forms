@@ -1,0 +1,226 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Component",
+  "declaration": "include/gui_forms/component/component/component.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "component_state",
+  "blocks": [
+    {
+      "name": "gui_forms.component.dispose.alive",
+      "mode": "legal",
+      "call": "dispose",
+      "kind": "member",
+      "thread": "owner",
+      "state": "alive",
+      "moves": "disposed",
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Component",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "logic_error",
+          "when": "verify_dispose_thread refuses the calling thread (a control's or window's own rule)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.component.dispose.disposing",
+      "mode": "legal",
+      "call": "dispose",
+      "kind": "member",
+      "thread": "owner",
+      "state": "disposing",
+      "moves": "disposed",
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Component",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "logic_error",
+          "when": "verify_dispose_thread refuses the calling thread (a control's or window's own rule)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.component.dispose.disposed",
+      "mode": "legal",
+      "call": "dispose",
+      "kind": "member",
+      "thread": "owner",
+      "state": "disposed",
+      "moves": "disposed",
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Component",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "logic_error",
+          "when": "verify_dispose_thread refuses the calling thread (a control's or window's own rule)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.component.own_revocable.alive",
+      "mode": "legal",
+      "call": "own_revocable",
+      "kind": "member",
+      "thread": "owner",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Component",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.component.own_revocable.outside.disposing",
+      "mode": "misuse",
+      "call": "own_revocable",
+      "state": "disposing",
+      "expect": {
+        "kind": "null"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.component.own_revocable.outside.disposed",
+      "mode": "misuse",
+      "call": "own_revocable",
+      "state": "disposed",
+      "expect": {
+        "kind": "null"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.component.own_subscription.alive",
+      "mode": "legal",
+      "call": "own_subscription",
+      "kind": "member",
+      "thread": "owner",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Component",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.component.own_subscription.outside.disposing",
+      "mode": "misuse",
+      "call": "own_subscription",
+      "state": "disposing",
+      "expect": {
+        "kind": "null"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.component.own_subscription.outside.disposed",
+      "mode": "misuse",
+      "call": "own_subscription",
+      "state": "disposed",
+      "expect": {
+        "kind": "null"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.component.component_state.alive",
+      "mode": "legal",
+      "call": "component_state",
+      "kind": "member",
+      "thread": "owner",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Component",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.component.component_state.disposing",
+      "mode": "legal",
+      "call": "component_state",
+      "kind": "member",
+      "thread": "owner",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Component",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.component.component_state.disposed",
+      "mode": "legal",
+      "call": "component_state",
+      "kind": "member",
+      "thread": "owner",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Component",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    }
+  ]
+}

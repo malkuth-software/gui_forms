@@ -6,6 +6,7 @@
 #include "abi_tables.hpp"
 
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_subsurfaces_ic_checks.hpp"
 
 #include "gui_forms/control.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
@@ -228,7 +229,7 @@ gf_status GF_CALL subsurfaces_set_root(gf_object root) noexcept {
 }
 
 gf_status subsurfaces_state_body(gf_object host, gf_subsurface_state* state) {
-    if (state == nullptr) {
+    if (!ic_subsurfaces::admits_state_state(state)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
     std::shared_ptr<SubSurfaceHost> found;
@@ -245,7 +246,7 @@ gf_status GF_CALL subsurfaces_state(gf_object host, gf_subsurface_state* state) 
 }
 
 gf_status subsurfaces_content_epoch_body(gf_object host, std::uint64_t* epoch) {
-    if (epoch == nullptr) {
+    if (!ic_subsurfaces::admits_content_epoch_epoch(epoch)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, content_epoch_slot, "content_epoch needs an output");
     }
     std::shared_ptr<SubSurfaceHost> found;

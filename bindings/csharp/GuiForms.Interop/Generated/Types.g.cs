@@ -48,7 +48,7 @@ public unsafe struct gf_splashscreen_options
     public double progress;
 }
 
-/// <summary>gf_runtime_table (table, 64 bytes).</summary>
+/// <summary>gf_runtime_table (table, 72 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_runtime_table
 {
@@ -61,6 +61,7 @@ public unsafe struct gf_runtime_table
     public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_utf8_view, gf_status> splashscreen_set_status;
     public delegate* unmanaged[Cdecl]<gf_splashscreen, uint, double, gf_status> splashscreen_set_progress;
     public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_status> splashscreen_close;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_splashscreen_state*, gf_status> splashscreen_state;
 }
 
 /// <summary>gf_logical_point (record, 16 bytes).</summary>
@@ -348,7 +349,7 @@ public unsafe struct gf_window_shaping
     public double corner_radius;
 }
 
-/// <summary>gf_windows_table (table, 256 bytes).</summary>
+/// <summary>gf_windows_table (table, 264 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -385,6 +386,7 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> mdi_children_minimized_anchor_bottom;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> set_main_menu_strip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> main_menu_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_lifecycle*, gf_status> lifecycle;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>

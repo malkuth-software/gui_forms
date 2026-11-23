@@ -99,6 +99,15 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status splashscreen_state(gf_splashscreen splashscreen,
+                                               gf_splashscreen_state* state) const noexcept {
+        if (table_.struct_size < 72u || table_.splashscreen_state == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.splashscreen_state(splashscreen, state);
+        return called;
+    }
+
 private:
     gf_runtime_table table_;
 };
@@ -745,6 +754,14 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.main_menu_strip(window_or_root, strip);
+        return called;
+    }
+
+    [[nodiscard]] gf_status lifecycle(gf_object window, gf_window_lifecycle* lifecycle) const noexcept {
+        if (table_.struct_size < 264u || table_.lifecycle == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.lifecycle(window, lifecycle);
         return called;
     }
 

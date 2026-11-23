@@ -1,0 +1,107 @@
+# The C ABI's gf_runtime_table (GF_TABLE_RUNTIME): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_runtime_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_runtime_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_runtime_table {"
+keys = { manifest = "gf_abi::runtime", abi = "GF_TABLE_RUNTIME" }
+thread = "any"
+states = ["shown", "handed_over"]
+initial = "shown"
+state_query = { call = "gf_runtime_table.splashscreen_state", observes = { shown = "GF_SPLASHSCREEN_STATE_SHOWN", handed_over = "GF_SPLASHSCREEN_STATE_HANDED_OVER" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_runtime_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_runtime"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/entry/abi_entry.cpp", "src/abi/stable/tables/abi_splashscreen.cpp"]
+
+[[call]]
+name = "version"
+declarations = ["gf_status (GF_CALL* version)("]
+kind = "static"
+thread = "any"
+parameters = { info = "gf_abi_version_info*" }
+requires = [
+  { holds = "not_null(info)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "version_info" },
+]
+fails = [
+  { failure = "invalid_argument", when = "struct_size is below the 1.0 record size" },
+]
+
+[[call]]
+name = "error_detail"
+declarations = ["gf_status (GF_CALL* error_detail)("]
+kind = "static"
+thread = "any"
+parameters = { detail = "gf_error_detail*", message_buffer = "char*", message_capacity = "uint64_t", message_required = "uint64_t*" }
+requires = [
+  { holds = "not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "error_detail_buffer" },
+]
+fails = [
+  { failure = "buffer_too_small", when = "When message_capacity is smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. message_buffer may be null when message_capacity is zero." },
+  { failure = "invalid_argument", when = "struct_size is below the 1.0 record size" },
+]
+
+[[call]]
+name = "clear_error"
+declarations = ["gf_status (GF_CALL* clear_error)("]
+kind = "static"
+thread = "any"
+
+[[call]]
+name = "splashscreen_show"
+declarations = ["gf_status (GF_CALL* splashscreen_show)("]
+kind = "static"
+thread = "owner"
+returns = { type = "gf_splashscreen", owns = "caller" }
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a record smaller than the 1.1 size, a null splashscreen, artwork that is not a PNG file or has an extent out of range, a status that is not UTF-8 or too long, or a progress outside [0, 1] with show_progress;" },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE while another splashscreen's handle is open (shown, or handed over and not yet closed);" },
+  { failure = "unsupported_capability", when = "GF_STATUS_UNSUPPORTED_CAPABILITY when the host has no splashscreen (no display, a host without GF_TRANSIENT_SURFACE_SPLASHSCREEN) or could not present it." },
+]
+
+[[call]]
+name = "splashscreen_set_status"
+declarations = ["gf_status (GF_CALL* splashscreen_set_status)("]
+kind = "member"
+thread = "owner"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT, changing nothing, for text that is not UTF-8 or too long;" },
+  { failure = "invalid_state", when = "stated by the code" },
+  { failure = "unsupported_capability", when = "GF_STATUS_UNSUPPORTED_CAPABILITY when the frame could not be presented." },
+]
+
+[[call]]
+name = "splashscreen_set_progress"
+declarations = ["gf_status (GF_CALL* splashscreen_set_progress)("]
+kind = "member"
+thread = "owner"
+fails = [
+  { failure = "invalid_argument", when = "struct_size is below the 1.0 record size" },
+  { failure = "invalid_state", when = "stated by the code" },
+  { failure = "unsupported_capability", when = "stated by the code" },
+]
+
+[[call]]
+name = "splashscreen_close"
+declarations = ["gf_status (GF_CALL* splashscreen_close)("]
+kind = "member"
+thread = "owner"
+
+[[call]]
+name = "splashscreen_state"
+declarations = ["gf_status (GF_CALL* splashscreen_state)("]
+kind = "member"
+parameters = { state = "gf_splashscreen_state*" }
+thread = "owner"
+
+requires = [
+  { holds = "not_null(state)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "splashscreen_state_state" },
+]

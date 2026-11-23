@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::PlotAxisItem",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/plot_axis_item.ic.toml",
+    "sha256": "be1fac2026041b3c4df321e5a6f7970413a4dfbabc98a18bd67f225b6ae0118a"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.plotaxisitem.follow_span_write.requires.follow_span",
+      "kind": "entry-check",
+      "statement": "follow_span runs only when finite(incoming) and incoming >= 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::plot_axis_item::admits_follow_span, called in src/controls/plots/plot_axis_item/plot_axis_item.cpp"
+    },
+    {
+      "id": "gui_forms.plotaxisitem.follow_span_write.refusal.follow_span",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0, follow_span changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

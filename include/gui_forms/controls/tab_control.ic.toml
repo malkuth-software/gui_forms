@@ -1,0 +1,32 @@
+# TabControl's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/tab_control.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry
+# checks (src/controls/scrollable_control/container_control/tab_control/tab_control_ic_checks.hpp)
+# that prepare_write calls. A refusal failure:invalid_argument is a throw of std::invalid_argument before
+# anything changes.
+
+schema = 1
+component = "TabControl"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/tab_control.hpp"
+anchor = "class GUI_FORMS_API TabControl final : public ContainerControl, public TabControlCapabilities<TabControl> {"
+thread = "ui"
+
+[constants]
+item_extent_most = { cpp = "PageItemWidths::maximum_width", type = "double" }
+
+[checks]
+path = "src/controls/scrollable_control/container_control/tab_control/tab_control_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::tab_control"
+includes = ["gui_forms/controls/tab_control.hpp"]
+used_in = ["src/controls/scrollable_control/container_control/tab_control/tab_control.cpp"]
+
+[[call]]
+name = "item_size"
+id = "item_size_write"
+declarations = ["void prepare_write(const decltype(item_size)&"]
+kind = "member"
+parameters = { incoming = "Size" }
+requires = [
+  { holds = "finite(incoming.width) and finite(incoming.height) and incoming.width >= 24 and incoming.height >= 18 and incoming.width <= item_extent_most and incoming.height <= item_extent_most", refuses = "failure:invalid_argument", check = "item_size" },
+]

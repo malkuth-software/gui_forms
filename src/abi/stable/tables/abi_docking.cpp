@@ -5,6 +5,7 @@
 
 #include "../failure/abi_failure.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_docking_ic_checks.hpp"
 
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
@@ -655,7 +656,7 @@ gf_status GF_CALL docking_apply_edit(gf_object workspace, const gf_dock_edit* ed
 }
 
 gf_status docking_locate_body(gf_object workspace, gf_utf8_view panel, gf_dock_location* location) {
-    if (location == nullptr || (*location).struct_size < location_size_1_1) {
+    if (!ic_docking::admits_locate_location(location) || !ic_docking::admits_locate_location_size((*location).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, locate_slot, "locate needs a location of at least the 1.1 size");
     }
     WorkspacePtr typed;
@@ -797,7 +798,7 @@ gf_status GF_CALL docking_attach_windows(gf_object workspace) noexcept {
 }
 
 gf_status docking_document_area_body(gf_object workspace, std::uint32_t* node) {
-    if (node == nullptr) {
+    if (!ic_docking::admits_document_area_node(node)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, document_area_slot, "document_area needs a node output");
     }
     WorkspacePtr typed;
@@ -840,7 +841,7 @@ gf_status GF_CALL docking_panel_at(gf_object workspace, std::uint32_t stack, std
 
 gf_status docking_floating_sites_body(gf_object workspace, std::uint32_t* sites, std::uint64_t capacity,
                                       std::uint64_t* count) {
-    if (count == nullptr || (sites == nullptr && capacity != 0U)) {
+    if (!ic_docking::admits_floating_sites_sites(count, sites, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, floating_sites_slot,
                     "floating_sites needs a count output, and sites when capacity is not zero");
     }
@@ -1005,7 +1006,7 @@ gf_status write_optional_panel(const stxlib::Optional<DockPanelId>& panel, char*
 }
 
 gf_status docking_document_presentation_body(gf_object workspace, gf_dock_document_presentation* presentation) {
-    if (presentation == nullptr) {
+    if (!ic_docking::admits_document_presentation_presentation(presentation)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, document_presentation_slot,
                     "document_presentation needs a presentation output");
     }
@@ -1050,7 +1051,7 @@ gf_status GF_CALL docking_arrange_frames(gf_object workspace, gf_dock_frame_arra
 }
 
 gf_status docking_frame_memory_body(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame) {
-    if (frame == nullptr || (*frame).struct_size < frame_memory_size_1_6) {
+    if (!ic_docking::admits_frame_memory_frame(frame) || !ic_docking::admits_frame_memory_frame_size((*frame).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, frame_memory_slot,
                     "frame_memory needs a frame record of at least the 1.6 size");
     }
@@ -1105,7 +1106,7 @@ gf_status GF_CALL docking_set_frame_icons_at_bottom(gf_object workspace, std::ui
 }
 
 gf_status docking_area_document_count_body(gf_object workspace, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_docking::admits_area_document_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, area_document_count_slot, "area_document_count needs a count output");
     }
     WorkspacePtr typed;

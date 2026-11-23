@@ -2,6 +2,7 @@
 
 #include "gui_forms/text.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gauge_base_ic_checks.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -14,6 +15,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::gauge_base;
 namespace {
 
 // The most scale marks a gauge draws.
@@ -233,7 +235,7 @@ std::span<const PropertyEntry> GaugeBase::property_table() const noexcept {
 
 void GaugeBase::prepare_write(const decltype(tick_frequency)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument("gauge tick frequency must be finite and not negative");
+    if (!ic::admits_tick_frequency(incoming)) throw std::invalid_argument("gauge tick frequency must be finite and not negative");
 }
 
 void GaugeBase::written(const decltype(tick_frequency)&) {
@@ -251,7 +253,7 @@ void GaugeBase::written(const decltype(units)&) {
 
 void GaugeBase::prepare_write(const decltype(decimal_places)&, std::uint32_t& incoming) {
     require_mutable();
-    if (incoming > 6U) throw std::invalid_argument("gauge decimal places must be at most 6");
+    if (!ic::admits_decimal_places(incoming)) throw std::invalid_argument("gauge decimal places must be at most 6");
 }
 
 void GaugeBase::written(const decltype(decimal_places)&) {

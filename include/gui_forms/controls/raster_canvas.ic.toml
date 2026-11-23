@@ -1,0 +1,29 @@
+# RasterCanvas's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/raster_canvas.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry
+# checks (src/controls/raster_canvas/raster_canvas_ic_checks.hpp)
+# that prepare_write calls. A refusal failure:invalid_argument is a throw of std::invalid_argument before
+# anything changes.
+
+schema = 1
+component = "RasterCanvas"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/raster_canvas.hpp"
+anchor = "class GUI_FORMS_API RasterCanvas : public Control, public RasterCanvasCapabilities<RasterCanvas> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/raster_canvas/raster_canvas_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::raster_canvas"
+includes = ["gui_forms/controls/raster_canvas.hpp"]
+used_in = ["src/controls/raster_canvas/raster_canvas.cpp"]
+
+[[call]]
+name = "transparency_cell_size"
+id = "transparency_cell_size_write"
+declarations = ["void prepare_write(const decltype(transparency_cell_size)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128))", refuses = "failure:invalid_argument", check = "transparency_cell_size" },
+]

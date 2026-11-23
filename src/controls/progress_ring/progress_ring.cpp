@@ -9,6 +9,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../basic/number_text.hpp"
+#include "progress_ring_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::progress_ring;
 namespace {
 
 constexpr double natural_side = 32.0;
@@ -439,7 +441,7 @@ std::span<const PropertyEntry> ProgressRing::property_table() const noexcept {
 
 void ProgressRing::prepare_write(const decltype(value)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming)) throw std::invalid_argument("ProgressRing value must be finite");
+    if (!ic::admits_value(incoming)) throw std::invalid_argument("ProgressRing value must be finite");
 }
 
 void ProgressRing::written(const decltype(value)&) {
@@ -448,7 +450,7 @@ void ProgressRing::written(const decltype(value)&) {
 
 void ProgressRing::prepare_write(const decltype(maximum)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming <= 0.0) {
+    if (!ic::admits_maximum(incoming)) {
         throw std::invalid_argument("ProgressRing maximum must be finite and greater than zero");
     }
 }

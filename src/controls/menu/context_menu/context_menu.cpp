@@ -9,6 +9,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "context_menu_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -25,6 +26,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::context_menu;
 
 using namespace menu_detail;
 
@@ -1704,7 +1706,7 @@ void ContextMenu::prepare_write(const decltype(preferred_width)&, double& incomi
         throw std::logic_error(
             "disposed ContextMenu cannot change preferred width");
     }
-    if (!std::isfinite(incoming) || incoming < 120.0 || incoming > 1024.0) {
+    if (!ic::admits_preferred_width(incoming)) {
         throw std::invalid_argument(
             "ContextMenu preferred width must be finite and between 120 and 1024");
     }

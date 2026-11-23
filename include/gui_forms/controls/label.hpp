@@ -18,6 +18,8 @@
 
 namespace gui_forms {
 
+// ic: gui_forms::Label: generated from include/gui_forms/controls/label.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Label : public Control, public LabelCapabilities<Label> {
 public:
     explicit Label(StableId stable_id, std::string initial_text = {});
@@ -143,6 +145,7 @@ private:
     void written(const decltype(maximum_lines)& cell);
     void prepare_write(const decltype(text_style_role)& cell, TextStyleRole& incoming);
     void written(const decltype(text_style_role)& cell);
+    // ic: Requires finite(incoming) and 4 * incoming >= 3 and incoming <= 3, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(line_spacing)& cell, double& incoming);
     void written(const decltype(line_spacing)& cell);
     void prepare_write(const decltype(text_case_transform)& cell, TextCaseTransform& incoming);

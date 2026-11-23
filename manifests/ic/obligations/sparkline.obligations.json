@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Sparkline",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/sparkline.ic.toml",
+    "sha256": "d557244c5b454006307b36f02266f6e324ebbf6dceba9dbbad42621848e22988"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.sparkline.capacity_write.requires.capacity",
+      "kind": "entry-check",
+      "statement": "capacity runs only when incoming >= 2 and incoming <= 100000; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::sparkline::admits_capacity, called in src/controls/instruments/sparkline/sparkline.cpp"
+    },
+    {
+      "id": "gui_forms.sparkline.capacity_write.refusal.capacity",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming >= 2 and incoming <= 100000, capacity changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

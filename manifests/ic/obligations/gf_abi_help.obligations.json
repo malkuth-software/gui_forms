@@ -1,0 +1,186 @@
+{
+  "schema": 1,
+  "component": "gf_abi::help",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_help.ic.toml",
+    "sha256": "df406dfd17491e6eb3fc4a615fb28f24c846d2d0ffcd8fcdb363b8a3a1fe0d59"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.help.attach.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "attach in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.attach.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "attach in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.detach.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "detach in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.detach.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "detach in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.show.requires.show_shown",
+      "kind": "entry-check",
+      "statement": "show runs only when not_null(shown); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_help::admits_show_shown, called in src/abi/stable/tables/abi_help.cpp"
+    },
+    {
+      "id": "gf_abi.help.show.refusal.show_shown",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(shown), show changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.show_popup.requires.show_popup_shown",
+      "kind": "entry-check",
+      "statement": "show_popup runs only when not_null(shown); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_help::admits_show_popup_shown, called in src/abi/stable/tables/abi_help.cpp"
+    },
+    {
+      "id": "gf_abi.help.show_popup.refusal.show_popup_shown",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(shown), show_popup changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.show_popup.order",
+      "kind": "refusal-order",
+      "statement": "When several of show_popup's refusals apply, the first of show_popup_shown, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.show_popup.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "show_popup in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.show_popup.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "show_popup in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.resolve.requires.resolve_home",
+      "kind": "entry-check",
+      "statement": "resolve runs only when not_null(home); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_help::admits_resolve_home, called in src/abi/stable/tables/abi_help.cpp"
+    },
+    {
+      "id": "gf_abi.help.resolve.refusal.resolve_home",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(home), resolve changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.resolve.order",
+      "kind": "refusal-order",
+      "statement": "When several of resolve's refusals apply, the first of resolve_home, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.resolve.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "resolve in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.resolve.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "resolve in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.enter_help_mode.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "enter_help_mode in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.enter_help_mode.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "enter_help_mode in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.help.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

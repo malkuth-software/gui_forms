@@ -108,6 +108,8 @@ inline constexpr std::size_t maximum_menu_items = 1024U;
 // presentations, while MenuItemSpec identities and bound Command instances are
 // stable application state. Click-away/Escape revoke the overlay and restore the
 // invoker's focus scope deterministically.
+// ic: gui_forms::ContextMenu: generated from include/gui_forms/components/context_menu/context_menu.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ContextMenu final : public Component, public ContextMenuCapabilities<ContextMenu> {
 public:
     explicit ContextMenu(std::string stable_id);
@@ -168,6 +170,7 @@ private:
 private:
     friend struct ContextMenuPreferredWidthCapability<ContextMenu>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= 120 and incoming <= 1024, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(preferred_width)& cell, double& incoming);
     void written(const decltype(preferred_width)& cell);
     // property_codemod end ContextMenu

@@ -1,0 +1,446 @@
+# The C ABI's gf_windows_table (GF_TABLE_WINDOWS): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_windows_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_windows_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_windows_table {"
+keys = { manifest = "gf_abi::windows", abi = "GF_TABLE_WINDOWS" }
+thread = "ui"
+states = ["created", "running", "ended"]
+initial = "created"
+state_query = { call = "gf_windows_table.lifecycle", observes = { created = "GF_WINDOW_LIFECYCLE_CREATED", running = "GF_WINDOW_LIFECYCLE_RUNNING", ended = "GF_WINDOW_LIFECYCLE_ENDED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_windows_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_windows"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_window_mdi.cpp", "src/abi/stable/tables/abi_windows.cpp"]
+
+[[call]]
+name = "run"
+declarations = ["gf_status (GF_CALL* run)("]
+kind = "member"
+thread = "ui"
+in = ["created"]
+outside = { running = "value:GF_STATUS_INVALID_STATE", ended = "value:GF_STATUS_DISPOSED" }
+moves = "ended"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a window the run refuses, with a message naming the reason (for a client size below the minimum, both sizes)." },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE while another run is under way." },
+  { failure = "unsupported_capability", when = "code: this build has no window host" },
+  { failure = "wrong_handle_kind", when = "code: run takes a window or a root control" },
+]
+
+[[call]]
+name = "request_close"
+declarations = ["gf_status (GF_CALL* request_close)("]
+kind = "member"
+thread = "ui"
+in = ["running"]
+outside = { created = "value:GF_STATUS_INVALID_STATE", ended = "value:GF_STATUS_INVALID_STATE" }
+fails = [
+  { failure = "invalid_argument", when = "code: the host refused the window's text" },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE when it is not running." },
+  { failure = "limit_exceeded", when = "code: too many modal windows are open" },
+  { failure = "unsupported_capability", when = "code: the host cannot open this window during a run" },
+]
+
+[[call]]
+name = "create"
+declarations = ["gf_status (GF_CALL* create)("]
+kind = "static"
+thread = "ui"
+returns = { type = "gf_object", owns = "caller" }
+fails = [
+  { failure = "disposed", when = "code: the root has been disposed" },
+  { failure = "invalid_argument", when = "code: create needs a window output" },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE when root has a parent or a window." },
+]
+
+[[call]]
+name = "interaction_count"
+declarations = ["gf_status (GF_CALL* interaction_count)("]
+kind = "static"
+thread = "any"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "interaction_count_count" },
+]
+
+[[call]]
+name = "interaction_at"
+declarations = ["gf_status (GF_CALL* interaction_at)("]
+kind = "static"
+thread = "any"
+returns = { type = "gf_utf8_view", borrows = "library", until = ["the process ends"] }
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT past the end." },
+]
+
+[[call]]
+name = "request_help"
+declarations = ["gf_status (GF_CALL* request_help)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: request_help needs a handled output" },
+  { failure = "wrong_handle_kind", when = "code: request_help takes a window" },
+]
+
+[[call]]
+name = "key_state"
+declarations = ["gf_status (GF_CALL* key_state)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT without down;" },
+  { failure = "wrong_handle_kind", when = "code: key_state takes a window" },
+]
+
+[[call]]
+name = "show_modal"
+declarations = ["gf_status (GF_CALL* show_modal)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "cancelled", when = "When the run ends during the loop (the running window closed), the loop ends with GF_STATUS_CANCELLED and the window closes with the run." },
+  { failure = "disposed", when = "code: the root has been disposed" },
+  { failure = "invalid_argument", when = "code: the host refused the window's text" },
+  { failure = "invalid_state", when = "UI thread, during a run (GF_STATUS_INVALID_STATE otherwise);" },
+  { failure = "limit_exceeded", when = "A callback inside the loop may call show_modal again, up to 8 deep (GF_STATUS_LIMIT_EXCEEDED beyond)." },
+  { failure = "unsupported_capability", when = "GF_STATUS_UNSUPPORTED_CAPABILITY where the host has no nested loop;" },
+]
+
+[[call]]
+name = "show_owned"
+declarations = ["gf_status (GF_CALL* show_owned)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "disposed", when = "code: the root has been disposed" },
+  { failure = "invalid_argument", when = "code: the host refused the window's text" },
+  { failure = "invalid_state", when = "code: the host refused the window (its owner or stable id)" },
+  { failure = "limit_exceeded", when = "code: too many modal windows are open" },
+  { failure = "unsupported_capability", when = "code: the host cannot open this window during a run" },
+]
+
+[[call]]
+name = "window_properties"
+declarations = ["gf_status (GF_CALL* window_properties)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "wrong_handle_kind", when = "GF_STATUS_WRONG_HANDLE_KIND for an object that is not a window;" },
+]
+
+[[call]]
+name = "focused_control"
+declarations = ["gf_status (GF_CALL* focused_control)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+returns = { type = "gf_object", owns = "caller" }
+fails = [
+  { failure = "invalid_argument", when = "code: focused_control needs a control output" },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE for a control not in a window;" },
+  { failure = "wrong_handle_kind", when = "code: focused_control takes a window or a control in one" },
+]
+
+[[call]]
+name = "declare_band"
+declarations = ["gf_status (GF_CALL* declare_band)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a null or short record, a width that is not finite from 0 to window_band_maximum_width, an unknown full-screen choice or nonzero reserved, changing nothing." },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE for a control not in a window;" },
+  { failure = "wrong_handle_kind", when = "GF_STATUS_WRONG_HANDLE_KIND for another object;" },
+]
+
+[[call]]
+name = "undeclare_band"
+declarations = ["gf_status (GF_CALL* undeclare_band)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the band takes a window or a control in one" },
+]
+
+[[call]]
+name = "set_band_appearance"
+declarations = ["gf_status (GF_CALL* set_band_appearance)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT, changing nothing, for a null or short record, an unknown state, role or texture, a frequency that is not finite or below 0, a texture out of range, or nonzero reserved." },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the band takes a window or a control in one" },
+]
+
+[[call]]
+name = "band_report"
+declarations = ["gf_status (GF_CALL* band_report)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a null or short record." },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the band takes a window or a control in one" },
+]
+
+[[call]]
+name = "set_corner_preference"
+declarations = ["gf_status (GF_CALL* set_corner_preference)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a value outside gf_window_corner_preference, changing nothing." },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the band takes a window or a control in one" },
+]
+
+[[call]]
+name = "content_rect"
+declarations = ["gf_status (GF_CALL* content_rect)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a null output." },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the band takes a window or a control in one" },
+]
+
+[[call]]
+name = "shaping"
+declarations = ["gf_status (GF_CALL* shaping)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a null or short record." },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the band takes a window or a control in one" },
+]
+
+[[call]]
+name = "pointer_location"
+declarations = ["gf_status (GF_CALL* pointer_location)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE for a control not in a window;" },
+  { failure = "wrong_handle_kind", when = "GF_STATUS_WRONG_HANDLE_KIND for an object that is neither;" },
+]
+
+[[call]]
+name = "show_business_card"
+declarations = ["gf_status (GF_CALL* show_business_card)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE for a control not in a window or in a sub-surface;" },
+  { failure = "wrong_handle_kind", when = "code: show_business_card takes a window or a control in one" },
+]
+
+[[call]]
+name = "set_mdi_container"
+declarations = ["gf_status (GF_CALL* set_mdi_container)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: a switch is 0 or 1" },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "mdi_container"
+declarations = ["gf_status (GF_CALL* mdi_container)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { container = "uint32_t*" }
+requires = [
+  { holds = "not_null(container)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "mdi_container_container" },
+]
+refusal_order = ["mdi_container_container", "outside"]
+fails = [
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "mdi_child_count"
+declarations = ["gf_status (GF_CALL* mdi_child_count)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "mdi_child_count_count" },
+]
+refusal_order = ["mdi_child_count_count", "outside"]
+fails = [
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "mdi_child_at"
+declarations = ["gf_status (GF_CALL* mdi_child_at)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "buffer_too_small", when = "the id is longer than capacity: required receives its size, nothing else is written" },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "not_found", when = "code: the index is past the window's MDI children" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "active_mdi_child"
+declarations = ["gf_status (GF_CALL* active_mdi_child)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "activate_mdi_child"
+declarations = ["gf_status (GF_CALL* activate_mdi_child)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "layout_mdi"
+declarations = ["gf_status (GF_CALL* layout_mdi)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "A value outside gf_mdi_layout gives GF_STATUS_INVALID_ARGUMENT." },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "set_mdi_children_minimized_anchor_bottom"
+declarations = ["gf_status (GF_CALL* set_mdi_children_minimized_anchor_bottom)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: a switch is 0 or 1" },
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "mdi_children_minimized_anchor_bottom"
+declarations = ["gf_status (GF_CALL* mdi_children_minimized_anchor_bottom)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { bottom = "uint32_t*" }
+requires = [
+  { holds = "not_null(bottom)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "mdi_children_minimized_anchor_bottom_bottom" },
+]
+refusal_order = ["mdi_children_minimized_anchor_bottom_bottom", "outside"]
+fails = [
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "set_main_menu_strip"
+declarations = ["gf_status (GF_CALL* set_main_menu_strip)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "A menu_strip object or zero for none; another object gives GF_STATUS_WRONG_HANDLE_KIND." },
+]
+
+[[call]]
+name = "main_menu_strip"
+declarations = ["gf_status (GF_CALL* main_menu_strip)("]
+kind = "member"
+thread = "ui"
+in = ["created", "running"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { strip = "gf_object*" }
+returns = { type = "gf_object", owns = "caller" }
+requires = [
+  { holds = "not_null(strip)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "main_menu_strip_strip" },
+]
+refusal_order = ["main_menu_strip_strip", "outside"]
+fails = [
+  { failure = "invalid_state", when = "code: the control is not in a window" },
+  { failure = "wrong_handle_kind", when = "code: the MDI calls take a window or a control in one" },
+]
+
+[[call]]
+name = "lifecycle"
+declarations = ["gf_status (GF_CALL* lifecycle)("]
+kind = "member"
+parameters = { lifecycle = "gf_window_lifecycle*" }
+thread = "ui"
+fails = [
+  { failure = "wrong_handle_kind", when = "GF_STATUS_WRONG_HANDLE_KIND for an object that is not a window (a run's root control among them);" },
+]
+
+requires = [
+  { holds = "not_null(lifecycle)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "lifecycle_lifecycle" },
+]

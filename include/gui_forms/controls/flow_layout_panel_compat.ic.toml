@@ -1,0 +1,29 @@
+# FlowLayoutPanelCompat's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/flow_layout_panel_compat.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "FlowLayoutPanelCompat"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/flow_layout_panel_compat.hpp"
+anchor = "class GUI_FORMS_API FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>, public FlowLayoutPanelCompatCapabilities<FlowLayoutPanelCompat> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::flow_layout_panel_compat"
+includes = ["gui_forms/controls/flow_layout_panel_compat.hpp"]
+used_in = ["src/controls/scrollable_control/container_control/flow_layout_panel_compat/flow_layout_panel_compat.cpp"]
+
+[[call]]
+name = "item_spacing"
+id = "item_spacing_write"
+declarations = ["void prepare_write(const decltype(item_spacing)&"]
+kind = "member"
+parameters = { incoming = "Size" }
+requires = [
+  { holds = "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and incoming.width <= 256 and incoming.height <= 256", refuses = "failure:invalid_argument", check = "item_spacing" },
+]

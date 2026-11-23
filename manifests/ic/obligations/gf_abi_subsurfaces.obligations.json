@@ -1,0 +1,149 @@
+{
+  "schema": 1,
+  "component": "gf_abi::subsurfaces",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_subsurfaces.ic.toml",
+    "sha256": "ff19c421736166ebbf5f38eb8240e75b3bae9dd938ab8be54fbecd067779e42e"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.subsurfaces.set_content.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_content in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.set_content.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_content in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.state.requires.state_state",
+      "kind": "entry-check",
+      "statement": "state runs only when not_null(state); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_subsurfaces::admits_state_state, called in src/abi/stable/tables/abi_subsurfaces.cpp"
+    },
+    {
+      "id": "gf_abi.subsurfaces.state.refusal.state_state",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(state), state changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.state.order",
+      "kind": "refusal-order",
+      "statement": "When several of state's refusals apply, the first of state_state, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.state.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "state in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.state.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "state in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.content_epoch.requires.content_epoch_epoch",
+      "kind": "entry-check",
+      "statement": "content_epoch runs only when not_null(epoch); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_subsurfaces::admits_content_epoch_epoch, called in src/abi/stable/tables/abi_subsurfaces.cpp"
+    },
+    {
+      "id": "gf_abi.subsurfaces.content_epoch.refusal.content_epoch_epoch",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(epoch), content_epoch changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.content_epoch.order",
+      "kind": "refusal-order",
+      "statement": "When several of content_epoch's refusals apply, the first of content_epoch_epoch, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.content_epoch.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "content_epoch in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.content_epoch.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "content_epoch in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.failure.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "failure in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.failure.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "failure in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.subsurfaces.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -44,6 +44,7 @@ gf_status GF_CALL runtime_splashscreen_set_status(gf_splashscreen splashscreen, 
 gf_status GF_CALL runtime_splashscreen_set_progress(gf_splashscreen splashscreen, std::uint32_t show_progress,
                                                     double progress) noexcept;
 gf_status GF_CALL runtime_splashscreen_close(gf_splashscreen splashscreen) noexcept;
+gf_status GF_CALL runtime_splashscreen_state(gf_splashscreen splashscreen, gf_splashscreen_state* state) noexcept;
 // GF_TABLE_WINDOWS' multiple document interface slots (since 1.6,
 // abi_window_mdi.cpp); the table itself is abi_windows.cpp's.
 gf_status GF_CALL windows_set_mdi_container(gf_object window_or_root, std::uint32_t container) noexcept;

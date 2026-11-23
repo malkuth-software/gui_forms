@@ -6,6 +6,7 @@
 #include "abi_tables.hpp"
 
 #include "gui_forms/controls/list_view.hpp"
+#include "../ic/abi_list_view_ic_checks.hpp"
 
 #include <cmath>
 #include <cstddef>
@@ -257,7 +258,7 @@ gf_status check_sort_order(gf_list_view_sort_order order, SlotIdentity slot) {
 // -- columns -----------------------------------------------------------------------
 
 gf_status list_view_column_count_body(gf_object view, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_list_view::admits_column_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, column_count_slot, "column_count needs a count output");
     }
     ListViewPtr typed;
@@ -360,7 +361,7 @@ gf_status GF_CALL list_view_set_column_width(gf_object view, std::uint64_t colum
 // -- items -------------------------------------------------------------------------
 
 gf_status list_view_item_count_body(gf_object view, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_list_view::admits_item_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, item_count_slot, "item_count needs a count output");
     }
     ListViewPtr typed;
@@ -473,7 +474,7 @@ gf_status GF_CALL list_view_set_items(gf_object view, const gf_list_view_item* i
 }
 
 gf_status list_view_index_of_body(gf_object view, gf_utf8_view item_id, std::uint64_t* index) {
-    if (index == nullptr) {
+    if (!ic_list_view::admits_index_of_index(index)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, index_of_slot, "index_of needs an index output");
     }
     std::string_view text;
@@ -523,7 +524,7 @@ gf_status GF_CALL list_view_set_item_checked(gf_object view, std::uint64_t index
 // -- groups ------------------------------------------------------------------------
 
 gf_status list_view_group_count_body(gf_object view, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_list_view::admits_group_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, group_count_slot, "group_count needs a count output");
     }
     ListViewPtr typed;
@@ -604,7 +605,7 @@ gf_status GF_CALL list_view_set_groups(gf_object view, const gf_list_view_group*
 
 gf_status list_view_selected_items_body(gf_object view, std::uint64_t* indices, std::uint64_t capacity,
                                         std::uint64_t* count) {
-    if (count == nullptr || (indices == nullptr && capacity != 0U)) {
+    if (!ic_list_view::admits_selected_items_indices(count, indices, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, selected_items_slot,
                     "selected_items needs a count output, and an array unless its capacity is zero");
     }
@@ -680,7 +681,7 @@ gf_status GF_CALL list_view_clear_selection(gf_object view) noexcept {
 }
 
 gf_status list_view_focused_item_body(gf_object view, std::int64_t* index) {
-    if (index == nullptr) {
+    if (!ic_list_view::admits_focused_item_index(index)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, focused_item_slot, "focused_item needs an index output");
     }
     ListViewPtr typed;

@@ -1,0 +1,272 @@
+{
+  "schema": 1,
+  "component": "gf_abi::host",
+  "declaration": "include/gui_forms/c/gf_abi_host.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.host.capabilities",
+      "mode": "legal",
+      "call": "capabilities",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "record",
+          "type": "gf_host_capabilities*",
+          "bounded_by": [
+            "not_null(record)"
+          ]
+        },
+        {
+          "name": "record_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "record_size >= host_capabilities_size_1_0"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(record)",
+        "record_size >= host_capabilities_size_1_0"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "capabilities_record",
+        "capabilities_record_size"
+      ]
+    },
+    {
+      "name": "gf_abi.host.capabilities.misuse.capabilities_record",
+      "mode": "misuse",
+      "call": "capabilities",
+      "violates": "not_null(record)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.host.capabilities.misuse.capabilities_record_size",
+      "mode": "misuse",
+      "call": "capabilities",
+      "violates": "record_size >= host_capabilities_size_1_0",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.host.platform_name",
+      "mode": "legal",
+      "call": "platform_name",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.host.set_cursor",
+      "mode": "legal",
+      "call": "set_cursor",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: unknown cursor",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: the host has shut down",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: the request exceeds the host's bounds",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: the host does not offer this service",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.host.read_clipboard_text",
+      "mode": "legal",
+      "call": "read_clipboard_text",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "char*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "code: the host has shut down",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: the request exceeds the host's bounds",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND when it holds none.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: the host does not offer this service",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.host.read_clipboard_text.misuse.read_clipboard_text_buffer",
+      "mode": "misuse",
+      "call": "read_clipboard_text",
+      "violates": "not_null(required) and (not_null(buffer) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.host.write_clipboard_text",
+      "mode": "legal",
+      "call": "write_clipboard_text",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the host refused the request",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: the host has shut down",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: clipboard text is at most 16 MiB",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: the host does not offer this service",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.host.show_dialog",
+      "mode": "legal",
+      "call": "show_dialog",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the host refused the request",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: the host has shut down",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: the request exceeds the host's bounds",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: the host does not offer this service",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.host.dialog_path_at",
+      "mode": "legal",
+      "call": "dialog_path_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the last dialog chose no path at that index",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    }
+  ]
+}

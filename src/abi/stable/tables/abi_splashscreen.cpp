@@ -12,6 +12,7 @@
 #include "abi_tables.hpp"
 
 #include "gui_forms/application/splashscreen/splashscreen.hpp"
+#include "../ic/abi_runtime_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <cmath>
@@ -168,6 +169,23 @@ gf_status GF_CALL runtime_splashscreen_close(const gf_splashscreen splashscreen)
         }
         // Destroyed outside the lock: the destructor closes the host window.
         closing.reset();
+        return GF_STATUS_OK;
+    } catch (...) {
+        return GF_STATUS_INTERNAL;
+    }
+}
+
+// Since 1.7: where the open splashscreen stands. Splashscreen::shown is
+// false once the handover closed its window.
+gf_status GF_CALL runtime_splashscreen_state(const gf_splashscreen splashscreen,
+                                             gf_splashscreen_state* state) noexcept {
+    try {
+        if (!ic_runtime::admits_splashscreen_state_state(state)) return GF_STATUS_INVALID_ARGUMENT;
+        SplashscreenState& held = splashscreen_state();
+        const std::lock_guard<std::mutex> lock(held.mutex);
+        const gf_status checked = check_handle(held, splashscreen);
+        if (checked != GF_STATUS_OK) return checked;
+        *state = (*held.shown).shown() ? GF_SPLASHSCREEN_STATE_SHOWN : GF_SPLASHSCREEN_STATE_HANDED_OVER;
         return GF_STATUS_OK;
     } catch (...) {
         return GF_STATUS_INTERNAL;

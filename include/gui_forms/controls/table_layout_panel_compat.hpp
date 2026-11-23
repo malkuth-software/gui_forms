@@ -118,6 +118,8 @@ struct TableRowSpanCapability {
 // a right-to-left effective layout direction the layout is computed left
 // to right and mirrored about the panel, padding, margins and the
 // placement in cells included: the first column is at the right edge.
+// ic: gui_forms::TableLayoutPanelCompat: generated from include/gui_forms/controls/table_layout_panel_compat.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API TableLayoutPanelCompat final : public ContainerControl,
                                      public TableCellCapability<TableLayoutPanelCompat>,
                                      public TableColumnSpanCapability<TableLayoutPanelCompat>,
@@ -346,6 +348,8 @@ private:
     void written(const decltype(grow_style)& cell);
     void prepare_write(const decltype(cell_border_style)& cell, TableCellBorderStyle& incoming);
     void written(const decltype(cell_border_style)& cell);
+    // ic: Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0
+    // ic: and incoming.width <= 256 and incoming.height <= 256, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(track_spacing)& cell, Size& incoming);
     void written(const decltype(track_spacing)& cell);
     void write_view(const decltype(column_count)& cell, std::size_t incoming);

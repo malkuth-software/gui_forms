@@ -12,6 +12,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "ribbon_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -21,6 +22,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::ribbon;
 
 using namespace ribbon_detail;
 
@@ -3730,7 +3732,7 @@ void Ribbon::append_interactions(std::vector<InteractionDeclaration>& interactio
 
 void Ribbon::prepare_write(const decltype(document_minimum_height)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0) {
+    if (!ic::admits_document_minimum_height(incoming)) {
         throw std::invalid_argument("Ribbon document minimum height must be finite and not negative");
     }
 }

@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "component": "gf_abi::dispatch",
+  "declaration": "include/gui_forms/c/gf_abi_dispatch.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.dispatch.begin_invoke.alive",
+      "mode": "legal",
+      "call": "begin_invoke",
+      "kind": "member",
+      "thread": "any",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::dispatch",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "At most 4096 callbacks wait at once (GF_STATUS_LIMIT_EXCEEDED).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.dispatch.begin_invoke.disposing",
+      "mode": "legal",
+      "call": "begin_invoke",
+      "kind": "member",
+      "thread": "any",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::dispatch",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "At most 4096 callbacks wait at once (GF_STATUS_LIMIT_EXCEEDED).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.dispatch.begin_invoke.disposed",
+      "mode": "legal",
+      "call": "begin_invoke",
+      "kind": "member",
+      "thread": "any",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::dispatch",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "At most 4096 callbacks wait at once (GF_STATUS_LIMIT_EXCEEDED).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.dispatch.run_pending",
+      "mode": "legal",
+      "call": "run_pending",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "invoked",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(invoked)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(invoked)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.dispatch.run_pending.misuse.run_pending_invoked",
+      "mode": "misuse",
+      "call": "run_pending",
+      "violates": "not_null(invoked)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

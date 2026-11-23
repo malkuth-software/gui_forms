@@ -1,0 +1,56 @@
+# Window's lifecycle, stated once (IC3; the format is template_harness docs/ic_declarations.md).
+# tools/ic_declarations.py generates the header's // ic: lines, the member-manifest column, the fuzz block stubs and
+# the proof obligations from it. A window's phase is its host session's (host_session.ic.toml): HostSession writes
+# both through set_phase, so Window::host_lifecycle_phase is the window's public state query. In this C++
+# declaration a failure:<kind> is a throw of std::<kind>.
+
+schema = 1
+component = "Window"
+namespace = "gui_forms"
+header = "include/gui_forms/window/window.hpp"
+anchor = "class GUI_FORMS_API Window : public SurfaceRoot, public WindowCapabilities<Window> {"
+keys = { manifest = "gui_forms::Window", surface = "window" }
+thread = "ui"
+states = ["constructed", "attached", "close_authorized", "closed", "shutdown"]
+initial = "constructed"
+state_query = { call = "host_lifecycle_phase", observes = { constructed = "HostLifecyclePhase::constructed", attached = "HostLifecyclePhase::attached", close_authorized = "HostLifecyclePhase::close_authorized", closed = "HostLifecyclePhase::closed", shutdown = "HostLifecyclePhase::shutdown" } }
+
+[[call]]
+name = "Window"
+id = "construct"
+declarations = ["explicit Window(Control::Ptr root, Size client_size = {});", "Window(Control::Ptr root, Size client_size, ImageRegistryLimits image_limits);"]
+kind = "constructor"
+returns = { type = "Window", owns = "caller" }
+
+[[call]]
+name = "Window"
+id = "construct_in_application"
+declarations = ["Window(Application& application, Control::Ptr root, Size client_size = {});"]
+kind = "constructor"
+fails = [
+  { failure = "logic_error", when = "off the application's thread, or once the application has closed" },
+]
+returns = { type = "Window", owns = "caller" }
+
+[[call]]
+name = "Window"
+id = "construct_with_resources"
+declarations = ["Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources);"]
+kind = "constructor"
+fails = [
+  { failure = "invalid_argument", when = "null resources" },
+  { failure = "logic_error", when = "resources made on another thread" },
+]
+returns = { type = "Window", owns = "caller" }
+
+[[call]]
+name = "host_close_reason"
+declarations = ["[[nodiscard]] stxlib::Optional<HostCloseReason> host_close_reason() const noexcept;"]
+kind = "member"
+returns = { type = "stxlib::Optional<HostCloseReason>", owns = "caller" }
+fails = [{ failure = "empty", when = "before the host session accepts the closed event (states constructed, attached, close_authorized)" }]
+
+[[call]]
+name = "host_lifecycle_phase"
+declarations = ["[[nodiscard]] HostLifecyclePhase host_lifecycle_phase() const noexcept { return host_phase_; }"]
+kind = "member"

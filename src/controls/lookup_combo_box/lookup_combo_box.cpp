@@ -6,6 +6,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "lookup_combo_box_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -15,6 +16,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::lookup_combo_box;
 namespace {
 
 // Geometry in logical units: the field's natural size and its drop-down
@@ -776,7 +778,7 @@ std::span<const PropertyEntry> LookupComboBox::property_table() const noexcept {
 
 void LookupComboBox::prepare_write(const decltype(max_drop_down_rows)&, std::uint32_t& incoming) {
     require_mutable();
-    if (incoming == 0U || incoming > 64U) throw std::invalid_argument("LookupComboBox drop-down rows must be from 1 to 64");
+    if (!ic::admits_max_drop_down_rows(incoming)) throw std::invalid_argument("LookupComboBox drop-down rows must be from 1 to 64");
 }
 
 void LookupComboBox::written(const decltype(max_drop_down_rows)&) {

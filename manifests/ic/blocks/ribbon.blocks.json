@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Ribbon",
+  "declaration": "include/gui_forms/controls/ribbon.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.ribbon.document_minimum_height_write",
+      "mode": "legal",
+      "call": "document_minimum_height",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Ribbon"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 0"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 0"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.ribbon.document_minimum_height_write.misuse.document_minimum_height",
+      "mode": "misuse",
+      "call": "document_minimum_height",
+      "violates": "finite(incoming) and incoming >= 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

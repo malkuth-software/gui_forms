@@ -41,7 +41,7 @@
       "hooks": "generated",
       "hand": [],
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 4096.0) {",
+        "if (!ic::admits_caption_width(incoming)) {",
         "    throw std::invalid_argument(\"FormLayout caption width must be within [0, 4096]\");",
         "}"
       ],
@@ -110,7 +110,7 @@
       "hooks": "generated",
       "hand": [],
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) {",
+        "if (!ic::admits_row_spacing(incoming)) {",
         "    throw std::invalid_argument(\"FormLayout row spacing must be within [0, 256]\");",
         "}"
       ],
@@ -146,7 +146,7 @@
       "hooks": "generated",
       "hand": [],
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) {",
+        "if (!ic::admits_column_spacing(incoming)) {",
         "    throw std::invalid_argument(\"FormLayout column spacing must be within [0, 256]\");",
         "}"
       ],

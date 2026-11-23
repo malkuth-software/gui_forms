@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "component": "gf_abi::windows_paint_endpoint",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_windows_paint_endpoint.ic.toml",
+    "sha256": "6b52d5600fb329039e86ed8856bc2922a10a621a0bf9c2ee13c8d32093eced49"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.windows_paint_endpoint.snapshot.requires.snapshot_buffer",
+      "kind": "entry-check",
+      "statement": "snapshot runs only when not_null(required) and (not_null(buffer) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_windows_paint_endpoint::admits_snapshot_buffer, called in src/abi/stable/windows/abi_windows_paint_endpoint.cpp"
+    },
+    {
+      "id": "gf_abi.windows_paint_endpoint.snapshot.refusal.snapshot_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(required) and (not_null(buffer) or capacity == 0), snapshot changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows_paint_endpoint.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

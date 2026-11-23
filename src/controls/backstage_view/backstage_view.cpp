@@ -4,6 +4,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "backstage_view_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -13,6 +14,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::backstage_view;
 namespace {
 
 // Column geometry in logical units at text scale 1: fast commands on 26-unit
@@ -25,8 +27,6 @@ constexpr double icon_left = 10.0;
 constexpr double icon_side = 16.0;
 constexpr double label_left = 34.0;
 constexpr double label_right = 8.0;
-constexpr double minimum_column = 48.0;
-constexpr double maximum_column = 480.0;
 
 std::string node_id(std::string_view view_id, std::string_view item_id) {
     std::string identity(view_id);
@@ -601,7 +601,7 @@ void BackstageView::append_interactions(std::vector<InteractionDeclaration>& int
 
 void BackstageView::prepare_write(const decltype(column_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < minimum_column || incoming > maximum_column) {
+    if (!ic::admits_column_width(incoming)) {
         throw std::invalid_argument("BackstageView column width must lie within 48 to 480");
     }
 }

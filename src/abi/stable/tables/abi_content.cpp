@@ -21,6 +21,7 @@
 #include "gui_forms/content/watchdog/content_watchdog.hpp"
 #include "gui_forms/controls/content_surface.hpp"
 #include "gui_forms/controls/content_text_editor.hpp"
+#include "../ic/abi_content_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -637,7 +638,7 @@ gf_status GF_CALL content_failure(gf_object surface, char* buffer, std::uint64_t
 }
 
 gf_status content_statistics_body(gf_object surface, gf_content_statistics* statistics) {
-    if (statistics == nullptr || (*statistics).struct_size < statistics_size_1_4) {
+    if (!ic_content::admits_statistics_statistics(statistics) || !ic_content::admits_statistics_statistics_size((*statistics).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, statistics_slot,
                     "a gf_content_statistics needs struct_size of at least 80");
     }
@@ -653,7 +654,7 @@ gf_status GF_CALL content_statistics(gf_object surface, gf_content_statistics* s
 }
 
 gf_status content_request_body(gf_object surface, gf_content_request* request) {
-    if (request == nullptr || (*request).struct_size < request_size_1_4) {
+    if (!ic_content::admits_request_request(request) || !ic_content::admits_request_request_size((*request).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, request_slot, "a gf_content_request needs struct_size of at least 32");
     }
     std::shared_ptr<ContentSurface> found;
@@ -703,7 +704,7 @@ gf_status GF_CALL content_set_semantics(gf_object surface, const gf_content_sema
 }
 
 gf_status content_program_running_body(gf_object surface, std::uint32_t* running) {
-    if (running == nullptr) {
+    if (!ic_content::admits_program_running_running(running)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, program_running_slot, "program_running needs an output");
     }
     std::shared_ptr<ContentSurface> found;
@@ -719,7 +720,7 @@ gf_status GF_CALL content_program_running(gf_object surface, std::uint32_t* runn
 
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 gf_status content_hosted_input_body(gf_object surface, gf_hosted_input_report* report) {
-    if (report == nullptr || (*report).struct_size < hosted_input_report_size_1_4) {
+    if (!ic_content::admits_hosted_input_report(report) || !ic_content::admits_hosted_input_report_size((*report).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, hosted_input_slot,
                     "a gf_hosted_input_report needs struct_size of at least 16");
     }
@@ -738,7 +739,7 @@ gf_status GF_CALL content_hosted_input(gf_object surface, gf_hosted_input_report
 #endif
 
 gf_status content_hosted_support_body(gf_hosted_support* support) {
-    if (support == nullptr) {
+    if (!ic_content::admits_hosted_support_support(support)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, hosted_support_slot, "hosted_support needs an output");
     }
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
@@ -808,7 +809,7 @@ gf_status GF_CALL content_sink_heartbeat(gf_content_sink sink) noexcept {
 
 gf_status content_sink_publish_semantics_body(gf_content_sink sink, const gf_content_semantics* semantics,
                                               gf_content_semantics_result* result) {
-    if (result == nullptr) {
+    if (!ic_content::admits_sink_publish_semantics_result(result)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, sink_publish_semantics_slot, "publish_semantics needs a result");
     }
     ContentSemantics read{};
@@ -828,7 +829,7 @@ gf_status GF_CALL content_sink_publish_semantics(gf_content_sink sink, const gf_
 }
 
 gf_status content_sink_request_body(gf_content_sink sink, gf_content_request* request) {
-    if (request == nullptr || (*request).struct_size < request_size_1_4) {
+    if (!ic_content::admits_sink_request_request(request) || !ic_content::admits_sink_request_request_size((*request).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, sink_request_slot,
                     "a gf_content_request needs struct_size of at least 32");
     }
@@ -845,7 +846,7 @@ gf_status GF_CALL content_sink_request(gf_content_sink sink, gf_content_request*
 
 gf_status content_sink_wait_for_request_body(gf_content_sink sink, std::uint64_t seen_generation,
                                              std::uint64_t timeout_ms, gf_content_request* request) {
-    if (request == nullptr || (*request).struct_size < request_size_1_4) {
+    if (!ic_content::admits_sink_wait_for_request_request(request) || !ic_content::admits_sink_wait_for_request_request_size((*request).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, sink_wait_for_request_slot,
                     "a gf_content_request needs struct_size of at least 32");
     }
@@ -885,7 +886,7 @@ gf_status GF_CALL content_sink_state(gf_content_sink sink, std::uint32_t* revoke
 }
 
 gf_status content_sink_statistics_body(gf_content_sink sink, gf_content_statistics* statistics) {
-    if (statistics == nullptr || (*statistics).struct_size < statistics_size_1_4) {
+    if (!ic_content::admits_sink_statistics_statistics(statistics) || !ic_content::admits_sink_statistics_statistics_size((*statistics).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, sink_statistics_slot,
                     "a gf_content_statistics needs struct_size of at least 80");
     }
@@ -945,7 +946,7 @@ gf_status GF_CALL content_program_fail(gf_utf8_view message) noexcept {
 // Editor slots.
 
 gf_status content_editor_text_revision_body(gf_object editor, std::uint64_t* revision) {
-    if (revision == nullptr) {
+    if (!ic_content::admits_editor_text_revision_revision(revision)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_text_revision_slot, "editor_text_revision needs an output");
     }
     std::shared_ptr<ContentTextEditor> found;
@@ -1087,7 +1088,7 @@ gf_status GF_CALL content_editor_submit_layout(gf_object editor, const gf_conten
 }
 
 gf_status content_editor_layout_current_body(gf_object editor, std::uint32_t* current) {
-    if (current == nullptr) {
+    if (!ic_content::admits_editor_layout_current_current(current)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_layout_current_slot, "editor_layout_current needs an output");
     }
     std::shared_ptr<ContentTextEditor> found;
@@ -1102,7 +1103,7 @@ gf_status GF_CALL content_editor_layout_current(gf_object editor, std::uint32_t*
 }
 
 gf_status content_editor_open_frames_body(gf_object editor, std::uint32_t opaque, gf_content_sink* sink) {
-    if (sink == nullptr) {
+    if (!ic_content::admits_editor_open_frames_sink(sink)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_open_frames_slot, "editor_open_frames needs an output");
     }
     bool opaque_value = false;
@@ -1142,7 +1143,7 @@ gf_status GF_CALL content_editor_caret_rectangle(gf_object editor, std::uint32_t
 
 gf_status content_editor_selection_rectangles_body(gf_object editor, gf_logical_rect* buffer,
                                                    std::uint64_t capacity, std::uint64_t* required) {
-    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+    if (!ic_content::admits_editor_selection_rectangles_buffer(required, buffer, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_selection_rectangles_slot,
                     "editor_selection_rectangles needs required, and a buffer for a nonzero capacity");
     }
@@ -1167,7 +1168,7 @@ gf_status GF_CALL content_editor_selection_rectangles(gf_object editor, gf_logic
 
 gf_status content_editor_position_at_body(gf_object editor, gf_logical_point point,
                                           std::uint64_t* offset) {
-    if (offset == nullptr) {
+    if (!ic_content::admits_editor_position_at_offset(offset)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_position_at_slot, "editor_position_at needs an output");
     }
     std::shared_ptr<ContentTextEditor> found;
@@ -1245,7 +1246,7 @@ gf_status GF_CALL content_editor_set_accepts_tab(gf_object editor, std::uint32_t
 
 gf_status content_editor_replace_selection_body(gf_object editor, gf_utf8_view replacement,
                                                 std::uint32_t* applied) {
-    if (applied == nullptr) {
+    if (!ic_content::admits_editor_replace_selection_applied(applied)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_replace_selection_slot,
                     "editor_replace_selection needs an output");
     }
@@ -1267,7 +1268,7 @@ gf_status GF_CALL content_editor_replace_selection(gf_object editor, gf_utf8_vie
 }
 
 gf_status content_editor_delete_selection_body(gf_object editor, std::uint32_t* applied) {
-    if (applied == nullptr) {
+    if (!ic_content::admits_editor_delete_selection_applied(applied)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_delete_selection_slot,
                     "editor_delete_selection needs an output");
     }
@@ -1340,7 +1341,7 @@ gf_status write_quads(const std::vector<ContentQuad>& quads, gf_content_quad* bu
 
 gf_status content_editor_selection_quads_body(gf_object editor, gf_content_quad* buffer, std::uint64_t capacity,
                                               std::uint64_t* required) {
-    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+    if (!ic_content::admits_editor_selection_quads_buffer(required, buffer, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_selection_quads_slot,
                     "editor_selection_quads needs required, and a buffer for a nonzero capacity");
     }
@@ -1360,7 +1361,7 @@ gf_status GF_CALL content_editor_selection_quads(gf_object editor, gf_content_qu
 
 gf_status content_editor_composition_quads_body(gf_object editor, gf_content_quad* buffer, std::uint64_t capacity,
                                                 std::uint64_t* required) {
-    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+    if (!ic_content::admits_editor_composition_quads_buffer(required, buffer, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, editor_composition_quads_slot,
                     "editor_composition_quads needs required, and a buffer for a nonzero capacity");
     }

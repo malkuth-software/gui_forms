@@ -1,0 +1,29 @@
+# ErrorProvider's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/error_provider.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/guidance/error_provider/error_provider_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "ErrorProvider"
+namespace = "gui_forms"
+header = "include/gui_forms/components/error_provider/error_provider.hpp"
+anchor = "class GUI_FORMS_API ErrorProvider final : public Component, public ErrorProviderCapabilities<ErrorProvider> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/guidance/error_provider/error_provider_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::error_provider"
+includes = ["gui_forms/components/error_provider/error_provider.hpp"]
+used_in = ["src/controls/guidance/error_provider/error_provider.cpp"]
+
+[[call]]
+name = "icon_size"
+id = "icon_size_write"
+declarations = ["void prepare_write(const decltype(icon_size)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 8 and incoming <= 64", refuses = "failure:invalid_argument", check = "icon_size" },
+]

@@ -252,6 +252,16 @@
       "type": "uint32"
     },
     {
+      "name": "GF_SPLASHSCREEN_STATE_SHOWN",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_SPLASHSCREEN_STATE_HANDED_OVER",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES",
       "value": 512,
       "type": "uint32"
@@ -809,6 +819,21 @@
     {
       "name": "GF_WINDOW_SHAPING_COMPLIED",
       "value": 32,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_LIFECYCLE_CREATED",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_LIFECYCLE_RUNNING",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_WINDOW_LIFECYCLE_ENDED",
+      "value": 2,
       "type": "uint32"
     },
     {
@@ -3535,6 +3560,10 @@
       "type": "uint64_t"
     },
     {
+      "name": "gf_splashscreen_state",
+      "type": "uint32_t"
+    },
+    {
       "name": "gf_object_state",
       "type": "uint32_t"
     },
@@ -3612,6 +3641,10 @@
     },
     {
       "name": "gf_mdi_layout",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_window_lifecycle",
       "type": "uint32_t"
     },
     {
@@ -4143,7 +4176,7 @@
     {
       "name": "gf_runtime_table",
       "kind": "table",
-      "size": 64,
+      "size": 72,
       "align": 8,
       "fields": [
         {
@@ -4292,6 +4325,26 @@
             ]
           },
           "since": "1.1"
+        },
+        {
+          "name": "splashscreen_state",
+          "type": "function",
+          "offset": 64,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "splashscreen",
+                "type": "gf_splashscreen"
+              },
+              {
+                "name": "state",
+                "type": "gf_splashscreen_state*"
+              }
+            ]
+          },
+          "since": "1.7"
         }
       ]
     },
@@ -5920,7 +5973,7 @@
     {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 256,
+      "size": 264,
       "align": 8,
       "fields": [
         {
@@ -6590,6 +6643,26 @@
             ]
           },
           "since": "1.6"
+        },
+        {
+          "name": "lifecycle",
+          "type": "function",
+          "offset": 256,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window",
+                "type": "gf_object"
+              },
+              {
+                "name": "lifecycle",
+                "type": "gf_window_lifecycle*"
+              }
+            ]
+          },
+          "since": "1.7"
         }
       ]
     },

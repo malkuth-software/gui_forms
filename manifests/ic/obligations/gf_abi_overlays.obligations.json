@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "component": "gf_abi::overlays",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_overlays.ic.toml",
+    "sha256": "6c8908ac7f660da2bcefcaf7930a65fb02e950d217ae70489c6c40b3a949bf66"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.overlays.open_anchored.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "open_anchored in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.overlays.open_anchored.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "open_anchored in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.overlays.tool_tips_shown.requires.tool_tips_shown_shown",
+      "kind": "entry-check",
+      "statement": "tool_tips_shown runs only when not_null(shown); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_overlays::admits_tool_tips_shown_shown, called in src/abi/stable/tables/abi_overlays.cpp"
+    },
+    {
+      "id": "gf_abi.overlays.tool_tips_shown.refusal.tool_tips_shown_shown",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(shown), tool_tips_shown changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.overlays.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

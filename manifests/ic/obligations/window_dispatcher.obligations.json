@@ -1,0 +1,86 @@
+{
+  "schema": 1,
+  "component": "gui_forms::WindowDispatcher",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/dispatcher/window_dispatcher/window_dispatcher.ic.toml",
+    "sha256": "0a5ae2008c534e3511b2131ec497885ae6d176e4dad5181526aee67e36a605ca"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.windowdispatcher.begin_invoke.requires.bound",
+      "kind": "entry-check",
+      "statement": "begin_invoke runs only when bound != 0; otherwise failure logic_error, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::window_dispatcher::admits_bound, called in src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp"
+    },
+    {
+      "id": "gui_forms.windowdispatcher.begin_invoke.refusal.bound",
+      "kind": "refusal-leaves",
+      "statement": "Unless bound != 0, begin_invoke changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.windowdispatcher.begin_invoke.order",
+      "kind": "refusal-order",
+      "statement": "When several of begin_invoke's refusals apply, the first of the state refusal, then bound is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.windowdispatcher.begin_invoke.outside.unbound",
+      "kind": "typestate-refusal",
+      "statement": "begin_invoke in unbound: failure logic_error, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.windowdispatcher.invoke.requires.bound",
+      "kind": "entry-check",
+      "statement": "invoke runs only when bound != 0; otherwise failure logic_error, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::window_dispatcher::admits_bound, called in src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp"
+    },
+    {
+      "id": "gui_forms.windowdispatcher.invoke.refusal.bound",
+      "kind": "refusal-leaves",
+      "statement": "Unless bound != 0, invoke changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.windowdispatcher.invoke.order",
+      "kind": "refusal-order",
+      "statement": "When several of invoke's refusals apply, the first of the state refusal, then bound is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.windowdispatcher.invoke.outside.unbound",
+      "kind": "typestate-refusal",
+      "statement": "invoke in unbound: failure logic_error, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

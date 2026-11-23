@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Control",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/control/control/control.ic.toml",
+    "sha256": "3519279efd40a5031b25a852d4415f3925db426baffbb7e2469c8cda8bbdadd4"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.control.minimum_size_write.requires.minimum_size",
+      "kind": "entry-check",
+      "statement": "minimum_size runs only when finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or incoming.height <= maximum_size.height); otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::control::admits_minimum_size, called in src/core/control/control/control.cpp"
+    },
+    {
+      "id": "gui_forms.control.minimum_size_write.refusal.minimum_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or incoming.height <= maximum_size.height), minimum_size changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.control.maximum_size_write.requires.maximum_size",
+      "kind": "entry-check",
+      "statement": "maximum_size runs only when finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or incoming.height >= minimum_size.height); otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::control::admits_maximum_size, called in src/core/control/control/control.cpp"
+    },
+    {
+      "id": "gui_forms.control.maximum_size_write.refusal.maximum_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or incoming.height >= minimum_size.height), maximum_size changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

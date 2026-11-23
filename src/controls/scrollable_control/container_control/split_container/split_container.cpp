@@ -5,6 +5,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../../../core/drag_engine/drag_engine.hpp"
 #include "../../../basic/number_text.hpp"
+#include "split_container_ic_checks.hpp"
 
 #include <vector>
 #include <array>
@@ -20,8 +21,12 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::split_container;
 
 namespace {
+
+// The bound a panel minimum is held to when its maximum is unset (ic::admits_<side>_minimum_order).
+constexpr double unbounded = std::numeric_limits<double>::infinity();
 
 void require_finite_nonnegative(double value, const char* message) {
     if (!std::isfinite(value) || value < 0.0) throw std::invalid_argument(message);
@@ -1045,9 +1050,11 @@ void SplitContainer::append_interactions(std::vector<InteractionDeclaration>& in
 
 void SplitContainer::prepare_write(const decltype(first_minimum)&, double& incoming) {
     require_mutable();
-    require_finite_nonnegative(incoming, "first panel minimum must be finite and nonnegative");
+    if (!ic::admits_first_minimum_extent(incoming)) {
+        throw std::invalid_argument("first panel minimum must be finite and nonnegative");
+    }
     const double* maximum = first_maximum.read().value();
-    if (maximum != nullptr && incoming > *maximum) {
+    if (!ic::admits_first_minimum_order(incoming, maximum != nullptr ? *maximum : unbounded)) {
         throw std::invalid_argument("first panel minimum may not exceed its maximum");
     }
 }
@@ -1058,9 +1065,11 @@ void SplitContainer::written(const decltype(first_minimum)&) {
 
 void SplitContainer::prepare_write(const decltype(second_minimum)&, double& incoming) {
     require_mutable();
-    require_finite_nonnegative(incoming, "second panel minimum must be finite and nonnegative");
+    if (!ic::admits_second_minimum_extent(incoming)) {
+        throw std::invalid_argument("second panel minimum must be finite and nonnegative");
+    }
     const double* maximum = second_maximum.read().value();
-    if (maximum != nullptr && incoming > *maximum) {
+    if (!ic::admits_second_minimum_order(incoming, maximum != nullptr ? *maximum : unbounded)) {
         throw std::invalid_argument("second panel minimum may not exceed its maximum");
     }
 }
@@ -1117,7 +1126,7 @@ void SplitContainer::written(const decltype(fixed_panel)&) {
 
 void SplitContainer::prepare_write(const decltype(keyboard_increment)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming <= 0.0) {
+    if (!ic::admits_keyboard_increment(incoming)) {
         throw std::invalid_argument("splitter keyboard increment must be finite and positive");
     }
 }

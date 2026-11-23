@@ -1,11 +1,13 @@
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "plot_annotation_item_ic_checks.hpp"
 
 #include <cmath>
 #include <stdexcept>
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::plot_annotation_item;
 
 PlotAnnotationItem::PlotAnnotationItem(StableId stable_id) : Control(std::move(stable_id)) {
     focusable = false;
@@ -44,7 +46,7 @@ void PlotAnnotationItem::written(const decltype(text)&) {
 
 void PlotAnnotationItem::prepare_write(const decltype(x)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming)) throw std::invalid_argument("PlotAnnotationItem x must be finite");
+    if (!ic::admits_x(incoming)) throw std::invalid_argument("PlotAnnotationItem x must be finite");
 }
 
 void PlotAnnotationItem::written(const decltype(x)&) {
@@ -53,7 +55,7 @@ void PlotAnnotationItem::written(const decltype(x)&) {
 
 void PlotAnnotationItem::prepare_write(const decltype(y)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming)) throw std::invalid_argument("PlotAnnotationItem y must be finite");
+    if (!ic::admits_y(incoming)) throw std::invalid_argument("PlotAnnotationItem y must be finite");
 }
 
 void PlotAnnotationItem::written(const decltype(y)&) {

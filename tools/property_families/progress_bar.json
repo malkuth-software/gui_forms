@@ -84,7 +84,7 @@
       "effects": "Dirty::paint",
       "prepare": [
         "require_finite(incoming, \"progress stripe width must be finite\");",
-        "if (incoming < 2.0 || incoming > 32.0) throw std::invalid_argument(\"progress stripe width must be between 2 and 32 pixels\");"
+        "if (!ic::admits_stripe_width(incoming)) throw std::invalid_argument(\"progress stripe width must be between 2 and 32 pixels\");"
       ],
       "sample": "9.0"
     },

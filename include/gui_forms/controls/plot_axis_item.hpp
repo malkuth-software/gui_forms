@@ -27,6 +27,8 @@ namespace gui_forms {
 // publishes no semantic node: the plot reads it. Changing a property tells
 // the owning plot, which lays out and repaints; it takes the item's range
 // again only until a gesture moves its view (PlotView::reset_view).
+// ic: gui_forms::PlotAxisItem: generated from include/gui_forms/controls/plot_axis_item.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API PlotAxisItem final : public Control, public PlotAxisItemCapabilities<PlotAxisItem> {
 public:
     explicit PlotAxisItem(StableId stable_id);
@@ -74,6 +76,7 @@ private:
     void written(const decltype(label)& cell);
     void prepare_write(const decltype(auto_fit)& cell, bool& incoming);
     void written(const decltype(auto_fit)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(follow_span)& cell, double& incoming);
     void written(const decltype(follow_span)& cell);
     // property_codemod end PlotAxisItem

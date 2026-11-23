@@ -1,0 +1,191 @@
+# The C ABI's gf_help_table (GF_TABLE_HELP): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_help_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_help_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_help_table {"
+keys = { manifest = "gf_abi::help", abi = "GF_TABLE_HELP" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_help_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_help"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_help.cpp"]
+
+[[call]]
+name = "attach"
+declarations = ["gf_status (GF_CALL* attach)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "detach"
+declarations = ["gf_status (GF_CALL* detach)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "load_built_in"
+declarations = ["gf_status (GF_CALL* load_built_in)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the language file's help text was refused; nothing was loaded" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "show"
+declarations = ["gf_status (GF_CALL* show)("]
+kind = "member"
+thread = "ui"
+parameters = { shown = "uint32_t*" }
+requires = [
+  { holds = "not_null(shown)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "show_shown" },
+]
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "show_navigator"
+declarations = ["gf_status (GF_CALL* show_navigator)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: show_navigator needs a known navigator and a shown output" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "show_popup"
+declarations = ["gf_status (GF_CALL* show_popup)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { shown = "uint32_t*" }
+requires = [
+  { holds = "not_null(shown)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "show_popup_shown" },
+]
+refusal_order = ["show_popup_shown", "outside"]
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "resolve"
+declarations = ["gf_status (GF_CALL* resolve)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { home = "uint32_t*" }
+requires = [
+  { holds = "not_null(home)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "resolve_home" },
+]
+refusal_order = ["resolve_home", "outside"]
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "enter_help_mode"
+declarations = ["gf_status (GF_CALL* enter_help_mode)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: enter_help_mode needs an entered output" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "cancel_help_mode"
+declarations = ["gf_status (GF_CALL* cancel_help_mode)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "load_translation"
+declarations = ["gf_status (GF_CALL* load_translation)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the translation was refused; nothing was loaded" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "load_user_overrides"
+declarations = ["gf_status (GF_CALL* load_user_overrides)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the user's language file was refused or is for another language; nothing was loaded" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "clear_user_overrides"
+declarations = ["gf_status (GF_CALL* clear_user_overrides)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "use_built_in_language"
+declarations = ["gf_status (GF_CALL* use_built_in_language)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: built_in_only must be 0 or 1" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "export_template"
+declarations = ["gf_status (GF_CALL* export_template)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the language is not a language tag" },
+  { failure = "limit_exceeded", when = "code: the template passes the locale file's bounds and was not written" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]
+
+[[call]]
+name = "read_field"
+declarations = ["gf_status (GF_CALL* read_field)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: read_field needs a known field and an origin output" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a help_book_system" },
+]

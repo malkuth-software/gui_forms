@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "component": "gf_abi::runtime",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_runtime.ic.toml",
+    "sha256": "e2f83c7f447e63008a68f04edec379a3b24a94b1cfecd531f48a095d68c6f39f"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.runtime.version.requires.version_info",
+      "kind": "entry-check",
+      "statement": "version runs only when not_null(info); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_runtime::admits_version_info, called in src/abi/stable/entry/abi_entry.cpp, src/abi/stable/tables/abi_splashscreen.cpp"
+    },
+    {
+      "id": "gf_abi.runtime.version.refusal.version_info",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(info), version changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.runtime.error_detail.requires.error_detail_buffer",
+      "kind": "entry-check",
+      "statement": "error_detail runs only when not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_runtime::admits_error_detail_buffer, called in src/abi/stable/entry/abi_entry.cpp, src/abi/stable/tables/abi_splashscreen.cpp"
+    },
+    {
+      "id": "gf_abi.runtime.error_detail.refusal.error_detail_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == 0), error_detail changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.runtime.splashscreen_state.requires.splashscreen_state_state",
+      "kind": "entry-check",
+      "statement": "splashscreen_state runs only when not_null(state); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_runtime::admits_splashscreen_state_state, called in src/abi/stable/entry/abi_entry.cpp, src/abi/stable/tables/abi_splashscreen.cpp"
+    },
+    {
+      "id": "gf_abi.runtime.splashscreen_state.refusal.splashscreen_state_state",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(state), splashscreen_state changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.runtime.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

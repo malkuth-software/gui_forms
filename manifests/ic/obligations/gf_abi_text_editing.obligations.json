@@ -1,0 +1,154 @@
+{
+  "schema": 1,
+  "component": "gf_abi::text_editing",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_text_editing.ic.toml",
+    "sha256": "7b43e4ecd98332dcbba8d29c74ca2f76dfe1bf63036f3f62e175e1178e1aa1c1"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.text_editing.replace_range.requires.replace_range_changed",
+      "kind": "entry-check",
+      "statement": "replace_range runs only when not_null(changed); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_text_editing::admits_replace_range_changed, called in src/abi/stable/tables/abi_text_editing.cpp"
+    },
+    {
+      "id": "gf_abi.text_editing.replace_range.refusal.replace_range_changed",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(changed), replace_range changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.text_editing.undo.requires.undo_changed",
+      "kind": "entry-check",
+      "statement": "undo runs only when not_null(changed); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_text_editing::admits_undo_changed, called in src/abi/stable/tables/abi_text_editing.cpp"
+    },
+    {
+      "id": "gf_abi.text_editing.undo.refusal.undo_changed",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(changed), undo changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.text_editing.redo.requires.redo_changed",
+      "kind": "entry-check",
+      "statement": "redo runs only when not_null(changed); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_text_editing::admits_redo_changed, called in src/abi/stable/tables/abi_text_editing.cpp"
+    },
+    {
+      "id": "gf_abi.text_editing.redo.refusal.redo_changed",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(changed), redo changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.text_editing.decoration_count.requires.decoration_count_count",
+      "kind": "entry-check",
+      "statement": "decoration_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_text_editing::admits_decoration_count_count, called in src/abi/stable/tables/abi_text_editing.cpp"
+    },
+    {
+      "id": "gf_abi.text_editing.decoration_count.refusal.decoration_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), decoration_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.text_editing.decoration_at.requires.decoration_at_decoration",
+      "kind": "entry-check",
+      "statement": "decoration_at runs only when not_null(decoration); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_text_editing::admits_decoration_at_decoration, called in src/abi/stable/tables/abi_text_editing.cpp"
+    },
+    {
+      "id": "gf_abi.text_editing.decoration_at.refusal.decoration_at_decoration",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(decoration), decoration_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.text_editing.utf8_to_utf16_offset.requires.utf8_to_utf16_offset_utf16_offset",
+      "kind": "entry-check",
+      "statement": "utf8_to_utf16_offset runs only when not_null(utf16_offset); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_text_editing::admits_utf8_to_utf16_offset_utf16_offset, called in src/abi/stable/tables/abi_text_editing.cpp"
+    },
+    {
+      "id": "gf_abi.text_editing.utf8_to_utf16_offset.refusal.utf8_to_utf16_offset_utf16_offset",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(utf16_offset), utf8_to_utf16_offset changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.text_editing.utf16_to_utf8_offset.requires.utf16_to_utf8_offset_utf8_offset",
+      "kind": "entry-check",
+      "statement": "utf16_to_utf8_offset runs only when not_null(utf8_offset); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_text_editing::admits_utf16_to_utf8_offset_utf8_offset, called in src/abi/stable/tables/abi_text_editing.cpp"
+    },
+    {
+      "id": "gf_abi.text_editing.utf16_to_utf8_offset.refusal.utf16_to_utf8_offset_utf8_offset",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(utf8_offset), utf16_to_utf8_offset changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.text_editing.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

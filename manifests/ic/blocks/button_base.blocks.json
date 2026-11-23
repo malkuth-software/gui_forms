@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ButtonBase",
+  "declaration": "include/gui_forms/controls/button_base.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.buttonbase.image_gap_write",
+      "mode": "legal",
+      "call": "image_gap",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ButtonBase"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 0 and incoming <= 64"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 0 and incoming <= 64"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.buttonbase.image_gap_write.misuse.image_gap",
+      "mode": "misuse",
+      "call": "image_gap",
+      "violates": "finite(incoming) and incoming >= 0 and incoming <= 64",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.buttonbase.text_line_spacing_write",
+      "mode": "legal",
+      "call": "text_line_spacing",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ButtonBase"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and 4 * incoming >= 3 and incoming <= 3"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and 4 * incoming >= 3 and incoming <= 3"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.buttonbase.text_line_spacing_write.misuse.text_line_spacing",
+      "mode": "misuse",
+      "call": "text_line_spacing",
+      "violates": "finite(incoming) and 4 * incoming >= 3 and incoming <= 3",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

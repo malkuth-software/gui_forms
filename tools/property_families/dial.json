@@ -41,7 +41,7 @@
         "registry": false
       },
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument(\"dial tick frequency must be finite and not negative\");"
+        "if (!ic::admits_tick_frequency(incoming)) throw std::invalid_argument(\"dial tick frequency must be finite and not negative\");"
       ],
       "sample": "5.0"
     },

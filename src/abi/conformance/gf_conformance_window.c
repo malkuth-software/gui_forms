@@ -206,6 +206,9 @@ typedef struct handle_run {
     gf_object tips;
     gf_status made_during_run;
     gf_status close;
+    /* windows.lifecycle from inside the run (since 1.7). */
+    gf_status lifecycle_status;
+    gf_window_lifecycle lifecycle;
 } handle_run;
 
 static void GF_CALL on_handle_ready(void* context, gf_event* event) {
@@ -217,6 +220,7 @@ static void GF_CALL on_handle_ready(void* context, gf_event* event) {
     arguments.owner = (*event).sender;
     (*run).made_during_run = (*kit).objects.create_with(gf_kit_text("tool_tip"), gf_kit_text("kit.handle.tips"),
                                                         &arguments, &(*run).tips);
+    (*run).lifecycle_status = (*kit).windows.lifecycle((*event).sender, &(*run).lifecycle);
     (*run).close = (*kit).windows.request_close((*event).sender);
 }
 
@@ -228,9 +232,17 @@ void gf_kit_window_handle(gf_kit* kit) {
     run.kit = kit;
     run.made_during_run = -1;
     run.close = -1;
+    run.lifecycle_status = -1;
     const gf_object root = gf_kit_create(kit, "Panel", "kit.handle");
     gf_object window = 0u;
     gf_kit_status(kit, (*kit).windows.create(root, &window), GF_STATUS_OK, "create a window");
+    gf_window_lifecycle lifecycle = GF_WINDOW_LIFECYCLE_ENDED;
+    gf_kit_status(kit, (*kit).windows.lifecycle(window, &lifecycle), GF_STATUS_OK, "read a window's lifecycle");
+    gf_kit_check(kit, lifecycle == GF_WINDOW_LIFECYCLE_CREATED, "a window from create has not run");
+    gf_kit_status(kit, (*kit).windows.lifecycle(window, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "lifecycle needs its output");
+    gf_kit_status(kit, (*kit).windows.lifecycle(root, &lifecycle), GF_STATUS_WRONG_HANDLE_KIND,
+                  "lifecycle takes a window, not its root");
     gf_create_arguments arguments;
     memset(&arguments, 0, sizeof(arguments));
     arguments.struct_size = (uint32_t)sizeof(arguments);
@@ -248,7 +260,12 @@ void gf_kit_window_handle(gf_kit* kit) {
     gf_kit_status(kit, (*kit).windows.run(window, &options), GF_STATUS_OK, "run a window from create");
     gf_kit_status(kit, run.made_during_run, GF_STATUS_OK, "a component bound to the running window");
     gf_kit_status(kit, run.close, GF_STATUS_OK, "request_close takes the window");
+    gf_kit_status(kit, run.lifecycle_status, GF_STATUS_OK, "lifecycle reads during the run");
+    gf_kit_check(kit, run.lifecycle == GF_WINDOW_LIFECYCLE_RUNNING, "a window is running inside its run");
     gf_kit_check(kit, gf_kit_state(kit, window) == GF_OBJECT_STATE_DISPOSED, "the run ends the window");
+    lifecycle = GF_WINDOW_LIFECYCLE_CREATED;
+    gf_kit_status(kit, (*kit).windows.lifecycle(window, &lifecycle), GF_STATUS_OK, "lifecycle reads after the run");
+    gf_kit_check(kit, lifecycle == GF_WINDOW_LIFECYCLE_ENDED, "the run has ended the window");
     gf_kit_check(kit, gf_kit_state(kit, timer) == GF_OBJECT_STATE_ALIVE,
                  "a bound component outlives its window, unbound");
     gf_kit_status(kit, (*kit).windows.run(window, &options), GF_STATUS_DISPOSED, "a window runs once");

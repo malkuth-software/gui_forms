@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ObjectView",
+  "declaration": "include/gui_forms/controls/object_view.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.objectview.icon_cell_size_write",
+      "mode": "legal",
+      "call": "icon_cell_size",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ObjectView"
+        },
+        {
+          "name": "incoming",
+          "type": "Size",
+          "bounded_by": [
+            "finite(incoming.width) and finite(incoming.height) and incoming.width >= 86 and incoming.height >= 78 and incoming.width <= 512 and incoming.height <= 512"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming.width) and finite(incoming.height) and incoming.width >= 86 and incoming.height >= 78 and incoming.width <= 512 and incoming.height <= 512"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.objectview.icon_cell_size_write.misuse.icon_cell_size",
+      "mode": "misuse",
+      "call": "icon_cell_size",
+      "violates": "finite(incoming.width) and finite(incoming.height) and incoming.width >= 86 and incoming.height >= 78 and incoming.width <= 512 and incoming.height <= 512",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.objectview.details_row_height_write",
+      "mode": "legal",
+      "call": "details_row_height",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ObjectView"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 20 and incoming <= 256"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 20 and incoming <= 256"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.objectview.details_row_height_write.misuse.details_row_height",
+      "mode": "misuse",
+      "call": "details_row_height",
+      "violates": "finite(incoming) and incoming >= 20 and incoming <= 256",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

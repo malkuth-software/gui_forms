@@ -4,6 +4,7 @@
 #include "../../failure/fail_fast.hpp"
 #include "../../surface_root/access/surface_host_access.hpp"
 #include "drag_items.hpp"
+#include "host_session_ic_checks.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -15,13 +16,17 @@
 
 namespace gui_forms {
 namespace {
+namespace ic = detail::ic::host_session;
+
+// The geometry rules are HostSession::dispatch's clauses (host_session.ic.toml).
 bool valid_size(Size size) noexcept {
-    return std::isfinite(size.width) && std::isfinite(size.height) &&
-           size.width > 0.0 && size.height > 0.0;
+    const bool valid = ic::admits_dispatch_size(size.width, size.height);
+    return valid;
 }
 
 bool valid_scale(double scale) noexcept {
-    return std::isfinite(scale) && scale > 0.0;
+    const bool valid = ic::admits_dispatch_scale(scale);
+    return valid;
 }
 
 bool valid_monitor_rectangle(Rect rectangle) noexcept {
@@ -151,20 +156,18 @@ bool valid_input_settings(const HostInputSettingsEvent& input) noexcept {
     return interval && origin && valid_pointer_settings(input.pointer) && valid_caret_settings(input.caret);
 }
 
+// The lifecycle matrix is HostSession::dispatch's dispatch_lifecycle clause
+// (host_session.ic.toml); shutdown is the call's outside state.
 HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool shutdown,
                                     bool closed, bool passive_terminal) noexcept {
     switch (phase) {
     case HostLifecyclePhase::constructed:
-        if (!attach && !shutdown) return HostDispatchError::invalid_lifecycle;
-        return HostDispatchError::none;
     case HostLifecyclePhase::attached:
-        if (attach) return HostDispatchError::invalid_lifecycle;
-        return HostDispatchError::none;
     case HostLifecyclePhase::close_authorized:
-        if (!closed && !shutdown && !passive_terminal) return HostDispatchError::invalid_lifecycle;
-        return HostDispatchError::none;
     case HostLifecyclePhase::closed:
-        if (!shutdown) return HostDispatchError::invalid_lifecycle;
+        if (!ic::admits_dispatch_lifecycle(attach, shutdown, closed, passive_terminal, phase)) {
+            return HostDispatchError::invalid_lifecycle;
+        }
         return HostDispatchError::none;
     case HostLifecyclePhase::shutdown:
         return HostDispatchError::after_shutdown;
@@ -300,7 +303,7 @@ void HostSession::DispatchVisitor::operator()(
         (*window).set_scale(payload.scale);
         update.close();
         (*session).snapshot_.attached = true;
-        (*session).snapshot_.phase = HostLifecyclePhase::attached;
+        (*session).set_phase(HostLifecyclePhase::attached);
     } else if constexpr (std::is_same_v<Payload, HostResizeEvent>) {
         (*window).resize(payload.client_size);
     } else if constexpr (std::is_same_v<Payload, HostScaleEvent>) {
@@ -375,10 +378,10 @@ void HostSession::DispatchVisitor::operator()(
         // authorizes the close, whatever the observers answered or changed
         // in the payload during notification.
         if (!payload.cancel && !hide_on_accept && !session_end && !asked_only) {
-            (*session).snapshot_.phase = HostLifecyclePhase::close_authorized;
+            (*session).set_phase(HostLifecyclePhase::close_authorized);
         }
     } else if constexpr (std::is_same_v<Payload, HostClosedEvent>) {
-        (*session).snapshot_.phase = HostLifecyclePhase::closed;
+        (*session).set_phase(HostLifecyclePhase::closed);
         (*window).host_close_reason_.set(payload.reason);
         (*session).snapshot_.attached = false;
         (*session).snapshot_.closed = true;
@@ -440,9 +443,9 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
     if (stxlib::current_thread() != ui_thread_) {
         result.error = HostDispatchError::wrong_thread;
         return result;
-    } else if (event.sequence == 0) {
+    } else if (!ic::admits_dispatch_sequence(event.sequence)) {
         result.error = HostDispatchError::sequence_zero;
-    } else if (event.sequence <= snapshot_.last_sequence) {
+    } else if (!ic::admits_dispatch_order(event.sequence, snapshot_.last_sequence)) {
         result.error = HostDispatchError::non_monotonic_sequence;
     } else if (!snapshot_.shutdown && window_.get() == nullptr) {
         // The window was destroyed first: the session ends with it.
@@ -613,7 +616,7 @@ void HostSession::shutdown() noexcept {
         modal_observation_.disconnect();
     }
     snapshot_.shutdown = true;
-    snapshot_.phase = HostLifecyclePhase::shutdown;
+    set_phase(HostLifecyclePhase::shutdown);
 }
 
 void HostSession::end_without_window() noexcept {
@@ -624,6 +627,16 @@ void HostSession::end_without_window() noexcept {
     modal_observation_.disconnect();
     snapshot_.shutdown = true;
     snapshot_.phase = HostLifecyclePhase::shutdown;
+}
+
+void HostSession::set_phase(HostLifecyclePhase phase) noexcept {
+    snapshot_.phase = phase;
+    // The window, when it is still alive, reports the same phase
+    // (Window::host_lifecycle_phase); a window destroyed first is not read.
+    Window* const window = window_.get();
+    if (window != nullptr) {
+        (*window).host_phase_ = phase;
+    }
 }
 
 HostSessionSnapshot HostSession::snapshot() const {

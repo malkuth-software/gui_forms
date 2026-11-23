@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::SevenSegmentDisplay",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/seven_segment_display.ic.toml",
+    "sha256": "ed41e3e1e03a80fe6047cf2454d3c8a06343a07d3e8ab4ad3bbd6e6ff62e3abc"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.sevensegmentdisplay.digit_count_write.requires.digit_count",
+      "kind": "entry-check",
+      "statement": "digit_count runs only when incoming <= 64; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::seven_segment_display::admits_digit_count, called in src/controls/instruments/seven_segment_display/seven_segment_display.cpp"
+    },
+    {
+      "id": "gui_forms.sevensegmentdisplay.digit_count_write.refusal.digit_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming <= 64, digit_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

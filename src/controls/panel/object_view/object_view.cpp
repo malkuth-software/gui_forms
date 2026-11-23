@@ -7,6 +7,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "object_view_ic_checks.hpp"
 
 #include <vector>
 #include <string>
@@ -20,6 +21,7 @@
 #include <unordered_set>
 
 namespace gui_forms {
+namespace ic = detail::ic::object_view;
 
 namespace {
 
@@ -2419,9 +2421,7 @@ void ObjectView::append_interactions(std::vector<InteractionDeclaration>& intera
 
 void ObjectView::prepare_write(const decltype(icon_cell_size)&, Size& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) ||
-        incoming.width < 86.0 || incoming.height < 78.0 ||
-        incoming.width > 512.0 || incoming.height > 512.0) {
+    if (!ic::admits_icon_cell_size(incoming)) {
         throw std::invalid_argument("ObjectView icon cell must be 86x78 through 512x512");
     }
 }
@@ -2432,7 +2432,7 @@ void ObjectView::written(const decltype(icon_cell_size)&) {
 
 void ObjectView::prepare_write(const decltype(details_row_height)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 20.0 || incoming > 256.0) {
+    if (!ic::admits_details_row_height(incoming)) {
         throw std::invalid_argument("ObjectView details row height must be 20 through 256");
     }
 }

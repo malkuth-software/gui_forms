@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "component": "gui_forms::GaugeBase",
+  "declaration": "include/gui_forms/controls/gauge_base.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.gaugebase.tick_frequency_write",
+      "mode": "legal",
+      "call": "tick_frequency",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::GaugeBase"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 0"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 0"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.gaugebase.tick_frequency_write.misuse.tick_frequency",
+      "mode": "misuse",
+      "call": "tick_frequency",
+      "violates": "finite(incoming) and incoming >= 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.gaugebase.decimal_places_write",
+      "mode": "legal",
+      "call": "decimal_places",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::GaugeBase"
+        },
+        {
+          "name": "incoming",
+          "type": "std::uint32_t",
+          "bounded_by": [
+            "incoming <= 6"
+          ]
+        }
+      ],
+      "requires": [
+        "incoming <= 6"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.gaugebase.decimal_places_write.misuse.decimal_places",
+      "mode": "misuse",
+      "call": "decimal_places",
+      "violates": "incoming <= 6",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

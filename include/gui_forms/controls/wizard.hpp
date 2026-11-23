@@ -47,6 +47,8 @@ struct GUI_FORMS_API WizardPageChangingEvent final {
 // buttons, are of the panel family; the indicator and buttons are stock
 // controls. To assistive technology it is a group named by the current
 // page's title.
+// ic: gui_forms::Wizard: generated from include/gui_forms/controls/wizard.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Wizard final : public Control, public WizardCapabilities<Wizard> {
 public:
     // Its step indicator and buttons are added once a shared owner exists.
@@ -156,6 +158,7 @@ private:
     friend struct WizardFinishTextCapability<Wizard>;
     friend struct WizardCancelTextCapability<Wizard>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires incoming == 0 or incoming < page_count, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(current_page)& cell, std::uint32_t& incoming);
     void written(const decltype(current_page)& cell);
     void prepare_write(const decltype(show_step_indicator)& cell, bool& incoming);

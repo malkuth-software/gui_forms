@@ -103,7 +103,11 @@ extern "C" {
  * gf_content_alignment, gf_viewport_fit, gf_overflow_record, the windows
  * table's overflow_records, unanswered_overflow_count and safe_insets and
  * the controls table's set_viewport_fit and viewport_fit), additions
- * only. */
+ * only; and a public state query per stateful handle kind that had
+ * none (IC study decision 7): windows.lifecycle (gf_window_lifecycle) and
+ * runtime.splashscreen_state (gf_splashscreen_state), additions only. The
+ * behavioural constraints of every table are declared beside this header
+ * (gf_abi_<table>.ic.toml) and generate the // ic: lines above its slots. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 7u
 
@@ -228,6 +232,15 @@ typedef struct gf_error_detail {
  */
 typedef uint64_t gf_splashscreen;
 
+/* gf_splashscreen_state (since 1.7): where an open splashscreen handle
+ * stands. SHOWN: its window shows. HANDED_OVER: the library's first window
+ * closed it; the handle stays open, and the setters accept and present
+ * nothing, until splashscreen_close. A closed handle is stale
+ * (GF_STATUS_STALE_HANDLE), never a state. */
+typedef uint32_t gf_splashscreen_state;
+#define GF_SPLASHSCREEN_STATE_SHOWN 0u
+#define GF_SPLASHSCREEN_STATE_HANDED_OVER 1u
+
 /* The most bytes of one splashscreen status line. */
 #define GF_SPLASHSCREEN_MAXIMUM_STATUS_BYTES 512u
 /* The artwork's least and greatest extent, in pixels. */
@@ -261,10 +274,17 @@ typedef struct gf_splashscreen_options {
  * and may be called before the library has a UI thread; another thread is
  * refused with GF_STATUS_WRONG_THREAD.
  */
+// ic: gf_abi::runtime: generated from include/gui_forms/c/gf_abi_runtime.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: shown (initial), handed_over. Observed by
+// ic: gf_runtime_table.splashscreen_state(): shown GF_SPLASHSCREEN_STATE_SHOWN, handed_over
+// ic: GF_SPLASHSCREEN_STATE_HANDED_OVER. Thread: any, unless a call says otherwise. Identity: generational; a stale
+// ic: one: returns GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_runtime_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* Writes the versions into info. */
+    // ic: Requires not_null(info), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument
+    // ic: (struct_size is below the 1.0 record size), unchanged.
     gf_status (GF_CALL* version)(gf_abi_version_info* info);
     /*
      * Copies the calling thread's last failure into detail and its message
@@ -273,6 +293,11 @@ typedef struct gf_runtime_table {
      * and the result is GF_STATUS_BUFFER_TOO_SMALL. message_buffer may be null
      * when message_capacity is zero.
      */
+    // ic: Requires not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity ==
+    // ic: 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (When message_capacity is
+    // ic: smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. message_buffer may be null
+    // ic: when message_capacity is zero.), unchanged; invalid_argument (struct_size is below the 1.0 record size),
+    // ic: unchanged.
     gf_status (GF_CALL* error_detail)(gf_error_detail* detail,
                                       char* message_buffer,
                                       uint64_t message_capacity,
@@ -292,6 +317,13 @@ typedef struct gf_runtime_table {
      * GF_TRANSIENT_SURFACE_SPLASHSCREEN) or could not present it. Nothing
      * shows after a failure, and the program goes on without one.
      */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a record smaller than the 1.1 size, a null
+    // ic: splashscreen, artwork that is not a PNG file or has an extent out of range, a status that is not UTF-8 or too
+    // ic: long, or a progress outside [0, 1] with show_progress;), unchanged; invalid_state (GF_STATUS_INVALID_STATE
+    // ic: while another splashscreen's handle is open (shown, or handed over and not yet closed);), unchanged;
+    // ic: unsupported_capability (GF_STATUS_UNSUPPORTED_CAPABILITY when the host has no splashscreen (no display, a
+    // ic: host without GF_TRANSIENT_SURFACE_SPLASHSCREEN) or could not present it.), unchanged. Thread: owner. Returns
+    // ic: gf_splashscreen, owned by the caller.
     gf_status (GF_CALL* splashscreen_show)(const gf_splashscreen_options* options, gf_splashscreen* splashscreen);
     /*
      * Since 1.1. Replaces the status line and presents the frame at once.
@@ -301,12 +333,17 @@ typedef struct gf_runtime_table {
      * that is not UTF-8 or too long; GF_STATUS_UNSUPPORTED_CAPABILITY when
      * the frame could not be presented.
      */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT, changing nothing, for text that is not UTF-8 or too
+    // ic: long;), unchanged; invalid_state (stated by the code), unchanged; unsupported_capability
+    // ic: (GF_STATUS_UNSUPPORTED_CAPABILITY when the frame could not be presented.), unchanged. Thread: owner.
     gf_status (GF_CALL* splashscreen_set_status)(gf_splashscreen splashscreen, gf_utf8_view status);
     /*
      * Since 1.1. Shows the bar at progress, in [0, 1], or hides it when
      * show_progress is zero (progress is then ignored), and presents the
      * frame at once; as set_status otherwise.
      */
+    // ic: Fails invalid_argument (struct_size is below the 1.0 record size), unchanged; invalid_state (stated by the
+    // ic: code), unchanged; unsupported_capability (stated by the code), unchanged. Thread: owner.
     gf_status (GF_CALL* splashscreen_set_progress)(gf_splashscreen splashscreen, uint32_t show_progress,
                                                    double progress);
     /*
@@ -314,7 +351,17 @@ typedef struct gf_runtime_table {
      * its handle; another may be shown after. GF_STATUS_STALE_HANDLE for a
      * handle that is not the current splashscreen's.
      */
+    // ic: Thread: owner.
     gf_status (GF_CALL* splashscreen_close)(gf_splashscreen splashscreen);
+    /*
+     * Since 1.7. state receives where splashscreen stands
+     * (gf_splashscreen_state). GF_STATUS_STALE_HANDLE for a handle that is
+     * not the current splashscreen's; GF_STATUS_INVALID_ARGUMENT without
+     * state. On the thread that showed it, as the other splashscreen
+     * functions.
+     */
+    // ic: Requires not_null(state), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: owner.
+    gf_status (GF_CALL* splashscreen_state)(gf_splashscreen splashscreen, gf_splashscreen_state* state);
 } gf_runtime_table;
 
 /*
@@ -660,6 +707,10 @@ typedef struct gf_create_arguments {
     int64_t value;
 } gf_create_arguments;
 
+// ic: gf_abi::objects: generated from include/gui_forms/c/gf_abi_objects.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state():
+// ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui,
+// ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_objects_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -680,16 +731,31 @@ typedef struct gf_objects_table {
      * (GF_STATUS_WRONG_HANDLE_KIND), and the properties table, which takes
      * controls. A component's stable_id is empty unless its type has one
      * (a context menu, a dock workspace). */
+    // ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument
+    // ic: (Creates an object of the schema type type_name, written in any spelling of its id ("check_box" or
+    // ic: "CheckBox"), with a stable_id: one or more '.'-separated segments of lowercase ASCII letters and digits
+    // ic: joined by single '-' ("settings.ok-button"; a Windows Forms name such as "textBox1" is spelled "text-box1"),
+    // ic: GF_STATUS_INVALID_ARGUMENT with a message stating the rule otherwise.), unchanged; not_found (A type that
+    // ic: needs another object (a dock site its workspace or a timer its window, say: create_with), and the types
+    // ic: neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give
+    // ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; unsupported_capability (A
+    // ic: type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the
+    // ic: types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give
+    // ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged. Returns gf_object, owned
+    // ic: by the caller.
     gf_status (GF_CALL* create)(gf_utf8_view type_name, gf_utf8_view stable_id,
                                 gf_object* object);
     /* Adds a reference. Any thread. */
+    // ic: Thread: any.
     gf_status (GF_CALL* retain)(gf_object object);
     /* Gives back a reference. Any thread; see Threads above. */
+    // ic: Thread: any.
     gf_status (GF_CALL* release)(gf_object object);
     /* Disposes the object and its subtree. Their subscriptions end (the
      * releases run before dispose returns) and their posted callbacks only
      * release. */
     gf_status (GF_CALL* dispose)(gf_object object);
+    // ic: Requires not_null(state), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* state)(gf_object object, gf_object_state* state);
     /* Copy the schema type id ("check_box"; for an application's own
      * subclass, its nearest schema type's; for a composite control, its
@@ -697,6 +763,10 @@ typedef struct gf_objects_table {
      * "kit_card" for kit-card) or the stable id into buffer
      * (not terminated); required receives its size, also with
      * GF_STATUS_BUFFER_TOO_SMALL. */
+    // ic: Fails buffer_too_small (Copy the schema type id ("check_box"; for an application's own subclass, its nearest
+    // ic: schema type's; for a composite control, its definition's type, the document's name with '-' written '_':
+    // ic: "kit_card" for kit-card) or the stable id into buffer (not terminated); required receives its size, also with
+    // ic: GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
     gf_status (GF_CALL* type_id)(gf_object object, char* buffer, uint64_t capacity,
                                  uint64_t* required);
     gf_status (GF_CALL* stable_id)(gf_object object, char* buffer, uint64_t capacity,
@@ -710,19 +780,41 @@ typedef struct gf_objects_table {
      * is the ABI's one child order (K4), painter order: index 0 is the
      * bottom-most child. A Windows Forms binding, whose Controls collection
      * puts index 0 on top (z-order), reverses the index at its boundary. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: a control cannot be its own ancestor), unchanged; invalid_state (code: the child already has a
+    // ic: parent), unchanged; limit_exceeded (A tree nests at most 64 levels, the root counted as one: a child whose
+    // ic: subtree would end deeper gives GF_STATUS_LIMIT_EXCEEDED, changing nothing.), unchanged.
     gf_status (GF_CALL* insert_child)(gf_object parent, gf_object child, uint64_t index);
     /* Takes child from parent; it then ends at its last release. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: the child is not a child of the parent), unchanged.
     gf_status (GF_CALL* remove_child)(gf_object parent, gf_object child);
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* child_count)(gf_object parent, uint64_t* count);
     /* A new reference to the child at index, in the order above. */
+    // ic: Requires not_null(child), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code:
+    // ic: child_at needs an output), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* child_at)(gf_object parent, uint64_t index, gf_object* child);
     /* A new reference to the parent, or zero when there is none. */
+    // ic: Requires not_null(parent), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Returns gf_object, owned by
+    // ic: the caller.
     gf_status (GF_CALL* parent)(gf_object object, gf_object* parent);
     /* Creates an object of a type that needs another object, as
      * gf_create_arguments describes. An owner of the wrong type gives
      * GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a
      * malformed enumeration GF_STATUS_INVALID_ARGUMENT; a type create makes
      * is made as create makes it when arguments asks nothing of it. */
+    // ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(arguments),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires arguments_size >= create_arguments_size_1_0,
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: create_with_object, then
+    // ic: create_with_arguments, then create_with_arguments_size. Fails invalid_argument (An owner of the wrong type
+    // ic: gives GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a malformed enumeration
+    // ic: GF_STATUS_INVALID_ARGUMENT; a type create makes is made as create makes it when arguments asks nothing of
+    // ic: it.), unchanged; not_found (code: the schema has no type of that name), unchanged; unsupported_capability
+    // ic: (code: a window is made by windows.create), unchanged; wrong_handle_kind (An owner of the wrong type gives
+    // ic: GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a malformed enumeration
+    // ic: GF_STATUS_INVALID_ARGUMENT; a type create makes is made as create makes it when arguments asks nothing of
+    // ic: it.), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* create_with)(gf_utf8_view type_name, gf_utf8_view stable_id,
                                      const gf_create_arguments* arguments, gf_object* object);
 } gf_objects_table;
@@ -731,6 +823,11 @@ typedef struct gf_objects_table {
  * GF_TABLE_PROPERTIES: properties by name, as the control schema
  * (manifests/control-schema.json) spells them.
  */
+// ic: gf_abi::properties: generated from include/gui_forms/c/gf_abi_properties.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_properties_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -740,20 +837,45 @@ typedef struct gf_properties_table {
      * for other kinds), also with GF_STATUS_BUFFER_TOO_SMALL. An unknown or
      * unreadable property gives GF_STATUS_NOT_FOUND; a kind gf_value cannot
      * hold yet gives GF_STATUS_UNSUPPORTED_CAPABILITY. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small
+    // ic: (Text is copied into text_buffer and value->text points there; text_required receives its size (zero for
+    // ic: other kinds), also with GF_STATUS_BUFFER_TOO_SMALL.), unchanged; invalid_argument (code: a property name is
+    // ic: not empty), unchanged; not_found (An unknown or unreadable property gives GF_STATUS_NOT_FOUND; a kind
+    // ic: gf_value cannot hold yet gives GF_STATUS_UNSUPPORTED_CAPABILITY.), unchanged; unsupported_capability (An
+    // ic: unknown or unreadable property gives GF_STATUS_NOT_FOUND; a kind gf_value cannot hold yet gives
+    // ic: GF_STATUS_UNSUPPORTED_CAPABILITY.), unchanged; wrong_handle_kind (code: the object is a component, not a
+    // ic: control or a window), unchanged.
     gf_status (GF_CALL* get)(gf_object object, gf_utf8_view name, gf_value* value,
                              char* text_buffer, uint64_t text_capacity,
                              uint64_t* text_required);
     /* Writes a property. A value that does not convert to the property's
      * kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property
      * GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (A
+    // ic: value that does not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property
+    // ic: GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.), unchanged; invalid_state (A value that does
+    // ic: not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property
+    // ic: GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.), unchanged; not_found (A value that does not
+    // ic: convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property
+    // ic: GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (code: the object
+    // ic: is a component, not a control or a window), unchanged.
     gf_status (GF_CALL* set)(gf_object object, gf_utf8_view name, const gf_value* value);
     /* Returns a property to its default. GF_STATUS_UNSUPPORTED_CAPABILITY when
      * it has no reset path. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: a property name is not empty), unchanged; not_found (code: a window has no property of that name),
+    // ic: unchanged; unsupported_capability (GF_STATUS_UNSUPPORTED_CAPABILITY when it has no reset path.), unchanged;
+    // ic: wrong_handle_kind (code: the object is a component, not a control or a window), unchanged.
     gf_status (GF_CALL* reset)(gf_object object, gf_utf8_view name);
     /* The element at index of the COLLECTION property name, as get reports
      * a value (text copied into text_buffer). GF_STATUS_INVALID_ARGUMENT
      * when the property is not a collection, GF_STATUS_NOT_FOUND when index
      * is not below its count. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT when the property is not a collection, GF_STATUS_NOT_FOUND when index is not
+    // ic: below its count.), unchanged; not_found (GF_STATUS_INVALID_ARGUMENT when the property is not a collection,
+    // ic: GF_STATUS_NOT_FOUND when index is not below its count.), unchanged; wrong_handle_kind (code: the object is a
+    // ic: component, not a control or a window), unchanged.
     gf_status (GF_CALL* element_at)(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value,
                                     char* text_buffer, uint64_t text_capacity, uint64_t* text_required);
     /* Since 1.2. Reads count elements of the COLLECTION property name from
@@ -766,6 +888,20 @@ typedef struct gf_properties_table {
      * a long list here. A range past the count gives GF_STATUS_NOT_FOUND;
      * more than GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements
      * GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(text_required) and (not_null(text_buffer) or text_capacity == 0), else returns
+    // ic: GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: read_elements_text_buffer, then the state
+    // ic: refusal. Fails buffer_too_small (Reads count elements of the COLLECTION property name from position first
+    // ic: into values, an array of count records (the array rule above; fields past the 1.0 size are left alone), their
+    // ic: text copied into text_buffer one after another, each value's view pointing there. text_required receives the
+    // ic: total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.), unchanged; invalid_argument
+    // ic: (code: read_elements needs a text size output, and a buffer unless its capacity is zero), unchanged;
+    // ic: limit_exceeded (A range past the count gives GF_STATUS_NOT_FOUND; more than
+    // ic: GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.),
+    // ic: unchanged; not_found (A range past the count gives GF_STATUS_NOT_FOUND; more than
+    // ic: GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.),
+    // ic: unchanged; unsupported_capability (code: an element's value kind has no gf_value form in this library),
+    // ic: unchanged; wrong_handle_kind (code: the object is a component, not a control or a window), unchanged.
     gf_status (GF_CALL* read_elements)(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count,
                                        gf_value* values, char* text_buffer, uint64_t text_capacity,
                                        uint64_t* text_required);
@@ -776,8 +912,16 @@ typedef struct gf_properties_table {
      * application subclass, uses its nearest schema type's list (its own
      * extra properties are reached by name). An index past the list gives
      * GF_STATUS_INVALID_ARGUMENT; otherwise as get and set. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (An
+    // ic: index past the list gives GF_STATUS_INVALID_ARGUMENT; otherwise as get and set.), unchanged; not_found (code:
+    // ic: the control's type is not in the schema), unchanged; wrong_handle_kind (code: the object is a component, not
+    // ic: a control or a window), unchanged.
     gf_status (GF_CALL* get_at)(gf_object object, uint64_t index, gf_value* value, char* text_buffer,
                                 uint64_t text_capacity, uint64_t* text_required);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: the index is past the type's properties), unchanged; not_found (code: the control's type is not in the
+    // ic: schema), unchanged; wrong_handle_kind (code: the object is a component, not a control or a window),
+    // ic: unchanged.
     gf_status (GF_CALL* set_at)(gf_object object, uint64_t index, const gf_value* value);
 } gf_properties_table;
 
@@ -790,6 +934,10 @@ typedef struct gf_properties_table {
  * in that emission. A subscription ends at disconnect, when its source is
  * disposed, or when its source is destroyed.
  */
+// ic: gf_abi::events: generated from include/gui_forms/c/gf_abi_events.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state():
+// ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui,
+// ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_events_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -797,10 +945,19 @@ typedef struct gf_events_table {
      * interaction the schema lists for source's type (schema.interaction_at).
      * The event's fields carry the payload (Event fields above). A name the
      * type does not raise gives GF_STATUS_NOT_FOUND. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: subscription_output, then the state refusal. Fails not_found (A name the type does not raise gives
+    // ic: GF_STATUS_NOT_FOUND.), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from
+    // ic: caller to library.
     gf_status (GF_CALL* subscribe)(gf_object source, gf_utf8_view interaction,
                                    const gf_callback* callback,
                                    gf_subscription* subscription);
     /* Subscribes to changes of one property; the event has no payload. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: subscription_output, then the state refusal. Fails not_found (code: the source has no property of that name),
+    // ic: unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to library.
     gf_status (GF_CALL* subscribe_property)(gf_object source, gf_utf8_view property,
                                             const gf_callback* callback,
                                             gf_subscription* subscription);
@@ -818,11 +975,20 @@ typedef struct gf_events_table {
      * GF_STATUS_NOT_FOUND for an index past the fields,
      * GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value
      * it does not admit; nothing is written then. */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_STATE when event is not running, GF_STATUS_NOT_FOUND for an index
+    // ic: past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value it does not admit;
+    // ic: nothing is written then.), unchanged; invalid_state (GF_STATUS_INVALID_STATE when event is not running,
+    // ic: GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable
+    // ic: or a value it does not admit; nothing is written then.), unchanged; not_found (GF_STATUS_INVALID_STATE when
+    // ic: event is not running, GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a
+    // ic: field that is not writable or a value it does not admit; nothing is written then.), unchanged.
     gf_status (GF_CALL* write_field)(gf_event* event, uint64_t field, const gf_value* value);
     /* Reads element index of a COLLECTION field of the event a callback is
      * running for, from within that callback, into element (the caller sets
      * struct_size); its text is lent for the invoke.
      * GF_STATUS_UNSUPPORTED_CAPABILITY when the elements are structs. */
+    // ic: Fails invalid_state (code: no callback is running for that event), unchanged; unsupported_capability
+    // ic: (GF_STATUS_UNSUPPORTED_CAPABILITY when the elements are structs.), unchanged.
     gf_status (GF_CALL* field_element)(const gf_event* event, uint64_t field, uint64_t index,
                                        gf_value* element);
 } gf_events_table;
@@ -831,6 +997,11 @@ typedef struct gf_events_table {
  * GF_TABLE_DISPATCH: work for the UI thread. Posted callbacks run in the
  * order they were posted, while a window runs or at run_pending.
  */
+// ic: gf_abi::dispatch: generated from include/gui_forms/c/gf_abi_dispatch.ic.toml by tools/ic_declarations.py; edit
+// ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_dispatch_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -838,9 +1009,12 @@ typedef struct gf_dispatch_table {
      * name "invoke". Any thread. target is retained until then; when it has
      * been disposed by then, only release runs. At most 4096 callbacks wait
      * at once (GF_STATUS_LIMIT_EXCEEDED). */
+    // ic: Fails limit_exceeded (At most 4096 callbacks wait at once (GF_STATUS_LIMIT_EXCEEDED).), unchanged. Thread:
+    // ic: any. Transfers callback from caller to library.
     gf_status (GF_CALL* begin_invoke)(gf_object target, const gf_callback* callback);
     /* Completes deferred releases and runs the callbacks posted before this
      * call; invoked receives how many ran. */
+    // ic: Requires not_null(invoked), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* run_pending)(uint64_t* invoked);
 } gf_dispatch_table;
 
@@ -1224,6 +1398,15 @@ typedef struct gf_window_shaping {
 /* gf_mdi_layout (since 1.6): the arrangements layout_mdi offers (Windows
  * Forms' MdiLayout). */
 typedef uint32_t gf_mdi_layout;
+/* gf_window_lifecycle (since 1.7): where a window from windows.create
+ * stands. CREATED: made, not yet run (windows.run admits it). RUNNING:
+ * its run is under way, from run's start until the window is destroyed.
+ * ENDED: its run has ended, or it was disposed before one; it refuses what
+ * needs the window with GF_STATUS_DISPOSED. */
+typedef uint32_t gf_window_lifecycle;
+#define GF_WINDOW_LIFECYCLE_CREATED 0u
+#define GF_WINDOW_LIFECYCLE_RUNNING 1u
+#define GF_WINDOW_LIFECYCLE_ENDED 2u
 #define GF_MDI_LAYOUT_CASCADE 0u
 #define GF_MDI_LAYOUT_TILE_HORIZONTAL 1u
 #define GF_MDI_LAYOUT_TILE_VERTICAL 2u
@@ -1309,6 +1492,11 @@ typedef struct gf_overflow_record {
     gf_utf8_view owner;
 } gf_overflow_record;
 
+// ic: gf_abi::windows: generated from include/gui_forms/c/gf_abi_windows.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: created (initial), running, ended. Observed by
+// ic: gf_windows_table.lifecycle(): created GF_WINDOW_LIFECYCLE_CREATED, running GF_WINDOW_LIFECYCLE_RUNNING, ended
+// ic: GF_WINDOW_LIFECYCLE_ENDED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_windows_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1323,35 +1511,57 @@ typedef struct gf_windows_table {
      * result: after a refusal by the run (INVALID_ARGUMENT,
      * UNSUPPORTED_CAPABILITY) the window is disposed, so a caller makes a
      * new one to try again. Only the INVALID_STATE refusal leaves it. */
+    // ic: Admitted in created; then ended. In running: returns GF_STATUS_INVALID_STATE, unchanged. In ended: returns
+    // ic: GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a window the run
+    // ic: refuses, with a message naming the reason (for a client size below the minimum, both sizes).), unchanged;
+    // ic: invalid_state (GF_STATUS_INVALID_STATE while another run is under way.), unchanged; unsupported_capability
+    // ic: (code: this build has no window host), unchanged; wrong_handle_kind (code: run takes a window or a root
+    // ic: control), unchanged.
     gf_status (GF_CALL* run)(gf_object window_or_root, const gf_run_options* options);
     /* Asks the running window, given as the object passed to run, to close;
      * closing may cancel it. GF_STATUS_INVALID_STATE when it is not
      * running. */
+    // ic: Admitted in running. In created, ended: returns GF_STATUS_INVALID_STATE, unchanged. Fails invalid_argument
+    // ic: (code: the host refused the window's text), unchanged; invalid_state (GF_STATUS_INVALID_STATE when it is not
+    // ic: running.), unchanged; limit_exceeded (code: too many modal windows are open), unchanged;
+    // ic: unsupported_capability (code: the host cannot open this window during a run), unchanged.
     gf_status (GF_CALL* request_close)(gf_object window_or_root);
     /* Makes a window over root, a control with no parent and not in a
      * window, at the host's default size. The window holds root until it is
      * destroyed. GF_STATUS_INVALID_STATE when root has a parent or a
      * window. */
+    // ic: Fails disposed (code: the root has been disposed), unchanged; invalid_argument (code: create needs a window
+    // ic: output), unchanged; invalid_state (GF_STATUS_INVALID_STATE when root has a parent or a window.), unchanged.
+    // ic: Returns gf_object, owned by the caller.
     gf_status (GF_CALL* create)(gf_object root, gf_object* window);
     /* The number of interactions a window raises (since 1.1). Needs no
      * window or engine, since every window raises the same ones; any thread. */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* interaction_count)(uint64_t* count);
     /* Interaction index (below interaction_count) as a schema record, the
      * form schema.interaction_at gives a type's (since 1.1); any thread.
      * The views stay valid while the library is loaded.
      * GF_STATUS_INVALID_ARGUMENT past the end. */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT past the end.), unchanged. Thread: any. Returns a borrow
+    // ic: of library, valid until the process ends.
     gf_status (GF_CALL* interaction_at)(uint64_t interaction, gf_schema_interaction* record);
     /* Raises the window's help request as a message box's Help button does
      * (Window::request_help, not keyboard-initiated): its help_requested handlers run, then its
      * help providers are offered it until one handles it. handled receives
      * 1 when a handler or provider handled it, else 0 (since 1.1). UI thread.
      * GF_STATUS_DISPOSED once the window is gone. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code:
+    // ic: request_help needs a handled output), unchanged; wrong_handle_kind (code: request_help takes a window),
+    // ic: unchanged.
     gf_status (GF_CALL* request_help)(gf_object window, uint32_t* handled);
     /* down receives 1 when physical_key (a USB HID usage) is down in window
      * now, as the window has seen it (pressed, not released, not released by
      * the window losing activation), else 0 (since 1.2). UI thread.
      * GF_STATUS_INVALID_ARGUMENT without down; GF_STATUS_DISPOSED once the
      * window is gone. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT without down;), unchanged; wrong_handle_kind (code: key_state takes a window),
+    // ic: unchanged.
     gf_status (GF_CALL* key_state)(gf_object window, uint32_t physical_key, uint32_t* down);
     /* Opens a window over root, a control with no parent and not in a
      * window, owned by options.owner, and runs a nested event loop until it
@@ -1370,6 +1580,12 @@ typedef struct gf_windows_table {
      * where the host has no nested loop; GF_STATUS_INVALID_STATE when root
      * has a parent or a window or its stable id is taken; result may be
      * null. Nothing is opened on a refusal. */
+    // ic: Fails cancelled (When the run ends during the loop (the running window closed), the loop ends with
+    // ic: GF_STATUS_CANCELLED and the window closes with the run.), unchanged; disposed (code: the root has been
+    // ic: disposed), unchanged; invalid_argument (code: the host refused the window's text), unchanged; invalid_state
+    // ic: (UI thread, during a run (GF_STATUS_INVALID_STATE otherwise);), unchanged; limit_exceeded (A callback inside
+    // ic: the loop may call show_modal again, up to 8 deep (GF_STATUS_LIMIT_EXCEEDED beyond).), unchanged;
+    // ic: unsupported_capability (GF_STATUS_UNSUPPORTED_CAPABILITY where the host has no nested loop;), unchanged.
     gf_status (GF_CALL* show_modal)(gf_object root, const gf_owned_window_options* options,
                                     gf_dialog_result_code* result);
     /* Opens a window over root owned by options.owner, as show_modal does,
@@ -1377,6 +1593,10 @@ typedef struct gf_windows_table {
      * window closes through request_close, its close box, its owner
      * closing or the run ending. The same refusals as show_modal, without
      * the depth limit. */
+    // ic: Fails disposed (code: the root has been disposed), unchanged; invalid_argument (code: the host refused the
+    // ic: window's text), unchanged; invalid_state (code: the host refused the window (its owner or stable id)),
+    // ic: unchanged; limit_exceeded (code: too many modal windows are open), unchanged; unsupported_capability (code:
+    // ic: the host cannot open this window during a run), unchanged.
     gf_status (GF_CALL* show_owned)(gf_object root, const gf_owned_window_options* options);
     /* The window properties window's host applies (since 1.2): supported
      * receives the GF_WINDOW_PROPERTY_* bits of those the host honours, 0
@@ -1384,6 +1604,8 @@ typedef struct gf_windows_table {
      * the host applied when each was last sent. Either output may be null.
      * UI thread. GF_STATUS_WRONG_HANDLE_KIND for an object that is not a
      * window; GF_STATUS_DISPOSED once the window is gone. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails wrong_handle_kind
+    // ic: (GF_STATUS_WRONG_HANDLE_KIND for an object that is not a window;), unchanged.
     gf_status (GF_CALL* window_properties)(gf_object window, gf_window_property_flags* supported,
                                            gf_window_property_flags* applied);
     /* The focused control of a window (since 1.2): window_or_root is a
@@ -1398,6 +1620,10 @@ typedef struct gf_windows_table {
      * thread. GF_STATUS_INVALID_STATE for a control not in a window;
      * GF_STATUS_DISPOSED for a window that has been disposed or whose run
      * has ended. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code:
+    // ic: focused_control needs a control output), unchanged; invalid_state (GF_STATUS_INVALID_STATE for a control not
+    // ic: in a window;), unchanged; wrong_handle_kind (code: focused_control takes a window or a control in one),
+    // ic: unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* focused_control)(gf_object window_or_root, gf_object* control);
     /* The window outer band and shaping (since 1.5). Each takes window, a
      * window from create (before or during its run), or a control in a
@@ -1412,28 +1638,54 @@ typedef struct gf_windows_table {
      * null or short record, a width that is not finite from 0 to
      * window_band_maximum_width, an unknown full-screen choice or nonzero
      * reserved, changing nothing. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for a null or short record, a width that is not finite from 0 to
+    // ic: window_band_maximum_width, an unknown full-screen choice or nonzero reserved, changing nothing.), unchanged;
+    // ic: invalid_state (GF_STATUS_INVALID_STATE for a control not in a window;), unchanged; wrong_handle_kind
+    // ic: (GF_STATUS_WRONG_HANDLE_KIND for another object;), unchanged.
     gf_status (GF_CALL* declare_band)(gf_object window, const gf_window_band_options* options);
     /* Removes the band and its reservation (the window is laid out again);
      * nothing for a window without one. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the
+    // ic: control is not in a window), unchanged; wrong_handle_kind (code: the band takes a window or a control in
+    // ic: one), unchanged.
     gf_status (GF_CALL* undeclare_band)(gf_object window);
     /* What the band shows: its strips repaint, nothing is laid out. Kept
      * while no band is declared. GF_STATUS_INVALID_ARGUMENT, changing
      * nothing, for a null or short record, an unknown state, role or
      * texture, a frequency that is not finite or below 0, a texture out of
      * range, or nonzero reserved. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT, changing nothing, for a null or short record, an unknown state, role or texture,
+    // ic: a frequency that is not finite or below 0, a texture out of range, or nonzero reserved.), unchanged;
+    // ic: invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind (code: the band takes a
+    // ic: window or a control in one), unchanged.
     gf_status (GF_CALL* set_band_appearance)(gf_object window, const gf_window_band_appearance* appearance);
     /* The band as it stands. GF_STATUS_INVALID_ARGUMENT for a null or short
      * record. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for a null or short record.), unchanged; invalid_state (code: the control is not
+    // ic: in a window), unchanged; wrong_handle_kind (code: the band takes a window or a control in one), unchanged.
     gf_status (GF_CALL* band_report)(gf_object window, gf_window_band_report* report);
     /* The corners the window asks its host for, sent at once while a host
      * shows it and when one does. GF_STATUS_INVALID_ARGUMENT for a value
      * outside gf_window_corner_preference, changing nothing. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for a value outside gf_window_corner_preference, changing nothing.), unchanged;
+    // ic: invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind (code: the band takes a
+    // ic: window or a control in one), unchanged.
     gf_status (GF_CALL* set_corner_preference)(gf_object window, gf_window_corner_preference preference);
     /* The content rectangle in client coordinates: the client area less the
      * reserved band. GF_STATUS_INVALID_ARGUMENT for a null output. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for a null output.), unchanged; invalid_state (code: the control is not in a
+    // ic: window), unchanged; wrong_handle_kind (code: the band takes a window or a control in one), unchanged.
     gf_status (GF_CALL* content_rect)(gf_object window, gf_logical_rect* rect);
     /* What the window's host lets its shaping rely on, and its corners now.
      * GF_STATUS_INVALID_ARGUMENT for a null or short record. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for a null or short record.), unchanged; invalid_state (code: the control is not
+    // ic: in a window), unchanged; wrong_handle_kind (code: the band takes a window or a control in one), unchanged.
     gf_status (GF_CALL* shaping)(gf_object window, gf_window_shaping* report);
     /* Where the pointer is, as a window last saw it (since 1.5): the
      * position of the last pointer event the window dispatched, which
@@ -1451,6 +1703,9 @@ typedef struct gf_windows_table {
      * GF_STATUS_INVALID_STATE for a control not in a window;
      * GF_STATUS_DISPOSED for a window that has been disposed or whose run
      * has ended. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state
+    // ic: (GF_STATUS_INVALID_STATE for a control not in a window;), unchanged; wrong_handle_kind
+    // ic: (GF_STATUS_WRONG_HANDLE_KIND for an object that is neither;), unchanged.
     gf_status (GF_CALL* pointer_location)(gf_object window_or_control, gf_logical_point* location,
                                           gf_logical_point* window_position, uint32_t* inside);
     /* Since 1.5. Shows the program's business card in the hand over a
@@ -1461,36 +1716,72 @@ typedef struct gf_windows_table {
      * beside it. UI thread. GF_STATUS_INVALID_STATE for a control not in a
      * window or in a sub-surface; GF_STATUS_DISPOSED for a window that has
      * been disposed or whose run has ended. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state
+    // ic: (GF_STATUS_INVALID_STATE for a control not in a window or in a sub-surface;), unchanged; wrong_handle_kind
+    // ic: (code: show_business_card takes a window or a control in one), unchanged.
     gf_status (GF_CALL* show_business_card)(gf_object window_or_root, uint32_t* shown);
     /* Since 1.6: the multiple document interface (above). Whether the
      * window is an MDI container (Form.IsMdiContainer): its document area
      * shows its documents as frames rather than tabs. container is 0 or 1. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code:
+    // ic: a switch is 0 or 1), unchanged; invalid_state (code: the control is not in a window), unchanged;
+    // ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* set_mdi_container)(gf_object window_or_root, uint32_t container);
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(container),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: mdi_container_container,
+    // ic: then the state refusal. Fails invalid_state (code: the control is not in a window), unchanged;
+    // ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* mdi_container)(gf_object window_or_root, uint32_t* container);
     /* Since 1.6. The number of MDI children (Form.MdiChildren), and the id
      * of the child at index, in tree and tab order, into the caller's
      * buffer (required receives its size, also with
      * GF_STATUS_BUFFER_TOO_SMALL; GF_STATUS_NOT_FOUND past the end). */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), else
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: mdi_child_count_count, then the
+    // ic: state refusal. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind
+    // ic: (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* mdi_child_count)(gf_object window_or_root, uint64_t* count);
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (the id
+    // ic: is longer than capacity: required receives its size, nothing else is written), unchanged; invalid_state
+    // ic: (code: the control is not in a window), unchanged; not_found (code: the index is past the window's MDI
+    // ic: children), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* mdi_child_at)(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity,
                                       uint64_t* required);
     /* Since 1.6. The active child's id (Form.ActiveMdiChild), as
      * mdi_child_at writes one; empty (required zero) when there is none. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the
+    // ic: control is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in
+    // ic: one), unchanged.
     gf_status (GF_CALL* active_mdi_child)(gf_object window_or_root, char* buffer, uint64_t capacity,
                                           uint64_t* required);
     /* Since 1.6. Activates a child (Form.ActivateMdiChild): focus moves
      * into it. activated (may be null) receives 1, or 0 for a child the
      * area does not hold. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the
+    // ic: control is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in
+    // ic: one), unchanged.
     gf_status (GF_CALL* activate_mdi_child)(gf_object window_or_root, gf_utf8_view child, uint32_t* activated);
     /* Since 1.6. Arranges the children's frames (Form.LayoutMdi,
      * gf_mdi_layout). arranged (may be null) receives 0 when there was
      * nothing to arrange. A value outside gf_mdi_layout gives
      * GF_STATUS_INVALID_ARGUMENT. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (A
+    // ic: value outside gf_mdi_layout gives GF_STATUS_INVALID_ARGUMENT.), unchanged; invalid_state (code: the control
+    // ic: is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one),
+    // ic: unchanged.
     gf_status (GF_CALL* layout_mdi)(gf_object window_or_root, gf_mdi_layout layout, uint32_t* arranged);
     /* Since 1.6. Whether minimized children line the bottom of the area
      * (1, the default) or its top (0)
      * (Form.MdiChildrenMinimizedAnchorBottom). */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code:
+    // ic: a switch is 0 or 1), unchanged; invalid_state (code: the control is not in a window), unchanged;
+    // ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
     gf_status (GF_CALL* set_mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t bottom);
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(bottom),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: mdi_children_minimized_anchor_bottom_bottom, then the state refusal. Fails invalid_state (code: the control
+    // ic: is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one),
+    // ic: unchanged.
     gf_status (GF_CALL* mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t* bottom);
     /* Since 1.6. The window's main menu strip (Form.MainMenuStrip): the
      * strip the active child's menu strip merges into (the docking table's
@@ -1500,7 +1791,14 @@ typedef struct gf_windows_table {
      * weakly: the caller's reference keeps it. main_menu_strip gives a new
      * reference the caller releases, or zero when none is set or it is
      * gone. */
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the
+    // ic: control is not in a window), unchanged; wrong_handle_kind (A menu_strip object or zero for none; another
+    // ic: object gives GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
     gf_status (GF_CALL* set_main_menu_strip)(gf_object window_or_root, gf_object strip);
+    // ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(strip), else
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: main_menu_strip_strip, then the
+    // ic: state refusal. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind
+    // ic: (code: the MDI calls take a window or a control in one), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* main_menu_strip)(gf_object window_or_root, gf_object* strip);
     /* Since 1.7. The overflows the window knows of now, as of its last
      * layout (stage VA), in the order they appeared: records is an array of
@@ -1521,6 +1819,15 @@ typedef struct gf_windows_table {
      * device hides, in logical units, zero until the host reports any. The
      * root slot keeps clear of them. */
     gf_status (GF_CALL* safe_insets)(gf_object window_or_root, gf_logical_insets* insets);
+    /* Since 1.7. lifecycle receives where window, a window from create,
+     * stands (gf_window_lifecycle), at any point of its life, disposed
+     * included. GF_STATUS_WRONG_HANDLE_KIND for an object that is not a
+     * window (a run's root control among them); GF_STATUS_INVALID_ARGUMENT
+     * without lifecycle. UI thread. */
+    // ic: Requires not_null(lifecycle), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind
+    // ic: (GF_STATUS_WRONG_HANDLE_KIND for an object that is not a window (a run's root control among them);),
+    // ic: unchanged.
+    gf_status (GF_CALL* lifecycle)(gf_object window, gf_window_lifecycle* lifecycle);
 } gf_windows_table;
 
 /* gf_schema_kind: what a schema type is. A control is created and placed in
@@ -1793,51 +2100,76 @@ typedef struct gf_schema_composite {
  * index past the end gives GF_STATUS_INVALID_ARGUMENT. The first call builds
  * the schema from the library's types; it is the same in every later call.
  */
+// ic: gf_abi::schema: generated from include/gui_forms/c/gf_abi_schema.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 typedef struct gf_schema_table {
     uint32_t struct_size;
     uint32_t abi_minor;
+    // ic: Fails invalid_argument (code: vocabulary_count needs a known vocabulary and an output), unchanged.
     gf_status (GF_CALL* vocabulary_count)(gf_schema_vocabulary vocabulary, uint64_t* count);
+    // ic: Fails invalid_argument (code: vocabulary_at needs a known vocabulary and an output), unchanged.
     gf_status (GF_CALL* vocabulary_at)(gf_schema_vocabulary vocabulary, uint64_t index,
                                        gf_utf8_view* name);
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* type_count)(uint64_t* count);
     /* The index of a type named in any spelling of its id. */
+    // ic: Requires not_null(type), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code:
+    // ic: find_type needs an output), unchanged; not_found (code: the schema has no type of that name), unchanged.
     gf_status (GF_CALL* find_type)(gf_utf8_view name, uint64_t* type);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* type_at)(uint64_t type, gf_schema_type* record);
+    // ic: Fails invalid_argument (code: item_system_at needs an item system index), unchanged.
     gf_status (GF_CALL* item_system_at)(uint64_t type, uint64_t system,
                                         gf_schema_item_system* record);
     /* A part of the type (system GF_SCHEMA_NONE) or of one item system. */
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* part_at)(uint64_t type, uint64_t system, uint64_t part,
                                  gf_schema_part* record);
     /* A state of the type or item system, or (part not GF_SCHEMA_NONE) of
      * one of its parts. */
+    // ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* state_at)(uint64_t type, uint64_t system, uint64_t part, uint64_t state,
                                   gf_utf8_view* name);
+    // ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* custom_state_at)(uint64_t type, uint64_t system, uint64_t state,
                                          gf_utf8_view* name);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* property_at)(uint64_t type, uint64_t property, gf_schema_property* record);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* choice_at)(uint64_t type, uint64_t property, uint64_t choice,
                                    gf_schema_choice* record);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* interaction_at)(uint64_t type, uint64_t interaction,
                                         gf_schema_interaction* record);
     gf_status (GF_CALL* engine)(gf_schema_engine* record);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* primitive_at)(uint64_t primitive, gf_schema_primitive* record);
+    // ic: Fails invalid_argument (code: primitive_name_at needs a known list and an output), unchanged.
     gf_status (GF_CALL* primitive_name_at)(uint64_t primitive, gf_schema_primitive_list list,
                                            uint64_t index, gf_utf8_view* name);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* parameter_at)(uint64_t primitive, uint64_t parameter,
                                       gf_schema_parameter* record);
+    // ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* parameter_choice_at)(uint64_t primitive, uint64_t parameter,
                                              uint64_t choice, gf_utf8_view* name);
     /* The number of effect programs the library registers (since 1.1). */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* effect_count)(uint64_t* count);
     /* Effect index (below effect_count), in registration order (since
      * 1.1). GF_STATUS_INVALID_ARGUMENT past the end. */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT past the end.), unchanged.
     gf_status (GF_CALL* effect_at)(uint64_t effect, gf_schema_effect* record);
     /* The properties a type provides to each of its children, such as a
      * grid panel's cell (since 1.1): how many, one of them (below the
      * count), and one choice of it, as property_at and choice_at give the
      * type's own. GF_STATUS_INVALID_ARGUMENT past the end. */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT past the end.), unchanged.
     gf_status (GF_CALL* child_property_count)(uint64_t type, uint64_t* count);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* child_property_at)(uint64_t type, uint64_t property, gf_schema_property* record);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* child_choice_at)(uint64_t type, uint64_t property, uint64_t choice,
                                          gf_schema_choice* record);
     /*
@@ -1850,28 +2182,44 @@ typedef struct gf_schema_table {
     /* How many loads are listed now, and one of them (index below the
      * count), in load order. Indices move as loads are released; the
      * record's composite does not. */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* composite_count)(uint64_t* count);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
     gf_status (GF_CALL* composite_at)(uint64_t index, gf_schema_composite* record);
     /* A part of the composite's anatomy: region, focus, then the declared
      * parts in document order. */
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged; removed (code: the
+    // ic: composite's load was released), unchanged.
     gf_status (GF_CALL* composite_part_at)(uint64_t composite, uint64_t part, gf_schema_part* record);
     /* A state of the composite, or (part not GF_SCHEMA_NONE) of one of its
      * parts. */
+    // ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails removed (code: the
+    // ic: composite's load was released), unchanged.
     gf_status (GF_CALL* composite_state_at)(uint64_t composite, uint64_t part, uint64_t state,
                                             gf_utf8_view* name);
+    // ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails removed (code: the
+    // ic: composite's load was released), unchanged.
     gf_status (GF_CALL* composite_custom_state_at)(uint64_t composite, uint64_t state, gf_utf8_view* name);
     /* A declared property, as property_at gives a type's, and one choice
      * of it. */
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged; removed (code: the
+    // ic: composite's load was released), unchanged.
     gf_status (GF_CALL* composite_property_at)(uint64_t composite, uint64_t property,
                                                gf_schema_property* record);
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged; removed (code: the
+    // ic: composite's load was released), unchanged.
     gf_status (GF_CALL* composite_choice_at)(uint64_t composite, uint64_t property, uint64_t choice,
                                              gf_schema_choice* record);
     /* A declared event: its name as the document writes it, and its payload
      * in the interaction vocabulary (gf_schema_interaction), empty for
      * none; mutable_payload is 0. */
+    // ic: Fails invalid_argument (code: the index is past the end of its list), unchanged; removed (code: the
+    // ic: composite's load was released), unchanged.
     gf_status (GF_CALL* composite_event_at)(uint64_t composite, uint64_t event,
                                             gf_schema_interaction* record);
     /* A declared command's name, as perform_composite takes it. */
+    // ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails removed (code: the
+    // ic: composite's load was released), unchanged.
     gf_status (GF_CALL* composite_command_at)(uint64_t composite, uint64_t command, gf_utf8_view* name);
 } gf_schema_table;
 
@@ -1981,6 +2329,8 @@ typedef uint32_t gf_theme_diagnostic_text;
  * first call binds an unbound library, as create does, and the library
  * stays bound.
  */
+// ic: gf_abi::themes: generated from include/gui_forms/c/gf_abi_themes.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 typedef struct gf_themes_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -1991,6 +2341,10 @@ typedef struct gf_themes_table {
      * refused package changes nothing; either way its findings replace the
      * held ones. GF_STATUS_INVALID_STATE when a control's inline style does
      * not compile against the new theme: nothing changes then either. */
+    // ic: Fails invalid_argument (code: a theme package needs a record of at least the 1.0 size with reserved zero),
+    // ic: unchanged; invalid_state (GF_STATUS_INVALID_STATE when a control's inline style does not compile against the
+    // ic: new theme: nothing changes then either.), unchanged; limit_exceeded (code: a theme package holds at most 256
+    // ic: files), unchanged.
     gf_status (GF_CALL* load)(const gf_theme_package* package, gf_theme_report* report);
     /* Makes the built-in theme the theme again and clears the findings. */
     gf_status (GF_CALL* reset)(void);
@@ -1998,12 +2352,17 @@ typedef struct gf_themes_table {
      * installed package of its name. A refused package changes nothing;
      * either way its findings replace the held ones. At most 256 packages
      * are installed. */
+    // ic: Fails invalid_argument (code: a theme package needs a record of at least the 1.0 size with reserved zero),
+    // ic: unchanged; limit_exceeded (code: a theme package holds at most 256 files), unchanged.
     gf_status (GF_CALL* install)(const gf_theme_package* package, gf_theme_report* report);
     /* Removes the installed package named name; removed is 1 when there
      * was one, else 0. The theme in use is unchanged. */
+    // ic: Requires not_null(removed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* remove)(gf_utf8_view name, uint32_t* removed);
     /* A finding of the last load or install, in the compiler's order. */
+    // ic: Fails invalid_argument (code: no finding has that index), unchanged.
     gf_status (GF_CALL* diagnostic_at)(uint64_t index, gf_theme_diagnostic* record);
+    // ic: Fails invalid_argument (code: unknown diagnostic text), unchanged.
     gf_status (GF_CALL* diagnostic_text)(uint64_t index, gf_theme_diagnostic_text text, char* buffer,
                                          uint64_t capacity, uint64_t* required);
     /* The id of the theme in use (a package's name). */
@@ -2015,22 +2374,35 @@ typedef struct gf_themes_table {
      * since 1.2, each owned one) repaints the parts that read it. A name once published stays admitted to later loads,
      * withdrawn or not; at most GF_THEME_MAXIMUM_PUBLISHED_VALUES names
      * (GF_STATUS_LIMIT_EXCEEDED). */
+    // ic: Fails invalid_argument (Publishes a named value for themes to read (var(--name)). name is 1 to 64 lowercase
+    // ic: ASCII letters, digits, hyphens and underscores, starting with a letter, and value is finite, else
+    // ic: GF_STATUS_INVALID_ARGUMENT.), unchanged; limit_exceeded (A name once published stays admitted to later loads,
+    // ic: withdrawn or not; at most GF_THEME_MAXIMUM_PUBLISHED_VALUES names (GF_STATUS_LIMIT_EXCEEDED).), unchanged.
     gf_status (GF_CALL* publish_value)(gf_utf8_view name, double value);
     /* Withdraws the value of name; it then reads as not published, and the
      * reading expression gives its fallback. Withdrawing a name never
      * published changes nothing. */
+    // ic: Fails invalid_argument (code: a published name is 1 to 64 lowercase letters, digits, hyphens and underscores,
+    // ic: ), unchanged.
     gf_status (GF_CALL* withdraw_value)(gf_utf8_view name);
     /* present is 1 and value the value when name is published; else
      * present is 0 and value is left unchanged. */
+    // ic: Fails invalid_argument (code: value and present are outputs), unchanged.
     gf_status (GF_CALL* published_value)(gf_utf8_view name, double* value, uint32_t* present);
     /* Admits an image file (PNG is the only format) of size bytes into the
      * image registry and writes its id, which IMAGE values name. The bytes
      * are read during the call only. A file that is not a valid PNG gives
      * GF_STATUS_INVALID_ARGUMENT, one past the registry's limits
      * GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then. */
+    // ic: Requires not_null(image) and (not_null(bytes) or size == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails invalid_argument (A file that is not a valid PNG gives GF_STATUS_INVALID_ARGUMENT, one past
+    // ic: the registry's limits GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then.), unchanged; limit_exceeded (A file
+    // ic: that is not a valid PNG gives GF_STATUS_INVALID_ARGUMENT, one past the registry's limits
+    // ic: GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then.), unchanged.
     gf_status (GF_CALL* load_image)(const uint8_t* bytes, uint64_t size, uint64_t* image);
     /* Removes an image; controls showing it show none and repaint.
      * GF_STATUS_NOT_FOUND for an id the registry does not hold. */
+    // ic: Fails not_found (GF_STATUS_NOT_FOUND for an id the registry does not hold.), unchanged.
     gf_status (GF_CALL* remove_image)(uint64_t image);
     /*
      * Copies width x height pixels of 32-bit premultiplied BGRA (row_bytes
@@ -2039,6 +2411,10 @@ typedef struct gf_themes_table {
      * image. Fails with GF_STATUS_LIMIT_EXCEEDED past the registry's limits,
      * else GF_STATUS_INVALID_ARGUMENT, leaving image unwritten.
      */
+    // ic: Fails invalid_argument (Fails with GF_STATUS_LIMIT_EXCEEDED past the registry's limits, else
+    // ic: GF_STATUS_INVALID_ARGUMENT, leaving image unwritten.), unchanged; limit_exceeded (Fails with
+    // ic: GF_STATUS_LIMIT_EXCEEDED past the registry's limits, else GF_STATUS_INVALID_ARGUMENT, leaving image
+    // ic: unwritten.), unchanged.
     gf_status (GF_CALL* load_pixels)(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes,
                                      uint64_t* image);
     /* Loads sheet (since 1.2), the UTF-8 text of one CSS theme sheet (at
@@ -2049,6 +2425,9 @@ typedef struct gf_themes_table {
      * sheet changes nothing; its findings name the file sheet.theme.css
      * with their line and column. GF_STATUS_INVALID_ARGUMENT for a view
      * with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound. */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a view with a size and no data,
+    // ic: GF_STATUS_LIMIT_EXCEEDED past the bound.), unchanged; limit_exceeded (GF_STATUS_INVALID_ARGUMENT for a view
+    // ic: with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound.), unchanged.
     gf_status (GF_CALL* load_sheet)(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report);
     /* Chooses how the library's windows admit user themes and the theme the
      * process was started with (--theme <name|built-in|path.css>, or
@@ -2057,11 +2436,14 @@ typedef struct gf_themes_table {
      * (a new application) start LAYERED. REFUSED ignores the request with a
      * warning. GF_STATUS_INVALID_STATE once a window shares the resources;
      * GF_STATUS_INVALID_ARGUMENT for an unknown policy. */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for an unknown policy.), unchanged; invalid_state
+    // ic: (GF_STATUS_INVALID_STATE once a window shares the resources;), unchanged.
     gf_status (GF_CALL* set_user_theme_policy)(gf_user_theme_policy policy);
     /* What the theme the process was started with did on the resources the
      * library's windows share: NONE without one, PENDING until the first
      * window settles it, then its outcome; a request that is not APPLIED
      * or BUILT_IN changed nothing and wrote its findings to stderr. */
+    // ic: Requires not_null(outcome), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* theme_request)(gf_theme_request_outcome* outcome);
 } gf_themes_table;
 
@@ -2349,19 +2731,34 @@ typedef struct gf_dialog_result {
  * Tooltips are the tool_tip_text property of the controls that have one
  * (GF_TABLE_PROPERTIES).
  */
+// ic: gf_abi::host: generated from include/gui_forms/c/gf_abi_host.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 typedef struct gf_host_table {
     uint32_t struct_size;
     uint32_t abi_minor;
+    // ic: Requires not_null(record), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires record_size >=
+    // ic: host_capabilities_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: capabilities_record, then capabilities_record_size.
     gf_status (GF_CALL* capabilities)(gf_host_capabilities* record);
     /* The host's name, as win32-dib, appkit-macos or linux-x11. */
     gf_status (GF_CALL* platform_name)(char* buffer, uint64_t capacity, uint64_t* required);
     /* Shows cursor until the pointer next moves over a control that sets
      * its own. */
+    // ic: Fails invalid_argument (code: unknown cursor), unchanged; invalid_state (code: the host has shut down),
+    // ic: unchanged; limit_exceeded (code: the request exceeds the host's bounds), unchanged; unsupported_capability
+    // ic: (code: the host does not offer this service), unchanged.
     gf_status (GF_CALL* set_cursor)(gf_pointer_cursor cursor);
     /* The clipboard's text, read at each call; GF_STATUS_NOT_FOUND when it
      * holds none. */
+    // ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails invalid_state (code: the host has shut down), unchanged; limit_exceeded (code: the request
+    // ic: exceeds the host's bounds), unchanged; not_found (GF_STATUS_NOT_FOUND when it holds none.), unchanged;
+    // ic: unsupported_capability (code: the host does not offer this service), unchanged.
     gf_status (GF_CALL* read_clipboard_text)(char* buffer, uint64_t capacity, uint64_t* required);
     /* Replaces the clipboard's contents with text (at most 16 MiB). */
+    // ic: Fails invalid_argument (code: the host refused the request), unchanged; invalid_state (code: the host has
+    // ic: shut down), unchanged; limit_exceeded (code: clipboard text is at most 16 MiB), unchanged;
+    // ic: unsupported_capability (code: the host does not offer this service), unchanged.
     gf_status (GF_CALL* write_clipboard_text)(gf_utf8_view text);
     /* Shows a modal dialog over the running window and returns when it
      * closes; posted callbacks and the window's events run meanwhile. The
@@ -2370,8 +2767,12 @@ typedef struct gf_host_table {
      * from a callback while this one is open stores its own paths when it
      * returns, before this one's, so each caller that reads straight after
      * its own call reads its own paths. */
+    // ic: Fails invalid_argument (code: the host refused the request), unchanged; invalid_state (code: the host has
+    // ic: shut down), unchanged; limit_exceeded (code: the request exceeds the host's bounds), unchanged;
+    // ic: unsupported_capability (code: the host does not offer this service), unchanged.
     gf_status (GF_CALL* show_dialog)(const gf_dialog_request* request, gf_dialog_result* result);
     /* A path the last dialog chose, in the host's order. */
+    // ic: Fails invalid_argument (code: the last dialog chose no path at that index), unchanged.
     gf_status (GF_CALL* dialog_path_at)(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required);
 } gf_host_table;
 
@@ -2567,6 +2968,8 @@ typedef struct gf_failure_detail {
     uint32_t reserved;
 } gf_failure_detail;
 
+// ic: gf_abi::diagnostics: generated from include/gui_forms/c/gf_abi_diagnostics.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 typedef struct gf_diagnostics_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -2578,6 +2981,10 @@ typedef struct gf_diagnostics_table {
      * GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.
      * The frames are copies; nothing is lent.
      */
+    // ic: Requires not_null(required) and (not_null(frames) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (When capacity is smaller, nothing else is written and the result is
+    // ic: GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.), unchanged; invalid_argument (code:
+    // ic: the output record is null or smaller than its 1.0 size), unchanged.
     gf_status (GF_CALL* shadow_frames)(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required,
                                        gf_shadow_stack_info* info);
     /*
@@ -2595,7 +3002,9 @@ typedef struct gf_diagnostics_table {
      * GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null
      * output.
      */
+    // ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* set_invalidation_overlay)(uint32_t enabled);
+    // ic: Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* invalidation_overlay)(uint32_t* enabled);
     /*
      * Since 1.2. Copies the calling thread's last failure snapshot into
@@ -2609,6 +3018,12 @@ typedef struct gf_diagnostics_table {
      * stays until the thread's next one or clear_failure_snapshot; the
      * frames and text are copies, and nothing is lent.
      */
+    // ic: Requires not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity ==
+    // ic: 0) and (not_null(message_buffer) or message_capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (When frame_capacity or message_capacity is smaller, nothing else is
+    // ic: written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their
+    // ic: capacity is zero.), unchanged; invalid_argument (code: the output record is null or smaller than its 1.0
+    // ic: size), unchanged.
     gf_status (GF_CALL* failure_snapshot)(gf_failure_snapshot* snapshot, gf_shadow_frame* frames,
                                           uint64_t frame_capacity, uint64_t* frames_required,
                                           char* message_buffer, uint64_t message_capacity,
@@ -2621,7 +3036,9 @@ typedef struct gf_diagnostics_table {
      * GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1, or a null
      * output.
      */
+    // ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* set_exception_reflection)(uint32_t enabled);
+    // ic: Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* exception_reflection)(uint32_t* enabled);
     /*
      * Since 1.2, a debugging aid with which a binding tests its reflection:
@@ -2633,6 +3050,8 @@ typedef struct gf_diagnostics_table {
      * GF_STATUS_INVALID_ARGUMENT, with no snapshot, for a message that is
      * not UTF-8 or too long.
      */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT, with no snapshot, for a message that is not UTF-8 or too
+    // ic: long.), unchanged.
     gf_status (GF_CALL* raise_native_exception)(gf_utf8_view message);
     /*
      * Since 1.5. Copies the calling thread's last failure detail (the
@@ -2642,6 +3061,9 @@ typedef struct gf_diagnostics_table {
      * (clear_failure_snapshot). GF_STATUS_INVALID_ARGUMENT for a null
      * detail or one smaller than its 1.5 size.
      */
+    // ic: Requires not_null(output), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires output_size >=
+    // ic: failure_detail_size_1_5, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: failure_detail_output, then failure_detail_output_size.
     gf_status (GF_CALL* failure_detail)(gf_failure_detail* detail);
     /*
      * Since 1.5. The diagnostic overlay: the invalidation outlines and,
@@ -2654,6 +3076,7 @@ typedef struct gf_diagnostics_table {
      * and writes the new state into enabled, which may be null. Any
      * thread. GF_STATUS_INVALID_ARGUMENT for enabled other than 0 or 1.
      */
+    // ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* set_diagnostic_overlay)(uint32_t enabled);
     gf_status (GF_CALL* toggle_diagnostic_overlay)(uint32_t* enabled);
 } gf_diagnostics_table;
@@ -2882,27 +3305,47 @@ typedef struct gf_content_effect {
  * only. A scrolling function on a control that does not scroll gives
  * GF_STATUS_WRONG_HANDLE_KIND.
  */
+// ic: gf_abi::controls: generated from include/gui_forms/c/gf_abi_controls.ic.toml by tools/ic_declarations.py; edit
+// ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_controls_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* Defers layout until the matching resume_layout; transactions nest. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* suspend_layout)(gf_object object);
     /* Ends one suspension; perform_layout (0 or 1) lays out a deferred change
      * when the outermost one ends. Without a suspension it does nothing, as
      * Windows Forms tolerates an unmatched ResumeLayout. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: perform_layout is 0 or 1), unchanged.
     gf_status (GF_CALL* resume_layout)(gf_object object, uint32_t perform_layout);
     /* Lays the control's children out now. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* perform_layout)(gf_object object);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* layout_state)(gf_object object, gf_layout_transaction* state);
     /* The control's bounds in its window's client space, after layout. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(bounds),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: window_bounds_bounds, then
+    // ic: the state refusal.
     gf_status (GF_CALL* window_bounds)(gf_object object, gf_logical_rect* bounds);
     /* Takes (1) or releases (0) the pointer for the control. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: captured is 0 or 1), unchanged.
     gf_status (GF_CALL* set_pointer_capture)(gf_object object, uint32_t captured);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(captured), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: pointer_capture_captured, then the state refusal.
     gf_status (GF_CALL* pointer_capture)(gf_object object, uint32_t* captured);
     gf_status (GF_CALL* scroll_state)(gf_object object, gf_scroll_snapshot* state);
     /* Sets one axis whole; an invalid axis gives INVALID_ARGUMENT and changes
      * nothing. An auto-scrolling control keeps its own range (the axis's
      * minimum and maximum are ignored), so its value must lie in that range. */
+    // ic: Fails invalid_argument (code: an axis has a known orientation, finite non-negative bounds and changes, and a
+    // ic: value ), unchanged.
     gf_status (GF_CALL* set_scroll_axis)(gf_object object, gf_scroll_orientation orientation,
                                          const gf_scroll_axis* axis);
     /* Scrolls object, after layout, so that child, its descendant, shows. */
@@ -2911,6 +3354,8 @@ typedef struct gf_controls_table {
      * the whole control when damage is null; a custom control's paint
      * callback then runs (GF_TABLE_CUSTOM_CONTROLS). A damage rectangle
      * that is not finite, or has a negative size, gives INVALID_ARGUMENT. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: damage is finite with a size not negative), unchanged.
     gf_status (GF_CALL* invalidate)(gf_object object, const gf_logical_rect* damage);
     /* Gives the control keyboard focus, as Control.Focus and Select do
      * (since 1.2): it becomes its window's focused control, the one its
@@ -2926,12 +3371,18 @@ typedef struct gf_controls_table {
      * part's for a composite), outside the
      * window's open focus scope (a dialog or overlay), or whose window's
      * validation kept focus where it was. UI thread. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state
+    // ic: (GF_STATUS_INVALID_STATE, changing nothing, for a control not in a window, disabled or hidden (or under a
+    // ic: disabled or hidden ancestor), not focusable (its focusable property, or its edit part's for a composite),
+    // ic: outside the window's open focus scope (a dialog or overlay), or whose window's validation kept focus where it
+    // ic: was.), unchanged.
     gf_status (GF_CALL* focus)(gf_object object, uint32_t* focused);
     /* Whether the control is its window's focused control (Focused; a
      * composite field is while its edit part has the caret), and whether it
      * or a descendant holds focus (ContainsFocus), as 0 or 1 (since 1.2).
      * A control not in a window has neither. Either output may be null. UI
      * thread. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus);
     /* Relative pointer mode (since 1.5): the control asks its window for
      * the pointer's motion as deltas, every sample, as the control's
@@ -2944,21 +3395,30 @@ typedef struct gf_controls_table {
      * outcome (a refusal is GF_STATUS_OK with a refusing result).
      * GF_STATUS_INVALID_ARGUMENT for a request flag that is not 0 or 1. UI
      * thread. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for a request flag that is not 0 or 1.), unchanged.
     gf_status (GF_CALL* request_relative_pointer)(gf_object object, const gf_relative_pointer_request* request,
                                                   gf_relative_pointer_grant* grant);
     /* Ends the control's own mode; released receives 1, or 0 when it had
      * none (may be null). */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* release_relative_pointer)(gf_object object, uint32_t* released);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* relative_pointer_state)(gf_object object, gf_relative_pointer_state* state);
     /* Moves the pointer to position, in the control's logical units, where
      * the host can (a locked mode moves its virtual position); warped
      * receives 1 or 0 (may be null). Only while the control holds the mode.
      * A position that is not finite gives INVALID_ARGUMENT. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: the position is not finite), unchanged.
     gf_status (GF_CALL* warp_pointer)(gf_object object, gf_logical_point position, uint32_t* warped);
     /* Sets the release regions of the control's window, in window logical
      * units: the shell's capsule and its kin (at most 8; count 0 clears).
      * A region that is not finite or is empty, or more than 8, gives
      * INVALID_ARGUMENT, changing nothing. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: at most 8 regions, and an array for any), unchanged; invalid_state (code: the control is not in a
+    // ic: window), unchanged.
     gf_status (GF_CALL* set_pointer_release_regions)(gf_object object, const gf_logical_rect* regions,
                                                      uint32_t count);
     /* Sets the control's content effect (since 1.5), or clears it when
@@ -2969,6 +3429,8 @@ typedef struct gf_controls_table {
      * or composite or a nonzero reserved gives INVALID_ARGUMENT, changing
      * nothing. A custom control's painted pixels are inside its group too:
      * this is the group effect for custom paint. UI thread. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: the effect is smaller than its 1.5 size), unchanged.
     gf_status (GF_CALL* set_content_effect)(gf_object object, const gf_content_effect* effect);
     /* Since 1.7. The control's viewport fit (stage VA): what it does when
      * its content, after layout, does not fit its viewport. A record
@@ -3037,23 +3499,35 @@ typedef struct gf_text_decoration {
  * text gives GF_STATUS_INVALID_ARGUMENT. Another control gives
  * GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
  */
+// ic: gf_abi::text_editing: generated from include/gui_forms/c/gf_abi_text_editing.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_text_editing_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* Selects from anchor to caret; the caret is where typing goes. */
+    // ic: Fails invalid_argument (code: a selection lies within the text), unchanged.
     gf_status (GF_CALL* select)(gf_object object, uint64_t anchor, uint64_t caret);
+    // ic: Fails invalid_argument (code: selection needs anchor and caret outputs), unchanged.
     gf_status (GF_CALL* selection)(gf_object object, uint64_t* anchor, uint64_t* caret);
     /* The grapheme boundary after (direction 1) or before (-1) position;
      * position itself at either end of the text. */
+    // ic: Fails invalid_argument (code: grapheme_boundary needs an output and a direction of 1 or -1), unchanged.
     gf_status (GF_CALL* grapheme_boundary)(gf_object object, uint64_t position, int32_t direction,
                                            uint64_t* boundary);
     /* Replaces length bytes at start with replacement as one history step,
      * as typing does (filters apply); changed receives 1 when the text
      * changed, 0 when the box refused it (read-only, a filter, the limit). */
+    // ic: Requires not_null(changed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code:
+    // ic: replace_range needs a changed output), unchanged.
     gf_status (GF_CALL* replace_range)(gf_object object, uint64_t start, uint64_t length,
                                        gf_utf8_view replacement, uint32_t* changed);
     /* Undoes or redoes one history step; changed 0 when there is none. */
+    // ic: Requires not_null(changed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* undo)(gf_object object, uint32_t* changed);
+    // ic: Requires not_null(changed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* redo)(gf_object object, uint32_t* changed);
     /* Starts the history afresh without touching the text. */
     gf_status (GF_CALL* clear_undo_history)(gf_object object);
@@ -3065,6 +3539,9 @@ typedef struct gf_text_editing_table {
      * bit or a nonzero reserved gives GF_STATUS_INVALID_ARGUMENT and changes
      * nothing. decorations may be null when count is 0.
      * Replaces layer's decorations; count 0 clears the layer. */
+    // ic: Fails invalid_argument (A range past the text, a range ending before it starts, a weight outside 1 to 1000,
+    // ic: an underline or ink out of range, an unknown field bit or a nonzero reserved gives GF_STATUS_INVALID_ARGUMENT
+    // ic: and changes nothing. decorations may be null when count is 0.), unchanged.
     gf_status (GF_CALL* set_decorations)(gf_object object, uint32_t layer,
                                          const gf_text_decoration* decorations, uint64_t count);
     /* Replaces layer's decorations within [start, end) only, as an
@@ -3072,16 +3549,20 @@ typedef struct gf_text_editing_table {
      * those crossing the bounds keep their parts outside, and the given
      * ones (each inside the range) come in. Repaints only that range's
      * rows unless a weight or italics changed. */
+    // ic: Fails invalid_argument (code: the range lies within the text), unchanged.
     gf_status (GF_CALL* replace_decorations)(gf_object object, uint32_t layer, uint64_t start, uint64_t end,
                                              const gf_text_decoration* decorations, uint64_t count);
     /* Clears every layer. */
     gf_status (GF_CALL* clear_decorations)(gf_object object);
     /* The number of decorations in layer, in start order (0 for a layer
      * without any). */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* decoration_count)(gf_object object, uint32_t layer, uint64_t* count);
     /* Decoration index (below decoration_count) of layer, as it stands
      * after the edits since it was set. GF_STATUS_INVALID_ARGUMENT past the
      * end. */
+    // ic: Requires not_null(decoration), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT past the end.), unchanged.
     gf_status (GF_CALL* decoration_at)(gf_object object, uint32_t layer, uint64_t index,
                                        gf_text_decoration* decoration);
     /* Since 1.2. The position in UTF-16 code units of the byte offset
@@ -3091,7 +3572,12 @@ typedef struct gf_text_editing_table {
      * a UTF-8 sequence or between the halves of a surrogate pair gives
      * GF_STATUS_INVALID_ARGUMENT. Positions on scalar boundaries convert
      * both ways exactly. */
+    // ic: Requires not_null(utf16_offset), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument
+    // ic: (An offset past the text, inside a UTF-8 sequence or between the halves of a surrogate pair gives
+    // ic: GF_STATUS_INVALID_ARGUMENT.), unchanged.
     gf_status (GF_CALL* utf8_to_utf16_offset)(gf_object object, uint64_t utf8_offset, uint64_t* utf16_offset);
+    // ic: Requires not_null(utf8_offset), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument
+    // ic: (code: utf16_to_utf8_offset needs an output), unchanged.
     gf_status (GF_CALL* utf16_to_utf8_offset)(gf_object object, uint64_t utf16_offset, uint64_t* utf8_offset);
 } gf_text_editing_table;
 
@@ -3157,20 +3643,31 @@ typedef uint32_t gf_tool_tips_setting;
 #define GF_TOOL_TIPS_SHOWN 1u
 #define GF_TOOL_TIPS_HIDDEN 2u
 
+// ic: gf_abi::overlays: generated from include/gui_forms/c/gf_abi_overlays.ic.toml by tools/ic_declarations.py; edit
+// ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_overlays_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* Shows overlay over owner's window. owner must be in a running window
      * (else GF_STATUS_INVALID_STATE); an overlay already open gives
      * GF_STATUS_INVALID_STATE. */
+    // ic: Fails invalid_state (Shows overlay over owner's window. owner must be in a running window (else
+    // ic: GF_STATUS_INVALID_STATE); an overlay already open gives GF_STATUS_INVALID_STATE.), unchanged.
     gf_status (GF_CALL* open_overlay)(gf_object owner, gf_object overlay);
     /* Closes overlay; one not open gives GF_STATUS_NOT_FOUND. */
+    // ic: Fails not_found (Closes overlay; one not open gives GF_STATUS_NOT_FOUND.), unchanged.
     gf_status (GF_CALL* close_overlay)(gf_object overlay);
     /* The text tool_tip shows for target; empty text removes it. */
+    // ic: Fails wrong_handle_kind (code: the object is not a tool_tip component), unchanged.
     gf_status (GF_CALL* set_tool_tip)(gf_object tool_tip, gf_object target, gf_utf8_view text);
     /* Shows target's text now, for duration_ms milliseconds (0: until the
      * pointer leaves or hide_tool_tip). */
+    // ic: Fails wrong_handle_kind (code: the object is not a tool_tip component), unchanged.
     gf_status (GF_CALL* show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms);
+    // ic: Fails wrong_handle_kind (code: the object is not a tool_tip component), unchanged.
     gf_status (GF_CALL* hide_tool_tip)(gf_object tool_tip);
     /* Shows content, a control with no parent and not in a window, beside
      * anchor, a control in a running window (since 1.2). The library holds
@@ -3179,21 +3676,33 @@ typedef struct gf_overlays_table {
      * parent; GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.2
      * size, unknown flags or a size or gap that is negative or not finite.
      * Nothing is shown on a refusal. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.2 size, unknown flags or a size or gap that is
+    // ic: negative or not finite.), unchanged; invalid_state (GF_STATUS_INVALID_STATE when anchor is not in a window or
+    // ic: is disabled, or content is already open or has a parent;), unchanged.
     gf_status (GF_CALL* open_anchored)(gf_object anchor, gf_object content,
                                        const gf_anchored_overlay_options* options);
     /* Closes content's anchored overlay: its "closed" event follows before
      * this returns. GF_STATUS_NOT_FOUND when it is not open (since 1.2). */
+    // ic: Fails not_found (GF_STATUS_NOT_FOUND when it is not open (since 1.2).), unchanged.
     gf_status (GF_CALL* close_anchored)(gf_object content);
     /* Sets a window's tooltip switch, or with window null the program's
      * (the current application's; GF_STATUS_INVALID_STATE without one),
      * where FOLLOW is refused. Turning tooltips off closes one that shows.
      * GF_STATUS_INVALID_ARGUMENT for an unknown setting;
      * GF_STATUS_WRONG_HANDLE_KIND when window is not a window (since 1.2). */
+    // ic: Fails disposed (code: the window has been disposed or has closed), unchanged; invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for an unknown setting;), unchanged; invalid_state (GF_STATUS_INVALID_STATE
+    // ic: without one), where FOLLOW is refused.), unchanged; wrong_handle_kind (GF_STATUS_WRONG_HANDLE_KIND when
+    // ic: window is not a window (since 1.2).), unchanged.
     gf_status (GF_CALL* set_tool_tips_shown)(gf_object window, gf_tool_tips_setting setting);
     /* Whether a window's tooltips show now (its switch, else the
      * program's), or with window null the program's switch: 1 or 0 in
      * shown, and the window's own setting in setting, which may be null
      * (FOLLOW for the program's) (since 1.2). */
+    // ic: Requires not_null(shown), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails disposed (code: the
+    // ic: window has been disposed or has closed), unchanged; wrong_handle_kind (code: the object is not a window),
+    // ic: unchanged.
     gf_status (GF_CALL* tool_tips_shown)(gf_object window, uint32_t* shown, gf_tool_tips_setting* setting);
 } gf_overlays_table;
 
@@ -3203,20 +3712,30 @@ typedef struct gf_overlays_table {
  * is a property of the selected objects. Another control gives
  * GF_STATUS_WRONG_HANDLE_KIND. UI thread only.
  */
+// ic: gf_abi::property_grid: generated from include/gui_forms/c/gf_abi_property_grid.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. States: alive (initial), disposing, disposed.
+// ic: Observed by gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_property_grid_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* Shows the properties the count controls share; count 0 clears. The
      * grid keeps them as it keeps a child, without a reference. */
+    // ic: Fails invalid_argument (code: select_objects takes at most 4096 objects, and objects when count is not zero),
+    // ic: unchanged.
     gf_status (GF_CALL* select_objects)(gf_object grid, const gf_object* objects, uint64_t count);
     /* Reads the selected objects' properties afresh. */
     gf_status (GF_CALL* refresh)(gf_object grid);
     /* Parses text into the named property as its editor would; accepted
      * receives 0 when the text does not convert or the property refuses it. */
+    // ic: Requires not_null(accepted), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* try_set_text)(gf_object grid, gf_utf8_view name, gf_utf8_view text, uint32_t* accepted);
     /* Resets the named property; reset receives 0 when it cannot reset. */
+    // ic: Requires not_null(reset), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* reset_property)(gf_object grid, gf_utf8_view name, uint32_t* reset);
     /* Opens the named property's editor; activated 0 when it has none. */
+    // ic: Requires not_null(activated), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* activate_editor)(gf_object grid, gf_utf8_view name, uint32_t* activated);
 } gf_property_grid_table;
 
@@ -3429,6 +3948,11 @@ typedef struct gf_composite_spec {
     uint64_t child_type_count;
 } gf_composite_spec;
 
+// ic: gf_abi::custom_controls: generated from include/gui_forms/c/gf_abi_custom_controls.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. States: alive (initial), disposing, disposed.
+// ic: Observed by gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_custom_controls_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -3436,17 +3960,32 @@ typedef struct gf_custom_controls_table {
      * lowercase '.'-separated, '-'-joined segments) and gives the
      * caller one reference to it. A malformed spec gives INVALID_ARGUMENT
      * and calls no callback, release among them. */
+    // ic: Requires not_null(spec) and not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires
+    // ic: spec_size >= spec_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: create_outputs, then create_spec_size. Fails invalid_argument (code: a stable id that breaks the rule, a
+    // ic: property definition the spec cannot hold, or layout callbacks whose struct_size is below 32, not a multiple
+    // ic: of 8, or whose reserved is not zero), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object);
     /* Reports that property index changed, as a C++ control raises its
      * changed event: subscribers and bindings read it afresh. A property
      * declared without GF_CUSTOM_PROPERTY_CHANGE_NOTIFICATIONS gives
      * INVALID_ARGUMENT; another control gives WRONG_HANDLE_KIND. */
+    // ic: Fails invalid_argument (code: the index is past the properties), unchanged; wrong_handle_kind (code: the
+    // ic: control is not a custom control), unchanged.
     gf_status (GF_CALL* notify_changed)(gf_object object, uint64_t index);
     /* Since 1.5. Composite controls (load_composite to composite_child),
      * below. */
+    // ic: Fails invalid_argument (code: load_composite needs a gf_composite_spec of at least the 1.5 size and a
+    // ic: definition output), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* load_composite)(const gf_composite_spec* spec, gf_object* definition);
+    // ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails disposed (code: the
+    // ic: definition has been disposed), unchanged; wrong_handle_kind (code: create_composite takes a definition),
+    // ic: unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* create_composite)(gf_object definition, gf_utf8_view stable_id, gf_object* object);
+    // ic: Fails not_found (code: the composite declares no command of that name), unchanged.
     gf_status (GF_CALL* perform_composite)(gf_object control, gf_utf8_view command, uint32_t* performed);
+    // ic: Requires not_null(child), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: the
+    // ic: composite has no child of that local id), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* composite_child)(gf_object control, gf_utf8_view local_id, gf_object* child);
 } gf_custom_controls_table;
 
@@ -3654,44 +4193,82 @@ typedef struct gf_binding_provider_callbacks {
     void (GF_CALL* release)(void* context);
 } gf_binding_provider_callbacks;
 
+// ic: gf_abi::bindings: generated from include/gui_forms/c/gf_abi_bindings.ic.toml by tools/ic_declarations.py; edit
+// ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_bindings_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* Binds as arguments says and gives the caller one reference to the
      * binding. The control keeps the binding until unbind or its disposal.
      * A property that is not bindable gives GF_STATUS_INVALID_ARGUMENT. */
+    // ic: Fails disposed (code: the target has been disposed), unchanged; invalid_argument (A property that is not
+    // ic: bindable gives GF_STATUS_INVALID_ARGUMENT.), unchanged. Returns gf_object, owned by the caller.
     gf_status (GF_CALL* bind)(const gf_binding_arguments* arguments, gf_object* binding);
     /* Removes the binding from its control, which disposes it, as
      * ControlBindingsCollection::remove does; a later call on it gives
      * GF_STATUS_DISPOSED. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code:
+    // ic: the binding is no longer bound), unchanged.
     gf_status (GF_CALL* unbind)(gf_object binding);
     /* Sets the control's property from the source (read_value) or the
      * source's field from the control (write_value), as the binding's modes
      * would; updated receives 0 when conversion or validation refused it. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(updated),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: read_value_updated, then the
+    // ic: state refusal.
     gf_status (GF_CALL* read_value)(gf_object binding, uint32_t* updated);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(updated),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: write_value_updated, then
+    // ic: the state refusal.
     gf_status (GF_CALL* write_value)(gf_object binding, uint32_t* updated);
     /* Appends a record; index receives its position
      * (GF_BINDING_HIDDEN_POSITION when the source's filter hides it). */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(index),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: add_record_index, then the
+    // ic: state refusal. Fails invalid_state (code: the source's provider does not insert rows), unchanged.
     gf_status (GF_CALL* add_record)(gf_object source, const gf_binding_record* record, uint64_t* index);
     /* Inserts a record at index (at most the count). */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: the index is past the records), unchanged; invalid_state (code: the source's provider does not insert
+    // ic: rows), unchanged.
     gf_status (GF_CALL* insert_record)(gf_object source, uint64_t index, const gf_binding_record* record);
     /* Removes the record at index; removed 0 for an index past the
      * records. A source that allows no removal gives
      * GF_STATUS_INVALID_STATE. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(removed),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: remove_record_removed, then
+    // ic: the state refusal. Fails invalid_state (A source that allows no removal gives GF_STATUS_INVALID_STATE.),
+    // ic: unchanged.
     gf_status (GF_CALL* remove_record)(gf_object source, uint64_t index, uint32_t* removed);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* clear_records)(gf_object source);
     /* Moves to the record at position (-1 for none); moved 0 when it is
      * already there. A position past the records gives
      * GF_STATUS_INVALID_ARGUMENT. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(moved),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: set_position_moved, then the
+    // ic: state refusal. Fails invalid_argument (A position past the records gives GF_STATUS_INVALID_ARGUMENT.),
+    // ic: unchanged.
     gf_status (GF_CALL* set_position)(gf_object source, int64_t position, uint32_t* moved);
     /* The current position (-1 for none) and the count of records. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: position needs both outputs), unchanged.
     gf_status (GF_CALL* position)(gf_object source, int64_t* position, uint64_t* count);
     /* The current record's field, as properties.get gives a value; no
      * current record or no such field gives GF_STATUS_NOT_FOUND. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (The
+    // ic: current record's field, as properties.get gives a value; no current record or no such field gives
+    // ic: GF_STATUS_NOT_FOUND.), unchanged.
     gf_status (GF_CALL* current_field)(gf_object source, gf_utf8_view field, gf_value* value, char* text_buffer,
                                        uint64_t text_capacity, uint64_t* text_required);
     /* Sets the current record's field; accepted 0 when there is no current
      * record or it, or the source, allows no edit. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(accepted), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: set_current_field_accepted, then the state refusal.
     gf_status (GF_CALL* set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value,
                                            uint32_t* accepted);
     /* Since 1.2 (N31). Appends count records (the array rule: the stride
@@ -3701,6 +4278,12 @@ typedef struct gf_bindings_table {
      * record (when it raises list changes at all). More than
      * GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give
      * GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(first)
+    // ic: and (not_null(records) or count == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several
+    // ic: refusals apply: add_records_records, then the state refusal. Fails invalid_argument (code: add_records needs
+    // ic: records and a first output), unchanged; invalid_state (code: the source's provider does not insert rows),
+    // ic: unchanged; limit_exceeded (More than GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give
+    // ic: GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first.), unchanged.
     gf_status (GF_CALL* add_records)(gf_object source, const gf_binding_record* records, uint64_t count,
                                      uint64_t* first);
     /* Since 1.2 (N31). Binds the provider callbacks describes, with
@@ -3709,24 +4292,37 @@ typedef struct gf_bindings_table {
      * column table. The previous provider is let go (its release is called
      * and its id refused from then on); the first row becomes current. The
      * library copies columns and callbacks during the call. */
+    // ic: Requires not_null(provider), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(callbacks)
+    // ic: or column_count == 0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: set_provider_provider, then set_provider_columns. Fails invalid_argument (code: provider callbacks or columns
+    // ic: their checks refuse), unchanged; wrong_handle_kind (code: the object is not a binding source), unchanged.
     gf_status (GF_CALL* set_provider)(gf_object source, const gf_binding_column* columns, uint64_t column_count,
                                       const gf_binding_provider_callbacks* callbacks, uint64_t* provider);
     /* Since 1.2 (N31). Reports a provider's change, from any thread: on
      * the source's UI thread outside a callback it applies at once,
      * otherwise it is posted and applied there in order. An id the source
      * has let go, or whose source is disposed, gives GF_STATUS_REMOVED. */
+    // ic: Fails invalid_argument (code: kind is a gf_binding_notification_kind), unchanged; removed (An id the source
+    // ic: has let go, or whose source is disposed, gives GF_STATUS_REMOVED.), unchanged. Thread: any.
     gf_status (GF_CALL* notify)(uint64_t provider, gf_binding_notification_kind kind, uint64_t row, uint64_t count,
                                 uint64_t target);
     /* Since 1.2 (N31). Sorts the source's rows by count keys (0 clears),
      * through the provider when it sorts, otherwise through the source's
      * own index; an unknown column gives GF_STATUS_NOT_FOUND and changes
      * nothing. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (Sorts the
+    // ic: source's rows by count keys (0 clears), through the provider when it sorts, otherwise through the source's
+    // ic: own index; an unknown column gives GF_STATUS_NOT_FOUND and changes nothing.), unchanged.
     gf_status (GF_CALL* set_sort)(gf_object source, const gf_binding_sort_key* keys, uint64_t count);
     /* Since 1.2 (N31). Filters the source's rows by count predicates (0
      * clears), as set_sort does. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (code: a
+    // ic: predicate names a column the source has not got), unchanged.
     gf_status (GF_CALL* set_filter)(gf_object source, const gf_binding_predicate* predicates, uint64_t count);
     /* Since 1.2 (N31). The source's generation, which every change
      * advances, and its count of shown rows. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: generation needs its two outputs), unchanged.
     gf_status (GF_CALL* generation)(gf_object source, uint64_t* generation, uint64_t* count);
     /* Since 1.2 (N31). The cell (row, column) of the shown rows, read at
      * generation, as properties.get gives a value; a generation that is no
@@ -3734,6 +4330,14 @@ typedef struct gf_bindings_table {
      * past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave
      * no valid answer for GF_STATUS_INVALID_STATE with its error as the
      * failure's message. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (The
+    // ic: cell (row, column) of the shown rows, read at generation, as properties.get gives a value; a generation that
+    // ic: is no longer the source's gives GF_STATUS_STALE_HANDLE, a row or column past the source's
+    // ic: GF_STATUS_NOT_FOUND, and a cell the provider gave no valid answer for GF_STATUS_INVALID_STATE with its error
+    // ic: as the failure's message.), unchanged; not_found (The cell (row, column) of the shown rows, read at
+    // ic: generation, as properties.get gives a value; a generation that is no longer the source's gives
+    // ic: GF_STATUS_STALE_HANDLE, a row or column past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave
+    // ic: no valid answer for GF_STATUS_INVALID_STATE with its error as the failure's message.), unchanged.
     gf_status (GF_CALL* read_cell)(gf_object source, uint64_t generation, uint64_t row, uint64_t column,
                                    gf_value* value, char* text_buffer, uint64_t text_capacity,
                                    uint64_t* text_required);
@@ -3795,6 +4399,11 @@ typedef struct gf_subsurface_content {
     gf_callback build;
 } gf_subsurface_content;
 
+// ic: gf_abi::subsurfaces: generated from include/gui_forms/c/gf_abi_subsurfaces.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_subsurfaces_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -3803,22 +4412,35 @@ typedef struct gf_subsurfaces_table {
      * thread joined first. The library takes content->build only when this
      * returns GF_STATUS_OK. A host that is not a sub_surface_host gives
      * GF_STATUS_WRONG_HANDLE_KIND. UI thread. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: a gf_subsurface_content needs struct_size of at least 40 and opaque 0 or 1), unchanged;
+    // ic: wrong_handle_kind (A host that is not a sub_surface_host gives GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
     gf_status (GF_CALL* set_content)(gf_object host, const gf_subsurface_content* content);
     /* Hands root, a control created on the calling thread, to the
      * sub-surface whose build callback is running there; the sub-surface
      * holds it from then on, and the caller keeps its own reference. Only
      * inside a build callback, elsewhere GF_STATUS_INVALID_STATE; a second
      * call replaces the first. */
+    // ic: Fails disposed (code: the object has been disposed), unchanged; invalid_state (Only inside a build callback,
+    // ic: elsewhere GF_STATUS_INVALID_STATE; a second call replaces the first.), unchanged.
     gf_status (GF_CALL* set_root)(gf_object root);
     /* The host's state; GF_SUBSURFACE_STATE_STOPPED while it has no
      * thread. UI thread. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(state),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: state_state, then the state
+    // ic: refusal. Fails wrong_handle_kind (code: the object is not a sub_surface_host), unchanged.
     gf_status (GF_CALL* state)(gf_object host, gf_subsurface_state* state);
     /* The content epoch of the newest configuration the host sent its
      * sub-surface (each frame the sub-surface shows was produced at one);
      * zero before the first. UI thread. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(epoch),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: content_epoch_epoch, then
+    // ic: the state refusal. Fails wrong_handle_kind (code: the object is not a sub_surface_host), unchanged.
     gf_status (GF_CALL* content_epoch)(gf_object host, uint64_t* epoch);
     /* Why the sub-surface failed (GF_SUBSURFACE_STATE_FAILED), as text;
      * empty in every other state. UI thread. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails wrong_handle_kind
+    // ic: (code: the object is not a sub_surface_host), unchanged.
     gf_status (GF_CALL* failure)(gf_object host, char* buffer, uint64_t capacity, uint64_t* required);
 } gf_subsurfaces_table;
 
@@ -3912,6 +4534,8 @@ typedef struct gf_program_identity {
     gf_utf8_view credits;
 } gf_program_identity;
 
+// ic: gf_abi::application: generated from include/gui_forms/c/gf_abi_application.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 typedef struct gf_application_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -3926,6 +4550,10 @@ typedef struct gf_application_table {
      * packages null with a non-zero count. More packages than the maximum
      * or a repeated package name is a refused compile (E601), not a failed
      * call. */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for an unknown base or source, a non-zero reserved field,
+    // ic: or packages null with a non-zero count.), unchanged; invalid_state (GF_STATUS_INVALID_STATE, making nothing
+    // ic: and leaving the findings, while an application is current or while the library holds objects made without
+    // ic: one;), unchanged.
     gf_status (GF_CALL* create)(const gf_application_config* config, gf_theme_report* report);
     /* Ends the application's time as current. windows_alive receives the
      * number of its windows still alive. GF_STATUS_INVALID_STATE, changing
@@ -3933,14 +4561,21 @@ typedef struct gf_application_table {
      * again (as themes.reset), windows made afterwards use the process
      * default and create may make another application. Closing
      * with no application accepts and does nothing. */
+    // ic: Requires not_null(windows_alive), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state
+    // ic: (GF_STATUS_INVALID_STATE, changing nothing, while any is; once closed, the theme is the built-in one again
+    // ic: (as themes.reset), windows made afterwards use the process default and create may make another application.),
+    // ic: unchanged.
     gf_status (GF_CALL* close)(uint64_t* windows_alive);
     /* Whether an application is current. */
+    // ic: Requires not_null(state), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* state)(gf_application_state* state);
     /* Since 1.5. Sets the program's identity (set_program_identity), read by
      * every business card; validated whole, so a refusal leaves the
      * previous identity. UI thread. GF_STATUS_INVALID_ARGUMENT for a null
      * or short record, a non-zero reserved field, text that is not UTF-8 or
      * a website that is neither empty nor an https:// address. */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a null or short record, a non-zero reserved field,
+    // ic: text that is not UTF-8 or a website that is neither empty nor an https:// address.), unchanged.
     gf_status (GF_CALL* set_program_identity)(const gf_program_identity* identity);
 } gf_application_table;
 
@@ -4126,6 +4761,9 @@ typedef struct gf_rule {
     const gf_rule_action* actions;
 } gf_rule;
 
+// ic: gf_abi::rules: generated from include/gui_forms/c/gf_abi_rules.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise. Identity: generational; a stale one:
+// ic: returns GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_rules_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -4141,10 +4779,36 @@ typedef struct gf_rules_table {
      * set of conditions, GF_STATUS_LIMIT_EXCEEDED past 8 conditions, 8
      * actions, 1024 rules on the window or 4096 tokens not freed. A refused
      * add changes nothing and leaves *token as it was. */
+    // ic: Fails disposed (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key,
+    // ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when
+    // ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed
+    // ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged;
+    // ic: invalid_argument (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key,
+    // ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when
+    // ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed
+    // ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged;
+    // ic: invalid_state (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key,
+    // ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when
+    // ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed
+    // ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged;
+    // ic: limit_exceeded (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key,
+    // ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when
+    // ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed
+    // ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged;
+    // ic: not_found (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object,
+    // ic: property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window
+    // ic: is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or
+    // ic: object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged;
+    // ic: wrong_handle_kind (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key,
+    // ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when
+    // ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed
+    // ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged.
+    // ic: Returns gf_rule_token, owned by the caller.
     gf_status (GF_CALL* add)(gf_object window, const gf_rule* rule, gf_rule_token* token);
     /* Ends token's rule when it is armed and frees the token. */
     gf_status (GF_CALL* remove)(gf_rule_token token);
     /* token's rule: GF_RULE_STATE_ARMED or GF_RULE_STATE_STALE. */
+    // ic: Requires not_null(state), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* state)(gf_rule_token token, gf_rule_state* state);
 } gf_rules_table;
 
@@ -4249,10 +4913,16 @@ typedef struct gf_data_grid_cell {
     uint64_t column;
 } gf_data_grid_cell;
 
+// ic: gf_abi::data_grid: generated from include/gui_forms/c/gf_abi_data_grid.ic.toml by tools/ic_declarations.py; edit
+// ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_data_grid_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* The number of columns. */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* column_count)(gf_object grid, uint64_t* count);
     /* Column index (below the count) into column, an output record of at
      * least the 1.1 size; its name, header text and data property name are
@@ -4260,10 +4930,17 @@ typedef struct gf_data_grid_table {
      * there. text_required receives their total size, also with
      * GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.
      * GF_STATUS_NOT_FOUND past the columns. */
+    // ic: Fails buffer_too_small (Column index (below the count) into column, an output record of at least the 1.1
+    // ic: size; its name, header text and data property name are copied into text_buffer, one after another, and the
+    // ic: views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which
+    // ic: leaves the record unwritten.), unchanged; invalid_argument (code: column_at needs a column record of at least
+    // ic: the 1.1 size, a text size output, and a ), unchanged; not_found (GF_STATUS_NOT_FOUND past the columns.),
+    // ic: unchanged.
     gf_status (GF_CALL* column_at)(gf_object grid, uint64_t index, gf_data_grid_column* column, char* text_buffer,
                                    uint64_t text_capacity, uint64_t* text_required);
     /* A combo box column's choice item (below its item_count), as text.
      * GF_STATUS_NOT_FOUND past the columns or the choices. */
+    // ic: Fails not_found (GF_STATUS_NOT_FOUND past the columns or the choices.), unchanged.
     gf_status (GF_CALL* column_item)(gf_object grid, uint64_t column, uint64_t item, char* buffer,
                                      uint64_t capacity, uint64_t* required);
     /* Inserts column at index, at most the count (the count appends). Later
@@ -4272,12 +4949,18 @@ typedef struct gf_data_grid_table {
      * selection, the current cell, and the error text, styles and sort the
      * grid keeps by column. A malformed column, a repeated name or an index
      * past the count gives GF_STATUS_INVALID_ARGUMENT, changing nothing. */
+    // ic: Fails invalid_argument (A malformed column, a repeated name or an index past the count gives
+    // ic: GF_STATUS_INVALID_ARGUMENT, changing nothing.), unchanged; limit_exceeded (code: a combo box column has at
+    // ic: most 4096 choices), unchanged.
     gf_status (GF_CALL* insert_column)(gf_object grid, uint64_t index, const gf_data_grid_column* column);
     /* Removes the column at index with the rows' values in it, ending the
      * edit and the selection as insert_column does. GF_STATUS_NOT_FOUND
      * past the columns. */
+    // ic: Fails not_found (GF_STATUS_NOT_FOUND past the columns.), unchanged.
     gf_status (GF_CALL* remove_column)(gf_object grid, uint64_t index);
     /* The index of the column named name; GF_STATUS_NOT_FOUND for none. */
+    // ic: Requires not_null(index), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found
+    // ic: (GF_STATUS_NOT_FOUND for none.), unchanged.
     gf_status (GF_CALL* column_index)(gf_object grid, gf_utf8_view name, uint64_t* index);
     /* Change one setting of the column at column, as insert_column reads
      * it; GF_STATUS_NOT_FOUND past the columns. A width below the column's
@@ -4287,12 +4970,21 @@ typedef struct gf_data_grid_table {
      * discards an edit in it and moves the current cell to the next shown
      * column of its row (the previous one past the last), or clears it when
      * no column is shown. */
+    // ic: Fails invalid_argument (A width below the column's minimum gives GF_STATUS_INVALID_ARGUMENT; an auto-sized
+    // ic: column takes its automatic width again at the next layout.), unchanged; not_found (GF_STATUS_NOT_FOUND past
+    // ic: the columns.), unchanged.
     gf_status (GF_CALL* set_column_header_text)(gf_object grid, uint64_t column, gf_utf8_view text);
+    // ic: Fails not_found (code: the column is past the grid's columns), unchanged.
     gf_status (GF_CALL* set_column_width)(gf_object grid, uint64_t column, double width);
+    // ic: Fails invalid_argument (code: read_only is 0 or 1), unchanged; not_found (code: the column is past the grid's
+    // ic: columns), unchanged.
     gf_status (GF_CALL* set_column_read_only)(gf_object grid, uint64_t column, uint32_t read_only);
+    // ic: Fails invalid_argument (code: hidden is 0 or 1), unchanged; not_found (code: the column is past the grid's
+    // ic: columns), unchanged.
     gf_status (GF_CALL* set_column_hidden)(gf_object grid, uint64_t column, uint32_t hidden);
     /* Every row shown (count), the new row included, and the new row's
      * position (new_row; -1 while none is shown). */
+    // ic: Fails invalid_argument (code: row_count needs a count and a new row output), unchanged.
     gf_status (GF_CALL* row_count)(gf_object grid, uint64_t* count, int64_t* new_row);
     /* Insert count rows at index (at most the collection's count), or
      * append them (first receives the first one's position), in one edit.
@@ -4302,24 +4994,40 @@ typedef struct gf_data_grid_table {
      * GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.
      * The grid makes one row of its own per row given, the copy the values
      * need. rows may be null when count is zero. */
+    // ic: Fails invalid_argument (All or nothing: a repeated or malformed stable id, a malformed value, more values
+    // ic: than columns or an index past the rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than
+    // ic: GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.), unchanged; limit_exceeded (All or
+    // ic: nothing: a repeated or malformed stable id, a malformed value, more values than columns or an index past the
+    // ic: rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives
+    // ic: GF_STATUS_LIMIT_EXCEEDED.), unchanged.
     gf_status (GF_CALL* insert_rows)(gf_object grid, uint64_t index, const gf_data_grid_row* rows, uint64_t count);
+    // ic: Requires not_null(first), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails limit_exceeded (code: one
+    // ic: call adds at most 65536 rows), unchanged.
     gf_status (GF_CALL* append_rows)(gf_object grid, const gf_data_grid_row* rows, uint64_t count,
                                      uint64_t* first);
     /* Erases count rows from index; a range past the collection gives
      * GF_STATUS_INVALID_ARGUMENT. Erasing the current cell's row makes the
      * row that takes its position, or the new last row, current. */
+    // ic: Fails invalid_argument (Erases count rows from index; a range past the collection gives
+    // ic: GF_STATUS_INVALID_ARGUMENT.), unchanged.
     gf_status (GF_CALL* erase_rows)(gf_object grid, uint64_t index, uint64_t count);
     /* Replaces the row at index (below the collection's count) with row,
      * whose stable id may be the replaced row's or one no other row has. */
+    // ic: Requires not_null(row), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires row_size >=
+    // ic: row_size_1_1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: replace_row_row, then replace_row_row_size.
     gf_status (GF_CALL* replace_row)(gf_object grid, uint64_t index, const gf_data_grid_row* row);
     /* Removes every row of any source (a data source or virtual provider is
      * let go) and returns the grid to its own rows. */
     gf_status (GF_CALL* clear_rows)(gf_object grid);
     /* The ID of the row at position, copied into buffer (not terminated);
      * GF_STATUS_NOT_FOUND past the rows. */
+    // ic: Fails not_found (GF_STATUS_NOT_FOUND past the rows.), unchanged.
     gf_status (GF_CALL* row_id)(gf_object grid, uint64_t position, char* buffer, uint64_t capacity,
                                 uint64_t* required);
     /* The position of the row with ID row_id; GF_STATUS_NOT_FOUND for none. */
+    // ic: Requires not_null(position), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found
+    // ic: (GF_STATUS_NOT_FOUND for none.), unchanged.
     gf_status (GF_CALL* row_position)(gf_object grid, gf_utf8_view row_id, uint64_t* position);
     /* A cell's value, as properties.get gives one. A row ID naming no row
      * or a column past the columns gives GF_STATUS_NOT_FOUND, here and in
@@ -4328,16 +5036,27 @@ typedef struct gf_data_grid_table {
      * text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with
      * value unwritten, when it has no form of that kind. An empty cell is
      * NULL either way. */
+    // ic: Fails invalid_argument (A row ID naming no row or a column past the columns gives GF_STATUS_NOT_FOUND, here
+    // ic: and in the other cell slots. as_kind NULL gives the value as stored; another kind gives it converted
+    // ic: (BindingValue's conversion: a number from its text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT,
+    // ic: with value unwritten, when it has no form of that kind.), unchanged; not_found (A row ID naming no row or a
+    // ic: column past the columns gives GF_STATUS_NOT_FOUND, here and in the other cell slots. as_kind NULL gives the
+    // ic: value as stored; another kind gives it converted (BindingValue's conversion: a number from its text, text
+    // ic: from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with value unwritten, when it has no form of that kind.),
+    // ic: unchanged.
     gf_status (GF_CALL* cell_value)(gf_object grid, gf_utf8_view row_id, uint64_t column, gf_value_kind as_kind,
                                     gf_value* value, char* text_buffer, uint64_t text_capacity,
                                     uint64_t* text_required);
     /* Stores value in a cell from the program (read-only does not apply),
      * as given, raising cell_value_changed when it differs. accepted
      * receives 0 when a binding source or virtual provider refused it. */
+    // ic: Requires not_null(accepted), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: the
+    // ic: column is past the grid's columns), unchanged.
     gf_status (GF_CALL* set_cell_value)(gf_object grid, gf_utf8_view row_id, uint64_t column, const gf_value* value,
                                         uint32_t* accepted);
     /* The text a cell shows: its value formatted (cell_formatting and the
      * cell's style), a button or link column's text for an empty cell. */
+    // ic: Fails not_found (code: the column is past the grid's columns), unchanged.
     gf_status (GF_CALL* cell_text)(gf_object grid, gf_utf8_view row_id, uint64_t column, char* buffer,
                                    uint64_t capacity, uint64_t* required);
     /* Reads one column's values in row_count rows from position first_row
@@ -4351,11 +5070,22 @@ typedef struct gf_data_grid_table {
      * when the call first measures the text). A range past the rows gives
      * GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL
      * rows GF_STATUS_LIMIT_EXCEEDED. */
+    // ic: Requires not_null(text_required) and (not_null(text_buffer) or text_capacity == 0), else returns
+    // ic: GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (Reads one column's values in row_count rows
+    // ic: from position first_row into values, an array of row_count records (the array rule above; fields past the 1.0
+    // ic: size are left alone), their text copied into text_buffer one after another, each value's view pointing there.
+    // ic: text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.),
+    // ic: unchanged; limit_exceeded (A range past the rows gives GF_STATUS_NOT_FOUND; more than
+    // ic: GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.), unchanged; not_found (A range past the
+    // ic: rows gives GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.),
+    // ic: unchanged; unsupported_capability (code: a cell's value kind has no gf_value form in this library),
+    // ic: unchanged.
     gf_status (GF_CALL* read_cells)(gf_object grid, uint64_t column, uint64_t first_row, uint64_t row_count,
                                     gf_value* values, char* text_buffer, uint64_t text_capacity,
                                     uint64_t* text_required);
     /* The current cell's position and column; present receives 0, and row
      * and column are left, when there is none. */
+    // ic: Fails invalid_argument (code: current_cell needs present, row and column outputs), unchanged.
     gf_status (GF_CALL* current_cell)(gf_object grid, uint32_t* present, uint64_t* row, uint64_t* column);
     /* Moves the current cell to row_id's row and column (an empty row_id
      * for none), committing any edit first, and selects it alone. moved
@@ -4364,20 +5094,34 @@ typedef struct gf_data_grid_table {
      * The grid's own settings are schema properties (properties.set and
      * get): read_only, selection_mode (a data_grid_view_selection_mode choice),
      * multi_select and allow_user_to_add_rows. */
+    // ic: Requires not_null(moved), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (A cell in
+    // ic: a hidden column gives GF_STATUS_INVALID_STATE.), unchanged; not_found (code: the column is past the grid's
+    // ic: columns), unchanged.
     gf_status (GF_CALL* set_current_cell)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t* moved);
     /* The selected rows' positions in order (full-row selections, or in
      * cell mode the rows whose every cell is selected) into the caller's
      * array of capacity elements; count receives their number, also with
      * GF_STATUS_BUFFER_TOO_SMALL, which writes none. positions may be null
      * when capacity is zero. */
+    // ic: Requires not_null(count) and (not_null(positions) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (The selected rows' positions in order (full-row selections, or in cell
+    // ic: mode the rows whose every cell is selected) into the caller's array of capacity elements; count receives
+    // ic: their number, also with GF_STATUS_BUFFER_TOO_SMALL, which writes none. positions may be null when capacity is
+    // ic: zero.), unchanged.
     gf_status (GF_CALL* selected_rows)(gf_object grid, uint64_t* positions, uint64_t capacity, uint64_t* count);
     /* The selected cells by row then column, as selected_rows gives rows. */
+    // ic: Requires not_null(count) and (not_null(cells) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (code: the array is smaller than the selected cells), unchanged.
     gf_status (GF_CALL* selected_cells)(gf_object grid, gf_data_grid_cell* cells, uint64_t capacity,
                                         uint64_t* count);
     /* Selects (1) or deselects (0) a row, or a cell (in full-row mode, its
      * row). Without multi_select, selecting clears the rest first. Raises
      * selection_changed once when the selection changes. */
+    // ic: Fails invalid_argument (code: selected is 0 or 1), unchanged; not_found (code: no row of the grid has that
+    // ic: row ID), unchanged.
     gf_status (GF_CALL* set_row_selected)(gf_object grid, gf_utf8_view row_id, uint32_t selected);
+    // ic: Fails invalid_argument (code: selected is 0 or 1), unchanged; not_found (code: the column is past the grid's
+    // ic: columns), unchanged.
     gf_status (GF_CALL* set_cell_selected)(gf_object grid, gf_utf8_view row_id, uint64_t column,
                                            uint32_t selected);
     gf_status (GF_CALL* clear_selection)(gf_object grid);
@@ -4387,10 +5131,12 @@ typedef struct gf_data_grid_table {
      * cell's choices; began receives 0 for no current cell, a read-only
      * cell, a check box or button cell, or a cancelled cell_begin_edit.
      * select_all (0 or 1) selects the editor's text. */
+    // ic: Fails invalid_argument (code: begin_edit takes select_all 0 or 1 and a began output), unchanged.
     gf_status (GF_CALL* begin_edit)(gf_object grid, uint32_t select_all, uint32_t* began);
     /* Commits the edit in progress (cell_validating, conversion, the
      * value): committed receives 1 when it committed or no edit was in
      * progress, 0 when the cell stays in edit, marked invalid. */
+    // ic: Requires not_null(committed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* end_edit)(gf_object grid, uint32_t* committed);
     /* Discards the edit in progress. */
     gf_status (GF_CALL* cancel_edit)(gf_object grid);
@@ -4700,6 +5446,10 @@ typedef struct gf_dock_frame_memory {
     uint32_t reserved;
 } gf_dock_frame_memory;
 
+// ic: gf_abi::docking: generated from include/gui_forms/c/gf_abi_docking.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state():
+// ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui,
+// ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_docking_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -4708,13 +5458,22 @@ typedef struct gf_docking_table {
      * by single '-') and must be new: another spelling, or an id
      * registered before, gives GF_STATUS_INVALID_ARGUMENT. Registering does
      * not place the panel; a SHOW edit does. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (The
+    // ic: id is a stable id ('.'-separated segments of lowercase ASCII letters and digits joined by single '-') and
+    // ic: must be new: another spelling, or an id registered before, gives GF_STATUS_INVALID_ARGUMENT.), unchanged.
     gf_status (GF_CALL* register_panel)(gf_object workspace, const gf_dock_panel* panel);
     /* Sets the control a registered panel shows the next time its content
      * is made (zero: an empty area). While the workspace holds content it
      * made for the panel (shown, or hidden since), another control gives
      * GF_STATUS_INVALID_STATE; close the panel first. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (While
+    // ic: the workspace holds content it made for the panel (shown, or hidden since), another control gives
+    // ic: GF_STATUS_INVALID_STATE; close the panel first.), unchanged; not_found (code: no panel of that id is
+    // ic: registered), unchanged.
     gf_status (GF_CALL* set_panel_content)(gf_object workspace, gf_utf8_view panel, gf_object content);
     /* Sets a registered panel's title. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (code: no
+    // ic: panel of that id is registered), unchanged.
     gf_status (GF_CALL* set_panel_title)(gf_object workspace, gf_utf8_view panel, gf_utf8_view title);
     /* Applies one edit as the program's (gf_dock_edit) in one transaction.
      * A refused edit gives GF_STATUS_INVALID_STATE, leaves the layout
@@ -4723,39 +5482,76 @@ typedef struct gf_docking_table {
      * FLOAT (once attach_windows has succeeded) go through the workspace's
      * own operations: SHOW of a placed panel activates it; a floated panel
      * opens its window. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: an edit record has at least the 1.1 size and reserved zero), unchanged; invalid_state (A refused edit
+    // ic: gives GF_STATUS_INVALID_STATE, leaves the layout unchanged and writes the reason into refusal (may be null);
+    // ic: an applied one writes GF_DOCK_REFUSAL_NONE.), unchanged; not_found (code: no panel of that id is registered),
+    // ic: unchanged.
     gf_status (GF_CALL* apply_edit)(gf_object workspace, const gf_dock_edit* edit, gf_dock_refusal* refusal);
     /* Where a registered panel is, into location (at least the 1.1 size). */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(location), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires location_size >=
+    // ic: location_size_1_1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: locate_location, then locate_location_size, then the state refusal. Fails not_found (code: no panel of that
+    // ic: id is registered), unchanged.
     gf_status (GF_CALL* locate)(gf_object workspace, gf_utf8_view panel, gf_dock_location* location);
     /* The layout as XML (C++ DockLayout::write_xml) into the caller's
      * buffer; required receives its size, also with
      * GF_STATUS_BUFFER_TOO_SMALL. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (The
+    // ic: layout as XML (C++ DockLayout::write_xml) into the caller's buffer; required receives its size, also with
+    // ic: GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
     gf_status (GF_CALL* save_layout)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required);
     /* Restores a layout save_layout wrote. Panels it names that are not
      * registered are kept as placeholders. diagnostic_count (may be null)
      * receives the number of restore diagnostics. Malformed or refused XML
      * gives GF_STATUS_INVALID_ARGUMENT and leaves the layout unchanged. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (Malformed or refused XML gives GF_STATUS_INVALID_ARGUMENT and leaves the layout unchanged.), unchanged.
     gf_status (GF_CALL* load_layout)(gf_object workspace, gf_utf8_view xml, uint64_t* diagnostic_count);
     /* Activates a placed panel (its stack selects it; an auto-hidden one's
      * flyout opens); GF_STATUS_INVALID_STATE when it is not placed. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state
+    // ic: (GF_STATUS_INVALID_STATE when it is not placed.), unchanged; not_found (code: no panel of that id is
+    // ic: registered), unchanged.
     gf_status (GF_CALL* activate_panel)(gf_object workspace, gf_utf8_view panel);
     /* Binds the window being run (windows.run) as the workspace's main
      * window, so floating sites get floating windows. GF_STATUS_INVALID_STATE
      * while no window is running or before it is ready; again once bound is
      * GF_STATUS_OK. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state
+    // ic: (GF_STATUS_INVALID_STATE while no window is running or before it is ready; again once bound is
+    // ic: GF_STATUS_OK.), unchanged; unsupported_capability (code: the host has no runtime windows, or the workspace
+    // ic: refused the window), unchanged.
     gf_status (GF_CALL* attach_windows)(gf_object workspace);
     /* The main site's document area node. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(node),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: document_area_node, then the
+    // ic: state refusal.
     gf_status (GF_CALL* document_area)(gf_object workspace, uint32_t* node);
     /* The id of the panel at index in stack into the caller's buffer;
      * required receives its size. GF_STATUS_NOT_FOUND past the stack's
      * panels; another node than a stack gives GF_STATUS_INVALID_ARGUMENT. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_NOT_FOUND past the stack's panels; another node than a stack gives GF_STATUS_INVALID_ARGUMENT.),
+    // ic: unchanged; not_found (GF_STATUS_NOT_FOUND past the stack's panels; another node than a stack gives
+    // ic: GF_STATUS_INVALID_ARGUMENT.), unchanged.
     gf_status (GF_CALL* panel_at)(gf_object workspace, uint32_t stack, uint64_t index, char* buffer,
                                   uint64_t capacity, uint64_t* required);
     /* The floating sites' numbers, in the layout's order, into sites
      * (capacity entries); count receives how many there are, also with
      * GF_STATUS_BUFFER_TOO_SMALL. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count)
+    // ic: and (not_null(sites) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several
+    // ic: refusals apply: floating_sites_sites, then the state refusal. Fails buffer_too_small (The floating sites'
+    // ic: numbers, in the layout's order, into sites (capacity entries); count receives how many there are, also with
+    // ic: GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
     gf_status (GF_CALL* floating_sites)(gf_object workspace, uint32_t* sites, uint64_t capacity, uint64_t* count);
     /* A floating site's frame (its window's client area, desktop logical
      * units) and its first stack (zero when it has none). */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: floating_site needs its outputs), unchanged; not_found (code: no floating site of that number),
+    // ic: unchanged.
     gf_status (GF_CALL* floating_site)(gf_object workspace, uint32_t site, gf_logical_rect* frame,
                                        uint32_t* first_stack);
     /* Replaces a registered panel's restrictions, defaults, minimum size,
@@ -4764,13 +5560,23 @@ typedef struct gf_docking_table {
      * obey the new restrictions. An unregistered id gives
      * GF_STATUS_NOT_FOUND; another kind than it was registered with gives
      * GF_STATUS_INVALID_ARGUMENT. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (An
+    // ic: unregistered id gives GF_STATUS_NOT_FOUND; another kind than it was registered with gives
+    // ic: GF_STATUS_INVALID_ARGUMENT.), unchanged; invalid_state (code: the workspace refused the descriptor),
+    // ic: unchanged; not_found (An unregistered id gives GF_STATUS_NOT_FOUND; another kind than it was registered with
+    // ic: gives GF_STATUS_INVALID_ARGUMENT.), unchanged.
     gf_status (GF_CALL* update_panel)(gf_object workspace, const gf_dock_panel* panel);
     /* Sets the workspace's options (gf_dock_options); each takes effect at
      * once. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: an options record has at least the 1.1 size, known flags and reserved zero), unchanged.
     gf_status (GF_CALL* set_options)(gf_object workspace, const gf_dock_options* options);
     /* Sets one floating site's override of FLOATS_SHOWN_WHILE_INACTIVE
      * (gf_dock_window_visibility), kept while the site exists. An unknown
      * site gives GF_STATUS_NOT_FOUND. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: a visibility is WORKSPACE, SHOWN or POLICY), unchanged; not_found (An unknown site gives
+    // ic: GF_STATUS_NOT_FOUND.), unchanged.
     gf_status (GF_CALL* set_floating_window_visibility)(gf_object workspace, uint32_t site,
                                                         gf_dock_window_visibility visibility);
     /* Since 1.6: the frames presentation and the multiple document
@@ -4782,27 +5588,48 @@ typedef struct gf_docking_table {
      * apply_edit's 1.6 kinds.
      *
      * The document area's presentation. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires
+    // ic: not_null(presentation), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: document_presentation_presentation, then the state refusal.
     gf_status (GF_CALL* document_presentation)(gf_object workspace, gf_dock_document_presentation* presentation);
     /* Arranges the frames in the main site's document area as last laid
      * out (gf_dock_frame_arrangement), as one program transaction: applied
      * with nothing to change when there is no main site, no frame or no
      * laid-out area. A refused arrangement gives GF_STATUS_INVALID_STATE
      * and writes the reason into refusal (may be null), as apply_edit. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: an arrangement is CASCADE, TILE_HORIZONTAL, TILE_VERTICAL or ARRANGE_ICONS), unchanged; invalid_state
+    // ic: (A refused arrangement gives GF_STATUS_INVALID_STATE and writes the reason into refusal (may be null), as
+    // ic: apply_edit.), unchanged.
     gf_status (GF_CALL* arrange_frames)(gf_object workspace, gf_dock_frame_arrangement arrangement,
                                         gf_dock_refusal* refusal);
     /* A registered document's frame (gf_dock_frame_memory, at least the 1.6
      * size); present 0 when it has none. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(frame),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires frame_size >= frame_memory_size_1_6, else
+    // ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: frame_memory_frame, then
+    // ic: frame_memory_frame_size, then the state refusal. Fails not_found (code: no panel of that id is registered),
+    // ic: unchanged.
     gf_status (GF_CALL* frame_memory)(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame);
     /* Whether minimized frames line the bottom of the area (1, the default)
      * or its top (0); not saved with the layout. The bound window's
      * set_mdi_children_minimized_anchor_bottom writes it too. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: bottom is 0 or 1), unchanged.
     gf_status (GF_CALL* set_frame_icons_at_bottom)(gf_object workspace, uint32_t bottom);
     /* The number of documents in the main site's document area (the MDI
      * children), whichever the presentation. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: area_document_count_count,
+    // ic: then the state refusal.
     gf_status (GF_CALL* area_document_count)(gf_object workspace, uint64_t* count);
     /* The id of the document at index in the area, in tree and tab order,
      * into the caller's buffer; required receives its size, also with
      * GF_STATUS_BUFFER_TOO_SMALL. GF_STATUS_NOT_FOUND past the end. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (The
+    // ic: id of the document at index in the area, in tree and tab order, into the caller's buffer; required receives
+    // ic: its size, also with GF_STATUS_BUFFER_TOO_SMALL.), unchanged; not_found (GF_STATUS_NOT_FOUND past the end.),
+    // ic: unchanged.
     gf_status (GF_CALL* area_document_at)(gf_object workspace, uint64_t index, char* buffer, uint64_t capacity,
                                           uint64_t* required);
     /* The id of the area's active document (the most recently active one
@@ -4810,6 +5637,7 @@ typedef struct gf_docking_table {
      * else the selected document of the area's first stack), as
      * area_document_at writes one; empty (required zero) when the area is
      * empty. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* area_active_document)(gf_object workspace, char* buffer, uint64_t capacity,
                                               uint64_t* required);
     /* Gives a registered panel a menu strip (a menu_strip object; zero
@@ -4820,9 +5648,13 @@ typedef struct gf_docking_table {
      * leaves (Windows Forms' MDI menu merging). The workspace holds the
      * strip; it need not be shown. Another object than a menu strip gives
      * GF_STATUS_WRONG_HANDLE_KIND. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (code: no
+    // ic: panel of that id is registered), unchanged; wrong_handle_kind (Another object than a menu strip gives
+    // ic: GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
     gf_status (GF_CALL* set_panel_menu_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip);
     /* The id of the document whose menu strip is merged into the main menu
      * strip, as area_active_document writes one; empty when none is. */
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
     gf_status (GF_CALL* merged_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required);
     /* Since 1.7: tool strip merging, as the menu strip's. The workspace's
      * merge tool strip (a tool_strip or menu_strip object; zero takes it
@@ -4923,13 +5755,21 @@ typedef struct gf_app_font_face {
     gf_bytes_view bytes;
 } gf_app_font_face;
 
+// ic: gf_abi::fonts: generated from include/gui_forms/c/gf_abi_fonts.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 typedef struct gf_fonts_table {
     uint32_t struct_size;
     uint32_t abi_minor;
+    // ic: Requires not_null(family), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: no
+    // ic: bundled font family answers that name), unchanged.
     gf_status (GF_CALL* family_id)(gf_utf8_view name, uint32_t* family);
+    // ic: Fails not_found (code: no bundled font family has that id), unchanged.
     gf_status (GF_CALL* family_name)(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required);
+    // ic: Requires not_null(family) and (not_null(faces) or face_count == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails invalid_argument (code: load_family needs its faces and an output), unchanged.
     gf_status (GF_CALL* load_family)(gf_utf8_view name, const gf_app_font_face* faces, uint64_t face_count,
                                      uint32_t* family);
+    // ic: Fails not_found (code: no loaded application font family has that id), unchanged.
     gf_status (GF_CALL* unload_family)(uint32_t family, uint32_t* deferred);
 } gf_fonts_table;
 
@@ -5021,26 +5861,62 @@ typedef uint32_t gf_locale_origin;
  *   origin (GF_LOCALE_ORIGIN_NONE with an empty text when no layer gives
  *   it). A field past GF_LOCALE_FIELD_KEYWORDS is GF_STATUS_INVALID_ARGUMENT.
  */
+// ic: gf_abi::help: generated from include/gui_forms/c/gf_abi_help.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state():
+// ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui,
+// ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_help_table {
     uint32_t struct_size;
     uint32_t abi_minor;
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails wrong_handle_kind
+    // ic: (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* attach)(gf_object system, gf_object window);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails wrong_handle_kind
+    // ic: (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* detach)(gf_object system, gf_object window);
+    // ic: Fails invalid_argument (code: the language file's help text was refused; nothing was loaded), unchanged;
+    // ic: wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* load_built_in)(gf_object system, gf_utf8_view locale_xml);
+    // ic: Requires not_null(shown), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind (code:
+    // ic: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* show)(gf_object system, gf_utf8_view stable_id, uint32_t* shown);
+    // ic: Fails invalid_argument (code: show_navigator needs a known navigator and a shown output), unchanged;
+    // ic: wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* show_navigator)(gf_object system, gf_help_navigator navigator, gf_utf8_view text,
                                         uint32_t* shown);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(shown),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: show_popup_shown, then the
+    // ic: state refusal. Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* show_popup)(gf_object system, gf_utf8_view stable_id, gf_object anchor, uint32_t* shown);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(home),
+    // ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: resolve_home, then the state
+    // ic: refusal. Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* resolve)(gf_object system, gf_object control, char* buffer, uint64_t capacity,
                                  uint64_t* required, uint32_t* home);
+    // ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument
+    // ic: (code: enter_help_mode needs an entered output), unchanged; wrong_handle_kind (code: the object is not a
+    // ic: help_book_system), unchanged.
     gf_status (GF_CALL* enter_help_mode)(gf_object system, gf_object window, uint32_t* entered);
+    // ic: Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* cancel_help_mode)(gf_object system);
+    // ic: Fails invalid_argument (code: the translation was refused; nothing was loaded), unchanged; wrong_handle_kind
+    // ic: (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* load_translation)(gf_object system, gf_utf8_view locale_xml);
+    // ic: Fails invalid_argument (code: the user's language file was refused or is for another language; nothing was
+    // ic: loaded), unchanged; wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* load_user_overrides)(gf_object system, gf_utf8_view locale_xml);
+    // ic: Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* clear_user_overrides)(gf_object system);
+    // ic: Fails invalid_argument (code: built_in_only must be 0 or 1), unchanged; wrong_handle_kind (code: the object
+    // ic: is not a help_book_system), unchanged.
     gf_status (GF_CALL* use_built_in_language)(gf_object system, uint32_t built_in_only);
+    // ic: Fails invalid_argument (code: the language is not a language tag), unchanged; limit_exceeded (code: the
+    // ic: template passes the locale file's bounds and was not written), unchanged; wrong_handle_kind (code: the object
+    // ic: is not a help_book_system), unchanged.
     gf_status (GF_CALL* export_template)(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity,
                                          uint64_t* required);
+    // ic: Fails invalid_argument (code: read_field needs a known field and an origin output), unchanged;
+    // ic: wrong_handle_kind (code: the object is not a help_book_system), unchanged.
     gf_status (GF_CALL* read_field)(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer,
                                     uint64_t capacity, uint64_t* required, gf_locale_origin* origin);
 } gf_help_table;
@@ -5384,6 +6260,10 @@ typedef struct gf_content_text_layout {
     gf_content_layout_transform transform;
 } gf_content_text_layout;
 
+// ic: gf_abi::content: generated from include/gui_forms/c/gf_abi_content.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state():
+// ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui,
+// ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_content_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -5391,16 +6271,26 @@ typedef struct gf_content_table {
      * earlier channel (and stopping a running program, bounded). opaque is
      * 0 or 1. The status becomes waiting. A surface that is not a
      * content_surface gives GF_STATUS_WRONG_HANDLE_KIND. */
+    // ic: Fails invalid_argument (code: open_content needs an output), unchanged; limit_exceeded (code:
+    // ic: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first), unchanged; wrong_handle_kind (A surface that is
+    // ic: not a content_surface gives GF_STATUS_WRONG_HANDLE_KIND.), unchanged. Returns gf_content_sink, owned by the
+    // ic: caller.
     gf_status (GF_CALL* open_content)(gf_object surface, uint32_t opaque, gf_content_sink* sink);
     /* Stops a running program (bounded), revokes the channel and clears
      * the region; the status becomes disconnected. */
     gf_status (GF_CALL* close_content)(gf_object surface);
     /* Opens a new channel and runs program on a thread of its own. The
      * library takes program->run only when this returns GF_STATUS_OK. */
+    // ic: Fails invalid_argument (code: a gf_content_program needs struct_size of at least 40 and opaque 0 or 1),
+    // ic: unchanged.
     gf_status (GF_CALL* start_program)(gf_object surface, const gf_content_program* program);
     /* Starts a hosted program and forwards the surface's input to it (the
      * section above). GF_STATUS_INVALID_ARGUMENT for an executable that is
      * not an absolute path or a slot size over the limit. */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for an executable that is not an absolute path or a slot
+    // ic: size over the limit.), unchanged; limit_exceeded (code: a hosted program takes at most
+    // ic: GF_HOSTED_MAXIMUM_ARGUMENTS arguments), unchanged; unsupported_capability (code: hosted content is not
+    // ic: available on this platform (GF_HOST_CAPABILITY_HOSTED_CONTENT)), unchanged.
     gf_status (GF_CALL* start_hosted)(gf_object surface, const gf_hosted_options* options);
     /* Asks the content to stop and returns at once. */
     gf_status (GF_CALL* terminate)(gf_object surface);
@@ -5410,63 +6300,100 @@ typedef struct gf_content_table {
     /* How long content may publish nothing before it is stale (default
      * 1000; zero turns the watchdog off; short ones are raised to the
      * minimum; at most GF_CONTENT_MAXIMUM_WAIT_MS). */
+    // ic: Fails invalid_argument (code: a time is at most GF_CONTENT_MAXIMUM_WAIT_MS milliseconds), unchanged.
     gf_status (GF_CALL* set_stale_interval)(gf_object surface, uint64_t milliseconds);
+    // ic: Fails invalid_argument (code: status needs an output), unchanged.
     gf_status (GF_CALL* status)(gf_object surface, gf_content_status* status);
     /* Why the content failed, as text; empty unless the status is failed. */
     gf_status (GF_CALL* failure)(gf_object surface, char* buffer, uint64_t capacity, uint64_t* required);
     /* The channel's counters; all zero without content. */
+    // ic: Requires not_null(statistics), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires statistics_size
+    // ic: >= statistics_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: statistics_statistics, then statistics_statistics_size.
     gf_status (GF_CALL* statistics)(gf_object surface, gf_content_statistics* statistics);
     /* The newest request sent to the content. */
+    // ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >=
+    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: request_request, then request_request_size.
     gf_status (GF_CALL* request)(gf_object surface, gf_content_request* request);
     /* The veil's caption for status (stale, abandoned and failed have
      * English defaults); empty hides it. */
+    // ic: Fails invalid_argument (code: an unknown gf_content_status), unchanged.
     gf_status (GF_CALL* set_status_caption)(gf_object surface, gf_content_status status, gf_utf8_view caption);
     /* Sets the semantic text from the UI thread; GF_STATUS_INVALID_ARGUMENT
      * when it is not UTF-8 or too long (nothing changes then). */
+    // ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT when it is not UTF-8 or too long (nothing changes then).),
+    // ic: unchanged.
     gf_status (GF_CALL* set_semantics)(gf_object surface, const gf_content_semantics* semantics);
     /* 1 while a program the surface started has not been reaped. */
+    // ic: Requires not_null(running), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* program_running)(gf_object surface, uint32_t* running);
     /* The surface's hosted input channel; not connected and zero dropped
      * without hosted content. */
+    // ic: Requires not_null(report), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires report_size >=
+    // ic: hosted_input_report_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals
+    // ic: apply: hosted_input_report, then hosted_input_report_size.
     gf_status (GF_CALL* hosted_input)(gf_object surface, gf_hosted_input_report* report);
     /* Whether hosted content exists here. Any thread. */
+    // ic: Requires not_null(support), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* hosted_support)(gf_hosted_support* support);
     /* Validates frame, then copies it into the surface (result says what
      * happened; a refusal is not a failed call). Any thread. */
+    // ic: Fails invalid_argument (code: a gf_content_frame needs struct_size of at least 64, reserved zero, opaque 0 or
+    // ic: 1 and a ), unchanged. Thread: any.
     gf_status (GF_CALL* sink_publish)(gf_content_sink sink, const gf_content_frame* frame,
                                       gf_content_publish_result* result);
     /* Reports the content alive without a new frame. Any thread. */
+    // ic: Thread: any.
     gf_status (GF_CALL* sink_heartbeat)(gf_content_sink sink);
     /* Replaces the surface's semantic text; the newest wins. Any thread. */
+    // ic: Requires not_null(result), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics,
                                                 gf_content_semantics_result* result);
     /* The newest request. Any thread. */
+    // ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >=
+    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: sink_request_request, then sink_request_request_size. Thread: any.
     gf_status (GF_CALL* sink_request)(gf_content_sink sink, gf_content_request* request);
     /* Blocks the calling (content) thread until the request's generation
      * passes seen_generation, the channel is revoked, a stop is asked for,
      * or timeout_ms passes (at most GF_CONTENT_MAXIMUM_WAIT_MS); gives the
      * request then. The UI thread must not call it: it would block the
      * interface. */
+    // ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >=
+    // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: sink_wait_for_request_request, then sink_wait_for_request_request_size.
     gf_status (GF_CALL* sink_wait_for_request)(gf_content_sink sink, uint64_t seen_generation, uint64_t timeout_ms,
                                                gf_content_request* request);
     /* revoked is 1 once the channel is revoked; stop_requested 1 once the
      * surface asked the content to stop. Any thread. */
+    // ic: Fails invalid_argument (code: sink_state needs both outputs), unchanged. Thread: any.
     gf_status (GF_CALL* sink_state)(gf_content_sink sink, uint32_t* revoked, uint32_t* stop_requested);
     /* The channel's counters. Any thread. */
+    // ic: Requires not_null(statistics), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires statistics_size
+    // ic: >= statistics_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:
+    // ic: sink_statistics_statistics, then sink_statistics_statistics_size. Thread: any.
     gf_status (GF_CALL* sink_statistics)(gf_content_sink sink, gf_content_statistics* statistics);
     /* Ends the caller's handle; the channel itself lives on while the
      * surface or another handle holds it. A released or unknown sink gives
      * GF_STATUS_STALE_HANDLE. Any thread. */
+    // ic: Thread: any.
     gf_status (GF_CALL* sink_release)(gf_content_sink sink);
     /* Inside a program's run callback: a new handle to its sink, which the
      * caller releases. Elsewhere GF_STATUS_INVALID_STATE. */
+    // ic: Fails invalid_argument (code: program_sink needs an output), unchanged; invalid_state (Elsewhere
+    // ic: GF_STATUS_INVALID_STATE.), unchanged; limit_exceeded (code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release
+    // ic: one first), unchanged. Returns gf_content_sink, owned by the caller.
     gf_status (GF_CALL* program_sink)(gf_content_sink* sink);
     /* Inside a program's run callback: when run returns, the program ends
      * as failed with message (UTF-8) as its failure. The last call wins.
      * Elsewhere GF_STATUS_INVALID_STATE. */
+    // ic: Fails invalid_state (Elsewhere GF_STATUS_INVALID_STATE.), unchanged.
     gf_status (GF_CALL* program_fail)(gf_utf8_view message);
     /* The editor's text revision, which grows with every change of the
      * text. A content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND. */
+    // ic: Requires not_null(revision), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind (A
+    // ic: content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
     gf_status (GF_CALL* editor_text_revision)(gf_object editor, uint64_t* revision);
     /* The editor's text (UTF-8). */
     gf_status (GF_CALL* editor_text)(gf_object editor, char* buffer, uint64_t capacity, uint64_t* required);
@@ -5474,30 +6401,45 @@ typedef struct gf_content_table {
     gf_status (GF_CALL* editor_set_text)(gf_object editor, gf_utf8_view text);
     /* Validates and adopts layout for the current revision; result says
      * why it was refused otherwise (a refusal is not a failed call). */
+    // ic: Fails invalid_argument (code: a gf_content_text_layout needs struct_size of at least 64, reserved zero and a
+    // ic: result), unchanged.
     gf_status (GF_CALL* editor_submit_layout)(gf_object editor, const gf_content_text_layout* layout,
                                               gf_content_layout_result* result);
     /* 1 when the adopted layout is for the current revision. */
+    // ic: Requires not_null(current), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* editor_layout_current)(gf_object editor, uint32_t* current);
     /* Opens the channel the editor's frames are published through and gives
      * its sink, revoking any earlier one. opaque is 0 or 1. */
+    // ic: Requires not_null(sink), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails limit_exceeded (code:
+    // ic: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first), unchanged. Returns gf_content_sink, owned by the
+    // ic: caller.
     gf_status (GF_CALL* editor_open_frames)(gf_object editor, uint32_t opaque, gf_content_sink* sink);
     /* The caret's bar from the current layout: present is 0 without one
      * (rectangle is then left as it was). */
+    // ic: Fails invalid_argument (code: editor_caret_rectangle needs both outputs), unchanged.
     gf_status (GF_CALL* editor_caret_rectangle)(gf_object editor, uint32_t* present, gf_logical_rect* rectangle);
     /* The selection's boxes from the current layout, in order: required
      * receives their number; a buffer of fewer than that many gives
      * GF_STATUS_BUFFER_TOO_SMALL and writes nothing. */
+    // ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (The selection's boxes from the current layout, in order: required receives
+    // ic: their number; a buffer of fewer than that many gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing.),
+    // ic: unchanged.
     gf_status (GF_CALL* editor_selection_rectangles)(gf_object editor, gf_logical_rect* buffer, uint64_t capacity,
                                                      uint64_t* required);
     /* The text offset nearest point by the current layout (the end of the
      * text without one). */
+    // ic: Requires not_null(offset), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* editor_position_at)(gf_object editor, gf_logical_point point, uint64_t* offset);
     /* 1 (the default): the editor draws the selection and caret over the
      * frame; 0 leaves both to the consumer. */
+    // ic: Fails invalid_argument (code: a flag is 0 or 1), unchanged.
     gf_status (GF_CALL* editor_set_draws_selection)(gf_object editor, uint32_t draws);
     /* 1: Enter inserts a line break and Up, Down, Home and End move by the
      * layout's lines; 0 (the default): Enter passes on. */
+    // ic: Fails invalid_argument (code: a flag is 0 or 1), unchanged.
     gf_status (GF_CALL* editor_set_multiline)(gf_object editor, uint32_t multiline);
+    // ic: Fails invalid_argument (code: a flag is 0 or 1), unchanged.
     gf_status (GF_CALL* editor_set_read_only)(gf_object editor, uint32_t read_only);
     /*
      * The slots below are provisional additions (numbered 1.5 while 1.5 is
@@ -5506,28 +6448,40 @@ typedef struct gf_content_table {
      */
     /* 1: a multiline editor inserts a tab for Tab (C++ set_accepts_tab);
      * 0 (the default): Tab goes on to focus navigation. */
+    // ic: Fails invalid_argument (code: a flag is 0 or 1), unchanged.
     gf_status (GF_CALL* editor_set_accepts_tab)(gf_object editor, uint32_t accepts);
     /* Puts replacement (UTF-8) in place of the selection, or inserts it at
      * the caret, as one undo step through the read-only state and the edit
      * filter; applied is 1 when the edit was made. GF_STATUS_INVALID_ARGUMENT
      * for text that is not UTF-8. */
+    // ic: Requires not_null(applied), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument
+    // ic: (GF_STATUS_INVALID_ARGUMENT for text that is not UTF-8.), unchanged.
     gf_status (GF_CALL* editor_replace_selection)(gf_object editor, gf_utf8_view replacement, uint32_t* applied);
     /* Removes a non-empty selection; applied is 0 when there was nothing to
      * remove or the edit was refused. */
+    // ic: Requires not_null(applied), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* editor_delete_selection)(gf_object editor, uint32_t* applied);
     /* The input method's unfinished composition as a byte range [start,
      * end) of the text: present is 0 without one (start and end are then
      * left as they were). */
+    // ic: Fails invalid_argument (code: editor_composition_range needs all three outputs), unchanged.
     gf_status (GF_CALL* editor_composition_range)(gf_object editor, uint32_t* present, uint64_t* start,
                                                   uint64_t* end);
     /* The caret's bar as a quad mapped by the layout's transform: present is
      * 0 without a current layout (quad is then left as it was). */
+    // ic: Fails invalid_argument (code: editor_caret_quad needs both outputs), unchanged.
     gf_status (GF_CALL* editor_caret_quad)(gf_object editor, uint32_t* present, gf_content_quad* quad);
     /* The selection's, and the composition's, boxes as mapped quads, in
      * order, as editor_selection_rectangles: required receives their number;
      * a buffer of fewer gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing. */
+    // ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (The selection's, and the composition's, boxes as mapped quads, in order,
+    // ic: as editor_selection_rectangles: required receives their number; a buffer of fewer gives
+    // ic: GF_STATUS_BUFFER_TOO_SMALL and writes nothing.), unchanged.
     gf_status (GF_CALL* editor_selection_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity,
                                                 uint64_t* required);
+    // ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (code: the buffer holds fewer quads than there are), unchanged.
     gf_status (GF_CALL* editor_composition_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity,
                                                   uint64_t* required);
 } gf_content_table;
@@ -5626,10 +6580,16 @@ typedef struct gf_list_view_group {
     gf_utf8_view header;
 } gf_list_view_group;
 
+// ic: gf_abi::list_view: generated from include/gui_forms/c/gf_abi_list_view.ic.toml by tools/ic_declarations.py; edit
+// ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by
+// ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed
+// ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns
+// ic: GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_list_view_table {
     uint32_t struct_size;
     uint32_t abi_minor;
     /* The number of columns. */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* column_count)(gf_object view, uint64_t* count);
     /* Column index (below the count) into column, an output record of at
      * least the 1.5 size; its stable id and text are copied into
@@ -5637,6 +6597,11 @@ typedef struct gf_list_view_table {
      * text_required receives their total size, also with
      * GF_STATUS_BUFFER_TOO_SMALL, which leaves the record unwritten.
      * GF_STATUS_NOT_FOUND past the columns. */
+    // ic: Fails buffer_too_small (Column index (below the count) into column, an output record of at least the 1.5
+    // ic: size; its stable id and text are copied into text_buffer, one after the other, and the views point there.
+    // ic: text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record
+    // ic: unwritten.), unchanged; invalid_argument (code: an output record of at least the 1.5 size, a text size
+    // ic: output, and a buffer unless its ), unchanged; not_found (GF_STATUS_NOT_FOUND past the columns.), unchanged.
     gf_status (GF_CALL* column_at)(gf_object view, uint64_t index, gf_list_view_column* column, char* text_buffer,
                                    uint64_t text_capacity, uint64_t* text_required);
     /* Replaces the columns with count records (columns may be null when
@@ -5645,21 +6610,37 @@ typedef struct gf_list_view_table {
      * out of range gives GF_STATUS_INVALID_ARGUMENT, more than
      * GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing
      * nothing. */
+    // ic: Fails invalid_argument (A malformed record, a repeated or empty stable id or a width out of range gives
+    // ic: GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing
+    // ic: nothing.), unchanged; limit_exceeded (A malformed record, a repeated or empty stable id or a width out of
+    // ic: range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED,
+    // ic: changing nothing.), unchanged.
     gf_status (GF_CALL* set_columns)(gf_object view, const gf_list_view_column* columns, uint64_t count);
     /* Sets column's width (20 to 4096 logical units), raising
      * column_width_changed. GF_STATUS_NOT_FOUND past the columns. */
+    // ic: Fails invalid_argument (code: a column's width is finite), unchanged; not_found (GF_STATUS_NOT_FOUND past the
+    // ic: columns.), unchanged.
     gf_status (GF_CALL* set_column_width)(gf_object view, uint64_t column, double width);
     /* The number of items (the source's in virtual mode). */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* item_count)(gf_object view, uint64_t* count);
     /* Item index (below the count) into item, an output record of at least
      * the 1.5 size; its stable id, text, image key and group are copied
      * into text_buffer one after another, as column_at copies. */
+    // ic: Fails buffer_too_small (code: the text buffer is smaller than the record's text), unchanged; invalid_argument
+    // ic: (code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ), unchanged;
+    // ic: invalid_state (code: a virtual list view's items belong to its source), unchanged; not_found (code: the item
+    // ic: is past the view's items), unchanged.
     gf_status (GF_CALL* item_at)(gf_object view, uint64_t index, gf_list_view_item* item, char* text_buffer,
                                  uint64_t text_capacity, uint64_t* text_required);
     /* Item index's sub-item (below its sub_item_count) as text, into buffer
      * (required receives its size; a short buffer gives
      * GF_STATUS_BUFFER_TOO_SMALL). GF_STATUS_NOT_FOUND past the items or
      * the sub-items. */
+    // ic: Fails buffer_too_small (Item index's sub-item (below its sub_item_count) as text, into buffer (required
+    // ic: receives its size; a short buffer gives GF_STATUS_BUFFER_TOO_SMALL).), unchanged; invalid_state (code: a
+    // ic: virtual list view's items belong to its source), unchanged; not_found (GF_STATUS_NOT_FOUND past the items or
+    // ic: the sub-items.), unchanged.
     gf_status (GF_CALL* item_sub_item)(gf_object view, uint64_t index, uint64_t sub_item, char* buffer,
                                        uint64_t capacity, uint64_t* required);
     /* Replaces the items with count records (items may be null when count
@@ -5668,53 +6649,83 @@ typedef struct gf_list_view_table {
      * gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS
      * items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items
      * GF_STATUS_LIMIT_EXCEEDED, changing nothing. */
+    // ic: Fails invalid_argument (A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT,
+    // ic: more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items
+    // ic: GF_STATUS_LIMIT_EXCEEDED, changing nothing.), unchanged; invalid_state (code: a virtual list view's items
+    // ic: belong to its source), unchanged; limit_exceeded (A malformed record or a repeated or empty stable id gives
+    // ic: GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS
+    // ic: sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing.), unchanged.
     gf_status (GF_CALL* set_items)(gf_object view, const gf_list_view_item* items, uint64_t count);
     /* The index of the item with stable id item_id; GF_STATUS_NOT_FOUND
      * when no item has it (and always in virtual mode). */
+    // ic: Requires not_null(index), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found
+    // ic: (GF_STATUS_NOT_FOUND when no item has it (and always in virtual mode).), unchanged.
     gf_status (GF_CALL* index_of)(gf_object view, gf_utf8_view item_id, uint64_t* index);
     /* Sets item index's checked state (0 or 1), raising item_checked when
      * it changes. GF_STATUS_NOT_FOUND past the items. */
+    // ic: Fails invalid_argument (code: checked is 0 or 1), unchanged; invalid_state (code: a virtual list view's items
+    // ic: belong to its source), unchanged; not_found (GF_STATUS_NOT_FOUND past the items.), unchanged.
     gf_status (GF_CALL* set_item_checked)(gf_object view, uint64_t index, uint32_t checked);
     /* The number of groups. */
+    // ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* group_count)(gf_object view, uint64_t* count);
     /* Group index (below the count) into group, an output record of at
      * least the 1.5 size; its stable id and header are copied into
      * text_buffer, as column_at copies. */
+    // ic: Fails buffer_too_small (code: the text buffer is smaller than the record's text), unchanged; invalid_argument
+    // ic: (code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ), unchanged;
+    // ic: not_found (code: the group is past the view's groups), unchanged.
     gf_status (GF_CALL* group_at)(gf_object view, uint64_t index, gf_list_view_group* group, char* text_buffer,
                                   uint64_t text_capacity, uint64_t* text_required);
     /* Replaces the groups with count records, all or nothing, as
      * set_columns replaces the columns (at most
      * GF_LIST_VIEW_MAXIMUM_GROUPS). */
+    // ic: Fails limit_exceeded (code: the array holds more records than the view does), unchanged.
     gf_status (GF_CALL* set_groups)(gf_object view, const gf_list_view_group* groups, uint64_t count);
     /* The selected items' indices in ascending order into indices
      * (capacity elements; null when the capacity is zero). count receives
      * the number selected, also with GF_STATUS_BUFFER_TOO_SMALL, which
      * writes no index. */
+    // ic: Requires not_null(count) and (not_null(indices) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (The selected items' indices in ascending order into indices (capacity
+    // ic: elements; null when the capacity is zero). count receives the number selected, also with
+    // ic: GF_STATUS_BUFFER_TOO_SMALL, which writes no index.), unchanged.
     gf_status (GF_CALL* selected_items)(gf_object view, uint64_t* indices, uint64_t capacity, uint64_t* count);
     /* Selects (1) or deselects (0) item index, keeping the others (without
      * multi_select, selecting one deselects the rest); raises
      * selection_changed when the selection changes. GF_STATUS_NOT_FOUND past
      * the items. */
+    // ic: Fails invalid_argument (code: selected is 0 or 1), unchanged; not_found (GF_STATUS_NOT_FOUND past the
+    // ic: items.), unchanged.
     gf_status (GF_CALL* set_selected)(gf_object view, uint64_t index, uint32_t selected);
     /* Selects every item (with multi_select), raising selection_changed. */
     gf_status (GF_CALL* select_all)(gf_object view);
     /* Deselects every item, raising selection_changed when any was. */
     gf_status (GF_CALL* clear_selection)(gf_object view);
     /* The item with the focus cue and the keyboard's position, or -1. */
+    // ic: Requires not_null(index), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
     gf_status (GF_CALL* focused_item)(gf_object view, int64_t* index);
     /* Moves the focus cue to item index, or removes it with -1.
      * GF_STATUS_NOT_FOUND past the items. */
+    // ic: Fails invalid_argument (code: the focused item is an index or -1), unchanged; not_found (GF_STATUS_NOT_FOUND
+    // ic: past the items.), unchanged.
     gf_status (GF_CALL* set_focused_item)(gf_object view, int64_t index);
     /* Scrolls so item index is fully visible. GF_STATUS_NOT_FOUND past the
      * items. */
+    // ic: Fails not_found (GF_STATUS_NOT_FOUND past the items.), unchanged.
     gf_status (GF_CALL* ensure_visible)(gf_object view, uint64_t index);
     /* Shows the sort glyph order on column, or on no column with -1 (the
      * order is then ignored). The view does not reorder its items for it.
      * GF_STATUS_NOT_FOUND past the columns. */
+    // ic: Fails invalid_argument (code: the sorted column is an index or -1), unchanged; not_found (GF_STATUS_NOT_FOUND
+    // ic: past the columns.), unchanged.
     gf_status (GF_CALL* set_sort_indicator)(gf_object view, int64_t column, gf_list_view_sort_order order);
     /* Stable-sorts the items by column's text (ASCII case folded, then byte
      * order) in order and shows the glyph; the selection and focus follow
      * their items. GF_STATUS_NOT_FOUND past the columns. */
+    // ic: Fails invalid_argument (code: the sort order is NONE, ASCENDING or DESCENDING), unchanged; invalid_state
+    // ic: (code: a virtual list view's items belong to its source), unchanged; not_found (GF_STATUS_NOT_FOUND past the
+    // ic: columns.), unchanged.
     gf_status (GF_CALL* sort_items)(gf_object view, uint64_t column, gf_list_view_sort_order order);
 } gf_list_view_table;
 
@@ -5747,6 +6758,9 @@ typedef uint64_t gf_paint_write_lease;
 
 #define GF_PAINT_ENDPOINT_MAXIMUM_SIDE 32768u
 
+// ic: gf_abi::windows_paint_endpoint: generated from include/gui_forms/c/gf_abi_windows_paint_endpoint.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
+// ic: Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
 typedef struct gf_windows_paint_endpoint_table {
     uint32_t struct_size;
     uint32_t abi_minor;
@@ -5754,32 +6768,50 @@ typedef struct gf_windows_paint_endpoint_table {
      * GF_PAINT_ENDPOINT_MAXIMUM_SIDE each, at most 2^28 pixels) bound to
      * control, a custom control (else GF_STATUS_WRONG_HANDLE_KIND), and
      * gives its token and compatibility handle. */
+    // ic: Fails invalid_argument (code: acquire needs outputs and 1 to 32768 pixels a side, at most 2^28 in all),
+    // ic: unchanged; wrong_handle_kind (Makes an endpoint of width by height pixels (1 to
+    // ic: GF_PAINT_ENDPOINT_MAXIMUM_SIDE each, at most 2^28 pixels) bound to control, a custom control (else
+    // ic: GF_STATUS_WRONG_HANDLE_KIND), and gives its token and compatibility handle.), unchanged. Returns
+    // ic: gf_paint_endpoint, owned by the caller.
     gf_status (GF_CALL* acquire)(gf_object control, uint32_t width, uint32_t height, gf_paint_endpoint* endpoint,
                                  uint64_t* compatibility_handle);
     /* Resizes the pixels; the token and handle stay. */
+    // ic: Fails invalid_argument (code: configure needs 1 to 32768 pixels a side, at most 2^28 in all), unchanged.
     gf_status (GF_CALL* configure)(gf_paint_endpoint endpoint, uint32_t width, uint32_t height);
     /* Marks the pixels changed; explicit_boundary (0 or 1) ends a frame now
      * rather than at the endpoint's next quiet point. */
+    // ic: Fails invalid_argument (code: explicit_boundary is 0 or 1), unchanged.
     gf_status (GF_CALL* touch)(gf_paint_endpoint endpoint, uint32_t explicit_boundary);
     /* Publishes what the endpoint holds now. */
     gf_status (GF_CALL* drain)(gf_paint_endpoint endpoint);
     /* The endpoint's state as text, for diagnostics; required receives its
      * size, a short buffer gives GF_STATUS_BUFFER_TOO_SMALL. */
+    // ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT,
+    // ic: unchanged. Fails buffer_too_small (The endpoint's state as text, for diagnostics; required receives its size,
+    // ic: a short buffer gives GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
     gf_status (GF_CALL* snapshot)(gf_paint_endpoint endpoint, char* buffer, uint64_t capacity, uint64_t* required);
     /* Publishes width by height premultiplied BGRA pixels, row_bytes apart
      * (at least width * 4), to the endpoint behind compatibility_handle. */
+    // ic: Fails invalid_argument (code: submit_bgra needs a handle and bounded pixels with rows of at least width * 4
+    // ic: bytes), unchanged.
     gf_status (GF_CALL* submit_bgra)(uint64_t compatibility_handle, uint32_t width, uint32_t height,
                                      uint64_t row_bytes, const uint8_t* pixels);
     /* Ends the endpoint; its token and handle stop working. */
     gf_status (GF_CALL* release)(gf_paint_endpoint endpoint);
     /* GetDC and ReleaseDC for the shim: the endpoint's memory DC. */
+    // ic: Fails invalid_argument (code: get_dc needs a handle and an output), unchanged.
     gf_status (GF_CALL* get_dc)(uint64_t compatibility_handle, uint64_t* device_context);
+    // ic: Fails invalid_argument (code: release_dc needs a handle and a device context), unchanged.
     gf_status (GF_CALL* release_dc)(uint64_t compatibility_handle, uint64_t device_context);
     /* Publishes what was drawn into device_context. */
+    // ic: Fails invalid_argument (code: publish_dc needs a device context), unchanged.
     gf_status (GF_CALL* publish_dc)(uint64_t device_context);
     /* A short lease that serializes one write into device_context against
      * resizing and release; end_write publishes (1) or not (0). */
+    // ic: Fails invalid_argument (code: begin_write needs a device context and an output), unchanged. Returns
+    // ic: gf_paint_write_lease, owned by the caller.
     gf_status (GF_CALL* begin_write)(uint64_t device_context, gf_paint_write_lease* lease);
+    // ic: Fails invalid_argument (code: end_write needs a lease and publish 0 or 1), unchanged.
     gf_status (GF_CALL* end_write)(gf_paint_write_lease lease, uint32_t publish);
 } gf_windows_paint_endpoint_table;
 

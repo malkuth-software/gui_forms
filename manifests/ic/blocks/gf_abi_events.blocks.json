@@ -1,0 +1,230 @@
+{
+  "schema": 1,
+  "component": "gf_abi::events",
+  "declaration": "include/gui_forms/c/gf_abi_events.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.events.subscribe.alive",
+      "mode": "legal",
+      "call": "subscribe",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::events",
+          "state": "alive"
+        },
+        {
+          "name": "subscription",
+          "type": "gf_subscription*",
+          "bounded_by": [
+            "not_null(subscription)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(subscription)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "A name the type does not raise gives GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_subscription",
+        "owns": "caller"
+      },
+      "refusal_order": [
+        "subscription_output",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.events.subscribe.misuse.subscription_output",
+      "mode": "misuse",
+      "call": "subscribe",
+      "violates": "not_null(subscription)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.events.subscribe.outside.disposing",
+      "mode": "misuse",
+      "call": "subscribe",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.events.subscribe.outside.disposed",
+      "mode": "misuse",
+      "call": "subscribe",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.events.subscribe_property.alive",
+      "mode": "legal",
+      "call": "subscribe_property",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::events",
+          "state": "alive"
+        },
+        {
+          "name": "subscription",
+          "type": "gf_subscription*",
+          "bounded_by": [
+            "not_null(subscription)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(subscription)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: the source has no property of that name",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_subscription",
+        "owns": "caller"
+      },
+      "refusal_order": [
+        "subscription_output",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.events.subscribe_property.misuse.subscription_output",
+      "mode": "misuse",
+      "call": "subscribe_property",
+      "violates": "not_null(subscription)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.events.subscribe_property.outside.disposing",
+      "mode": "misuse",
+      "call": "subscribe_property",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.events.subscribe_property.outside.disposed",
+      "mode": "misuse",
+      "call": "subscribe_property",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.events.disconnect",
+      "mode": "legal",
+      "call": "disconnect",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.events.write_field",
+      "mode": "legal",
+      "call": "write_field",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_STATE when event is not running, GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value it does not admit; nothing is written then.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE when event is not running, GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value it does not admit; nothing is written then.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_INVALID_STATE when event is not running, GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value it does not admit; nothing is written then.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.events.field_element",
+      "mode": "legal",
+      "call": "field_element",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "code: no callback is running for that event",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "GF_STATUS_UNSUPPORTED_CAPABILITY when the elements are structs.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    }
+  ]
+}

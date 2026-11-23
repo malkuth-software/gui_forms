@@ -3,6 +3,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "easing_preview_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -13,6 +14,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::easing_preview;
 namespace {
 
 using namespace std::chrono_literals;
@@ -490,7 +492,7 @@ void EasingPreview::written(const decltype(title)&) {
 
 void EasingPreview::prepare_write(const decltype(marker_size)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 48.0) throw std::invalid_argument("easing marker size must be within [4, 48]");
+    if (!ic::admits_marker_size(incoming)) throw std::invalid_argument("easing marker size must be within [4, 48]");
 }
 
 void EasingPreview::written(const decltype(marker_size)&) {

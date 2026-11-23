@@ -39,6 +39,8 @@ inline constexpr FrameInterval scrub_glow_fall = std::chrono::milliseconds(240);
 // starts) and fades over scrub_glow_fall when it ends, on a paint-gated
 // timer (ADR-016). Under reduced motion, in an occluded window or with no
 // window, it jumps to its end at once and no timer runs.
+// ic: gui_forms::NumericUpDown: generated from include/gui_forms/controls/numeric_up_down.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API NumericUpDown final : public UpDownBase, public NumericUpDownCapabilities<NumericUpDown> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -186,10 +188,13 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(value)& cell, double& incoming);
     void written(const decltype(value)& cell);
+    // ic: Requires finite(incoming), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(minimum)& cell, double& incoming);
     void written(const decltype(minimum)& cell);
+    // ic: Requires finite(incoming), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(maximum)& cell, double& incoming);
     void written(const decltype(maximum)& cell);
+    // ic: Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(increment)& cell, double& incoming);
     void written(const decltype(increment)& cell);
     void prepare_write(const decltype(decimal_places)& cell, std::uint8_t& incoming);

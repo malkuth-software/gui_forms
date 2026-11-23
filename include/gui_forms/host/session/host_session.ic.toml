@@ -1,0 +1,77 @@
+# HostSession's behavioural constraints, stated once (IC3; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines, the entry checks
+# (src/core/host/session/host_session_ic_checks.hpp), the member-manifest column, the fuzz blocks and the proof
+# obligations from it. The lifecycle matrix was lifecycle_refusal's switch and the geometry rules valid_size and
+# valid_scale (host_session.cpp); they are now the predicates generated from the clauses below.
+
+schema = 1
+component = "HostSession"
+namespace = "gui_forms"
+header = "include/gui_forms/host/session/host_session.hpp"
+anchor = "class GUI_FORMS_API HostSession final {"
+keys = { manifest = "gui_forms::HostSession" }
+thread = "ui"
+states = ["constructed", "attached", "close_authorized", "closed", "shutdown"]
+initial = "constructed"
+state_query = { call = "snapshot", observes = { constructed = "phase == HostLifecyclePhase::constructed", attached = "phase == HostLifecyclePhase::attached", close_authorized = "phase == HostLifecyclePhase::close_authorized", closed = "phase == HostLifecyclePhase::closed", shutdown = "phase == HostLifecyclePhase::shutdown" } }
+
+[terms]
+phase = "HostLifecyclePhase"
+last_sequence = "std::uint64_t"
+
+[constants]
+phase_constructed = { cpp = "HostLifecyclePhase::constructed", type = "HostLifecyclePhase" }
+phase_attached = { cpp = "HostLifecyclePhase::attached", type = "HostLifecyclePhase" }
+phase_close_authorized = { cpp = "HostLifecyclePhase::close_authorized", type = "HostLifecyclePhase" }
+phase_closed = { cpp = "HostLifecyclePhase::closed", type = "HostLifecyclePhase" }
+
+[checks]
+path = "src/core/host/session/host_session_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::host_session"
+includes = ["gui_forms/host/types/host_types.hpp"]
+used_in = ["src/core/host/session/host_session.cpp"]
+
+[[call]]
+name = "HostSession"
+id = "construct"
+declarations = ["HostSession(Window& window,"]
+kind = "constructor"
+returns = { type = "HostSession", borrows = "window", until = ["the window is destroyed: the session then ends without it"] }
+
+[[call]]
+name = "dispatch"
+declarations = ["[[nodiscard]] HostDispatchResult dispatch(HostEvent event);"]
+kind = "member"
+in = ["constructed", "attached", "close_authorized", "closed"]
+outside = { shutdown = "value:HostDispatchError::after_shutdown" }
+parameters = { sequence = "std::uint64_t", attach = "bool", shutdown = "bool", closed = "bool", passive_terminal = "bool", width = "double", height = "double", scale = "double" }
+requires = [
+  { holds = "sequence != 0", refuses = "value:HostDispatchError::sequence_zero", check = "dispatch_sequence" },
+  { holds = "sequence > last_sequence", refuses = "value:HostDispatchError::non_monotonic_sequence", check = "dispatch_order" },
+  { holds = "(phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0)", refuses = "value:HostDispatchError::invalid_lifecycle", check = "dispatch_lifecycle" },
+  { holds = "finite(width) and finite(height) and width > 0 and height > 0", refuses = "value:HostDispatchError::invalid_geometry", check = "dispatch_size" },
+  { holds = "finite(scale) and scale > 0", refuses = "value:HostDispatchError::invalid_geometry", check = "dispatch_scale" },
+]
+refusal_order = ["dispatch_sequence", "dispatch_order", "outside", "dispatch_lifecycle", "dispatch_size", "dispatch_scale"]
+fails = [
+  { failure = "wrong_thread", when = "off the thread that constructed the session (HostDispatchError::wrong_thread)" },
+  { failure = "invalid_payload", when = "a payload its own rules refuse: invalid UTF-8 text, input settings out of range, a stale compositor report" },
+]
+
+[[call]]
+name = "shutdown"
+declarations = ["void shutdown() noexcept;"]
+kind = "member"
+moves = "shutdown"
+
+[[call]]
+name = "snapshot"
+declarations = ["[[nodiscard]] HostSessionSnapshot snapshot() const;"]
+kind = "member"
+returns = { type = "HostSessionSnapshot", owns = "caller" }
+
+[[obligation]]
+id = "dispatch_transitions"
+statement = "An accepted attach moves constructed to attached; a closing event that is not cancelled, hidden, a session end or a query moves attached to close_authorized; an accepted closed event moves to closed; shutdown, or a dispatch after the window was destroyed, moves to shutdown. Window::host_lifecycle_phase reports the same phase while the window lives (HostSession::set_phase writes both)."
+method = "inspection of HostSession::DispatchVisitor and set_phase; the hosts' lifecycle tests"
+premises = []

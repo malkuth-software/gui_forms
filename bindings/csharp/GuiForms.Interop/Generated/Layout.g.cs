@@ -54,7 +54,7 @@ public static unsafe class Layout
         {
             gf_runtime_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_runtime_table size", sizeof(gf_runtime_table), 64);
+            failures += expect(output, "gf_runtime_table size", sizeof(gf_runtime_table), 72);
             failures += expect(output, "gf_runtime_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_runtime_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_runtime_table.version offset", (long)((byte*)&value.version - start), 8);
@@ -64,6 +64,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_runtime_table.splashscreen_set_status offset", (long)((byte*)&value.splashscreen_set_status - start), 40);
             failures += expect(output, "gf_runtime_table.splashscreen_set_progress offset", (long)((byte*)&value.splashscreen_set_progress - start), 48);
             failures += expect(output, "gf_runtime_table.splashscreen_close offset", (long)((byte*)&value.splashscreen_close - start), 56);
+            failures += expect(output, "gf_runtime_table.splashscreen_state offset", (long)((byte*)&value.splashscreen_state - start), 64);
         }
         {
             gf_logical_point value = default;
@@ -331,7 +332,7 @@ public static unsafe class Layout
         {
             gf_windows_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 256);
+            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 264);
             failures += expect(output, "gf_windows_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_windows_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_windows_table.run offset", (long)((byte*)&value.run - start), 8);
@@ -365,6 +366,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_windows_table.mdi_children_minimized_anchor_bottom offset", (long)((byte*)&value.mdi_children_minimized_anchor_bottom - start), 232);
             failures += expect(output, "gf_windows_table.set_main_menu_strip offset", (long)((byte*)&value.set_main_menu_strip - start), 240);
             failures += expect(output, "gf_windows_table.main_menu_strip offset", (long)((byte*)&value.main_menu_strip - start), 248);
+            failures += expect(output, "gf_windows_table.lifecycle offset", (long)((byte*)&value.lifecycle - start), 256);
         }
         {
             gf_schema_type value = default;

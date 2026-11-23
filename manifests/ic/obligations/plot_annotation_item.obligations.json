@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::PlotAnnotationItem",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/plot_annotation_item.ic.toml",
+    "sha256": "fae0fc33441608e44dcab504b47637b04716582c1448dc9bd33ec1b14795b0b9"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.plotannotationitem.x_write.requires.x",
+      "kind": "entry-check",
+      "statement": "x runs only when finite(incoming); otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::plot_annotation_item::admits_x, called in src/controls/plots/plot_annotation_item/plot_annotation_item.cpp"
+    },
+    {
+      "id": "gui_forms.plotannotationitem.x_write.refusal.x",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming), x changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.plotannotationitem.y_write.requires.y",
+      "kind": "entry-check",
+      "statement": "y runs only when finite(incoming); otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::plot_annotation_item::admits_y, called in src/controls/plots/plot_annotation_item/plot_annotation_item.cpp"
+    },
+    {
+      "id": "gui_forms.plotannotationitem.y_write.refusal.y",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming), y changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

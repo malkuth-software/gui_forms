@@ -121,6 +121,11 @@ void gf_kit_splashscreen_refusals(gf_kit* kit) {
                   "set_progress needs an open splashscreen");
     gf_kit_status(kit, (*kit).runtime.splashscreen_close(0u), GF_STATUS_STALE_HANDLE,
                   "close needs an open splashscreen");
+    gf_splashscreen_state state = GF_SPLASHSCREEN_STATE_SHOWN;
+    gf_kit_status(kit, (*kit).runtime.splashscreen_state(0u, &state), GF_STATUS_STALE_HANDLE,
+                  "splashscreen_state needs an open splashscreen");
+    gf_kit_status(kit, (*kit).runtime.splashscreen_state(0u, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "splashscreen_state needs its output");
 }
 
 void gf_kit_splashscreen(gf_kit* kit) {
@@ -133,6 +138,10 @@ void gf_kit_splashscreen(gf_kit* kit) {
         return;
     }
     gf_kit_check(kit, splashscreen != 0u, "a shown splashscreen has a handle");
+    gf_splashscreen_state state = GF_SPLASHSCREEN_STATE_HANDED_OVER;
+    gf_kit_status(kit, (*kit).runtime.splashscreen_state(splashscreen, &state), GF_STATUS_OK,
+                  "read the splashscreen's state");
+    gf_kit_check(kit, state == GF_SPLASHSCREEN_STATE_SHOWN, "a shown splashscreen is not handed over yet");
     gf_splashscreen second = 0u;
     gf_kit_status(kit, (*kit).runtime.splashscreen_show(&options, &second), GF_STATUS_INVALID_STATE,
                   "one splashscreen at a time");
@@ -159,4 +168,6 @@ void gf_kit_splashscreen(gf_kit* kit) {
                   GF_STATUS_STALE_HANDLE, "a closed splashscreen's handle is stale");
     gf_kit_status(kit, (*kit).runtime.splashscreen_close(splashscreen), GF_STATUS_STALE_HANDLE,
                   "a closed splashscreen closes once");
+    gf_kit_status(kit, (*kit).runtime.splashscreen_state(splashscreen, &state), GF_STATUS_STALE_HANDLE,
+                  "a closed splashscreen has no state");
 }

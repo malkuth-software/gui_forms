@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Label",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/label.ic.toml",
+    "sha256": "de44116ade3c1d904ff333e640913b00f5d88365a37fb2c1f6e98d853c71bfc8"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.label.line_spacing_write.requires.line_spacing",
+      "kind": "entry-check",
+      "statement": "line_spacing runs only when finite(incoming) and 4 * incoming >= 3 and incoming <= 3; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::label::admits_line_spacing, called in src/controls/label/label.cpp"
+    },
+    {
+      "id": "gui_forms.label.line_spacing_write.exact.line_spacing",
+      "kind": "predicate-exact",
+      "statement": "admits_line_spacing computes finite(incoming) and 4 * incoming >= 3 and incoming <= 3 exactly: no subtraction below zero, no sum or product past its type, in C++'s order of evaluation.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.label.line_spacing_write.refusal.line_spacing",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and 4 * incoming >= 3 and incoming <= 3, line_spacing changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

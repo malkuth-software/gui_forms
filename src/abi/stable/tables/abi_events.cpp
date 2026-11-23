@@ -13,6 +13,7 @@
 #include "../events/abi_event_catalog.hpp"
 #include "../events/abi_interactions.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_events_ic_checks.hpp"
 
 
 #include <algorithm>
@@ -93,7 +94,7 @@ namespace {
 // The shared body of subscribe and subscribe_property.
 gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* callback,
                        gf_subscription* subscription, bool property, SlotIdentity slot) {
-    if (subscription == nullptr) {
+    if (!ic_events::admits_subscription_output(subscription)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "subscribing needs a subscription output");
     }
     gf_callback copy{};

@@ -7,6 +7,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "wizard_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -16,6 +17,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::wizard;
 namespace {
 
 // Geometry in logical units: the padding around the header, page and
@@ -370,7 +372,7 @@ void Wizard::on_dispose() noexcept {
 
 void Wizard::prepare_write(const decltype(current_page)&, std::uint32_t& incoming) {
     require_mutable();
-    if (incoming != 0U && incoming >= page_count()) {
+    if (!ic::admits_current_page(incoming, page_count())) {
         throw std::invalid_argument("Wizard current page is past the last page");
     }
 }

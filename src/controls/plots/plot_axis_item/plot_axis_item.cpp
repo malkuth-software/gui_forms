@@ -1,6 +1,7 @@
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "plot_axis_item_ic_checks.hpp"
 
 #include <cmath>
 #include <memory>
@@ -8,6 +9,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::plot_axis_item;
 
 namespace {
 
@@ -140,7 +142,7 @@ void PlotAxisItem::written(const decltype(auto_fit)&) {
 
 void PlotAxisItem::prepare_write(const decltype(follow_span)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0) {
+    if (!ic::admits_follow_span(incoming)) {
         throw std::invalid_argument("PlotAxisItem follow_span must be finite and not negative");
     }
 }

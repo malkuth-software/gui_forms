@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::TabControl",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/tab_control.ic.toml",
+    "sha256": "13a14c4e3546991c7544fdf37da27ff2bfbebdc254c7a3769176ea1585038f4d"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.tabcontrol.item_size_write.requires.item_size",
+      "kind": "entry-check",
+      "statement": "item_size runs only when finite(incoming.width) and finite(incoming.height) and incoming.width >= 24 and incoming.height >= 18 and incoming.width <= item_extent_most and incoming.height <= item_extent_most; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::tab_control::admits_item_size, called in src/controls/scrollable_control/container_control/tab_control/tab_control.cpp"
+    },
+    {
+      "id": "gui_forms.tabcontrol.item_size_write.refusal.item_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming.width) and finite(incoming.height) and incoming.width >= 24 and incoming.height >= 18 and incoming.width <= item_extent_most and incoming.height <= item_extent_most, item_size changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

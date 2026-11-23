@@ -5,6 +5,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "button_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -18,6 +19,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::button;
 
 namespace {
 
@@ -440,7 +442,7 @@ void Button::written(const decltype(visual_style)&) {
 
 void Button::prepare_write(const decltype(flat_border_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument("button flat border width must be finite and nonnegative");
+    if (!ic::admits_flat_border_width(incoming)) throw std::invalid_argument("button flat border width must be finite and nonnegative");
 }
 
 void Button::written(const decltype(flat_border_width)&) {

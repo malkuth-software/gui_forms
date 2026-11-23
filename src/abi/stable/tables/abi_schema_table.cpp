@@ -10,6 +10,7 @@
 #include "gui_forms/anatomy.hpp"
 
 #include "../../../core/control_language/composite_definition/composite_definition.hpp"
+#include "../ic/abi_schema_ic_checks.hpp"
 
 #include "gui_forms/engine/effect/effect.hpp"
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
@@ -213,7 +214,7 @@ gf_status GF_CALL schema_vocabulary_at(gf_schema_vocabulary vocabulary, std::uin
 }
 
 gf_status schema_type_count_body(std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_schema::admits_type_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, type_count_slot, "type_count needs an output");
     }
     SchemaCall call;
@@ -231,7 +232,7 @@ gf_status GF_CALL schema_type_count(std::uint64_t* count) noexcept {
 }
 
 gf_status schema_find_type_body(gf_utf8_view name, std::uint64_t* type) {
-    if (type == nullptr) {
+    if (!ic_schema::admits_find_type_type(type)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, find_type_slot, "find_type needs an output");
     }
     std::string_view text;
@@ -384,7 +385,7 @@ gf_status GF_CALL schema_part_at(std::uint64_t type, std::uint64_t system, std::
 
 gf_status schema_state_at_body(std::uint64_t type, std::uint64_t system, std::uint64_t part,
                                std::uint64_t state, gf_utf8_view* name) {
-    if (name == nullptr) {
+    if (!ic_schema::admits_state_at_name(name)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, state_at_slot, "state_at needs an output");
     }
     SchemaCall call;
@@ -426,7 +427,7 @@ gf_status GF_CALL schema_state_at(std::uint64_t type, std::uint64_t system, std:
 
 gf_status schema_custom_state_at_body(std::uint64_t type, std::uint64_t system, std::uint64_t state,
                                       gf_utf8_view* name) {
-    if (name == nullptr) {
+    if (!ic_schema::admits_custom_state_at_name(name)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, custom_state_at_slot, "custom_state_at needs an output");
     }
     SchemaCall call;
@@ -565,7 +566,7 @@ gf_status GF_CALL schema_choice_at(std::uint64_t type, std::uint64_t property, s
 }
 
 gf_status schema_child_property_count_body(std::uint64_t type, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_schema::admits_child_property_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, child_property_count_slot, "child_property_count needs an output");
     }
     SchemaCall call;
@@ -817,7 +818,7 @@ gf_status GF_CALL schema_parameter_at(std::uint64_t primitive, std::uint64_t par
 
 gf_status schema_parameter_choice_at_body(std::uint64_t primitive, std::uint64_t parameter,
                                           std::uint64_t choice, gf_utf8_view* name) {
-    if (name == nullptr) {
+    if (!ic_schema::admits_parameter_choice_at_name(name)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, parameter_choice_at_slot, "parameter_choice_at needs an output");
     }
     SchemaCall call;
@@ -852,7 +853,7 @@ gf_status GF_CALL schema_parameter_choice_at(std::uint64_t primitive, std::uint6
 }
 
 gf_status schema_effect_count_body(std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_schema::admits_effect_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, effect_count_slot, "effect_count needs an output");
     }
     SchemaCall call;
@@ -963,7 +964,7 @@ gf_status find_composite(SchemaCall& call, std::uint64_t composite, SlotIdentity
 }
 
 gf_status schema_composite_count_body(std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_schema::admits_composite_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, composite_count_slot, "composite_count needs an output");
     }
     SchemaCall call;
@@ -1050,7 +1051,7 @@ gf_status GF_CALL schema_composite_part_at(std::uint64_t composite, std::uint64_
 
 gf_status schema_composite_state_at_body(std::uint64_t composite, std::uint64_t part, std::uint64_t state,
                                          gf_utf8_view* name) {
-    if (name == nullptr) {
+    if (!ic_schema::admits_composite_state_at_name(name)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, composite_state_at_slot, "composite_state_at needs an output");
     }
     SchemaCall call;
@@ -1082,7 +1083,7 @@ gf_status GF_CALL schema_composite_state_at(std::uint64_t composite, std::uint64
 }
 
 gf_status schema_composite_custom_state_at_body(std::uint64_t composite, std::uint64_t state, gf_utf8_view* name) {
-    if (name == nullptr) {
+    if (!ic_schema::admits_composite_custom_state_at_name(name)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, composite_custom_state_at_slot,
                     "composite_custom_state_at needs an output");
     }
@@ -1210,7 +1211,7 @@ gf_status GF_CALL schema_composite_event_at(std::uint64_t composite, std::uint64
 }
 
 gf_status schema_composite_command_at_body(std::uint64_t composite, std::uint64_t command, gf_utf8_view* name) {
-    if (name == nullptr) {
+    if (!ic_schema::admits_composite_command_at_name(name)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, composite_command_at_slot, "composite_command_at needs an output");
     }
     SchemaCall call;

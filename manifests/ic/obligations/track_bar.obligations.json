@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::TrackBar",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/track_bar.ic.toml",
+    "sha256": "82cf9c65d8953d5c8e921fbebfdea3e63b55295af433776d6ddfd88651002bf3"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.trackbar.tick_frequency_write.requires.tick_frequency",
+      "kind": "entry-check",
+      "statement": "tick_frequency runs only when finite(incoming) and incoming > 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::track_bar::admits_tick_frequency, called in src/controls/range_control/track_bar/track_bar.cpp"
+    },
+    {
+      "id": "gui_forms.trackbar.tick_frequency_write.refusal.tick_frequency",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming > 0, tick_frequency changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.trackbar.thumb_extent_write.requires.thumb_extent",
+      "kind": "entry-check",
+      "statement": "thumb_extent runs only when finite(incoming) and incoming >= 0 and incoming <= 64; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::track_bar::admits_thumb_extent, called in src/controls/range_control/track_bar/track_bar.cpp"
+    },
+    {
+      "id": "gui_forms.trackbar.thumb_extent_write.refusal.thumb_extent",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0 and incoming <= 64, thumb_extent changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

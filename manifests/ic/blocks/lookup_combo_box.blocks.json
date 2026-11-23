@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::LookupComboBox",
+  "declaration": "include/gui_forms/controls/lookup_combo_box.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.lookupcombobox.max_drop_down_rows_write",
+      "mode": "legal",
+      "call": "max_drop_down_rows",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::LookupComboBox"
+        },
+        {
+          "name": "incoming",
+          "type": "std::uint32_t",
+          "bounded_by": [
+            "incoming != 0 and incoming <= 64"
+          ]
+        }
+      ],
+      "requires": [
+        "incoming != 0 and incoming <= 64"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.lookupcombobox.max_drop_down_rows_write.misuse.max_drop_down_rows",
+      "mode": "misuse",
+      "call": "max_drop_down_rows",
+      "violates": "incoming != 0 and incoming <= 64",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

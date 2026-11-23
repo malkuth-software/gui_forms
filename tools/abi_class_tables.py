@@ -69,6 +69,7 @@ sys.path.insert(0, str(ROOT / "tools"))
 
 import abi_event_catalog  # noqa: E402
 import api_docs_parse  # noqa: E402
+import contract_lines  # noqa: E402
 
 MEMBERS: Path = ROOT / "manifests" / "members.json"
 SCHEMA: Path = ROOT / "manifests" / "control-schema.json"
@@ -2031,6 +2032,8 @@ def main(argv: list[str] | None = None) -> int:
     text: str = ""
     for path, text in files.items():
         current: str | None = path.read_text(encoding="utf-8") if path.exists() else None
+        if path == HEADER:
+            text = contract_lines.keep_contract_lines(current, text)
         if current == text:
             continue
         if arguments.check:

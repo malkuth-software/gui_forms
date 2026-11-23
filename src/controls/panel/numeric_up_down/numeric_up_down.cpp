@@ -12,6 +12,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
+#include "numeric_up_down_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -22,6 +23,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::numeric_up_down;
 namespace {
 
 // text_alignment's schema: HorizontalAlignment's values (Label's names).
@@ -209,7 +211,7 @@ void NumericUpDown::set_range(double lowest, double highest) {
 // Windows Forms does, then clamps value into the range.
 void NumericUpDown::prepare_write(const decltype(minimum)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming)) throw std::invalid_argument("NumericUpDown range must be finite and ordered");
+    if (!ic::admits_minimum(incoming)) throw std::invalid_argument("NumericUpDown range must be finite and ordered");
 }
 
 void NumericUpDown::written(const decltype(minimum)&) {
@@ -220,7 +222,7 @@ void NumericUpDown::written(const decltype(minimum)&) {
 
 void NumericUpDown::prepare_write(const decltype(maximum)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming)) throw std::invalid_argument("NumericUpDown range must be finite and ordered");
+    if (!ic::admits_maximum(incoming)) throw std::invalid_argument("NumericUpDown range must be finite and ordered");
 }
 
 void NumericUpDown::written(const decltype(maximum)&) {
@@ -929,7 +931,7 @@ void NumericUpDown::on_value_changed() {
 
 void NumericUpDown::prepare_write(const decltype(increment)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming <= 0.0) {
+    if (!ic::admits_increment(incoming)) {
         throw std::invalid_argument("NumericUpDown increment must be finite and positive");
     }
 }

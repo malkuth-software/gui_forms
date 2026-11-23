@@ -1,0 +1,32 @@
+# StepIndicator's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/step_indicator.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry
+# checks (src/controls/step_indicator/step_indicator_ic_checks.hpp)
+# that prepare_write calls. A refusal failure:invalid_argument is a throw of std::invalid_argument before
+# anything changes.
+
+schema = 1
+component = "StepIndicator"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/step_indicator.hpp"
+anchor = "class GUI_FORMS_API StepIndicator final : public Control, public StepIndicatorCapabilities<StepIndicator> {"
+thread = "ui"
+
+[terms]
+step_count = "std::size_t"
+
+[checks]
+path = "src/controls/step_indicator/step_indicator_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::step_indicator"
+includes = ["gui_forms/controls/step_indicator.hpp"]
+used_in = ["src/controls/step_indicator/step_indicator.cpp"]
+
+[[call]]
+name = "current_step"
+id = "current_step_write"
+declarations = ["void prepare_write(const decltype(current_step)&"]
+kind = "member"
+parameters = { incoming = "std::uint32_t" }
+requires = [
+  { holds = "incoming == 0 or incoming < step_count", refuses = "failure:invalid_argument", check = "current_step" },
+]

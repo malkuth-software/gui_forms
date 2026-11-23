@@ -136,6 +136,8 @@ struct GUI_FORMS_API ToolStripDropDownInvocation final {
 // move to an overflow menu opened from the overflow button at the strip's
 // end. A strip is laid out horizontally, or vertically (top to bottom) for
 // the left and right panels of a ToolStripContainer.
+// ic: gui_forms::ToolStrip: generated from include/gui_forms/controls/tool_strip.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ToolStrip : public Control, public ToolStripCapabilities<ToolStrip> {
 public:
     explicit ToolStrip(StableId stable_id);
@@ -392,6 +394,7 @@ private:
     void written(const decltype(orientation)& cell);
     void prepare_write(const decltype(sizing_grip_visible)& cell, bool& incoming);
     void written(const decltype(sizing_grip_visible)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(end_reserve)& cell, double& incoming);
     void written(const decltype(end_reserve)& cell);
     // property_codemod end ToolStrip

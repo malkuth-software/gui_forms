@@ -353,6 +353,8 @@ struct GUI_FORMS_API RibbonTabChange final {
 // Not yet: right-to-left mirroring and two-line large labels; in the
 // minimized popup, collapsed groups' overlays, drop-down menus and the
 // keyboard's stops (the popup's hosted controls take focus as usual).
+// ic: gui_forms::Ribbon: generated from include/gui_forms/controls/ribbon.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Ribbon final : public Control, public RibbonCapabilities<Ribbon> {
 public:
     // Development bounds, not measured capacity.
@@ -1320,6 +1322,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(application_modes)& cell, std::uint32_t& incoming);
     void written(const decltype(application_modes)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(document_minimum_height)& cell, double& incoming);
     void written(const decltype(document_minimum_height)& cell);
     void prepare_write(const decltype(minimized)& cell, bool& incoming);

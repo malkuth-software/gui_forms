@@ -1,0 +1,43 @@
+# Control's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/control.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry
+# checks (src/core/control/control/control_ic_checks.hpp)
+# that prepare_write calls. A refusal failure:invalid_argument is a throw of std::invalid_argument before
+# anything changes.
+
+schema = 1
+component = "Control"
+namespace = "gui_forms"
+header = "include/gui_forms/control/control/control.hpp"
+anchor = "class GUI_FORMS_API Control : public Component,"
+thread = "ui"
+
+[terms]
+minimum_size = "Size"
+maximum_size = "Size"
+
+[checks]
+path = "src/core/control/control/control_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::control"
+includes = ["gui_forms/control/control/control.hpp"]
+used_in = ["src/core/control/control/control.cpp"]
+
+[[call]]
+name = "minimum_size"
+id = "minimum_size_write"
+declarations = ["void prepare_write(const decltype(minimum_size)&"]
+kind = "member"
+parameters = { incoming = "Size" }
+requires = [
+  { holds = "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or incoming.height <= maximum_size.height)", refuses = "failure:invalid_argument", check = "minimum_size" },
+]
+
+[[call]]
+name = "maximum_size"
+id = "maximum_size_write"
+declarations = ["void prepare_write(const decltype(maximum_size)&"]
+kind = "member"
+parameters = { incoming = "Size" }
+requires = [
+  { holds = "finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0 and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or incoming.height >= minimum_size.height)", refuses = "failure:invalid_argument", check = "maximum_size" },
+]

@@ -1,0 +1,29 @@
+# EasingPreview's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/easing_preview.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (demo/lab_controls/src/easing_preview_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "EasingPreview"
+namespace = "gui_forms"
+header = "demo/lab_controls/include/gui_forms_demo/easing_preview.hpp"
+anchor = "class EasingPreview final : public Control, public EasingPreviewCapabilities<EasingPreview> {"
+thread = "ui"
+
+[checks]
+path = "demo/lab_controls/src/easing_preview_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::easing_preview"
+includes = ["gui_forms_demo/easing_preview.hpp"]
+used_in = ["demo/lab_controls/src/easing_preview.cpp"]
+
+[[call]]
+name = "marker_size"
+id = "marker_size_write"
+declarations = ["void prepare_write(const decltype(marker_size)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 4 and incoming <= 48", refuses = "failure:invalid_argument", check = "marker_size" },
+]

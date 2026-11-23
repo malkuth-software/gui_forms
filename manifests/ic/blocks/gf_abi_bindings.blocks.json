@@ -1,0 +1,1193 @@
+{
+  "schema": 1,
+  "component": "gf_abi::bindings",
+  "declaration": "include/gui_forms/c/gf_abi_bindings.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.bindings.bind",
+      "mode": "legal",
+      "call": "bind",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "disposed",
+          "when": "code: the target has been disposed",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "A property that is not bindable gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_object",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.bindings.unbind.alive",
+      "mode": "legal",
+      "call": "unbind",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "code: the binding is no longer bound",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.unbind.outside.disposing",
+      "mode": "misuse",
+      "call": "unbind",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.unbind.outside.disposed",
+      "mode": "misuse",
+      "call": "unbind",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.read_value.alive",
+      "mode": "legal",
+      "call": "read_value",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        },
+        {
+          "name": "updated",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(updated)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(updated)"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "read_value_updated",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.read_value.misuse.read_value_updated",
+      "mode": "misuse",
+      "call": "read_value",
+      "violates": "not_null(updated)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.read_value.outside.disposing",
+      "mode": "misuse",
+      "call": "read_value",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.read_value.outside.disposed",
+      "mode": "misuse",
+      "call": "read_value",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.write_value.alive",
+      "mode": "legal",
+      "call": "write_value",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        },
+        {
+          "name": "updated",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(updated)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(updated)"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "write_value_updated",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.write_value.misuse.write_value_updated",
+      "mode": "misuse",
+      "call": "write_value",
+      "violates": "not_null(updated)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.write_value.outside.disposing",
+      "mode": "misuse",
+      "call": "write_value",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.write_value.outside.disposed",
+      "mode": "misuse",
+      "call": "write_value",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.add_record.alive",
+      "mode": "legal",
+      "call": "add_record",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        },
+        {
+          "name": "index",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(index)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(index)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "code: the source's provider does not insert rows",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {},
+      "refusal_order": [
+        "add_record_index",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.add_record.misuse.add_record_index",
+      "mode": "misuse",
+      "call": "add_record",
+      "violates": "not_null(index)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.add_record.outside.disposing",
+      "mode": "misuse",
+      "call": "add_record",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.add_record.outside.disposed",
+      "mode": "misuse",
+      "call": "add_record",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.insert_record.alive",
+      "mode": "legal",
+      "call": "insert_record",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the records",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: the source's provider does not insert rows",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.insert_record.outside.disposing",
+      "mode": "misuse",
+      "call": "insert_record",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.insert_record.outside.disposed",
+      "mode": "misuse",
+      "call": "insert_record",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.remove_record.alive",
+      "mode": "legal",
+      "call": "remove_record",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        },
+        {
+          "name": "removed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(removed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(removed)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "A source that allows no removal gives GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {},
+      "refusal_order": [
+        "remove_record_removed",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.remove_record.misuse.remove_record_removed",
+      "mode": "misuse",
+      "call": "remove_record",
+      "violates": "not_null(removed)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.remove_record.outside.disposing",
+      "mode": "misuse",
+      "call": "remove_record",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.remove_record.outside.disposed",
+      "mode": "misuse",
+      "call": "remove_record",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.clear_records.alive",
+      "mode": "legal",
+      "call": "clear_records",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.clear_records.outside.disposing",
+      "mode": "misuse",
+      "call": "clear_records",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.clear_records.outside.disposed",
+      "mode": "misuse",
+      "call": "clear_records",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_position.alive",
+      "mode": "legal",
+      "call": "set_position",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        },
+        {
+          "name": "moved",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(moved)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(moved)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A position past the records gives GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {},
+      "refusal_order": [
+        "set_position_moved",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.set_position.misuse.set_position_moved",
+      "mode": "misuse",
+      "call": "set_position",
+      "violates": "not_null(moved)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_position.outside.disposing",
+      "mode": "misuse",
+      "call": "set_position",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_position.outside.disposed",
+      "mode": "misuse",
+      "call": "set_position",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.position.alive",
+      "mode": "legal",
+      "call": "position",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: position needs both outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.position.outside.disposing",
+      "mode": "misuse",
+      "call": "position",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.position.outside.disposed",
+      "mode": "misuse",
+      "call": "position",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.current_field.alive",
+      "mode": "legal",
+      "call": "current_field",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "The current record's field, as properties.get gives a value; no current record or no such field gives GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.current_field.outside.disposing",
+      "mode": "misuse",
+      "call": "current_field",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.current_field.outside.disposed",
+      "mode": "misuse",
+      "call": "current_field",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_current_field.alive",
+      "mode": "legal",
+      "call": "set_current_field",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        },
+        {
+          "name": "accepted",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(accepted)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(accepted)"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "set_current_field_accepted",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.set_current_field.misuse.set_current_field_accepted",
+      "mode": "misuse",
+      "call": "set_current_field",
+      "violates": "not_null(accepted)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_current_field.outside.disposing",
+      "mode": "misuse",
+      "call": "set_current_field",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_current_field.outside.disposed",
+      "mode": "misuse",
+      "call": "set_current_field",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.add_records.alive",
+      "mode": "legal",
+      "call": "add_records",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        },
+        {
+          "name": "first",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(first) and (not_null(records) or count == 0)"
+          ]
+        },
+        {
+          "name": "records",
+          "type": "gf_binding_record*",
+          "bounded_by": [
+            "not_null(first) and (not_null(records) or count == 0)"
+          ]
+        },
+        {
+          "name": "count",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(first) and (not_null(records) or count == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(first) and (not_null(records) or count == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: add_records needs records and a first output",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "code: the source's provider does not insert rows",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "More than GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {},
+      "refusal_order": [
+        "add_records_records",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.add_records.misuse.add_records_records",
+      "mode": "misuse",
+      "call": "add_records",
+      "violates": "not_null(first) and (not_null(records) or count == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.add_records.outside.disposing",
+      "mode": "misuse",
+      "call": "add_records",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.add_records.outside.disposed",
+      "mode": "misuse",
+      "call": "add_records",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_provider.alive",
+      "mode": "legal",
+      "call": "set_provider",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        },
+        {
+          "name": "column_count",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "callbacks",
+          "type": "gf_binding_provider_callbacks*",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "provider",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(provider)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(provider)",
+        "not_null(callbacks) or column_count == 0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: provider callbacks or columns their checks refuse",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a binding source",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {},
+      "refusal_order": [
+        "set_provider_provider",
+        "set_provider_columns"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.set_provider.disposing",
+      "mode": "legal",
+      "call": "set_provider",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "disposing"
+        },
+        {
+          "name": "column_count",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "callbacks",
+          "type": "gf_binding_provider_callbacks*",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "provider",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(provider)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(provider)",
+        "not_null(callbacks) or column_count == 0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: provider callbacks or columns their checks refuse",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a binding source",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {},
+      "refusal_order": [
+        "set_provider_provider",
+        "set_provider_columns"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.set_provider.disposed",
+      "mode": "legal",
+      "call": "set_provider",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "disposed"
+        },
+        {
+          "name": "column_count",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "callbacks",
+          "type": "gf_binding_provider_callbacks*",
+          "bounded_by": [
+            "not_null(callbacks) or column_count == 0"
+          ]
+        },
+        {
+          "name": "provider",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(provider)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(provider)",
+        "not_null(callbacks) or column_count == 0"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: provider callbacks or columns their checks refuse",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is not a binding source",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {},
+      "refusal_order": [
+        "set_provider_provider",
+        "set_provider_columns"
+      ]
+    },
+    {
+      "name": "gf_abi.bindings.set_provider.misuse.set_provider_provider",
+      "mode": "misuse",
+      "call": "set_provider",
+      "violates": "not_null(provider)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_provider.misuse.set_provider_columns",
+      "mode": "misuse",
+      "call": "set_provider",
+      "violates": "not_null(callbacks) or column_count == 0",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.notify",
+      "mode": "legal",
+      "call": "notify",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: kind is a gf_binding_notification_kind",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "removed",
+          "when": "An id the source has let go, or whose source is disposed, gives GF_STATUS_REMOVED.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.set_sort.alive",
+      "mode": "legal",
+      "call": "set_sort",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "Sorts the source's rows by count keys (0 clears), through the provider when it sorts, otherwise through the source's own index; an unknown column gives GF_STATUS_NOT_FOUND and changes nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.set_sort.outside.disposing",
+      "mode": "misuse",
+      "call": "set_sort",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_sort.outside.disposed",
+      "mode": "misuse",
+      "call": "set_sort",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_filter.alive",
+      "mode": "legal",
+      "call": "set_filter",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: a predicate names a column the source has not got",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.set_filter.outside.disposing",
+      "mode": "misuse",
+      "call": "set_filter",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.set_filter.outside.disposed",
+      "mode": "misuse",
+      "call": "set_filter",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.generation.alive",
+      "mode": "legal",
+      "call": "generation",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: generation needs its two outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.generation.outside.disposing",
+      "mode": "misuse",
+      "call": "generation",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.generation.outside.disposed",
+      "mode": "misuse",
+      "call": "generation",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.read_cell.alive",
+      "mode": "legal",
+      "call": "read_cell",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::bindings",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "The cell (row, column) of the shown rows, read at generation, as properties.get gives a value; a generation that is no longer the source's gives GF_STATUS_STALE_HANDLE, a row or column past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave no valid answer for GF_STATUS_INVALID_STATE with its error as the failure's message.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "The cell (row, column) of the shown rows, read at generation, as properties.get gives a value; a generation that is no longer the source's gives GF_STATUS_STALE_HANDLE, a row or column past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave no valid answer for GF_STATUS_INVALID_STATE with its error as the failure's message.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.bindings.read_cell.outside.disposing",
+      "mode": "misuse",
+      "call": "read_cell",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.bindings.read_cell.outside.disposed",
+      "mode": "misuse",
+      "call": "read_cell",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

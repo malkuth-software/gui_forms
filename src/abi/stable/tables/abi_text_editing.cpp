@@ -5,6 +5,7 @@
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
 #include "../values/abi_values.hpp"
+#include "../ic/abi_text_editing_ic_checks.hpp"
 
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -270,7 +271,7 @@ gf_status GF_CALL text_editing_grapheme_boundary(gf_object object, std::uint64_t
 
 gf_status text_editing_replace_range_body(gf_object object, std::uint64_t start, std::uint64_t length,
                                           gf_utf8_view replacement, std::uint32_t* changed) {
-    if (changed == nullptr) {
+    if (!ic_text_editing::admits_replace_range_changed(changed)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, replace_range_slot, "replace_range needs a changed output");
     }
     std::shared_ptr<TextBox> box;
@@ -303,7 +304,7 @@ gf_status GF_CALL text_editing_replace_range(gf_object object, std::uint64_t sta
 }
 
 gf_status text_editing_undo_body(gf_object object, std::uint32_t* changed) {
-    if (changed == nullptr) {
+    if (!ic_text_editing::admits_undo_changed(changed)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, undo_slot, "undo needs a changed output");
     }
     std::shared_ptr<TextBox> box;
@@ -321,7 +322,7 @@ gf_status GF_CALL text_editing_undo(gf_object object, std::uint32_t* changed) no
 }
 
 gf_status text_editing_redo_body(gf_object object, std::uint32_t* changed) {
-    if (changed == nullptr) {
+    if (!ic_text_editing::admits_redo_changed(changed)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, redo_slot, "redo needs a changed output");
     }
     std::shared_ptr<TextBox> box;
@@ -420,7 +421,7 @@ gf_status GF_CALL text_editing_clear_decorations(gf_object object) noexcept {
 }
 
 gf_status text_editing_decoration_count_body(gf_object object, std::uint32_t layer, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_text_editing::admits_decoration_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, decoration_count_slot, "decoration_count needs an output");
     }
     std::shared_ptr<TextBox> box;
@@ -438,7 +439,7 @@ gf_status GF_CALL text_editing_decoration_count(gf_object object, std::uint32_t 
 
 gf_status text_editing_decoration_at_body(gf_object object, std::uint32_t layer, std::uint64_t index,
                                           gf_text_decoration* decoration) {
-    if (decoration == nullptr) {
+    if (!ic_text_editing::admits_decoration_at_decoration(decoration)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, decoration_at_slot, "decoration_at needs an output");
     }
     std::shared_ptr<TextBox> box;
@@ -463,7 +464,7 @@ gf_status GF_CALL text_editing_decoration_at(gf_object object, std::uint32_t lay
 // for every selection and decoration call, without copying the text out.
 gf_status text_editing_utf8_to_utf16_offset_body(gf_object object, std::uint64_t utf8_offset,
                                                  std::uint64_t* utf16_offset) {
-    if (utf16_offset == nullptr) {
+    if (!ic_text_editing::admits_utf8_to_utf16_offset_utf16_offset(utf16_offset)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, utf8_to_utf16_offset_slot,
                     "utf8_to_utf16_offset needs an output");
     }
@@ -490,7 +491,7 @@ gf_status GF_CALL text_editing_utf8_to_utf16_offset(gf_object object, std::uint6
 
 gf_status text_editing_utf16_to_utf8_offset_body(gf_object object, std::uint64_t utf16_offset,
                                                  std::uint64_t* utf8_offset) {
-    if (utf8_offset == nullptr) {
+    if (!ic_text_editing::admits_utf16_to_utf8_offset_utf8_offset(utf8_offset)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, utf16_to_utf8_offset_slot,
                     "utf16_to_utf8_offset needs an output");
     }

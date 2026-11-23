@@ -1,0 +1,29 @@
+# SevenSegmentDisplay's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/seven_segment_display.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/instruments/seven_segment_display/seven_segment_display_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "SevenSegmentDisplay"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/seven_segment_display.hpp"
+anchor = "class GUI_FORMS_API SevenSegmentDisplay final : public Control, public SevenSegmentDisplayCapabilities<SevenSegmentDisplay> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/instruments/seven_segment_display/seven_segment_display_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::seven_segment_display"
+includes = ["gui_forms/controls/seven_segment_display.hpp"]
+used_in = ["src/controls/instruments/seven_segment_display/seven_segment_display.cpp"]
+
+[[call]]
+name = "digit_count"
+id = "digit_count_write"
+declarations = ["void prepare_write(const decltype(digit_count)&"]
+kind = "member"
+parameters = { incoming = "std::uint32_t" }
+requires = [
+  { holds = "incoming <= 64", refuses = "failure:invalid_argument", check = "digit_count" },
+]

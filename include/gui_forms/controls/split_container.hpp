@@ -32,6 +32,8 @@ struct GUI_FORMS_API SplitSeamSnapshot final {
     bool transition_active{};
 };
 
+// ic: gui_forms::SplitContainer: generated from include/gui_forms/controls/split_container.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API SplitContainer final : public ContainerControl, public SplitContainerCapabilities<SplitContainer> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -200,8 +202,14 @@ private:
     void written(const decltype(splitter_geometry)& cell);
     void write_view(const decltype(splitter_transition_duration)& cell, FrameInterval incoming);
     [[nodiscard]] FrameInterval read_view(const decltype(splitter_transition_duration)& cell) const;
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged. Requires incoming <=
+    // ic: first_maximum_bound, else failure invalid_argument, unchanged. When several refusals apply:
+    // ic: first_minimum_extent, then first_minimum_order.
     void prepare_write(const decltype(first_minimum)& cell, double& incoming);
     void written(const decltype(first_minimum)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged. Requires incoming <=
+    // ic: second_maximum_bound, else failure invalid_argument, unchanged. When several refusals apply:
+    // ic: second_minimum_extent, then second_minimum_order.
     void prepare_write(const decltype(second_minimum)& cell, double& incoming);
     void written(const decltype(second_minimum)& cell);
     void prepare_write(const decltype(first_maximum)& cell, stxlib::Optional<double>& incoming);
@@ -216,6 +224,7 @@ private:
     void written(const decltype(collapse_panel)& cell);
     void prepare_write(const decltype(automatic_collapse_threshold)& cell, double& incoming);
     void written(const decltype(automatic_collapse_threshold)& cell);
+    // ic: Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(keyboard_increment)& cell, double& incoming);
     void written(const decltype(keyboard_increment)& cell);
     // property_codemod end SplitContainer

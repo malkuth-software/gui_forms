@@ -7,6 +7,7 @@
 #include "../text_collection_property.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "../../../../core/types/restrict/restrict.hpp"
+#include "responsive_track_panel_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -23,6 +24,7 @@
 #include <variant>
 
 namespace gui_forms {
+namespace ic = detail::ic::responsive_track_panel;
 namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> orientation_enum() {
@@ -1008,7 +1010,7 @@ void ResponsiveTrackPanel::written(const decltype(orientation)&) {
 
 void ResponsiveTrackPanel::prepare_write(const decltype(track_gap)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument("ResponsiveTrackPanel gap must be finite and between zero and 256");
+    if (!ic::admits_track_gap(incoming)) throw std::invalid_argument("ResponsiveTrackPanel gap must be finite and between zero and 256");
 }
 
 void ResponsiveTrackPanel::written(const decltype(track_gap)&) {

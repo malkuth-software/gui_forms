@@ -1,0 +1,115 @@
+{
+  "schema": 1,
+  "component": "gf_abi::rules",
+  "declaration": "include/gui_forms/c/gf_abi_rules.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.rules.add",
+      "mode": "legal",
+      "call": "add",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "disposed",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_rule_token",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.rules.remove",
+      "mode": "legal",
+      "call": "remove",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::rules"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.rules.state",
+      "mode": "legal",
+      "call": "state",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::rules"
+        },
+        {
+          "name": "state",
+          "type": "gf_rule_state*",
+          "bounded_by": [
+            "not_null(state)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(state)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.rules.state.misuse.state_state",
+      "mode": "misuse",
+      "call": "state",
+      "violates": "not_null(state)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

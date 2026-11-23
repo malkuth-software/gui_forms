@@ -8,6 +8,7 @@
 
 #include "../registry/abi_registry.hpp"
 #include "../values/abi_values.hpp"
+#include "../ic/abi_bindings_ic_checks.hpp"
 
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -320,7 +321,7 @@ gf_status GF_CALL bindings_unbind(gf_object binding) noexcept {
 }
 
 gf_status bindings_read_value_body(gf_object binding, std::uint32_t* updated) {
-    if (updated == nullptr) {
+    if (!ic_bindings::admits_read_value_updated(updated)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, read_value_slot, "read_value needs an output");
     }
     std::shared_ptr<Binding> typed;
@@ -337,7 +338,7 @@ gf_status GF_CALL bindings_read_value(gf_object binding, std::uint32_t* updated)
 }
 
 gf_status bindings_write_value_body(gf_object binding, std::uint32_t* updated) {
-    if (updated == nullptr) {
+    if (!ic_bindings::admits_write_value_updated(updated)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, write_value_slot, "write_value needs an output");
     }
     std::shared_ptr<Binding> typed;
@@ -355,7 +356,7 @@ gf_status GF_CALL bindings_write_value(gf_object binding, std::uint32_t* updated
 
 gf_status bindings_add_record_body(gf_object source, const gf_binding_record* record,
                                    std::uint64_t* index) {
-    if (index == nullptr) {
+    if (!ic_bindings::admits_add_record_index(index)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, add_record_slot, "add_record needs an index output");
     }
     std::vector<AbiRecord> converted(1U);
@@ -384,7 +385,7 @@ gf_status GF_CALL bindings_add_record(gf_object source, const gf_binding_record*
 
 gf_status bindings_add_records_body(gf_object source, const gf_binding_record* records, std::uint64_t count,
                                     std::uint64_t* first) {
-    if (first == nullptr || (records == nullptr && count != 0U)) {
+    if (!ic_bindings::admits_add_records_records(first, records, count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, add_records_slot, "add_records needs records and a first output");
     }
     if (count > GF_BINDING_MAXIMUM_RECORDS_PER_CALL) {
@@ -496,7 +497,7 @@ gf_status GF_CALL bindings_insert_record(gf_object source, std::uint64_t index,
 }
 
 gf_status bindings_remove_record_body(gf_object source, std::uint64_t index, std::uint32_t* removed) {
-    if (removed == nullptr) {
+    if (!ic_bindings::admits_remove_record_removed(removed)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, remove_record_slot, "remove_record needs an output");
     }
     std::shared_ptr<BindingSource> typed;
@@ -531,7 +532,7 @@ gf_status GF_CALL bindings_clear_records(gf_object source) noexcept {
 }
 
 gf_status bindings_set_position_body(gf_object source, std::int64_t position, std::uint32_t* moved) {
-    if (moved == nullptr) {
+    if (!ic_bindings::admits_set_position_moved(moved)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_position_slot, "set_position needs an output");
     }
     std::shared_ptr<BindingSource> typed;
@@ -600,7 +601,7 @@ gf_status GF_CALL bindings_current_field(gf_object source, gf_utf8_view field, g
 
 gf_status bindings_set_current_field_body(gf_object source, gf_utf8_view field, const gf_value* value,
                                           std::uint32_t* accepted) {
-    if (accepted == nullptr) {
+    if (!ic_bindings::admits_set_current_field_accepted(accepted)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_current_field_slot, "set_current_field needs an output");
     }
     std::string_view name;
@@ -630,7 +631,7 @@ gf_status GF_CALL bindings_set_current_field(gf_object source, gf_utf8_view fiel
 gf_status bindings_set_provider_body(gf_object source, const gf_binding_column* columns,
                                      std::uint64_t column_count, const gf_binding_provider_callbacks* callbacks,
                                      std::uint64_t* provider) {
-    if (provider == nullptr) {
+    if (!ic_bindings::admits_set_provider_provider(provider)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "set_provider needs a provider output");
     }
     // Everything the caller lends is read and checked before the
@@ -648,7 +649,7 @@ gf_status bindings_set_provider_body(gf_object source, const gf_binding_column* 
         if (read != GF_STATUS_OK) {
             return read;
         }
-    } else if (column_count != 0U) {
+    } else if (!ic_bindings::admits_set_provider_columns(column_count, callbacks)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, set_provider_slot, "an empty table takes no columns");
     }
     std::shared_ptr<BindingSource> typed;

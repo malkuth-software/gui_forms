@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gf_abi::fonts",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_fonts.ic.toml",
+    "sha256": "59e8d661d74137d2a86c4b0cefd5bfc80d386bb1e46dfb9f4c9efe398a187193"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.fonts.family_id.requires.family_id_family",
+      "kind": "entry-check",
+      "statement": "family_id runs only when not_null(family); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_fonts::admits_family_id_family, called in src/abi/stable/tables/abi_fonts.cpp"
+    },
+    {
+      "id": "gf_abi.fonts.family_id.refusal.family_id_family",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(family), family_id changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.fonts.load_family.requires.load_family_faces",
+      "kind": "entry-check",
+      "statement": "load_family runs only when not_null(family) and (not_null(faces) or face_count == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_fonts::admits_load_family_faces, called in src/abi/stable/tables/abi_fonts.cpp"
+    },
+    {
+      "id": "gf_abi.fonts.load_family.refusal.load_family_faces",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(family) and (not_null(faces) or face_count == 0), load_family changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -1,0 +1,129 @@
+{
+  "schema": 1,
+  "component": "gf_abi::application",
+  "declaration": "include/gui_forms/c/gf_abi_application.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.application.create",
+      "mode": "legal",
+      "call": "create",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for an unknown base or source, a non-zero reserved field, or packages null with a non-zero count.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE, making nothing and leaving the findings, while an application is current or while the library holds objects made without one;",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.application.close",
+      "mode": "legal",
+      "call": "close",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "windows_alive",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(windows_alive)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(windows_alive)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE, changing nothing, while any is; once closed, the theme is the built-in one again (as themes.reset), windows made afterwards use the process default and create may make another application.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.application.close.misuse.close_windows_alive",
+      "mode": "misuse",
+      "call": "close",
+      "violates": "not_null(windows_alive)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.application.state",
+      "mode": "legal",
+      "call": "state",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "state",
+          "type": "gf_application_state*",
+          "bounded_by": [
+            "not_null(state)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(state)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.application.state.misuse.state_state",
+      "mode": "misuse",
+      "call": "state",
+      "violates": "not_null(state)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.application.set_program_identity",
+      "mode": "legal",
+      "call": "set_program_identity",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a null or short record, a non-zero reserved field, text that is not UTF-8 or a website that is neither empty nor an https:// address.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    }
+  ]
+}

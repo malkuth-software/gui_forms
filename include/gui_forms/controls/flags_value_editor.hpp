@@ -20,6 +20,8 @@ namespace gui_forms {
 // `none-name` (the name of no flag; empty for none) and `checked-flags`
 // (names among `flag-names`). Until `flag-names` is written the editor
 // holds no flags, shows no value and opens no list.
+// ic: gui_forms::FlagsValueEditor: generated from include/gui_forms/controls/flags_value_editor.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API FlagsValueEditor final : public Panel, public FlagsValueEditorCapabilities<FlagsValueEditor> {
 public:
     explicit FlagsValueEditor(StableId stable_id);
@@ -143,6 +145,7 @@ private:
     [[nodiscard]] PropertyEnumValue read_view(const decltype(value)& cell) const;
     void write_view(const decltype(dropped_down)& cell, bool incoming);
     [[nodiscard]] bool read_view(const decltype(dropped_down)& cell) const;
+    // ic: Requires finite(incoming) and incoming >= 80 and incoming <= 1024, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(overlay_width)& cell, double& incoming);
     void written(const decltype(overlay_width)& cell);
     // property_codemod end FlagsValueEditor

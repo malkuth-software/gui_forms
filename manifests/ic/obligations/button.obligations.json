@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Button",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/button.ic.toml",
+    "sha256": "9c59b975c0bfc4cae9ee586eff1d33c5a9788f48190f26feb8acd7a1dcad2d3e"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.button.flat_border_width_write.requires.flat_border_width",
+      "kind": "entry-check",
+      "statement": "flat_border_width runs only when finite(incoming) and incoming >= 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::button::admits_flat_border_width, called in src/controls/button_base/button/button.cpp"
+    },
+    {
+      "id": "gui_forms.button.flat_border_width_write.refusal.flat_border_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0, flat_border_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

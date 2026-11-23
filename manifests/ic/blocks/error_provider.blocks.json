@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ErrorProvider",
+  "declaration": "include/gui_forms/components/error_provider/error_provider.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.errorprovider.icon_size_write",
+      "mode": "legal",
+      "call": "icon_size",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ErrorProvider"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 8 and incoming <= 64"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 8 and incoming <= 64"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.errorprovider.icon_size_write.misuse.icon_size",
+      "mode": "misuse",
+      "call": "icon_size",
+      "violates": "finite(incoming) and incoming >= 8 and incoming <= 64",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

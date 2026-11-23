@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Sparkline",
+  "declaration": "include/gui_forms/controls/sparkline.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.sparkline.capacity_write",
+      "mode": "legal",
+      "call": "capacity",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::Sparkline"
+        },
+        {
+          "name": "incoming",
+          "type": "std::uint32_t",
+          "bounded_by": [
+            "incoming >= 2 and incoming <= 100000"
+          ]
+        }
+      ],
+      "requires": [
+        "incoming >= 2 and incoming <= 100000"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.sparkline.capacity_write.misuse.capacity",
+      "mode": "misuse",
+      "call": "capacity",
+      "violates": "incoming >= 2 and incoming <= 100000",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

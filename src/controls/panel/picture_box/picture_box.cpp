@@ -8,6 +8,7 @@
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "picture_box_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -19,6 +20,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::picture_box;
 
 PictureBox::PictureBox(StableId stable_id) : Panel(std::move(stable_id)) {
     // A field's ground: the theme's editor role, resolved per colour scheme
@@ -353,7 +355,7 @@ void PictureBox::on_size_mode_changed() {}
 
 void PictureBox::prepare_write(const decltype(image_opacity)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 1.0) {
+    if (!ic::admits_image_opacity(incoming)) {
         throw std::invalid_argument("PictureBox image opacity must be finite and between zero and one");
     }
 }

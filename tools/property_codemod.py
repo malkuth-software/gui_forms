@@ -89,6 +89,7 @@ import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import tests_checkout  # noqa: E402
+import contract_lines  # noqa: E402
 
 PROPERTY_KEYS = {
     "name", "capability", "value", "initial", "comment", "getter", "setter", "clear", "field", "event",
@@ -916,6 +917,7 @@ def include_spelling(path):
 def generate_header(config, report):
     path = pathlib.Path(config["header"])
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    original = text
     cells = bool(config["properties"])
     if cells:
         capabilities_include = include_spelling(config["capabilities_header"])
@@ -939,7 +941,8 @@ def generate_header(config, report):
     head, body_open, body_close = class_body(text, config["declaring"])
     final_class = re.search(r"\bfinal\b", head.group(0)) is not None
     text = replace_block(text, config["family"], header_block(config, final_class), line_start(text, body_close))
-    path.write_bytes(collapse_blank_lines(text).encode("utf-8"))
+    text = contract_lines.keep_contract_lines(original, collapse_blank_lines(text))
+    path.write_bytes(text.encode("utf-8"))
 
 
 # The declaring class's source ---------------------------------------------

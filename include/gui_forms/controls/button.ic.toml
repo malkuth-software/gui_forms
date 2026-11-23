@@ -1,0 +1,29 @@
+# Button's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/button.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/button_base/button/button_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "Button"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/button.hpp"
+anchor = "class GUI_FORMS_API Button : public ButtonBase, public ButtonCapabilities<Button> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/button_base/button/button_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::button"
+includes = ["gui_forms/controls/button.hpp"]
+used_in = ["src/controls/button_base/button/button.cpp"]
+
+[[call]]
+name = "flat_border_width"
+id = "flat_border_width_write"
+declarations = ["void prepare_write(const decltype(flat_border_width)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0", refuses = "failure:invalid_argument", check = "flat_border_width" },
+]

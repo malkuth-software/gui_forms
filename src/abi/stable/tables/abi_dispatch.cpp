@@ -3,6 +3,7 @@
 #include "abi_tables.hpp"
 
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_dispatch_ic_checks.hpp"
 
 
 #include <cstdint>
@@ -42,7 +43,7 @@ gf_status GF_CALL dispatch_begin_invoke(gf_object target, const gf_callback* cal
 }
 
 gf_status dispatch_run_pending_body(std::uint64_t* invoked) {
-    if (invoked == nullptr) {
+    if (!ic_dispatch::admits_run_pending_invoked(invoked)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, run_pending_slot, "run_pending needs an output");
     }
     const gf_status entered = registry().enter_ui(run_pending_slot, false);

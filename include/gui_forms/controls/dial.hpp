@@ -30,6 +30,8 @@ namespace gui_forms {
 // `graticule`; the knob `thumb` (button family, round) with its `needle`
 // facing the value; and the focus cue on the knob. The theme sets the arcs'
 // thickness and the needle's width and shape (stroke-width, needle-shape).
+// ic: gui_forms::Dial: generated from include/gui_forms/controls/dial.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Dial : public RangeControl, public DialCapabilities<Dial> {
 public:
     explicit Dial(StableId stable_id);
@@ -107,6 +109,7 @@ private:
     friend struct DialTickFrequencyCapability<Dial>;
     friend struct DialShowArcCapability<Dial>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(tick_frequency)& cell, double& incoming);
     void written(const decltype(tick_frequency)& cell);
     void prepare_write(const decltype(show_arc)& cell, bool& incoming);

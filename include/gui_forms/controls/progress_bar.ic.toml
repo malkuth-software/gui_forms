@@ -1,0 +1,29 @@
+# ProgressBar's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/progress_bar.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/range_control/progress_bar/progress_bar_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "ProgressBar"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/progress_bar.hpp"
+anchor = "class GUI_FORMS_API ProgressBar : public RangeControl, public ProgressBarCapabilities<ProgressBar> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/range_control/progress_bar/progress_bar_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::progress_bar"
+includes = ["gui_forms/controls/progress_bar.hpp"]
+used_in = ["src/controls/range_control/progress_bar/progress_bar.cpp"]
+
+[[call]]
+name = "stripe_width"
+id = "stripe_width_write"
+declarations = ["void prepare_write(const decltype(stripe_width)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 2 and incoming <= 32", refuses = "failure:invalid_argument", check = "stripe_width" },
+]

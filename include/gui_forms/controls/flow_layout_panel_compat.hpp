@@ -43,6 +43,8 @@ struct FlowBreakCapability {
 // force"). In a right-to-left effective layout direction the layout is
 // computed left to right and mirrored about the viewport, padding and
 // margins included: a `left_to_right` flow starts at the right edge.
+// ic: gui_forms::FlowLayoutPanelCompat: generated from include/gui_forms/controls/flow_layout_panel_compat.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API FlowLayoutPanelCompat final : public ContainerControl, public FlowBreakCapability<FlowLayoutPanelCompat>, public FlowLayoutPanelCompatCapabilities<FlowLayoutPanelCompat> {
 public:
     explicit FlowLayoutPanelCompat(StableId stable_id);
@@ -145,6 +147,8 @@ private:
     void written(const decltype(flow_direction)& cell);
     void prepare_write(const decltype(wrap_contents)& cell, bool& incoming);
     void written(const decltype(wrap_contents)& cell);
+    // ic: Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0
+    // ic: and incoming.width <= 256 and incoming.height <= 256, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(item_spacing)& cell, Size& incoming);
     void written(const decltype(item_spacing)& cell);
     void prepare_write(const decltype(main_alignment)& cell, FlowMainAlignment& incoming);

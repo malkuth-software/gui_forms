@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::TreeListView",
+  "declaration": "include/gui_forms/controls/tree_list_view.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.treelistview.indentation_write",
+      "mode": "legal",
+      "call": "indentation",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::TreeListView"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= indentation_least and incoming <= indentation_most"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= indentation_least and incoming <= indentation_most"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.treelistview.indentation_write.misuse.indentation",
+      "mode": "misuse",
+      "call": "indentation",
+      "violates": "finite(incoming) and incoming >= indentation_least and incoming <= indentation_most",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

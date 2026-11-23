@@ -5,6 +5,7 @@
 
 #include "../classes/abi_class_bridge.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_classes_ic_checks.hpp"
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
 
@@ -34,10 +35,10 @@ const ClassDescription* find_description(gf_class_id class_id) noexcept {
 // enter_ui bound the thread for this call once *entered_ui is set.
 gf_status classes_create_body(const gf_class_header* table, gf_utf8_view stable_id, void* instance, gf_object* object,
                               bool* entered_ui) {
-    if (object == nullptr) {
+    if (!ic_classes::admits_create_object(object)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, "create needs an object output");
     }
-    if (table == nullptr) {
+    if (!ic_classes::admits_create_table(table)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_slot, "create needs a class table");
     }
     // The header's size and minor are checked before its class is read.

@@ -20,6 +20,8 @@ namespace gui_forms {
 // small dot without text. A badge takes no input and no focus. It is
 // static text to assistive technology, named by its accessible name or
 // else by the text it shows; a hidden badge is not exposed.
+// ic: gui_forms::Badge: generated from include/gui_forms/controls/badge.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Badge final : public Control, public BadgeCapabilities<Badge> {
 public:
     explicit Badge(StableId stable_id);
@@ -72,6 +74,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(count)& cell, std::uint32_t& incoming);
     void written(const decltype(count)& cell);
+    // ic: Requires incoming != 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(maximum)& cell, std::uint32_t& incoming);
     void written(const decltype(maximum)& cell);
     void prepare_write(const decltype(mode)& cell, BadgeMode& incoming);

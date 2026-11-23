@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::BackstageView",
+  "declaration": "include/gui_forms/controls/backstage_view.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.backstageview.column_width_write",
+      "mode": "legal",
+      "call": "column_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::BackstageView"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 48 and incoming <= 480"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 48 and incoming <= 480"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.backstageview.column_width_write.misuse.column_width",
+      "mode": "misuse",
+      "call": "column_width",
+      "violates": "finite(incoming) and incoming >= 48 and incoming <= 480",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

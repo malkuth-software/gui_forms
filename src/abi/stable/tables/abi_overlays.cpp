@@ -4,6 +4,7 @@
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
 #include "../windows/abi_window_handle.hpp"
+#include "../ic/abi_overlays_ic_checks.hpp"
 
 #include "gui_forms/application.hpp"
 
@@ -561,7 +562,7 @@ gf_status GF_CALL overlays_set_tool_tips_shown(gf_object window, gf_tool_tips_se
 
 gf_status overlays_tool_tips_shown_body(gf_object window, std::uint32_t* shown,
                                         gf_tool_tips_setting* setting) {
-    if (shown == nullptr) {
+    if (!ic_overlays::admits_tool_tips_shown_shown(shown)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, tool_tips_shown_slot, "tool_tips_shown needs an output");
     }
     const gf_status entered = registry().enter_ui(tool_tips_shown_slot, false);

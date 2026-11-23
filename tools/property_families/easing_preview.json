@@ -100,7 +100,7 @@
       "sample": "20.0",
       "effects": "Dirty::paint",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 48.0) throw std::invalid_argument(\"easing marker size must be within [4, 48]\");"
+        "if (!ic::admits_marker_size(incoming)) throw std::invalid_argument(\"easing marker size must be within [4, 48]\");"
       ]
     }
   ],

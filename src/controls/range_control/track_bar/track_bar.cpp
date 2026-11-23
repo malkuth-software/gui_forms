@@ -6,6 +6,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
+#include "track_bar_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -15,6 +16,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::track_bar;
 using namespace range_control_detail;
 
 namespace {
@@ -572,7 +574,7 @@ std::span<const PropertyEntry> TrackBar::property_table() const noexcept {
 void TrackBar::prepare_write(const decltype(tick_frequency)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "tick frequency must be finite");
-    if (incoming <= 0.0) throw std::invalid_argument("tick frequency must be positive");
+    if (!ic::admits_tick_frequency(incoming)) throw std::invalid_argument("tick frequency must be positive");
 }
 
 void TrackBar::written(const decltype(tick_frequency)&) {
@@ -598,7 +600,7 @@ void TrackBar::written(const decltype(visual_style)&) {
 void TrackBar::prepare_write(const decltype(thumb_extent)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "thumb extent must be finite");
-    if (incoming < 0.0 || incoming > 64.0) throw std::invalid_argument("thumb extent must be between 0 and 64");
+    if (!ic::admits_thumb_extent(incoming)) throw std::invalid_argument("thumb extent must be between 0 and 64");
 }
 
 void TrackBar::written(const decltype(thumb_extent)&) {

@@ -214,6 +214,8 @@ class RowHeightIndex;
 // empty; sorting raises sort_changed and re-reads the rows (the source sorts
 // in its handler); ensure_visible and selected_id find rows through
 // find_row and do not expand ancestors.
+// ic: gui_forms::TreeListView: generated from include/gui_forms/controls/tree_list_view.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API TreeListView final : public Control, public TreeListViewCapabilities<TreeListView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -765,6 +767,8 @@ private:
     friend struct TreeListViewCheckBoxesCapability<TreeListView>;
     friend struct TreeListViewCascadingChecksCapability<TreeListView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= indentation_least and incoming <= indentation_most, else failure
+    // ic: invalid_argument, unchanged.
     void prepare_write(const decltype(indentation)& cell, double& incoming);
     void written(const decltype(indentation)& cell);
     void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);

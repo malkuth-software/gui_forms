@@ -66,6 +66,8 @@ struct GUI_FORMS_API MenuStripInvocation final {
 // active menu is presented by ContextMenu as a separate window overlay root.
 // Pointer, keyboard, and semantic activation converge on the same shared
 // Command instances contained by MenuItemSpec.
+// ic: gui_forms::MenuStrip: generated from include/gui_forms/controls/menu_strip.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API MenuStrip final : public Control, public MenuStripCapabilities<MenuStrip> {
 public:
     explicit MenuStrip(StableId stable_id);
@@ -226,6 +228,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);
     void written(const decltype(use_mnemonic)& cell);
+    // ic: Requires finite(incoming) and incoming >= 4 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(item_padding)& cell, double& incoming);
     void written(const decltype(item_padding)& cell);
     void prepare_write(const decltype(font)& cell, FontSpec& incoming);

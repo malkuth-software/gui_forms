@@ -108,7 +108,7 @@
       "hooks": "generated",
       "hand": [],
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 1.0) {",
+        "if (!ic::admits_image_opacity(incoming)) {",
         "    throw std::invalid_argument(\"PictureBox image opacity must be finite and between zero and one\");",
         "}"
       ],

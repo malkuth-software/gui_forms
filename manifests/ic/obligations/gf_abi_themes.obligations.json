@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "component": "gf_abi::themes",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_themes.ic.toml",
+    "sha256": "878604daea30b1c2493f4a6c927a3e97c5a1a189aacbf47b7e707ab069cc36b9"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.themes.remove.requires.remove_removed",
+      "kind": "entry-check",
+      "statement": "remove runs only when not_null(removed); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_themes::admits_remove_removed, called in src/abi/stable/tables/abi_themes.cpp"
+    },
+    {
+      "id": "gf_abi.themes.remove.refusal.remove_removed",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(removed), remove changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.themes.load_image.requires.load_image_bytes",
+      "kind": "entry-check",
+      "statement": "load_image runs only when not_null(image) and (not_null(bytes) or size == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_themes::admits_load_image_bytes, called in src/abi/stable/tables/abi_themes.cpp"
+    },
+    {
+      "id": "gf_abi.themes.load_image.refusal.load_image_bytes",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(image) and (not_null(bytes) or size == 0), load_image changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.themes.theme_request.requires.theme_request_outcome",
+      "kind": "entry-check",
+      "statement": "theme_request runs only when not_null(outcome); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_themes::admits_theme_request_outcome, called in src/abi/stable/tables/abi_themes.cpp"
+    },
+    {
+      "id": "gf_abi.themes.theme_request.refusal.theme_request_outcome",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(outcome), theme_request changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

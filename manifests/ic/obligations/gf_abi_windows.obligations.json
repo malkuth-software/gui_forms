@@ -1,0 +1,432 @@
+{
+  "schema": 1,
+  "component": "gf_abi::windows",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_windows.ic.toml",
+    "sha256": "a7e4ef7990374941b5f50dbde93febac3f7352f0ac3e9e546938d27c2d74d59c"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.windows.run.moves",
+      "kind": "transition",
+      "statement": "run succeeding in created leaves the object in ended.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.run.outside.running",
+      "kind": "typestate-refusal",
+      "statement": "run in running: returns GF_STATUS_INVALID_STATE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.run.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "run in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.request_close.outside.created",
+      "kind": "typestate-refusal",
+      "statement": "request_close in created: returns GF_STATUS_INVALID_STATE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.request_close.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "request_close in ended: returns GF_STATUS_INVALID_STATE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.interaction_count.requires.interaction_count_count",
+      "kind": "entry-check",
+      "statement": "interaction_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_windows::admits_interaction_count_count, called in src/abi/stable/tables/abi_window_mdi.cpp, src/abi/stable/tables/abi_windows.cpp"
+    },
+    {
+      "id": "gf_abi.windows.interaction_count.refusal.interaction_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), interaction_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.request_help.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "request_help in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.key_state.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "key_state in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.window_properties.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "window_properties in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.focused_control.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "focused_control in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.declare_band.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "declare_band in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.undeclare_band.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "undeclare_band in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.set_band_appearance.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "set_band_appearance in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.band_report.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "band_report in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.set_corner_preference.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "set_corner_preference in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.content_rect.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "content_rect in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.shaping.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "shaping in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.pointer_location.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "pointer_location in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.show_business_card.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "show_business_card in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.set_mdi_container.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "set_mdi_container in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_container.requires.mdi_container_container",
+      "kind": "entry-check",
+      "statement": "mdi_container runs only when not_null(container); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_windows::admits_mdi_container_container, called in src/abi/stable/tables/abi_window_mdi.cpp, src/abi/stable/tables/abi_windows.cpp"
+    },
+    {
+      "id": "gf_abi.windows.mdi_container.refusal.mdi_container_container",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(container), mdi_container changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_container.order",
+      "kind": "refusal-order",
+      "statement": "When several of mdi_container's refusals apply, the first of mdi_container_container, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_container.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "mdi_container in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_child_count.requires.mdi_child_count_count",
+      "kind": "entry-check",
+      "statement": "mdi_child_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_windows::admits_mdi_child_count_count, called in src/abi/stable/tables/abi_window_mdi.cpp, src/abi/stable/tables/abi_windows.cpp"
+    },
+    {
+      "id": "gf_abi.windows.mdi_child_count.refusal.mdi_child_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), mdi_child_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_child_count.order",
+      "kind": "refusal-order",
+      "statement": "When several of mdi_child_count's refusals apply, the first of mdi_child_count_count, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_child_count.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "mdi_child_count in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_child_at.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "mdi_child_at in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.active_mdi_child.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "active_mdi_child in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.activate_mdi_child.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "activate_mdi_child in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.layout_mdi.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "layout_mdi in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.set_mdi_children_minimized_anchor_bottom.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "set_mdi_children_minimized_anchor_bottom in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_children_minimized_anchor_bottom.requires.mdi_children_minimized_anchor_bottom_bottom",
+      "kind": "entry-check",
+      "statement": "mdi_children_minimized_anchor_bottom runs only when not_null(bottom); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_windows::admits_mdi_children_minimized_anchor_bottom_bottom, called in src/abi/stable/tables/abi_window_mdi.cpp, src/abi/stable/tables/abi_windows.cpp"
+    },
+    {
+      "id": "gf_abi.windows.mdi_children_minimized_anchor_bottom.refusal.mdi_children_minimized_anchor_bottom_bottom",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(bottom), mdi_children_minimized_anchor_bottom changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_children_minimized_anchor_bottom.order",
+      "kind": "refusal-order",
+      "statement": "When several of mdi_children_minimized_anchor_bottom's refusals apply, the first of mdi_children_minimized_anchor_bottom_bottom, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.mdi_children_minimized_anchor_bottom.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "mdi_children_minimized_anchor_bottom in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.set_main_menu_strip.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "set_main_menu_strip in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.main_menu_strip.requires.main_menu_strip_strip",
+      "kind": "entry-check",
+      "statement": "main_menu_strip runs only when not_null(strip); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_windows::admits_main_menu_strip_strip, called in src/abi/stable/tables/abi_window_mdi.cpp, src/abi/stable/tables/abi_windows.cpp"
+    },
+    {
+      "id": "gf_abi.windows.main_menu_strip.refusal.main_menu_strip_strip",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(strip), main_menu_strip changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.main_menu_strip.order",
+      "kind": "refusal-order",
+      "statement": "When several of main_menu_strip's refusals apply, the first of main_menu_strip_strip, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.main_menu_strip.outside.ended",
+      "kind": "typestate-refusal",
+      "statement": "main_menu_strip in ended: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.lifecycle.requires.lifecycle_lifecycle",
+      "kind": "entry-check",
+      "statement": "lifecycle runs only when not_null(lifecycle); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_windows::admits_lifecycle_lifecycle, called in src/abi/stable/tables/abi_window_mdi.cpp, src/abi/stable/tables/abi_windows.cpp"
+    },
+    {
+      "id": "gf_abi.windows.lifecycle.refusal.lifecycle_lifecycle",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(lifecycle), lifecycle changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.windows.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

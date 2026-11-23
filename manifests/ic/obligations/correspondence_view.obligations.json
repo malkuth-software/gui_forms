@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::CorrespondenceView",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "lab/include/gui_forms_lab/correspondence_view.ic.toml",
+    "sha256": "55216f7b7962c970804a11e21aec9ef9bee91a03ae7d0d7ebebc1f68d61dbde6"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.correspondenceview.status_rail_width_write.requires.status_rail_width",
+      "kind": "entry-check",
+      "statement": "status_rail_width runs only when finite(incoming) and incoming >= 1 and incoming <= 12; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::correspondence_view::admits_status_rail_width, called in lab/src/correspondence_view.cpp"
+    },
+    {
+      "id": "gui_forms.correspondenceview.status_rail_width_write.refusal.status_rail_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 1 and incoming <= 12, status_rail_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

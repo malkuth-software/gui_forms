@@ -14,6 +14,8 @@
 
 namespace gui_forms {
 
+// ic: gui_forms::RangeControl: generated from include/gui_forms/controls/range_control.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API RangeControl : public Control, public RangeControlCapabilities<RangeControl> {
 public:
     explicit RangeControl(StableId stable_id);
@@ -104,8 +106,10 @@ private:
     [[nodiscard]] double read_view(const decltype(minimum)& cell) const;
     void write_view(const decltype(maximum)& cell, double incoming);
     [[nodiscard]] double read_view(const decltype(maximum)& cell) const;
+    // ic: Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(small_change)& cell, double& incoming);
     void written(const decltype(small_change)& cell);
+    // ic: Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(large_change)& cell, double& incoming);
     void written(const decltype(large_change)& cell);
     void prepare_write(const decltype(orientation)& cell, Orientation& incoming);

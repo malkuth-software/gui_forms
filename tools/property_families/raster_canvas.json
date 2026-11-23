@@ -161,7 +161,7 @@
       "initial": "0.0",
       "comment": "The checkerboard cell size in client units, 2 to 128; zero (the default) selects an adaptive bounded size. Any other value throws std::invalid_argument.",
       "prepare": [
-        "if (!std::isfinite(incoming) || (incoming != 0.0 && (incoming < 2.0 || incoming > 128.0))) {",
+        "if (!ic::admits_transparency_cell_size(incoming)) {",
         "    throw std::invalid_argument(\"canvas transparency cell size must be zero or within [2, 128]\");",
         "}"
       ],

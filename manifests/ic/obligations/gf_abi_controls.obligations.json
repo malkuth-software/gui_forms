@@ -1,0 +1,365 @@
+{
+  "schema": 1,
+  "component": "gf_abi::controls",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_controls.ic.toml",
+    "sha256": "fb255db554dbfdd198add0224416433526a380717e6733f8079db2d0df75dcd4"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.controls.suspend_layout.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "suspend_layout in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.suspend_layout.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "suspend_layout in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.resume_layout.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "resume_layout in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.resume_layout.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "resume_layout in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.perform_layout.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "perform_layout in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.perform_layout.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "perform_layout in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.layout_state.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "layout_state in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.layout_state.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "layout_state in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.window_bounds.requires.window_bounds_bounds",
+      "kind": "entry-check",
+      "statement": "window_bounds runs only when not_null(bounds); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_controls::admits_window_bounds_bounds, called in src/abi/stable/tables/abi_controls.cpp"
+    },
+    {
+      "id": "gf_abi.controls.window_bounds.refusal.window_bounds_bounds",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(bounds), window_bounds changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.window_bounds.order",
+      "kind": "refusal-order",
+      "statement": "When several of window_bounds's refusals apply, the first of window_bounds_bounds, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.window_bounds.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "window_bounds in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.window_bounds.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "window_bounds in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.set_pointer_capture.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_pointer_capture in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.set_pointer_capture.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_pointer_capture in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.pointer_capture.requires.pointer_capture_captured",
+      "kind": "entry-check",
+      "statement": "pointer_capture runs only when not_null(captured); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_controls::admits_pointer_capture_captured, called in src/abi/stable/tables/abi_controls.cpp"
+    },
+    {
+      "id": "gf_abi.controls.pointer_capture.refusal.pointer_capture_captured",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(captured), pointer_capture changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.pointer_capture.order",
+      "kind": "refusal-order",
+      "statement": "When several of pointer_capture's refusals apply, the first of pointer_capture_captured, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.pointer_capture.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "pointer_capture in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.pointer_capture.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "pointer_capture in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.invalidate.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "invalidate in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.invalidate.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "invalidate in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.focus.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "focus in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.focus.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "focus in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.focus_state.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "focus_state in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.focus_state.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "focus_state in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.request_relative_pointer.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "request_relative_pointer in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.request_relative_pointer.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "request_relative_pointer in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.release_relative_pointer.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "release_relative_pointer in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.release_relative_pointer.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "release_relative_pointer in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.relative_pointer_state.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "relative_pointer_state in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.relative_pointer_state.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "relative_pointer_state in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.warp_pointer.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "warp_pointer in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.warp_pointer.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "warp_pointer in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.set_pointer_release_regions.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_pointer_release_regions in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.set_pointer_release_regions.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_pointer_release_regions in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.set_content_effect.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_content_effect in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.set_content_effect.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_content_effect in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.controls.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 #include "range_control_rendering.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "range_control_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -10,6 +11,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::range_control;
 using namespace range_control_detail;
 
 namespace {
@@ -344,7 +346,7 @@ void RangeControl::on_value_changed() {
 void RangeControl::prepare_write(const decltype(small_change)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "small change must be finite");
-    if (incoming <= 0.0) throw std::invalid_argument("small change must be positive");
+    if (!ic::admits_small_change(incoming)) throw std::invalid_argument("small change must be positive");
 }
 
 void RangeControl::written(const decltype(small_change)&) {
@@ -354,7 +356,7 @@ void RangeControl::written(const decltype(small_change)&) {
 void RangeControl::prepare_write(const decltype(large_change)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "large change must be finite");
-    if (incoming <= 0.0) throw std::invalid_argument("large change must be positive");
+    if (!ic::admits_large_change(incoming)) throw std::invalid_argument("large change must be positive");
 }
 
 void RangeControl::written(const decltype(large_change)&) {

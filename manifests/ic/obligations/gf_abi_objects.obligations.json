@@ -1,0 +1,218 @@
+{
+  "schema": 1,
+  "component": "gf_abi::objects",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_objects.ic.toml",
+    "sha256": "1e7075e12746c2e1e2960f3065b9a35764111baa8c62c3fecca65b64c2782331"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.objects.create.requires.create_object",
+      "kind": "entry-check",
+      "statement": "create runs only when not_null(object); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_objects::admits_create_object, called in src/abi/stable/tables/abi_objects.cpp"
+    },
+    {
+      "id": "gf_abi.objects.create.refusal.create_object",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(object), create changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.state.requires.state_state",
+      "kind": "entry-check",
+      "statement": "state runs only when not_null(state); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_objects::admits_state_state, called in src/abi/stable/tables/abi_objects.cpp"
+    },
+    {
+      "id": "gf_abi.objects.state.refusal.state_state",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(state), state changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.insert_child.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "insert_child in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.insert_child.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "insert_child in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.remove_child.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "remove_child in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.remove_child.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "remove_child in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.child_count.requires.child_count_count",
+      "kind": "entry-check",
+      "statement": "child_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_objects::admits_child_count_count, called in src/abi/stable/tables/abi_objects.cpp"
+    },
+    {
+      "id": "gf_abi.objects.child_count.refusal.child_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), child_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.child_at.requires.child_at_child",
+      "kind": "entry-check",
+      "statement": "child_at runs only when not_null(child); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_objects::admits_child_at_child, called in src/abi/stable/tables/abi_objects.cpp"
+    },
+    {
+      "id": "gf_abi.objects.child_at.refusal.child_at_child",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(child), child_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.parent.requires.parent_parent",
+      "kind": "entry-check",
+      "statement": "parent runs only when not_null(parent); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_objects::admits_parent_parent, called in src/abi/stable/tables/abi_objects.cpp"
+    },
+    {
+      "id": "gf_abi.objects.parent.refusal.parent_parent",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(parent), parent changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.create_with.requires.create_with_object",
+      "kind": "entry-check",
+      "statement": "create_with runs only when not_null(object); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_objects::admits_create_with_object, called in src/abi/stable/tables/abi_objects.cpp"
+    },
+    {
+      "id": "gf_abi.objects.create_with.refusal.create_with_object",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(object), create_with changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.create_with.requires.create_with_arguments",
+      "kind": "entry-check",
+      "statement": "create_with runs only when not_null(arguments); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_objects::admits_create_with_arguments, called in src/abi/stable/tables/abi_objects.cpp"
+    },
+    {
+      "id": "gf_abi.objects.create_with.refusal.create_with_arguments",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(arguments), create_with changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.create_with.requires.create_with_arguments_size",
+      "kind": "entry-check",
+      "statement": "create_with runs only when arguments_size >= create_arguments_size_1_0; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_objects::admits_create_with_arguments_size, called in src/abi/stable/tables/abi_objects.cpp"
+    },
+    {
+      "id": "gf_abi.objects.create_with.refusal.create_with_arguments_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless arguments_size >= create_arguments_size_1_0, create_with changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.create_with.order",
+      "kind": "refusal-order",
+      "statement": "When several of create_with's refusals apply, the first of create_with_object, then create_with_arguments, then create_with_arguments_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.objects.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

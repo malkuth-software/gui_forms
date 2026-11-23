@@ -1,0 +1,68 @@
+# The C ABI's gf_property_grid_table (GF_TABLE_PROPERTY_GRID): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_property_grid_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_property_grid_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_property_grid_table {"
+keys = { manifest = "gf_abi::property_grid", abi = "GF_TABLE_PROPERTY_GRID" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_property_grid_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_property_grid"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_property_grid.cpp"]
+
+[[call]]
+name = "select_objects"
+declarations = ["gf_status (GF_CALL* select_objects)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: select_objects takes at most 4096 objects, and objects when count is not zero" },
+]
+
+[[call]]
+name = "refresh"
+declarations = ["gf_status (GF_CALL* refresh)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "try_set_text"
+declarations = ["gf_status (GF_CALL* try_set_text)("]
+kind = "member"
+thread = "ui"
+parameters = { accepted = "uint32_t*" }
+requires = [
+  { holds = "not_null(accepted)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "try_set_text_accepted" },
+]
+
+[[call]]
+name = "reset_property"
+declarations = ["gf_status (GF_CALL* reset_property)("]
+kind = "member"
+thread = "ui"
+parameters = { reset = "uint32_t*" }
+requires = [
+  { holds = "not_null(reset)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "reset_property_reset" },
+]
+
+[[call]]
+name = "activate_editor"
+declarations = ["gf_status (GF_CALL* activate_editor)("]
+kind = "member"
+thread = "ui"
+parameters = { activated = "uint32_t*" }
+requires = [
+  { holds = "not_null(activated)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "activate_editor_activated" },
+]
