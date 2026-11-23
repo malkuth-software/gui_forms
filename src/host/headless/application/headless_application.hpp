@@ -266,7 +266,12 @@ private:
     // and shuts it down: the destructor, and a constructor that refuses a
     // window after the run was attached (A-gf-host-01-F13).
     void end_run() noexcept;
+    // The program's close request (ApplicationWindowHandle::request_close):
+    // as simulate_user_close, with reason application.
     void request_close(HostWindowId window);
+    // A close request with reason: the closing handler decides, as for the
+    // close button; the closed event reports reason.
+    void close_requested(HostWindowId window, HostCloseReason reason);
     void show(HostWindowId window, bool visible);
     [[nodiscard]] HostServiceStatus resize(HostWindowId window, Size client_size);
     void native_frame_changed(HostWindowId window, Rect old_content, Rect content);

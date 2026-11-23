@@ -179,6 +179,11 @@ constexpr UINT live_surface_wake_message = WM_APP + 0x44U;
 // was made or moved outside the model's frame poll, so the window polls,
 // collects damage and arms its wake for the new deadline.
 constexpr UINT schedule_wake_message = WM_APP + 0x45U;
+// Posted by the program's close request (ApplicationWindowHandle::
+// request_close, post_close): the window is asked to close as WM_CLOSE asks
+// it, with reason application instead of user, since WM_CLOSE also comes
+// from the user (the close box, Alt+F4, the window menu).
+constexpr UINT program_close_message = WM_APP + 0x46U;
 // A scheduled wake nearer than this rides the high-resolution scheduler
 // clock instead of WM_TIMER, whose floor is about 10 ms, whose granularity
 // is the system timer's (15.6 ms by default) and whose message has the
@@ -2356,7 +2361,8 @@ public:
             break;
         case WM_GETMINMAXINFO: minimum_size(reinterpret_cast<MINMAXINFO*>(lparam)); return 0;
         case WM_COPYDATA: return automation(reinterpret_cast<const COPYDATASTRUCT*>(lparam));
-        case WM_CLOSE: return close();
+        case WM_CLOSE: return close(HostCloseReason::user);
+        case program_close_message: return close(HostCloseReason::application);
         case WM_QUERYENDSESSION: return query_end_session();
         case WM_ENDSESSION: return end_session(wparam != FALSE);
         case WM_DESTROY:
@@ -2526,7 +2532,7 @@ private:
     }
 
     void post_close() noexcept {
-        if (hwnd_ != nullptr) PostMessageW(hwnd_, WM_CLOSE, 0, 0);
+        if (hwnd_ != nullptr) PostMessageW(hwnd_, program_close_message, 0, 0);
     }
 
     void show_window() noexcept {
@@ -3943,8 +3949,11 @@ private:
         if (minimum.height > 0.0) (*info).ptMinTrackSize.y = rect.bottom - rect.top;
     }
 
-    LRESULT close() {
-        HostCloseRequest request{HostCloseReason::user, false, options_.hide_on_close};
+    // A close request: the user's (WM_CLOSE) or the program's
+    // (program_close_message). An allowed one hides a hide-on-close window,
+    // else destroys it, and WM_DESTROY reports reason as the closed event's.
+    LRESULT close(const HostCloseReason reason) {
+        HostCloseRequest request{reason, false, options_.hide_on_close};
         if (options_.close_request) options_.close_request(request);
         request.hide_on_accept = options_.hide_on_close;
         // WM_CLOSE closes the window when allowed: a request, never a query.
@@ -3956,6 +3965,7 @@ private:
                 hidden_on_close_to_run();
                 return 0;
             }
+            destroy_reason_ = reason;
             native_phase_ = NativePhase::closing;
             DestroyWindow(hwnd_);
         }
