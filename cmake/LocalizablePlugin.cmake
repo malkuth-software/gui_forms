@@ -202,7 +202,17 @@ if(GUI_FORMS_LOCALIZABLE_PLUGIN)
             BUILD_ALWAYS ON
             INSTALL_COMMAND ""
             BUILD_BYPRODUCTS "${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}")
-        install(FILES "${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}" DESTINATION ${CMAKE_INSTALL_LIBDIR}/gui_forms)
+        # The Windows SDK does not carry the plugin (coordinator, 2026-11-23,
+        # from Shadow's question 1): the pinned CI toolchain has no
+        # mingw-w64-clang-x86_64-llvm, so no published Windows SDK ever held
+        # it, and a plugin built where the package is present imports
+        # libc++.dll, which no SDK DLL may (check_windows_sdk_imports). It
+        # cannot link libc++ statically instead: it runs inside clang.exe and
+        # shares that process's libc++ and LLVM objects. The build still
+        # compiles the toolkit with it there.
+        if(NOT WIN32)
+            install(FILES "${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}" DESTINATION ${CMAKE_INSTALL_LIBDIR}/gui_forms)
+        endif()
         message(STATUS "GUI.Forms localizable-literal plugin: ${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}")
     endif()
 endif()
