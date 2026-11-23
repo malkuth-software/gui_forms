@@ -85,6 +85,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_publication_version.py
           python3 -B -m unittest discover -s tools -p test_package_programs.py
           python3 -B -m unittest discover -s tools -p test_package_sdk.py
+          python3 -B -m unittest discover -s tools -p test_package_abi_library.py
           python3 -B -m unittest discover -s tools -p test_build_sdk.py
           python3 -B -m unittest discover -s ../template_harness/harness -p test_prune_cache_releases.py
       - name: Select one tested publication version
@@ -440,6 +441,22 @@ jobs:
         with:
           path: .ci/stx-package
           key: ${{ steps.stx-package.outputs.cache-primary-key }}
+      # The C ABI library this deployment build made, for bindings that ship it
+      # (pyguiforms' wheels): one archive per platform, on pull requests too, as
+      # a workflow artifact only; the release does not publish it.
+      - name: Package the C ABI library
+        run: |
+          extra=""
+          if [ "$RUNNER_OS" = macOS ]; then extra="--runtime $GUI_FORMS_LLVM_RUNTIME"; fi
+          if [ "$RUNNER_OS" = Windows ]; then extra="--runtime-dir /clang64/bin"; fi
+          python gui_forms/tools/package_abi_library.py --platform "${{ matrix.platform }}" --build-dir "$BUILD_DIR" \
+            --version "$RELEASE_VERSION" --revision "${{ github.sha }}" --out dist-abi $extra
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: gui-forms-abi-${{ matrix.platform }}
+          path: dist-abi/gui-forms-abi-*.zip
+          compression-level: 0
+          if-no-files-found: error
       # --- package, then install and launch what was packaged -----------------------
       - name: Package the programs
         if: ${{ !(inputs.from_native && github.event_name == 'pull_request') }}
