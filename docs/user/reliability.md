@@ -83,6 +83,8 @@ Two routes do not pass through STXlib, and the figure shows both:
 
 - [Memory and the allocator](reliability-memory): every datum has an owner
   and a lifetime, and STXlib's allocator checks its own bookkeeping.
+- [Threads](reliability-threads): one stack size and checked locks on
+  every host, without the C++ library's threads.
 - [Errors, gates and failing fast](reliability-errors): unwinding happens
   only where it is defined, and a failure that cannot be carried as a value
   ends the process with a full record.
@@ -99,6 +101,7 @@ Two routes do not pass through STXlib, and the figure shows both:
 :hidden:
 
 reliability-memory
+reliability-threads
 reliability-errors
 reliability-math
 reliability-constraints
