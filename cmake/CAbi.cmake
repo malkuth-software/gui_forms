@@ -215,6 +215,24 @@ add_library(gui_forms_abi SHARED
 # (gui_forms_application_library); the raster module's objects add the
 # drawing executor, whose archive is linked ordinarily.
 target_link_libraries(gui_forms_abi PRIVATE gui_forms_application stxlib::boundary)
+# The library's own allocations, at the module boundary (owner, 2026-11-22:
+# code inside GUI.Forms uses our allocator): the module compiles the global
+# operator new and delete over STXlib's allocator
+# (src/runtime/program_allocator/program_allocator_replacement.cpp), so
+# every standard container, string and plain new inside it lands on
+# stx_minmallocpp. They stay inside the module: libc++ is linked statically
+# and kept local, the export list (version script, exported-symbols list,
+# .def) exports only the entry points, and the program's own operator new
+# is untouched. Where the module would share the system's C++ runtime
+# (macOS without the static one) the replacement would be coalesced
+# process-wide, so it is left out there. The replacement leaves itself out
+# under a sanitizer. GUI_FORMS_C_ABI_LIBRARY_ALLOCATOR OFF leaves it out.
+option(GUI_FORMS_C_ABI_LIBRARY_ALLOCATOR
+       "The C ABI library's own C++ allocations come from STXlib's allocator (module-local operator new and delete)" ON)
+if(GUI_FORMS_C_ABI_LIBRARY_ALLOCATOR AND NOT (APPLE AND NOT GUI_FORMS_STATIC_CXX_RUNTIME))
+    # STXlib's state comes with gui_forms_application, once.
+    target_sources(gui_forms_abi PRIVATE "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}")
+endif()
 if(TARGET gui_drawing_raster_c_api_objects)
     target_sources(gui_forms_abi PRIVATE $<TARGET_OBJECTS:gui_drawing_raster_c_api_objects>)
     target_link_libraries(gui_forms_abi PRIVATE gui_drawing_skia)

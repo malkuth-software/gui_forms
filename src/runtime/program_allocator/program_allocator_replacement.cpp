@@ -1,19 +1,29 @@
-// The opt-in whole-program allocator: the global operator new and delete of
-// a program that asks for it, over STXlib's allocator (stxlib/memory.hpp:
-// stx_minmallocpp by default).
+// The module-level allocator: the global operator new and delete of one
+// module (an executable, or the C ABI library), over STXlib's allocator
+// (stxlib/memory.hpp: stx_minmallocpp by default).
 //
-// Never compiled into GUI.Forms itself, and never into a program by
-// default (owner, 2026-11-22: GUI.Forms' own code uses its allocator,
-// programs that use GUI.Forms keep theirs, and the programs GUI.Forms'
-// projects issue may opt in). A program opts in with the CMake function
-// gui_forms_use_library_allocator(target), which adds this file to the
-// program's sources, so it is built with the program's own flags, and its
-// definitions, being in an object file, take precedence over libc++'s,
-// which libc++ defines weak ([replacement.functions]). The program is one
-// module (libc++ is linked statically into it), so every C++ allocation in
-// it then comes from STXlib's allocator: the program's, libc++'s and
-// GUI.Forms'. A shared library or plugin must not opt in: it would replace
-// operator new for the host process that loads it.
+// Where it is compiled (owner, 2026-11-22: code inside GUI.Forms uses our
+// allocator; programs that use GUI.Forms keep theirs; programs our own
+// projects issue may opt in):
+// - the C ABI library (cmake/CAbi.cmake), always. libc++ is linked
+//   statically into the library and kept local, and the export list exports
+//   only the entry points, so these definitions bind every allocation inside
+//   the module (the engine's standard containers, strings and plain news)
+//   and nothing outside it: the host process, a C or C# program, keeps its
+//   own operator new. No memory crosses the C ABI (handles, caller buffers,
+//   contexts the caller releases), so neither side frees the other's;
+// - an executable that opts in with gui_forms_use_library_allocator(target)
+//   (CMakeLists.txt, and the installed GUIFormsConfig.cmake), never by
+//   default: a program that links GUI.Forms statically is one module with
+//   one libc++, so the library cannot have an operator new of its own there;
+//   the program chooses for both. GUI.Forms' own types still come from
+//   STXlib's allocator in any program (LibraryAllocated,
+//   make_library_shared: allocation/library_memory).
+// Never in a shared library or plugin that shares the system's C++ runtime:
+// its definitions would replace operator new for the whole process.
+//
+// Its definitions are in an object file, so they take precedence over
+// libc++'s, which libc++ defines weak ([replacement.functions]).
 //
 // Left out (operator new stays the toolchain's) under a sanitizer that
 // intercepts the host allocator, or when the program defines
@@ -21,9 +31,9 @@
 //
 // Every form of [new.delete.single] and [new.delete.array] is replaced, the
 // sized and aligned deletes included, so that no pair can mix this
-// allocator with libc++'s. The program's allocations do not pass through
-// GUI.Forms' library seam (allocation/library_memory): its counts and test
-// observer stay the library's.
+// allocator with libc++'s. These allocations do not pass through GUI.Forms'
+// library seam (allocation/library_memory): its counts and test observer
+// stay those of the library's own routes.
 //
 // Failure ([new.delete.single]p3): STXlib's allocator never calls a
 // new-handler and never throws. This file does both: on a null block it
@@ -36,7 +46,9 @@
 // thread's exit and during static destruction. On Windows, once
 // ExitProcess has stopped the other threads, an allocation the calling
 // thread's cached blocks cannot serve returns null (stxlib/memory.hpp,
-// "Process end"); a program's static destructors run before that.
+// "Process end"); a program's static destructors run before that, but the
+// C ABI library's run at DLL_PROCESS_DETACH, where an allocation that is
+// refused is std::bad_alloc.
 
 #include <stxlib/memory.hpp>
 

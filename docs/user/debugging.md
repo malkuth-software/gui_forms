@@ -189,8 +189,12 @@ allocations stay with your allocator. The header is
 - The C ABI's objects are handles: create and release run in the library,
   and the C# wrappers hold those handles, so no side frees the other's
   memory. Text comes back in buffers you supply.
-- The standard containers and strings inside GUI.Forms still use the
-  program's `operator new`; moving them is planned.
+- The standard containers and strings inside GUI.Forms follow the module
+  they run in. In the C ABI library (C and C# programs) the library has its
+  own `operator new` and `delete`, kept inside the library, so they are on
+  STXlib's allocator. A C++ program links GUI.Forms statically, into one
+  module with one standard library, so there they use your program's
+  `operator new`.
 
 Programs from GUI.Forms' own projects may opt in to the same allocator:
 a container with `gui_forms::LibraryAllocator<T>`, or the whole program with

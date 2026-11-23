@@ -29,18 +29,24 @@
 // library, and the C# wrappers hold those handles, so neither side ever
 // frees the other's memory.
 //
-// Not yet routed (the queue entry gui_forms__shield-allocator lists the
-// plan): the standard containers and strings inside GUI.Forms
-// (std::vector, std::string, std::function) and the plain `new` of types
-// that are not LibraryAllocated still use the toolchain's operator new.
+// The standard containers, strings and plain news inside GUI.Forms stay as
+// they are (owner, 2026-11-17: when GUI.Forms uses std::string it is on its
+// side of the shield). Their allocations follow the module they run in:
+// - in the C ABI library, the module's own operator new and delete, kept
+//   local to it (src/runtime/program_allocator/
+//   program_allocator_replacement.cpp; cmake/CAbi.cmake): STXlib's
+//   allocator, for every allocation inside the module;
+// - in a program that links GUI.Forms statically, one module with one
+//   libc++: the program's operator new, which is the host's unless the
+//   program opts in (below). The routes above keep GUI.Forms' own objects on
+//   STXlib's allocator there too.
 //
 // Programs GUI.Forms' own projects issue (owner, 2026-11-22: "for programs
 // we issue ... they indeed can use our allocator") may opt in, never by
 // default: a container of their own with LibraryAllocator, or the whole
 // program with the CMake function gui_forms_use_library_allocator(target),
-// which compiles GUI.Forms' replacement of the global operator new and
-// delete into that program (src/runtime/program_allocator/
-// program_allocator_replacement.cpp; left out under a sanitizer). A
+// which compiles the same replacement into that program (left out under a
+// sanitizer). A
 // third-party program keeps its own allocator unless it asks.
 //
 // A library allocation passes through one out-of-line seam,
