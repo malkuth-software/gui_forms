@@ -16,7 +16,7 @@ TaskDialogPage input_box_page(const InputBoxRequest& request) {
     input.text = request.default_response;
     input.placeholder = request.placeholder;
     input.maximum_length = request.maximum_length;
-    page.input.set(std::move(input));
+    page.input = std::move(input);
     page.buttons.push_back({.standard = TaskDialogStandardButton::ok});
     page.buttons.push_back({.standard = TaskDialogStandardButton::cancel});
     page.default_button = "ok";

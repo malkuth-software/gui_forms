@@ -124,7 +124,9 @@ struct GUI_FORMS_API TaskDialogPage final {
     std::string footnote{};
     TaskDialogIcon footnote_icon{TaskDialogIcon::none};
     stxlib::Optional<TaskDialogProgressBar> progress_bar{};
-    stxlib::Optional<TaskDialogInput> input{};
+    // std::optional, as for the expander: stxlib::Optional of a record with
+    // strings is move-only, and pages are copied.
+    std::optional<TaskDialogInput> input{};
     bool allow_cancel{};
 };
 
