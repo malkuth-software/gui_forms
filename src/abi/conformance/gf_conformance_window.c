@@ -187,6 +187,11 @@ void gf_kit_window(gf_kit* kit) {
     gf_kit_check(kit, run.reason_count == 3u && run.malformed_reasons == 0u && run.reasons[0] == run.reasons[1] &&
                           run.reasons[1] == run.reasons[2],
                  "both closing events and closed carry one close reason for request_close");
+    /* Every close here is the program's (request_close), which gf_abi.h's
+     * gf_event names "application" (1, the program closed it), on every
+     * host: never "user" (0), the close box's. */
+    gf_kit_check(kit, run.reason_count == 3u && run.reasons[0] == 1 && run.reasons[2] == 1,
+                 "request_close's closing and closed report the reason application");
     gf_kit_status(kit, run.requests[0], GF_STATUS_OK, "the first close request");
     gf_kit_status(kit, run.requests[1], GF_STATUS_OK, "the second close request");
     gf_kit_check(kit, run.releases[release_ready] == 1u && run.releases[release_closing] == 1u &&

@@ -195,6 +195,23 @@ void run_window_delegate_window_did_exit_full_screen(GUIFormsWindowDelegate* obj
     // before it returns.
     [window close];
 }
+- (void)requestCloseForApplication:(NSWindow*)window {
+    // Asked directly rather than through performClose:, whose
+    // windowShouldClose: reports a user close, and which beeps and does
+    // nothing for a window without a close box.
+    if (_view != nil && ![_view requestCloseHiding:_hideOnClose reason:HostCloseReason::application]) return;
+    if (_hideOnClose) {
+        // A close before the first show leaves the window off screen.
+        if (_view != nil) [_view cancelFirstShow];
+        [window orderOut:nil];
+        gui_forms::host::mac_run_hidden_on_close(_run, _windowId);
+        return;
+    }
+    _closeReason = HostCloseReason::application;
+    // NSWindow close does not ask windowShouldClose:; windowWillClose:
+    // reports _closeReason before it returns.
+    [window close];
+}
 - (void)rememberFrameOriginOf:(NSWindow*)window {
     _reportedContentOrigin = content_top_left(window);
     _frameOriginKnown = YES;
