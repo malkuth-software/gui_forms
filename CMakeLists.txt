@@ -828,8 +828,10 @@ target_link_libraries(gui_forms_core PUBLIC Threads::Threads GUIForms::Threading
 if(TARGET gui_forms_stx_refresh)
     add_dependencies(gui_forms_core gui_forms_stx_refresh)
 endif()
-# The interpolation seam's private engine; no stx_conv type is public.
-target_link_libraries(gui_forms_core PRIVATE stx_conv::stx_conv)
+# The interpolation seam's private engine is stxlib::conv (in
+# stxlib::algorithms, linked below; gui_forms_skia's draw_image resampler
+# reaches it through gui_forms_text_engine); no stxlib::conv type is public.
+# stx_conv stays for the 3D scene's surfaces (gui_forms_plot_primitives).
 # rtf_conversion's reader and writer; no stx_rtf2md type is public.
 target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
 # Hosted content's parent end (include/gui_forms/content/hosted): POSIX

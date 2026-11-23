@@ -4999,7 +4999,7 @@ Types
 
    .. cpp:function:: virtual void draw_image(ImageId image, Rect destination, double opacity = 1.0) = 0
 
-      Draws ``image`` over ``destination``. Below 1x on either axis the CPU renderer draws a copy resampled by pixel area (stx_conv) to the device size, cached by image content and size; at or above 1x it draws the image directly with a linear filter.
+      Draws ``image`` over ``destination``. Below 1x on either axis the CPU renderer draws a copy resampled by pixel area (stxlib::conv's canon) to the device size, cached by image content and size; at or above 1x it draws the image directly with a linear filter.
 
    .. cpp:function:: virtual void draw_live_surface(std::shared_ptr<LiveSurface> surface, Rect destination, double opacity = 1.0)
 
