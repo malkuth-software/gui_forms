@@ -862,13 +862,26 @@ const PropertyDescriptor& describe_button_text_box_read_only() {
 
 } // namespace
 
+namespace {
+
+// The table's text connector: text_changed_ lives in State, so the entry
+// reaches it through the public accessor rather than a member pointer.
+SubscriptionToken connect_button_text_box_text_changed(Component& owner, Component& subscriber, std::function<void()> changed) {
+    ButtonTextBox& box = static_cast<ButtonTextBox&>(owner);
+    const detail::EventChangeConnector connector(box.text_changed());
+    SubscriptionToken token = connector(subscriber, std::move(changed));
+    return token;
+}
+
+} // namespace
+
 const std::array<PropertyEntry, ButtonTextBox::button_text_box_property_count>& ButtonTextBox::button_text_box_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, 3U> own{{
         {"text", &describe_button_text_box_text,
          &read_cell_entry<ButtonTextBox, decltype(&ButtonTextBox::text), &ButtonTextBox::text>,
          &write_cell_entry<ButtonTextBox, decltype(&ButtonTextBox::text), &ButtonTextBox::text>,
          nullptr, nullptr, nullptr,
-         &connect_event_entry<ButtonTextBox, decltype(&ButtonTextBox::text_changed_), &ButtonTextBox::text_changed_>},
+         &connect_button_text_box_text_changed},
         {"placeholder_text", &describe_button_text_box_placeholder_text,
          &read_cell_entry<ButtonTextBox, decltype(&ButtonTextBox::placeholder_text), &ButtonTextBox::placeholder_text>,
          &write_cell_entry<ButtonTextBox, decltype(&ButtonTextBox::placeholder_text), &ButtonTextBox::placeholder_text>,
