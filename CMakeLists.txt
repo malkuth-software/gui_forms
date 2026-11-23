@@ -983,13 +983,13 @@ endif()
 # runs are stxlib::textlayout's (until 2026-11-16 other libraries did this
 # work). Both are in stxlib::algorithms.
 add_library(gui_forms_text_engine STATIC
-    src/render/text/harfbuzz/harfbuzz_font_engine.cpp
-    src/render/text/harfbuzz/bounded_shape_workspace.cpp
-    src/render/text/harfbuzz/reusable_shape_workspace.cpp
+    src/render/text/shaping/text_shape_engine.cpp
+    src/render/text/shaping/bounded_shape_workspace.cpp
+    src/render/text/shaping/reusable_shape_workspace.cpp
     src/render/text/glyph_run/glyph_run_raster.cpp
 )
 target_include_directories(gui_forms_text_engine
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/text/harfbuzz
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/text/shaping
 )
 # The glyph-run rasterizer draws with STXlib's glyph face; PUBLIC because
 # its header carries face_profile_version beside retained coverage.

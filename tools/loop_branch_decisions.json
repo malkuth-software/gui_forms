@@ -1241,7 +1241,7 @@
       "reason": "one FreeType transform per glyph, with or without the matrix; a split would duplicate the glyph body"
     },
     {
-      "path": "src/render/text/harfbuzz/harfbuzz_font_engine.cpp",
+      "path": "src/render/text/shaping/text_shape_engine.cpp",
       "function": "gui_forms::render::text::Impl::append_run",
       "condition": "Bounded",
       "decision": "false_shape",

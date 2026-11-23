@@ -13,10 +13,10 @@
 #endif
 #include "../../../platform/library_files.hpp"
 
-#include "../../text/harfbuzz/bundled_face_loader.hpp"
+#include "../../text/shaping/bundled_face_loader.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
-#include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
-#include "../../text/harfbuzz/reusable_shape_workspace.hpp"
+#include "../../text/shaping/text_shape_engine.hpp"
+#include "../../text/shaping/reusable_shape_workspace.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../../core/text/composite/clip_mask.hpp"
@@ -706,7 +706,7 @@ public:
         downscaled_bytes = downscaled_bytes + bytes;
         return made;
     }
-    text::HarfBuzzFontEngine text_engine;
+    text::TextShapeEngine text_engine;
     // Identity of text_engine for shaped-text memos. A memo holding an
     // expired or different identity was shaped by another raster.
     std::shared_ptr<const bool> text_engine_identity{gui_forms::detail::make_library_shared<const bool>(true)};
@@ -2650,7 +2650,7 @@ TextExtent SkiaRaster::measure_text_extent_utf8(
 TextResolutionStatus SkiaRaster::fill_line_break_opportunities_utf8(
     std::string_view text, std::span<LineBreakOpportunity> opportunities) {
     const TextResolutionStatus status =
-        text::HarfBuzzFontEngine::fill_line_break_opportunities_utf8(text, opportunities);
+        text::TextShapeEngine::fill_line_break_opportunities_utf8(text, opportunities);
     return status;
 }
 

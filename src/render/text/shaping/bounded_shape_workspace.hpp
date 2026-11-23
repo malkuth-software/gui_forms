@@ -14,7 +14,7 @@
 
 namespace gui_forms::render::text {
 
-class HarfBuzzFontEngine;
+class TextShapeEngine;
 struct ShapeStorageLimits;
 
 // One shape call's working storage for STXlib's shaper: a run's characters
@@ -61,7 +61,7 @@ public:
     // Includes this owner and its controlled arrays, not the engine/call records.
     [[nodiscard]] std::size_t controlled_bytes() const noexcept;
 private:
-    friend class HarfBuzzFontEngine;
+    friend class TextShapeEngine;
     void prepare(const ShapeStorageLimits& limits, std::size_t external_bytes);
     void clear_result() noexcept;
     // Copies only completed active values. No workspace array is transferred.

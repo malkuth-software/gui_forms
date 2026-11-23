@@ -2469,12 +2469,12 @@
         "append": "Enforces command capacity before committing one complete command."
       }
     },
-    "HarfBuzzFontEngine": {
+    "TextShapeEngine": {
       "status": "OBSERVED: bundle 009 text-engine split; focused M4 shaping tests pass",
-      "summary": "HarfBuzzFontEngine (named for its former HarfBuzz backend) owns bounded STXlib typefaces and shaping state (stxlib::glyphs) behind renderer-neutral font IDs, deterministic fallback ordering, absolute UTF-8 clusters, and immutable shaped runs.",
+      "summary": "TextShapeEngine owns bounded STXlib typefaces and shaping state (stxlib::glyphs) behind renderer-neutral font IDs, deterministic fallback ordering, absolute UTF-8 clusters, and immutable shaped runs.",
       "methods": {
-        "HarfBuzzFontEngine": "Constructs the private STXlib-backed implementation; copying is prohibited and moves transfer complete engine ownership.",
-        "~HarfBuzzFontEngine": "Releases its STXlib typefaces and shaping state in dependency-safe order.",
+        "TextShapeEngine": "Constructs the private STXlib-backed implementation; copying is prohibited and moves transfer complete engine ownership.",
+        "~TextShapeEngine": "Releases its STXlib typefaces and shaping state in dependency-safe order.",
         "operator=": "Moves complete engine ownership; copying is prohibited.",
         "register_typeface": "Validates bounded bytes and unique stable ID, owns the font bytes, opens the STXlib typeface, and commits only a usable face.",
         "register_fallback_typeface": "Registers a face and appends its ID once to deterministic fallback order.",

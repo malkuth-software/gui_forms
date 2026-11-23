@@ -1,6 +1,6 @@
 #pragma once
 
-#include "harfbuzz_font_engine.hpp"
+#include "text_shape_engine.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
 
 #include <memory>
@@ -9,7 +9,7 @@
 namespace gui_forms::render::text {
 
 // Reads one bundled fallback face from the process's shared set when a text engine first
-// needs it (HarfBuzzFontEngine::register_lazy_fallback_typeface). Every engine given a copy
+// needs it (TextShapeEngine::register_lazy_fallback_typeface). Every engine given a copy
 // borrows the same sealed bytes.
 struct BundledFaceLoader final {
     std::shared_ptr<gui_forms::detail::BundledFontSet> set;

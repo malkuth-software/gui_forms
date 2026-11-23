@@ -1,6 +1,6 @@
 #include "../../core/text/prepared/prepared_storage.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
-#include "harfbuzz/harfbuzz_font_engine.hpp"
+#include "shaping/text_shape_engine.hpp"
 #include "../../core/threading/start_thread.hpp"
 
 #include <algorithm>
@@ -363,12 +363,12 @@ bool PreparedSessionState::job_or_closing(const void* const context) noexcept {
 }
 
 void PreparedSessionState::run() noexcept {
-    std::unique_ptr<render::text::HarfBuzzFontEngine> engine{};
+    std::unique_ptr<render::text::TextShapeEngine> engine{};
     PreparedTextStatus initialization = PreparedTextStatus::success;
     std::size_t engine_bytes = 0;
     std::array<FontFaceId, PreparedTextLimits::font_faces> face_ids{};
     try {
-        engine = std::make_unique<render::text::HarfBuzzFontEngine>();
+        engine = std::make_unique<render::text::TextShapeEngine>();
         const PreparedFontBank& bank = *fonts;
         engine_bytes = (*engine).configure_bounded_registration(bank.face_count, PreparedTextLimits::workspace_bytes);
         for (std::size_t index = 0; index < bank.face_count; ++index) {

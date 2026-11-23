@@ -58,7 +58,7 @@
       "reason": "Restricted parameters on the internal fill_grapheme_parts; the wrapper asserts text, scalars and boundaries pairwise disjoint (separate allocations and the caller's text)."
     },
     {
-      "path": "src/render/text/harfbuzz/harfbuzz_font_engine.cpp",
+      "path": "src/render/text/shaping/text_shape_engine.cpp",
       "function": "gui_forms::render::text::Impl::fill_bounded_runs",
       "variable": "candidates,scalar_scratch,segments,directions,visual",
       "kind": "restrict_span",

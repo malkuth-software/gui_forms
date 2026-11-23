@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../harfbuzz/harfbuzz_font_engine.hpp"
+#include "../shaping/text_shape_engine.hpp"
 
 #include <stxlib/glyph_face.hpp>
 
@@ -95,7 +95,7 @@ struct GlyphRunTransform final {
 // Not thread-safe: one rasterizer per executor.
 class GlyphRunRasterizer final {
 public:
-    explicit GlyphRunRasterizer(const HarfBuzzFontEngine& engine);
+    explicit GlyphRunRasterizer(const TextShapeEngine& engine);
     ~GlyphRunRasterizer();
     GlyphRunRasterizer(const GlyphRunRasterizer&) = delete;
     GlyphRunRasterizer& operator=(const GlyphRunRasterizer&) = delete;

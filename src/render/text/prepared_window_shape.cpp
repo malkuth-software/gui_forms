@@ -59,7 +59,7 @@ PreparedTextStatus PreparedWindowShaper::initialize() {
         if ((*(*fonts_).ledger).closing) return PreparedTextStatus::closing;
     }
     try {
-        std::unique_ptr<HarfBuzzFontEngine> candidate = std::make_unique<HarfBuzzFontEngine>();
+        std::unique_ptr<TextShapeEngine> candidate = std::make_unique<TextShapeEngine>();
         ShapeStorageLimits limits{};
         limits.workspace_bytes -= reserved_context;
         const detail::PreparedFontBank& bank = *fonts_;

@@ -89,7 +89,7 @@ struct RunPlacement final {
 class GlyphRunRasterizer::Impl final {
 public:
     class Runner;
-    explicit Impl(const HarfBuzzFontEngine& engine) : engine_(engine) {}
+    explicit Impl(const TextShapeEngine& engine) : engine_(engine) {}
     Impl(const Impl&) = delete;
     Impl& operator=(const Impl&) = delete;
 
@@ -144,7 +144,7 @@ private:
         std::unique_ptr<detail::ExecutorFace> face{};
     };
 
-    const HarfBuzzFontEngine& engine_;
+    const TextShapeEngine& engine_;
     std::vector<OpenFace> faces_;
     // Working storage kept from run to run (one executor), so a run whose
     // glyphs and size were met before allocates nothing of its own: the
@@ -156,7 +156,7 @@ private:
     std::vector<std::uint8_t> piece_pixels_;
 };
 
-GlyphRunRasterizer::GlyphRunRasterizer(const HarfBuzzFontEngine& engine) : impl_(std::make_unique<Impl>(engine)) {}
+GlyphRunRasterizer::GlyphRunRasterizer(const TextShapeEngine& engine) : impl_(std::make_unique<Impl>(engine)) {}
 
 GlyphRunRasterizer::~GlyphRunRasterizer() = default;
 
