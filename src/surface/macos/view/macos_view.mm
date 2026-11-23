@@ -8,6 +8,9 @@
 #include "../application/macos_bundled_fonts.hpp"
 #include "../application/macos_main_work.hpp"
 #include "../application/macos_values.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../services/appkit_drag_release.hpp"
+#endif
 
 // Main-queue work without Objective-C blocks (house style section 9, owner
 // decision V2-1). Each posting allocates one named context on the heap and
@@ -522,6 +525,11 @@ void link_view_categories() noexcept {
 }
 - (void)notifyClosedWithReason:(HostCloseReason)reason {
     if (_hostAttached == NO) return;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A drag from this window ends cancelled before the window reports its
+    // close; AppKit's session then touches nothing of the closed window.
+    if (_hostServices != nullptr) gui_forms::host::detail::macos_drag_source_window_closed(*_hostServices);
+#endif
     static_cast<void>([self dispatchHostPayload:HostClosedEvent{reason}
                                timestampNanoseconds:host_now_nanoseconds()]);
 }

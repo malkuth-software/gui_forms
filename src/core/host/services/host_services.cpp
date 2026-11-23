@@ -2,6 +2,7 @@
 
 #include "gui_forms/window.hpp"
 #include "../../surface_root/requests/alert_route.hpp"
+#include "../session/drag_items.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -1168,6 +1169,75 @@ void HostServices::publish_tray_icon_event(const HostTrayIconEvent& event) {
     tray_icon_events_.emit(event);
 }
 
+HostDragSourceResult HostServices::start_drag(const HostDragSourceRequest& request) {
+    HostDragSourceResult result;
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    static_cast<void>(request);
+    result.status = validate_request(HostCapability::typed_drag_source);
+    return result;
+#else
+    result.status = validate_request(HostCapability::typed_drag_source);
+    if (!result.status.accepted()) return result;
+    const bool valid = !request.items.empty() && request.allowed_effects != DragEffect::none &&
+                       detail::known_drag_effects(request.allowed_effects) &&
+                       detail::valid_drag_items(request.items);
+    if (!valid) {
+        result.status = reject(HostServiceError::invalid_argument);
+        return result;
+    }
+    if (active_drag_source_ != 0U) {
+        result.status = reject(HostServiceError::modal_limit);
+        return result;
+    }
+    const std::uint64_t session_id = next_drag_source_;
+    ++next_drag_source_;
+    // Running before the platform starts: a platform whose drag ends inside
+    // start_drag_impl (Windows) reports the end against this identity.
+    active_drag_source_ = session_id;
+    active_drag_effects_ = request.allowed_effects;
+    HostServiceStatus started{HostServiceError::backend_failure};
+    try {
+        started = start_drag_impl(session_id, request);
+    } catch (const std::exception&) {
+        started = {HostServiceError::backend_failure};
+    }
+    if (!started.accepted()) {
+        if (active_drag_source_ == session_id) {
+            active_drag_source_ = 0U;
+            active_drag_effects_ = DragEffect::none;
+        }
+        result.status = reject(started.error);
+        return result;
+    }
+    result.session_id = session_id;
+    return result;
+#endif
+}
+
+void HostServices::publish_drag_source_end(const HostDragSourceEnd& event) {
+    if (std::this_thread::get_id() != ui_thread_ || event.session_id == 0U ||
+        event.session_id != active_drag_source_) {
+        return;
+    }
+    HostDragSourceEnd reported = event;
+    const bool single = event.performed_effect == DragEffect::copy ||
+                        event.performed_effect == DragEffect::move ||
+                        event.performed_effect == DragEffect::link;
+    if (!single || !has_drag_effect(active_drag_effects_, event.performed_effect)) {
+        reported.performed_effect = DragEffect::none;
+    }
+    active_drag_source_ = 0U;
+    active_drag_effects_ = DragEffect::none;
+    if (snapshot_.shutdown) return;
+    drag_source_ended_.emit(reported);
+}
+
+HostServiceStatus HostServices::start_drag_impl(std::uint64_t, const HostDragSourceRequest&) {
+    return {HostServiceError::unsupported};
+}
+
 HostServiceStatus HostServices::add_tray_icon_impl(HostTrayIconId, const HostTrayIconRequest&) {
     return {HostServiceError::unsupported};
 }
@@ -1204,6 +1274,10 @@ void HostServices::shutdown() noexcept {
     tray_icons_.clear();
     snapshot_.tray_icons = 0U;
     snapshot_.shutdown = true;
+    // A running drag ends without a report: shutdown_impl detaches the
+    // platform's drag from these services, whose handlers are going away.
+    active_drag_source_ = 0U;
+    active_drag_effects_ = DragEffect::none;
     shutdown_impl();
     active_cursor_images_.reset();
     failed_cursor_images_.reset();

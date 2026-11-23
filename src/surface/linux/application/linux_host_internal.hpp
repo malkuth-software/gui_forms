@@ -121,6 +121,62 @@ private:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 DragFileListData local_files(const std::vector<std::byte>& data);
+// The XDND source (linux_drag_drop.cpp). Not compiled in a high-integrity
+// build (cmake/HighIntegrity.cmake).
+//
+// A local path as a file URI: "file://" and the path's bytes, each byte
+// outside RFC 3986's unreserved set and '/' percent-encoded, so local_files
+// reads it back unchanged.
+[[nodiscard]] std::string xdnd_file_uri(std::string_view path);
+// A file list as text/uri-list: one file URI a line, each line ended by
+// CR LF.
+[[nodiscard]] std::vector<std::byte> xdnd_uri_list(const DragFileListData& files);
+// The effect a drag asks for under the modifier `state` (an X key-button
+// mask): Shift and Control together link, Shift moves, Control copies,
+// as GTK and Qt do; with neither, or when the asked effect is not allowed,
+// the first allowed of copy, move and link.
+[[nodiscard]] DragEffect xdnd_requested_effect(unsigned state, DragEffect allowed) noexcept;
+// How a drag from the program ended: the effect the destination took
+// (none when cancelled), the failure that kept it from starting, and the
+// button release that ended it, which the window receives after the end is
+// reported (the drag's pointer grab took it from the window).
+struct XdndDragOutcome final {
+  HostServiceStatus status;
+  DragEffect performed_effect{DragEffect::none};
+  std::optional<XEvent> release;
+};
+// Runs a drag of `request` (validated by HostServices::start_drag) from
+// `window` until it ends: XdndSelection owned with the request's targets,
+// the pointer and keyboard grabbed, XdndEnter, XdndPosition and XdndLeave
+// sent to the XDND-aware window under the pointer (through its XdndProxy),
+// XdndStatus honoured, XdndDrop on the release of the buttons held at the
+// start and XdndFinished awaited for at most 5 seconds; Escape cancels.
+// Other events are dispatched as the run loop would, so the program's own
+// windows take part as destinations and selection requests are answered.
+// backend_failure when no button is held or the grab or the selection is
+// refused. UI thread.
+[[nodiscard]] XdndDragOutcome run_xdnd_drag(NativeWindow &window, const HostDragSourceRequest &request);
+// Where a drag from the program starts: the buttons held (an X button mask,
+// not empty), the pointer's root position and the key-button state.
+struct XdndDragStart final {
+  unsigned buttons{};
+  int root_x{};
+  int root_y{};
+  unsigned state{};
+};
+// run_xdnd_drag after the pointer query, from `start` (a test drives it
+// without a held button). The window is held to the end of the run loop's
+// turn (Runtime::drag_held_windows); when it closes during the drag, which
+// a timer or queued action can do, the drag is cancelled: XdndLeave to the
+// target, XdndSelection and the grabs given up, the effect none.
+[[nodiscard]] XdndDragOutcome run_xdnd_drag_from(NativeWindow &window, const HostDragSourceRequest &request,
+                                                 const XdndDragStart &start);
+// One turn of the program's own work under a drag (run_xdnd_drag's loop):
+// the queued actions and accessibility work, then every window's timers,
+// frames and paint (Runtime::service_windows). Returns how long the loop
+// may wait for its next event: the earliest window deadline, bounded by
+// `maximum_wait` (negative for no bound). UI thread.
+[[nodiscard]] int xdnd_drag_turn(Runtime &runtime, int maximum_wait);
 #endif
 // A present's source: the raster's premultiplied BGRA8 pixels, row_bytes
 // apart, and the window's alpha mask, presented when present_alpha (a
@@ -230,6 +286,10 @@ protected:
   HostClipboardImageResult read_clipboard_image_impl() override;
   HostClipboardFilesResult read_clipboard_files_impl() override;
   HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+  // A drag to other programs (run_xdnd_drag): the drag ends, and is
+  // reported, before this returns; then the window receives the release.
+  // A window closed during its drag reports it cancelled (effect none).
+  HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest &request) override;
 #endif
   HostDialogResult show_dialog_impl(const HostDialogRequest &request) override;
   HostServiceStatus play_sound_cue_impl(const HostSoundCueRequest &) override;
@@ -577,6 +637,12 @@ struct SelectionTransfer final {
   std::size_t offset{};
   std::chrono::steady_clock::time_point deadline;
 };
+// How long a loop may wait after a turn, in milliseconds (negative: no
+// bound), and whether any window is still open (Runtime::service_windows).
+struct RunWait final {
+  int milliseconds{-1};
+  bool active{};
+};
 class Runtime final {
 public:
   Runtime();
@@ -588,6 +654,21 @@ public:
                                     HostWindowId window_id = {},
                                     bool initial = true);
   void step(int maximum_wait = -1);
+  // The parts of a turn a nested loop (the XDND source's drag) repeats so
+  // the program keeps running under it.
+  //
+  // Empties the wake pipe and runs the queued window actions and the
+  // accessibility bus's work; true when an action ran.
+  bool run_woken_work();
+  // Updates every window (its timers, frames, first show and paint) and
+  // returns how long the loop may then wait: the earliest of
+  // `maximum_wait` (negative for no bound), the selection transfers'
+  // deadlines, each window's next wake, first show deadline, live clock and
+  // overlay fade; and whether any window is still open.
+  RunWait service_windows(int maximum_wait);
+  // Waits at most `milliseconds` (negative: no bound) for an X event, the
+  // wake pipe or the accessibility bus.
+  void wait_for_work(int milliseconds);
   // Releases runtime windows that closed, between loop turns.
   void reclaim();
   // Reports application activation to the windowing after a turn's events:
@@ -683,6 +764,31 @@ public:
   std::vector<SelectionTransfer> transfers;
   void selection_property(const XPropertyEvent &event);
   void selection_request(const XSelectionRequestEvent &request);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // One target a drag from the program offers on XdndSelection, and its
+  // bytes.
+  struct DragOfferTarget final {
+    Atom target{};
+    std::vector<std::byte> bytes;
+  };
+  // The window owning XdndSelection for a running drag (0 when none) and
+  // what it offers; set and cleared by run_xdnd_drag.
+  ::Window drag_offer_owner{};
+  std::vector<DragOfferTarget> drag_offer;
+  // The offered bytes for `target`, or nullptr when it is not offered.
+  [[nodiscard]] const std::vector<std::byte> *drag_offer_bytes(Atom target) const noexcept;
+  // The windows drags from the program started from, held until the run
+  // loop's turn ends (reclaim) so a handler that closes a source window
+  // during its drag (whose loop runs the program's timers and actions) frees
+  // nothing the drag or its services still use.
+  std::vector<std::shared_ptr<NativeWindow>> drag_held_windows;
+#endif
+
+private:
+  // Writes `bytes` to the requestor's `property` for `request` (by INCR
+  // above 64 KiB); false when the transfer table is full or the requestor
+  // is gone, and the request is refused.
+  bool write_selection_reply(const XSelectionRequestEvent &request, Atom property, std::vector<std::byte> bytes);
 };
 HostDialogResult retained_dialog(NativeWindow &owner,
                                  const HostDialogRequest &request);

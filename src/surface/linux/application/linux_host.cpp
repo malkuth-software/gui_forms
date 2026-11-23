@@ -1088,6 +1088,9 @@ Runtime::~Runtime() {
   for (std::size_t i = 0; i < windows.size(); ++i)
     (*windows[i]).close(HostCloseReason::application, true);
   windows.clear();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  drag_held_windows.clear();
+#endif
   compositor.reset();
   input_settings.reset();
   actions.reset();
@@ -1179,6 +1182,10 @@ void Runtime::report_activation() {
     (*windowing).report_application_active(any);
 }
 void Runtime::reclaim() {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // The run loop's turn is over: no drag's frame holds these windows now.
+  drag_held_windows.clear();
+#endif
   for (std::size_t i = windows.size(); i > 0; --i) {
     const NativeWindow &window = *windows[i - 1];
     if (window.initial || !window.closed)
@@ -1902,7 +1909,10 @@ void NativeWindow::update() {
   static_cast<void>((*entry.model).drain_posted_work());
   static_cast<void>(
       (*entry.model).poll_frame_schedule(std::chrono::steady_clock::now()));
-  if (accessibility && !closed) { (*accessibility).update(); }
+  // A timer's handler may close the window.
+  if (closed)
+    return;
+  if (accessibility) { (*accessibility).update(); }
   // Gather before taking damage: a new frame beneath an overlay damages the
   // overlay's share (#69), and that damage is taken with the rest.
   const bool regions_taken = gather_live_frames();
@@ -2254,6 +2264,16 @@ void Runtime::dispatch(XEvent &event) {
     return;
   }
   if (event.type == SelectionClear) {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Losing XdndSelection ends a drag's offer, never the clipboard.
+    if (event.xselectionclear.selection == atom("XdndSelection")) {
+      drag_offer_owner = 0;
+      drag_offer.clear();
+      return;
+    }
+#endif
+    if (event.xselectionclear.selection != atom("CLIPBOARD"))
+      return;
     clipboard_owner = 0;
     clipboard_text.clear();
     clipboard_image = {};
@@ -2353,14 +2373,9 @@ void Runtime::end_session() {
   for (std::size_t i = snapshot.size(); i > 0; --i)
     (*snapshot[i - 1]).close(HostCloseReason::session_end, true);
 }
-void Runtime::step(int maximum_wait) {
+bool Runtime::run_woken_work() {
   char bytes[128];
   while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
-  }
-  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
-    session_end_signalled = 0;
-    end_session();
-    return;
   }
   std::deque<Action> queued;
   {
@@ -2373,28 +2388,13 @@ void Runtime::step(int maximum_wait) {
       (*window).action(queued[i].kind);
   }
   accessibility_dispatch();
-  bool dispatched = !queued.empty();
-  // A bounded turn (audit N68): events left over stay queued, and the
-  // check at the end returns without waiting so the next turn takes them.
-  const std::chrono::steady_clock::time_point turn_start = std::chrono::steady_clock::now();
-  std::size_t turn_events = 0U;
-  while (XPending(display) > 0) {
-    dispatched = true;
-    XEvent event{};
-    XNextEvent(display, &event);
-    if (superseded_motion(display, event))
-      continue;
-    // One X event is the native callback of this loop: application code
-    // runs under it, so it goes through the fail-fast boundary.
-    gui_forms::detail::call_failing_fast("linux.x11_event", &Runtime::dispatch, *this, event);
-    turn_events = turn_events + 1U;
-    if (turn_events >= turn_event_limit)
-      break;
-    if (std::chrono::steady_clock::now() - turn_start >= turn_time_limit)
-      break;
-  }
+  const bool ran = !queued.empty();
+  return ran;
+}
+RunWait Runtime::service_windows(int maximum_wait) {
+  RunWait result{maximum_wait, false};
+  int &wait = result.milliseconds;
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
-  int wait = maximum_wait;
   const std::chrono::steady_clock::time_point now =
       std::chrono::steady_clock::now();
   for (std::size_t i = transfers.size(); i > 0; --i) {
@@ -2446,16 +2446,50 @@ void Runtime::step(int maximum_wait) {
     }
   }
   XFlush(display);
-  bool active = false;
   for (std::size_t i = 0; i < snapshot.size(); ++i)
     if (!(*snapshot[i]).closed)
-      active = true;
-  if (!active)
+      result.active = true;
+  return result;
+}
+void Runtime::wait_for_work(int milliseconds) {
+  accessibility_wait(ConnectionNumber(display), wake_pipe[0], milliseconds);
+}
+void Runtime::step(int maximum_wait) {
+  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
+    char bytes[128];
+    while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
+    }
+    session_end_signalled = 0;
+    end_session();
+    return;
+  }
+  bool dispatched = run_woken_work();
+  // A bounded turn (audit N68): events left over stay queued, and the
+  // check at the end returns without waiting so the next turn takes them.
+  const std::chrono::steady_clock::time_point turn_start = std::chrono::steady_clock::now();
+  std::size_t turn_events = 0U;
+  while (XPending(display) > 0) {
+    dispatched = true;
+    XEvent event{};
+    XNextEvent(display, &event);
+    if (superseded_motion(display, event))
+      continue;
+    // One X event is the native callback of this loop: application code
+    // runs under it, so it goes through the fail-fast boundary.
+    gui_forms::detail::call_failing_fast("linux.x11_event", &Runtime::dispatch, *this, event);
+    turn_events = turn_events + 1U;
+    if (turn_events >= turn_event_limit)
+      break;
+    if (std::chrono::steady_clock::now() - turn_start >= turn_time_limit)
+      break;
+  }
+  const RunWait serviced = service_windows(maximum_wait);
+  if (!serviced.active)
     return;
   // Closing callbacks can enqueue more work; the pipe keeps that work visible.
-  if (dispatched || XPending(display) > 0 || wait == 0)
+  if (dispatched || XPending(display) > 0 || serviced.milliseconds == 0)
     return;
-  accessibility_wait(ConnectionNumber(display), wake_pipe[0], wait);
+  wait_for_work(serviced.milliseconds);
 }
 HostDialogResult NativeWindow::dialog(const HostDialogRequest &request) {
   return retained_dialog(*this, request);
@@ -2667,6 +2701,8 @@ HostCapabilities linux_capabilities() {
               HostCapability::clipboard | HostCapability::clipboard_images |
               HostCapability::dialogs | HostCapability::sound_cues |
               HostCapability::typed_drag_destination |
+              // XDND both ways (linux_drag_drop.cpp).
+              HostCapability::typed_drag_source |
               HostCapability::runtime_windows | HostCapability::window_frames |
               HostCapability::screen_pointer | HostCapability::window_at_point |
               HostCapability::window_ordering |

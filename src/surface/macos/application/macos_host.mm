@@ -44,6 +44,8 @@ HostCapabilities macos_capabilities() {
                 HostCapability::clipboard |
                 HostCapability::clipboard_images |
                 HostCapability::typed_drag_destination |
+                // Drags to other programs (AppKitHostServices::start_drag_impl).
+                HostCapability::typed_drag_source |
                 HostCapability::dialogs |
                 HostCapability::sound_cues |
                 HostCapability::notification_area |
