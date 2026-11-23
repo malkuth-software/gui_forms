@@ -2620,6 +2620,47 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_custom_chrome_lab_model PUBLIC
         gui_forms_controls gui_forms_demo_controls)
 
+    # The code-zoom demonstrator (owner, 2026-11-22): one of GUI.Forms' own
+    # C++ sources, embedded at build time and highlighted
+    # (stxlib/syntax.hpp), zoomed from a minimap to a few
+    # characters with every frame's text rasterized at its true size
+    # (demo/code_zoom/code_zoom.hpp). GUI_FORMS_CODE_ZOOM_SOURCE names the
+    # file, relative to this tree.
+    set(GUI_FORMS_CODE_ZOOM_SOURCE "src/controls/instruments/sparkline/sparkline.cpp" CACHE STRING
+        "The GUI.Forms source the code-zoom demonstrator shows, relative to the source tree")
+    set(_gf_code_zoom_embedded ${CMAKE_CURRENT_BINARY_DIR}/generated/code_zoom/code_zoom_embedded_source.inc)
+    add_custom_command(
+        OUTPUT ${_gf_code_zoom_embedded}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/generated/code_zoom
+        COMMAND ${CMAKE_COMMAND}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/${GUI_FORMS_CODE_ZOOM_SOURCE}
+            -DNAME=${GUI_FORMS_CODE_ZOOM_SOURCE}
+            -DOUTPUT=${_gf_code_zoom_embedded}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_text_file.cmake
+        DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/${GUI_FORMS_CODE_ZOOM_SOURCE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_text_file.cmake
+        COMMENT "Embedding the code-zoom demonstrator's source"
+        VERBATIM)
+    add_library(gui_forms_code_zoom_model STATIC
+        demo/code_zoom/zoom_model.cpp
+        demo/code_zoom/code_bench.cpp
+        demo/code_zoom/code_sheet.cpp
+        demo/code_zoom/code_zoom.cpp
+        ${_gf_code_zoom_embedded}
+    )
+    target_include_directories(gui_forms_code_zoom_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo/code_zoom
+    )
+    target_include_directories(gui_forms_code_zoom_model PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/code_zoom)
+    # The sheet's highlighter is stxlib::syntax (stxlib/syntax.hpp), which
+    # needs an STXlib pin that carries it (STXlib claude/wizardly-nobel-2fdd86
+    # fe53940 or later).
+    target_link_libraries(gui_forms_code_zoom_model PUBLIC
+        gui_forms_controls stxlib::algorithms)
+
     add_library(gui_forms_typography_scale_lab_model STATIC
         demo/typography_scale_lab.cpp
     )
@@ -2720,6 +2761,27 @@ if(GUI_FORMS_BUILD_GALLERY)
             MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms VSync + Waterfall Lab"
+        )
+
+        # The code-zoom demonstrator; --headless --capture and --bench draw
+        # through OffscreenRaster, as the Gallery's capture does.
+        add_executable(gui_forms_code_zoom MACOSX_BUNDLE
+            src/host/macos/code_zoom_main.mm
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_code_zoom PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_code_zoom PRIVATE
+            gui_forms_code_zoom_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_code_zoom PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Code Zoom"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.code-zoom"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Code Zoom"
         )
 
         add_executable(gui_forms_visual_inspector_lab MACOSX_BUNDLE
@@ -2884,6 +2946,19 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_process_control_windows PROPERTIES
             OUTPUT_NAME "GUI.Forms Process Control"
+        )
+
+        add_executable(gui_forms_code_zoom_windows
+            src/host/windows/code_zoom_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_code_zoom_windows PRIVATE
+            gui_forms_code_zoom_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_code_zoom_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Code Zoom"
         )
 
         # The Gallery under Application::run, so menus open in Popup
@@ -3083,6 +3158,19 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_compositor_lab_linux PROPERTIES
             OUTPUT_NAME "gui-forms-compositor-lab"
+        )
+
+        add_executable(gui_forms_code_zoom_linux
+            src/host/linux/code_zoom_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_code_zoom_linux PRIVATE
+            gui_forms_code_zoom_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_code_zoom_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-code-zoom"
         )
 
         # The X11 host reads its faces from the embedded pack; the font
@@ -3466,9 +3554,11 @@ foreach(gallery_program IN ITEMS
         gui_forms_connected_controls_lab_windows
         gui_forms_seam_proximity_lab_windows
         gui_forms_correspondence_windows
+        gui_forms_code_zoom_windows
         gui_forms_gallery_linux
         gui_forms_process_control_linux
-        gui_forms_correspondence_linux)
+        gui_forms_correspondence_linux
+        gui_forms_code_zoom_linux)
     if(TARGET ${gallery_program})
         list(APPEND gui_forms_font_programs ${gallery_program})
         list(APPEND gui_forms_font_sources ${GUI_FORMS_PROGRAM_FONT_NOTICES})
