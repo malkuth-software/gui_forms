@@ -216,51 +216,54 @@ def argument_line(manifest: Manifest, slot: Slot, index: int, member: bool) -> s
     constant: bool
     inner, is_pointer, constant = pointee(type_name)
     if type_name == 'gf_object':
-        source: str = 'arguments.subject()' if index == 0 and member else 'arguments.object(' + position + ')'
+        source: str = 'drawn.subject()' if index == 0 and member else 'drawn.object(' + position + ')'
         return 'const gf_object ' + name + ' = ' + source + ';'
     if type_name == 'gf_utf8_view':
-        return 'const gf_utf8_view ' + name + ' = arguments.text(' + position + ');'
+        return 'const gf_utf8_view ' + name + ' = drawn.text(' + position + ');'
     if type_name in INTEGERS:
         if type_name in ('uint64_t', 'uint32_t') and COUNT_NAME.search(name):
             bounded: str | None = element_type(slot.parameters, index)
             if bounded is not None:
-                return ('const ' + type_name + ' ' + name + ' = static_cast<' + type_name + '>(arguments.extent('
+                return ('const ' + type_name + ' ' + name + ' = static_cast<' + type_name + '>(drawn.extent('
                         + position + ', ' + cpp_size(bounded) + '));')
-        return 'const ' + type_name + ' ' + name + ' = arguments.' + INTEGERS[type_name] + '(' + position + ');'
+        return 'const ' + type_name + ' ' + name + ' = drawn.' + INTEGERS[type_name] + '(' + position + ');'
     if type_name in manifest.scalars:
         base: str = manifest.scalars[type_name]
         draw: str = INTEGERS.get(base, 'u32')
-        return ('const ' + type_name + ' ' + name + ' = static_cast<' + type_name + '>(arguments.' + draw + '('
+        return ('const ' + type_name + ' ' + name + ' = static_cast<' + type_name + '>(drawn.' + draw + '('
                 + position + '));')
     if not is_pointer:
         if plain(manifest, type_name):
-            return 'const ' + type_name + ' ' + name + ' = arguments.plain<' + type_name + '>(' + position + ');'
-        return 'const ' + type_name + ' ' + name + ' = arguments.value<' + type_name + '>(' + position + ');'
+            return 'const ' + type_name + ' ' + name + ' = drawn.plain<' + type_name + '>(' + position + ');'
+        return 'const ' + type_name + ' ' + name + ' = drawn.value<' + type_name + '>(' + position + ');'
     record_sized: str = 'true' if sized(manifest, inner) else 'false'
     if constant:
         if inner == 'gf_object':
-            return 'const gf_object* const ' + name + ' = arguments.objects_input(' + position + ');'
+            return 'const gf_object* const ' + name + ' = drawn.objects_input(' + position + ');'
         if inner in ('uint8_t', 'char'):
-            return 'const ' + inner + '* const ' + name + ' = arguments.bytes_input<' + inner + '>(' + position + ');'
-        return ('const ' + inner + '* const ' + name + ' = arguments.input<' + inner + '>(' + position + ', '
+            return 'const ' + inner + '* const ' + name + ' = drawn.bytes_input<' + inner + '>(' + position + ');'
+        return ('const ' + inner + '* const ' + name + ' = drawn.input<' + inner + '>(' + position + ', '
                 + record_sized + ');')
-    return inner + '* const ' + name + ' = arguments.output<' + inner + '>(' + position + ', ' + record_sized + ');'
+    return inner + '* const ' + name + ' = drawn.output<' + inner + '>(' + position + ', ' + record_sized + ');'
 
 
 def slot_function(manifest: Manifest, slot: Slot, member: bool) -> None:
     """Fills slot.function and slot.lines: the invoke function that draws the arguments and calls the slot."""
     slot.function = 'invoke_' + slot.table + '_' + slot.name
+    # The draw source is `drawn` and the result `returned`: a slot's own
+    # parameters may be called arguments or status.
+    source: str = 'Arguments& drawn' if slot.parameters else '[[maybe_unused]] Arguments& drawn'
     lines: list[str] = ['// ' + slot.table + '.' + slot.name,
-                        'inline gf_status ' + slot.function + '(const AbiTables& tables, Arguments& arguments) {']
+                        'inline gf_status ' + slot.function + '(const AbiTables& tables, ' + source + ') {']
     index: int
     for index in range(len(slot.parameters)):
         lines.append('    ' + argument_line(manifest, slot, index, member))
     names: str = ', '.join(parameter.name for parameter in slot.parameters)
-    lines.append('    const gf_status status = tables.' + slot.table + '.' + slot.name + '(' + names + ');')
+    lines.append('    const gf_status returned = tables.' + slot.table + '.' + slot.name + '(' + names + ');')
     for index in range(len(slot.parameters)):
         if slot.parameters[index].type == 'gf_object*':
-            lines.append('    arguments.adopt(status, ' + slot.parameters[index].name + ');')
-    lines.append('    return status;')
+            lines.append('    drawn.adopt(returned, ' + slot.parameters[index].name + ');')
+    lines.append('    return returned;')
     lines.append('}')
     slot.lines = lines
 
