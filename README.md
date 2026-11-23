@@ -195,8 +195,7 @@ do is reported at run time and listed in
 ## Built with GUI.Forms
 
 - [Plan Paint](https://github.com/malkuth-software/plan-paint): a paint
-  program with the Windows 7 and 10 Paint ribbon, released for macOS,
-  Windows and Linux.
+  program with the Windows 7 and 10 Paint ribbon.
 - [PlaySuite](https://github.com/malkuth-software/games): a collection of
   games in one application, each game a folder.
 - [SwiftEdit](https://github.com/malkuth-software/swiftedit): a plain-text
@@ -204,8 +203,7 @@ do is reported at run time and listed in
 - [Pocket Library](https://github.com/falseywinchnet/books): a reading
   room of 746 books, built on the same shell as PlaySuite.
 - In this repository: the Gallery, Explore and Correspondence
-  ([`demo/`](demo/), [`file_manager_demoboard/`](file_manager_demoboard/)),
-  built from the public headers only.
+  ([`demo/`](demo/), [`file_manager_demoboard/`](file_manager_demoboard/)).
 
 ## Where the designs come from
 
