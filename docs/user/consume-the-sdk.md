@@ -90,11 +90,12 @@ the form headers that name it, so its `USED_BY` lists those forms' sources.
 | Component | Target | Kind | Use it for |
 |---|---|---|---|
 | `Threading` | `GUIForms::Threading` | static | `Worker`, `CancellationFlag`, the atomic thread pool. Linked by `Core`, `Application` and `Audio`. |
+| `Memory` | `GUIForms::Memory` | static | GUI.Forms' allocator seam over STXlib's allocator (`gui_forms/allocation/library_memory/library_memory.hpp`): `LibraryAllocator`, `LibraryAllocated`, the teardown reserve. Linked by `Core`, `Application`, `Audio` and `gui_forms_use_library_allocator`. |
 | `Core` | `GUIForms::Core` | static | The retained tree, events, invalidation, scheduling, resources and the portable host protocol, with no renderer and no native window. |
 | `Controls` | `GUIForms::Controls` | static | Stock controls over `Core`. Exports `Drawing`. |
 | `Drawing` | `GUIForms::Drawing` | static | Renderer-free geometry, colour, paths, raster storage and command recording. |
 | `Application` | `GUIForms::Application` | static | The native host for your platform, linked into your executable. Already contains `Core`, `Controls` and `Drawing`. |
-| `Audio` | `GUIForms::Audio` | static | PCM clips, Ogg decoding and a device backend. Links `Threading` only. |
+| `Audio` | `GUIForms::Audio` | static | PCM clips, Ogg decoding and a device backend. Links `Threading` and `Memory` only. |
 | `CAbi` | `GUIForms::CAbi` | shared | The C ABI (`gui_forms/c/gf_abi.h`), for C, C# and other languages: one self-contained library holding its own engine, the drawing ABI and, on Windows, the Win32 compatibility shim. A process uses it or a statically linked C++ engine, never both. |
 | `CAbiConformance` | `GUIForms::CAbiConformance` | static | The C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)). |
 | `HostedClient` | `GUIForms::HostedClient` | static | The program end of hosted content: a program started by `make_hosted_content` links it, and nothing of the interface ([Content surfaces](content-surfaces.md)). |

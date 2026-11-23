@@ -61,8 +61,8 @@
 // the module's destructors (a dlclose, or exit's atexit handlers) while
 // STXlib's allocator serves as before.
 //
-// The program links GUI.Forms (the teardown reserve is
-// gui_forms::detail's, in gui_forms_core).
+// The program links GUIForms::Memory (the teardown reserve is
+// gui_forms::detail's; gui_forms_use_library_allocator links it).
 
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 

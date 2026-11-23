@@ -69,6 +69,10 @@
 // allocator serves static destructors as it serves any code; only true
 // exhaustion refuses there, as everywhere.
 //
+// The seam and the reserve are the static archive GUIForms::Memory, which
+// Core, Audio and an opting-in program link, so a program linking several
+// holds one copy.
+//
 // A library allocation passes through one out-of-line seam,
 // detail::library_allocate, which keeps per-thread counts and admits a
 // test-only observer that may refuse it, so tests that count or fail the
