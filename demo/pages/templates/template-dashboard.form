@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- UI template: a dashboard screen, for the Gallery's ui-templates page
+   (src/controls/gallery/pages/ui-templates.cpp): four key figures, a
+   quota bar and recent activity. The page sets the bar's value.
+   gui_forms_add_form() compiles it into template-dashboard_form.hpp. -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.templates.dashboard.document"
+    design-size="640 460">
+  <label id="gallery.templates.dashboard.title"
+      text="Overview"
+      classes="heading page-title"
+      bounds="12 4 400 30"/>
+  <button id="gallery.templates.dashboard.refresh"
+      text="Refresh"
+      bounds="518 4 110 30"/>
+  <scaled-group-box id="gallery.templates.dashboard.revenue"
+      text="Revenue"
+      classes="paper group-caption"
+      design-size="146 96"
+      bounds="12 44 146 96">
+    <label id="gallery.templates.dashboard.revenue.value"
+        text="€48.2k"
+        classes="heading page-title"
+        bounds="12 34 122 30"/>
+    <label id="gallery.templates.dashboard.revenue.change"
+        text="+6% on last month"
+        classes="muted body"
+        bounds="12 66 122 18"/>
+  </scaled-group-box>
+  <scaled-group-box id="gallery.templates.dashboard.orders"
+      text="Orders"
+      classes="paper group-caption"
+      design-size="146 96"
+      bounds="168 44 146 96">
+    <label id="gallery.templates.dashboard.orders.value"
+        text="1,284"
+        classes="heading page-title"
+        bounds="12 34 122 30"/>
+    <label id="gallery.templates.dashboard.orders.change"
+        text="+2% on last month"
+        classes="muted body"
+        bounds="12 66 122 18"/>
+  </scaled-group-box>
+  <scaled-group-box id="gallery.templates.dashboard.customers"
+      text="New customers"
+      classes="paper group-caption"
+      design-size="146 96"
+      bounds="324 44 146 96">
+    <label id="gallery.templates.dashboard.customers.value"
+        text="87"
+        classes="heading page-title"
+        bounds="12 34 122 30"/>
+    <label id="gallery.templates.dashboard.customers.change"
+        text="-4% on last month"
+        classes="muted body"
+        bounds="12 66 122 18"/>
+  </scaled-group-box>
+  <scaled-group-box id="gallery.templates.dashboard.tickets"
+      text="Open tickets"
+      classes="paper group-caption"
+      design-size="146 96"
+      bounds="482 44 146 96">
+    <label id="gallery.templates.dashboard.tickets.value"
+        text="23"
+        classes="heading page-title"
+        bounds="12 34 122 30"/>
+    <label id="gallery.templates.dashboard.tickets.change"
+        text="5 due today"
+        classes="muted body"
+        bounds="12 66 122 18"/>
+  </scaled-group-box>
+  <scaled-group-box id="gallery.templates.dashboard.quota"
+      text="Quarterly quota"
+      classes="paper group-caption"
+      design-size="616 80"
+      bounds="12 152 616 80">
+    <progress-bar id="gallery.templates.dashboard.quota.bar"
+        accessible-name="Quarterly quota"
+        visual-style="continuous"
+        bounds="14 36 480 24"/>
+    <label id="gallery.templates.dashboard.quota.value"
+        text=""
+        classes="ink"
+        bounds="506 38 96 20"/>
+  </scaled-group-box>
+  <scaled-group-box id="gallery.templates.dashboard.activity"
+      text="Recent activity"
+      classes="paper group-caption"
+      design-size="616 200"
+      bounds="12 244 616 200">
+    <list-box id="gallery.templates.dashboard.activity.list"
+        accessible-name="Recent activity"
+        items="'09:12  Order 1042 shipped to Porto' '09:05  Ticket 311 closed' '08:51  New customer: Harbour Print' '08:40  Invoice 2207 paid' '08:22  Order 1041 placed' '08:03  Ticket 312 opened'"
+        bounds="14 32 588 154"/>
+  </scaled-group-box>
+</scaled-panel>

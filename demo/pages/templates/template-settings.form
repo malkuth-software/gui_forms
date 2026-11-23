@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- UI template: a settings screen, for the Gallery's ui-templates page
+   (src/controls/gallery/pages/ui-templates.cpp): account fields,
+   notification switches and appearance choices, with Save and Cancel.
+   gui_forms_add_form() compiles it into template-settings_form.hpp. -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.templates.settings.document"
+    design-size="640 460">
+  <label id="gallery.templates.settings.title"
+      text="Settings"
+      classes="heading page-title"
+      bounds="12 4 400 30"/>
+  <scaled-group-box id="gallery.templates.settings.account"
+      text="Account"
+      classes="paper group-caption"
+      design-size="300 170"
+      bounds="12 44 300 170">
+    <label id="gallery.templates.settings.name.caption"
+        text="Display name"
+        classes="ink"
+        bounds="14 34 272 18"/>
+    <text-box id="gallery.templates.settings.name"
+        accessible-name="Display name"
+        placeholder-text="Your name"
+        bounds="14 54 272 28"/>
+    <label id="gallery.templates.settings.email.caption"
+        text="Email"
+        classes="ink"
+        bounds="14 92 272 18"/>
+    <text-box id="gallery.templates.settings.email"
+        accessible-name="Email"
+        placeholder-text="name@example.com"
+        bounds="14 112 272 28"/>
+  </scaled-group-box>
+  <scaled-group-box id="gallery.templates.settings.notifications"
+      text="Notifications"
+      classes="paper group-caption"
+      design-size="300 170"
+      bounds="328 44 300 170">
+    <toggle-switch id="gallery.templates.settings.notify.mail"
+        text="Email digests"
+        checked="true"
+        on-text="On"
+        off-text="Off"
+        bounds="14 36 272 28"/>
+    <toggle-switch id="gallery.templates.settings.notify.mentions"
+        text="Mentions"
+        checked="true"
+        on-text="On"
+        off-text="Off"
+        bounds="14 76 272 28"/>
+    <toggle-switch id="gallery.templates.settings.notify.sounds"
+        text="Sounds"
+        on-text="On"
+        off-text="Off"
+        bounds="14 116 272 28"/>
+  </scaled-group-box>
+  <scaled-group-box id="gallery.templates.settings.appearance"
+      text="Appearance"
+      classes="paper group-caption"
+      design-size="616 150"
+      bounds="12 228 616 150">
+    <label id="gallery.templates.settings.theme.caption"
+        text="Theme"
+        classes="ink"
+        bounds="14 34 280 18"/>
+    <combo-box id="gallery.templates.settings.theme"
+        accessible-name="Theme"
+        items="'Follow the system' Light Dark"
+        selected-index="0"
+        bounds="14 54 280 30"/>
+    <label id="gallery.templates.settings.density.caption"
+        text="Density"
+        classes="ink"
+        bounds="320 34 280 18"/>
+    <combo-box id="gallery.templates.settings.density"
+        accessible-name="Density"
+        items="Compact Comfortable Spacious"
+        selected-index="1"
+        bounds="320 54 280 30"/>
+    <check-box id="gallery.templates.settings.motion"
+        text="Reduce motion"
+        bounds="14 100 280 26"/>
+  </scaled-group-box>
+  <label id="gallery.templates.settings.message"
+      text=""
+      classes="muted body"
+      bounds="12 398 360 22"/>
+  <button id="gallery.templates.settings.cancel"
+      text="Cancel"
+      bounds="388 392 110 32"/>
+  <button id="gallery.templates.settings.save"
+      text="Save"
+      visual-style="accent"
+      bounds="508 392 120 32"/>
+</scaled-panel>
