@@ -169,6 +169,8 @@ struct GUI_FORMS_API PartProfile final {
 // paints. See PartPaint::light_planes.
 struct GUI_FORMS_API PartLightPlanes final {
     std::shared_ptr<const engine_light::LightPlanes> planes{};
+    // A key's pressed bake, mixed in by settings.press_mix; empty: `planes`.
+    std::shared_ptr<const engine_light::LightPlanes> down{};
     engine_light::LampDrive drive{};
     engine_light::LightComposite settings{};
     // The control's kept composite (a member of the control), borrowed for

@@ -434,7 +434,7 @@ Interactions beyond every control's: none.
 
 States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`, `pinpoint`, `fault`.
 
-Properties beyond every control's: `lamp_color` (color), `lamp_style` (enumeration), `light_planes` (text), `state` (enumeration), `text` (text).
+Properties beyond every control's: `lamp_color` (color), `lamp_sparkle` (boolean), `lamp_style` (enumeration), `light_planes` (text), `state` (enumeration), `text` (text).
 
 Interactions beyond every control's: none.
 

@@ -319,6 +319,7 @@
     _ZGVZN9gui_forms12engine_light15LightPlaneCache*;
     _ZGVZN9gui_forms12engine_light16LightPlaneRaster*;
     _ZGVZN9gui_forms12engine_light9LampDrive*;
+    _ZGVZN9gui_forms12engine_light9LampGlint*;
     _ZGVZN9gui_forms13AmbientEffect*;
     _ZGVZN9gui_forms13AncestorBloom*;
     _ZGVZN9gui_forms13AncestorFacts*;
@@ -2010,6 +2011,7 @@
     _ZGVZNK9gui_forms12engine_light15LightPlaneCache*;
     _ZGVZNK9gui_forms12engine_light16LightPlaneRaster*;
     _ZGVZNK9gui_forms12engine_light9LampDrive*;
+    _ZGVZNK9gui_forms12engine_light9LampGlint*;
     _ZGVZNK9gui_forms13AmbientEffect*;
     _ZGVZNK9gui_forms13AncestorBloom*;
     _ZGVZNK9gui_forms13AncestorFacts*;
@@ -3796,6 +3798,8 @@
     _ZN9gui_forms12engine_light14LightPlaneRect*;
     _ZN9gui_forms12engine_light15LightPlaneCache*;
     _ZN9gui_forms12engine_light16LightPlaneRaster*;
+    _ZN9gui_forms12engine_light16same_lamp_glintsB*;
+    _ZN9gui_forms12engine_light16same_lamp_glintsE*;
     _ZN9gui_forms12engine_light17key_press_settledB*;
     _ZN9gui_forms12engine_light17key_press_settledE*;
     _ZN9gui_forms12engine_light17read_light_planesB*;
@@ -3804,6 +3808,8 @@
     _ZN9gui_forms12engine_light18lamp_cooling_powerE*;
     _ZN9gui_forms12engine_light18lamp_fault_flickerB*;
     _ZN9gui_forms12engine_light18lamp_fault_flickerE*;
+    _ZN9gui_forms12engine_light19lamp_sparkle_glintsB*;
+    _ZN9gui_forms12engine_light19lamp_sparkle_glintsE*;
     _ZN9gui_forms12engine_light20lit_key_lean_degreesB*;
     _ZN9gui_forms12engine_light20lit_key_lean_degreesE*;
     _ZN9gui_forms12engine_light21lamp_colour_from_srgbB*;
@@ -3817,6 +3823,7 @@
     _ZN9gui_forms12engine_light25shipped_light_plane_storeB*;
     _ZN9gui_forms12engine_light25shipped_light_plane_storeE*;
     _ZN9gui_forms12engine_light9LampDrive*;
+    _ZN9gui_forms12engine_light9LampGlint*;
     _ZN9gui_forms12engine_powerB*;
     _ZN9gui_forms12engine_powerE*;
     _ZN9gui_forms12marker_linesB*;
@@ -7114,6 +7121,7 @@
     _ZNK[RO]9gui_forms12engine_light15LightPlaneCache*;
     _ZNK[RO]9gui_forms12engine_light16LightPlaneRaster*;
     _ZNK[RO]9gui_forms12engine_light9LampDrive*;
+    _ZNK[RO]9gui_forms12engine_light9LampGlint*;
     _ZNK[RO]9gui_forms13AmbientEffect*;
     _ZNK[RO]9gui_forms13AncestorBloom*;
     _ZNK[RO]9gui_forms13AncestorFacts*;
@@ -8805,6 +8813,7 @@
     _ZN[KRO]9gui_forms12engine_light15LightPlaneCache*;
     _ZN[KRO]9gui_forms12engine_light16LightPlaneRaster*;
     _ZN[KRO]9gui_forms12engine_light9LampDrive*;
+    _ZN[KRO]9gui_forms12engine_light9LampGlint*;
     _ZN[KRO]9gui_forms13AmbientEffect*;
     _ZN[KRO]9gui_forms13AncestorBloom*;
     _ZN[KRO]9gui_forms13AncestorFacts*;
@@ -10496,6 +10505,7 @@
     _ZT[VIST]N9gui_forms12engine_light15LightPlaneCache*E;
     _ZT[VIST]N9gui_forms12engine_light16LightPlaneRaster*E;
     _ZT[VIST]N9gui_forms12engine_light9LampDrive*E;
+    _ZT[VIST]N9gui_forms12engine_light9LampGlint*E;
     _ZT[VIST]N9gui_forms13AmbientEffect*E;
     _ZT[VIST]N9gui_forms13AncestorBloom*E;
     _ZT[VIST]N9gui_forms13AncestorFacts*E;
@@ -12187,6 +12197,7 @@
     _ZT[hvc]*9gui_forms12engine_light15LightPlaneCache*;
     _ZT[hvc]*9gui_forms12engine_light16LightPlaneRaster*;
     _ZT[hvc]*9gui_forms12engine_light9LampDrive*;
+    _ZT[hvc]*9gui_forms12engine_light9LampGlint*;
     _ZT[hvc]*9gui_forms13AmbientEffect*;
     _ZT[hvc]*9gui_forms13AncestorBloom*;
     _ZT[hvc]*9gui_forms13AncestorFacts*;
@@ -13878,6 +13889,7 @@
     _ZZN9gui_forms12engine_light15LightPlaneCache*;
     _ZZN9gui_forms12engine_light16LightPlaneRaster*;
     _ZZN9gui_forms12engine_light9LampDrive*;
+    _ZZN9gui_forms12engine_light9LampGlint*;
     _ZZN9gui_forms13AmbientEffect*;
     _ZZN9gui_forms13AncestorBloom*;
     _ZZN9gui_forms13AncestorFacts*;
@@ -15569,6 +15581,7 @@
     _ZZNK9gui_forms12engine_light15LightPlaneCache*;
     _ZZNK9gui_forms12engine_light16LightPlaneRaster*;
     _ZZNK9gui_forms12engine_light9LampDrive*;
+    _ZZNK9gui_forms12engine_light9LampGlint*;
     _ZZNK9gui_forms13AmbientEffect*;
     _ZZNK9gui_forms13AncestorBloom*;
     _ZZNK9gui_forms13AncestorFacts*;

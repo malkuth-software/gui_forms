@@ -1299,6 +1299,8 @@ bool ThemeEngine::paint_finish_tiles(Painter& painter, const Control& control, c
     // a tile, the area by the window.
     const double side_device = static_cast<double>(finish_tile_side);
     const double side = side_device / display_scale;
+    // Each raster starts its apron before its square (finish_tile_apron).
+    const double apron = static_cast<double>(finish_tile_apron) / display_scale;
     const double first_column = std::floor((area.x - anchor_x) / side);
     const double first_row = std::floor((area.y - anchor_y) / side);
     const double column_span = std::ceil((area.right() - anchor_x) / side) - first_column;
@@ -1327,8 +1329,10 @@ bool ThemeEngine::paint_finish_tiles(Painter& painter, const Control& control, c
                 complete = false;
                 continue;
             }
+            // In order, rows down and columns across: each tile's apron
+            // covers the edge of the tile before it with the same pixels.
             const double x = anchor_x + static_cast<double>(key.column) * side;
-            painter.draw_part_raster(tile, Point{x, y}, 1.0);
+            painter.draw_part_raster(tile, Point{x - apron, y - apron}, 1.0);
         }
     }
     painter.restore();

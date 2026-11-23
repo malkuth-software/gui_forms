@@ -183,6 +183,39 @@
         "}"
       ],
       "sample": "IndicatorLampStyle::pinpoint"
+    },
+    {
+      "name": "lamp_sparkle",
+      "capability": "IndicatorLampLampSparkle",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the lit jewel sparkles as a string of Christmas lights does (engine_light::lamp_sparkle_glints): now and then a small glint swells and fades in one of the crown's facets, slow and seeded by the stable id so every run repeats, well under three flashes a second, and none under reduced motion. Only a lens composited from a jewel's bake, or a pinpoint, sparkles, while it is on or showing an error; a failing lamp flickers instead.",
+      "getter": "lamp_sparkle",
+      "setter": "set_lamp_sparkle",
+      "clear": null,
+      "field": "lamp_sparkle_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the lit jewel sparkles now and then in its facets.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::paint",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "hand",
+      "hand": [
+        "written starts or stops the sparkle's frames (IndicatorLamp::update_sparkle) besides the paint invalidation"
+      ],
+      "sample": "true"
     }
   ],
   "not_properties": [],

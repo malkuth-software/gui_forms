@@ -238,6 +238,8 @@ Related types
      - Every IndicatorLamp capability, in the order the declaring class takes them.
    * - :cpp:class:`IndicatorLampLampColorCapability <gui_forms::IndicatorLampLampColorCapability>`
      - The colour the lens lights in while on, as sRGB, or empty for the theme's.
+   * - :cpp:class:`IndicatorLampLampSparkleCapability <gui_forms::IndicatorLampLampSparkleCapability>`
+     - Whether the lit jewel sparkles as a string of Christmas lights does (engine_light::lamp_sparkle_glints): now and then a small glint swells and fades in one of the crown's facets, slow and seeded by the stable id so every run repeats, well under three flashes a second, and none under reduced motion.
    * - :cpp:class:`IndicatorLampLampStyleCapability <gui_forms::IndicatorLampLampStyleCapability>`
      - How the lamp draws: a lens in a bezel, or a pinpoint, a tiny accent light for status (a dot 6 units across, no bezel, the legend close beside it), which never shows a bake (std::invalid_argument outside them).
    * - :cpp:class:`IndicatorLampLightPlanesCapability <gui_forms::IndicatorLampLightPlanesCapability>`
@@ -1930,7 +1932,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>, public IndicatorLampTextCapability<Declaring>, public IndicatorLampLightPlanesCapability<Declaring>, public IndicatorLampLampColorCapability<Declaring>, public IndicatorLampLampStyleCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> IndicatorLampCapabilities : public IndicatorLampStateChoiceCapability<Declaring>, public IndicatorLampTextCapability<Declaring>, public IndicatorLampLightPlanesCapability<Declaring>, public IndicatorLampLampColorCapability<Declaring>, public IndicatorLampLampStyleCapability<Declaring>, public IndicatorLampLampSparkleCapability<Declaring>
 
    ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/indicator_lamp_capabilities.hpp>`)
 
@@ -1959,6 +1961,10 @@ Related types
 
       How the lamp draws: a lens in a bezel, or a pinpoint, a tiny accent light for status (a dot 6 units across, no bezel, the legend close beside it), which never shows a bake (std::invalid_argument outside them). Never clickable either way.
 
+   .. cpp:member:: bool lamp_sparkle
+
+      Whether the lit jewel sparkles as a string of Christmas lights does (engine_light::lamp_sparkle_glints): now and then a small glint swells and fades in one of the crown's facets, slow and seeded by the stable id so every run repeats, well under three flashes a second, and none under reduced motion. Only a lens composited from a jewel's bake, or a pinpoint, sparkles, while it is on or showing an error; a failing lamp flickers instead.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: template <typename Declaring> IndicatorLampLampColorCapability
@@ -1973,6 +1979,21 @@ Related types
    .. cpp:function:: static void assign(IndicatorLampLampColorCapability& capability, stxlib::Optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<stxlib::Optional<Color>, IndicatorLampLampColorCapability<Declaring>> lamp_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> IndicatorLampLampSparkleCapability
+
+   ``#include <gui_forms/controls/indicator_lamp_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/indicator_lamp_capabilities.hpp>`)
+
+   Whether the lit jewel sparkles as a string of Christmas lights does (engine_light::lamp_sparkle_glints): now and then a small glint swells and fades in one of the crown's facets, slow and seeded by the stable id so every run repeats, well under three flashes a second, and none under reduced motion. Only a lens composited from a jewel's bake, or a pinpoint, sparkles, while it is on or showing an error; a failing lamp flickers instead.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(IndicatorLampLampSparkleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, IndicatorLampLampSparkleCapability<Declaring>> lamp_sparkle
 
 .. cpp:namespace:: gui_forms
 
