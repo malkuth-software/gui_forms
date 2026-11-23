@@ -55,7 +55,7 @@ struct CapabilityBit final {
     gf_host_capability abi = 0U;
 };
 
-constexpr std::array<CapabilityBit, 45> capability_bits{{
+constexpr std::array<CapabilityBit, 46> capability_bits{{
     {HostCapability::lifecycle, GF_HOST_CAPABILITY_LIFECYCLE},
     {HostCapability::scale_notifications, GF_HOST_CAPABILITY_SCALE_NOTIFICATIONS},
     {HostCapability::monitor_geometry, GF_HOST_CAPABILITY_MONITOR_GEOMETRY},
