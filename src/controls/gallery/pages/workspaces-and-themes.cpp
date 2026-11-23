@@ -186,7 +186,9 @@ private:
         (*site_).accessible_name = "Workspace";
         (*box).add_at(site_, {12.0, 62.0, 576.0, 226.0});
         (*workspace_choice_).selected_index = 0;
-        apply_workspace(0);
+        // The first workspace is applied without a report: the status line
+        // is made after this section and opens with the page's instructions.
+        static_cast<void>((*workspace_).apply_named_layout(std::string(workspace_names[0])));
     }
 
     // The factory: a panel's content, made the first time it shows.
