@@ -33,6 +33,7 @@
 #include <cstdint>
 #include <span>
 #include <string>
+#include <utility>
 #include <string_view>
 #include <vector>
 
@@ -57,6 +58,29 @@ struct GUI_FORMS_API PieSlice final {
 struct GUI_FORMS_API PieSliceSelection final {
     stxlib::Optional<std::string> previous_id{};
     stxlib::Optional<std::string> current_id{};
+
+    PieSliceSelection() noexcept {}
+    // Spelt out because stxlib::Optional of a string is move-only (the
+    // string's copy may throw), while Control::publish_change keeps a copy
+    // of the payload for a selection changed during BeginInit/EndInit.
+    PieSliceSelection(const PieSliceSelection& other) {
+        if (other.previous_id.present()) previous_id.set(*other.previous_id.value());
+        if (other.current_id.present()) current_id.set(*other.current_id.value());
+    }
+    PieSliceSelection(PieSliceSelection&& other) noexcept
+        : previous_id(std::move(other.previous_id)), current_id(std::move(other.current_id)) {}
+    PieSliceSelection& operator=(const PieSliceSelection& other) {
+        if (this == &other) return *this;
+        PieSliceSelection copy(other);
+        previous_id = std::move(copy.previous_id);
+        current_id = std::move(copy.current_id);
+        return *this;
+    }
+    PieSliceSelection& operator=(PieSliceSelection&& other) noexcept {
+        previous_id = std::move(other.previous_id);
+        current_id = std::move(other.current_id);
+        return *this;
+    }
 };
 
 // A slice activated by a double click, Enter or the semantic press.

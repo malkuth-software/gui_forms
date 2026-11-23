@@ -6,6 +6,7 @@
 #include "gui_forms/controls/plot_view_palette.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/window/window.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 
 #include <algorithm>
@@ -164,7 +165,7 @@ void PieChart::set_slices(std::vector<PieSlice> slices) {
             }
         }
     }
-    const stxlib::Optional<std::string> previous = State::selected_copy(*this);
+    stxlib::Optional<std::string> previous = State::selected_copy(*this);
     slices_.swap(slices);
     selected_.reset();
     hot_.reset();
@@ -174,7 +175,7 @@ void PieChart::set_slices(std::vector<PieSlice> slices) {
     }
     recompute_total();
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    if (previous != State::selected_copy(*this)) State::publish_selection(*this, previous);
+    if (previous != State::selected_copy(*this)) State::publish_selection(*this, std::move(previous));
 }
 
 void PieChart::set_slice_value(std::string_view slice_id, double value) {
@@ -232,26 +233,26 @@ void PieChart::set_selected_id(stxlib::Optional<std::string_view> slice_id) {
         if (next.absent()) throw std::out_of_range("PieChart selection names an unknown slice");
     }
     if (next == selected_) return;
-    const stxlib::Optional<std::string> previous = State::selected_copy(*this);
+    stxlib::Optional<std::string> previous = State::selected_copy(*this);
     selected_ = next;
     invalidate(Dirty::paint | Dirty::semantics);
-    State::publish_selection(*this, previous);
+    State::publish_selection(*this, std::move(previous));
 }
 
 void PieChart::State::publish_selection(PieChart& self, stxlib::Optional<std::string> previous) {
     PieSliceSelection change{};
     change.previous_id = std::move(previous);
     change.current_id = State::selected_copy(self);
-    self.publish_change(self.selection_changed_, change);
+    self.publish_change(self.selection_changed_, std::move(change));
 }
 
 void PieChart::choose_slice(std::size_t slice) {
     if (slice >= slices_.size()) return;
     if (selected_ == stxlib::Optional<std::size_t>::of(slice)) return;
-    const stxlib::Optional<std::string> previous = State::selected_copy(*this);
+    stxlib::Optional<std::string> previous = State::selected_copy(*this);
     selected_.set(slice);
     invalidate(Dirty::paint | Dirty::semantics);
-    State::publish_selection(*this, previous);
+    State::publish_selection(*this, std::move(previous));
 }
 
 void PieChart::activate_slice(std::size_t slice) {
