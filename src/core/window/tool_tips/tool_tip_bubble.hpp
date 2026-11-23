@@ -73,10 +73,20 @@ struct ToolTipBakeKey final {
     bool shadow{};
     // The display scale of the window it was baked for.
     double scale{};
+    // The theme the bubble's window showed (SurfaceRoot::theme_ptr),
+    // compared by identity, as the window's part rasters are keyed to it
+    // (SurfaceRoot::show_theme invalidates them all when it changes). A
+    // scheme switch shows another theme, so it changes too. Held, so a
+    // replaced theme's address cannot come back while the key lives; null
+    // never matches (ToolTipBubble::on_paint).
+    std::shared_ptr<const Theme> theme{};
+    // The bubble's effective text scale.
+    double text_scale{};
 
     friend bool operator==(const ToolTipBakeKey& left, const ToolTipBakeKey& right) noexcept {
         return left.text == right.text && left.face == right.face && left.font == right.font &&
-               left.shadow == right.shadow && left.scale == right.scale;
+               left.shadow == right.shadow && left.scale == right.scale && left.theme == right.theme &&
+               left.text_scale == right.text_scale;
     }
 };
 
@@ -105,7 +115,8 @@ public:
     // Offers `raster`, baked off the UI thread from `key` with the face's
     // top left at the visual outsets' offset, for the next paint. That paint
     // blits it when `key` still matches the bubble (its text, arranged face,
-    // font, shadow and window scale) and paints itself otherwise; either way
+    // font, shadow, window scale, window theme and text scale) and paints
+    // itself otherwise, so a theme changed since the bake paints live; either way
     // the offer is used once, so a later repaint (a theme change) paints
     // live. set_content withdraws it.
     void set_baked(std::shared_ptr<const PartRaster> raster, ToolTipBakeKey key);
