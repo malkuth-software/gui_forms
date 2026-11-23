@@ -6,6 +6,7 @@
 #include "gui_forms/surface_material/presets/material_presets.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "ancestor_facts.hpp"
 #include "floor_sheet.hpp"
@@ -1956,7 +1957,7 @@ std::shared_ptr<const Theme> Theme::create(const ThemeDefinition& definition) {
 std::shared_ptr<const detail::ThemeSourceRecord> detail::empty_theme_source() {
     // Never destroyed (rule 1: process termination releases none of our state).
     static const std::shared_ptr<const ThemeSourceRecord>* const empty =
-        new const std::shared_ptr<const ThemeSourceRecord>(std::make_shared<const ThemeSourceRecord>());
+        new const std::shared_ptr<const ThemeSourceRecord>(gui_forms::detail::make_library_shared<const ThemeSourceRecord>());
     return *empty;
 }
 
@@ -2602,7 +2603,7 @@ std::shared_ptr<const PaintGroupEffect> Theme::control_content_effect(const Cont
     effect.masks = material.masks;
     const bool empty = !effect.colour_filter && !(effect.blur > 0.0) && effect.masks.empty();
     if (empty || !valid_paint_group_effect(effect)) return nullptr;
-    const std::shared_ptr<const PaintGroupEffect> shared = std::make_shared<const PaintGroupEffect>(std::move(effect));
+    const std::shared_ptr<const PaintGroupEffect> shared = gui_forms::detail::make_library_shared<const PaintGroupEffect>(std::move(effect));
     return shared;
 }
 

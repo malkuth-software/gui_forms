@@ -16,6 +16,7 @@
 #include "program_typefaces.hpp"
 
 #include "gui_forms/allocation/statistics/allocation_statistics.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/error.hpp>
 #include <stxlib/result.hpp>
@@ -208,7 +209,7 @@ TypefaceBorrow program_typeface(const std::span<const std::byte> bytes, std::sha
     // An unregistered typeface holds the bytes' owner itself and is shared by
     // the executors that draw it, so it is its own keeper.
     std::shared_ptr<const ProgramTypeface> created =
-        std::make_shared<const ProgramTypeface>(std::move(owner), std::move(typeface));
+        gui_forms::detail::make_library_shared<const ProgramTypeface>(std::move(owner), std::move(typeface));
     (*created).account();
     TypefaceEntry entry{};
     entry.data = bytes.data();

@@ -12,6 +12,7 @@
 
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/schema.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../../../core/control_language/composite_definition/composite_definition.hpp"
 
@@ -144,7 +145,7 @@ gf_status read_property(const gf_custom_property& property, const std::vector<Cu
                     "an ENUMERATION property names its enumeration and choices; another kind has none");
     }
     if (enumeration) {
-        descriptor.enumeration = std::make_shared<const PropertyEnumDescriptor>(std::move(*enumeration));
+        descriptor.enumeration = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(std::move(*enumeration));
     }
     descriptor.writable = (property.flags & GF_CUSTOM_PROPERTY_READ_ONLY) == 0U;
     if (property.default_value != nullptr) {
@@ -270,14 +271,14 @@ gf_status custom_controls_create_body(const gf_custom_control_spec* spec, gf_utf
     // without calling release, and the caller still owns its context
     // (A-gf-abi-03-F6).
     if ((*spec).base == GF_CUSTOM_BASE_USER_CONTROL) {
-        const std::shared_ptr<CustomControl<UserControl>> made = std::make_shared<CustomControl<UserControl>>(
+        const std::shared_ptr<CustomControl<UserControl>> made = gui_forms::detail::make_library_shared<CustomControl<UserControl>>(
             StableId(std::string(id_text)), callbacks, layout, definitions, focusable);
         const gf_object identity = registry().add_reference(made);
         (*made).arm_release();
         *object = identity;
     } else {
         const std::shared_ptr<CustomControl<ScrollableControl>> made =
-            std::make_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks, layout,
+            gui_forms::detail::make_library_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks, layout,
                                                                definitions, focusable);
         const gf_object identity = registry().add_reference(made);
         (*made).arm_release();
@@ -405,7 +406,7 @@ gf_status load_definition(const gf_composite_spec& spec, gf_object& definition) 
     const std::uint64_t listing = record_loaded_composite(loaded.definition);
     std::shared_ptr<CompositeDefinitionHandle> handle;
     try {
-        handle = std::make_shared<CompositeDefinitionHandle>(loaded.definition, listing);
+        handle = gui_forms::detail::make_library_shared<CompositeDefinitionHandle>(loaded.definition, listing);
     } catch (...) {
         forget_loaded_composite(listing);
         throw;

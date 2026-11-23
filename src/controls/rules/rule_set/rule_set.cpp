@@ -15,6 +15,7 @@
 #include "gui_forms/rules/rule_set/rule_set.hpp"
 
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/drag_engine/drag_engine.hpp"
 
 #include <array>
@@ -495,11 +496,11 @@ RuleAddResult RuleSet::add(const Rule& rule) {
     // registration left behind by a throw observes a dead anchor) and the
     // tap connected.
     entries_.reserve(entries_.size() + 1U);
-    std::shared_ptr<detail::RuleEntry> entry = std::make_shared<detail::RuleEntry>();
+    std::shared_ptr<detail::RuleEntry> entry = gui_forms::detail::make_library_shared<detail::RuleEntry>();
     (*entry).rules = this;
     (*entry).order = next_order_;
     (*entry).rule = rule;
-    (*entry).anchor = std::make_shared<detail::RuleAnchor>(entry);
+    (*entry).anchor = gui_forms::detail::make_library_shared<detail::RuleAnchor>(entry);
     const std::shared_ptr<detail::RuleAnchor>& anchor = (*entry).anchor;
     // A trigger's anchor is the component it names (for the control
     // triggers and interaction, its control).

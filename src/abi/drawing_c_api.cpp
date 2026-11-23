@@ -3,6 +3,7 @@
 
 #include "gui_forms/drawing.hpp"
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "drawing_platform.hpp"
 #include "drawing_raster_service.h"
 #include "font_resolution_record.hpp"
@@ -494,9 +495,9 @@ private:
     gd_result create_record(std::uint32_t kind, gd_handle* output,
                             Arguments&&... arguments) {
         std::shared_ptr<ObjectRecord> record =
-            std::make_shared<ObjectRecord>();
+            gui_forms::detail::make_library_shared<ObjectRecord>();
         (*record).object =
-            std::make_shared<Object>(std::forward<Arguments>(arguments)...);
+            gui_forms::detail::make_library_shared<Object>(std::forward<Arguments>(arguments)...);
         (*record).owner_thread = stxlib::current_thread();
         (*record).kind = kind;
         const stxlib::ScopedLock lock(mutex_);
@@ -508,7 +509,7 @@ private:
     gd_result adopt_record(std::uint32_t kind, gd_handle* output,
                            std::unique_ptr<Object> object) {
         std::shared_ptr<ObjectRecord> record =
-            std::make_shared<ObjectRecord>();
+            gui_forms::detail::make_library_shared<ObjectRecord>();
         (*record).object = std::shared_ptr<Object>(std::move(object));
         (*record).owner_thread = stxlib::current_thread();
         (*record).kind = kind;

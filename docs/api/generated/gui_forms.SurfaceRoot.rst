@@ -9,7 +9,7 @@ gui_forms::SurfaceRoot
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: SurfaceRoot
+.. cpp:class:: SurfaceRoot : public LibraryAllocated
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 

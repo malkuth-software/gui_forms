@@ -1,4 +1,5 @@
 #include "gui_forms/events/key_commands/key_commands.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stdexcept>
 
@@ -109,7 +110,7 @@ KeyMap pc_key_map() {
 KeyBindings::KeyBindings() : defaults_(pc_key_map()), effective_(pc_key_map()) {}
 
 std::shared_ptr<KeyBindings> KeyBindings::copy_bindings() const {
-    std::shared_ptr<KeyBindings> copied = std::make_shared<KeyBindings>();
+    std::shared_ptr<KeyBindings> copied = gui_forms::detail::make_library_shared<KeyBindings>();
     (*copied).defaults_ = defaults_;
     (*copied).effective_ = effective_;
     (*copied).rebound_ = rebound_;

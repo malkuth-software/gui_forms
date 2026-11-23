@@ -22,6 +22,7 @@
 #include "gui_forms/detail/storage_growth.hpp"
 #include "gui_forms/rules.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../windows/abi_window_handle.hpp"
 
 #include <stxlib/optional.hpp>
@@ -156,7 +157,7 @@ public:
         callback.release = nullptr;
         callback.context = &tap;
         const std::shared_ptr<SubscriptionBinding> binding =
-            std::make_shared<SubscriptionBinding>(callback, 0U, component_, name_);
+            gui_forms::detail::make_library_shared<SubscriptionBinding>(callback, 0U, component_, name_);
         SubscriptionToken subscription = connect_interaction(*component_, name_, binding);
         return subscription;
     }
@@ -346,7 +347,7 @@ gf_status build_trigger(const gf_rule& record, RuleTrigger& made, const Componen
         }
         made.kind = RuleTriggerKind::interaction;
         made.control = std::dynamic_pointer_cast<Control>(component);
-        made.source = std::make_shared<AbiInteractionSource>(*component, std::string(name));
+        made.source = gui_forms::detail::make_library_shared<AbiInteractionSource>(*component, std::string(name));
         made.anchor = component.get();
         sender = component.get();
         return GF_STATUS_OK;
@@ -454,7 +455,7 @@ gf_status build_action(const gf_rule_action* record, const Component* sender, Ru
         // Room first, so that the binding is listed the moment it exists
         // and a later throw disarms it with the rest.
         detail::reserve_one_more(building.callbacks);
-        const std::shared_ptr<CallbackAction> context = std::make_shared<CallbackAction>();
+        const std::shared_ptr<CallbackAction> context = gui_forms::detail::make_library_shared<CallbackAction>();
         (*context).callback = std::make_unique<CallbackBinding>(copy);
         building.callbacks.push_back((*context).callback.get());
         (*context).source = sender;
@@ -501,7 +502,7 @@ gf_status build_action(const gf_rule_action* record, const Component* sender, Ru
         if (located != GF_STATUS_OK) {
             return located;
         }
-        const std::shared_ptr<PropertyAction> context = std::make_shared<PropertyAction>();
+        const std::shared_ptr<PropertyAction> context = gui_forms::detail::make_library_shared<PropertyAction>();
         (*context).target = control;
         (*context).property = std::string(property);
         (*context).toggle = kind == GF_RULE_ACTION_TOGGLE;

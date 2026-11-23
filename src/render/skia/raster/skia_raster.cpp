@@ -26,6 +26,7 @@
 #include "../../../core/engine/primitives/material/material_raster.hpp"
 #include "../../../core/display/group_effect/group_effect.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/theme/theme/material_layers.hpp"
 #include "../../../core/interpolation/interpolation.hpp"
 #include "../../../core/types/painter/text_turn.hpp"
@@ -669,7 +670,7 @@ public:
     text::HarfBuzzFontEngine text_engine;
     // Identity of text_engine for shaped-text memos. A memo holding an
     // expired or different identity was shaped by another raster.
-    std::shared_ptr<const bool> text_engine_identity{std::make_shared<const bool>(true)};
+    std::shared_ptr<const bool> text_engine_identity{gui_forms::detail::make_library_shared<const bool>(true)};
     // Kept shaped runs and resolved layouts (N56/S4), valid while the engine
     // holds kept_face_count faces. References returned by shaped_text and
     // resolved_layout stay valid until the next call to either.
@@ -1016,7 +1017,7 @@ public:
         if (!data || (*data).isEmpty()) return false;
         const std::span<const std::byte> bytes(
             static_cast<const std::byte*>((*data).data()), (*data).size());
-        std::shared_ptr<const void> owner = std::make_shared<const sk_sp<SkData>>(std::move(data));
+        std::shared_ptr<const void> owner = gui_forms::detail::make_library_shared<const sk_sp<SkData>>(std::move(data));
         const bool registered = register_font_bytes(role, weight, italic, bytes, std::move(owner));
         return registered;
     }
@@ -3529,7 +3530,7 @@ std::shared_ptr<SkiaRaster::Impl::ClipMaskStore> SkiaRaster::Impl::acquire_clip_
         // Only the pool holds it: no save level reads it any longer.
         if (store.use_count() == 1) return store;
     }
-    clip_mask_pool.push_back(std::make_shared<ClipMaskStore>());
+    clip_mask_pool.push_back(gui_forms::detail::make_library_shared<ClipMaskStore>());
     return clip_mask_pool.back();
 }
 

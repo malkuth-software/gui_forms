@@ -1,4 +1,5 @@
 #include "gui_forms/content/operation/content_operation.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../channel/content_channel.hpp"
 
@@ -269,7 +270,7 @@ ContentWorker::ContentWorker(std::unique_ptr<ContentProgram> program, ContentFra
     if (!program) throw std::invalid_argument("ContentWorker needs a program");
     std::shared_ptr<detail::ContentChannel> channel = detail::ContentSinkAccess::channel(sink);
     if (!channel) throw std::invalid_argument("ContentWorker needs an open sink");
-    shared_ = std::make_shared<detail::ContentWorkerShared>();
+    shared_ = gui_forms::detail::make_library_shared<detail::ContentWorkerShared>();
     (*shared_).program = std::move(program);
     (*shared_).sink = std::move(sink);
     (*shared_).channel = std::move(channel);

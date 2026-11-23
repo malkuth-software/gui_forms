@@ -1,6 +1,7 @@
 #include "dispatcher_state.hpp"
 
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <stdexcept>
@@ -23,7 +24,7 @@ thread_local RevocableInvokes* thread_revocable_invokes = nullptr;
 // An operation that is already cancelled and holds no callback: what a
 // refused post returns.
 DispatchOperation refused_operation(const std::shared_ptr<DispatcherState>& state) {
-    std::shared_ptr<DispatchWork> refused = std::make_shared<DispatchWork>();
+    std::shared_ptr<DispatchWork> refused = gui_forms::detail::make_library_shared<DispatchWork>();
     (*refused).state.store(DispatchOperationState::cancelled, stxlib::MemoryOrder::release);
     (*refused).dispatcher = state;
     return DispatchOperation(std::move(refused));
@@ -110,7 +111,7 @@ PostOutcome post_dispatch_outcome(const std::shared_ptr<DispatcherState>& state,
         if ((*state).queue.size() >= maximum_posted_callbacks) {
             return PostOutcome::queue_full;
         }
-        work = std::make_shared<DispatchWork>();
+        work = gui_forms::detail::make_library_shared<DispatchWork>();
         RevocableInvokes* const revocable = synchronous ? thread_revocable_invokes : nullptr;
         if (revocable != nullptr) {
             // Under the leaf lock, so a revocation either sees this work as

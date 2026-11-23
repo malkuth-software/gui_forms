@@ -7,6 +7,7 @@
 #include "../../../core/types/restrict/restrict.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/font_file.hpp>
 #include <stxlib/glyph_face.hpp>
@@ -1167,7 +1168,7 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_typeface(
     if (encoded.empty() || encoded.size() > maximum_face_bytes ||
         (*impl_).faces.size() >= maximum_faces || face_index > 255U) return std::nullopt;
     std::shared_ptr<const std::vector<std::byte>> owner =
-        std::make_shared<const std::vector<std::byte>>(encoded.begin(), encoded.end());
+        gui_forms::detail::make_library_shared<const std::vector<std::byte>>(encoded.begin(), encoded.end());
     const std::optional<FontFaceId> result =
         register_shared_typeface(role, weight, italic, std::move(owner), face_index);
     return result;
@@ -1179,7 +1180,7 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_fallback_typeface(
     if (encoded.empty() || encoded.size() > maximum_face_bytes ||
         (*impl_).faces.size() >= maximum_faces || face_index > 255U) return std::nullopt;
     std::shared_ptr<const std::vector<std::byte>> owner =
-        std::make_shared<const std::vector<std::byte>>(encoded.begin(), encoded.end());
+        gui_forms::detail::make_library_shared<const std::vector<std::byte>>(encoded.begin(), encoded.end());
     const std::optional<FontFaceId> result =
         register_shared_typeface(std::nullopt, weight, italic, std::move(owner), face_index);
     return result;

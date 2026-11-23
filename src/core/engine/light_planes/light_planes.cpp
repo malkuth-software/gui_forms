@@ -1,6 +1,7 @@
 #include "gui_forms/engine/light_planes/light_planes.hpp"
 
 #include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../primitives/finish/finish_kernel.hpp"
 #include "../../../platform/library_files.hpp"
 
@@ -713,7 +714,7 @@ std::shared_ptr<const LightPlanes> LightPlaneCache::lend(std::string_view name) 
     CachedBake bake{};
     bake.name = std::string(name);
     reads_ = reads_ + 1U;
-    std::shared_ptr<LightPlanes> planes = std::make_shared<LightPlanes>();
+    std::shared_ptr<LightPlanes> planes = gui_forms::detail::make_library_shared<LightPlanes>();
     std::vector<char> text{};
     // The directory's float planes, then its store, then the shipped store.
     if (!directory_.empty() && read_file(directory_ / (bake.name + ".f32"), text)) {

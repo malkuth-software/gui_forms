@@ -1,4 +1,5 @@
 #include "gui_forms/plots/series_view/series_view.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <utility>
 
@@ -33,7 +34,7 @@ void SeriesLeaseState::release() noexcept {
 
 // -- SeriesLease ---------------------------------------------------------------
 
-SeriesLease::SeriesLease() : state_(std::make_shared<SeriesLeaseState>()) {}
+SeriesLease::SeriesLease() : state_(gui_forms::detail::make_library_shared<SeriesLeaseState>()) {}
 
 SeriesLease::~SeriesLease() {
     release();

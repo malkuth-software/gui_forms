@@ -12,6 +12,7 @@
 #include "gui_forms/controls/property_list.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/inspection/types/property_editor_kind/property_editor_kind.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "value-editors_form.hpp"
 #include "gui_forms_lab/instrument_rack.hpp"
@@ -300,12 +301,12 @@ private:
             return;
         }
         if (!binding_context_) {
-            binding_context_ = std::make_shared<BindingContext>(*window);
+            binding_context_ = gui_forms::detail::make_library_shared<BindingContext>(*window);
             on((*binding_context_).collection_changed(), *this,
                &ValueEditorsPage::context_changed);
         }
         if (!source_) {
-            source_ = std::make_shared<BindingSource>(*window);
+            source_ = gui_forms::detail::make_library_shared<BindingSource>(*window);
             // The source's built-in table: four untyped columns, one row.
             BindingTable& lamp = *(*source_).table();
             const std::size_t name_column = lamp.add_column(BindingColumn{"name"});
@@ -381,7 +382,7 @@ private:
 
 void add_value_editors(const std::shared_ptr<Surface>& page,
                        const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ValueEditorsPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<ValueEditorsPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

@@ -5,6 +5,7 @@
 #include "gui_forms/controls/modal_layer.hpp"
 #include "gui_forms/controls/step_indicator.hpp"
 #include "gui_forms/controls/wizard.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "guided-tasks_form.hpp"
 
@@ -87,7 +88,7 @@ GuidedTasksPage::GuidedTasksPage(const std::shared_ptr<Surface>& body) {
     modal_ = make_control<ModalLayer>(StableId("gallery.guided.modal"));
     (*modal_).accessible_name = std::string{"Modal layer"};
     on((*modal_).closed(), *this, &GuidedTasksPage::on_modal_closed);
-    about_ = std::make_shared<AboutDialog>(
+    about_ = gui_forms::detail::make_library_shared<AboutDialog>(
         StableId("gallery.guided.about-dialog"),
         AboutInfo{.product = "GUI.Forms Gallery",
                   .version = "2.5",
@@ -168,7 +169,7 @@ void GuidedTasksPage::on_about_closed(DialogResult) {
 }
 
 void add_guided_tasks(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<GuidedTasksPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<GuidedTasksPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

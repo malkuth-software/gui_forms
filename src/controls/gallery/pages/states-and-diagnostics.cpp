@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "states-and-diagnostics_form.hpp"
 #include "../../../core/threading/start_thread.hpp"
@@ -230,7 +231,7 @@ void StatesPage::worker_main() {
 
 void add_states(const std::shared_ptr<Surface>& page,
                 const std::shared_ptr<PageContext>& context) {
-    std::shared_ptr<StatesPage> owner = std::make_shared<StatesPage>(page, context);
+    std::shared_ptr<StatesPage> owner = gui_forms::detail::make_library_shared<StatesPage>(page, context);
     (*owner).adopt(owner);
     (*context).components.add(std::move(owner));
 }

@@ -65,3 +65,19 @@ qualified = ['(?:basic_)?(?:i|o)?fstream', '(?:basic_)?filebuf',
              'filesystem\s*::\s*(?:file_size|exists|is_\w+|status|symlink_status|create_\w+|remove\w*|copy\w*|rename|resize_file|temp_directory_path|current_path|absolute|canonical|weakly_canonical|relative|proximate|read_symlink|last_write_time|permissions|space|equivalent|hard_link_count|directory_iterator|recursive_directory_iterator|directory_entry|file_status|filesystem_error)']
 calls = ["fopen", "_wfopen", "freopen", "_wfreopen", "tmpfile", "fdopen", "_fdopen"]
 headers = ["fstream"]
+
+# The library allocator (owner, 2026-11-22; include/gui_forms/allocation/
+# library_memory/library_memory.hpp): every shared object GUI.Forms' code
+# makes comes from GUI.Forms' allocator, with its control block, so the last
+# owner, a program's included, releases it there. Programs that use GUI.Forms
+# keep their own allocator, so the rule binds the library only.
+[[rules]]
+id = "library-make-shared"
+what = "std::make_shared in GUI.Forms' code: the object and its control block come from the program's operator new"
+instead = "gui_forms::detail::make_library_shared (gui_forms/allocation/library_memory/library_memory.hpp)"
+qualified = ["make_shared"]
+
+[[allow]]
+paths = ["examples/*", "demo/*", "benchmarks/*", "fuzz/*", "lab/*", "tools/preview_capture/*", "tools/stock_icon_generator/*"]
+rules = ["library-make-shared"]
+reason = "programs that use GUI.Forms keep their own allocator (owner, 2026-11-22)"

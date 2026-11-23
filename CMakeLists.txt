@@ -661,6 +661,7 @@ add_library(gui_forms_core STATIC
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
     src/core/window/inspection/window_visual_inspection.cpp
     src/core/allocation/statistics/allocation_statistics.cpp
+    src/core/allocation/library_memory/library_memory.cpp
     src/core/resources/image_registry/image_registry.cpp
     src/core/resources/stock_icons/stock_icons.cpp
     ${GUI_FORMS_STOCK_ICON_RECORDS}
@@ -3336,6 +3337,27 @@ if(TARGET gui_forms_application)
     # own STXlib code both reach.
     target_link_libraries(gui_forms_application PUBLIC stxlib::boundary stxlib::state)
 endif()
+# The opt-in whole-program allocator (include/gui_forms/allocation/
+# library_memory/library_memory.hpp; owner, 2026-11-22): a program GUI.Forms'
+# projects issue may put all its C++ allocations on STXlib's allocator by
+# compiling src/runtime/program_allocator/program_allocator_replacement.cpp
+# into itself. Never a default, and only for an executable: a shared library
+# or plugin would replace operator new for the process that loads it. The
+# installed package defines the same function (cmake/GUIFormsConfig.cmake.in)
+# over the installed copy of the source.
+set(GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/program_allocator/program_allocator_replacement.cpp")
+function(gui_forms_use_library_allocator target)
+    get_target_property(_gf_type ${target} TYPE)
+    if(NOT _gf_type STREQUAL "EXECUTABLE")
+        message(FATAL_ERROR "gui_forms_use_library_allocator: ${target} is a ${_gf_type}; only a program may "
+                            "replace operator new")
+    endif()
+    target_sources(${target} PRIVATE "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}")
+    target_link_libraries(${target} PRIVATE stxlib::boundary stxlib::state)
+endfunction()
+install(FILES "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}" DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/program_allocator)
+
 # The text masks join the Application library's archives
 # (GUI_FORMS_APPLICATION_ARCHIVES) before the package reads them, so the
 # installed libgui_forms_application.a holds them.

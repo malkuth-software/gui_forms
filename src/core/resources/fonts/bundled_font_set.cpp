@@ -2,6 +2,7 @@
 #include "program_typefaces.hpp"
 
 #include "gui_forms/threading.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "stx_fontpack/loader.hpp"
 #include "../../../platform/library_files.hpp"
 
@@ -414,7 +415,7 @@ std::shared_ptr<BundledFontSet> shared_bundled_font_set(const std::filesystem::p
     const stxlib::ScopedLock lock(shared_font_set_mutex());
     std::shared_ptr<BundledFontSet> set = shared_font_set().set.lock();
     if (set && !shared_font_set().embedded_pack && shared_font_set().directory == directory) return set;
-    set = std::make_shared<BundledFontSet>(directory, pages);
+    set = gui_forms::detail::make_library_shared<BundledFontSet>(directory, pages);
     shared_font_set().embedded_pack = false;
     shared_font_set().directory = directory;
     shared_font_set().set = set;
@@ -432,7 +433,7 @@ std::shared_ptr<BundledFontSet> shared_bundled_font_set(const BundledFontLocatio
     const stxlib::ScopedLock lock(shared_font_set_mutex());
     set = shared_font_set().set.lock();
     if (set && shared_font_set().embedded_pack) return set;
-    set = std::make_shared<BundledFontSet>(bundled_font_pack(), pages);
+    set = gui_forms::detail::make_library_shared<BundledFontSet>(bundled_font_pack(), pages);
     shared_font_set().embedded_pack = true;
     shared_font_set().directory.clear();
     shared_font_set().set = set;
@@ -762,7 +763,7 @@ FontFaceLoad BundledFontSet::seal_copy(std::size_t index, const std::uint8_t* da
     if (!(*pages_.seal)(reservation.storage(), size_bytes))
         return FontFaceLoad::failed(FontSetError::page_failure);
     std::shared_ptr<SealedFontFace> sealed =
-        std::make_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
+        gui_forms::detail::make_library_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
     reservation.disown();
     // The program's typeface of the face, registered while the face lives
     // (program_typefaces.hpp). A face STXlib refuses has none, and the
@@ -808,7 +809,7 @@ FontFaceLoad BundledFontSet::load(std::size_t index) const {
     // The face adopts the pages only once it exists; if make_shared throws, the reservation
     // still releases them.
     std::shared_ptr<SealedFontFace> sealed =
-        std::make_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
+        gui_forms::detail::make_library_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
     reservation.disown();
     // The program's typeface of the face, registered while the face lives
     // (program_typefaces.hpp). A face STXlib refuses has none, and the

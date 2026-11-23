@@ -18,6 +18,7 @@
 #endif
 
 #include "gui_forms/content/hosted/hosted_content.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <fcntl.h>
 #include <memory>
@@ -910,7 +911,7 @@ HostedContent make_hosted_content(HostedContentOptions options) {
     // (A-gf-host-02-F13).
     options.start_timeout = std::min(options.start_timeout, hosted_maximum_timeout);
     options.stop_grace = std::min(options.stop_grace, hosted_maximum_timeout);
-    std::shared_ptr<detail::HostedInputState> state = std::make_shared<detail::HostedInputState>();
+    std::shared_ptr<detail::HostedInputState> state = gui_forms::detail::make_library_shared<detail::HostedInputState>();
     HostedContent made{};
     made.program = std::make_unique<PosixHostedProgram>(std::move(options), state);
     made.input = HostedInput(std::move(state));

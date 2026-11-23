@@ -4,6 +4,7 @@
 #include "../surface_root/access/surface_lifetime_access.hpp"
 
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <chrono>
@@ -139,7 +140,7 @@ void BackgroundWorkerTask::report_progress(int percent, BindingValue user_state)
 BackgroundWorker::BackgroundWorker(Window& window)
     : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)),
       dispatcher_(detail::SurfaceLifetimeAccess::share_dispatcher(window)),
-      target_(std::make_shared<detail::BackgroundWorkerTarget>()) {
+      target_(gui_forms::detail::make_library_shared<detail::BackgroundWorkerTarget>()) {
     window.verify_access("BackgroundWorker construction");
     (*target_).owner = this;
 }
@@ -214,7 +215,7 @@ void BackgroundWorker::run_worker_async(BindingValue argument) {
     }
     // An abandoned run's work has returned or is about to; collect it first.
     stop_run();
-    std::shared_ptr<Run> run = std::make_shared<Run>();
+    std::shared_ptr<Run> run = gui_forms::detail::make_library_shared<Run>();
     (*run).self = run;
     (*run).target = target_;
     (*run).dispatcher = dispatcher_;

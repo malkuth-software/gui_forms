@@ -6,6 +6,7 @@
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../../diagnostics/blend_study/count_display_blend.hpp"
 #include "../../display/chunk/display_chunk.hpp"
@@ -634,7 +635,7 @@ void SurfaceRoot::arm_engine_idle() {
     compact_frame_requests();
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) return;
     const FrameTime first = motion_clock_.now() + motion_frame_interval;
-    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> idle = std::make_shared<detail::ScheduledFrameRequest>(
+    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> idle = gui_forms::detail::make_library_shared<detail::ScheduledFrameRequest>(
         detail::FrameRequestKind::engine_idle, Control::WeakPtr{}, first, motion_frame_interval);
     frame_requests_.push_back(std::move(idle));
     metrics_.record_frame_request();
@@ -691,7 +692,7 @@ void SurfaceRoot::paint_backplane_material(detail::RecordingPainter& candidate, 
             return;
         }
         backplane_baked_raster_ = std::move(raster);
-        backplane_baked_material_ = std::make_shared<const SurfaceMaterial>(material);
+        backplane_baked_material_ = gui_forms::detail::make_library_shared<const SurfaceMaterial>(material);
         backplane_baked_size_ = size;
         backplane_baked_outset_ = outset;
     }
@@ -1277,7 +1278,7 @@ bool Window::set_live_surface_pairing_listener(const Control::Ptr& control,
 void Window::set_live_surface_idle_wake_handler(std::function<void()> wake) {
     require_root_thread("live-surface idle handler");
     std::shared_ptr<detail::LiveSurfaceIdleWake> replacement{};
-    if (wake) replacement = std::make_shared<detail::LiveSurfaceIdleWake>(std::move(wake));
+    if (wake) replacement = gui_forms::detail::make_library_shared<detail::LiveSurfaceIdleWake>(std::move(wake));
     if (live_surface_idle_wake_)
         (*live_surface_idle_wake_).waiting.store(false, std::memory_order_release);
     live_surface_idle_wake_ = std::move(replacement);

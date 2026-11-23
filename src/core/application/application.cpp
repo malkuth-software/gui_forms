@@ -8,6 +8,7 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -355,7 +356,7 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
         result.error = ApplicationCreateError::already_exists;
         return result;
     }
-    std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>(config.image_limits);
+    std::shared_ptr<ApplicationResources> resources = gui_forms::detail::make_library_shared<ApplicationResources>(config.image_limits);
     // The theme compiles here, once (APP_WINDOW_RULES_DESIGN K.1): the base,
     // then the program's packages. The process default's base alone is
     // already built (default_compiled_theme).
@@ -390,7 +391,7 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
     // does not hold refuses the user theme (E417) as it refuses a program
     // package, and the program's own theme stays.
     ThemeRequestContext request_context{};
-    request_context.library = std::make_shared<const ThemeLibrary>(std::move(config.theme.library));
+    request_context.library = gui_forms::detail::make_library_shared<const ThemeLibrary>(std::move(config.theme.library));
     request_context.base = config.theme.base;
     // The stock anatomies and the program's own, which theme_anatomies
     // places in the storage when there are both; none means the stock ones.
@@ -423,8 +424,8 @@ Application* Application::current() noexcept {
 Application::Application(std::shared_ptr<ApplicationResources> resources, PresentationSettings presentation)
     : resources_(std::move(resources)),
       presentation_(presentation),
-      key_bindings_(std::make_shared<KeyBindings>()),
-      tool_tips_shown_(std::make_shared<std::atomic<bool>>(true)) {}
+      key_bindings_(gui_forms::detail::make_library_shared<KeyBindings>()),
+      tool_tips_shown_(gui_forms::detail::make_library_shared<std::atomic<bool>>(true)) {}
 
 Application::~Application() {
     if (window_count_ > 0U) {
@@ -831,7 +832,7 @@ ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window
     // Subscribed before the open, so a result set by the ready callback is
     // seen. The token is safe after the model is gone (Event's slots hold
     // the event weakly).
-    const std::shared_ptr<ModalOutcome> outcome = std::make_shared<ModalOutcome>();
+    const std::shared_ptr<ModalOutcome> outcome = gui_forms::detail::make_library_shared<ModalOutcome>();
     (*outcome).dialog_result = (*window.model).dialog_result();
     const std::string owner_id = window.owner_id;
     SubscriptionToken subscription =

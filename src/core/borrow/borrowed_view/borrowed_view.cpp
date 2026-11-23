@@ -1,4 +1,5 @@
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../../failure/fail_fast.hpp"
 
@@ -53,11 +54,11 @@ const char* fault_text(BorrowFault fault) noexcept {
 } // namespace
 
 BorrowLender::BorrowLender(const BorrowThreading threading) : state_(), threading_(threading) {
-    if (threading_ == BorrowThreading::any_thread) state_ = std::make_shared<BorrowOwnerState>();
+    if (threading_ == BorrowThreading::any_thread) state_ = gui_forms::detail::make_library_shared<BorrowOwnerState>();
 }
 
 BorrowLender::BorrowLender(const BorrowLender& other) : state_(), threading_(other.threading_) {
-    if (threading_ == BorrowThreading::any_thread) state_ = std::make_shared<BorrowOwnerState>();
+    if (threading_ == BorrowThreading::any_thread) state_ = gui_forms::detail::make_library_shared<BorrowOwnerState>();
 }
 
 BorrowLender::BorrowLender(BorrowLender&& other) noexcept : state_(), threading_(other.threading_) {
@@ -87,7 +88,7 @@ __attribute__((noinline))
 BorrowStamp BorrowLender::stamp() const {
     // An any_thread lender made its record at construction; only an
     // owner_thread lender makes it here, on its own thread.
-    if (!state_) state_ = std::make_shared<BorrowOwnerState>();
+    if (!state_) state_ = gui_forms::detail::make_library_shared<BorrowOwnerState>();
     BorrowStamp made{};
     made.owner = state_;
     made.generation = (*state_).generation.load(std::memory_order_relaxed);

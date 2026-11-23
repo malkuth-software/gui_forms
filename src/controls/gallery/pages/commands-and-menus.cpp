@@ -15,6 +15,7 @@
 #include "gui_forms/controls/status_strip.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "commands-and-menus_form.hpp"
 #include <stxlib/optional.hpp>
@@ -93,7 +94,7 @@ private:
         const std::string_view id, const std::string_view text,
         const std::string_view description, const std::string_view shortcut = {}) {
         std::shared_ptr<Command> command =
-            std::make_shared<Command>(std::string(id), std::string(text));
+            gui_forms::detail::make_library_shared<Command>(std::string(id), std::string(text));
         (*command).set_description(std::string(description));
         if (!shortcut.empty()) (*command).set_shortcut(std::string(shortcut));
         return command;
@@ -281,8 +282,8 @@ private:
     // and the gallery value command they share, standalone (the scaling
     // specimens below host the same command's galleries in a Ribbon).
     void build_gallery() {
-        const std::shared_ptr<Command> styles = std::make_shared<Command>("gallery.commands.styles", "Styles");
-        styles_ = std::make_shared<GalleryCommand>(styles);
+        const std::shared_ptr<Command> styles = gui_forms::detail::make_library_shared<Command>("gallery.commands.styles", "Styles");
+        styles_ = gui_forms::detail::make_library_shared<GalleryCommand>(styles);
         std::vector<RibbonGalleryCategory> categories{{"headings", "Headings"}, {"body", "Body text"},
                                                       {"quotes", "Quotations"}};
         std::vector<RibbonGalleryItem> items;
@@ -391,10 +392,10 @@ private:
     // Backstage, and a second BackstageView shown in place so that its
     // column and pages can be seen without opening it.
     void build_file_area() {
-        font_command_ = std::make_shared<FontCommand>(
+        font_command_ = gui_forms::detail::make_library_shared<FontCommand>(
             make_command("gallery.commands.font", "Font", "Choose the document's font"));
         (*font_command_).set_value({"Portsmouth Rapids", 11.0});
-        color_command_ = std::make_shared<ColorCommand>(
+        color_command_ = gui_forms::detail::make_library_shared<ColorCommand>(
             make_command("gallery.commands.colour", "Font colour", "Colour the selected text"));
         std::shared_ptr<RibbonFontControl> font =
             make_control<RibbonFontControl>(StableId("gallery.commands.ribbon-file-area.font"));
@@ -724,7 +725,7 @@ private:
 
 void add_commands_and_menus(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<CommandsAndMenusPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<CommandsAndMenusPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

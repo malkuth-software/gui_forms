@@ -30,6 +30,7 @@
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <cstdint>
@@ -76,7 +77,7 @@ using WindowMaker = Component::Ptr (*)(Window& window);
 
 template <typename Type>
 Component::Ptr make_on_window(Window& window) {
-    Component::Ptr made = std::make_shared<Type>(window);
+    Component::Ptr made = gui_forms::detail::make_library_shared<Type>(window);
     return made;
 }
 
@@ -181,7 +182,7 @@ gf_status make_extension(const CreateRequest& request, SlotIdentity slot, Compon
     if (owned != GF_STATUS_OK) {
         return owned;
     }
-    made = std::make_shared<Extension>(command);
+    made = gui_forms::detail::make_library_shared<Extension>(command);
     return GF_STATUS_OK;
 }
 

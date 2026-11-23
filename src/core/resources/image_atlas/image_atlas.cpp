@@ -4,6 +4,7 @@
 #include "gui_forms/dirty.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/types/painter/painter.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -140,7 +141,7 @@ ImageAtlas::ImageAtlas(const std::shared_ptr<ApplicationResources>& resources, I
     // Registered last, so that a refusal above leaves nothing behind; a
     // failed registration removes the image again.
     try {
-        link_ = std::make_shared<detail::ImageAtlasLink>();
+        link_ = gui_forms::detail::make_library_shared<detail::ImageAtlasLink>();
         (*link_).atlas = this;
         (*resources).register_image_atlas(link_);
     } catch (...) {

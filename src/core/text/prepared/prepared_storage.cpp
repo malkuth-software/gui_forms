@@ -4,6 +4,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -438,7 +439,7 @@ bool open_bank_typefaces(PreparedFontBank& bank) {
             }
             bank.typefaces[index] = std::move(typeface);
         }
-        bank.face_pool = std::make_shared<PreparedFacePool>();
+        bank.face_pool = gui_forms::detail::make_library_shared<PreparedFacePool>();
     } catch (const std::bad_alloc&) {
         clear_bank_typefaces(bank);
         throw;

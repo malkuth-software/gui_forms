@@ -1,4 +1,5 @@
 #include "live_surface_buffer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <limits>
 #include <new>
@@ -34,7 +35,7 @@ std::shared_ptr<LiveSurfaceBuffer> make_live_surface_buffer(
     const std::uint64_t byte_count = row_bytes * description.height;
     if (byte_count > std::numeric_limits<std::size_t>::max()) return {};
     try {
-        std::shared_ptr<gui_forms::detail::LiveSurfaceBuffer> result = std::make_shared<LiveSurfaceBuffer>();
+        std::shared_ptr<gui_forms::detail::LiveSurfaceBuffer> result = gui_forms::detail::make_library_shared<LiveSurfaceBuffer>();
         (*result).description = description;
         (*result).row_bytes = row_bytes;
         (*result).pixels.resize(static_cast<std::size_t>(byte_count));

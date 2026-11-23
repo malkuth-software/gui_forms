@@ -23,6 +23,7 @@
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -208,7 +209,7 @@ gf_status fonts_load_family_body(gf_utf8_view name, const gf_app_font_face* face
         const std::byte* const first = reinterpret_cast<const std::byte*>(face.bytes.data);
         const std::size_t size = static_cast<std::size_t>(face.bytes.size);
         AppFontFace& target = copied[index];
-        target.bytes = std::make_shared<const std::vector<std::byte>>(first, first + size);
+        target.bytes = gui_forms::detail::make_library_shared<const std::vector<std::byte>>(first, first + size);
         target.weight = static_cast<std::uint16_t>(face.weight);
         target.italic = face.italic == 1U;
     }

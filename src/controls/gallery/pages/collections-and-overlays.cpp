@@ -1,6 +1,7 @@
 #include "pages.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/list_box.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "collections-and-overlays_form.hpp"
 
@@ -99,7 +100,7 @@ private:
 
 void add_collections(const std::shared_ptr<Surface>& page,
                      const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<CollectionsAndOverlaysPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<CollectionsAndOverlaysPage>(page));
 }
 
 } // namespace gui_forms::gallery::pages

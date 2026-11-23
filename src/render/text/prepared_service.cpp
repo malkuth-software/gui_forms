@@ -1,4 +1,5 @@
 #include "../../core/text/prepared/prepared_storage.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "harfbuzz/harfbuzz_font_engine.hpp"
 #include "../../core/threading/start_thread.hpp"
 
@@ -41,8 +42,8 @@ bool matching_primary(const detail::PreparedFontBank& bank, const FontSpec font)
 } // namespace
 
 PreparedTextService::PreparedTextService() {
-    std::shared_ptr<detail::PreparedServiceState> candidate = std::make_shared<detail::PreparedServiceState>();
-    (*candidate).ledger = std::make_shared<detail::PreparedLedger>();
+    std::shared_ptr<detail::PreparedServiceState> candidate = gui_forms::detail::make_library_shared<detail::PreparedServiceState>();
+    (*candidate).ledger = gui_forms::detail::make_library_shared<detail::PreparedLedger>();
     (*candidate).executor = stxlib::current_thread();
     (*candidate).instance = acquire_service_instance();
     state_ = std::move(candidate);
@@ -80,7 +81,7 @@ PreparedTextStatus PreparedTextService::create_font_bank(const std::span<const P
     const PreparedTextStatus admitted = reservation.acquire((*state_).ledger, detail::PreparedResource::font_bank, bytes);
     if (admitted != PreparedTextStatus::success) return admitted;
     try {
-        std::shared_ptr<detail::PreparedFontBank> candidate = std::make_shared<detail::PreparedFontBank>();
+        std::shared_ptr<detail::PreparedFontBank> candidate = gui_forms::detail::make_library_shared<detail::PreparedFontBank>();
         detail::PreparedFontBank& bank = *candidate;
         bank.reservation = std::move(reservation);
         bank.ledger = (*state_).ledger;
@@ -172,12 +173,12 @@ PreparedTextStatus PreparedTextService::open_session(const EncodedFontLease& fon
     const PreparedTextStatus identified = detail::acquire_prepared_session_instance(session_id);
     if (identified != PreparedTextStatus::success) return identified;
     try {
-        std::shared_ptr<detail::PreparedSessionState> state = std::make_shared<detail::PreparedSessionState>();
+        std::shared_ptr<detail::PreparedSessionState> state = gui_forms::detail::make_library_shared<detail::PreparedSessionState>();
         const PreparedTextStatus claimed = (*state).claim.acquire((*state_).ledger);
         if (claimed != PreparedTextStatus::success) return claimed;
         (*state).service = state_;
         (*state).fonts = bank;
-        (*state).authority = std::make_shared<detail::PreparedAuthorityState>();
+        (*state).authority = gui_forms::detail::make_library_shared<detail::PreparedAuthorityState>();
         (*(*state).authority).current.session = session_id;
         (*(*state).authority).executor = (*state_).executor;
         (*state).executor = (*state_).executor;

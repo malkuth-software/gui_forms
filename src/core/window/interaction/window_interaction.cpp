@@ -5,6 +5,7 @@
 // window.cpp.
 
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "interaction_state.hpp"
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 
@@ -33,7 +34,7 @@ FrameRequestToken SurfaceRoot::request_one_shot_wake(FrameTime deadline, std::fu
     }
     // A one-shot: the requester disconnects the request when it wakes, so
     // the interval is never reached.
-    std::shared_ptr<detail::ScheduledFrameRequest> request = std::make_shared<detail::ScheduledFrameRequest>(
+    std::shared_ptr<detail::ScheduledFrameRequest> request = gui_forms::detail::make_library_shared<detail::ScheduledFrameRequest>(
         deadline, std::chrono::duration_cast<FrameInterval>(std::chrono::hours(1)), std::move(callback));
     frame_requests_.push_back(request);
     metrics_.record_frame_request();

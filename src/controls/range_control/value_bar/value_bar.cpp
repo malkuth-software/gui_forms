@@ -8,6 +8,7 @@
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -25,14 +26,14 @@ namespace {
 // Static storage; any thread may read them.
 std::shared_ptr<const PropertyEnumDescriptor> value_bar_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
             PropertyEnumDescriptor{"value_bar_style", {{"fill", 0}, {"field", 1}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> value_unit_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "value_unit", {{"none", 0}, {"percent", 1}, {"length", 2}, {"angle", 3}, {"time", 4}}, false});
     return value;
 }

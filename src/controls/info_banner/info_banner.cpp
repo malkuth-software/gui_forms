@@ -4,6 +4,7 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -22,7 +23,7 @@ namespace {
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> notice_severity_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "notice_severity",
             {{"information", 0}, {"warning", 1}, {"success", 2}, {"error", 3}},
             false});

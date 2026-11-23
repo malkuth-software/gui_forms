@@ -269,7 +269,7 @@ struct DibHostFixture final {
     // ignored; with automation_enabled it is accepted.
     static void automation_gate(const wchar_t* class_name, HINSTANCE instance) {
         for (int enabled = 0; enabled < 2; ++enabled) {
-            std::shared_ptr<DibFixtureControl> control = std::make_shared<DibFixtureControl>();
+            std::shared_ptr<DibFixtureControl> control = gui_forms::detail::make_library_shared<DibFixtureControl>();
             std::unique_ptr<Window> model = std::make_unique<Window>(control, Size{80, 60});
             WindowsHostOptions options{};
             options.quit_thread_on_close = false;
@@ -307,7 +307,7 @@ struct DibHostFixture final {
             automation_gate(native_class.lpszClassName, native_class.hInstance);
             {
                 constexpr LiveSurfacePixelFormat format = LiveSurfacePixelFormat::bgra32_premultiplied_srgb;
-                std::shared_ptr<DibFixtureControl> control = std::make_shared<DibFixtureControl>();
+                std::shared_ptr<DibFixtureControl> control = gui_forms::detail::make_library_shared<DibFixtureControl>();
                 std::unique_ptr<Window> model = std::make_unique<Window>(control, Size{80, 60});
                 WindowsHostOptions options{};
                 options.quit_thread_on_close = false;

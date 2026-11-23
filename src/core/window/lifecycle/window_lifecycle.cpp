@@ -4,6 +4,7 @@
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../dispatcher/state/dispatcher_state.hpp"
 #include "../../drag_engine/drag_engine.hpp"
 #include "../../scheduler/request/scheduled_frame_request.hpp"
@@ -51,14 +52,14 @@ Application* joinable_application() noexcept {
 // fresh ones with the built-in theme.
 std::shared_ptr<ApplicationResources> default_window_resources(Application* application) {
     if (application != nullptr) return (*application).resources();
-    std::shared_ptr<ApplicationResources> own = std::make_shared<ApplicationResources>(ImageRegistryLimits{});
+    std::shared_ptr<ApplicationResources> own = gui_forms::detail::make_library_shared<ApplicationResources>(ImageRegistryLimits{});
     return own;
 }
 
 // Fresh resources with `limits`, taking the application's theme.
 std::shared_ptr<ApplicationResources> limited_window_resources(Application* application,
                                                                ImageRegistryLimits limits) {
-    std::shared_ptr<ApplicationResources> own = std::make_shared<ApplicationResources>(limits);
+    std::shared_ptr<ApplicationResources> own = gui_forms::detail::make_library_shared<ApplicationResources>(limits);
     if (application != nullptr) (*own).set_theme((*(*application).resources()).program_theme_ptr());
     return own;
 }
@@ -738,7 +739,7 @@ KeyBindings& SurfaceRoot::held_key_bindings() {
     if (overrides_ && (*overrides_).key_bindings) return *(*overrides_).key_bindings;
     if (inherited_key_bindings_) return *inherited_key_bindings_;
     WindowOverrides& overrides = edit_overrides();
-    overrides.key_bindings = std::make_shared<KeyBindings>();
+    overrides.key_bindings = gui_forms::detail::make_library_shared<KeyBindings>();
     return *overrides.key_bindings;
 }
 

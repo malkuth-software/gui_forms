@@ -9,6 +9,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -230,7 +231,7 @@ ContentTextEditor::ContentTextEditor(StableId stable_id, std::string initial_tex
     : TextBoxBase(std::move(stable_id)),
       editing_host_(std::make_unique<EditingHost>(*this)),
       editing_(std::make_unique<detail::TextEditingEngine>(*editing_host_, initial_text)),
-      notices_(std::make_shared<FrameNotices>(*this)) {
+      notices_(gui_forms::detail::make_library_shared<FrameNotices>(*this)) {
     focusable = true;
     cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }

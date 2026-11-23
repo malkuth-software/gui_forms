@@ -3,6 +3,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "../drag_engine/drag_engine.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "requests/alert_route.hpp"
 
 #include "../dispatcher/state/dispatcher_state.hpp"
@@ -29,11 +30,11 @@ template struct detail::SurfaceRootLayout<sizeof(SurfaceRoot), alignof(SurfaceRo
 
 SurfaceRoot::SurfaceRoot(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources)
     : root_thread_(stxlib::current_thread()),
-      dispatcher_state_(std::make_shared<detail::DispatcherState>(root_thread_)),
+      dispatcher_state_(gui_forms::detail::make_library_shared<detail::DispatcherState>(root_thread_)),
       root_(std::move(root)), client_size_(client_size),
       theme_(resources ? (*resources).theme_ptr() : default_theme()),
       resources_(std::move(resources)),
-      lifetime_(std::make_shared<detail::WindowLifetime>()) {
+      lifetime_(gui_forms::detail::make_library_shared<detail::WindowLifetime>()) {
     // A theme with no light variant shows GUI.Forms' own light theme.
     if (resources_) theme_ = scheme_theme((*resources_).theme_ptr());
 }

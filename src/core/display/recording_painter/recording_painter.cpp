@@ -1,4 +1,5 @@
 #include "recording_painter.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../text/prepared/prepared_storage.hpp"
 #include "../../engine/primitives/material/material_raster.hpp"
 #include "../../theme/theme/material_layers.hpp"
@@ -297,7 +298,7 @@ void RecordingPainter::draw_box_shadow(Rect rect, double corner_radius,
     command.secondary_scalar = blur_radius;
     command.tertiary_scalar = spread;
     command.retained_cache = inherited_cache(command, previous_shadows_, shadow_ordinal_);
-    if (!command.retained_cache) command.retained_cache = std::make_shared<RetainedDrawCache>();
+    if (!command.retained_cache) command.retained_cache = gui_forms::detail::make_library_shared<RetainedDrawCache>();
     commands_.push_back(std::move(command));
 }
 
@@ -318,7 +319,7 @@ void RecordingPainter::draw_retained_box_shadow(
     const std::shared_ptr<RetainedDrawCache> inherited =
         inherited_cache(command, previous_shadows_, shadow_ordinal_);
     if (!command.retained_cache) command.retained_cache = inherited;
-    if (!command.retained_cache) command.retained_cache = std::make_shared<RetainedDrawCache>();
+    if (!command.retained_cache) command.retained_cache = gui_forms::detail::make_library_shared<RetainedDrawCache>();
     commands_.push_back(std::move(command));
 }
 
@@ -351,7 +352,7 @@ namespace {
 // A batched command with an empty payload of its own: the caller fills the
 // spans and style it names.
 DisplayCommand marks_command(DisplayOperation operation, std::shared_ptr<DisplayMarks>& marks) {
-    marks = std::make_shared<DisplayMarks>();
+    marks = gui_forms::detail::make_library_shared<DisplayMarks>();
     DisplayCommand command;
     command.operation = operation;
     return command;
@@ -534,7 +535,7 @@ void RecordingPainter::draw_text_utf8(Point origin,
     command.font = font;
     command.text.assign(text);
     command.retained_cache = inherited_cache(command, previous_text_, text_ordinal_);
-    if (!command.retained_cache) command.retained_cache = std::make_shared<RetainedDrawCache>();
+    if (!command.retained_cache) command.retained_cache = gui_forms::detail::make_library_shared<RetainedDrawCache>();
     commands_.push_back(std::move(command));
 }
 
@@ -553,7 +554,7 @@ void RecordingPainter::draw_retained_text_utf8(
     const std::shared_ptr<RetainedDrawCache> inherited =
         inherited_cache(command, previous_text_, text_ordinal_);
     if (!command.retained_cache) command.retained_cache = inherited;
-    if (!command.retained_cache) command.retained_cache = std::make_shared<RetainedDrawCache>();
+    if (!command.retained_cache) command.retained_cache = gui_forms::detail::make_library_shared<RetainedDrawCache>();
     commands_.push_back(std::move(command));
 }
 
@@ -712,7 +713,7 @@ void RecordingPainter::draw_surface_material(Rect bounds, const SurfaceMaterial&
             paint_material_layers(*this, bounds, authored);
             return;
         }
-        kept = std::make_shared<const SurfaceMaterial>(material);
+        kept = gui_forms::detail::make_library_shared<const SurfaceMaterial>(material);
     }
     draw_part_raster(raster, Point{bounds.x - outset, bounds.y - outset}, 1.0);
     DisplayCommand& recorded = commands_.back();
@@ -913,7 +914,7 @@ std::shared_ptr<const DisplayChunk> RecordingPainter::finish(
     if (!open_groups_.empty()) {
         throw std::logic_error("GUI.Forms display chunk leaves a paint group open");
     }
-    return std::make_shared<const DisplayChunk>(generation, plane, logical_bounds,
+    return gui_forms::detail::make_library_shared<const DisplayChunk>(generation, plane, logical_bounds,
                                                 std::move(commands_), opaque_cover_);
 }
 

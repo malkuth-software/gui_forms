@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/delegate.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -195,7 +196,7 @@ private:
     struct Slot : detail::Revocable {
         Slot(std::weak_ptr<State> event_state, Callback event_callback)
             : state(std::move(event_state)),
-              callback(std::make_shared<Callback>(std::move(event_callback))),
+              callback(gui_forms::detail::make_library_shared<Callback>(std::move(event_callback))),
               kind(CallbackKind::owning) {}
 
         Slot(std::weak_ptr<State> event_state, const DelegateCallback event_delegate)
@@ -323,7 +324,7 @@ private:
             return {};
         }
         const std::shared_ptr<Slot> slot =
-            std::make_shared<Slot>(ensure_state(), std::move(callback));
+            gui_forms::detail::make_library_shared<Slot>(ensure_state(), std::move(callback));
         SubscriptionToken token(slot);
         connect(owner, slot);
         return token;
@@ -335,7 +336,7 @@ private:
             return {};
         }
         const std::shared_ptr<Slot> slot =
-            std::make_shared<Slot>(ensure_state(), callback);
+            gui_forms::detail::make_library_shared<Slot>(ensure_state(), callback);
         SubscriptionToken token(slot);
         connect(owner, slot);
         return token;
@@ -346,7 +347,7 @@ private:
                                                       const Method method,
                                                       Bound... bound) {
         const std::shared_ptr<Slot> slot =
-            std::make_shared<MemberSlot<Owner, Method, Bound...>>(ensure_state(), owner, method, bound...);
+            gui_forms::detail::make_library_shared<MemberSlot<Owner, Method, Bound...>>(ensure_state(), owner, method, bound...);
         SubscriptionToken token(slot);
         connect(nullptr, slot);
         return token;
@@ -355,7 +356,7 @@ private:
     // The state, made on first use. Throws std::bad_alloc and leaves the
     // event without state when it cannot be made.
     [[nodiscard]] const std::shared_ptr<State>& ensure_state() {
-        if (state_ == nullptr) state_ = std::make_shared<State>();
+        if (state_ == nullptr) state_ = gui_forms::detail::make_library_shared<State>();
         return state_;
     }
 

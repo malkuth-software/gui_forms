@@ -1,6 +1,7 @@
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include <atomic>
 #include <cmath>
 #include <limits>
@@ -115,7 +116,7 @@ CursorLeaseResult HostServices::begin_cursor_hidden(Window& window) {
     const CursorStatus authority = cursor_authority_impl(window, true);
     if (!authority.accepted()) { return {{}, authority}; }
     std::shared_ptr<CursorLeaseState> state{};
-    try { state = std::make_shared<CursorLeaseState>(); }
+    try { state = gui_forms::detail::make_library_shared<CursorLeaseState>(); }
     catch (const std::bad_alloc&) { return {{}, {CursorError::native_failure}}; }
     const CursorStatus hidden = hide_cursor_impl();
     if (!hidden.accepted()) { return {{}, hidden}; }

@@ -11,6 +11,7 @@
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -305,10 +306,8 @@ std::size_t EffectRegistry::unverified_count() const noexcept {
 
 void effect_detail::StorageRelease::operator()(std::byte* storage) const noexcept {
     if (storage == nullptr) return;
-    // The unsized aligned delete matches the aligned new in instantiate();
-    // libraries built without sized deallocation (MinGW clang64's libc++)
-    // do not declare the sized form.
-    ::operator delete(storage, std::align_val_t(alignment));
+    // The library seam's release matches its allocation in attach().
+    detail::library_release(static_cast<void*>(storage));
     detail::count_release(AllocationSubsystem::effects, size);
 }
 
@@ -334,7 +333,7 @@ void EffectInstance::attach(const EffectEntry& entry, std::uint64_t seed, FrameT
     // Counted under AllocationSubsystem::effects; StorageRelease counts the
     // release with the same size.
     std::byte* const storage =
-        static_cast<std::byte*>(::operator new(entry.size, std::align_val_t(entry.alignment)));
+        static_cast<std::byte*>(detail::library_allocate_or_throw(entry.size, entry.alignment));
     detail::count_allocation(AllocationSubsystem::effects, entry.size);
     storage_ = std::unique_ptr<std::byte, effect_detail::StorageRelease>(
         storage, effect_detail::StorageRelease{entry.size, entry.alignment});

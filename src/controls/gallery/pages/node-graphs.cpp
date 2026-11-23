@@ -4,6 +4,7 @@
 
 #include "gui_forms/controls/node_canvas.hpp"
 #include "gui_forms/controls/node_graph.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <cstddef>
@@ -235,7 +236,7 @@ void NodeGraphsPage::show_status() {
 }
 
 void add_node_graphs(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<NodeGraphsPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<NodeGraphsPage>(page));
 }
 
 } // namespace gui_forms::gallery::pages

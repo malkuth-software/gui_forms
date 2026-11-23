@@ -16,6 +16,7 @@
 #include "gui_forms/controls/up_down_base.hpp"
 #include "gui_forms/pages.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -72,22 +73,22 @@ StableId sample_id() {
 template <typename Type>
 void describe_window_component(SchemaSample& sample) {
     Window window(make_control<Panel>(sample_id()));
-    const std::shared_ptr<Type> component = std::make_shared<Type>(window);
+    const std::shared_ptr<Type> component = gui_forms::detail::make_library_shared<Type>(window);
     record_component(*component, sample);
 }
 
 // A component made from nothing.
 template <typename Type>
 void describe_free_component(SchemaSample& sample) {
-    const std::shared_ptr<Type> component = std::make_shared<Type>();
+    const std::shared_ptr<Type> component = gui_forms::detail::make_library_shared<Type>();
     record_component(*component, sample);
 }
 
 // A command extension, made on a plain command.
 template <typename Type>
 void describe_command_extension(SchemaSample& sample) {
-    const std::shared_ptr<Command> command = std::make_shared<Command>();
-    const std::shared_ptr<Type> extension = std::make_shared<Type>(command);
+    const std::shared_ptr<Command> command = gui_forms::detail::make_library_shared<Command>();
+    const std::shared_ptr<Type> extension = gui_forms::detail::make_library_shared<Type>(command);
     record_component(*extension, sample);
 }
 
@@ -126,13 +127,13 @@ public:
 
 template <>
 void describe_type<AboutDialog>(SchemaSample& sample) {
-    const std::shared_ptr<AboutDialog> dialog = std::make_shared<AboutDialog>(sample_id(), AboutInfo{});
+    const std::shared_ptr<AboutDialog> dialog = gui_forms::detail::make_library_shared<AboutDialog>(sample_id(), AboutInfo{});
     record_component(*dialog, sample);
 }
 
 template <>
 Component::Ptr create_type<AboutDialog>(StableId stable_id) {
-    const std::shared_ptr<AboutDialog> dialog = std::make_shared<AboutDialog>(std::move(stable_id), AboutInfo{});
+    const std::shared_ptr<AboutDialog> dialog = gui_forms::detail::make_library_shared<AboutDialog>(std::move(stable_id), AboutInfo{});
     return dialog;
 }
 
@@ -206,7 +207,7 @@ void describe_type<BackgroundWorker>(SchemaSample& sample) {
 template <>
 void describe_type<Binding>(SchemaSample& sample) {
     Window window(make_control<Panel>(sample_id()));
-    const std::shared_ptr<BindingSource> source = std::make_shared<BindingSource>(window);
+    const std::shared_ptr<BindingSource> source = gui_forms::detail::make_library_shared<BindingSource>(window);
     const std::shared_ptr<Label> bound = make_control<Label>(sample_id());
     const std::shared_ptr<Binding> binding = (*bound).data_bindings().add("Text", source, "Name");
     if (binding == nullptr) {
@@ -242,13 +243,13 @@ void describe_type<Command>(SchemaSample& sample) {
 
 template <>
 void describe_type<ContextMenu>(SchemaSample& sample) {
-    const std::shared_ptr<ContextMenu> menu = std::make_shared<ContextMenu>(std::string(sample_stable_id));
+    const std::shared_ptr<ContextMenu> menu = gui_forms::detail::make_library_shared<ContextMenu>(std::string(sample_stable_id));
     record_component(*menu, sample);
 }
 
 template <>
 void describe_type<DockWorkspace>(SchemaSample& sample) {
-    const std::shared_ptr<DockWorkspace> workspace = std::make_shared<DockWorkspace>(std::string(sample_stable_id));
+    const std::shared_ptr<DockWorkspace> workspace = gui_forms::detail::make_library_shared<DockWorkspace>(std::string(sample_stable_id));
     record_component(*workspace, sample);
 }
 
@@ -316,21 +317,21 @@ void describe_type<SemanticFeedback>(SchemaSample& sample) {
 template <>
 void describe_type<ThreadExceptionDialog>(SchemaSample& sample) {
     const std::shared_ptr<ThreadExceptionDialog> dialog =
-        std::make_shared<ThreadExceptionDialog>(sample_id(), ThreadExceptionReport{});
+        gui_forms::detail::make_library_shared<ThreadExceptionDialog>(sample_id(), ThreadExceptionReport{});
     record_component(*dialog, sample);
 }
 
 template <>
 Component::Ptr create_type<ThreadExceptionDialog>(StableId stable_id) {
     const std::shared_ptr<ThreadExceptionDialog> dialog =
-        std::make_shared<ThreadExceptionDialog>(std::move(stable_id), ThreadExceptionReport{});
+        gui_forms::detail::make_library_shared<ThreadExceptionDialog>(std::move(stable_id), ThreadExceptionReport{});
     return dialog;
 }
 
 template <>
 void describe_type<PlotLinkGroup>(SchemaSample& sample) {
     const plots::PlotRange unit{0.0, 1.0};
-    const std::shared_ptr<PlotLinkGroup> group = std::make_shared<PlotLinkGroup>(PlotLinkAxes::x, unit, unit);
+    const std::shared_ptr<PlotLinkGroup> group = gui_forms::detail::make_library_shared<PlotLinkGroup>(PlotLinkAxes::x, unit, unit);
     record_component(*group, sample);
 }
 

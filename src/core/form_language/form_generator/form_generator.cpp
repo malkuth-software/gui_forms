@@ -4,6 +4,7 @@
 // scratch string, which replaces the caller's only when there were none.
 
 #include "form_generator.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -531,7 +532,7 @@ void FormGenerator::write_objects(std::string& out, ObjectAccess access) const {
             out += "        " + pointer + " = gui_forms::make_control<" + type.cpp_type +
                    ">(gui_forms::StableId(" + string_literal(object.stable_id) + "));\n";
         } else {
-            out += "        " + pointer + " = std::make_shared<" + type.cpp_type + ">();\n";
+            out += "        " + pointer + " = gui_forms::detail::make_library_shared<" + type.cpp_type + ">();\n";
         }
         if (!object.parent) continue;
         const std::size_t parent = (*object.parent).value;

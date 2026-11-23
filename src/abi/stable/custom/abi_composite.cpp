@@ -9,6 +9,7 @@
 #include "../../../core/control_language/control_model/control_model.hpp"
 
 #include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <optional>
@@ -216,7 +217,7 @@ SubscriptionToken connect_composite_event(Component& source, const std::string_v
     const CompositeDefinition& definition = (*composite).definition();
     for (std::size_t index = 0U; index < definition.interaction_names.size(); ++index) {
         if (definition.interaction_names[index] != name || index >= definition.events.size()) continue;
-        CompositeEventForwarder forwarder{binding, std::make_shared<EventFields>(), definition.events[index].name};
+        CompositeEventForwarder forwarder{binding, gui_forms::detail::make_library_shared<EventFields>(), definition.events[index].name};
         SubscriptionToken token = (*composite).raised().subscribe(std::move(forwarder));
         return token;
     }

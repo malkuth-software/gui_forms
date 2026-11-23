@@ -8,6 +8,7 @@
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog_capabilities/save_file_dialog_capabilities.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -87,7 +88,7 @@ private:
     std::vector<std::string> file_names_{};
     HostServiceStatus status_{};
     bool showing_{};
-    std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
+    std::shared_ptr<Presence> presence_{gui_forms::detail::make_library_shared<Presence>()};
     Event<FileDialogOk&> file_ok_{};
     // property_codemod begin SaveFileDialog (tools/property_families/save_file_dialog.json; generated, do not edit)
 private:

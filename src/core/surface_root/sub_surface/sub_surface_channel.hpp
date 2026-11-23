@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../../dispatcher/state/dispatcher_state.hpp"
 
@@ -73,7 +74,7 @@ struct SubSurfaceChannel final {
     // The sub-surface thread's synchronous invokes, revoked by stop() before
     // it joins (detail::RevocableInvokes). Made with the channel, named by
     // the thread at its start; guarded by its own leaf mutex, not `mutex`.
-    std::shared_ptr<RevocableInvokes> revocable_invokes{std::make_shared<RevocableInvokes>()};
+    std::shared_ptr<RevocableInvokes> revocable_invokes{gui_forms::detail::make_library_shared<RevocableInvokes>()};
     // A dispatch or paint wake arrived since the loop last looked.
     bool signalled{};
     SubSurfaceState state{SubSurfaceState::starting};

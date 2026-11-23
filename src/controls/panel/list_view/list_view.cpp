@@ -12,6 +12,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -180,7 +181,7 @@ std::string sub_item_identity(std::string_view item_id, std::string_view column_
 // enumerations' declaration order (list_view_values.hpp).
 std::shared_ptr<const PropertyEnumDescriptor> list_view_view_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "list_view_view",
             {{"details", 0}, {"list", 1}, {"small_icon", 2}, {"large_icon", 3}, {"tile", 4}},
             false});
@@ -189,14 +190,14 @@ std::shared_ptr<const PropertyEnumDescriptor> list_view_view_enum() {
 
 std::shared_ptr<const PropertyEnumDescriptor> list_view_activation_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "list_view_activation", {{"standard", 0}, {"one_click", 1}, {"two_click", 2}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> list_view_header_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "list_view_header_style", {{"clickable", 0}, {"nonclickable", 1}, {"none", 2}}, false});
     return value;
 }

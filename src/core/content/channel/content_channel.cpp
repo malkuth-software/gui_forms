@@ -1,4 +1,5 @@
 #include "content_channel.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <chrono>
 #include <cstring>
@@ -73,7 +74,7 @@ std::shared_ptr<ContentChannel> make_content_channel(ContentPixelSize size, bool
     // The stop state is STXlib's allocation: refused as the surface is.
     stxlib::OperationResult<stxlib::StopSource> stop = stxlib::StopSource::create();
     if (stop.failed()) return {};
-    std::shared_ptr<ContentChannel> channel = std::make_shared<ContentChannel>(std::move(surface));
+    std::shared_ptr<ContentChannel> channel = gui_forms::detail::make_library_shared<ContentChannel>(std::move(surface));
     (*channel).stop = static_cast<stxlib::OperationResult<stxlib::StopSource>&&>(stop).take_value();
     // The first publication of any size reshapes the buffers: until then the
     // surface holds no frame, so its placeholder size is not a promise.

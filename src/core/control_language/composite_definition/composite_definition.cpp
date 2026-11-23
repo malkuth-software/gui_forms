@@ -17,6 +17,7 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/xml/xml_writer/xml_writer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -422,7 +423,7 @@ void DefinitionCompiler::compile_properties() {
         made.command = kind == ControlPropertyKind::command;
         descriptor.kind = binding_kind_of(kind);
         if (kind == ControlPropertyKind::enumeration) {
-            std::shared_ptr<PropertyEnumDescriptor> enumeration = std::make_shared<PropertyEnumDescriptor>();
+            std::shared_ptr<PropertyEnumDescriptor> enumeration = gui_forms::detail::make_library_shared<PropertyEnumDescriptor>();
             (*enumeration).type_name = definition_.registered + "." + descriptor.name;
             for (std::size_t choice = 0U; choice < written.choices.size(); ++choice) {
                 PropertyEnumChoice entry{};
@@ -921,9 +922,9 @@ void DefinitionCompiler::compile_look() {
     if (compiled && !reads_undefined_name(definition_.look, defined)) {
         for (const theme_language::ThemeDiagnostic& diagnostic : found.records()) diagnostics_.add(diagnostic);
         std::shared_ptr<const CompiledThemeRules> rules =
-            std::make_shared<const CompiledThemeRules>(CompiledThemeRules::compile_look(sheet, registry));
+            gui_forms::detail::make_library_shared<const CompiledThemeRules>(CompiledThemeRules::compile_look(sheet, registry));
         definition_.compiled_look =
-            std::make_shared<detail::CompositeLook>(definition_.look, std::move(file), std::move(rules));
+            gui_forms::detail::make_library_shared<detail::CompositeLook>(definition_.look, std::move(file), std::move(rules));
         return;
     }
     if (!compiled && !deferrable_to_theme(found)) {
@@ -933,7 +934,7 @@ void DefinitionCompiler::compile_look() {
     }
     // Its findings come again from each theme's compilation, placed alike.
     definition_.compiled_look =
-        std::make_shared<detail::CompositeLook>(definition_.look, std::move(file), std::move(controls));
+        gui_forms::detail::make_library_shared<detail::CompositeLook>(definition_.look, std::move(file), std::move(controls));
 }
 
 void DefinitionCompiler::parse(const std::string& text, CompositeExpression& expression, const ControlSource& where,
@@ -1064,7 +1065,7 @@ std::optional<CompositeKeyGesture> composite_key_gesture(const std::string_view 
 std::shared_ptr<const CompositeDefinition> compile_composite_definition(
     const theme_language::ThemeSource& source, const ControlSyntax& syntax, const ControlModel& model,
     form_language::FormSchema schema, theme_language::ThemeDiagnosticList& diagnostics) {
-    std::shared_ptr<CompositeDefinition> definition = std::make_shared<CompositeDefinition>();
+    std::shared_ptr<CompositeDefinition> definition = gui_forms::detail::make_library_shared<CompositeDefinition>();
     (*definition).schema = std::move(schema);
     DefinitionCompiler compiler(source, syntax, model, *definition, diagnostics);
     if (!compiler.run()) return nullptr;

@@ -9,6 +9,7 @@
 #include "../schema/abi_schema.hpp"
 
 #include "gui_forms/detail/storage_growth.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -29,7 +30,7 @@ ApplicationResources& EngineState::resources() {
 
 const std::shared_ptr<ApplicationResources>& EngineState::shared_resources() {
     if (!resources_) {
-        std::shared_ptr<ApplicationResources> made = std::make_shared<ApplicationResources>();
+        std::shared_ptr<ApplicationResources> made = gui_forms::detail::make_library_shared<ApplicationResources>();
         hold_theme_request(*made, default_theme_base);
         resources_ = std::move(made);
         registry().hold_binding();
@@ -67,7 +68,7 @@ void EngineState::adopt_application(std::unique_ptr<Application> made) {
 }
 
 void EngineState::release_application() {
-    std::shared_ptr<ApplicationResources> fresh = std::make_shared<ApplicationResources>();
+    std::shared_ptr<ApplicationResources> fresh = gui_forms::detail::make_library_shared<ApplicationResources>();
     hold_theme_request(*fresh, default_theme_base);
     application_.reset();
     resources_ = std::move(fresh);

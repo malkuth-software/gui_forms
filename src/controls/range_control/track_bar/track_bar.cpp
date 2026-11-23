@@ -4,6 +4,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
 
 #include <algorithm>
@@ -22,7 +23,7 @@ namespace {
 // may read it.
 std::shared_ptr<const PropertyEnumDescriptor> track_bar_visual_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "track_bar_visual_style", {{"classic", 0}, {"filled", 1}, {"compact", 2}}, false});
     return value;
 }

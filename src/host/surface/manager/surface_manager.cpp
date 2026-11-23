@@ -8,6 +8,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
 #include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -999,7 +1000,7 @@ bool NativeWindow::report_presented(const stxlib::Optional<PaintReceipt>& receip
 
 Runtime::Runtime(SurfaceHost& surface_host, std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts)
     : host(surface_host), queue(surface_host.input()), fonts(std::move(run_fonts)),
-      actions(std::make_shared<ActionQueue>(surface_host.input())) {
+      actions(gui_forms::detail::make_library_shared<ActionQueue>(surface_host.input())) {
     const SurfaceHostStart start = host.start();
     extent = Size{std::max(1.0, start.extent.width), std::max(1.0, start.extent.height)};
     scale = std::isfinite(start.scale) && start.scale > 0.0 ? start.scale : 1.0;
@@ -1029,7 +1030,7 @@ Runtime::~Runtime() {
 std::shared_ptr<NativeWindow> Runtime::add(SurfaceApplicationWindow entry, HostWindowId window_id, Rect content,
                                            bool initial) {
     const std::shared_ptr<NativeWindow> window =
-        std::make_shared<NativeWindow>(*this, std::move(entry), window_id, content, initial);
+        gui_forms::detail::make_library_shared<NativeWindow>(*this, std::move(entry), window_id, content, initial);
     windows.push_back(window);
     (*window).attach();
     scene_dirty_ = true;
@@ -2097,7 +2098,7 @@ CompositorState surface_compositor_state() {
 
 int run_surface_application(SurfaceHost& host, std::vector<SurfaceApplicationWindow> windows,
                             SurfaceApplicationOptions application) {
-    const std::shared_ptr<RunOpenState> open_state = std::make_shared<RunOpenState>();
+    const std::shared_ptr<RunOpenState> open_state = gui_forms::detail::make_library_shared<RunOpenState>();
     try {
         // The run holds the bundled font set, so windows opened and closed
         // during it share one copy of each face.

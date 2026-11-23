@@ -5,6 +5,7 @@
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/components/folder_browser_dialog/folder_browser_dialog_capabilities/folder_browser_dialog_capabilities.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <memory>
 #include <string>
@@ -52,7 +53,7 @@ private:
     std::string selected_path_{};
     HostServiceStatus status_{};
     bool showing_{};
-    std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
+    std::shared_ptr<Presence> presence_{gui_forms::detail::make_library_shared<Presence>()};
     // property_codemod begin FolderBrowserDialog (tools/property_families/folder_browser_dialog.json; generated, do not edit)
 private:
     friend struct FolderBrowserDialogDescriptionCapability<FolderBrowserDialog>;

@@ -5,6 +5,7 @@
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -301,7 +302,7 @@ void RichTextBox::open_heading_menu() {
     for (std::size_t index = 0U; index < heading_choices.size(); ++index) {
         std::string identity = prefix + std::to_string(index);
         if (!heading_commands_[index]) {
-            heading_commands_[index] = std::make_shared<Command>(identity, std::string(heading_choices[index]));
+            heading_commands_[index] = gui_forms::detail::make_library_shared<Command>(identity, std::string(heading_choices[index]));
         }
         Command& command = *heading_commands_[index];
         command.set_checked(level.has_value() && index == *level);

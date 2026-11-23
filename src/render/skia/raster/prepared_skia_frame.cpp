@@ -1,4 +1,5 @@
 #include "prepared_skia_frame.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColorSpace.h"
@@ -50,7 +51,7 @@ private:
 };
 }
 sk_sp<SkImage> PreparedSkiaFrame::make_mask_image(GrayTextMask& mask) {
-    const std::shared_ptr<MaskImageOwner> owner = std::make_shared<MaskImageOwner>();
+    const std::shared_ptr<MaskImageOwner> owner = gui_forms::detail::make_library_shared<MaskImageOwner>();
     (*owner).mask = std::move(mask);
     const GrayTextMask& source = (*owner).mask;
     const SkImageInfo info = SkImageInfo::Make(static_cast<int>(source.width()), static_cast<int>(source.height()),

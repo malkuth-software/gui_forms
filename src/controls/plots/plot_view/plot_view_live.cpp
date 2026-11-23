@@ -1,6 +1,7 @@
 #include "plot_view_live.hpp"
 
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -367,7 +368,7 @@ void PlotLiveFrame::on_key_up(KeyEventArgs& arguments) {
 // -- content ---------------------------------------------------------------------------
 
 Control::Ptr PlotLiveContent::build_root() {
-    frame_ = std::make_shared<PlotLiveFrame>(stable_id_);
+    frame_ = gui_forms::detail::make_library_shared<PlotLiveFrame>(stable_id_);
     Control::Ptr root = frame_;
     return root;
 }

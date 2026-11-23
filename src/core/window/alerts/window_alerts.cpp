@@ -4,6 +4,7 @@
 
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <utility>
 #include <variant>
@@ -30,7 +31,7 @@ private:
 
 } // namespace
 
-WindowAlerts::WindowAlerts(Window& window) : window_(window), liveness_(std::make_shared<Liveness>()) {
+WindowAlerts::WindowAlerts(Window& window) : window_(window), liveness_(gui_forms::detail::make_library_shared<Liveness>()) {
     (*liveness_).alerts = this;
 }
 

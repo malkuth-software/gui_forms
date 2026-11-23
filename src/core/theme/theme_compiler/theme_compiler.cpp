@@ -5,6 +5,7 @@
 #include "gui_forms/theme/canvas_look/canvas_look.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../../image/resource_pixels.hpp"
 #include "../../resources/image_registry/image_registry_access.hpp"
@@ -283,7 +284,7 @@ std::shared_ptr<detail::ThemeImageLease> lease_image(const std::string& encoded,
     }
     const Size pixel_size{static_cast<double>(((*view.value())).metadata.width), static_cast<double>(((*view.value())).metadata.height)};
     std::shared_ptr<detail::ThemeImageLease> made =
-        std::make_shared<detail::ThemeImageLease>(registry, image.image, pixel_size);
+        gui_forms::detail::make_library_shared<detail::ThemeImageLease>(registry, image.image, pixel_size);
     shares.entries.push_back(ThemeImageShares::Entry{digest, made});
     return made;
 }
@@ -577,7 +578,7 @@ ThemeCompileResult compile_closure(std::span<const VerifiedThemePack* const> roo
     if (!id.empty()) (*definition).id = std::string(id);
     // The source the theme keeps for inline styles compiled against it
     // (P12b).
-    std::shared_ptr<detail::ThemeSourceRecord> record = std::make_shared<detail::ThemeSourceRecord>();
+    std::shared_ptr<detail::ThemeSourceRecord> record = gui_forms::detail::make_library_shared<detail::ThemeSourceRecord>();
     (*record).text = text;
     (*record).file = closure_file;
     for (const ClosureSegment& segment : segments) {
@@ -1526,7 +1527,7 @@ std::shared_ptr<const detail::ControlInlineStyle> detail::compile_inline_style(
         if (!append_theme_readers(recompile, anatomy, stable_id, file, record, sheet, diagnostics)) return nullptr;
     }
     const CompiledThemeRules* const against = bound ? &theme.engine().rules() : nullptr;
-    std::shared_ptr<ControlInlineStyle> style = std::make_shared<ControlInlineStyle>();
+    std::shared_ptr<ControlInlineStyle> style = gui_forms::detail::make_library_shared<ControlInlineStyle>();
     (*style).text = std::string(text);
     (*style).theme_bound = bound;
     (*style).rules = CompiledThemeRules::compile_inline(sheet, registry, against);
@@ -1638,7 +1639,7 @@ std::shared_ptr<const CompiledThemeRules> detail::compile_theme_look(
     for (ThemeRule& rule : lowered.rules) {
         if (rule.provenance.offset >= from) sheet.rules.push_back(std::move(rule));
     }
-    std::shared_ptr<const CompiledThemeRules> compiled = std::make_shared<const CompiledThemeRules>(
+    std::shared_ptr<const CompiledThemeRules> compiled = gui_forms::detail::make_library_shared<const CompiledThemeRules>(
         CompiledThemeRules::compile_look(sheet, registry, &theme.engine().rules()));
     return compiled;
 }
@@ -1667,7 +1668,7 @@ detail::BuiltInThemeCompilation detail::compile_built_in_theme(const ThemeDefini
         result.diagnostics.push_back(public_diagnostic(diagnostic));
     }
     if (outcome != theme_language::CompileOutcome::compiled) return result;
-    std::shared_ptr<ThemeSourceRecord> record = std::make_shared<ThemeSourceRecord>();
+    std::shared_ptr<ThemeSourceRecord> record = gui_forms::detail::make_library_shared<ThemeSourceRecord>();
     (*record).text = std::string(sheet);
     (*record).file = std::string(file);
     compiler.append_defined_names((*record).defined_names);

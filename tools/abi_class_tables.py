@@ -227,8 +227,10 @@ def load_json(path: Path) -> dict:
 
 
 def is_relation(base: str) -> bool:
-    """A base that is not the class's parent: a capability mixin or the shared-pointer helper."""
-    return base.endswith("Capabilities") or base.endswith("Capability") or base == "enable_shared_from_this"
+    """A base that is not the class's parent: a capability mixin, the shared-pointer helper or the
+    library allocator's class-scope operator new and delete (LibraryAllocated)."""
+    return (base.endswith("Capabilities") or base.endswith("Capability") or base == "enable_shared_from_this"
+            or base == "LibraryAllocated")
 
 
 def read_classes(schema: dict[str, dict]) -> dict[str, ClassInfo]:

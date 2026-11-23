@@ -6,6 +6,7 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -897,7 +898,7 @@ bool DockWorkspace::attach_windows(ApplicationWindowHandle main_window, std::str
     if (!capabilities.supports(HostCapability::runtime_windows)) return false;
     main_window_ = std::move(main_window);
     main_window_id_ = std::move(main_stable_id);
-    liaison_ = std::make_shared<WindowLiaison>();
+    liaison_ = gui_forms::detail::make_library_shared<WindowLiaison>();
     (*liaison_).workspace = this;
     Window* const main = main_model();
     if (main == nullptr || layout_.state().floating_sites.empty()) return true;

@@ -1,5 +1,6 @@
 #include "pages.hpp"
 #include "gui_forms/controls/choice_group.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "typography-and-inspection_form.hpp"
 
@@ -134,7 +135,7 @@ void TypographyPage::on_size_changed(const double size) {
 
 void add_typography_and_inspection(const std::shared_ptr<Surface>& page,
                                    const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<TypographyPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<TypographyPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

@@ -23,6 +23,7 @@
 #include "gui_forms/pages/types/page_set_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -211,7 +212,7 @@ std::vector<std::string> sample_items() {
 }
 
 std::shared_ptr<Command> make_command(std::string_view id, std::string_view text, std::string_view shortcut) {
-    const std::shared_ptr<Command> command = std::make_shared<Command>(std::string(id), std::string(text));
+    const std::shared_ptr<Command> command = gui_forms::detail::make_library_shared<Command>(std::string(id), std::string(text));
     if (!shortcut.empty()) (*command).set_shortcut(std::string(shortcut));
     return command;
 }
@@ -1245,7 +1246,7 @@ DockPanelRegistration dock_panel(StockSpecimenHolder& holder, std::string_view i
 // or the layout.
 StockSpecimenInstance make_dock_site(const StockSpecimen&, StableId id) {
     const std::shared_ptr<StockSpecimenHolder> holder = make_control<StockSpecimenHolder>(child_id(id, ".holder"));
-    (*holder).workspace = std::make_shared<DockWorkspace>(child_name(id, ".workspace"));
+    (*holder).workspace = gui_forms::detail::make_library_shared<DockWorkspace>(child_name(id, ".workspace"));
     DockWorkspace& workspace = *(*holder).workspace;
     const std::array<std::string_view, 4> ids{"harbour", "quay", "explorer", "properties"};
     const std::array<std::string_view, 4> titles{"Harbour.theme.css", "Quay.theme.css", "Explorer", "Properties"};
@@ -1798,7 +1799,7 @@ void fill_sample_picture(std::byte* pixels, std::size_t row_bytes) {
 StockSpecimenInstance make_raster_canvas(const StockSpecimen&, StableId id) {
     const std::shared_ptr<RasterCanvas> control = make_control<RasterCanvas>(std::move(id));
     const std::shared_ptr<gui_drawing::Bitmap> bitmap =
-        std::make_shared<gui_drawing::Bitmap>(sample_picture_width, sample_picture_height);
+        gui_forms::detail::make_library_shared<gui_drawing::Bitmap>(sample_picture_width, sample_picture_height);
     const gui_drawing::RectI whole{0, 0, static_cast<std::int32_t>(sample_picture_width),
                                    static_cast<std::int32_t>(sample_picture_height)};
     const gui_drawing::BitmapEditView edit = (*bitmap).begin_edit(whole);

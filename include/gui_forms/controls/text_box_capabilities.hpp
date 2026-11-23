@@ -6,6 +6,7 @@
 #include "gui_forms/controls/auto_complete.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/controls/label_capabilities.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstdint>
 #include <optional>
@@ -225,7 +226,7 @@ struct TextBoxAutoCompleteSourceCapability {
 // The candidates for AutoCompleteSource::custom_source (AutoCompleteCustomSource). Never null: a new box owns an empty collection. Assigning one shares it (see AutoCompleteStringCollection); null throws std::invalid_argument.
 template <typename Declaring>
 struct TextBoxAutoCompleteCustomSourceCapability {
-    PropertyCell<std::shared_ptr<AutoCompleteStringCollection>, TextBoxAutoCompleteCustomSourceCapability<Declaring>> auto_complete_custom_source{std::make_shared<AutoCompleteStringCollection>()};
+    PropertyCell<std::shared_ptr<AutoCompleteStringCollection>, TextBoxAutoCompleteCustomSourceCapability<Declaring>> auto_complete_custom_source{gui_forms::detail::make_library_shared<AutoCompleteStringCollection>()};
 
     static void assign(TextBoxAutoCompleteCustomSourceCapability& capability, std::shared_ptr<AutoCompleteStringCollection> incoming) {
         Declaring& control = static_cast<Declaring&>(capability);

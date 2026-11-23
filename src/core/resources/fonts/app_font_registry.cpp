@@ -24,6 +24,7 @@
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "program_typefaces.hpp"
 
@@ -215,7 +216,7 @@ AppFontLoad load_app_font_family(std::string_view name, std::span<const AppFontF
     // Built before the lock: the faces share the application's bytes. Each face's typeface is
     // opened over them and registered while the block lives; a block whose load is then refused
     // takes its registrations with it.
-    std::shared_ptr<AppFontBytes> block = std::make_shared<AppFontBytes>();
+    std::shared_ptr<AppFontBytes> block = gui_forms::detail::make_library_shared<AppFontBytes>();
     for (std::size_t index = 0U; index < faces.size(); ++index) (*block).faces[index] = faces[index];
     (*block).count = faces.size();
     const std::shared_ptr<const void> owner = block;

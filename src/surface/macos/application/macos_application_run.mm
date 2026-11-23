@@ -15,6 +15,7 @@
 // its own events.
 
 #include "macos_host_private.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "macos_bundled_fonts.hpp"
 #include "macos_main_work.hpp"
 #include "macos_values.hpp"
@@ -118,7 +119,7 @@ public:
 
     MacApplicationRun() : HostWindowing(macos_capabilities()) {
         slots_.reserve(reserved_slots);
-        alive_ = std::make_shared<MacRunAlive>();
+        alive_ = gui_forms::detail::make_library_shared<MacRunAlive>();
         (*alive_).run = this;
     }
     ~MacApplicationRun() override { (*alive_).run = nullptr; }
@@ -879,7 +880,7 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
 
         MacApplicationRun run;
         GUIFormsActivationObserver* activation = [[GUIFormsActivationObserver alloc] initWithRun:&run];
-        const std::shared_ptr<MacRunOpenState> openState = std::make_shared<MacRunOpenState>();
+        const std::shared_ptr<MacRunOpenState> openState = gui_forms::detail::make_library_shared<MacRunOpenState>();
         (*openState).run = &run;
         const bool windowingPublished = static_cast<bool>(application.windowing_ready);
         if (windowingPublished) application.windowing_ready(run, MacRunOpen{openState});

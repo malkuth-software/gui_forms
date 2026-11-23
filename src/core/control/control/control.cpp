@@ -25,6 +25,7 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/theme/theme_overrides/theme_overrides.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -152,7 +153,7 @@ void draw_owner_decoration_edge(
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> dock_style_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "dock_style",
             {{"none", 0}, {"top", 1}, {"bottom", 2}, {"left", 3},
@@ -162,7 +163,7 @@ std::shared_ptr<const PropertyEnumDescriptor> dock_style_property_enum_impl() {
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> self_alignment_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "self_alignment",
             {{"automatic", 0}, {"start", 1}, {"center", 2}, {"end", 3},
@@ -172,7 +173,7 @@ std::shared_ptr<const PropertyEnumDescriptor> self_alignment_property_enum_impl(
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> anchor_styles_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "anchor_styles",
             {{"none", 0}, {"top", 1}, {"bottom", 2}, {"left", 4},
@@ -182,7 +183,7 @@ std::shared_ptr<const PropertyEnumDescriptor> anchor_styles_property_enum_impl()
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> auto_size_mode_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "auto_size_mode",
             {{"grow_and_shrink", 0}, {"grow_only", 1}},
@@ -191,7 +192,7 @@ std::shared_ptr<const PropertyEnumDescriptor> auto_size_mode_property_enum_impl(
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> layout_direction_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "layout_direction",
             {{"inherit", 0}, {"left_to_right", 1}, {"right_to_left", 2}},
@@ -201,7 +202,7 @@ std::shared_ptr<const PropertyEnumDescriptor> layout_direction_property_enum_imp
 
 // Windows Forms' RightToLeft choices at its own values (RightToLeft).
 std::shared_ptr<const PropertyEnumDescriptor> right_to_left_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "right_to_left",
             {{"no", 0}, {"yes", 1}, {"inherit", 2}},
@@ -315,7 +316,7 @@ Rect mirror_horizontally(Rect bounds, Rect frame) noexcept {
 // underlying value plus one.
 std::shared_ptr<const PropertyEnumDescriptor> cursor_kind_property_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "cursor_kind",
             {{"inherit", 0}, {"arrow", 1}, {"text", 2}, {"hand", 3}, {"crosshair", 4},
              {"resize_horizontal", 5}, {"resize_vertical", 6}, {"wait", 7}, {"forbidden", 8},
@@ -494,7 +495,7 @@ void Control::set_back_color_property_value(const BindingValue& value) {
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> Control::active_border_motion_property_enum() {
-    static const std::shared_ptr<const PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{"active_border_motion", {{"steady", 0}, {"flashing", 1}, {"cycling", 2}}, false});
     return value;
 }

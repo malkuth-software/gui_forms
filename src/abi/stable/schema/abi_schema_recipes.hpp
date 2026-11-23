@@ -53,6 +53,7 @@
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -103,11 +104,11 @@ Component::Ptr create_type(StableId stable_id) {
         const Control::Ptr control = make_control<Type>(std::move(stable_id));
         return control;
     } else if constexpr (made_from_nothing<Type> && std::is_constructible_v<Type, std::string>) {
-        const std::shared_ptr<Type> component = std::make_shared<Type>(std::string(stable_id.value()));
+        const std::shared_ptr<Type> component = gui_forms::detail::make_library_shared<Type>(std::string(stable_id.value()));
         return component;
     } else if constexpr (made_from_nothing<Type>) {
         static_cast<void>(stable_id);
-        const std::shared_ptr<Type> component = std::make_shared<Type>();
+        const std::shared_ptr<Type> component = gui_forms::detail::make_library_shared<Type>();
         return component;
     } else {
         static_cast<void>(stable_id);

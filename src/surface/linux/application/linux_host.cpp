@@ -15,6 +15,7 @@
 #include "../locale/posix_locale.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -985,7 +986,7 @@ Runtime::Runtime() {
   if (display == nullptr)
     throw std::runtime_error("Cannot open the X11 display");
   try {
-    wake_channel = std::make_shared<WakePipe>();
+    wake_channel = gui_forms::detail::make_library_shared<WakePipe>();
   } catch (...) {
     XCloseDisplay(display);
     display = nullptr;
@@ -1002,7 +1003,7 @@ Runtime::Runtime() {
     fcntl(wake_pipe[i], F_SETFL, fcntl(wake_pipe[i], F_GETFL) | O_NONBLOCK);
     fcntl(wake_pipe[i], F_SETFD, FD_CLOEXEC);
   }
-  actions = std::make_shared<ActionQueue>();
+  actions = gui_forms::detail::make_library_shared<ActionQueue>();
   (*actions).wake = Wake{wake_channel};
   XSetLocaleModifiers("");
   input_method = XOpenIM(display, nullptr, nullptr, nullptr);
@@ -1144,7 +1145,7 @@ std::shared_ptr<NativeWindow> Runtime::add(LinuxApplicationWindow entry,
                                            HostWindowId window_id,
                                            bool initial) {
   const std::shared_ptr<NativeWindow> window =
-      std::make_shared<NativeWindow>(*this, std::move(entry));
+      gui_forms::detail::make_library_shared<NativeWindow>(*this, std::move(entry));
   (*window).window_id = window_id;
   (*window).initial = initial;
   windows.push_back(window);
@@ -2717,7 +2718,7 @@ HostCapabilities linux_capabilities() {
 int run_linux_application(std::vector<LinuxApplicationWindow> windows,
                           LinuxApplicationOptions application) {
   const std::shared_ptr<linux_detail::RunOpenState> open_state =
-      std::make_shared<linux_detail::RunOpenState>();
+      gui_forms::detail::make_library_shared<linux_detail::RunOpenState>();
   try {
     // The run holds the bundled font set, so windows opened and closed during it share one
     // copy of each face.

@@ -2,6 +2,7 @@
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/rules/rule_set/rule_set.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "input-and-rules_form.hpp"
 
@@ -112,12 +113,12 @@ private:
     Value<bool> consume_shift_clicks_{true};
     Value<bool> marked_{false};
     // The menu's commands, shared with the rows that show them.
-    std::shared_ptr<Command> copy_{std::make_shared<Command>("gallery.input.menu.copy", "Copy")};
-    std::shared_ptr<Command> paste_{std::make_shared<Command>("gallery.input.menu.paste", "Paste")};
-    std::shared_ptr<Command> zoom_in_{std::make_shared<Command>("gallery.input.menu.zoom-in", "Zoom in")};
-    std::shared_ptr<Command> zoom_out_{std::make_shared<Command>("gallery.input.menu.zoom-out", "Zoom out")};
+    std::shared_ptr<Command> copy_{gui_forms::detail::make_library_shared<Command>("gallery.input.menu.copy", "Copy")};
+    std::shared_ptr<Command> paste_{gui_forms::detail::make_library_shared<Command>("gallery.input.menu.paste", "Paste")};
+    std::shared_ptr<Command> zoom_in_{gui_forms::detail::make_library_shared<Command>("gallery.input.menu.zoom-in", "Zoom in")};
+    std::shared_ptr<Command> zoom_out_{gui_forms::detail::make_library_shared<Command>("gallery.input.menu.zoom-out", "Zoom out")};
     std::shared_ptr<Command> zoom_reset_{
-        std::make_shared<Command>("gallery.input.menu.zoom-reset", "Actual size")};
+        gui_forms::detail::make_library_shared<Command>("gallery.input.menu.zoom-reset", "Actual size")};
     // Declared after the Commands and Values its controls bind, so it is
     // released first.
     InputAndRulesDocument<InputAndRulesPage> document_{};
@@ -372,7 +373,7 @@ void InputAndRulesPage::rule_saw_double_click(InputAndRulesPage& page, const Rul
 
 void add_input_and_rules(const std::shared_ptr<Surface>& page,
                          const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<InputAndRulesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<InputAndRulesPage>(page));
 }
 
 } // namespace gui_forms::gallery::pages

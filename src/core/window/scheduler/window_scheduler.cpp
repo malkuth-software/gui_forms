@@ -1,4 +1,5 @@
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../../scheduler/request/scheduled_frame_request.hpp"
 #include "../../failure/fail_fast.hpp"
@@ -68,7 +69,7 @@ FrameRequestToken SurfaceRoot::schedule_paint(const Control::Ptr& control,
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
         throw std::length_error("GUI.Forms scheduled frame request limit reached");
     }
-    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> request = std::make_shared<detail::ScheduledFrameRequest>(
+    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> request = gui_forms::detail::make_library_shared<detail::ScheduledFrameRequest>(
         detail::FrameRequestKind::deadline, control, deadline);
     frame_requests_.push_back(request);
     (*control).own_revocable(request);
@@ -83,7 +84,7 @@ FrameRequestToken SurfaceRoot::request_motion_frames(FrameTime first_deadline) {
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
         throw std::length_error("GUI.Forms scheduled frame request limit reached");
     }
-    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> request = std::make_shared<detail::ScheduledFrameRequest>(
+    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> request = gui_forms::detail::make_library_shared<detail::ScheduledFrameRequest>(
         detail::FrameRequestKind::motion_clock, Control::WeakPtr{}, first_deadline, motion_frame_interval);
     frame_requests_.push_back(request);
     metrics_.record_frame_request();
@@ -117,7 +118,7 @@ FrameRequestToken SurfaceRoot::schedule_ui_timer(
     if (frame_requests_.size() >= maximum_scheduled_frame_requests) {
         throw std::length_error("GUI.Forms scheduled frame request limit reached");
     }
-    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> request = std::make_shared<detail::ScheduledFrameRequest>(
+    std::shared_ptr<gui_forms::detail::ScheduledFrameRequest> request = gui_forms::detail::make_library_shared<detail::ScheduledFrameRequest>(
         first_deadline, interval, std::move(callback));
     frame_requests_.push_back(request);
     owner.own_revocable(request);

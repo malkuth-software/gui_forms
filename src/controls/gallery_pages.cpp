@@ -22,6 +22,7 @@
 #include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/rules/rule_set/rule_set.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "gallery.hpp"
 #include "gallery/pages/pages.hpp"
@@ -234,7 +235,7 @@ std::shared_ptr<PageContext> retained_page_context(const Window& window) {
 } // namespace
 
 void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> compiled) {
-    std::shared_ptr<PageContext> context = std::make_shared<PageContext>();
+    std::shared_ptr<PageContext> context = gui_forms::detail::make_library_shared<PageContext>();
     (*context).compiled = std::move(compiled);
     // Pages capture the status line while they are built; the form made it.
     (*context).status = window.gallery_status_text;
@@ -401,7 +402,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     }
 
     RuleSet& rules = window.rules();
-    const std::shared_ptr<ShellActions> shell = std::make_shared<ShellActions>(context, window);
+    const std::shared_ptr<ShellActions> shell = gui_forms::detail::make_library_shared<ShellActions>(context, window);
     (*context).components.add(shell);
     on((*navigation).item_activated(), *shell, &ShellActions::navigation_activated);
     on(window.key_down(), *shell, &ShellActions::shell_key_down);
@@ -622,15 +623,15 @@ void initialize_gallery_runtime(Window& window) {
         throw std::logic_error("gallery runtime requires a retained context tag");
     }
     if ((*context).ui_timer) return;
-    const std::shared_ptr<RuntimeActions> actions = std::make_shared<RuntimeActions>(context);
+    const std::shared_ptr<RuntimeActions> actions = gui_forms::detail::make_library_shared<RuntimeActions>(context);
     (*context).components.add(actions);
 
-    (*context).ui_timer = std::make_shared<Timer>(window, 250ms);
-    (*context).tooltips = std::make_shared<ToolTip>(window);
-    (*context).ribbon_tooltips = std::make_shared<RibbonToolTip>(window);
-    (*context).error_provider = std::make_shared<ErrorProvider>(window);
-    (*context).help_provider = std::make_shared<HelpProvider>(window);
-    (*context).binding_source = std::make_shared<BindingSource>(window);
+    (*context).ui_timer = gui_forms::detail::make_library_shared<Timer>(window, 250ms);
+    (*context).tooltips = gui_forms::detail::make_library_shared<ToolTip>(window);
+    (*context).ribbon_tooltips = gui_forms::detail::make_library_shared<RibbonToolTip>(window);
+    (*context).error_provider = gui_forms::detail::make_library_shared<ErrorProvider>(window);
+    (*context).help_provider = gui_forms::detail::make_library_shared<HelpProvider>(window);
+    (*context).binding_source = gui_forms::detail::make_library_shared<BindingSource>(window);
     (*context).components.add((*context).ui_timer);
     (*context).components.add((*context).tooltips);
     (*context).components.add((*context).ribbon_tooltips);
@@ -639,7 +640,7 @@ void initialize_gallery_runtime(Window& window) {
     (*context).components.add((*context).binding_source);
     // Three profiles: name is text; enabled and gain take what their
     // check box and track bar write back, so they are untyped.
-    const std::shared_ptr<BindingTable> profiles = std::make_shared<BindingTable>(BindingSchema(std::vector<BindingColumn>{
+    const std::shared_ptr<BindingTable> profiles = gui_forms::detail::make_library_shared<BindingTable>(BindingSchema(std::vector<BindingColumn>{
         BindingColumn{"name", BindingValueKind::text},
         BindingColumn{"enabled"},
         BindingColumn{"gain"},

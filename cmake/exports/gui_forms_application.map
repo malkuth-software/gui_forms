@@ -717,6 +717,7 @@
     _ZGVZN9gui_forms16LayoutConstraint*;
     _ZGVZN9gui_forms16LayoutDiagnostic*;
     _ZGVZN9gui_forms16LengthPercentage*;
+    _ZGVZN9gui_forms16LibraryAllocated*;
     _ZGVZN9gui_forms16LinearLightLevel*;
     _ZGVZN9gui_forms16LivePacingResult*;
     _ZGVZN9gui_forms16LiveSurfaceFrame*;
@@ -2405,6 +2406,7 @@
     _ZGVZNK9gui_forms16LayoutConstraint*;
     _ZGVZNK9gui_forms16LayoutDiagnostic*;
     _ZGVZNK9gui_forms16LengthPercentage*;
+    _ZGVZNK9gui_forms16LibraryAllocated*;
     _ZGVZNK9gui_forms16LinearLightLevel*;
     _ZGVZNK9gui_forms16LivePacingResult*;
     _ZGVZNK9gui_forms16LiveSurfaceFrame*;
@@ -4349,6 +4351,7 @@
     _ZN9gui_forms16LayoutConstraint*;
     _ZN9gui_forms16LayoutDiagnostic*;
     _ZN9gui_forms16LengthPercentage*;
+    _ZN9gui_forms16LibraryAllocated*;
     _ZN9gui_forms16LinearLightLevel*;
     _ZN9gui_forms16LivePacingResult*;
     _ZN9gui_forms16LiveSurfaceFrame*;
@@ -6502,9 +6505,13 @@
     _ZN9gui_forms6detail15FailureSnapshot*;
     _ZN9gui_forms6detail15frame_of_recordB*;
     _ZN9gui_forms6detail15frame_of_recordE*;
+    _ZN9gui_forms6detail15library_releaseB*;
+    _ZN9gui_forms6detail15library_releaseE*;
     _ZN9gui_forms6detail16BorrowOwnerState*;
     _ZN9gui_forms6detail16count_allocationB*;
     _ZN9gui_forms6detail16count_allocationE*;
+    _ZN9gui_forms6detail16library_allocateB*;
+    _ZN9gui_forms6detail16library_allocateE*;
     _ZN9gui_forms6detail16straight_channelB*;
     _ZN9gui_forms6detail16straight_channelE*;
     _ZN9gui_forms6detail16well_formed_textB*;
@@ -6546,6 +6553,8 @@
     _ZN9gui_forms6detail22decode_clipboard_imageE*;
     _ZN9gui_forms6detail22encode_clipboard_imageB*;
     _ZN9gui_forms6detail22encode_clipboard_imageE*;
+    _ZN9gui_forms6detail23library_blocks_releasedB*;
+    _ZN9gui_forms6detail23library_blocks_releasedE*;
     _ZN9gui_forms6detail23mark_parked_frames_lostB*;
     _ZN9gui_forms6detail23mark_parked_frames_lostE*;
     _ZN9gui_forms6detail23record_failure_snapshotB*;
@@ -6560,8 +6569,12 @@
     _ZN9gui_forms6detail25ensure_fail_fast_reporterE*;
     _ZN9gui_forms6detail27count_parked_frames_droppedB*;
     _ZN9gui_forms6detail27count_parked_frames_droppedE*;
+    _ZN9gui_forms6detail27library_allocations_grantedB*;
+    _ZN9gui_forms6detail27library_allocations_grantedE*;
     _ZN9gui_forms6detail28advance_property_write_epochB*;
     _ZN9gui_forms6detail28advance_property_write_epochE*;
+    _ZN9gui_forms6detail31set_library_allocation_observerB*;
+    _ZN9gui_forms6detail31set_library_allocation_observerE*;
     _ZN9gui_forms6detail35premultiplied_bgra_to_straight_bgraB*;
     _ZN9gui_forms6detail35premultiplied_bgra_to_straight_bgraE*;
     _ZN9gui_forms6detail62stable_id_literal_is_not_dot_separated_lowercase_dash_segmentsB*;
@@ -7495,6 +7508,7 @@
     _ZNK[RO]9gui_forms16LayoutConstraint*;
     _ZNK[RO]9gui_forms16LayoutDiagnostic*;
     _ZNK[RO]9gui_forms16LengthPercentage*;
+    _ZNK[RO]9gui_forms16LibraryAllocated*;
     _ZNK[RO]9gui_forms16LinearLightLevel*;
     _ZNK[RO]9gui_forms16LivePacingResult*;
     _ZNK[RO]9gui_forms16LiveSurfaceFrame*;
@@ -9183,6 +9197,7 @@
     _ZN[KRO]9gui_forms16LayoutConstraint*;
     _ZN[KRO]9gui_forms16LayoutDiagnostic*;
     _ZN[KRO]9gui_forms16LengthPercentage*;
+    _ZN[KRO]9gui_forms16LibraryAllocated*;
     _ZN[KRO]9gui_forms16LinearLightLevel*;
     _ZN[KRO]9gui_forms16LivePacingResult*;
     _ZN[KRO]9gui_forms16LiveSurfaceFrame*;
@@ -10871,6 +10886,7 @@
     _ZT[VIST]N9gui_forms16LayoutConstraint*E;
     _ZT[VIST]N9gui_forms16LayoutDiagnostic*E;
     _ZT[VIST]N9gui_forms16LengthPercentage*E;
+    _ZT[VIST]N9gui_forms16LibraryAllocated*E;
     _ZT[VIST]N9gui_forms16LinearLightLevel*E;
     _ZT[VIST]N9gui_forms16LivePacingResult*E;
     _ZT[VIST]N9gui_forms16LiveSurfaceFrame*E;
@@ -12559,6 +12575,7 @@
     _ZT[hvc]*9gui_forms16LayoutConstraint*;
     _ZT[hvc]*9gui_forms16LayoutDiagnostic*;
     _ZT[hvc]*9gui_forms16LengthPercentage*;
+    _ZT[hvc]*9gui_forms16LibraryAllocated*;
     _ZT[hvc]*9gui_forms16LinearLightLevel*;
     _ZT[hvc]*9gui_forms16LivePacingResult*;
     _ZT[hvc]*9gui_forms16LiveSurfaceFrame*;
@@ -14247,6 +14264,7 @@
     _ZZN9gui_forms16LayoutConstraint*;
     _ZZN9gui_forms16LayoutDiagnostic*;
     _ZZN9gui_forms16LengthPercentage*;
+    _ZZN9gui_forms16LibraryAllocated*;
     _ZZN9gui_forms16LinearLightLevel*;
     _ZZN9gui_forms16LivePacingResult*;
     _ZZN9gui_forms16LiveSurfaceFrame*;
@@ -15935,6 +15953,7 @@
     _ZZNK9gui_forms16LayoutConstraint*;
     _ZZNK9gui_forms16LayoutDiagnostic*;
     _ZZNK9gui_forms16LengthPercentage*;
+    _ZZNK9gui_forms16LibraryAllocated*;
     _ZZNK9gui_forms16LinearLightLevel*;
     _ZZNK9gui_forms16LivePacingResult*;
     _ZZNK9gui_forms16LiveSurfaceFrame*;

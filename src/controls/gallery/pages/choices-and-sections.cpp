@@ -1,6 +1,7 @@
 #include "pages.hpp"
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/expandable_sections.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "choices-and-sections_form.hpp"
 #include "gui_forms_lab/review_card.hpp"
@@ -236,7 +237,7 @@ private:
 
 void add_choices_and_sections(const std::shared_ptr<Surface>& page,
                               const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ChoicesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<ChoicesPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

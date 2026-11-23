@@ -1,4 +1,5 @@
 #include "gui_forms/live_surface/surface/live_surface.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../buffer/live_surface_buffer.hpp"
 
@@ -22,7 +23,7 @@ LiveSurface::~LiveSurface() = default;
 std::shared_ptr<LiveSurface> LiveSurface::create(
     LiveSurfaceDescription description) {
     if (!detail::valid_live_surface_description(description)) return {};
-    std::shared_ptr<gui_forms::detail::LiveSurfaceState> state = std::make_shared<detail::LiveSurfaceState>();
+    std::shared_ptr<gui_forms::detail::LiveSurfaceState> state = gui_forms::detail::make_library_shared<detail::LiveSurfaceState>();
     (*state).description = description;
     (*state).presentation_region = detail::full_live_surface_damage(description);
     (*state).buffers.resize(description.buffer_count);
@@ -194,7 +195,7 @@ LiveSurfaceSnapshot LiveSurface::snapshot() const noexcept {
 LiveSurfaceWakeConnection LiveSurface::connect_presentation_wake(
     std::function<void()> wake) {
     if (!state_ || !wake) return {};
-    std::shared_ptr<gui_forms::detail::LiveSurfaceWake> connection = std::make_shared<detail::LiveSurfaceWake>();
+    std::shared_ptr<gui_forms::detail::LiveSurfaceWake> connection = gui_forms::detail::make_library_shared<detail::LiveSurfaceWake>();
     (*connection).callback = std::move(wake);
     {
         const stxlib::ScopedLock lock((*state_).mutex);
@@ -234,7 +235,7 @@ LivePresentationRecord LiveSurface::presentation_record() const noexcept {
 
 LiveSurfaceWakeConnection LiveSurface::connect_presented_wake(std::function<void()> wake) {
     if (!state_ || !wake) return {};
-    std::shared_ptr<gui_forms::detail::LiveSurfaceWake> connection = std::make_shared<detail::LiveSurfaceWake>();
+    std::shared_ptr<gui_forms::detail::LiveSurfaceWake> connection = gui_forms::detail::make_library_shared<detail::LiveSurfaceWake>();
     (*connection).callback = std::move(wake);
     {
         const stxlib::ScopedLock lock((*state_).mutex);

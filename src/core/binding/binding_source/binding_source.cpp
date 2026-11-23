@@ -5,6 +5,7 @@
 #include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../binding_view/binding_view.hpp"
 #include "../support/binding_support.hpp"
@@ -189,7 +190,7 @@ BindingSource::BindingSource(Window& window)
       currency_manager_(std::unique_ptr<CurrencyManager>(
           new CurrencyManager(*this))) {
     window.verify_access("BindingSource construction");
-    bind_provider(std::make_shared<BindingTable>());
+    bind_provider(gui_forms::detail::make_library_shared<BindingTable>());
 }
 
 BindingSource::~BindingSource() {
@@ -239,7 +240,7 @@ void BindingSource::revoke_link() noexcept {
 void BindingSource::bind_provider(std::shared_ptr<BindingProvider> provider) {
     revoke_link();
     provider_ = std::move(provider);
-    std::shared_ptr<detail::BindingLinkState> state = std::make_shared<detail::BindingLinkState>();
+    std::shared_ptr<detail::BindingLinkState> state = gui_forms::detail::make_library_shared<detail::BindingLinkState>();
     (*state).source = this;
     (*state).ui_thread = stxlib::current_thread();
     if (Window* owner = bound_window()) {
@@ -266,7 +267,7 @@ void BindingSource::bind_provider(std::shared_ptr<BindingProvider> provider) {
 void BindingSource::set_provider(std::shared_ptr<BindingProvider> provider) {
     require_access("BindingSource provider replacement");
     if (!provider) {
-        provider = std::make_shared<BindingTable>();
+        provider = gui_forms::detail::make_library_shared<BindingTable>();
     }
     const std::ptrdiff_t old_position = position_;
     const std::string old_current = current_stable_id();

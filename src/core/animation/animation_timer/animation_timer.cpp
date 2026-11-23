@@ -2,6 +2,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../surface_root/access/surface_schedule_access.hpp"
 #include "../../surface_root/access/surface_lifetime_access.hpp"
 
@@ -78,7 +79,7 @@ void AnimationTimer::start(Control& owner, FrameInterval interval, Tick tick) {
         throw std::invalid_argument("an animation timer interval must be at least 1 ms");
     }
     if (!tick) throw std::invalid_argument("an animation timer needs a tick target");
-    if (!state_) state_ = std::make_shared<State>();
+    if (!state_) state_ = gui_forms::detail::make_library_shared<State>();
     State& state = *state_;
     state.owner = owner.shared_from_this();
     state.interval = interval;
@@ -90,7 +91,7 @@ void AnimationTimer::start(Control& owner, FrameInterval interval, Tick tick) {
     // rest. (Timer, the program's own, still ticks.)
     state.started = false;
 #else
-    state.tick = std::make_shared<const Tick>(std::move(tick));
+    state.tick = gui_forms::detail::make_library_shared<const Tick>(std::move(tick));
     state.started = true;
     schedule(state_);
 #endif

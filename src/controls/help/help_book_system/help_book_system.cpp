@@ -5,6 +5,7 @@
 #include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/help/help_page/help_page.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -115,7 +116,7 @@ struct HelpKeyCallback final {
 // --- HelpBookWindow -----------------------------------------------------------------------
 
 HelpBookWindow::HelpBookWindow(std::string stable_id)
-    : stable_id_(std::move(stable_id)), state_(std::make_shared<detail::HelpBookWindowState>()) {}
+    : stable_id_(std::move(stable_id)), state_(gui_forms::detail::make_library_shared<detail::HelpBookWindowState>()) {}
 
 HelpBookWindow::~HelpBookWindow() { close(); }
 
@@ -259,7 +260,7 @@ const HelpBookCompileResult& HelpBookSystem::compile() {
     collect_declared_topics(topics);
     put_declared_topics(catalog_.built_in());
     compiled_ = compile_helpbook_section(catalog_, skeleton, topics, options_.compile);
-    section_ = std::make_shared<const HelpBookSection>(compiled_.section);
+    section_ = gui_forms::detail::make_library_shared<const HelpBookSection>(compiled_.section);
     compiled_revision_ = catalog_.revision();
     compiled_once_ = true;
     external_section_ = false;

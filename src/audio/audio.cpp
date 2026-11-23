@@ -1,4 +1,5 @@
 #include "gui_forms/audio/audio.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #define MINIAUDIO_IMPLEMENTATION
 // miniaudio is vendored as published: its implementation defines helpers a
 // platform's build does not call (ma_device__on_notification_rerouted on
@@ -669,7 +670,7 @@ AudioEngine::AudioEngine() = default;
 AudioEngine::~AudioEngine() { shutdown(); }
 AudioStatus AudioEngine::open(bool offline) {
     if (state_ && (*state_).initialized) { return AudioStatus::invalid_value; }
-    try { state_ = std::make_shared<AudioEngineState>(); }
+    try { state_ = gui_forms::detail::make_library_shared<AudioEngineState>(); }
     catch (const std::bad_alloc&) { return AudioStatus::allocation_failed; }
     AudioEngineState& state = *state_;
     state.offline = offline;

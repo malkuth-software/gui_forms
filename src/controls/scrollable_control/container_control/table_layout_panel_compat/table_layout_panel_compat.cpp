@@ -4,6 +4,7 @@
 #include "../text_collection_property.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <algorithm>
@@ -25,14 +26,14 @@ constexpr std::size_t maximum_layout_tracks = 64U;
 
 std::shared_ptr<const PropertyEnumDescriptor> grow_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "table_layout_grow_style", {{"fixed_size", 0}, {"add_rows", 1}, {"add_columns", 2}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> cell_border_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "table_cell_border_style", {{"none", 0}, {"single", 1}, {"inset", 2}, {"outset", 3}}, false});
     return value;
 }

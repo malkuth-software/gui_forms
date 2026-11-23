@@ -1082,7 +1082,7 @@ Related types
 
    .. cpp:member:: PropertyCell<std::shared_ptr<AutoCompleteStringCollection>, ComboBoxAutoCompleteCustomSourceCapability<Declaring>> auto_complete_custom_source
 
-      Default: ``{std::make_shared<AutoCompleteStringCollection>()}``.
+      Default: ``{gui_forms::detail::make_library_shared<AutoCompleteStringCollection>()}``.
 
 .. cpp:namespace:: gui_forms
 

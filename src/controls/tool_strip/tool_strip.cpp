@@ -10,6 +10,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -1110,7 +1111,7 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
             items_[index].kind != ToolStripItemKind::button) continue;
         ItemState& state = item_states_[index];
         if (!state.overflow_command) {
-            state.overflow_command = std::make_shared<Command>(items_[index].stable_id, item_text(items_[index]));
+            state.overflow_command = gui_forms::detail::make_library_shared<Command>(items_[index].stable_id, item_text(items_[index]));
         }
         (*state.overflow_command).set_text(item_text(items_[index]));
         (*state.overflow_command).set_enabled(item_enabled(items_[index]));

@@ -1,5 +1,6 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "sub_surface_alerts.hpp"
 #include "sub_surface_channel.hpp"
@@ -372,7 +373,7 @@ void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
 }
 
 void SubSurfaceLoop::run_tree() {
-    std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    std::shared_ptr<ApplicationResources> resources = gui_forms::detail::make_library_shared<ApplicationResources>();
     // A user theme is chosen before the first root shares the resources.
     if (user_theme_) (*resources).set_user_theme(user_theme_);
     (*resources).set_theme(theme_);
@@ -675,7 +676,7 @@ void SubSurfaceLoop::publish_semantics(SubSurface& root) {
     }
     // Built here, on the tree's thread, and never changed after: the parent
     // reads it on its own thread through the shared pointer.
-    std::shared_ptr<const SemanticSnapshot> snapshot = std::make_shared<const SemanticSnapshot>(root.semantic_snapshot());
+    std::shared_ptr<const SemanticSnapshot> snapshot = gui_forms::detail::make_library_shared<const SemanticSnapshot>(root.semantic_snapshot());
     published_semantic_generation_ = (*snapshot).generation;
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceSemanticsListener> target;
@@ -735,7 +736,7 @@ SubSurfaceThread::SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content,
                                    std::shared_ptr<const Theme> theme,
                                    std::unique_ptr<PaintFramebuffer> text_measure,
                                    std::shared_ptr<const Theme> layered_user_theme)
-    : channel_(std::make_shared<detail::SubSurfaceChannel>()) {
+    : channel_(gui_forms::detail::make_library_shared<detail::SubSurfaceChannel>()) {
     if (!content || !surface || !theme) {
         throw std::invalid_argument("GUI.Forms sub-surface requires content, a LiveSurface and a theme");
     }
