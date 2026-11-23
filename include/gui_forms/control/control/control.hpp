@@ -30,6 +30,7 @@
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <atomic>
 #include <any>
@@ -40,7 +41,6 @@
 #include <limits>
 #include <memory>
 #include <map>
-#include <mutex>
 #include <optional>
 #include <stxlib/optional.hpp>
 #include <span>
@@ -2746,7 +2746,7 @@ template <typename ControlType, typename... Arguments>
 [[nodiscard]] std::shared_ptr<ControlType> make_control(StableId stable_id,
                                                         Arguments&&... arguments) {
     static_assert(std::is_base_of_v<Control, ControlType>);
-    std::shared_ptr<ControlType> control = std::make_shared<ControlType>(
+    std::shared_ptr<ControlType> control = gui_forms::detail::make_library_shared<ControlType>(
         std::move(stable_id), std::forward<Arguments>(arguments)...);
     // Retained compound controls cannot safely establish parent links from
     // their constructor because Control::add_child intentionally requires a

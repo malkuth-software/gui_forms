@@ -4,7 +4,8 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/range_controls.hpp"
 #include "gui_forms/timer.hpp"
-#include "../src/core/thread_records/thread_records_end.hpp"
+#include "../src/core/threading/start_thread.hpp"
+#include "../src/platform/library_files.hpp"
 
 #include <algorithm>
 #include <array>
@@ -15,13 +16,18 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
+#include <filesystem>
 #include <memory>
+#include <new>
 #include <span>
-#include <stop_token>
 #include <string>
+#include <stxlib/files.hpp>
 #include <stxlib/optional.hpp>
-#include <thread>
+#include <stxlib/result.hpp>
+#include <stxlib/stop_token.hpp>
+#include <stxlib/threads.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 #include <utility>
 #include <vector>
 
@@ -127,7 +133,12 @@ public:
             trace_.reserve(maximum_trace_entries);
         }
         if (surface_) {
-            worker_ = std::thread(&WaterfallSurface::producer_loop, this);
+            // The producer's stop: STXlib's allocation, refused as a thread
+            // that cannot start is.
+            stxlib::OperationResult<stxlib::StopSource> stop = stxlib::StopSource::create();
+            if (stop.failed()) throw std::bad_alloc();
+            stop_ = static_cast<stxlib::OperationResult<stxlib::StopSource>&&>(stop).take_value();
+            worker_ = detail::start_library_thread(&WaterfallSurface::producer_main, this, "vsync lab producer");
         }
     }
 
@@ -520,7 +531,7 @@ private:
     // Idles the pacer until a setter arms it or the producer stops: no
     // periodic wake. The state is read again after idle(), so a setter's
     // arm() that came first is not lost (producer thread).
-    void idle_until_armed(const std::stop_token& stop) noexcept {
+    void idle_until_armed(const stxlib::StopToken& stop) noexcept {
         pacer_.idle();
         if (!nothing_to_render()) {
             pacer_.arm();
@@ -532,10 +543,16 @@ private:
     // Paced to the display by the surface's pacer (design note section 8):
     // one frame per display frame, no sleep loop; a stalled presenter wakes
     // it at the deadline instead of stopping it.
+    // The producer thread's entry (stxlib::Thread, which ends the thread's
+    // STXlib records when it returns); the surface outlives it, since
+    // stop_worker joins it first.
+    static void producer_main(const stxlib::StopSignal& signal, void* const context) noexcept {
+        static_cast<void>(signal);
+        (*static_cast<WaterfallSurface*>(context)).producer_loop();
+    }
+
     void producer_loop() noexcept {
-        // Closes last: the thread's records are released here, on the thread.
-        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
-        const std::stop_token stop = stop_.get_token();
+        const stxlib::StopToken stop = stop_.token();
         SurfaceSize size;
         size.width = surface_width;
         size.height = surface_height;
@@ -659,25 +676,33 @@ private:
     }
 
     void stop_worker() noexcept {
-        if (worker_.joinable()) {
+        if (worker_.identity().present()) {
             // Wakes the pacer's wait as well.
-            stop_.request_stop();
-            worker_.join();
+            static_cast<void>(stop_.request_stop());
+            // Never the producer itself: only the UI thread stops it.
+            static_cast<void>(worker_.join());
         }
     }
 
     // Writes the trace as CSV, once, after the producer has stopped (UI
     // thread). A file that cannot be opened leaves no trace.
     void write_trace() noexcept {
-        if (trace_path_.empty() || worker_.joinable()) return;
+        if (trace_path_.empty() || worker_.identity().present()) return;
         try {
-            std::ofstream out(trace_path_, std::ios::trunc);
-            out << "origin_ns " << trace_origin_nanoseconds_ << '\n';
-            out << "started_ns,reconfigure_ns,render_ns,publish_ns,read_acquires,width,height,published\n";
+            std::string out = "origin_ns " + std::to_string(trace_origin_nanoseconds_) + '\n';
+            out += "started_ns,reconfigure_ns,render_ns,publish_ns,read_acquires,width,height,published\n";
             for (const ProducerTraceEntry& entry : trace_) {
-                out << entry.started << ',' << entry.reconfigure_nanoseconds << ',' << entry.render_nanoseconds
-                    << ',' << entry.publish_nanoseconds << ',' << entry.read_acquires << ',' << entry.width << ','
-                    << entry.height << ',' << (entry.published ? 1 : 0) << '\n';
+                out += std::to_string(entry.started) + ',' + std::to_string(entry.reconfigure_nanoseconds) + ',' +
+                       std::to_string(entry.render_nanoseconds) + ',' + std::to_string(entry.publish_nanoseconds) +
+                       ',' + std::to_string(entry.read_acquires) + ',' + std::to_string(entry.width) + ',' +
+                       std::to_string(entry.height) + ',' + (entry.published ? '1' : '0') + '\n';
+            }
+            stxlib::OperationResult<stxlib::File> opened =
+                platform::open_file(std::filesystem::path(trace_path_), stxlib::FileMode::replace);
+            if (opened.succeeded()) {
+                const stxlib::View<stxlib::Byte> bytes(reinterpret_cast<const stxlib::Byte*>(out.data()),
+                                                       static_cast<stxlib::usize>(out.size()));
+                static_cast<void>((*opened.value()).write_all(bytes));
             }
         } catch (...) {
         }
@@ -695,8 +720,8 @@ private:
     std::vector<ProducerTraceEntry> trace_;
     // The producer's start on the steady clock, for aligning the trace.
     std::uint64_t trace_origin_nanoseconds_{};
-    std::thread worker_;
-    std::stop_source stop_{};
+    stxlib::Thread worker_;
+    stxlib::StopSource stop_{};
     std::atomic<std::uint64_t> deadline_wakes_{};
     std::atomic<std::uint64_t> missed_frames_{};
     // The control's size in device pixels (pack_surface_size), 0 before its

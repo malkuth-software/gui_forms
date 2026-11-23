@@ -19,6 +19,8 @@
 #include <gui_forms/controls/panel.hpp>
 #include <gui_forms/event.hpp>
 #include <gui_forms/window/window.hpp>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 
 #include <chrono>
 #include <cstddef>
@@ -28,7 +30,6 @@
 #include <span>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <vector>
 
 namespace gf = gui_forms;
@@ -82,11 +83,11 @@ public:
             frame.opaque = true;
             frame.pixels = std::span<const std::byte>(pixels_.data(), pixels_.size());
             static_cast<void>(context.sink().publish(frame));
-            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+            stxlib::sleep_for(stxlib::Duration::milliseconds(16));
         }
         // The defect this example is about: the renderer hangs and never
         // checks its stop token again.
-        for (;;) std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        for (;;) stxlib::sleep_for(stxlib::Duration::milliseconds(50));
     }
 
 private:
@@ -136,7 +137,7 @@ bool run_until(gf::Window& window, gf::ContentSurface& surface, gf::Button& coun
         surface.check_watchdog(gf::FrameClock::now());
         static_cast<void>(count.perform_click());
         if (done(surface)) return true;
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(5));
     }
     return false;
 }

@@ -73,7 +73,12 @@ target_include_directories(gui_forms_audio PUBLIC
     PRIVATE "${_gui_audio_projection}" "${gui_forms_miniaudio_SOURCE_DIR}")
 target_compile_definitions(gui_forms_audio PRIVATE MA_NO_DECODING MA_NO_ENCODING
     MA_NO_RESOURCE_MANAGER MA_NO_GENERATION MA_ENABLE_ONLY_SPECIFIC_BACKENDS)
-target_link_libraries(gui_forms_audio PUBLIC GUIForms::Threading PRIVATE Threads::Threads ${CMAKE_DL_LIBS})
+# Its locks, threads and file reads are STXlib's, and load_ogg takes an
+# stxlib::StopToken (the shield, 2026-11-22), so STXlib is public. Its
+# buffers come from GUI.Forms' library seam (GUIForms::Memory), not the
+# engine's Core.
+target_link_libraries(gui_forms_audio PUBLIC GUIForms::Threading GUIForms::Memory stxlib::boundary
+    PRIVATE Threads::Threads stxlib::state ${CMAKE_DL_LIBS})
 if(GUI_FORMS_AUDIO_VORBIS_BACKEND STREQUAL "stx")
     target_compile_definitions(gui_forms_audio PRIVATE GUI_FORMS_AUDIO_VORBIS_STX)
     target_link_libraries(gui_forms_audio PRIVATE stx_vorbis::stx_vorbis_stb)

@@ -5,7 +5,6 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
 
-#include <thread>
 
 namespace gui_forms {
 

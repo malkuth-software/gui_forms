@@ -11,6 +11,7 @@
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
+#include <stxlib/threads.hpp>
 #include <stxlib/types.hpp>
 
 #include <algorithm>
@@ -152,12 +153,12 @@ void SubscriptionBinding::disarm() noexcept {
 // Threads and deferred releases.
 
 bool HandleRegistry::on_ui_thread_locked() const noexcept {
-    const bool on_ui_thread = ui_thread_ == std::this_thread::get_id();
+    const bool on_ui_thread = ui_thread_ == stxlib::current_thread();
     return on_ui_thread;
 }
 
 ThreadDomain HandleRegistry::calling_domain_locked() const noexcept {
-    const std::thread::id caller = std::this_thread::get_id();
+    const stxlib::ThreadIdentity caller = stxlib::current_thread();
     std::size_t index = 0U;
     for (index = 0U; index < domains_.size(); ++index) {
         if (domains_[index].occupied && domains_[index].thread == caller) {
@@ -173,7 +174,7 @@ bool HandleRegistry::on_domain_thread_locked(ThreadDomain domain) const noexcept
         return on_ui_thread_locked();
     }
     const SubSurfaceDomain& owner = domains_[domain.value - 1U];
-    const bool on_thread = owner.occupied && owner.thread == std::this_thread::get_id();
+    const bool on_thread = owner.occupied && owner.thread == stxlib::current_thread();
     return on_thread;
 }
 
@@ -228,16 +229,16 @@ gf_status HandleRegistry::enter_ui(SlotIdentity slot, bool bind) {
     bool sub_surface = false;
     bool bound = false;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         sub_surface = calling_domain_locked().value != ui_domain.value;
         if (sub_surface && !admitted_on_sub_surface(slot.table_id)) {
             return fail(GF_STATUS_WRONG_THREAD, slot, "this function runs on the GUI.Forms UI thread only, "
                                                       "not on a sub-surface's thread");
         }
-        if (!sub_surface && ui_thread_ != std::thread::id{} && !on_ui_thread_locked()) {
+        if (!sub_surface && ui_thread_ != stxlib::ThreadIdentity{} && !on_ui_thread_locked()) {
             return fail(GF_STATUS_WRONG_THREAD, slot, "this function runs on the GUI.Forms UI thread only");
         }
-        bound = sub_surface || ui_thread_ != std::thread::id{};
+        bound = sub_surface || ui_thread_ != stxlib::ThreadIdentity{};
     }
     if (bound) {
         // The calling thread's deferred releases. On the UI thread this may
@@ -246,9 +247,9 @@ gf_status HandleRegistry::enter_ui(SlotIdentity slot, bool bind) {
     }
     // A sub-surface's thread never binds the UI thread.
     if (bind && !sub_surface) {
-        const std::scoped_lock lock(mutex_);
-        if (ui_thread_ == std::thread::id{}) {
-            ui_thread_ = std::this_thread::get_id();
+        const stxlib::ScopedLock lock(mutex_);
+        if (ui_thread_ == stxlib::ThreadIdentity{}) {
+            ui_thread_ = stxlib::current_thread();
         } else if (!on_ui_thread_locked()) {
             return fail(GF_STATUS_WRONG_THREAD, slot, "another thread became the GUI.Forms UI thread first");
         }
@@ -258,14 +259,14 @@ gf_status HandleRegistry::enter_ui(SlotIdentity slot, bool bind) {
 
 gf_status HandleRegistry::enter_component(gf_object object, SlotIdentity slot, Component::Ptr& component) {
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         const ThreadDomain domain = calling_domain_locked();
         const bool sub_surface = domain.value != ui_domain.value;
         if (sub_surface && !admitted_on_sub_surface(slot.table_id)) {
             return fail(GF_STATUS_WRONG_THREAD, slot, "this function runs on the GUI.Forms UI thread only, "
                                                       "not on a sub-surface's thread");
         }
-        if (!sub_surface && ui_thread_ != std::thread::id{} && !on_ui_thread_locked()) {
+        if (!sub_surface && ui_thread_ != stxlib::ThreadIdentity{} && !on_ui_thread_locked()) {
             return fail(GF_STATUS_WRONG_THREAD, slot, "this function runs on the GUI.Forms UI thread only");
         }
         // Nothing deferred: enter_ui would complete nothing and keep the
@@ -298,16 +299,16 @@ gf_status HandleRegistry::enter_object(gf_object object, SlotIdentity slot, Cont
 }
 
 bool HandleRegistry::calling_ui_thread() noexcept {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const bool sub_surface = calling_domain_locked().value != ui_domain.value;
-    const bool admitted = !sub_surface && (ui_thread_ == std::thread::id{} || on_ui_thread_locked());
+    const bool admitted = !sub_surface && (ui_thread_ == stxlib::ThreadIdentity{} || on_ui_thread_locked());
     return admitted;
 }
 
 void HandleRegistry::complete_deferred() {
     std::vector<Component::Ptr> ended;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         ended.swap(deferred_locked(calling_domain_locked()));
     }
     // Destroying the controls may end subscriptions, which takes the lock.
@@ -316,22 +317,22 @@ void HandleRegistry::complete_deferred() {
 }
 
 void HandleRegistry::unbind_if_idle() {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     // Only the UI thread gives up its binding.
     const bool idle = on_ui_thread_locked() && live_objects_ == 0U && live_subscriptions_ == 0U &&
                       posted_.empty() && deferred_.empty() && !running_ && !binding_held_;
     if (idle) {
-        ui_thread_ = std::thread::id{};
+        ui_thread_ = stxlib::ThreadIdentity{};
     }
 }
 
 void HandleRegistry::hold_binding() noexcept {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     binding_held_ = true;
 }
 
 bool HandleRegistry::holds_objects() noexcept {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const bool holds = live_objects_ != 0U || running_;
     return holds;
 }
@@ -380,7 +381,7 @@ void HandleRegistry::post_wake(const WindowDispatcher& dispatcher, ThreadDomain 
     if (post_drain(dispatcher, domain)) {
         return;
     }
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     SubSurfaceDomain& owner = domains_[domain.value - 1U];
     if (owner.occupied) {
         owner.drain_pending = false;
@@ -388,7 +389,7 @@ void HandleRegistry::post_wake(const WindowDispatcher& dispatcher, ThreadDomain 
 }
 
 ThreadDomain HandleRegistry::begin_domain() {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     std::size_t index = 0U;
     for (index = 0U; index < domains_.size(); ++index) {
         if (!domains_[index].occupied) {
@@ -400,7 +401,7 @@ ThreadDomain HandleRegistry::begin_domain() {
     }
     SubSurfaceDomain& owner = domains_[index];
     owner.occupied = true;
-    owner.thread = std::this_thread::get_id();
+    owner.thread = stxlib::current_thread();
     owner.drain_pending = false;
     const ThreadDomain domain{static_cast<std::uint32_t>(index + 1U)};
     return domain;
@@ -409,7 +410,7 @@ ThreadDomain HandleRegistry::begin_domain() {
 void HandleRegistry::set_domain_wake(ThreadDomain domain, const WindowDispatcher& dispatcher) {
     WindowDispatcher wake;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         SubSurfaceDomain& owner = domains_[domain.value - 1U];
         owner.dispatcher = dispatcher;
         owner.drain_pending = false;
@@ -422,7 +423,7 @@ void HandleRegistry::set_domain_wake(ThreadDomain domain, const WindowDispatcher
 
 void HandleRegistry::drain_domain(ThreadDomain domain) {
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (!on_domain_thread_locked(domain)) {
             return;
         }
@@ -440,7 +441,7 @@ void HandleRegistry::end_domain(ThreadDomain domain) noexcept {
     for (;;) {
         Component::Ptr ended;
         {
-            const std::scoped_lock lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             while (cursor < objects_.size()) {
                 ObjectSlot& slot = objects_[cursor];
                 cursor = cursor + 1U;
@@ -468,7 +469,7 @@ void HandleRegistry::end_domain(ThreadDomain domain) noexcept {
     for (;;) {
         PostedCall call{};
         {
-            const std::scoped_lock lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             std::deque<PostedCall>& posted = domains_[domain.value - 1U].posted;
             if (posted.empty()) {
                 break;
@@ -482,10 +483,10 @@ void HandleRegistry::end_domain(ThreadDomain domain) noexcept {
     }
     WindowDispatcher gone;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         SubSurfaceDomain& owner = domains_[domain.value - 1U];
         owner.occupied = false;
-        owner.thread = std::thread::id{};
+        owner.thread = stxlib::ThreadIdentity{};
         owner.drain_pending = false;
         gone = std::move(owner.dispatcher);
         owner.dispatcher = WindowDispatcher{};
@@ -508,7 +509,7 @@ HandleRegistry::ObjectSlot* HandleRegistry::object_slot_locked(gf_object object)
 }
 
 gf_status HandleRegistry::find_component(gf_object object, SlotIdentity slot, Component::Ptr& component) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const gf_status found = find_component_locked(object, slot, component);
     return found;
 }
@@ -547,7 +548,7 @@ gf_status HandleRegistry::find_object(gf_object object, SlotIdentity slot, Contr
 }
 
 gf_object HandleRegistry::add_reference(const Component::Ptr& component) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const std::unordered_map<const Component*, std::uint32_t>::const_iterator existing =
         object_index_.find(component.get());
     if (existing != object_index_.end()) {
@@ -589,7 +590,7 @@ gf_status HandleRegistry::retain(gf_object object, SlotIdentity slot) {
     if (object == 0U) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the object is zero");
     }
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     ObjectSlot* found = object_slot_locked(object);
     if (found == nullptr) {
         return fail(GF_STATUS_STALE_HANDLE, slot, "the object has ended (its last reference was released)");
@@ -632,7 +633,7 @@ gf_status HandleRegistry::release(gf_object object, SlotIdentity slot) {
     ThreadDomain owner{};
     WindowDispatcher wake;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         ObjectSlot* found = object_slot_locked(object);
         if (found == nullptr) {
             return fail(GF_STATUS_STALE_HANDLE, slot, "the object has ended (its last reference was released)");
@@ -667,7 +668,7 @@ gf_status HandleRegistry::release(gf_object object, SlotIdentity slot) {
 }
 
 gf_object HandleRegistry::identity_of(const Component* component) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const std::unordered_map<const Component*, std::uint32_t>::const_iterator found = object_index_.find(component);
     if (found == object_index_.end()) {
         return 0U;
@@ -677,7 +678,7 @@ gf_object HandleRegistry::identity_of(const Component* component) {
 }
 
 gf_object HandleRegistry::add_reference_if_known(const Component* component) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const std::unordered_map<const Component*, std::uint32_t>::const_iterator found = object_index_.find(component);
     if (found == object_index_.end()) {
         return 0U;
@@ -707,7 +708,7 @@ HandleRegistry::SubscriptionSlot* HandleRegistry::subscription_slot_locked(gf_su
 }
 
 gf_subscription HandleRegistry::reserve_subscription(const Component::Ptr& source) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     // Every allocation first (geometric growth, N4), so std::bad_alloc
     // leaves the registry as it was.
     if (free_subscriptions_.empty()) {
@@ -765,7 +766,7 @@ void HandleRegistry::free_subscription_locked(std::uint32_t index, SubscriptionT
 void HandleRegistry::complete_subscription(gf_subscription subscription, SubscriptionToken token) noexcept {
     SubscriptionToken ended;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         SubscriptionSlot* slot = subscription_slot_locked(subscription);
         if (slot != nullptr) {
             (*slot).token = std::move(token);
@@ -780,7 +781,7 @@ void HandleRegistry::complete_subscription(gf_subscription subscription, Subscri
 void HandleRegistry::end_subscription(gf_subscription subscription) noexcept {
     SubscriptionToken ended;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         SubscriptionSlot* slot = subscription_slot_locked(subscription);
         if (slot == nullptr) {
             return;
@@ -803,7 +804,7 @@ gf_status HandleRegistry::disconnect(gf_subscription subscription, SlotIdentity 
     Component::Ptr source;
     SubscriptionToken ended;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         SubscriptionSlot* found = subscription_slot_locked(subscription);
         if (found == nullptr) {
             return fail(GF_STATUS_STALE_HANDLE, slot, "the subscription has already ended");
@@ -834,7 +835,7 @@ void HandleRegistry::end_disposed_subscriptions(std::span<const Component* const
     // under it.
     std::vector<Component::Ptr> held;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         std::size_t listed = 0U;
         std::size_t source_index = 0U;
         for (source_index = 0U; source_index < sources.size(); ++source_index) {
@@ -888,7 +889,7 @@ gf_status HandleRegistry::post(gf_object target, std::unique_ptr<CallbackBinding
     WindowDispatcher wake;
     ThreadDomain owner{};
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         ObjectSlot* found = object_slot_locked(target);
         if (found == nullptr) {
             return fail(GF_STATUS_STALE_HANDLE, slot, "the target has ended (its last reference was released)");
@@ -920,7 +921,7 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
     std::size_t waiting = 0U;
     ThreadDomain domain{};
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         domain = calling_domain_locked();
         const std::deque<PostedCall>& posted = posted_locked(domain);
         waiting = posted.size() < maximum ? posted.size() : maximum;
@@ -932,7 +933,7 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
         Component::Ptr target;
         bool reference_live = false;
         {
-            const std::scoped_lock lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             std::deque<PostedCall>& posted = posted_locked(domain);
             // A posted callback may run a nested loop (windows.show_modal)
             // whose turns run posted work too, taking calls this pass
@@ -968,7 +969,7 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
     }
     WindowDispatcher wake;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (!posted_locked(domain).empty()) {
             wake = wake_locked(domain);
         }
@@ -982,7 +983,7 @@ std::uint64_t HandleRegistry::run_posted(std::size_t maximum) {
 // The window run.
 
 gf_status HandleRegistry::begin_run(gf_object root, SlotIdentity slot) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     if (running_) {
         return fail(GF_STATUS_INVALID_STATE, slot, "a window is already running");
     }
@@ -992,12 +993,12 @@ gf_status HandleRegistry::begin_run(gf_object root, SlotIdentity slot) {
 }
 
 void HandleRegistry::set_run_window(const ApplicationWindowHandle& window) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     run_window_ = window;
 }
 
 void HandleRegistry::set_run_wake(std::function<void()> wake) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     run_wake_ = std::move(wake);
     if (!posted_.empty() || !deferred_.empty()) {
         static_cast<void>(wake_locked(ui_domain));
@@ -1007,7 +1008,7 @@ void HandleRegistry::set_run_wake(std::function<void()> wake) {
 void HandleRegistry::end_run() {
     std::function<void()> wake;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         running_ = false;
         run_root_ = 0U;
         run_window_ = ApplicationWindowHandle{};
@@ -1017,7 +1018,7 @@ void HandleRegistry::end_run() {
 }
 
 gf_status HandleRegistry::running_window(gf_object root, SlotIdentity slot, ApplicationWindowHandle& window) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     if (!running_ || run_root_ != root) {
         return fail(GF_STATUS_INVALID_STATE, slot, "the object is not the root of the running window");
     }
@@ -1026,7 +1027,7 @@ gf_status HandleRegistry::running_window(gf_object root, SlotIdentity slot, Appl
 }
 
 gf_status HandleRegistry::current_run(SlotIdentity slot, gf_object& root, ApplicationWindowHandle& window) {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     if (!running_) {
         return fail(GF_STATUS_INVALID_STATE, slot, "no window is running");
     }

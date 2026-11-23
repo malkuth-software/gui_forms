@@ -10,6 +10,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -26,7 +27,7 @@ namespace {
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> list_selection_mode_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "list_selection_mode", {{"one", 0}, {"multiple_extended", 1}}, false});
     return value;
 }

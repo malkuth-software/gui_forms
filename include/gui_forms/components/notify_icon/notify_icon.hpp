@@ -8,6 +8,7 @@
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/components/notify_icon/notify_icon_capabilities/notify_icon_capabilities.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -101,7 +102,7 @@ private:
     Event<> balloon_tip_clicked_{};
     Event<> balloon_tip_closed_{};
     Event<const MenuItemInvocation&> menu_item_invoked_{};
-    std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
+    std::shared_ptr<Presence> presence_{gui_forms::detail::make_library_shared<Presence>()};
     // property_codemod begin NotifyIcon (tools/property_families/notify_icon.json; generated, do not edit)
 private:
     friend struct NotifyIconIconCapability<NotifyIcon>;

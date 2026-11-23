@@ -1,5 +1,6 @@
 #include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../panel/panel_anatomy.hpp"
 
 #include <array>
@@ -103,7 +104,7 @@ void CommandBar::set_items(std::vector<CommandItem> items) {
         }
     }
     const Control::Ptr retained = shared_from_this();
-    const std::shared_ptr<Revision> next = std::make_shared<Revision>();
+    const std::shared_ptr<Revision> next = gui_forms::detail::make_library_shared<Revision>();
     (*next).items = std::move(items);
     (*next).entries.reserve((*next).items.size());
     for (const CommandItem& value : (*next).items) {
@@ -114,7 +115,7 @@ void CommandBar::set_items(std::vector<CommandItem> items) {
             }
         }
         if (!entry) {
-            entry = std::make_shared<Entry>();
+            entry = gui_forms::detail::make_library_shared<Entry>();
             (*entry).id = value.id;
             std::string id(stable_id().value());
             id += ".item.";

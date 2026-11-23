@@ -5,6 +5,7 @@
 #include "gui_forms/animation/animation_timeline/animation_timeline.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <algorithm>
@@ -176,7 +177,7 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
         }
     }
     const Control::Ptr retained = shared_from_this();
-    const std::shared_ptr<Revision> next = std::make_shared<Revision>();
+    const std::shared_ptr<Revision> next = gui_forms::detail::make_library_shared<Revision>();
     (*next).items = std::move(items);
     (*next).entries.reserve((*next).items.size());
     for (const SectionItem& value : (*next).items) {
@@ -187,7 +188,7 @@ void ExpandableSections::set_items(std::vector<SectionItem> items) {
             }
         }
         if (!item) {
-            item = std::make_shared<Entry>();
+            item = gui_forms::detail::make_library_shared<Entry>();
             (*item).id = value.id;
             std::string id(stable_id().value());
             id += ".header.";

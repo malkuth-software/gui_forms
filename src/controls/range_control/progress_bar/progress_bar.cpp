@@ -9,6 +9,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
 
 #include <algorithm>
@@ -28,7 +29,7 @@ namespace {
 // read it.
 std::shared_ptr<const PropertyEnumDescriptor> progress_bar_visual_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "progress_bar_visual_style",
             {{"blocks", 0}, {"continuous", 1}, {"marquee", 2}, {"pulse", 3}, {"marching_stripes", 4},
              {"laser_etch", 5}},
@@ -128,7 +129,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> effect_input_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "effect_input_kind", {{"none", 0}, {"pointer", 1}, {"pointer_and_keys", 2}}, false});
     return value;
 }

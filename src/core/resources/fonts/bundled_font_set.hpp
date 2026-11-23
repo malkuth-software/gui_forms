@@ -9,10 +9,10 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <span>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <variant>
 #include <vector>
 
@@ -234,7 +234,7 @@ private:
     std::vector<Sha256Digest> digests_;
     // Guards results_ and the pack state below; held while a face is read or its group
     // decoded, so each face is read once and each group decoded once.
-    mutable std::mutex mutex_;
+    mutable stxlib::Mutex mutex_;
     // Parallel to manifest_; empty until the face is first requested (or its group decoded).
     std::vector<std::optional<FontFaceLoad>> results_;
     // Pack sets only: the pack (borrowed), its index (which borrows the pack), whether it

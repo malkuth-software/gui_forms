@@ -1,4 +1,5 @@
 #include "gui_forms/application.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../core/application/application_state.hpp"
 #include "../../core/application/splashscreen_surface.hpp"
 
@@ -233,8 +234,8 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
                          const std::shared_ptr<CallbackFailure>& failure,
                          const std::shared_ptr<detail::ApplicationRunState>& run) {
     const bool primary = detail::primary_window_entry(source);
-    const std::shared_ptr<WindowBridge> bridge = std::make_shared<WindowBridge>();
-    (*bridge).state = std::make_shared<detail::ApplicationWindowState>();
+    const std::shared_ptr<WindowBridge> bridge = gui_forms::detail::make_library_shared<WindowBridge>();
+    (*bridge).state = gui_forms::detail::make_library_shared<detail::ApplicationWindowState>();
     (*bridge).failure = failure;
     (*bridge).model = source.model.get();
     (*bridge).options = std::move(source.options);
@@ -452,9 +453,9 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
         if (entry.options.non_opaque) static_cast<void>((*entry.model).declare_non_opaque());
     }
     BridgeScope bridges{};
-    const std::shared_ptr<CallbackFailure> failure = std::make_shared<CallbackFailure>();
+    const std::shared_ptr<CallbackFailure> failure = gui_forms::detail::make_library_shared<CallbackFailure>();
     const std::shared_ptr<detail::ApplicationRunState> run_state =
-        std::make_shared<detail::ApplicationRunState>();
+        gui_forms::detail::make_library_shared<detail::ApplicationRunState>();
     (*run_state).key_bindings = key_bindings_;
 #if defined(GUI_FORMS_APPLICATION_MACOS)
     std::vector<host::MacApplicationWindow> native{};

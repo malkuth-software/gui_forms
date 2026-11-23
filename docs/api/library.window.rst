@@ -119,6 +119,12 @@ Related types
      - A frame's pixels the overlay composites onto: ``height`` rows of ``width`` premultiplied BGRA pixels, ``row_bytes`` apart.
    * - :cpp:class:`KeyGesture <gui_forms::KeyGesture>`
      - KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
+   * - :cpp:class:`LibraryAllocated <gui_forms::LibraryAllocated>`
+     - The class-scope allocation functions of GUI.Forms' object roots: every form of operator new and delete a new- or delete-expression of a derived type can name, over the library seam, so that the object's storage is GUI.Forms' whoever writes the expression.
+   * - :cpp:class:`LibraryAllocator <gui_forms::LibraryAllocator>`
+     - Not final: libstdc++'s containers derive from their allocator.
+   * - :cpp:class:`LibraryAllocator::rebind <gui_forms::LibraryAllocator::rebind>`
+     -  
    * - :cpp:class:`LiveSurfacePairingListener <gui_forms::LiveSurfacePairingListener>`
      - Told that a live surface's frame was presented unpaired: older than the content tag its control required (Window::require_live_surface_content), once per required tag.
    * - :cpp:class:`LiveSurfacePresentation <gui_forms::LiveSurfacePresentation>`
@@ -1309,6 +1315,56 @@ Related types
    .. cpp:member:: Modifier modifiers
 
       Default: ``{Modifier::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LibraryAllocated
+
+   ``#include <gui_forms/allocation/library_memory/library_memory.hpp>`` (:src:`source <include/gui_forms/allocation/library_memory/library_memory.hpp>`)
+
+   The class-scope allocation functions of GUI.Forms' object roots: every form of operator new and delete a new- or delete-expression of a derived type can name, over the library seam, so that the object's storage is GUI.Forms' whoever writes the expression. The placement form stays the ordinary one (a class-scope operator new hides the global placement new otherwise). Empty: deriving from it adds no state.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <typename Value> LibraryAllocator
+
+   ``#include <gui_forms/allocation/library_memory/library_memory.hpp>`` (:src:`source <include/gui_forms/allocation/library_memory/library_memory.hpp>`)
+
+   Not final: libstdc++'s containers derive from their allocator.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: LibraryAllocator() noexcept
+
+   .. cpp:function:: template <typename Other> LibraryAllocator(const LibraryAllocator<Other>&) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: Value* allocate(std::size_t count)
+
+      Storage for ``count`` values, uninitialized. std::bad_array_new_length when count * sizeof(Value) overflows; std::bad_alloc when refused.
+
+   .. cpp:function:: void deallocate(Value* values, std::size_t) noexcept
+
+   .. cpp:type:: value_type = Value
+
+   .. cpp:type:: size_type = std::size_t
+
+   .. cpp:type:: difference_type = std::ptrdiff_t
+
+   .. cpp:type:: is_always_equal = std::true_type
+
+   .. cpp:type:: propagate_on_container_move_assignment = std::true_type
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Other> LibraryAllocator::rebind
+
+   ``#include <gui_forms/allocation/library_memory/library_memory.hpp>`` (:src:`source <include/gui_forms/allocation/library_memory/library_memory.hpp>`)
+
+   .. cpp:type:: other = LibraryAllocator<Other>
 
 .. cpp:namespace:: gui_forms
 

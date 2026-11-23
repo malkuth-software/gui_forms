@@ -3,6 +3,7 @@
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -26,7 +27,7 @@ std::shared_ptr<Command> make_action(std::string_view navigator_id, std::string_
     std::string identity(navigator_id);
     identity.append(".");
     identity.append(action);
-    std::shared_ptr<Command> command = std::make_shared<Command>(std::move(identity), std::move(text));
+    std::shared_ptr<Command> command = gui_forms::detail::make_library_shared<Command>(std::move(identity), std::move(text));
     return command;
 }
 

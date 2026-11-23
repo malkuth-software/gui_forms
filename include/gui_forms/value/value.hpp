@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/event.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cmath>
 #include <memory>
@@ -38,7 +39,7 @@ class Value final : public Component {
     };
 
 public:
-    explicit Value(const T initial = T{}) : state_(std::make_shared<State>(initial)) {
+    explicit Value(const T initial = T{}) : state_(gui_forms::detail::make_library_shared<State>(initial)) {
         validate(initial);
     }
     ~Value() override { on_dispose(); }

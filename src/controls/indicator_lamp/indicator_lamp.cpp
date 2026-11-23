@@ -8,6 +8,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -28,7 +29,7 @@ namespace {
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_state_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "indicator_lamp_state", {{"off", 0}, {"on", 1}, {"error", 2}, {"fault", 3}}, false});
     return value;
 }
@@ -37,7 +38,7 @@ std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_state_enum() {
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
             PropertyEnumDescriptor{"indicator_lamp_style", {{"lens", 0}, {"pinpoint", 1}}, false});
     return value;
 }

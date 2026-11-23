@@ -1,4 +1,5 @@
 #include "windows_text_automation.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/failure/fail_fast.hpp"
 
 #include "windows_automation.hpp"
@@ -72,7 +73,7 @@ HRESULT lay_out_text(SemanticSource& source, TextRead& read) {
         read.layout = source.text_layout;
         return S_OK;
     }
-    std::shared_ptr<SemanticTextLayout> built = std::make_shared<SemanticTextLayout>();
+    std::shared_ptr<SemanticTextLayout> built = gui_forms::detail::make_library_shared<SemanticTextLayout>();
     Window* const window = source.model.get();
     if (window == nullptr) return element_not_available;
     const SemanticTextResult result = (*window).semantic_text_layout(RuntimeId{control_id}, *built);

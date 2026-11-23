@@ -1,3 +1,4 @@
+#include <stxlib/threads.hpp>
 #include <windows.h>
 
 #include "gui_forms/c/gf_abi.h"
@@ -7,16 +8,15 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
-#include <mutex>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
 
 namespace {
 
-std::mutex& bitmap_orientation_mutex() {
+stxlib::Mutex& bitmap_orientation_mutex() {
     // Never destroyed (rule 1: process termination releases none of our state).
-    static std::mutex* const value = new std::mutex();
+    static stxlib::Mutex* const value = new stxlib::Mutex();
     return *value;
 }
 // The top-down DIB sections the shim made, with the size each was made at.
@@ -40,9 +40,9 @@ std::unordered_map<HBITMAP, TopDownExtent>& top_down_bitmaps() {
 // lasts for the bitmap's lifetime, asks the ABI instead of trusting an
 // ordinary record. Drawing calls trust the record: re-asking the ABI there
 // would construct an error message per call for every ordinary DC.
-std::mutex& endpoint_dc_mutex() {
+stxlib::Mutex& endpoint_dc_mutex() {
     // Never destroyed (rule 1: process termination releases none of our state).
-    static std::mutex* const value = new std::mutex();
+    static stxlib::Mutex* const value = new stxlib::Mutex();
     return *value;
 }
 std::unordered_set<HDC>& endpoint_dcs() {
@@ -60,7 +60,7 @@ enum class DcKind : std::uint8_t { unknown, endpoint, ordinary };
 
 DcKind cached_dc_kind(HDC dc) noexcept {
     if (dc == nullptr) return DcKind::ordinary;
-    std::scoped_lock lock(endpoint_dc_mutex());
+    const stxlib::ScopedLock lock(endpoint_dc_mutex());
     if (endpoint_dcs().contains(dc)) return DcKind::endpoint;
     if (ordinary_dcs().contains(dc)) return DcKind::ordinary;
     return DcKind::unknown;
@@ -69,7 +69,7 @@ DcKind cached_dc_kind(HDC dc) noexcept {
 void remember_dc(HDC dc, DcKind kind) noexcept {
     if (dc == nullptr) return;
     try {
-        std::scoped_lock lock(endpoint_dc_mutex());
+        const stxlib::ScopedLock lock(endpoint_dc_mutex());
         endpoint_dcs().erase(dc);
         ordinary_dcs().erase(dc);
         (kind == DcKind::endpoint ? endpoint_dcs() : ordinary_dcs()).insert(dc);
@@ -81,14 +81,14 @@ void remember_dc(HDC dc, DcKind kind) noexcept {
 
 void forget_dc(HDC dc) noexcept {
     if (dc == nullptr) return;
-    std::scoped_lock lock(endpoint_dc_mutex());
+    const stxlib::ScopedLock lock(endpoint_dc_mutex());
     endpoint_dcs().erase(dc);
     ordinary_dcs().erase(dc);
 }
 
 bool tracked_top_down(HBITMAP bitmap) noexcept {
     if (bitmap == nullptr) return false;
-    std::scoped_lock lock(bitmap_orientation_mutex());
+    const stxlib::ScopedLock lock(bitmap_orientation_mutex());
     return top_down_bitmaps().contains(bitmap);
 }
 
@@ -96,7 +96,7 @@ bool tracked_top_down(HBITMAP bitmap) noexcept {
 // the absolute height): a recycled handle value of another size is not.
 bool tracked_top_down_extent(HBITMAP bitmap, LONG width, LONG height) noexcept {
     if (bitmap == nullptr) return false;
-    std::scoped_lock lock(bitmap_orientation_mutex());
+    const stxlib::ScopedLock lock(bitmap_orientation_mutex());
     const std::unordered_map<HBITMAP, TopDownExtent>::const_iterator found = top_down_bitmaps().find(bitmap);
     if (found == top_down_bitmaps().end()) return false;
     const bool same = (*found).second.width == width && (*found).second.height == height;
@@ -106,7 +106,7 @@ bool tracked_top_down_extent(HBITMAP bitmap, LONG width, LONG height) noexcept {
 void remember_top_down(HBITMAP bitmap, LONG width, LONG height) noexcept {
     if (bitmap == nullptr) return;
     try {
-        std::scoped_lock lock(bitmap_orientation_mutex());
+        const stxlib::ScopedLock lock(bitmap_orientation_mutex());
         top_down_bitmaps().insert_or_assign(bitmap, TopDownExtent{width, height});
     } catch (...) {
         // The optimization is optional. An untracked bitmap retains the
@@ -116,7 +116,7 @@ void remember_top_down(HBITMAP bitmap, LONG width, LONG height) noexcept {
 
 void forget_bitmap(HGDIOBJ object) noexcept {
     if (object == nullptr) return;
-    std::scoped_lock lock(bitmap_orientation_mutex());
+    const stxlib::ScopedLock lock(bitmap_orientation_mutex());
     top_down_bitmaps().erase(reinterpret_cast<HBITMAP>(object));
 }
 

@@ -1,6 +1,7 @@
 #include "text_mask_state.hpp"
-#include "../../thread_records/thread_records_end.hpp"
+#include "../../threading/start_thread.hpp"
 #include <cstring>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::detail {
 namespace {
@@ -77,7 +78,7 @@ void TextMaskSessionState::clear_cache_locked() noexcept {
     }
 }
 void TextMaskSessionState::close() {
-    std::lock_guard<std::mutex> lock(mutex);
+    const stxlib::ScopedLock lock(mutex);
     closing = true;
     wake_requested = false;
     clear_cache_locked();
@@ -90,39 +91,50 @@ void TextMaskSessionState::close() {
 }
 void TextMaskSessionState::join() {
     close();
-    if (worker.joinable()) worker.join();
-    std::lock_guard<std::mutex> lock(mutex);
+    join_library_thread(worker);
+    const stxlib::ScopedLock lock(mutex);
     wake = nullptr;
     backend = nullptr;
     joined = true;
 }
 TextMaskSessionState::~TextMaskSessionState() { join(); }
 
+void TextMaskSessionState::thread_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+    // `closing` ends the loop; STXlib ends the thread's records after this
+    // returns.
+    static_cast<void>(stop);
+    (*static_cast<TextMaskSessionState*>(context)).run();
+}
+
+bool TextMaskSessionState::work_waiting(const void* const context) noexcept {
+    const TextMaskSessionState& state = *static_cast<const TextMaskSessionState*>(context);
+    if (state.closing || state.wake_requested) return true;
+    for (const MaskSlot& slot : state.slots) {
+        if (slot.state == TextMaskSlot::dispatched || slot.state == TextMaskSlot::queued) return true;
+    }
+    return false;
+}
+
 void TextMaskSessionState::run() noexcept {
-    // Closes last: the thread's records are released here, on the thread.
-    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     for (;;) {
         std::size_t selected = slots.size();
         std::shared_ptr<const MaskKey> key{};
         PreparedTextWakeTarget* notification = nullptr;
         bool wake_only = false;
         {
-            std::unique_lock<std::mutex> lock(mutex);
-            for (;;) {
-                if (closing) return;
-                if (wake_requested) {
-                    wake_requested = false;
-                    notification = wake;
-                    wake_only = true;
-                    break;
-                }
+            stxlib::ScopedLock lock(mutex);
+            condition.wait(lock, &TextMaskSessionState::work_waiting, this);
+            if (closing) return;
+            if (wake_requested) {
+                wake_requested = false;
+                notification = wake;
+                wake_only = true;
+            } else {
                 for (std::size_t index = 0; index < slots.size(); ++index) {
                     const MaskSlot& slot = slots[index];
                     if (slot.state != TextMaskSlot::dispatched && slot.state != TextMaskSlot::queued) continue;
                     if (selected == slots.size() || slot.id.serial < slots[selected].id.serial) selected = index;
                 }
-                if (selected != slots.size()) break;
-                condition.wait(lock);
             }
             if (!wake_only) {
                 for (std::size_t index = 0; index < slots.size(); ++index) {
@@ -148,7 +160,7 @@ void TextMaskSessionState::run() noexcept {
         catch (const std::bad_alloc&) { result = {TextMaskStatus::resource_failure}; }
         catch (...) { result = {TextMaskStatus::native_failure}; }
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            const stxlib::ScopedLock lock(mutex);
             MaskSlot& slot = slots[selected];
             if (closing || slot.state == TextMaskSlot::retiring) {
                 // Drop all call-owned references before freeing the charged slot.

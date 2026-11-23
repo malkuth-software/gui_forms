@@ -7,6 +7,7 @@
 // binding's destruction then frees the identity and releases the callback.
 
 #include "abi_tables.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../custom/abi_composite.hpp"
 #include "../events/abi_event_catalog.hpp"
@@ -134,7 +135,7 @@ gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* c
     std::shared_ptr<SubscriptionBinding> binding;
     SubscriptionToken token;
     try {
-        binding = std::make_shared<SubscriptionBinding>(copy, reserved, component.get(), std::string(name_text));
+        binding = gui_forms::detail::make_library_shared<SubscriptionBinding>(copy, reserved, component.get(), std::string(name_text));
         if (property) {
             token = (*control).subscribe_property_changed(name_text, *control, PlainForwarder{binding});
         } else {

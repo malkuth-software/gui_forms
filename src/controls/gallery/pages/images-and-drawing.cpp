@@ -2,6 +2,7 @@
 #include "gui_forms/controls/raster_canvas.hpp"
 #include "gui_forms/drawing/bitmap/bitmap.hpp"
 #include "gui_forms/drawing/color/color.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "images-and-drawing_form.hpp"
 
@@ -49,7 +50,7 @@ void ImagesPage::fill_primitives() {
     (*document_.gallery_images_drawing_board).set_paint_callback(DrawingEffectsPaint());
 
     std::shared_ptr<gui_drawing::Bitmap> raster_bitmap =
-        std::make_shared<gui_drawing::Bitmap>(12U, 12U);
+        gui_forms::detail::make_library_shared<gui_drawing::Bitmap>(12U, 12U);
     for (std::uint32_t index = 0U; index < 12U; ++index) {
         (*raster_bitmap).set_pixel(index, index,
                                    gui_drawing::Color::from_rgb(39U, 116U, 184U));
@@ -64,7 +65,7 @@ void ImagesPage::fill_primitives() {
 
 void add_images_and_drawing(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ImagesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<ImagesPage>(page));
 }
 
 } // namespace gui_forms::gallery::pages

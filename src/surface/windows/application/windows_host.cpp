@@ -39,6 +39,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/failure/fail_fast.hpp"
 
 #include "../paint_endpoint/windows_compatibility_paint_endpoint_metrics.hpp"
@@ -65,7 +66,6 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
-#include <condition_variable>
 #include <cstdlib>
 #include <cstdint>
 #include <cstdio>
@@ -74,18 +74,15 @@
 #include <deque>
 #include <exception>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <limits>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -4766,8 +4763,8 @@ private:
     std::uint64_t live_present_duration_nanoseconds_{};
     std::uint64_t live_worst_present_duration_nanoseconds_{};
     bool in_size_move_{};
-    std::shared_ptr<TitleCallbackState> title_state_{std::make_shared<TitleCallbackState>()};
-    std::shared_ptr<ClientSizeCallbackState> size_state_{std::make_shared<ClientSizeCallbackState>()};
+    std::shared_ptr<TitleCallbackState> title_state_{gui_forms::detail::make_library_shared<TitleCallbackState>()};
+    std::shared_ptr<ClientSizeCallbackState> size_state_{gui_forms::detail::make_library_shared<ClientSizeCallbackState>()};
     bool closed_{};
     bool frame_capture_completed_{};
     bool frame_capture_saved_{};
@@ -5146,7 +5143,7 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     // The run outlives every window state it owns; the open operation it
     // publishes is revoked (end_run_windowing) before the run is released.
     std::unique_ptr<WindowsApplicationRun> run = std::make_unique<WindowsApplicationRun>(instance);
-    const std::shared_ptr<WindowsRunOpenState> open_state = std::make_shared<WindowsRunOpenState>();
+    const std::shared_ptr<WindowsRunOpenState> open_state = gui_forms::detail::make_library_shared<WindowsRunOpenState>();
     (*open_state).run = run.get();
     const bool windowing_published = static_cast<bool>(application.windowing_ready);
     if (windowing_published) application.windowing_ready(*run, WindowsRunOpen{open_state});

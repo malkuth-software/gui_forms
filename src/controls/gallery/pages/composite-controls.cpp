@@ -4,6 +4,7 @@
 
 #include "gui_forms/binding/value/binding_value.hpp"
 #include "gui_forms/composites/composite_control/composite_control.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -102,7 +103,7 @@ void CompositeControlsPage::on_card_raised(const CompositeEvent& event) {
 }
 
 void add_composite_controls(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<CompositeControlsPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<CompositeControlsPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

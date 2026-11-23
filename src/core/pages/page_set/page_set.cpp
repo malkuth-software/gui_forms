@@ -1,6 +1,7 @@
 #include "gui_forms/pages/page_set/page_set.hpp"
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -56,7 +57,7 @@ private:
 };
 
 PageSet::PageSet(PageSetOptions options)
-    : options_(options), alive_(std::make_shared<bool>(true)) {
+    : options_(options), alive_(gui_forms::detail::make_library_shared<bool>(true)) {
     if (options_.capacity == 0U || options_.capacity > PageSetLimits::maximum_capacity) {
         throw std::invalid_argument(
             "PageSet capacity must be from 1 to PageSetLimits::maximum_capacity");

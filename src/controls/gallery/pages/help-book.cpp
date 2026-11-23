@@ -4,6 +4,7 @@
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/help/help_contents/help_contents.hpp"
 #include "gui_forms/help/helpbook_section/helpbook_section.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "help-book_form.hpp"
 
@@ -120,7 +121,7 @@ void HelpBookPage::on_popup_link(HelpLinkActivation& activation) {
 }
 
 void add_help_book(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<HelpBookPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<HelpBookPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

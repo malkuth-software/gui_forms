@@ -8,6 +8,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <algorithm>
@@ -1670,7 +1671,7 @@ struct ContextMenu::Impl final {
     // when it is set, since the code may have destroyed the menu with its
     // owner (A-gf-controls-06-F1). Allocated with the menu: a menu that
     // cannot allocate it is not made.
-    std::shared_ptr<bool> destroyed = std::make_shared<bool>(false);
+    std::shared_ptr<bool> destroyed = gui_forms::detail::make_library_shared<bool>(false);
     std::function<bool(int)> root_navigation_handler;
     std::function<bool(const PointerEvent&)> outside_pointer_handler;
 };

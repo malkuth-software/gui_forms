@@ -83,7 +83,7 @@ void run(void* state, const void* view, const EffectFrame& frame, EffectCanvas& 
 }
 
 // Releases an EffectInstance's state storage, `size` bytes allocated at
-// `alignment`; the release is counted under AllocationSubsystem::effects
+// `alignment` from the library seam (allocation/library_memory); the release is counted under AllocationSubsystem::effects
 // (allocation_statistics.hpp), as the allocation was.
 // Declared at namespace scope, complete before EffectInstance uses it: a
 // nested class with a default member initializer is not default

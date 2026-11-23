@@ -16,6 +16,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -3412,7 +3413,7 @@ bool DataGridView::open_choices() {
         const std::string& item = columns_[at.column].items[index];
         std::string identity = prefix + std::to_string(index);
         if (index == choice_commands_.size()) {
-            choice_commands_.push_back(std::make_shared<Command>(identity, item));
+            choice_commands_.push_back(gui_forms::detail::make_library_shared<Command>(identity, item));
         }
         Command& command = *choice_commands_[index];
         command.set_text(item);
@@ -5309,7 +5310,7 @@ namespace {
 // selection_mode table entry. Static storage; any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> data_grid_view_selection_mode_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "data_grid_view_selection_mode",
             {{"cell_select", 0},
              {"full_row_select", 1},

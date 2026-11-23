@@ -9,7 +9,7 @@ gui_forms::Component
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Component
+.. cpp:class:: Component : public LibraryAllocated
 
    ``#include <gui_forms/component/component/component.hpp>`` (:src:`source <include/gui_forms/component/component/component.hpp>`)
 

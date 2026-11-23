@@ -10,6 +10,7 @@
 #include "gui_forms/text.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -28,14 +29,14 @@ namespace {
 // Static storage; any thread may read them.
 std::shared_ptr<const PropertyEnumDescriptor> combo_box_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "combo_box_style", {{"drop_down_list", 0}, {"drop_down", 1}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> combo_box_filter_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "combo_box_filter", {{"none", 0}, {"prefix", 1}, {"substring", 2}}, false});
     return value;
 }
@@ -43,7 +44,7 @@ std::shared_ptr<const PropertyEnumDescriptor> combo_box_filter_enum() {
 } // namespace
 
 ComboBox::ComboBox(StableId stable_id) : ListControl(std::move(stable_id)) {
-    list_items_source_ = std::make_shared<AutoCompleteStringCollection>();
+    list_items_source_ = gui_forms::detail::make_library_shared<AutoCompleteStringCollection>();
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;

@@ -2,6 +2,7 @@
 // Window's show_popup_window family and the standby that keeps them.
 
 #include "popup_standby.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../surface_root/access/surface_application_access.hpp"
 
 #include <optional>
@@ -104,7 +105,7 @@ bool Window::popup_windows_translucent() const {
 }
 
 detail::PopupStandby& Window::popup_standby() {
-    if (!popup_standby_) popup_standby_ = std::make_shared<detail::PopupStandby>(*this);
+    if (!popup_standby_) popup_standby_ = gui_forms::detail::make_library_shared<detail::PopupStandby>(*this);
     return *popup_standby_;
 }
 

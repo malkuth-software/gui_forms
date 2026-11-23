@@ -11,6 +11,7 @@
 #if defined(GUI_FORMS_PREPARED_TEXT)
 #include "prepared_skia_frame.hpp"
 #endif
+#include "../../../platform/library_files.hpp"
 
 #include "../../text/harfbuzz/bundled_face_loader.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
@@ -25,6 +26,7 @@
 #include "../../../core/engine/primitives/material/material_raster.hpp"
 #include "../../../core/display/group_effect/group_effect.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/theme/theme/material_layers.hpp"
 #include "../../../core/types/painter/text_turn.hpp"
 
@@ -49,7 +51,9 @@
 #include "include/effects/SkGradient.h"
 
 #include <stxlib/conv.hpp>
+#include <stxlib/files.hpp>
 #include <stxlib/optional.hpp>
+#include <stxlib/result.hpp>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -57,7 +61,6 @@
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -352,16 +355,14 @@ sk_sp<SkData> read_font_file(const char* path) {
 #else
     const std::filesystem::path file_path(path);
 #endif
-    std::error_code size_error;
-    const std::uintmax_t file_bytes = std::filesystem::file_size(file_path, size_error);
-    if (size_error || file_bytes == 0 || file_bytes > maximum_font_file_bytes) return nullptr;
-    std::ifstream input(file_path, std::ios::binary);
-    if (!input) return nullptr;
-    const std::size_t length = static_cast<std::size_t>(file_bytes);
+    const std::optional<std::uint64_t> file_bytes = platform::regular_file_bytes(file_path);
+    if (!file_bytes.has_value() || *file_bytes == 0 || *file_bytes > maximum_font_file_bytes) return nullptr;
+    stxlib::OperationResult<stxlib::File> opened = platform::open_file(file_path, stxlib::FileMode::read);
+    if (opened.failed()) return nullptr;
+    const std::size_t length = static_cast<std::size_t>(*file_bytes);
     sk_sp<SkData> data = SkData::MakeUninitialized(length);
-    char* destination = static_cast<char*>((*data).writable_data());
-    input.read(destination, static_cast<std::streamsize>(length));
-    const bool complete = static_cast<std::uintmax_t>(input.gcount()) == file_bytes;
+    void* const destination = (*data).writable_data();
+    const bool complete = platform::read_exactly_at(*opened.value(), 0, destination, length);
     if (!complete) return nullptr;
     return data;
 }
@@ -708,7 +709,7 @@ public:
     text::HarfBuzzFontEngine text_engine;
     // Identity of text_engine for shaped-text memos. A memo holding an
     // expired or different identity was shaped by another raster.
-    std::shared_ptr<const bool> text_engine_identity{std::make_shared<const bool>(true)};
+    std::shared_ptr<const bool> text_engine_identity{gui_forms::detail::make_library_shared<const bool>(true)};
     // Kept shaped runs and resolved layouts (N56/S4), valid while the engine
     // holds kept_face_count faces. References returned by shaped_text and
     // resolved_layout stay valid until the next call to either.
@@ -1055,7 +1056,7 @@ public:
         if (!data || (*data).isEmpty()) return false;
         const std::span<const std::byte> bytes(
             static_cast<const std::byte*>((*data).data()), (*data).size());
-        std::shared_ptr<const void> owner = std::make_shared<const sk_sp<SkData>>(std::move(data));
+        std::shared_ptr<const void> owner = gui_forms::detail::make_library_shared<const sk_sp<SkData>>(std::move(data));
         const bool registered = register_font_bytes(role, weight, italic, bytes, std::move(owner));
         return registered;
     }
@@ -3568,7 +3569,7 @@ std::shared_ptr<SkiaRaster::Impl::ClipMaskStore> SkiaRaster::Impl::acquire_clip_
         // Only the pool holds it: no save level reads it any longer.
         if (store.use_count() == 1) return store;
     }
-    clip_mask_pool.push_back(std::make_shared<ClipMaskStore>());
+    clip_mask_pool.push_back(gui_forms::detail::make_library_shared<ClipMaskStore>());
     return clip_mask_pool.back();
 }
 

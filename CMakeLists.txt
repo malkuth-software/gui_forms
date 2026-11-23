@@ -296,6 +296,28 @@ if(WIN32)
     endif()
 endif()
 
+# The allocator of GUI.Forms' own code (include/gui_forms/allocation/
+# library_memory/library_memory.hpp): the library seam over STXlib's
+# allocator and the teardown reserve, in a small static archive of its own,
+# so every GUI.Forms library that allocates through the seam links it
+# without the engine (Core, Audio, and a program that opts in with
+# gui_forms_use_library_allocator), and a program linking several of them
+# holds one copy. Position independent, since the C ABI library holds it.
+# Its declarations keep GUI_FORMS_API (gui_forms/export/
+# application_export.hpp), which adds nothing to a static archive on
+# Windows and default visibility on ELF and Mach-O, where the C ABI
+# library's export list keeps them local.
+add_library(gui_forms_memory STATIC
+    src/core/allocation/library_memory/library_memory.cpp)
+add_library(GUIForms::Memory ALIAS gui_forms_memory)
+set_target_properties(gui_forms_memory PROPERTIES
+    EXPORT_NAME Memory OUTPUT_NAME gui_forms_memory POSITION_INDEPENDENT_CODE ON VISIBILITY_INLINES_HIDDEN YES)
+target_include_directories(gui_forms_memory PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_compile_features(gui_forms_memory PUBLIC cxx_std_20)
+target_link_libraries(gui_forms_memory PRIVATE stxlib::boundary stxlib::state)
+
 
 # The archives the Application library holds
 # whole. They are linked into one module, a program or the C ABI library, so
@@ -488,6 +510,9 @@ if(GUI_FORMS_STOCK_ICON_GENERATOR)
 else()
     add_executable(gui_forms_stock_icon_generator tools/stock_icon_generator/stock_icon_generator.cpp)
     target_compile_features(gui_forms_stock_icon_generator PRIVATE cxx_std_20)
+    # It reads the SVG folders and writes its output through STXlib's files
+    # (the shield).
+    target_link_libraries(gui_forms_stock_icon_generator PRIVATE stxlib::boundary stxlib::state)
     # Byte-identical to the Python oracle: no fused multiply-adds.
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(gui_forms_stock_icon_generator PRIVATE -ffp-contract=off)
@@ -825,7 +850,8 @@ add_library(gui_forms_core STATIC
     src/core/window/command_route/window_command_route.cpp
     src/core/commands/command_route/command_route.cpp
 )
-target_link_libraries(gui_forms_core PUBLIC Threads::Threads GUIForms::Threading stx_zlib::stx_zlib stx_png::stx_png)
+target_link_libraries(gui_forms_core PUBLIC Threads::Threads GUIForms::Threading GUIForms::Memory stx_zlib::stx_zlib
+    stx_png::stx_png)
 if(TARGET gui_forms_stx_refresh)
     add_dependencies(gui_forms_core gui_forms_stx_refresh)
 endif()
@@ -1613,7 +1639,8 @@ endif()
 # their static archives links its archive too: it is installed beside them, and GUIFormsConfig
 # imports it as stx_skia::swizzle, the name GUIFormsTargets refers to.
 install(FILES $<TARGET_FILE:stx_skia::swizzle> DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(TARGETS gui_forms_threading gui_forms_core gui_forms_controls gui_drawing_core gui_forms_plot_primitives
+install(TARGETS gui_forms_threading gui_forms_memory gui_forms_core gui_forms_controls gui_drawing_core
+        gui_forms_plot_primitives
         EXPORT GUIFormsTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -3526,7 +3553,9 @@ if(GUI_FORMS_BUILD_FUZZERS)
     gui_forms_add_libfuzzer_target(rtf_import SOURCES fuzz/rtf_import_fuzz.cpp
         LIBRARIES gui_forms_core stx_rtf2md::stx_rtf2md)
     if(TARGET stx_vorbis::stx_vorbis_stb)
-        gui_forms_add_libfuzzer_target(vorbis SOURCES fuzz/vorbis_fuzz.cpp LIBRARIES stx_vorbis::stx_vorbis_stb)
+        # The standalone driver reads its corpus through STXlib.
+        gui_forms_add_libfuzzer_target(vorbis SOURCES fuzz/vorbis_fuzz.cpp
+            LIBRARIES stx_vorbis::stx_vorbis_stb stxlib::boundary stxlib::state)
     endif()
 endif()
 
@@ -3541,7 +3570,7 @@ endif()
 # itself.
 
 if(TARGET gui_forms_application)
-    target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
+    target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading GUIForms::Memory)
     # STXlib's state (cmake/Stx.cmake): a static archive since the one-module
     # decision, so the program holds the one allocator, identity issuer and
     # SIMD selection, which the engine's copy of STXlib's static code (the
@@ -3549,6 +3578,28 @@ if(TARGET gui_forms_application)
     # own STXlib code both reach.
     target_link_libraries(gui_forms_application PUBLIC stxlib::boundary stxlib::state)
 endif()
+# The opt-in whole-program allocator (include/gui_forms/allocation/
+# library_memory/library_memory.hpp; owner, 2026-11-22): a program GUI.Forms'
+# projects issue may put all its C++ allocations on STXlib's allocator by
+# compiling src/runtime/program_allocator/program_allocator_replacement.cpp
+# into itself. Never a default, and only for an executable: a shared library
+# or plugin would replace operator new for the process that loads it. The
+# installed package defines the same function (cmake/GUIFormsConfig.cmake.in)
+# over the installed copy of the source. The replacement uses the teardown
+# reserve of GUIForms::Memory, which the function links.
+set(GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/program_allocator/program_allocator_replacement.cpp")
+function(gui_forms_use_library_allocator target)
+    get_target_property(_gf_type ${target} TYPE)
+    if(NOT _gf_type STREQUAL "EXECUTABLE")
+        message(FATAL_ERROR "gui_forms_use_library_allocator: ${target} is a ${_gf_type}; only a program may "
+                            "replace operator new")
+    endif()
+    target_sources(${target} PRIVATE "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}")
+    target_link_libraries(${target} PRIVATE GUIForms::Memory stxlib::boundary stxlib::state)
+endfunction()
+install(FILES "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}" DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/program_allocator)
+
 # The text masks join the Application library's archives
 # (GUI_FORMS_APPLICATION_ARCHIVES) before the package reads them, so the
 # installed libgui_forms_application.a holds them.

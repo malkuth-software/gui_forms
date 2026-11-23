@@ -5,6 +5,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -2115,7 +2116,7 @@ void PageStrip::prepare_list_commands() {
     const std::string prefix = std::string(stable_id().value()) + ".list.";
     while (list_commands_.size() < count) {
         const std::string identity = prefix + std::to_string(list_commands_.size());
-        list_commands_.push_back(std::make_shared<Command>(identity, std::string{}));
+        list_commands_.push_back(gui_forms::detail::make_library_shared<Command>(identity, std::string{}));
     }
     const stxlib::Optional<std::size_t> held = selected_position();
     const std::size_t* const selected = held.value();

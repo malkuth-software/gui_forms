@@ -6,11 +6,9 @@
 #include <stxlib/optional.hpp>
 #include <array>
 #include <atomic>
-#include <condition_variable>
 #include <exception>
-#include <mutex>
 #include <optional>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -29,7 +27,7 @@ class PreparedFacePool;
 enum class PreparedResource { font_bank, input, payload, mask };
 
 struct PreparedLedger final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     PreparedTextBudgetSnapshot usage{};
     std::uint64_t next_bank{1};
     bool session_claimed{};
@@ -151,8 +149,8 @@ struct PreparedInputStorage final {
 };
 
 struct PreparedAuthorityState final {
-    std::mutex mutex{};
-    std::thread::id executor{};
+    stxlib::Mutex mutex{};
+    stxlib::ThreadIdentity executor{};
     LayoutAuthority current{};
     std::optional<PreparedTextKey> key{};
     bool closing{};
@@ -190,7 +188,7 @@ struct PreparedMaskStorage final {
 struct PreparedServiceState final {
     std::shared_ptr<PreparedLedger> ledger{};
     std::weak_ptr<PreparedSessionState> session{};
-    std::thread::id executor{};
+    stxlib::ThreadIdentity executor{};
     std::uint64_t instance{};
 };
 
@@ -199,16 +197,20 @@ struct PreparedSessionState final {
     std::shared_ptr<PreparedServiceState> service{};
     std::shared_ptr<const PreparedFontBank> fonts{};
     std::shared_ptr<PreparedAuthorityState> authority{};
-    std::thread::id executor{};
-    std::mutex mutex{};
-    std::condition_variable condition{};
-    std::thread worker{};
+    stxlib::ThreadIdentity executor{};
+    stxlib::Mutex mutex{};
+    stxlib::ConditionVariable condition{};
+    stxlib::Thread worker{};
     PreparedTextWakeTarget* wake{};
     PreparedTextSessionSnapshot snapshot{};
     std::unique_ptr<PreparedTextStorage> job{};
     std::shared_ptr<const PreparedTextStorage> ready{};
     bool wake_pending{};
+    // The worker's STXlib entry (`context` is the state) and its body.
+    static void thread_main(const stxlib::StopSignal& stop, void* context) noexcept;
     void run() noexcept;
+    // run's wait predicate, under the mutex: a queued job or closing.
+    [[nodiscard]] static bool job_or_closing(const void* context) noexcept;
     void close();
     void join();
     ~PreparedSessionState();

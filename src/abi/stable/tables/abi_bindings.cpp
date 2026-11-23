@@ -14,6 +14,7 @@
 #include "gui_forms/binding/binding_table/binding_table.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <cstddef>
@@ -661,7 +662,7 @@ gf_status bindings_set_provider_body(gf_object source, const gf_binding_column* 
         return GF_STATUS_OK;
     }
     const std::uint64_t id = next_binding_provider_id();
-    std::shared_ptr<AbiBindingProvider> made = std::make_shared<AbiBindingProvider>(std::move(schema), copied, id);
+    std::shared_ptr<AbiBindingProvider> made = gui_forms::detail::make_library_shared<AbiBindingProvider>(std::move(schema), copied, id);
     (*typed).set_provider(std::move(made));
     *provider = id;
     return GF_STATUS_OK;

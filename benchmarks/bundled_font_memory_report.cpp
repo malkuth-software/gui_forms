@@ -16,21 +16,25 @@
 #else
 #include "../src/surface/posix/fonts/sealed_pages_posix.hpp"
 #endif
+#include "../src/platform/library_files.hpp"
 
 #if defined(__APPLE__)
 #include <mach/mach.h>
 #endif
 
+#include <array>
 #include <charconv>
 #include <cstdint>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
-#include <iterator>
 #include <memory>
 #include <string>
 #include <string_view>
+#include <stxlib/files.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 #include <system_error>
 #include <vector>
 
@@ -64,8 +68,19 @@ MemorySample sample_memory() {
         sample.file_bytes = info.external;
     }
 #elif defined(__linux__)
-    std::ifstream stream("/proc/self/status");
-    const std::string text((std::istreambuf_iterator<char>(stream)), std::istreambuf_iterator<char>());
+    // Read until the end, not by a size: /proc reports its files as empty.
+    std::string text;
+    stxlib::OperationResult<stxlib::File> opened =
+        gui_forms::platform::open_file(std::filesystem::path("/proc/self/status"), stxlib::FileMode::read);
+    if (opened.succeeded()) {
+        std::array<char, 4096> block{};
+        while (true) {
+            const stxlib::MutableView<stxlib::Byte> room(reinterpret_cast<stxlib::Byte*>(block.data()), block.size());
+            const stxlib::OperationResult<stxlib::usize> got = (*opened.value()).read(room);
+            if (got.failed() || *got.value() == 0U) break;
+            text.append(block.data(), static_cast<std::size_t>(*got.value()));
+        }
+    }
     sample.resident = status_kib(text, "VmRSS:");
     sample.private_bytes = status_kib(text, "RssAnon:");
     sample.file_bytes = status_kib(text, "RssFile:");

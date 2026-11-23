@@ -10,6 +10,7 @@
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
 #include "../../../platform/stxlib_bridge.hpp"
 
@@ -820,7 +821,7 @@ void PlotView::update_live_host() {
         // published beside it.
         (*live_host_).set_publishes_semantics(false);
         if (!live_inbox_) {
-            live_inbox_ = std::make_shared<detail::PlotLiveInbox>();
+            live_inbox_ = gui_forms::detail::make_library_shared<detail::PlotLiveInbox>();
             (*live_inbox_).owner = this;
         }
         add_child(live_host_);
@@ -915,7 +916,7 @@ std::shared_ptr<const detail::PlotLiveColumns> PlotView::live_columns(std::size_
     // made aside so a throw leaves the entry as it was.
     const plots::ColumnSamples<double, double> samples = item.column_samples();
     const std::size_t count = samples.size();
-    std::shared_ptr<detail::PlotLiveColumns> made = std::make_shared<detail::PlotLiveColumns>();
+    std::shared_ptr<detail::PlotLiveColumns> made = gui_forms::detail::make_library_shared<detail::PlotLiveColumns>();
     (*made).xs.resize(count);
     (*made).ys.resize(count);
     for (std::size_t element = 0U; element < count; ++element) {

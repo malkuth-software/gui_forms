@@ -6,6 +6,7 @@
 
 #include "gui_forms/rules/rule_set/rule_set.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <memory>
 
@@ -55,7 +56,7 @@ bool offer_window_mouse_rules(RuleSet& rules, detail::MouseRuleEvent event, Cont
 RuleSet& SurfaceRoot::rules() {
     require_root_thread("window rules");
     if (!rules_) {
-        rules_ = std::make_shared<RuleSet>(*this);
+        rules_ = gui_forms::detail::make_library_shared<RuleSet>(*this);
         offer_key_rules_ = &offer_window_key_rules;
         offer_mouse_rules_ = &offer_window_mouse_rules;
     }

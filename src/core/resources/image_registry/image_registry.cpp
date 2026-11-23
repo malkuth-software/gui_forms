@@ -1,4 +1,5 @@
 #include "gui_forms/resources.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "image_registry_access.hpp"
 
@@ -419,7 +420,7 @@ ImageRegistry& ImageRegistry::operator=(ImageRegistry&& other) noexcept {
 
 std::weak_ptr<detail::ImageRegistryLiveness> detail::ImageRegistryAccess::liveness(ImageRegistry& registry) {
     if (registry.liveness_ == nullptr) {
-        registry.liveness_ = std::make_shared<ImageRegistryLiveness>(ImageRegistryLiveness{&registry});
+        registry.liveness_ = gui_forms::detail::make_library_shared<ImageRegistryLiveness>(ImageRegistryLiveness{&registry});
     }
     std::weak_ptr<ImageRegistryLiveness> handle(registry.liveness_);
     return handle;

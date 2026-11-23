@@ -7,6 +7,7 @@
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 #include "gui_forms/components/color_dialog/color_dialog_capabilities/color_dialog_capabilities.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <memory>
 #include <string>
@@ -52,7 +53,7 @@ private:
 
     HostServiceStatus status_{};
     bool showing_{};
-    std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
+    std::shared_ptr<Presence> presence_{gui_forms::detail::make_library_shared<Presence>()};
     // property_codemod begin ColorDialog (tools/property_families/color_dialog.json; generated, do not edit)
 private:
     friend struct ColorDialogTitleCapability<ColorDialog>;

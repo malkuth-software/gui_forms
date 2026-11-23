@@ -10,6 +10,7 @@
 #include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cmath>
 #include <cstdint>
@@ -383,7 +384,7 @@ void CustomControlState::connect_wake(Control& control) {
         presented_control_ = self;
         return;
     }
-    wake_state_ = std::make_shared<BoundSurfaceWake>();
+    wake_state_ = gui_forms::detail::make_library_shared<BoundSurfaceWake>();
     wake_ = (*bound_surface_).connect_presentation_wake(
         BoundSurfaceWakeCallback((*window).dispatcher(), std::weak_ptr<Control>(self),
                                  std::weak_ptr<BoundSurfaceWake>(wake_state_)));

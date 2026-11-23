@@ -11,6 +11,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -729,7 +730,7 @@ gf_status controls_set_content_effect_body(gf_object object, const gf_content_ef
         if (!valid_paint_group_effect(built)) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the effect is not valid");
         }
-        shared = std::make_shared<const PaintGroupEffect>(std::move(built));
+        shared = gui_forms::detail::make_library_shared<const PaintGroupEffect>(std::move(built));
     }
     Control::Ptr control;
     const gf_status entered = enter_live_control(object, slot, control);

@@ -7,6 +7,7 @@
 #include "gui_forms/controls/splitter_panel.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "containers-and-focus_form.hpp"
 #include <optional>
@@ -218,7 +219,7 @@ private:
 
 void add_containers(const std::shared_ptr<Surface>& page,
                     const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ContainersPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<ContainersPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/window/update_scope/update_scope.hpp"
@@ -44,7 +45,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -503,7 +503,10 @@ private:
     std::weak_ptr<detail::WindowLifetime> lifetime_;
 };
 
-class GUI_FORMS_API SurfaceRoot {
+// LibraryAllocated (allocation/library_memory): every window, and every
+// class derived from it, takes its storage from GUI.Forms' allocator
+// whoever creates it, and its delete releases it there.
+class GUI_FORMS_API SurfaceRoot : public LibraryAllocated {
 public:
     SurfaceRoot(const SurfaceRoot&) = delete;
     SurfaceRoot& operator=(const SurfaceRoot&) = delete;

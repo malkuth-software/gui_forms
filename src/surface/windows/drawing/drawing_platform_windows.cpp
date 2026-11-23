@@ -6,6 +6,7 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#include <stxlib/threads.hpp>
 #include <windows.h>
 
 #include "gui_forms/c/gf_abi.h"
@@ -15,9 +16,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <span>
-#include <mutex>
 #include <stdexcept>
-#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
@@ -27,7 +26,7 @@ namespace {
 
 struct HdcLease final {
     Bitmap* bitmap{};
-    std::thread::id owner;
+    stxlib::ThreadIdentity owner;
     HDC device{};
     HBITMAP dib{};
     HGDIOBJ previous{};
@@ -41,8 +40,8 @@ struct HdcLease final {
 // none of our state, rule 1; A-gf-abi-01-F5): process detach runs no
 // SelectObject, DeleteDC or DeleteObject under the loader lock, and a thread
 // still inside a lease call never meets a destroyed mutex.
-std::mutex& lease_mutex() {
-    static std::mutex* const value = new std::mutex();
+stxlib::Mutex& lease_mutex() {
+    static stxlib::Mutex* const value = new stxlib::Mutex();
     return *value;
 }
 
@@ -708,7 +707,7 @@ gd_result acquire_hdc(Bitmap& bitmap, std::uintptr_t& output,
     }
     std::memcpy(pixels, snapshot.pixels().data(), snapshot.pixels().size());
     mark_untouched_alpha(static_cast<std::uint8_t*>(pixels), snapshot.pixels().size());
-    std::scoped_lock lock(lease_mutex());
+    const stxlib::ScopedLock lock(lease_mutex());
     const std::uint64_t token = next_lease++;
     if (token == 0U) {
         SelectObject(device, previous);
@@ -718,7 +717,7 @@ gd_result acquire_hdc(Bitmap& bitmap, std::uintptr_t& output,
     }
     try {
         const HdcLease lease{.bitmap = &bitmap,
-                             .owner = std::this_thread::get_id(),
+                             .owner = stxlib::current_thread(),
                              .device = device,
                              .dib = dib,
                              .previous = previous,
@@ -739,14 +738,14 @@ gd_result acquire_hdc(Bitmap& bitmap, std::uintptr_t& output,
 gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
     HdcLease lease;
     {
-        std::scoped_lock lock(lease_mutex());
+        const stxlib::ScopedLock lock(lease_mutex());
         const std::unordered_map<std::uint64_t, HdcLease>::iterator found =
             leases().find(lease_token);
         if (found == leases().end()) throw std::invalid_argument("HDC lease token is stale");
         if ((*found).second.bitmap != &bitmap) {
             throw std::invalid_argument("HDC lease belongs to a different bitmap");
         }
-        if ((*found).second.owner != std::this_thread::get_id()) {
+        if ((*found).second.owner != stxlib::current_thread()) {
             return GD_ERROR_WRONG_THREAD;
         }
         lease = (*found).second;
@@ -758,7 +757,7 @@ gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
     // releases a lease, so it cannot change meanwhile.
     BitmapLockView lock = bitmap.lock(BitmapLockMode::write);
     {
-        std::scoped_lock leases_lock(lease_mutex());
+        const stxlib::ScopedLock leases_lock(lease_mutex());
         leases().erase(lease_token);
     }
     struct LeaseCleanup final {
@@ -777,7 +776,7 @@ gd_result release_hdc(Bitmap& bitmap, std::uint64_t lease_token) {
 }
 
 bool has_hdc_lease(Bitmap& bitmap) {
-    std::scoped_lock lock(lease_mutex());
+    const stxlib::ScopedLock lock(lease_mutex());
     for (const std::pair<const std::uint64_t, HdcLease>& entry : leases()) {
         if (entry.second.bitmap == &bitmap) return true;
     }

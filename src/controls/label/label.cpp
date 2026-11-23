@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../platform/stxlib_bridge.hpp"
 
 #include <algorithm>
@@ -49,14 +50,14 @@ struct PainterLabelWidth final {
 };
 std::shared_ptr<const PropertyEnumDescriptor> vertical_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "vertical_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> text_wrapping_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "text_wrapping", {{"no_wrap", 0}, {"word", 1}}, false});
     return value;
 }
@@ -84,7 +85,7 @@ const PropertyDescriptor& describe_label_fore_color() {
 
 std::shared_ptr<const PropertyEnumDescriptor> label_detail::horizontal_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "horizontal_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }

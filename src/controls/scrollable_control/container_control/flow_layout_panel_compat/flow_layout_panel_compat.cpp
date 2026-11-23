@@ -2,6 +2,7 @@
 #include "../container_layout_utilities.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -45,14 +46,14 @@ void write_flow_break(Component& container, const Control& child, const BindingV
 
 std::shared_ptr<const PropertyEnumDescriptor> flow_direction_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "flow_direction", {{"left_to_right", 0}, {"right_to_left", 1}, {"top_down", 2}, {"bottom_up", 3}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> main_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "flow_main_alignment",
             {{"start", 0}, {"center", 1}, {"end", 2}, {"space_between", 3}, {"space_around", 4}, {"space_evenly", 5}},
             false});
@@ -61,7 +62,7 @@ std::shared_ptr<const PropertyEnumDescriptor> main_alignment_enum() {
 
 std::shared_ptr<const PropertyEnumDescriptor> cross_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "flow_cross_alignment", {{"start", 0}, {"center", 1}, {"end", 2}, {"stretch", 3}}, false});
     return value;
 }

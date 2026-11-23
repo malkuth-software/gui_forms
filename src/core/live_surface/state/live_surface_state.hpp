@@ -4,10 +4,10 @@
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
 
 #include <atomic>
-#include <condition_variable>
+#include <cstdint>
 #include <functional>
 #include <memory>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::detail {
@@ -30,7 +30,7 @@ struct LiveSurfaceWake final {
 };
 
 struct LiveSurfaceState final {
-    mutable std::mutex mutex;
+    mutable stxlib::Mutex mutex;
     LiveSurfaceDescription description{};
     std::vector<std::shared_ptr<LiveSurfaceBuffer>> buffers;
     std::size_t published_slot{};
@@ -64,7 +64,11 @@ struct LiveSurfaceState final {
     // pacers wait on (notified on every report and on LiveSurfacePacer::arm).
     LivePresentationRecord presentation_record{};
     std::vector<std::shared_ptr<LiveSurfaceWake>> presented_wakes;
-    std::condition_variable presented;
+    // Signalled after a presentation report, an arm() or a pacer's stop;
+    // each signaller first raises wake_sequence under the mutex, which a
+    // waiting pacer compares with the value it last planned at.
+    stxlib::ConditionVariable presented;
+    std::uint64_t wake_sequence{};
 };
 
 } // namespace gui_forms::detail

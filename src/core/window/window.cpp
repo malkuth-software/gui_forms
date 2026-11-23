@@ -20,6 +20,7 @@
 #include "interaction/interaction_state.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -32,7 +33,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <unordered_set>
 
@@ -710,7 +711,7 @@ AcceleratorToken SurfaceRoot::register_accelerator(
         throw std::invalid_argument(
             "accelerator requires a live owner, physical key, and callback");
     }
-    std::shared_ptr<gui_forms::detail::AcceleratorAttachment> attachment = std::make_shared<detail::AcceleratorAttachment>(
+    std::shared_ptr<gui_forms::detail::AcceleratorAttachment> attachment = gui_forms::detail::make_library_shared<detail::AcceleratorAttachment>(
         *this, owner, gesture, std::move(callback), options);
     accelerators_.push_back(attachment);
     owner.own_revocable(attachment);
@@ -774,7 +775,7 @@ OverlayToken SurfaceRoot::open_overlay(const Control::Ptr& owner,
     // overlay. Keep it as a separate retained root while still registering the
     // subtree with this Window for lifetime, focus, semantics, and dispatch.
     attach_subtree(overlay, {});
-    std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = std::make_shared<detail::OverlayAttachment>(*this, owner, overlay, !options.require_enabled_owner);
+    std::shared_ptr<gui_forms::detail::OverlayAttachment> attachment = gui_forms::detail::make_library_shared<detail::OverlayAttachment>(*this, owner, overlay, !options.require_enabled_owner);
     overlays_.push_back(attachment);
     (*owner).own_revocable(attachment);
     return OverlayToken(std::move(attachment));
@@ -1612,7 +1613,7 @@ bool SurfaceRoot::end_focus_scope(FocusScopeId scope,
         // Scope closure is an identity-bearing stream, not a scalar property.
         // Preserve every nested scope transition rather than coalescing all
         // Window scope notifications under one Event address.
-        const std::shared_ptr<unsigned char> notification_key = std::make_shared<std::uint8_t>();
+        const std::shared_ptr<unsigned char> notification_key = gui_forms::detail::make_library_shared<std::uint8_t>();
         (*notification_owner).publish_change(
             static_cast<const void*>(notification_key.get()),
             FocusScopePublication{
@@ -3088,7 +3089,7 @@ void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
     // A request deferred while detached commits in this root's passes.
     if ((*control).layout_deferred_) list_layout_deferred(*control);
     {
-        std::scoped_lock lock((*control).dispatcher_mutex_);
+        const stxlib::ScopedLock lock((*control).dispatcher_mutex_);
         (*control).dispatcher_state_ = dispatcher_state_;
     }
     (*control).parent_ = parent;
@@ -3125,7 +3126,7 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     control_table_.release((*control).surface_slot_);
     (*control).surface_slot_ = {};
     {
-        std::scoped_lock lock((*control).dispatcher_mutex_);
+        const stxlib::ScopedLock lock((*control).dispatcher_mutex_);
         (*control).dispatcher_state_.reset();
     }
     for (const Control::Ptr& child : (*control).children_) {
@@ -3156,7 +3157,7 @@ void SurfaceRoot::forget_destroyed_subtree(Control& root) noexcept {
         control.window_ = nullptr;
         control.surface_root_ = nullptr;
         {
-            std::scoped_lock lock(control.dispatcher_mutex_);
+            const stxlib::ScopedLock lock(control.dispatcher_mutex_);
             control.dispatcher_state_.reset();
         }
     }
@@ -3224,7 +3225,7 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
             control_table_.release((*(*current)).surface_slot_);
             (*(*current)).surface_slot_ = {};
             {
-                std::scoped_lock lock((*(*current)).dispatcher_mutex_);
+                const stxlib::ScopedLock lock((*(*current)).dispatcher_mutex_);
                 (*(*current)).dispatcher_state_.reset();
             }
         }
@@ -5864,7 +5865,7 @@ std::shared_ptr<const PaintGroupEffect> SurfaceRoot::painted_content_effect(Cont
             PaintGroupEffect copy{};
             copy.blur = (*shown).blur;
             copy.masks = (*shown).masks;
-            suppressed = std::make_shared<const PaintGroupEffect>(std::move(copy));
+            suppressed = gui_forms::detail::make_library_shared<const PaintGroupEffect>(std::move(copy));
         }
         control.contrast_content_effect_ = std::move(suppressed);
         control.contrast_effect_source_ = shown;

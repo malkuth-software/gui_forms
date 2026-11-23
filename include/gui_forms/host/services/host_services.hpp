@@ -11,7 +11,6 @@
 #include <stxlib/optional.hpp>
 #include <chrono>
 #include <optional>
-#include <thread>
 
 namespace gui_forms {
 

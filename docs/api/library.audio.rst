@@ -57,7 +57,7 @@ Types
 
       Synchronous bounded file I/O: never call on the device callback or a UI latency-sensitive path. Little-endian RIFF PCM16/float32 stereo 48 kHz only.
 
-   .. cpp:function:: static AudioClipResult load_ogg(const FilePath& path, std::stop_token cancellation = {})
+   .. cpp:function:: static AudioClipResult load_ogg(const FilePath& path, stxlib::StopToken cancellation = {})
 
       Single-stream Ogg Vorbis, stereo 48 kHz, <=64 MiB encoded input and <=600 seconds decoded. Owns input plus a 16 MiB codec arena until close. Output is charged to the live-clip budget before allocation. Vorbis overshoot is saturated to [-1,1]. Failure publishes no partial clip. Synchronous: use a background executor. Cancellation is observed between reads, pages and <=4096-frame decode calls and before publication; foreign codec open/decode calls and the serialized open wait cannot be interrupted.
 

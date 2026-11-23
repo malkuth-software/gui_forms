@@ -10,6 +10,7 @@
 #include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "tree-and-object-views_form.hpp"
 #include "gui_forms_lab/correspondence_view.hpp"
@@ -414,7 +415,7 @@ private:
             {.name = "history", .header_text = "History", .kind = DataGridViewColumnKind::link, .width = 80.0,
              .link_text = "Changes"},
         });
-        grid_rows_ = std::make_shared<ProjectFileRows>();
+        grid_rows_ = gui_forms::detail::make_library_shared<ProjectFileRows>();
         (*grid_).set_virtual_rows(grid_rows_, (*grid_rows_).order());
         on((*grid_).cell_value_changed(), *this, &TreeAndObjectViewsPage::on_grid_value_changed);
         on((*grid_).cell_content_click(), *this, &TreeAndObjectViewsPage::on_grid_content_click);
@@ -820,7 +821,7 @@ private:
 
 void add_tree_and_object_views(const std::shared_ptr<Surface>& page,
                                const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<TreeAndObjectViewsPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<TreeAndObjectViewsPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

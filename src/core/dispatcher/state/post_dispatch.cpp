@@ -1,9 +1,11 @@
 #include "dispatcher_state.hpp"
 
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -22,8 +24,8 @@ thread_local RevocableInvokes* thread_revocable_invokes = nullptr;
 // An operation that is already cancelled and holds no callback: what a
 // refused post returns.
 DispatchOperation refused_operation(const std::shared_ptr<DispatcherState>& state) {
-    std::shared_ptr<DispatchWork> refused = std::make_shared<DispatchWork>();
-    (*refused).state.store(DispatchOperationState::cancelled, std::memory_order_release);
+    std::shared_ptr<DispatchWork> refused = gui_forms::detail::make_library_shared<DispatchWork>();
+    (*refused).state.store(DispatchOperationState::cancelled, stxlib::MemoryOrder::release);
     (*refused).dispatcher = state;
     return DispatchOperation(std::move(refused));
 }
@@ -33,7 +35,7 @@ DispatchOperation refused_operation(const std::shared_ptr<DispatcherState>& stat
 void revoke_invokes(RevocableInvokes& invokes) noexcept {
     std::shared_ptr<DispatchWork> waiting;
     {
-        std::scoped_lock lock(invokes.mutex);
+        const stxlib::ScopedLock lock(invokes.mutex);
         invokes.revoked = true;
         waiting = invokes.waiting.lock();
         invokes.waiting.reset();
@@ -43,9 +45,9 @@ void revoke_invokes(RevocableInvokes& invokes) noexcept {
     // one is cancelled, which wakes its waiter. The owning dispatcher's turn
     // skips it, and its callback goes with the work.
     DispatchOperationState expected = DispatchOperationState::pending;
-    if ((*waiting).state.compare_exchange_strong(expected, DispatchOperationState::cancelled,
-                                                  std::memory_order_acq_rel,
-                                                  std::memory_order_acquire)) {
+    if ((*waiting).state.compare_exchange(expected, DispatchOperationState::cancelled,
+                                                  stxlib::MemoryOrder::acquire_release,
+                                                  stxlib::MemoryOrder::acquire)) {
         (*waiting).state.notify_all();
     }
 }
@@ -83,7 +85,7 @@ PostOutcome post_dispatch_outcome(const std::shared_ptr<DispatcherState>& state,
 
     std::shared_ptr<DispatchWork> work;
     {
-        std::scoped_lock lock((*state).mutex);
+        const stxlib::ScopedLock lock((*state).mutex);
         // A closed window: its dispatcher shut down, or its teardown began
         // (which removes the host wake, so marshalled work could never run).
         // WindowDispatcher asks for the refusal in both cases; Window's own
@@ -109,12 +111,12 @@ PostOutcome post_dispatch_outcome(const std::shared_ptr<DispatcherState>& state,
         if ((*state).queue.size() >= maximum_posted_callbacks) {
             return PostOutcome::queue_full;
         }
-        work = std::make_shared<DispatchWork>();
+        work = gui_forms::detail::make_library_shared<DispatchWork>();
         RevocableInvokes* const revocable = synchronous ? thread_revocable_invokes : nullptr;
         if (revocable != nullptr) {
             // Under the leaf lock, so a revocation either sees this work as
             // waiting or this post sees the revocation.
-            std::scoped_lock revocable_lock((*revocable).mutex);
+            const stxlib::ScopedLock revocable_lock((*revocable).mutex);
             if ((*revocable).revoked) {
                 ++(*state).cancelled;
                 operation = refused_operation(state);

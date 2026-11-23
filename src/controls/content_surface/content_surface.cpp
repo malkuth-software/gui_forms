@@ -4,6 +4,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../core/content/channel/content_channel.hpp"
 #include "../../core/surface_root/access/surface_schedule_access.hpp"
 
@@ -15,6 +16,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -109,7 +111,7 @@ private:
 };
 
 ContentSurface::ContentSurface(StableId stable_id)
-    : Control(std::move(stable_id)), notices_(std::make_shared<Notices>(*this)) {
+    : Control(std::move(stable_id)), notices_(gui_forms::detail::make_library_shared<Notices>(*this)) {
     focusable = true;
     captions_[status_index(ContentSurfaceStatus::stale)] = "Not responding";
     captions_[status_index(ContentSurfaceStatus::abandoned)] = "Stopped";
@@ -451,7 +453,7 @@ ContentSurfaceStatistics ContentSurface::statistics() const noexcept {
 
 ContentRequest ContentSurface::request() const noexcept {
     if (!channel_) return ContentRequest{};
-    const std::scoped_lock lock((*channel_).request_mutex);
+    const stxlib::ScopedLock lock((*channel_).request_mutex);
     const ContentRequest result = (*channel_).request;
     return result;
 }

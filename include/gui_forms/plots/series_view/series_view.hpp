@@ -22,6 +22,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
+#include <stxlib/atomic_word.hpp>
 
 namespace gui_forms::plots {
 
@@ -122,7 +123,8 @@ private:
     void release() noexcept;
 
     std::atomic<bool> released_{};
-    std::atomic<std::uint32_t> readers_{};
+    // Waited on by release() (stxlib/atomic_word.hpp; the shield).
+    stxlib::AtomicWord readers_{};
     std::atomic<std::uint64_t> refused_{};
 };
 

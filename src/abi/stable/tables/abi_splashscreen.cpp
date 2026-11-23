@@ -18,11 +18,10 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <mutex>
 #include <new>
 #include <optional>
 #include <string_view>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::abi1 {
@@ -36,10 +35,10 @@ static_assert(sizeof(gf_splashscreen_options) == splashscreen_options_size_1_1);
 // the handle and the thread that showed it. Handles count from one and are
 // never reused, so a closed handle stays stale.
 struct SplashscreenState final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     std::unique_ptr<Splashscreen> shown{};
     gf_splashscreen handle{};
-    std::thread::id thread{};
+    stxlib::ThreadIdentity thread{};
     gf_splashscreen last_handle{};
 };
 
@@ -82,7 +81,7 @@ stxlib::Optional<double> requested_progress(const std::uint32_t show_progress, c
 // thread. The caller holds the state's mutex.
 gf_status check_handle(const SplashscreenState& state, const gf_splashscreen handle) noexcept {
     if (handle == 0U || handle != state.handle || !state.shown) return GF_STATUS_STALE_HANDLE;
-    if (std::this_thread::get_id() != state.thread) return GF_STATUS_WRONG_THREAD;
+    if (stxlib::current_thread() != state.thread) return GF_STATUS_WRONG_THREAD;
     return GF_STATUS_OK;
 }
 
@@ -104,13 +103,13 @@ gf_status GF_CALL runtime_splashscreen_show(const gf_splashscreen_options* optio
         made.status.assign(*status);
         made.progress = requested_progress((*options).show_progress, (*options).progress);
         SplashscreenState& state = splashscreen_state();
-        const std::lock_guard<std::mutex> lock(state.mutex);
+        const stxlib::ScopedLock lock(state.mutex);
         if (state.shown) return GF_STATUS_INVALID_STATE;
         SplashscreenResult result = Splashscreen::show(std::move(made));
         if (!result) return splashscreen_status(result.error);
         state.last_handle = state.last_handle + 1U;
         state.handle = state.last_handle;
-        state.thread = std::this_thread::get_id();
+        state.thread = stxlib::current_thread();
         state.shown = std::move(result.splashscreen);
         *splashscreen = state.handle;
         return GF_STATUS_OK;
@@ -125,7 +124,7 @@ gf_status GF_CALL runtime_splashscreen_set_status(const gf_splashscreen splashsc
                                                   const gf_utf8_view status) noexcept {
     try {
         SplashscreenState& state = splashscreen_state();
-        const std::lock_guard<std::mutex> lock(state.mutex);
+        const stxlib::ScopedLock lock(state.mutex);
         const gf_status checked = check_handle(state, splashscreen);
         if (checked != GF_STATUS_OK) return checked;
         const std::optional<std::string_view> text = view_text(status);
@@ -144,7 +143,7 @@ gf_status GF_CALL runtime_splashscreen_set_progress(const gf_splashscreen splash
                                                     const double progress) noexcept {
     try {
         SplashscreenState& state = splashscreen_state();
-        const std::lock_guard<std::mutex> lock(state.mutex);
+        const stxlib::ScopedLock lock(state.mutex);
         const gf_status checked = check_handle(state, splashscreen);
         if (checked != GF_STATUS_OK) return checked;
         const SplashscreenError error = (*state.shown).set_progress(requested_progress(show_progress, progress));
@@ -161,7 +160,7 @@ gf_status GF_CALL runtime_splashscreen_close(const gf_splashscreen splashscreen)
         std::unique_ptr<Splashscreen> closing{};
         {
             SplashscreenState& state = splashscreen_state();
-            const std::lock_guard<std::mutex> lock(state.mutex);
+            const stxlib::ScopedLock lock(state.mutex);
             const gf_status checked = check_handle(state, splashscreen);
             if (checked != GF_STATUS_OK) return checked;
             closing = std::move(state.shown);

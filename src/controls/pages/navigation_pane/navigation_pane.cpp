@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -241,11 +242,11 @@ NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id
         *this, Delegate<const MenuItemInvocation&>::bind<NavigationPane, &NavigationPane::on_menu_item_invoked>(*this));
     menu_changed_ = (*menu_).open_changed().subscribe(
         *this, Delegate<bool>::bind<NavigationPane, &NavigationPane::on_menu_open_changed>(*this));
-    show_more_command_ = std::make_shared<Command>(prefix + ".show-more", std::string(show_more_text));
-    show_fewer_command_ = std::make_shared<Command>(prefix + ".show-fewer", std::string(show_fewer_text));
-    hidden_heading_command_ = std::make_shared<Command>(prefix + ".hidden-heading", std::string(hidden_heading_text));
+    show_more_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".show-more", std::string(show_more_text));
+    show_fewer_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".show-fewer", std::string(show_fewer_text));
+    hidden_heading_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".hidden-heading", std::string(hidden_heading_text));
     (*hidden_heading_command_).set_enabled(false);
-    options_command_ = std::make_shared<Command>(prefix + ".options", std::string(options_text));
+    options_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".options", std::string(options_text));
     selection_token_ = pages_.selected_page_changed().subscribe(
         *this,
         Delegate<const PageSelectionChange&>::bind<NavigationPane, &NavigationPane::on_selected_page_changed>(*this));
@@ -1519,7 +1520,7 @@ bool NavigationPane::show_configure_menu(MenuOpenMode mode) {
     for (const std::size_t position : placed.unfit) {
         const std::string id = prefix + ".page." + pages_.record_at(PagePosition{position}).id.value;
         const std::string text = page_text(position);
-        page_commands_.push_back(std::make_shared<Command>(id, text));
+        page_commands_.push_back(gui_forms::detail::make_library_shared<Command>(id, text));
         items.emplace_back(id, MenuItemKind::command, page_commands_.back(), text);
     }
     const std::vector<PageId> hidden = hidden_pages();
@@ -1534,7 +1535,7 @@ bool NavigationPane::show_configure_menu(MenuOpenMode mode) {
         if (position.absent()) continue;
         const std::string id = prefix + ".page." + page.value;
         const std::string text = page_text((*position.value()).value);
-        page_commands_.push_back(std::make_shared<Command>(id, text));
+        page_commands_.push_back(gui_forms::detail::make_library_shared<Command>(id, text));
         items.emplace_back(id, MenuItemKind::command, page_commands_.back(), text);
     }
     items.emplace_back(prefix + ".options-separator", MenuItemKind::separator);

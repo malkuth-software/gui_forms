@@ -2,6 +2,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../access/surface_request_access.hpp"
 #include "../access/surface_forwarding_access.hpp"
 
@@ -232,7 +233,7 @@ constexpr std::array<InteractionDeclaration, 2> sub_surface_host_interactions{{
 } // namespace
 
 SubSurfaceHost::SubSurfaceHost(StableId stable_id)
-    : Control(std::move(stable_id)), notices_(std::make_shared<Notices>(*this)) {
+    : Control(std::move(stable_id)), notices_(gui_forms::detail::make_library_shared<Notices>(*this)) {
     focusable = true;
     // The sub-surface's tooltip requests are this host's tooltip parts.
     set_publishes_item_tool_tips(true);
@@ -381,7 +382,7 @@ void SubSurfaceHost::set_publishes_semantics(bool publishes) {
         semantics_notice_.reset();
         if (thread_) (*thread_).set_semantics_listener(WindowDispatcher{}, std::weak_ptr<SubSurfaceSemanticsListener>{});
     } else if (publishes && thread_ && window != nullptr) {
-        semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
+        semantics_notice_ = gui_forms::detail::make_library_shared<SemanticsNotice>(*this);
         (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
     }
     semantics_.reset();
@@ -896,15 +897,15 @@ void SubSurfaceHost::configure_region() {
         thread_ = std::make_unique<SubSurfaceThread>(std::move(content_), surface, (*start_resources).theme_ptr(),
                                                      std::move(text_measure), std::move(layered_user_theme));
         surface_ = std::move(surface);
-        key_return_ = std::make_shared<KeyReturn>(*this);
+        key_return_ = gui_forms::detail::make_library_shared<KeyReturn>(*this);
         (*thread_).set_key_return((*window).dispatcher(), key_return_);
-        request_target_ = std::make_shared<RequestTarget>(*this);
-        alert_relay_ = std::make_shared<AlertRelay>(*this);
+        request_target_ = gui_forms::detail::make_library_shared<RequestTarget>(*this);
+        alert_relay_ = gui_forms::detail::make_library_shared<AlertRelay>(*this);
         (*thread_).set_request_target((*window).dispatcher(), request_target_);
         pointer_left_sequence_ = 0U;
         focus_left_sequence_ = 0U;
         if (publishes_semantics_) {
-            semantics_notice_ = std::make_shared<SemanticsNotice>(*this);
+            semantics_notice_ = gui_forms::detail::make_library_shared<SemanticsNotice>(*this);
             (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
         }
         notice_dispatcher_ = (*window).dispatcher();

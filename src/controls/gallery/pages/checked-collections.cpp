@@ -3,6 +3,7 @@
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/controls/list_view.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "checked-collections_form.hpp"
 
@@ -204,7 +205,7 @@ private:
 
 void add_checked_collections(const std::shared_ptr<Surface>& page,
                              const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<CheckedCollectionsPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<CheckedCollectionsPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

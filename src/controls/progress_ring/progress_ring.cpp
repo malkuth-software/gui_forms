@@ -7,6 +7,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../basic/number_text.hpp"
 
 #include <algorithm>
@@ -26,7 +27,7 @@ constexpr double natural_side = 32.0;
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> progress_ring_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "progress_ring_style", {{"theme", 0}, {"dots", 1}, {"arc", 2}}, false});
     return value;
 }

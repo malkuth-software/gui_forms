@@ -5,7 +5,10 @@
 #include "../state/live_surface_state.hpp"
 
 #include <chrono>
-#include <mutex>
+#include <cstdint>
+#include <stxlib/clocks.hpp>
+#include <stxlib/stop_token.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -31,19 +34,29 @@ constexpr FrameInterval fallback_refresh_period =
 // requests the stop (or in the callback's constructor, before the waiter
 // takes the lock); it takes the surface's lock so the wake cannot fall
 // between the waiter's check and its wait.
-class NotifyPacerStop final {
-public:
-    explicit NotifyPacerStop(detail::LiveSurfaceState& state) noexcept : state_(&state) {}
-    void operator()() const noexcept {
-        {
-            const std::scoped_lock lock((*state_).mutex);
-        }
-        (*state_).presented.notify_all();
+// A StopCallback's function (stxlib/stop_token.hpp); `context` is the
+// surface's detail::LiveSurfaceState.
+void notify_pacer_stop(void* const context) noexcept {
+    detail::LiveSurfaceState& state = *static_cast<detail::LiveSurfaceState*>(context);
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        ++state.wake_sequence;
     }
+    state.presented.notify_all();
+}
 
-private:
-    detail::LiveSurfaceState* state_;
+// What a pacer's wait waits for, read under the surface's lock: a signal
+// since it planned (a report, arm() or the stop), seen as a new
+// wake_sequence.
+struct PacerWait final {
+    const detail::LiveSurfaceState* state{};
+    std::uint64_t planned_at{};
 };
+
+bool pacer_woken(const void* const context) noexcept {
+    const PacerWait& wait = *static_cast<const PacerWait*>(context);
+    return (*wait.state).wake_sequence != wait.planned_at;
+}
 
 } // namespace
 
@@ -63,7 +76,7 @@ LiveSurfacePacer::LiveSurfacePacer(std::shared_ptr<LiveSurface> surface) noexcep
 FrameTime LiveSurfacePacer::display_time(FrameTime now) const {
     if (!surface_ || !(*surface_).state_) return now;
     detail::LiveSurfaceState& state = *(*surface_).state_;
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const LiveDisplayTiming timing = state.presentation_record.timing;
     const FrameInterval period =
         timing.refresh_period > FrameInterval::zero() ? timing.refresh_period : fallback_refresh_period;
@@ -79,7 +92,7 @@ LivePacingResult LiveSurfacePacer::plan(FrameTime now) {
         return result;
     }
     detail::LiveSurfaceState& state = *(*surface_).state_;
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const LivePacingResult result = plan_locked(now, state.generation, state.presentation_record);
     return result;
 }
@@ -128,7 +141,7 @@ LivePacingResult LiveSurfacePacer::plan_locked(FrameTime now, std::uint64_t publ
     return result;
 }
 
-LivePacingResult LiveSurfacePacer::wait_for_frame(const std::stop_token& stop) {
+LivePacingResult LiveSurfacePacer::wait_for_frame(const stxlib::StopToken& stop) {
     if (!surface_ || !(*surface_).state_) {
         LivePacingResult result;
         result.outcome = stop.stop_requested() ? LivePacingOutcome::stopped : LivePacingOutcome::frame;
@@ -138,8 +151,8 @@ LivePacingResult LiveSurfacePacer::wait_for_frame(const std::stop_token& stop) {
     detail::LiveSurfaceState& state = *(*surface_).state_;
     // Made before the lock is taken: a token already stopped runs the
     // callback here, and the callback takes the lock.
-    const std::stop_callback<NotifyPacerStop> on_stop(stop, NotifyPacerStop(state));
-    std::unique_lock<std::mutex> lock(state.mutex);
+    const stxlib::StopCallback on_stop(stop, &notify_pacer_stop, &state);
+    stxlib::ScopedLock lock(state.mutex);
     for (;;) {
         if (stop.stop_requested()) {
             LivePacingResult stopped;
@@ -153,10 +166,16 @@ LivePacingResult LiveSurfacePacer::wait_for_frame(const std::stop_token& stop) {
         // One wait per frame: woken by a report, arm() or the stop token,
         // or at the deadline. On Windows the deadline's timeout is bound to
         // the system timer grain; frames normally come from the reports.
+        const PacerWait wait{.state = &state, .planned_at = state.wake_sequence};
         if (result.wake_at == FrameTime::max()) {
-            state.presented.wait(lock);
+            state.presented.wait(lock, &pacer_woken, &wait);
         } else {
-            static_cast<void>(state.presented.wait_until(lock, result.wake_at));
+            // The frame clock and STXlib's interval clock are both the
+            // monotonic clock; the wait takes the interval to the deadline.
+            const FrameInterval left = result.wake_at - FrameClock::now();
+            const std::int64_t nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(left).count();
+            static_cast<void>(
+                state.presented.wait_for(lock, &pacer_woken, &wait, stxlib::Duration::nanoseconds(nanoseconds)));
         }
     }
 }
@@ -170,7 +189,8 @@ void LiveSurfacePacer::arm() noexcept {
     if (!surface_ || !(*surface_).state_) return;
     detail::LiveSurfaceState& state = *(*surface_).state_;
     {
-        const std::scoped_lock lock(state.mutex);
+        const stxlib::ScopedLock lock(state.mutex);
+        ++state.wake_sequence;
     }
     state.presented.notify_all();
 }

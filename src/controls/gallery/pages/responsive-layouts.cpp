@@ -5,6 +5,7 @@
 #include "gui_forms/controls/master_detail_view.hpp"
 #include "gui_forms/controls/master_detail_view_values.hpp"
 #include "gui_forms/controls/track_bar.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "responsive-layouts_form.hpp"
 
@@ -238,7 +239,7 @@ private:
 
 void add_responsive_layouts(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ResponsiveLayoutsPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<ResponsiveLayoutsPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

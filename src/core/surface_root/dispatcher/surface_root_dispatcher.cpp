@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -15,7 +16,7 @@ namespace gui_forms {
 namespace {
 void record_inline_invoke(
     const std::shared_ptr<detail::DispatcherState>& state) {
-    std::scoped_lock lock((*state).mutex);
+    const stxlib::ScopedLock lock((*state).mutex);
     if (!(*state).accepting) {
         throw std::logic_error("GUI.Forms dispatcher is shut down");
     }
@@ -86,7 +87,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
 
     std::vector<std::shared_ptr<detail::DispatchWork>> turn;
     {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         (*dispatcher_state_).wake_pending = false;
         const std::size_t count = std::min(
             maximum_callbacks, (*dispatcher_state_).queue.size());
@@ -100,9 +101,9 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
     DispatchDrainResult result;
     for (const std::shared_ptr<gui_forms::detail::DispatchWork>& work : turn) {
         DispatchOperationState expected = DispatchOperationState::pending;
-        if (!(*work).state.compare_exchange_strong(
+        if (!(*work).state.compare_exchange(
                 expected, DispatchOperationState::running,
-                std::memory_order_acq_rel, std::memory_order_acquire)) {
+                stxlib::MemoryOrder::acquire_release, stxlib::MemoryOrder::acquire)) {
             if (expected == DispatchOperationState::cancelled) {
                 ++result.cancelled;
                 (*work).callback = {};
@@ -115,7 +116,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
             (!owner || !(*owner).is_alive() || (*owner).surface_root_ != this)) {
             (*work).callback = {};
             (*work).state.store(DispatchOperationState::cancelled,
-                              std::memory_order_release);
+                              stxlib::MemoryOrder::release);
             (*work).state.notify_all();
             ++result.cancelled;
             continue;
@@ -130,7 +131,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
             (*work).callback = {};
             callback();
             (*work).state.store(DispatchOperationState::completed,
-                              std::memory_order_release);
+                              stxlib::MemoryOrder::release);
             (*work).state.notify_all();
             ++result.invoked;
         } catch (...) {
@@ -138,7 +139,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
             (*work).fault = std::current_exception();
             (*work).callback = {};
             (*work).state.store(DispatchOperationState::faulted,
-                              std::memory_order_release);
+                              stxlib::MemoryOrder::release);
             (*work).state.notify_all();
             ++result.faulted;
         }
@@ -146,7 +147,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
     }
 
     {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         (*dispatcher_state_).invoked += result.invoked;
         (*dispatcher_state_).cancelled += result.cancelled;
         (*dispatcher_state_).faulted += result.faulted;
@@ -156,7 +157,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
         for (detail::DispatcherState::Queue::iterator current =
                  (*dispatcher_state_).queue.begin();
              current != (*dispatcher_state_).queue.end();) {
-            if ((*(*current)).state.load(std::memory_order_acquire) ==
+            if ((*(*current)).state.load(stxlib::MemoryOrder::acquire) ==
                 DispatchOperationState::cancelled) {
                 (*(*current)).callback = {};
                 current = (*dispatcher_state_).queue.erase(current);
@@ -179,7 +180,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
 
 DispatcherSnapshot SurfaceRoot::dispatcher_snapshot() const noexcept {
     if (!dispatcher_state_) return {};
-    std::scoped_lock lock((*dispatcher_state_).mutex);
+    const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
     return {
         (*dispatcher_state_).posted,
         (*dispatcher_state_).invoked,
@@ -201,13 +202,13 @@ DispatcherSnapshot SurfaceRoot::dispatcher_snapshot() const noexcept {
 void SurfaceRoot::set_dispatch_wake_handler(std::function<void()> wake_handler) {
     require_root_thread("dispatcher wake-handler mutation");
     {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         if (!wake_handler) {
             bool synchronous_waiter{};
             for (const std::shared_ptr<detail::DispatchWork>& work :
                  (*dispatcher_state_).queue) {
                 if ((*work).synchronous &&
-                    (*work).state.load(std::memory_order_acquire) ==
+                    (*work).state.load(stxlib::MemoryOrder::acquire) ==
                         DispatchOperationState::pending) {
                     synchronous_waiter = true;
                     break;
@@ -230,7 +231,7 @@ void SurfaceRoot::set_dispatch_wake_handler(std::function<void()> wake_handler) 
 
 void SurfaceRoot::begin_dispatcher_teardown() noexcept {
     if (!dispatcher_state_) return;
-    std::scoped_lock lock((*dispatcher_state_).mutex);
+    const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
     (*dispatcher_state_).closing = true;
     // No host is woken from here on: the host may be going too. Work posted
     // during the teardown is queued and then cancelled by the shutdown that
@@ -243,7 +244,7 @@ void SurfaceRoot::close_dispatcher() noexcept {
     if (!dispatcher_state_) return;
     std::deque<std::shared_ptr<detail::DispatchWork>> pending;
     {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         if (!(*dispatcher_state_).accepting) return;
         (*dispatcher_state_).accepting = false;
         (*dispatcher_state_).wake_pending = false;
@@ -253,16 +254,16 @@ void SurfaceRoot::close_dispatcher() noexcept {
     std::uint64_t cancelled = 0U;
     for (const std::shared_ptr<gui_forms::detail::DispatchWork>& work : pending) {
         DispatchOperationState expected = DispatchOperationState::pending;
-        if ((*work).state.compare_exchange_strong(
+        if ((*work).state.compare_exchange(
                 expected, DispatchOperationState::cancelled,
-                std::memory_order_acq_rel, std::memory_order_acquire)) {
+                stxlib::MemoryOrder::acquire_release, stxlib::MemoryOrder::acquire)) {
             (*work).callback = {};
             (*work).state.notify_all();
             ++cancelled;
         }
     }
     if (cancelled != 0U) {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         (*dispatcher_state_).cancelled += cancelled;
     }
 }

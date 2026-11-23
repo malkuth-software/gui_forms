@@ -12,6 +12,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -28,7 +29,7 @@ namespace gui_forms {
 
 std::shared_ptr<const PropertyEnumDescriptor> button_base_detail::choice_indicator_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "indicator_style", {{"classic", 0}, {"modern", 1}, {"toggle", 2}, {"lamp", 3}}, false});
     return value;
 }
@@ -114,7 +115,7 @@ void ButtonBase::bind(Command& command) {
     require_mutable();
     const Control::Ptr retained = weak_from_this().lock();
     std::shared_ptr<CommandConnection> connection =
-        std::make_shared<CommandConnection>(*this, command);
+        gui_forms::detail::make_library_shared<CommandConnection>(*this, command);
     unbind_command();
     command_connection_ = std::move(connection);
     (*command_connection_).synchronize();
@@ -169,7 +170,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> content_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "content_alignment",
             {{"top_left", 0}, {"top_center", 1}, {"top_right", 2}, {"middle_left", 3}, {"middle_center", 4},
              {"middle_right", 5}, {"bottom_left", 6}, {"bottom_center", 7}, {"bottom_right", 8}},

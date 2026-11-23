@@ -3,6 +3,7 @@
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "semantic-feedback_form.hpp"
 
@@ -173,7 +174,7 @@ void SemanticFeedbackPage::refresh_records() {
 
 void add_semantic_feedback(const std::shared_ptr<Surface>& page,
                            const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<SemanticFeedbackPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<SemanticFeedbackPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

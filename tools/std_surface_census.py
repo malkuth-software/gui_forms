@@ -7,6 +7,11 @@ ownership pointers at the C++ surface with STXlib's owned vocabulary before
 plan (STXlib notes, planning/M2b-owned-vocabulary-migration.md) moves them
 in stages V1 to V6, and V6 ends with every count at zero.
 
+The STXlib shield (2026-11-22) adds the thread, lock, stop and file names:
+GUI.Forms reaches the host's threads and files only through STXlib
+(tools/std_rules.toml's std-threads, std-stop-token and std-files rules
+hold the whole tree; this census holds the public surface).
+
 The surface is what a C++ client compiles against: include/gui_forms/,
 except include/gui_forms/c/ (the C ABI, which names no C++ type). A name is
 counted where it is qualified (`std::optional`, `::std::span`) on code:
@@ -65,6 +70,28 @@ NAMES: tuple[str, ...] = (
     "nullopt",
     "string_view",
     "span",
+    # The STXlib shield (2026-11-22): the host's threads and files reach
+    # GUI.Forms only through STXlib, so none of these names a public type.
+    # What remains: std::filesystem (FilePath, std::filesystem::path, the
+    # public path type until a decision). The stop parameters are STXlib's
+    # StopToken.
+    "thread",
+    "jthread",
+    "mutex",
+    "recursive_mutex",
+    "shared_mutex",
+    "condition_variable",
+    "unique_lock",
+    "lock_guard",
+    "scoped_lock",
+    "this_thread",
+    "stop_token",
+    "stop_source",
+    "stop_callback",
+    "filesystem",
+    "ifstream",
+    "ofstream",
+    "fstream",
 )
 QUALIFIED: re.Pattern[str] = re.compile(r"(?<![A-Za-z0-9_])(?:::\s*)?std\s*::\s*(" + "|".join(NAMES) +
                                         r")(?![A-Za-z0-9_])")
@@ -140,7 +167,8 @@ def census_json(counts: dict[str, NameCount]) -> dict[str, object]:
         names[name] = {"occurrences": entry.occurrences, "headers": entry.headers}
     document: dict[str, object] = {
         "description": ("Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), "
-                        "tools/std_surface_census.py. D15 and Q2: every count only falls, and V6 ends at zero. "
+                        "tools/std_surface_census.py. D15 and Q2, and the STXlib shield's thread, lock, stop and file names: "
+                        "every count only falls, and V6 ends at zero. "
                         "Occurrences are ratcheted; headers are reported."),
         "names": names,
     }

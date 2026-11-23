@@ -2,6 +2,7 @@
 
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../surface_root/access/surface_schedule_access.hpp"
 #include "../../surface_root/access/surface_lifetime_access.hpp"
 
@@ -73,7 +74,7 @@ void AnimationTimer::start_every_frame(Control& owner, Tick tick) {
 }
 
 void AnimationTimer::begin(Control& owner, FrameInterval interval, Tick tick) {
-    if (!state_) state_ = std::make_shared<State>();
+    if (!state_) state_ = gui_forms::detail::make_library_shared<State>();
     State& state = *state_;
     state.owner = owner.shared_from_this();
     state.interval = interval;
@@ -86,7 +87,7 @@ void AnimationTimer::begin(Control& owner, FrameInterval interval, Tick tick) {
     static_cast<void>(tick);
     state.started = false;
 #else
-    state.tick = std::make_shared<const Tick>(std::move(tick));
+    state.tick = gui_forms::detail::make_library_shared<const Tick>(std::move(tick));
     state.started = true;
     schedule(state_);
 #endif

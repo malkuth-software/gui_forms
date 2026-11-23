@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::render::text {
@@ -46,7 +47,7 @@ PreparedWindowShaper::PreparedWindowShaper(std::shared_ptr<const detail::Prepare
     : fonts_(std::move(fonts)), owner_bytes_(owner_bytes) {}
 
 PreparedTextStatus PreparedWindowShaper::initialize() {
-    if (executor_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if (executor_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     if (engine_) return PreparedTextStatus::busy;
     if (!fonts_ || !(*fonts_).ledger || (*fonts_).face_count == 0U ||
         (*fonts_).face_count > PreparedTextLimits::font_faces) return PreparedTextStatus::invalid_input;
@@ -54,7 +55,7 @@ PreparedTextStatus PreparedWindowShaper::initialize() {
         return PreparedTextStatus::budget_exceeded;
     const std::size_t reserved_context = context_bytes + owner_bytes_;
     {
-        std::lock_guard<std::mutex> lock((*(*fonts_).ledger).mutex);
+        const stxlib::ScopedLock lock((*(*fonts_).ledger).mutex);
         if ((*(*fonts_).ledger).closing) return PreparedTextStatus::closing;
     }
     try {
@@ -77,7 +78,7 @@ PreparedTextStatus PreparedWindowShaper::initialize() {
             ids[index] = *id;
         }
         (*candidate).prepare_workspace(workspace_, limits);
-        std::lock_guard<std::mutex> lock((*bank.ledger).mutex);
+        const stxlib::ScopedLock lock((*bank.ledger).mutex);
         if ((*bank.ledger).closing) return PreparedTextStatus::closing;
         face_ids_ = ids;
         engine_ = std::move(candidate);
@@ -88,7 +89,7 @@ PreparedTextStatus PreparedWindowShaper::initialize() {
 }
 
 PreparedTextStatus PreparedWindowShaper::shape(detail::PreparedWindowBatchStorage& batch) {
-    if (executor_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if (executor_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     if (batch.geometry) return PreparedTextStatus::busy;
     if (!engine_ || !batch.input || !batch.rows || batch.row_count == 0U ||
         batch.row_count > 512U) return PreparedTextStatus::invalid_input;
@@ -197,8 +198,8 @@ PreparedTextStatus PreparedWindowShaper::shape(detail::PreparedWindowBatchStorag
             row.runs = std::move(geometry.runs);
             row.glyphs = std::move(geometry.glyphs);
         }
-        std::lock_guard<std::mutex> authority_lock((*batch.authority).mutex);
-        std::lock_guard<std::mutex> ledger_lock((*batch.ledger).mutex);
+        const stxlib::ScopedLock authority_lock((*batch.authority).mutex);
+        const stxlib::ScopedLock ledger_lock((*batch.ledger).mutex);
         current = detail::prepared_window_worker_current_locked(batch);
         if (current != PreparedTextStatus::success) return current;
         batch.geometry = std::move(rows);

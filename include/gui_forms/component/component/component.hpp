@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component/revocable/revocable.hpp"
 #include "gui_forms/component/types/component_types.hpp"
@@ -14,7 +15,10 @@ namespace gui_forms {
 
 struct PropertyEntry;
 
-class GUI_FORMS_API Component {
+// LibraryAllocated (allocation/library_memory): every component and control, and every
+// class derived from it, takes its storage from GUI.Forms' allocator
+// whoever creates it, and its delete releases it there.
+class GUI_FORMS_API Component : public LibraryAllocated {
 public:
     using Ptr = std::shared_ptr<Component>;
 

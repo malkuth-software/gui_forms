@@ -74,7 +74,8 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <thread>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -82,6 +83,14 @@ namespace {
 
 using namespace gui_forms;
 using Clock = std::chrono::steady_clock;
+
+// Sleeps until `deadline` on Clock (STXlib's sleep, on the same monotonic
+// clock); a deadline already passed returns at once.
+void sleep_until_tick(const Clock::time_point deadline) {
+    const std::chrono::nanoseconds remaining =
+        std::chrono::duration_cast<std::chrono::nanoseconds>(deadline - Clock::now());
+    if (remaining.count() > 0) stxlib::sleep_for(stxlib::Duration::nanoseconds(remaining.count()));
+}
 
 // The synthetic grid: rows of fixed height, eight columns, a region the
 // size of a typical grid's data area.
@@ -193,7 +202,7 @@ constexpr std::size_t every_cell = row_total * column_total;
         if (snapshot.has_frame && !snapshot.carries_previous_frame && snapshot.content_tag >= tag) {
             return Clock::now() - start;
         }
-        std::this_thread::yield();
+        stxlib::yield_thread();
     }
     require(false, "the sub-surface did not publish in time");
     return Clock::duration{};
@@ -310,7 +319,7 @@ void grid_scrolling(bool on_region, std::size_t steps, Spread& ui_cost, std::uin
         window.flush();
         path.paint();
         samples.push_back(milliseconds(Clock::now() - start));
-        std::this_thread::sleep_until(tick);
+        sleep_until_tick(tick);
         // Whether the region's newest frame is older than the epoch the
         // UI frame just painted needs, as the present tick finds it.
         if (on_region) {
@@ -379,7 +388,7 @@ void scrolling_on_sub_surface(std::size_t steps, Spread& ui_cost, Spread& publis
         window.flush();
         path.paint();
         ui_samples.push_back(milliseconds(Clock::now() - start));
-        std::this_thread::sleep_until(tick);
+        sleep_until_tick(tick);
         presented += path.present(tick);
         tick += refresh;
         const LiveSurfaceSnapshot snapshot = (*region.surface).snapshot();
@@ -471,11 +480,11 @@ void click_at(Window& window, Point point) {
     std::size_t within_frame = 0U;
     Clock::time_point tick = Clock::now() + refresh;
     for (std::size_t step = 0U; step < steps; ++step) {
-        std::this_thread::sleep_until(tick);
+        sleep_until_tick(tick);
         static_cast<void>(path.present(tick));
         // Sixteen phases across the refresh, in a fixed stride.
         const std::chrono::nanoseconds phase = refresh * static_cast<std::int64_t>((step * 7U) % 16U) / 16;
-        std::this_thread::sleep_until(tick + phase);
+        sleep_until_tick(tick + phase);
         const std::uint64_t before = (*host).content_epoch();
         const Clock::time_point start = Clock::now();
         if (input == GridInput::click) {
@@ -493,7 +502,7 @@ void click_at(Window& window, Point point) {
         const Clock::time_point published = Clock::now();
         // The next present tick on the 60 Hz grid shows it paired.
         while (tick <= published) tick += refresh;
-        std::this_thread::sleep_until(tick);
+        sleep_until_tick(tick);
         static_cast<void>(path.present(tick));
         require((*surface).snapshot().content_tag >= epoch, "the present shows the input's epoch");
         const Clock::duration to_present = tick - start;
@@ -523,7 +532,7 @@ private:
 class StayBusy final {
 public:
     explicit StayBusy(std::chrono::milliseconds duration) : duration_(duration) {}
-    void operator()() const { std::this_thread::sleep_for(duration_); }
+    void operator()() const { stxlib::sleep_for(stxlib::Duration::milliseconds(duration_.count())); }
 
 private:
     std::chrono::milliseconds duration_{};
@@ -539,7 +548,7 @@ void message_costs(std::size_t steps, Spread& round_trip, Spread& thousand_cells
         std::shared_ptr<std::atomic<bool>> flag = std::make_shared<std::atomic<bool>>(false);
         const Clock::time_point start = Clock::now();
         static_cast<void>((*region.host).dispatcher().begin_invoke(RaiseFlag(flag)));
-        while (!(*flag).load(std::memory_order_acquire)) std::this_thread::yield();
+        while (!(*flag).load(std::memory_order_acquire)) stxlib::yield_thread();
         trips.push_back(milliseconds(Clock::now() - start));
     }
     round_trip = spread_of(trips);

@@ -19,10 +19,9 @@
 #include <cstring>
 #include <limits>
 #include <memory>
-#include <mutex>
 #include <span>
 #include <string>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -65,7 +64,7 @@ struct EndpointBinding final {
 struct WriteBinding final {
     std::shared_ptr<Endpoint> endpoint;
     std::uintptr_t device_context{};
-    std::thread::id thread;
+    stxlib::ThreadIdentity thread;
 };
 
 // The live endpoints and writes, by token. Any thread reaches them (the
@@ -76,7 +75,7 @@ struct WriteBinding final {
 // endpoint (acquire configures it) and stay fixed until its release, so the
 // indexes are written at acquire and erased at release only (N22).
 struct EndpointRegistry final {
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     std::unordered_map<std::uint64_t, EndpointBinding> endpoints;
     std::unordered_map<std::uint64_t, std::uint64_t> tokens_by_handle;
     std::unordered_map<std::uint64_t, std::uint64_t> tokens_by_device_context;
@@ -94,7 +93,7 @@ EndpointRegistry& endpoint_registry() {
 
 std::shared_ptr<Endpoint> find_endpoint(gf_paint_endpoint token) {
     EndpointRegistry& endpoints = endpoint_registry();
-    const std::scoped_lock lock(endpoints.mutex);
+    const stxlib::ScopedLock lock(endpoints.mutex);
     const std::unordered_map<std::uint64_t, EndpointBinding>::const_iterator found = endpoints.endpoints.find(token);
     if (found == endpoints.endpoints.end()) {
         return nullptr;
@@ -127,7 +126,7 @@ std::shared_ptr<Endpoint> endpoint_for_handle(std::uint64_t handle) {
     std::shared_ptr<Endpoint> endpoint;
     {
         EndpointRegistry& endpoints = endpoint_registry();
-        const std::scoped_lock lock(endpoints.mutex);
+        const stxlib::ScopedLock lock(endpoints.mutex);
         endpoint = indexed_endpoint_locked(endpoints.tokens_by_handle, handle);
     }
     if (endpoint == nullptr || static_cast<std::uint64_t>((*endpoint).compatibility_handle()) != handle) {
@@ -140,7 +139,7 @@ std::shared_ptr<Endpoint> endpoint_for_dc(std::uint64_t device_context) {
     std::shared_ptr<Endpoint> endpoint;
     {
         EndpointRegistry& endpoints = endpoint_registry();
-        const std::scoped_lock lock(endpoints.mutex);
+        const stxlib::ScopedLock lock(endpoints.mutex);
         endpoint = indexed_endpoint_locked(endpoints.tokens_by_device_context, device_context);
     }
     if (endpoint == nullptr || static_cast<std::uint64_t>((*endpoint).device_context()) != device_context) {
@@ -190,7 +189,7 @@ gf_status endpoint_acquire_body(gf_object control, std::uint32_t width, std::uin
     TokenNode device_context_node = device_context_scratch.extract(device_context_scratch.begin());
     EndpointRegistry& endpoints = endpoint_registry();
     {
-        const std::scoped_lock lock(endpoints.mutex);
+        const stxlib::ScopedLock lock(endpoints.mutex);
         endpoints.endpoints.reserve(endpoints.endpoints.size() + 1U);
         endpoints.tokens_by_handle.reserve(endpoints.tokens_by_handle.size() + 1U);
         endpoints.tokens_by_device_context.reserve(endpoints.tokens_by_device_context.size() + 1U);
@@ -199,7 +198,7 @@ gf_status endpoint_acquire_body(gf_object control, std::uint32_t width, std::uin
         (*made).release();
         return fail(GF_STATUS_WRONG_HANDLE_KIND, acquire_slot, "the control is not a custom control");
     }
-    const std::scoped_lock lock(endpoints.mutex);
+    const stxlib::ScopedLock lock(endpoints.mutex);
     const std::uint64_t token = endpoints.next_endpoint;
     endpoints.next_endpoint = token + 1U;
     endpoint_node.key() = token;
@@ -336,7 +335,7 @@ gf_status endpoint_release_body(gf_paint_endpoint token) {
     EndpointBinding binding;
     {
         EndpointRegistry& endpoints = endpoint_registry();
-        const std::scoped_lock lock(endpoints.mutex);
+        const stxlib::ScopedLock lock(endpoints.mutex);
         const std::unordered_map<std::uint64_t, EndpointBinding>::iterator found =
             endpoints.endpoints.find(token);
         if (found == endpoints.endpoints.end()) {
@@ -354,7 +353,7 @@ gf_status endpoint_release_body(gf_paint_endpoint token) {
     const std::uint64_t device_context = static_cast<std::uint64_t>((*binding.endpoint).device_context());
     {
         EndpointRegistry& endpoints = endpoint_registry();
-        const std::scoped_lock lock(endpoints.mutex);
+        const stxlib::ScopedLock lock(endpoints.mutex);
         const std::unordered_map<std::uint64_t, std::uint64_t>::const_iterator by_handle =
             endpoints.tokens_by_handle.find(handle);
         if (by_handle != endpoints.tokens_by_handle.end() && (*by_handle).second == token) {
@@ -451,14 +450,14 @@ gf_status endpoint_begin_write_body(std::uint64_t device_context, gf_paint_write
     EndpointRegistry& endpoints = endpoint_registry();
     std::uint64_t token = 0U;
     {
-        const std::scoped_lock lock(endpoints.mutex);
+        const stxlib::ScopedLock lock(endpoints.mutex);
         token = endpoints.next_write;
         endpoints.next_write = token + 1U;
         endpoints.writes.emplace(token, WriteBinding{endpoint, static_cast<std::uintptr_t>(device_context),
-                                                   std::this_thread::get_id()});
+                                                   stxlib::current_thread()});
     }
     if (!(*endpoint).begin_device_context_write(static_cast<std::uintptr_t>(device_context))) {
-        const std::scoped_lock lock(endpoints.mutex);
+        const stxlib::ScopedLock lock(endpoints.mutex);
         endpoints.writes.erase(token);
         return fail(GF_STATUS_STALE_HANDLE, begin_write_slot, "the endpoint was released before the write began");
     }
@@ -477,12 +476,12 @@ gf_status endpoint_end_write_body(gf_paint_write_lease lease, std::uint32_t publ
     WriteBinding write;
     {
         EndpointRegistry& endpoints = endpoint_registry();
-        const std::scoped_lock lock(endpoints.mutex);
+        const stxlib::ScopedLock lock(endpoints.mutex);
         const std::unordered_map<std::uint64_t, WriteBinding>::iterator found = endpoints.writes.find(lease);
         if (found == endpoints.writes.end()) {
             return fail(GF_STATUS_STALE_HANDLE, end_write_slot, "the write lease is not active");
         }
-        if ((*found).second.thread != std::this_thread::get_id()) {
+        if ((*found).second.thread != stxlib::current_thread()) {
             return fail(GF_STATUS_WRONG_THREAD, end_write_slot, "a write ends on the thread that began it");
         }
         write = std::move((*found).second);

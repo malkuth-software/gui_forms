@@ -30,12 +30,11 @@ bytes the image registry holds for its images (`image_resources`), an image
 atlas's tables (`image_atlas`), effect state storage (`effects`), the command
 lists of display chunks and of the recording painter (`display_chunks`),
 damage rectangles and pending paint marks (`damage_lists`), and the paragraph
-layout's scratch (`text_layout`, once that code counts). GUI.Forms does not
-replace or hook the global `operator new`, so the program's allocations,
-other containers inside GUI.Forms, Skia, STXlib's own allocator and the host
-toolkits are not counted. The figures are never the process total.
+layout's scratch (`text_layout`, once that code counts). The program's
+allocations, GUI.Forms' other allocations, Skia, the rest of STXlib and the
+host toolkits are not counted. The figures are never the process total.
 
-Bytes are the bytes asked of `operator new`, without allocator overhead. A
+Bytes are the bytes asked of the allocator, without its overhead. A
 release is counted on the thread that releases. Scopes nest freely and hold
 no resources. The JSON form of the counts carries
 `"scope":"gui_forms_counted_paths"` so that a record is not read as a process

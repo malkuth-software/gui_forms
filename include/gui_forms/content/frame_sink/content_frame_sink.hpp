@@ -6,7 +6,7 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
-#include <stop_token>
+#include <stxlib/stop_token.hpp>
 
 namespace gui_forms {
 
@@ -73,7 +73,7 @@ public:
     // destruction, a ContentWorker's stop). Content polls it or waits on it;
     // GUI.Forms never stops a thread any other way. An empty sink's token
     // never fires.
-    [[nodiscard]] std::stop_token stop_token() const noexcept;
+    [[nodiscard]] stxlib::StopToken stop_token() const noexcept;
     [[nodiscard]] bool stop_requested() const noexcept;
     [[nodiscard]] ContentSurfaceStatistics statistics() const noexcept;
     [[nodiscard]] explicit operator bool() const noexcept { return channel_ != nullptr; }

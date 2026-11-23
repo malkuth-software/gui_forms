@@ -6,6 +6,7 @@
 
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
+#include <stxlib/threads.hpp>
 #if defined(GUI_FORMS_HAVE_XRANDR)
 #include <X11/extensions/Xrandr.h>
 #endif
@@ -607,7 +608,7 @@ HostWindowAdmission RunOpen::operator()(LinuxApplicationWindow entry) const {
     refused.status.error = HostServiceError::after_shutdown;
     return refused;
   }
-  if ((*state).thread != std::this_thread::get_id()) {
+  if ((*state).thread != stxlib::current_thread()) {
     refused.status.error = HostServiceError::wrong_thread;
     return refused;
   }

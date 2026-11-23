@@ -1,5 +1,6 @@
 #include "pages.hpp"
 #include "gui_forms/controls/splitter.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "dock-and-anchor_form.hpp"
 
@@ -90,7 +91,7 @@ private:
 
 void add_dock_and_anchor(const std::shared_ptr<Surface>& page,
                          const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<DockAndAnchorPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<DockAndAnchorPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

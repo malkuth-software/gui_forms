@@ -1,14 +1,18 @@
 #include "worker_probe.hpp"
+#include "../src/platform/library_files.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <limits>
+#include <optional>
 #include <stdexcept>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
+#include <vector>
 
 namespace {
 using namespace gui_forms;
@@ -27,16 +31,10 @@ std::shared_ptr<const FontSet> load_fonts(const std::filesystem::path& root) {
     const std::size_t face_count = names.size();
     for (std::size_t index = 0; index < face_count; ++index) {
         const std::filesystem::path path = root / names[index];
-        std::ifstream stream(path, std::ios::binary | std::ios::ate);
-        require(static_cast<bool>(stream), "font open");
-        const std::streamsize length = stream.tellg();
-        require(length > 0 && length <= 16 * 1024 * 1024, "bounded font input");
-        const std::size_t size = static_cast<std::size_t>(length);
-        std::vector<std::byte> bytes(size);
-        stream.seekg(0);
-        char* destination = reinterpret_cast<char*>(bytes.data());
-        stream.read(destination, length);
-        require(static_cast<bool>(stream), "complete font input");
+        require(gui_forms::platform::names_regular_file(path), "font open");
+        std::optional<std::vector<std::byte>> read = gui_forms::platform::read_file_bytes(path, 16 * 1024 * 1024);
+        require(read.has_value() && !(*read).empty(), "bounded font input");
+        std::vector<std::byte> bytes = std::move(*read);
         set.faces[index].encoded = std::make_shared<const std::vector<std::byte>>(std::move(bytes));
     }
     set.faces[0].role = FontRole::content;
@@ -93,7 +91,7 @@ ForegroundSample wait_ready(Worker& worker) {
         ++sample.ticks;
         if (state.slot == Slot::running) { ++sample.running_ticks; }
         previous = now;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(1));
     }
     return sample;
 }
@@ -246,7 +244,7 @@ void exercise(const std::shared_ptr<const FontSet>& fonts) {
         if (state.slot == Slot::running) { break; }
         require(state.slot != Slot::ready, "close fixture observes live work");
         require(milliseconds(Clock::now() - started) < 10'000.0, "close start deadline");
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(1));
     }
     const Clock::time_point close_start = Clock::now();
     worker.close();

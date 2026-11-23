@@ -1,4 +1,5 @@
 #include "windows_accessibility.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/failure/fail_fast.hpp"
 
 #include "windows_automation.hpp"
@@ -818,7 +819,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::put_accValue(VARIANT child, BSTR value) {
 
 } // namespace
 
-WindowsAccessibility::WindowsAccessibility() : source_(std::make_shared<SemanticSource>()) {}
+WindowsAccessibility::WindowsAccessibility() : source_(gui_forms::detail::make_library_shared<SemanticSource>()) {}
 
 WindowsAccessibility::~WindowsAccessibility() { detach(); }
 

@@ -3,6 +3,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../panel/panel_anatomy.hpp"
 
 #include <array>
@@ -21,7 +22,7 @@ namespace {
 // storage; any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> choice_group_presentation_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "choice_group_presentation", {{"buttons", 0}, {"segmented", 1}}, false});
     return value;
 }
@@ -228,7 +229,7 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
         }
     }
     const Control::Ptr retained = shared_from_this();
-    const std::shared_ptr<Revision> next = std::make_shared<Revision>();
+    const std::shared_ptr<Revision> next = gui_forms::detail::make_library_shared<Revision>();
     (*next).items = std::move(items);
     (*next).entries.reserve((*next).items.size());
     for (const ChoiceItem& value : (*next).items) {
@@ -239,7 +240,7 @@ void ChoiceGroup::set_items(std::vector<ChoiceItem> items) {
             }
         }
         if (!entry) {
-            entry = std::make_shared<Entry>();
+            entry = gui_forms::detail::make_library_shared<Entry>();
             (*entry).id = value.id;
             std::string id(stable_id().value());
             id += ".item.";

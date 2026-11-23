@@ -20,16 +20,15 @@
 #include <stxlib/error.hpp>
 #include <stxlib/gate.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <span>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -304,7 +303,7 @@ private:
         SubSurfaceDomain& operator=(SubSurfaceDomain&&) = default;
 
         bool occupied = false;
-        std::thread::id thread{};
+        stxlib::ThreadIdentity thread{};
         // Objects of the domain released last off its thread.
         std::vector<Component::Ptr> deferred;
         std::deque<PostedCall> posted;
@@ -354,9 +353,9 @@ private:
     // the lock.
     void complete_deferred();
 
-    std::mutex mutex_;
+    stxlib::Mutex mutex_;
     // The UI thread, or a default id while unbound.
-    std::thread::id ui_thread_{};
+    stxlib::ThreadIdentity ui_thread_{};
     std::vector<ObjectSlot> objects_;
     std::vector<std::uint32_t> free_objects_;
     std::unordered_map<const Component*, std::uint32_t> object_index_;

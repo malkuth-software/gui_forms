@@ -16,7 +16,7 @@
 #include "../locale/posix_locale.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
-#include <thread>
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
@@ -26,6 +26,7 @@
 #if defined(GUI_FORMS_HAVE_XSYNC)
 #include <X11/extensions/sync.h>
 #endif
+#include <stxlib/threads.hpp>
 #if defined(GUI_FORMS_HAVE_XRANDR)
 #include <X11/extensions/Xrandr.h>
 #endif
@@ -43,7 +44,6 @@
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -75,9 +75,9 @@ bool superseded_motion(Display *display, const XEvent &event) {
 }
 struct WindowTitle final {
   std::weak_ptr<NativeWindow> owner{};
-  const std::thread::id thread{std::this_thread::get_id()};
+  const stxlib::ThreadIdentity thread{stxlib::current_thread()};
   HostServiceStatus operator()(const std::string_view text) const {
-    if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+    if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
     const std::shared_ptr<NativeWindow> window = owner.lock();
     if (!window || (*window).closed) return {HostServiceError::after_shutdown};
     try {
@@ -164,9 +164,9 @@ bool window_state_fixed(NativeWindow& window) {
 // ConfigureNotify, which resizes the model on a later event.
 struct WindowClientSize final {
   std::weak_ptr<NativeWindow> owner{};
-  const std::thread::id thread{std::this_thread::get_id()};
+  const stxlib::ThreadIdentity thread{stxlib::current_thread()};
   HostServiceStatus operator()(const Size client_size) const {
-    if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+    if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
     const std::shared_ptr<NativeWindow> window = owner.lock();
     if (!window || (*window).closed) return {HostServiceError::after_shutdown};
     try {
@@ -973,7 +973,7 @@ void Wake::operator()() const noexcept {
 }
 void ActionQueue::post(Action action) {
   {
-    const std::lock_guard<std::mutex> guard(mutex);
+    const stxlib::ScopedLock guard(mutex);
     pending.push_back(std::move(action));
   }
   wake();
@@ -995,7 +995,7 @@ Runtime::Runtime() {
   if (display == nullptr)
     throw std::runtime_error("Cannot open the X11 display");
   try {
-    wake_channel = std::make_shared<WakePipe>();
+    wake_channel = gui_forms::detail::make_library_shared<WakePipe>();
   } catch (...) {
     XCloseDisplay(display);
     display = nullptr;
@@ -1012,7 +1012,7 @@ Runtime::Runtime() {
     fcntl(wake_pipe[i], F_SETFL, fcntl(wake_pipe[i], F_GETFL) | O_NONBLOCK);
     fcntl(wake_pipe[i], F_SETFD, FD_CLOEXEC);
   }
-  actions = std::make_shared<ActionQueue>();
+  actions = gui_forms::detail::make_library_shared<ActionQueue>();
   (*actions).wake = Wake{wake_channel};
   XSetLocaleModifiers("");
   input_method = XOpenIM(display, nullptr, nullptr, nullptr);
@@ -1178,7 +1178,7 @@ std::shared_ptr<NativeWindow> Runtime::add(LinuxApplicationWindow entry,
                                            HostWindowId window_id,
                                            bool initial) {
   const std::shared_ptr<NativeWindow> window =
-      std::make_shared<NativeWindow>(*this, std::move(entry));
+      gui_forms::detail::make_library_shared<NativeWindow>(*this, std::move(entry));
   (*window).window_id = window_id;
   (*window).initial = initial;
   windows.push_back(window);
@@ -2492,7 +2492,7 @@ bool Runtime::run_woken_work() {
   }
   std::deque<Action> queued;
   {
-    const std::lock_guard<std::mutex> guard((*actions).mutex);
+    const stxlib::ScopedLock guard((*actions).mutex);
     queued.swap((*actions).pending);
   }
   for (std::size_t i = 0; i < queued.size(); ++i) {
@@ -3044,7 +3044,7 @@ HostCapabilities linux_capabilities() {
 int run_linux_application(std::vector<LinuxApplicationWindow> windows,
                           LinuxApplicationOptions application) {
   const std::shared_ptr<linux_detail::RunOpenState> open_state =
-      std::make_shared<linux_detail::RunOpenState>();
+      gui_forms::detail::make_library_shared<linux_detail::RunOpenState>();
   try {
     // The run holds the bundled font set, so windows opened and closed during it share one
     // copy of each face.

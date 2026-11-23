@@ -12,6 +12,7 @@
 #include "gui_forms/controls/rich_text_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/token_box.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "text-and-input_form.hpp"
 
@@ -601,7 +602,7 @@ private:
 
 void add_text_input(const std::shared_ptr<Surface>& page,
                     const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<TextAndInputPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<TextAndInputPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

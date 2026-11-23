@@ -4,7 +4,7 @@
 #include "../../../core/resources/fonts/program_typefaces.hpp"
 
 #include <array>
-#include <thread>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::render::paint_probe {
 enum class Status { success, stale, missing_font, incompatible_face, incompatible_glyph,
@@ -30,7 +30,7 @@ private:
     // Declared after pinned_fonts_, destroyed before it: each face's
     // typeface keeps its pinned bytes, and the faces are the executor's.
     std::array<gui_forms::detail::ExecutorFace, 4> faces_{};
-    std::thread::id executor_{};
+    stxlib::ThreadIdentity executor_{};
     std::vector<std::uint8_t> pixels_{};
     worker_probe::Identity painted_identity_{};
 };

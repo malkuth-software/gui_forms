@@ -16,6 +16,7 @@
 #include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/band/window_band.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 
 #include <stxlib/optional.hpp>
@@ -605,7 +606,7 @@ gf_status prepare_owned(gf_object root, const gf_owned_window_options* options, 
             return fail(GF_STATUS_INVALID_STATE, slot, "another open window has the root's stable id");
         }
     }
-    std::shared_ptr<OwnedWindow> made = std::make_shared<OwnedWindow>();
+    std::shared_ptr<OwnedWindow> made = gui_forms::detail::make_library_shared<OwnedWindow>();
     (*made).root = root;
     (*made).control = control;
     (*made).stable_id = stable_id;
@@ -776,7 +777,7 @@ gf_status create_window(gf_object root, gf_object* made) {
     }
     const ApplicationWindowOptions defaults{};
     std::unique_ptr<Window> window = make_run_window(control, defaults.initial_size);
-    const Component::Ptr handle = std::make_shared<WindowHandle>(std::move(window), control);
+    const Component::Ptr handle = gui_forms::detail::make_library_shared<WindowHandle>(std::move(window), control);
     *made = registry().add_reference(handle);
     return GF_STATUS_OK;
 }

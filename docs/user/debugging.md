@@ -137,11 +137,10 @@ an `AllocationSubsystem`:
 | `damage_lists` | damage rectangles and pending localized paint marks |
 | `text_layout` | the paragraph layout's reused storage and the bundled engine's shaping workspace |
 
-The library does not replace or hook the global `operator new`, so the
-program's own allocations, the standard library's elsewhere in GUI.Forms,
-and those of Skia, of STXlib's own allocator (apart from the glyph faces'
-bytes, under `text_layout`) and of the host toolkits are not counted.
-A figure here is never the process total; read that from the platform.
+Nothing else is counted: the program's own allocations, GUI.Forms' other
+allocations, and those of Skia, of the rest of STXlib (apart from the glyph
+faces' bytes, under `text_layout`) and of the host toolkits. A figure here
+is never the process total; read that from the platform.
 
 ```cpp
 #include <gui_forms/allocation.hpp>
@@ -170,4 +169,47 @@ std::uint64_t chunk_allocations_during(gf::Window& window) {
 - `AllocationCounts` holds allocations, releases, allocated bytes and
   released bytes. `AllocationStatistics::to_json()` names every subsystem,
   and its `scope` member says that the record covers the counted paths only.
+
+# Which allocator GUI.Forms uses
+
+GUI.Forms' own code allocates from STXlib's allocator (stx_minmallocpp, or
+the host's C library in a sanitizer build), whatever your program's
+`operator new` is, and it replaces nothing global: your program's own
+allocations stay with your allocator. The header is
+`gui_forms/allocation/library_memory/library_memory.hpp`.
+
+- Every control, component and window takes its storage from GUI.Forms'
+  allocator, however you create it: `new`, `std::make_unique`, a subclass
+  of your own. Deleting it, or letting its `std::unique_ptr` go, releases it
+  there.
+- `make_control` and the library's other shared objects carry GUI.Forms'
+  allocator in their control block, so the last `std::shared_ptr`, yours
+  included, releases to it. An object you make with `std::make_shared`
+  yourself is yours, on your allocator.
+- The C ABI's objects are handles: create and release run in the library,
+  and the C# wrappers hold those handles, so no side frees the other's
+  memory. Text comes back in buffers you supply.
+- The standard containers and strings inside GUI.Forms follow the module
+  they run in. In the C ABI library (C and C# programs) the library has its
+  own `operator new` and `delete`, kept inside the library, so they are on
+  STXlib's allocator. A C++ program links GUI.Forms statically, into one
+  module with one standard library, so there they use your program's
+  `operator new`.
+
+Programs from GUI.Forms' own projects may opt in to the same allocator:
+a container with `gui_forms::LibraryAllocator<T>`, or the whole program with
+`gui_forms_use_library_allocator(<target>)` in CMake, which compiles a
+replacement of the global `operator new` and `delete` into that program
+(left out under a sanitizer). Only a program may opt in, never a shared
+library or plugin, and it is never the default.
+
+When the C ABI library is unloaded, or the process ends, its static
+destructors never see `std::bad_alloc`. On Windows they run at the DLL's
+detach, where STXlib's allocator may refuse a new block once the process's
+other threads have stopped; from then on such a block comes from a small
+reserve inside the library, and a destructor that needs more than the
+reserve holds ends the process with an `out_of_memory` record named
+`gf.allocation.teardown_reserve`, which is a defect to report. Releasing
+memory always succeeds then. On Linux and macOS nothing is stopped at exit
+or `dlclose`, so the allocator serves the destructors as usual.
 

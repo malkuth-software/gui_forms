@@ -4,6 +4,7 @@
 #include "gui_forms/controls/range_control_values.hpp"
 #include "gui_forms/controls/track_bar.hpp"
 #include "gui_forms/controls/v_scroll_bar.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "ranges-and-progress_form.hpp"
 
@@ -134,7 +135,7 @@ private:
 
 void add_ranges(const std::shared_ptr<Surface>& page,
                 const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<RangesPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<RangesPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

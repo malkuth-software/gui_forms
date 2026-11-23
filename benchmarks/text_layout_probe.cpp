@@ -1,4 +1,5 @@
 #include "harfbuzz_font_engine.hpp"
+#include "../src/platform/library_files.hpp"
 
 #include <algorithm>
 #include <array>
@@ -6,13 +7,14 @@
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <locale>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -25,16 +27,10 @@ void require(bool valid, const char* message) {
 }
 
 std::vector<std::byte> read_font(const std::filesystem::path& path) {
-    std::ifstream stream(path, std::ios::binary | std::ios::ate);
-    require(static_cast<bool>(stream), "font open failed");
-    const std::streamsize length = stream.tellg();
-    require(length > 0 && length <= 16 * 1024 * 1024, "fixed font exceeds probe admission");
-    const std::size_t count = static_cast<std::size_t>(length);
-    std::vector<std::byte> bytes(count);
-    stream.seekg(0);
-    char* destination = reinterpret_cast<char*>(bytes.data());
-    stream.read(destination, length);
-    require(static_cast<bool>(stream), "font read failed");
+    require(gui_forms::platform::names_regular_file(path), "font open failed");
+    std::optional<std::vector<std::byte>> read = gui_forms::platform::read_file_bytes(path, 16 * 1024 * 1024);
+    require(read.has_value() && !(*read).empty(), "fixed font exceeds probe admission");
+    std::vector<std::byte> bytes = std::move(*read);
     return bytes;
 }
 

@@ -39,6 +39,7 @@
 #include "skia_raster.hpp"
 #include "../src/core/damage/device_damage/device_damage.hpp"
 #include "../src/core/image/png_writer.hpp"
+#include "../src/platform/library_files.hpp"
 
 #include <algorithm>
 #include <array>
@@ -48,7 +49,6 @@
 #include <cstring>
 #include <exception>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <memory>
 #include <span>
@@ -221,9 +221,10 @@ std::string case_record(std::string_view phase, std::string_view page, Size size
     return line.str();
 }
 
-void write_record(std::ofstream& records, const std::string& record) {
+// A failed write is not checked, as the stream's was not.
+void write_record(gui_forms::platform::OutputFile& records, const std::string& record) {
     std::cout << record << '\n';
-    records << record << '\n';
+    static_cast<void>(records.write(record + '\n'));
 }
 
 // Paints the page once with `mode` and writes its heat map over a copy of
@@ -253,12 +254,12 @@ void write_heat_map(SkiaRaster& raster, Window& window, Rect whole, BlendStudyMo
     std::vector<std::byte> encoded{};
     if (!gui_forms::image::encode_png(input, encoded)) throw std::runtime_error("heat map PNG encoding failed");
     const std::filesystem::path path = output / ("heat-" + std::string(name) + "-" + std::string(page) + ".png");
-    std::ofstream file(path, std::ios::binary);
-    file.write(reinterpret_cast<const char*>(encoded.data()), static_cast<std::streamsize>(encoded.size()));
-    if (!file) throw std::runtime_error("cannot write " + path.string());
+    gui_forms::platform::OutputFile file = gui_forms::platform::OutputFile::create(path);
+    static_cast<void>(file.write(std::span<const std::byte>(encoded)));
+    if (!file.close()) throw std::runtime_error("cannot write " + path.string());
 }
 
-void run_page_phase(SkiaRaster& raster, Window& window, std::ofstream& records, const std::filesystem::path& output) {
+void run_page_phase(SkiaRaster& raster, Window& window, gui_forms::platform::OutputFile& records, const std::filesystem::path& output) {
     const Size size = gui_forms::gallery::gallery_default_size;
     const Rect whole{0.0, 0.0, size.width, size.height};
     for (const double scale : page_scales) {
@@ -283,7 +284,7 @@ void run_page_phase(SkiaRaster& raster, Window& window, std::ofstream& records, 
     }
 }
 
-void run_damage_phase(SkiaRaster& raster, Window& window, std::ofstream& records) {
+void run_damage_phase(SkiaRaster& raster, Window& window, gui_forms::platform::OutputFile& records) {
     const gui_forms::gallery::GalleryPageSpec& first = gui_forms::gallery::gallery_pages.front();
     if (!gui_forms::gallery::select_gallery_page(window, first.id)) {
         throw std::runtime_error("unknown Gallery page " + std::string(first.id));
@@ -310,9 +311,9 @@ int main(int argc, char** argv) {
     }
     try {
         const std::filesystem::path output(argv[1]);
-        std::filesystem::create_directories(output);
-        std::ofstream records(output / "blend-study.jsonl");
-        if (!records) throw std::runtime_error("cannot create blend-study.jsonl");
+        if (!gui_forms::platform::create_directories(output)) throw std::runtime_error("cannot create " + output.string());
+        gui_forms::platform::OutputFile records = gui_forms::platform::OutputFile::create(output / "blend-study.jsonl");
+        if (!records.is_open()) throw std::runtime_error("cannot create blend-study.jsonl");
         const std::unique_ptr<Window> gallery = gui_forms::gallery::make_gallery();
         SkiaRaster raster;
         register_bundled_faces(raster, GUI_FORMS_BLEND_STUDY_FONT_DIRECTORY);

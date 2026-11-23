@@ -7,6 +7,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -49,7 +50,7 @@ QuickAccessToolbar::QuickAccessToolbar(StableId stable_id) : ToolStrip(std::move
                    *this));
     menu_changed_ = (*menu_).open_changed().subscribe(
         *this, Delegate<bool>::bind<QuickAccessToolbar, &QuickAccessToolbar::on_menu_open_changed>(*this));
-    placement_command_ = std::make_shared<Command>(prefix + ".customize.placement",
+    placement_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".customize.placement",
                                                    placement_row_text(placement.read()));
     rebuild_menu();
 }
@@ -102,7 +103,7 @@ void QuickAccessToolbar::set_commands(std::vector<QuickAccessToolbarCommand> com
     row_commands_.reserve(commands_.size());
     for (const QuickAccessToolbarCommand& declared : commands_) {
         const std::string& id = (*declared.command).stable_id();
-        std::shared_ptr<Command> row = std::make_shared<Command>(customize_row_id(id), (*declared.command).state().text);
+        std::shared_ptr<Command> row = gui_forms::detail::make_library_shared<Command>(customize_row_id(id), (*declared.command).state().text);
         row_commands_.push_back(std::move(row));
     }
     rebuild_items();

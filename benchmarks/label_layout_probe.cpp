@@ -2,6 +2,7 @@
 #include "gui_forms/window.hpp"
 #include "harfbuzz_font_engine.hpp"
 #include "../src/controls/basic/basic_control_rendering.hpp"
+#include "../src/platform/library_files.hpp"
 
 #include <algorithm>
 #include <array>
@@ -9,13 +10,14 @@
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace {
@@ -25,17 +27,11 @@ using Clock = std::chrono::steady_clock;
 class ProbeMetrics final : public TextMetricsProvider {
 public:
     void load(const std::filesystem::path& path) {
-        std::ifstream stream(path, std::ios::binary | std::ios::ate);
-        const std::streamsize size = stream.tellg();
-        if (!stream || size <= 0 || size > 4 * 1024 * 1024) {
+        std::optional<std::vector<std::byte>> read = platform::read_file_bytes(path, 4 * 1024 * 1024);
+        if (!read.has_value() || (*read).empty()) {
             throw std::runtime_error("font admission failed");
         }
-        const std::size_t count = static_cast<std::size_t>(size);
-        std::vector<std::byte> bytes(count);
-        stream.seekg(0);
-        char* destination = reinterpret_cast<char*>(bytes.data());
-        stream.read(destination, size);
-        if (!stream) { throw std::runtime_error("font read failed"); }
+        std::vector<std::byte> bytes = std::move(*read);
         const std::shared_ptr<const std::vector<std::byte>> owner =
             std::make_shared<const std::vector<std::byte>>(std::move(bytes));
         const std::optional<FontFaceId> face = engine_.register_shared_typeface(

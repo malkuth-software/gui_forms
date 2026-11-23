@@ -22,13 +22,12 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -251,7 +250,7 @@ std::string_view printed_website(const ProgramIdentity& identity) noexcept {
 // destroyed window revokes its overlay, which closes the layer).
 struct ShownCard final {
     const Window* window{nullptr};
-    std::thread::id thread{};
+    stxlib::ThreadIdentity thread{};
     std::shared_ptr<ModalLayer> layer{};
     std::shared_ptr<BusinessCard> card{};
 };
@@ -260,7 +259,7 @@ struct ShownCard final {
 // held while a control runs (show, close or an event), since a handler may
 // call back in.
 struct ShownCards final {
-    std::mutex lock{};
+    stxlib::Mutex lock{};
     std::vector<ShownCard> records{};
 };
 
@@ -286,7 +285,7 @@ public:
 
 // The index of `window`'s record made on this thread, or records.size().
 std::size_t find_record(const std::vector<ShownCard>& records, const Window* window) noexcept {
-    const std::thread::id self = std::this_thread::get_id();
+    const stxlib::ThreadIdentity self = stxlib::current_thread();
     for (std::size_t index = 0U; index < records.size(); ++index) {
         if (records[index].window == window && records[index].thread == self) return index;
     }
@@ -298,7 +297,7 @@ std::size_t find_record(const std::vector<ShownCard>& records, const Window* win
 // Nothing moves while a card handler runs on this thread.
 void sweep_records(std::vector<ShownCard>& records, const Window* keep, std::vector<ShownCard>& released) {
     if (card_handlers_running != 0U) return;
-    const std::thread::id self = std::this_thread::get_id();
+    const stxlib::ThreadIdentity self = stxlib::current_thread();
     std::size_t kept = 0U;
     for (std::size_t index = 0U; index < records.size(); ++index) {
         ShownCard& record = records[index];
@@ -318,7 +317,7 @@ void sweep_records(std::vector<ShownCard>& records, const Window* keep, std::vec
 // caller holds them while they run), or empty.
 ShownCard copy_record(const Window* window) {
     ShownCards& cards = shown_cards();
-    const std::lock_guard<std::mutex> held(cards.lock);
+    const stxlib::ScopedLock held(cards.lock);
     const std::size_t index = find_record(cards.records, window);
     if (index == cards.records.size()) return ShownCard{};
     ShownCard copy{};
@@ -1368,7 +1367,7 @@ bool show_business_card(Window& window) {
     std::vector<ShownCard> released{};
     ShownCard record{};
     {
-        const std::lock_guard<std::mutex> held(cards.lock);
+        const stxlib::ScopedLock held(cards.lock);
         sweep_records(cards.records, &window, released);
         const std::size_t index = find_record(cards.records, &window);
         if (index != cards.records.size()) {
@@ -1384,7 +1383,7 @@ bool show_business_card(Window& window) {
     const bool made = record.card == nullptr;
     if (made) {
         record.window = &window;
-        record.thread = std::this_thread::get_id();
+        record.thread = stxlib::current_thread();
         record.layer = make_control<ModalLayer>(StableId("gui-forms.business-card.layer"));
         record.card = make_control<BusinessCard>(StableId("gui-forms.business-card"), BusinessCardPresentation::hand);
         BusinessCardShowing::prepare(*record.layer, *record.card);
@@ -1393,7 +1392,7 @@ bool show_business_card(Window& window) {
     const bool shown = (*record.layer).show(owner, record.card);
     if (!shown) return false;
     if (made) {
-        const std::lock_guard<std::mutex> held(cards.lock);
+        const stxlib::ScopedLock held(cards.lock);
         cards.records.push_back(std::move(record));
     }
     return true;

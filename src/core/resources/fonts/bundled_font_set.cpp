@@ -2,7 +2,9 @@
 #include "program_typefaces.hpp"
 
 #include "gui_forms/threading.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "stx_fontpack/loader.hpp"
+#include "../../../platform/library_files.hpp"
 
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
 #include "../../failure/fail_fast.hpp"
@@ -11,16 +13,16 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <exception>
-#include <fstream>
-#include <ios>
-#include <mutex>
+#include <optional>
 #include <stdexcept>
 #include <string>
-#include <system_error>
-#include <thread>
+#include <stxlib/files.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -74,9 +76,9 @@ SharedFontSet& shared_font_set() {
     return *value;
 }
 // Guards shared_font_set: the hosts ask on the UI thread, GUI.Drawing's executors on theirs.
-std::mutex& shared_font_set_mutex() {
+stxlib::Mutex& shared_font_set_mutex() {
     // Never destroyed (rule 1: process termination releases none of our state).
-    static std::mutex* const value = new std::mutex();
+    static stxlib::Mutex* const value = new stxlib::Mutex();
     return *value;
 }
 
@@ -88,9 +90,9 @@ std::atomic<std::uint8_t> last_font_source{static_cast<std::uint8_t>(BundledFont
 std::atomic<std::uint32_t> fallback_faces_found{0U};
 std::atomic<std::uint32_t> fallback_faces_expected{0U};
 std::atomic<std::uint64_t> font_pack_refusals{0U};
-std::mutex& font_refusal_mutex() {
+stxlib::Mutex& font_refusal_mutex() {
     // Never destroyed (rule 1: process termination releases none of our state).
-    static std::mutex* const value = new std::mutex();
+    static stxlib::Mutex* const value = new stxlib::Mutex();
     return *value;
 }
 std::string& font_refusal() {
@@ -120,7 +122,7 @@ void record_pack_refusal(const std::string& text) {
 #endif
     const std::uint64_t before = font_pack_refusals.fetch_add(1U, std::memory_order_relaxed);
     if (before == 0U) std::fprintf(stderr, "%s\n", text.c_str());
-    const std::lock_guard<std::mutex> lock(font_refusal_mutex());
+    const stxlib::ScopedLock lock(font_refusal_mutex());
     font_pack_refusal() = text;
 }
 
@@ -188,9 +190,8 @@ std::string development_notice_text(std::span<const BundledFontCandidate> candid
     std::uint32_t found{};
     for (const BundledFaceUse& use : face_uses) {
         if (!is_fallback_face(use)) continue;
-        std::error_code error;
-        const bool present = std::filesystem::is_regular_file(directory / use.file_name, error);
-        if (present && !error) {
+        const bool present = platform::names_regular_file(directory / use.file_name);
+        if (present) {
             ++found;
             continue;
         }
@@ -349,7 +350,7 @@ std::unique_ptr<gui_forms::AtomicThreadPool> make_decode_pool() noexcept {
 #if defined(__EMSCRIPTEN__) && !defined(__EMSCRIPTEN_PTHREADS__)
     return {};
 #else
-    const unsigned int hardware = std::thread::hardware_concurrency();
+    const std::uint32_t hardware = stxlib::processor_count();
     const std::uint32_t threads = std::min<std::uint32_t>(hardware, stx_fontpack::kMaxWorkers);
     if (threads < 2U) return {};
     std::unique_ptr<gui_forms::AtomicThreadPool> pool{};
@@ -411,10 +412,10 @@ std::filesystem::path development_source_font_directory() {
 
 std::shared_ptr<BundledFontSet> shared_bundled_font_set(const std::filesystem::path& directory,
                                                         const SealedPageFunctions& pages) {
-    const std::lock_guard<std::mutex> lock(shared_font_set_mutex());
+    const stxlib::ScopedLock lock(shared_font_set_mutex());
     std::shared_ptr<BundledFontSet> set = shared_font_set().set.lock();
     if (set && !shared_font_set().embedded_pack && shared_font_set().directory == directory) return set;
-    set = std::make_shared<BundledFontSet>(directory, pages);
+    set = gui_forms::detail::make_library_shared<BundledFontSet>(directory, pages);
     shared_font_set().embedded_pack = false;
     shared_font_set().directory = directory;
     shared_font_set().set = set;
@@ -429,10 +430,10 @@ std::shared_ptr<BundledFontSet> shared_bundled_font_set(const BundledFontLocatio
         set = shared_bundled_font_set(location.directory, pages);
         return set;
     }
-    const std::lock_guard<std::mutex> lock(shared_font_set_mutex());
+    const stxlib::ScopedLock lock(shared_font_set_mutex());
     set = shared_font_set().set.lock();
     if (set && shared_font_set().embedded_pack) return set;
-    set = std::make_shared<BundledFontSet>(bundled_font_pack(), pages);
+    set = gui_forms::detail::make_library_shared<BundledFontSet>(bundled_font_pack(), pages);
     shared_font_set().embedded_pack = true;
     shared_font_set().directory.clear();
     shared_font_set().set = set;
@@ -443,9 +444,8 @@ bool directory_holds_required_faces(const std::filesystem::path& directory) {
     if (directory.empty()) return false;
     for (const BundledFaceUse& use : face_uses) {
         if (!use.required) continue;
-        std::error_code error;
-        const bool present = std::filesystem::is_regular_file(directory / use.file_name, error);
-        if (!present || error) return false;
+        const bool present = platform::names_regular_file(directory / use.file_name);
+        if (!present) return false;
     }
     return true;
 }
@@ -476,7 +476,7 @@ BundledFontLocation locate_bundled_fonts(const BundledFontLookup& lookup) {
         std::string notice{};
         if (lookup.directories_honoured) notice = development_notice_text(lookup.candidates);
         if (found != expected) notice = joined_notice(std::move(notice), packed_fallback_notice_text(found, expected, absent));
-        const std::lock_guard<std::mutex> lock(font_refusal_mutex());
+        const stxlib::ScopedLock lock(font_refusal_mutex());
         font_refusal().clear();
         font_notice() = std::move(notice);
         return location;
@@ -489,7 +489,7 @@ BundledFontLocation locate_bundled_fonts(const BundledFontLookup& lookup) {
         fallback_faces_found.store(found, std::memory_order_relaxed);
         std::string notice{};
         if (found != expected) notice = fallback_notice_text(location.directory, found, expected, absent);
-        const std::lock_guard<std::mutex> lock(font_refusal_mutex());
+        const stxlib::ScopedLock lock(font_refusal_mutex());
         font_refusal().clear();
         font_notice() = std::move(notice);
         return location;
@@ -498,7 +498,7 @@ BundledFontLocation locate_bundled_fonts(const BundledFontLookup& lookup) {
     const std::string refusal = refusal_text(lookup);
     const std::uint64_t before = font_lookups_without_source.fetch_add(1U, std::memory_order_relaxed);
     if (before == 0U) std::fprintf(stderr, "%s\n", refusal.c_str());
-    const std::lock_guard<std::mutex> lock(font_refusal_mutex());
+    const stxlib::ScopedLock lock(font_refusal_mutex());
     font_refusal() = refusal;
     font_notice().clear();
     return location;
@@ -630,7 +630,7 @@ BundledFontSet::~BundledFontSet() = default;
 FontFaceLoad BundledFontSet::face(std::string_view file_name) {
     for (std::size_t index = 0; index < manifest_.size(); ++index) {
         if (manifest_[index].file_name != file_name) continue;
-        const std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         std::optional<FontFaceLoad>& kept = results_[index];
         // A pack set's first request of any face decodes the eager groups, which may answer
         // this one too.
@@ -643,7 +643,7 @@ FontFaceLoad BundledFontSet::face(std::string_view file_name) {
 }
 
 std::size_t BundledFontSet::loaded_face_count() const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     std::size_t count = 0;
     for (const std::optional<FontFaceLoad>& kept : results_) {
         if (kept && (*kept).accepted()) ++count;
@@ -652,7 +652,7 @@ std::size_t BundledFontSet::loaded_face_count() const {
 }
 
 std::uint64_t BundledFontSet::loaded_bytes() const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     std::uint64_t total = 0;
     for (const std::optional<FontFaceLoad>& kept : results_) {
         if (!kept) continue;
@@ -663,7 +663,7 @@ std::uint64_t BundledFontSet::loaded_bytes() const {
 }
 
 std::size_t BundledFontSet::decoded_group_count() const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const std::size_t count = decoded_groups_;
     return count;
 }
@@ -763,7 +763,7 @@ FontFaceLoad BundledFontSet::seal_copy(std::size_t index, const std::uint8_t* da
     if (!(*pages_.seal)(reservation.storage(), size_bytes))
         return FontFaceLoad::failed(FontSetError::page_failure);
     std::shared_ptr<SealedFontFace> sealed =
-        std::make_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
+        gui_forms::detail::make_library_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
     reservation.disown();
     // The program's typeface of the face, registered while the face lives
     // (program_typefaces.hpp). A face STXlib refuses has none, and the
@@ -786,24 +786,20 @@ FontFaceLoad BundledFontSet::seal_copy(std::size_t index, const std::uint8_t* da
 FontFaceLoad BundledFontSet::load(std::size_t index) const {
     const BundledFaceRecord& record = manifest_[index];
     const std::filesystem::path path = directory_ / std::filesystem::path(record.file_name);
-    std::error_code status;
-    if (!std::filesystem::is_regular_file(path, status) || status)
-        return FontFaceLoad::failed(FontSetError::unreadable);
-    // The file must have the manifest's size, which the constructor bounded, before anything
-    // is reserved for it.
-    const std::uintmax_t file_bytes = std::filesystem::file_size(path, status);
-    if (status) return FontFaceLoad::failed(FontSetError::unreadable);
-    if (file_bytes != record.size_bytes) return FontFaceLoad::failed(FontSetError::size_mismatch);
+    // The file must be a regular file of the manifest's size, which the constructor bounded,
+    // before anything is reserved for it.
+    const std::optional<std::uint64_t> file_bytes = platform::regular_file_bytes(path);
+    if (!file_bytes.has_value()) return FontFaceLoad::failed(FontSetError::unreadable);
+    if (*file_bytes != record.size_bytes) return FontFaceLoad::failed(FontSetError::size_mismatch);
     const std::size_t size_bytes = static_cast<std::size_t>(record.size_bytes);
 
-    std::ifstream stream(path, std::ios::binary);
-    if (!stream.is_open()) return FontFaceLoad::failed(FontSetError::unreadable);
+    stxlib::OperationResult<stxlib::File> opened = platform::open_file(path, stxlib::FileMode::read);
+    if (opened.failed()) return FontFaceLoad::failed(FontSetError::unreadable);
+    stxlib::File& file = *opened.value();
     PageReservation reservation(pages_, size_bytes);
     if (reservation.storage() == nullptr) return FontFaceLoad::failed(FontSetError::page_failure);
-    // size_bytes is at most 64 MiB, so it fits std::streamsize.
-    const std::streamsize wanted = static_cast<std::streamsize>(size_bytes);
-    stream.read(reinterpret_cast<char*>(reservation.storage()), wanted);
-    if (stream.gcount() != wanted) return FontFaceLoad::failed(FontSetError::unreadable);
+    if (!platform::read_exactly_at(file, 0, reservation.storage(), size_bytes))
+        return FontFaceLoad::failed(FontSetError::unreadable);
 
     const std::span<const std::uint8_t> read(
         reinterpret_cast<const std::uint8_t*>(reservation.storage()), size_bytes);
@@ -813,7 +809,7 @@ FontFaceLoad BundledFontSet::load(std::size_t index) const {
     // The face adopts the pages only once it exists; if make_shared throws, the reservation
     // still releases them.
     std::shared_ptr<SealedFontFace> sealed =
-        std::make_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
+        gui_forms::detail::make_library_shared<SealedFontFace>(pages_, reservation.storage(), size_bytes);
     reservation.disown();
     // The program's typeface of the face, registered while the face lives
     // (program_typefaces.hpp). A face STXlib refuses has none, and the
@@ -857,19 +853,19 @@ BundledFontDiagnostics bundled_font_diagnostics() noexcept {
 }
 
 std::string bundled_font_refusal() {
-    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex());
+    const stxlib::ScopedLock lock(detail::font_refusal_mutex());
     std::string copy = detail::font_refusal();
     return copy;
 }
 
 std::string bundled_font_notice() {
-    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex());
+    const stxlib::ScopedLock lock(detail::font_refusal_mutex());
     std::string copy = detail::font_notice();
     return copy;
 }
 
 std::string bundled_font_pack_refusal() {
-    const std::lock_guard<std::mutex> lock(detail::font_refusal_mutex());
+    const stxlib::ScopedLock lock(detail::font_refusal_mutex());
     std::string copy = detail::font_pack_refusal();
     return copy;
 }

@@ -1,13 +1,19 @@
 #include "gui_forms/diagnostics/blend_study/blend_study.hpp"
 
+#include "../../../platform/library_files.hpp"
+
 #include <algorithm>
 #include <atomic>
 #include <exception>
-#include <cstdio>
 #include <cstdlib>
-#include <mutex>
+#include <filesystem>
 #include <new>
 #include <string_view>
+#include <stxlib/files.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 
 namespace gui_forms {
 namespace {
@@ -159,12 +165,13 @@ BlendStudyMode blend_study_default() noexcept {
 
 namespace {
 
-// The log's file, opened once under its lock; it lives for the process (the
-// C runtime closes it at exit).
+// The log's file, opened once under its lock to append (STXlib's
+// FileMode::append); it lives for the process, and the host closes it at
+// exit.
 struct BlendStudyLog final {
-    std::mutex lock{};
+    stxlib::Mutex lock{};
     bool opened{};
-    std::FILE* file{};
+    stxlib::File file{};
 };
 
 // Never destroyed: a window painting on another thread during exit may
@@ -196,15 +203,24 @@ void append_blend_study_log(const std::string_view window, const std::uint64_t f
         BlendStudyLog& log = blend_study_log();
         const std::string line = "{\"window\":" + json_quoted(window) + ",\"frame\":" + std::to_string(frame) +
                                  ",\"counters\":" + blend_frame_counters_json(counters) + "}\n";
-        const std::lock_guard<std::mutex> held(log.lock);
+        const stxlib::ScopedLock held(log.lock);
         if (!log.opened) {
             log.opened = true;
             const char* const path = std::getenv("GUI_FORMS_BLEND_STUDY_LOG");
-            if (path != nullptr && path[0] != '\0') log.file = std::fopen(path, "a");
+            if (path != nullptr && path[0] != '\0') {
+                stxlib::OperationResult<stxlib::File> opened =
+                    platform::open_file(std::filesystem::path(path), stxlib::FileMode::append);
+                if (opened.succeeded()) {
+                    log.file = static_cast<stxlib::OperationResult<stxlib::File>&&>(opened).take_value();
+                }
+            }
         }
-        if (log.file == nullptr) return;
-        static_cast<void>(std::fputs(line.c_str(), log.file));
-        static_cast<void>(std::fflush(log.file));
+        if (!log.file.is_open()) return;
+        // Each line goes to the host whole, unbuffered, as the flushed line
+        // did; a failed write is dropped.
+        const stxlib::View<stxlib::Byte> bytes(reinterpret_cast<const stxlib::Byte*>(line.data()),
+                                               static_cast<stxlib::usize>(line.size()));
+        static_cast<void>(log.file.write_all(bytes));
     } catch (const std::exception&) {
         // A line that cannot be made (storage) is dropped: the log is
         // diagnostics and never fails a paint.

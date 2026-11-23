@@ -8,6 +8,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -116,7 +117,7 @@ DockSite::DockSite(StableId stable_id, DockWorkspace& workspace, DockSiteId floa
     menu_changed_ = (*menu_).open_changed().subscribe(
         *this, Delegate<bool>::bind<DockSite, &DockSite::on_menu_open_changed>(*this));
     for (std::size_t index = 0; index < menu_commands_.size(); ++index) {
-        menu_commands_[index] = std::make_shared<Command>(prefix + ".position." + std::string(position_names[index]),
+        menu_commands_[index] = gui_forms::detail::make_library_shared<Command>(prefix + ".position." + std::string(position_names[index]),
                                                           std::string(position_texts[index]));
     }
     // The workspace tells the site of each layout change.

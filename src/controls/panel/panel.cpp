@@ -6,6 +6,7 @@
 #include "panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -23,7 +24,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> border_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "border_style", {{"none", 0}, {"line", 1}, {"sunken", 2}, {"raised", 3}}, false});
     return value;
 }

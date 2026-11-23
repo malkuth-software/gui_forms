@@ -7,6 +7,7 @@
 #include <cstdint>
 #include <new>
 #include <stdexcept>
+#include <stxlib/stop_token.hpp>
 #include <system_error>
 #include <utility>
 
@@ -282,7 +283,7 @@ struct MarkdownParser final {
     std::string_view source{};
     MarkdownDocument* document{};
     const MarkdownLimits* limits{};
-    std::stop_token cancellation{};
+    stxlib::StopToken cancellation{};
     std::optional<MarkdownParseError> failure{};
 
     // The block being built and its pieces and marks.
@@ -861,13 +862,12 @@ struct MarkdownParser final {
     }
 };
 
-// Requests the tape reader's stop when the caller's token is signalled; a
-// std::stop_callback runs it on the thread that requests the stop.
-struct RequestTapeStop final {
-    stxlib::StopSignal* signal{};
-
-    void operator()() const noexcept { (*signal).request(); }
-};
+// Requests the tape reader's stop when the caller's token is signalled: a
+// StopCallback's function, run on the thread that requests the stop;
+// `context` is the tape's stxlib::StopSignal.
+void request_tape_stop(void* const context) noexcept {
+    (*static_cast<stxlib::StopSignal*>(context)).request();
+}
 
 
 // The offsets at which the source's lines start, for block source ranges.
@@ -951,7 +951,7 @@ void place_blocks(std::string_view source, MarkdownDocument& document) {
 } // namespace
 
 MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document, const MarkdownLimits& limits,
-                                   std::stop_token cancellation) {
+                                   stxlib::StopToken cancellation) {
     document.clear();
     if (cancellation.stop_requested()) return MarkdownParseResult::failed(MarkdownParseError::cancelled, Utf8Offset(0U));
     if (source.size() > limits.source_bytes || source.size() > stxlib::markdown::largest_source_bytes) {
@@ -968,7 +968,7 @@ MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& do
     stxlib::markdown::Limits tape_limits{};
     tape_limits.source_bytes = source.size();
     stxlib::StopSignal tape_stop{};
-    const std::stop_callback<RequestTapeStop> stop_bridge(cancellation, RequestTapeStop{&tape_stop});
+    const stxlib::StopCallback stop_bridge(cancellation, &request_tape_stop, &tape_stop);
     stxlib::markdown::Document tape{};
     const stxlib::View<char> tape_source(source.data(), source.size());
     const stxlib::OperationStatus status = stxlib::markdown::parse(tape_source, options, tape_limits, tape, &tape_stop);

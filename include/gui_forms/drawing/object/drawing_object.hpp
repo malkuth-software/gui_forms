@@ -3,7 +3,6 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
 #include <cstdint>
-#include <thread>
 
 namespace gui_drawing {
 

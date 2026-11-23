@@ -32,6 +32,7 @@
 #include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/types/linear_light/linear_light_stops.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
 #if defined(_WIN32)
 #include "../../../surface/windows/fonts/sealed_pages_windows.hpp"
@@ -40,6 +41,7 @@
 #endif
 
 #include <stxlib/font_file.hpp>
+#include <stxlib/threads.hpp>
 #include <stxlib/vector.hpp>
 #include <stxlib/view.hpp>
 
@@ -1461,7 +1463,7 @@ std::string_view SkiaExecutor::Impl::trimmed_line(std::string_view line, const R
 }
 
 SkiaExecutor::SkiaExecutor()
-    : impl_(std::make_unique<Impl>()), owner_thread_(std::this_thread::get_id()) {}
+    : impl_(std::make_unique<Impl>()), owner_thread_(stxlib::current_thread()) {}
 SkiaExecutor::~SkiaExecutor() = default;
 
 bool SkiaExecutor::register_bundled_typeface(std::string_view family,
@@ -1505,7 +1507,7 @@ bool SkiaExecutor::register_typeface(std::string_view family,
     try {
         // A private copy, which the executor's faces share.
         const std::shared_ptr<const std::vector<std::byte>> copy =
-            std::make_shared<const std::vector<std::byte>>(encoded.begin(), encoded.end());
+            gui_forms::detail::make_library_shared<const std::vector<std::byte>>(encoded.begin(), encoded.end());
         const std::span<const std::byte> bytes(*copy);
         const std::shared_ptr<const void> owner = copy;
         const bool installed = (*impl_).install_face(family, bytes, owner, style);
@@ -1997,7 +1999,7 @@ std::vector<std::byte> SkiaExecutor::encode_png(
 }
 
 bool SkiaExecutor::owner_thread() const noexcept {
-    return std::this_thread::get_id() == owner_thread_;
+    return stxlib::current_thread() == owner_thread_;
 }
 
 } // namespace gui_drawing::render

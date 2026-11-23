@@ -40,6 +40,7 @@
 #include "skia_raster.hpp"
 #include "../src/core/damage/device_damage/device_damage.hpp"
 #include "../src/core/display/command/display_command.hpp"
+#include "../src/platform/library_files.hpp"
 
 #include <algorithm>
 #include <array>
@@ -49,7 +50,6 @@
 #include <cstring>
 #include <exception>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <memory>
 #include <span>
@@ -248,12 +248,13 @@ std::string case_record(std::string_view phase, std::string_view page, double sc
     return line.str();
 }
 
-void write_record(std::ofstream& records, const std::string& record) {
+// A failed write is not checked, as the stream's was not.
+void write_record(gui_forms::platform::OutputFile& records, const std::string& record) {
     std::cout << record << '\n';
-    records << record << '\n';
+    static_cast<void>(records.write(record + '\n'));
 }
 
-void run_damage_phase(SkiaRaster& raster, Window& window, std::ofstream& records) {
+void run_damage_phase(SkiaRaster& raster, Window& window, gui_forms::platform::OutputFile& records) {
     const std::string_view page = gui_forms::gallery::selected_gallery_page(window);
     for (const double scale : damage_scales) {
         prepare_scale(raster, window, damage_window_size, scale);
@@ -267,7 +268,7 @@ void run_damage_phase(SkiaRaster& raster, Window& window, std::ofstream& records
     }
 }
 
-void run_page_phase(SkiaRaster& raster, Window& window, std::ofstream& records) {
+void run_page_phase(SkiaRaster& raster, Window& window, gui_forms::platform::OutputFile& records) {
     const Size size = gui_forms::gallery::gallery_default_size;
     const Rect whole{0.0, 0.0, size.width, size.height};
     for (const double scale : page_scales) {
@@ -287,7 +288,7 @@ void run_page_phase(SkiaRaster& raster, Window& window, std::ofstream& records) 
 // rerecord: every Gallery page at scale 1, every display chunk recorded
 // again each frame (N35's steady-state cost of a themed control: cascade,
 // part records and raster hits, with the recording itself).
-void run_rerecord_phase(SkiaRaster& raster, Window& window, std::ofstream& records) {
+void run_rerecord_phase(SkiaRaster& raster, Window& window, gui_forms::platform::OutputFile& records) {
     const Size size = gui_forms::gallery::gallery_default_size;
     const Rect whole{0.0, 0.0, size.width, size.height};
     prepare_scale(raster, window, size, 1.0);
@@ -320,9 +321,9 @@ int main(int argc, char** argv) {
     }
     try {
         const std::filesystem::path output(argv[1]);
-        std::filesystem::create_directories(output);
-        std::ofstream records(output / "paint-profile.jsonl");
-        if (!records) throw std::runtime_error("cannot create paint-profile.jsonl");
+        if (!gui_forms::platform::create_directories(output)) throw std::runtime_error("cannot create " + output.string());
+        gui_forms::platform::OutputFile records = gui_forms::platform::OutputFile::create(output / "paint-profile.jsonl");
+        if (!records.is_open()) throw std::runtime_error("cannot create paint-profile.jsonl");
         const std::unique_ptr<Window> gallery = gui_forms::gallery::make_gallery();
         SkiaRaster raster;
         register_bundled_faces(raster, GUI_FORMS_PROFILE_FONT_DIRECTORY);

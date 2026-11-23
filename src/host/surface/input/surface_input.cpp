@@ -2,7 +2,11 @@
 // (surface_input.hpp).
 #include "surface_input.hpp"
 
+#include <chrono>
 #include <cmath>
+#include <cstdint>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::host::surface_detail {
@@ -20,7 +24,7 @@ bool SurfaceInputQueue::post(SurfaceInputRecord record) {
                         (record.kind == SurfaceInputKind::pointer && record.action == SurfacePointerAction::move);
     const std::size_t limit = motion ? maximum_records : maximum_control_records;
     {
-        const std::lock_guard<std::mutex> guard(mutex_);
+        const stxlib::ScopedLock guard(mutex_);
         if (records_.size() >= limit) {
             ++dropped_;
             return false;
@@ -33,7 +37,7 @@ bool SurfaceInputQueue::post(SurfaceInputRecord record) {
 
 void SurfaceInputQueue::wake() noexcept {
     {
-        const std::lock_guard<std::mutex> guard(mutex_);
+        const stxlib::ScopedLock guard(mutex_);
         woken_ = true;
     }
     ready_.notify_one();
@@ -41,14 +45,16 @@ void SurfaceInputQueue::wake() noexcept {
 
 bool SurfaceInputQueue::take(std::deque<SurfaceInputRecord>& taken,
                              std::optional<std::chrono::steady_clock::time_point> deadline) {
-    std::unique_lock<std::mutex> lock(mutex_);
-    while (records_.empty() && !woken_) {
-        if (!deadline.has_value()) {
-            ready_.wait(lock);
-            continue;
-        }
-        const std::cv_status status = ready_.wait_until(lock, *deadline);
-        if (status == std::cv_status::timeout) break;
+    stxlib::ScopedLock lock(mutex_);
+    if (!deadline.has_value()) {
+        ready_.wait(lock, &SurfaceInputQueue::record_or_wake, this);
+    } else {
+        // The steady clock and STXlib's interval clock are both the
+        // monotonic clock; the wait takes the interval to the deadline.
+        const std::chrono::steady_clock::duration left = *deadline - std::chrono::steady_clock::now();
+        const std::int64_t nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(left).count();
+        static_cast<void>(ready_.wait_for(lock, &SurfaceInputQueue::record_or_wake, this,
+                                          stxlib::Duration::nanoseconds(nanoseconds)));
     }
     const bool any = !records_.empty() || woken_;
     while (!records_.empty()) {
@@ -59,8 +65,13 @@ bool SurfaceInputQueue::take(std::deque<SurfaceInputRecord>& taken,
     return any;
 }
 
+bool SurfaceInputQueue::record_or_wake(const void* const context) noexcept {
+    const SurfaceInputQueue& queue = *static_cast<const SurfaceInputQueue*>(context);
+    return !queue.records_.empty() || queue.woken_;
+}
+
 std::uint64_t SurfaceInputQueue::dropped() const {
-    const std::lock_guard<std::mutex> guard(mutex_);
+    const stxlib::ScopedLock guard(mutex_);
     const std::uint64_t count = dropped_;
     return count;
 }

@@ -20,7 +20,7 @@
 #include <array>
 #include <cstddef>
 #include <memory>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -57,7 +57,7 @@ public:
     [[nodiscard]] std::size_t idle_face_bytes() const noexcept;
 
 private:
-    mutable std::mutex mutex_{};
+    mutable stxlib::Mutex mutex_{};
     // Capacity kept_sets from the first lease, so restore never allocates.
     std::vector<std::unique_ptr<PreparedRasterFaces>> idle_{};
 };

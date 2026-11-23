@@ -20,24 +20,28 @@
 // an SVG file is outside the subset; 2 for bad arguments. A failure leaves
 // FILE as it was (the text is written whole, after every file is read).
 
+#include "../../src/platform/library_files.hpp"
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
-#include <iterator>
+#include <limits>
 #include <map>
 #include <numbers>
 #include <optional>
 #include <set>
-#include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <system_error>
+#include <stxlib/files.hpp>
+#include <stxlib/path.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 #include <utility>
 #include <vector>
 
@@ -872,11 +876,11 @@ bool icon_name(std::string_view name) noexcept {
 }
 
 std::string read_file(const std::filesystem::path& path) {
-    std::ifstream stream(path, std::ios::binary);
-    if (!stream) throw CodecError(path.string() + ": cannot be read");
-    std::ostringstream contents;
-    contents << stream.rdbuf();
-    return contents.str();
+    const std::optional<std::vector<std::byte>> read =
+        gui_forms::platform::read_file_bytes(path, std::numeric_limits<std::size_t>::max());
+    if (!read.has_value()) throw CodecError(path.string() + ": cannot be read");
+    std::string contents(reinterpret_cast<const char*>((*read).data()), (*read).size());
+    return contents;
 }
 
 bool variant_before(const Variant& left, const Variant& right) noexcept {
@@ -889,12 +893,15 @@ std::vector<Variant> read_variants(const std::filesystem::path& source) {
     std::vector<Variant> variants{};
     for (const VariantDirectory& directory : variant_directories) {
         const std::filesystem::path folder = source / std::filesystem::path(directory.path);
-        std::error_code error{};
-        if (!std::filesystem::is_directory(folder, error)) throw CodecError(folder.string() + " is missing");
+        if (!gui_forms::platform::names_directory(folder)) throw CodecError(folder.string() + " is missing");
         // The codec sorts the paths, which in one folder is by file name.
+        std::vector<gui_forms::platform::ListedEntry> entries{};
+        if (!gui_forms::platform::list_directory_entries(folder, entries)) {
+            throw CodecError(folder.string() + " cannot be listed");
+        }
         std::vector<std::string> file_names{};
-        for (const std::filesystem::directory_entry& entry : std::filesystem::directory_iterator(folder)) {
-            if (entry.path().extension().string() == ".svg") file_names.push_back(entry.path().filename().string());
+        for (const gui_forms::platform::ListedEntry& entry : entries) {
+            if (entry.path.extension().string() == ".svg") file_names.push_back(entry.path.filename().string());
         }
         std::sort(file_names.begin(), file_names.end());
         for (const std::string& file_name : file_names) {
@@ -1054,18 +1061,16 @@ std::string render(const Records& records) {
 }
 
 void write_whole(const std::filesystem::path& output, const std::string& text) {
-    std::error_code error{};
-    if (output.has_parent_path()) std::filesystem::create_directories(output.parent_path(), error);
-    std::filesystem::path partial = output;
-    partial += ".partial";
-    {
-        std::ofstream stream(partial, std::ios::binary | std::ios::trunc);
-        if (!stream) throw CodecError(partial.string() + ": cannot be written");
-        stream.write(text.data(), static_cast<std::streamsize>(text.size()));
-        if (!stream) throw CodecError(partial.string() + ": cannot be written");
-    }
-    std::filesystem::rename(partial, output, error);
-    if (error) throw CodecError(output.string() + ": cannot be replaced (" + error.message() + ")");
+    // A missing parent is made first; a failure shows in the write below.
+    if (output.has_parent_path()) static_cast<void>(gui_forms::platform::create_directories(output.parent_path()));
+    // STXlib's write_file writes a temporary file beside the output and
+    // renames it over, as the .partial file and rename did.
+    const stxlib::OperationResult<stxlib::Path> target = gui_forms::platform::stxlib_path(output);
+    if (target.failed()) throw CodecError(output.string() + ": cannot be named");
+    const stxlib::View<stxlib::Byte> content(reinterpret_cast<const stxlib::Byte*>(text.data()),
+                                             static_cast<stxlib::usize>(text.size()));
+    const stxlib::OperationStatus written = stxlib::write_file(*target.value(), content, stxlib::Durability::none);
+    if (written.failed()) throw CodecError(output.string() + ": cannot be replaced");
 }
 
 } // namespace
@@ -1097,9 +1102,6 @@ int main(int argument_count, char** arguments) {
         const std::string text = render(records);
         write_whole(*output, text);
     } catch (const CodecError& error) {
-        std::cerr << "stock_icon_generator: " << error.what() << '\n';
-        return 1;
-    } catch (const std::filesystem::filesystem_error& error) {
         std::cerr << "stock_icon_generator: " << error.what() << '\n';
         return 1;
     }

@@ -10,10 +10,10 @@
 #include <algorithm>
 #include <array>
 #include <cmath>
-#include <mutex>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -44,7 +44,7 @@ class StockIconCache final {
 public:
     std::shared_ptr<const PartRaster> raster(const std::shared_ptr<const StockIconVectors>& vectors,
                                              std::uint32_t side, DeviceScale scale, Color colour) {
-        const std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         for (const RasterEntry& entry : rasters_) {
             if (entry.vectors == vectors && entry.side == side && entry.scale == scale.value &&
                 entry.colour == colour) {
@@ -62,7 +62,7 @@ public:
     }
 
     void prebake(double scale) {
-        const std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (std::find(prebaked_scales_.begin(), prebaked_scales_.end(), scale) != prebaked_scales_.end()) return;
         prebaked_scales_.push_back(scale);
         static constexpr std::array<std::string_view, 5> status{stock_icon_information, stock_icon_warning,
@@ -83,7 +83,7 @@ public:
     }
 
     StockIconBakeCounts counts() {
-        const std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         StockIconBakeCounts result{};
         result.coverage_bakes = coverage_bakes_;
         result.raster_bakes = raster_bakes_;
@@ -110,7 +110,7 @@ private:
         return &coverage_.back();
     }
 
-    std::mutex mutex_;
+    stxlib::Mutex mutex_;
     std::vector<CoverageEntry> coverage_;
     std::vector<RasterEntry> rasters_;
     std::vector<double> prebaked_scales_;

@@ -4,6 +4,8 @@
 #include "harfbuzz/bounded_shape_workspace.hpp"
 #include "harfbuzz/harfbuzz_font_engine.hpp"
 
+#include <stxlib/threads.hpp>
+
 namespace gui_forms::render::text {
 
 // Construct, initialize, shape and destroy on one assigned worker executor.
@@ -27,7 +29,7 @@ public:
 private:
     std::shared_ptr<const detail::PreparedFontBank> fonts_{};
     const std::size_t owner_bytes_{};
-    std::thread::id executor_{std::this_thread::get_id()};
+    stxlib::ThreadIdentity executor_{stxlib::current_thread()};
     BoundedShapeWorkspace workspace_{};
     std::unique_ptr<HarfBuzzFontEngine> engine_{};
     std::array<FontFaceId, PreparedTextLimits::font_faces> face_ids_{};

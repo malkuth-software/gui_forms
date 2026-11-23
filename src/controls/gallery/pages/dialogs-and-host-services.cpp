@@ -14,6 +14,7 @@
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "dialogs-and-host-services_form.hpp"
 
@@ -219,7 +220,7 @@ void HostServicesPage::build_task_dialog() {
     report.caption = "GUI.Forms Gallery";
     report.details = "Thrown and caught by this specimen. A C++ exception carries no stack trace, "
                      "so an application supplies its own details.";
-    exception_dialog_ = std::make_shared<ThreadExceptionDialog>(
+    exception_dialog_ = gui_forms::detail::make_library_shared<ThreadExceptionDialog>(
         StableId("gallery.host.exception-dialog.dialog"), std::move(report));
     on(exception_dialog_command_.invoked(), *this, &HostServicesPage::on_show_exception_dialog);
     on((*exception_dialog_).closed(), *this, &HostServicesPage::on_exception_dialog_closed);
@@ -370,7 +371,7 @@ void HostServicesPage::build_notify_icon() {
     notify_message_command_.set_text("Notify");
     (*notify_toggle_button_).bind(notify_toggle_command_);
     (*document_.gallery_host_notify_icon_notify).bind(notify_message_command_);
-    notify_menu_command_ = std::make_shared<Command>("gallery.host.notify-icon.hello", "Say hello");
+    notify_menu_command_ = gui_forms::detail::make_library_shared<Command>("gallery.host.notify-icon.hello", "Say hello");
     on(notify_toggle_command_.invoked(), *this, &HostServicesPage::on_toggle_notify_icon);
     on(notify_message_command_.invoked(), *this, &HostServicesPage::on_notify);
     toast_command_.set_text("Desktop notification");
@@ -383,10 +384,10 @@ void HostServicesPage::on_toggle_notify_icon() {
     Window* const window = (*notify_toggle_button_).attached_window();
     if (window == nullptr) return;
     if (!notify_icon_) {
-        notify_icon_ = std::make_shared<NotifyIcon>(*window);
+        notify_icon_ = gui_forms::detail::make_library_shared<NotifyIcon>(*window);
         (*notify_icon_).icon = std::vector<HostImage>{round_icon(16U), round_icon(32U), round_icon(48U)};
         (*notify_icon_).text = "GUI.Forms Gallery";
-        std::shared_ptr<ContextMenu> menu = std::make_shared<ContextMenu>("gallery.host.notify-icon.menu");
+        std::shared_ptr<ContextMenu> menu = gui_forms::detail::make_library_shared<ContextMenu>("gallery.host.notify-icon.menu");
         (*menu).set_items({MenuItemSpec("gallery.host.notify-icon.menu.hello", MenuItemKind::command,
                                         notify_menu_command_)});
         (*notify_icon_).context_menu = menu;
@@ -476,17 +477,17 @@ void HostServicesPage::build_paths() {
         on(command.invoked(), *this, &HostServicesPage::on_path_dialog,
            static_cast<int>(index));
     }
-    open_file_dialog_ = std::make_shared<OpenFileDialog>();
+    open_file_dialog_ = gui_forms::detail::make_library_shared<OpenFileDialog>();
     (*open_file_dialog_).filter = "Text and logs|*.txt;*.log|PNG images|*.png";
-    save_file_dialog_ = std::make_shared<SaveFileDialog>();
+    save_file_dialog_ = gui_forms::detail::make_library_shared<SaveFileDialog>();
     (*save_file_dialog_).title = "Save GUI.Forms evidence";
     (*save_file_dialog_).filter = "Text evidence|*.txt";
     (*save_file_dialog_).default_ext = "txt";
     (*save_file_dialog_).file_name = "gui-forms-evidence";
-    color_dialog_ = std::make_shared<ColorDialog>();
+    color_dialog_ = gui_forms::detail::make_library_shared<ColorDialog>();
     (*color_dialog_).title = "Choose an accent color";
     (*color_dialog_).color = Color::rgba(0x27U, 0x74U, 0xB8U);
-    folder_browser_dialog_ = std::make_shared<FolderBrowserDialog>();
+    folder_browser_dialog_ = gui_forms::detail::make_library_shared<FolderBrowserDialog>();
     (*folder_browser_dialog_).description = "Choose an evidence directory";
 }
 
@@ -754,7 +755,7 @@ void HostServicesPage::play_sound(HostServices& host, const HostSoundCue cue) {
 void add_dialogs_and_host_services(
     const std::shared_ptr<Surface>& page,
     const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<HostServicesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<HostServicesPage>(page));
 }
 
 } // namespace gui_forms::gallery::pages

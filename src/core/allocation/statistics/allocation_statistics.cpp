@@ -5,6 +5,7 @@
 #include <atomic>
 #include <sstream>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 namespace {
@@ -115,10 +116,10 @@ AllocationStatistics thread_allocation_statistics() noexcept {
     return statistics;
 }
 
-AllocationScope::AllocationScope() noexcept : thread_(std::this_thread::get_id()), start_(thread_counts) {}
+AllocationScope::AllocationScope() noexcept : thread_(stxlib::current_thread()), start_(thread_counts) {}
 
 AllocationStatistics AllocationScope::counted() const {
-    if (std::this_thread::get_id() != thread_) {
+    if (stxlib::current_thread() != thread_) {
         throw std::logic_error("GUI.Forms AllocationScope is read on the thread that made it");
     }
     const AllocationStatistics now = thread_counts;
@@ -130,7 +131,7 @@ AllocationStatistics AllocationScope::counted() const {
 }
 
 void AllocationScope::restart() noexcept {
-    thread_ = std::this_thread::get_id();
+    thread_ = stxlib::current_thread();
     start_ = thread_counts;
 }
 

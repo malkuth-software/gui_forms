@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -12,7 +13,7 @@ namespace gui_forms {
 namespace {
 void record_inline_invoke(
     const std::shared_ptr<detail::DispatcherState>& state) {
-    std::scoped_lock lock((*state).mutex);
+    const stxlib::ScopedLock lock((*state).mutex);
     if (!(*state).accepting) {
         throw std::logic_error("GUI.Forms dispatcher is shut down");
     }
@@ -25,16 +26,16 @@ void record_inline_invoke(
 bool Control::invoke_required() const noexcept {
     std::shared_ptr<detail::DispatcherState> state;
     {
-        std::scoped_lock lock(dispatcher_mutex_);
+        const stxlib::ScopedLock lock(dispatcher_mutex_);
         state = dispatcher_state_;
     }
-    return state && std::this_thread::get_id() != (*state).ui_thread;
+    return state && stxlib::current_thread() != (*state).ui_thread;
 }
 
 DispatchOperation Control::begin_invoke(std::function<void()> callback) {
     std::shared_ptr<detail::DispatcherState> state;
     {
-        std::scoped_lock lock(dispatcher_mutex_);
+        const stxlib::ScopedLock lock(dispatcher_mutex_);
         state = dispatcher_state_;
     }
     return detail::post_dispatch(state, weak_from_this(), true,
@@ -47,14 +48,14 @@ void Control::invoke(std::function<void()> callback) {
     }
     std::shared_ptr<detail::DispatcherState> state;
     {
-        std::scoped_lock lock(dispatcher_mutex_);
+        const stxlib::ScopedLock lock(dispatcher_mutex_);
         state = dispatcher_state_;
     }
     if (!state) {
         throw std::logic_error(
             "GUI.Forms Invoke requires an attached live dispatcher");
     }
-    if (std::this_thread::get_id() == (*state).ui_thread) {
+    if (stxlib::current_thread() == (*state).ui_thread) {
         if (!is_alive()) {
             throw std::logic_error(
                 "GUI.Forms Invoke requires an attached live control");

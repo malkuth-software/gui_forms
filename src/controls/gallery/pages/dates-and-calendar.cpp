@@ -5,6 +5,7 @@
 #include "gui_forms/controls/date_time_picker_values.hpp"
 #include "gui_forms/controls/date_time_value.hpp"
 #include "gui_forms/controls/month_calendar.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "dates-and-calendar_form.hpp"
 
@@ -195,7 +196,7 @@ private:
 
 void add_dates_and_calendar(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<DatesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<DatesPage>(page));
 }
 
 } // namespace gui_forms::gallery::pages

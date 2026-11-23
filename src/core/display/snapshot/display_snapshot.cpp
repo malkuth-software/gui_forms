@@ -1,4 +1,5 @@
 #include "display_snapshot.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -97,13 +98,13 @@ DisplaySnapshotResult make_display_snapshot(const DisplayChunk& chunk, const Siz
             if (!copy.part_raster) return result;
         }
         if (command.surface_material) {
-            copy.surface_material = std::make_shared<const SurfaceMaterial>(*command.surface_material);
+            copy.surface_material = gui_forms::detail::make_library_shared<const SurfaceMaterial>(*command.surface_material);
         }
         commands.push_back(std::move(copy));
     }
     DisplayChunk owned(chunk.generation(), chunk.plane(), chunk.logical_bounds(), std::move(commands),
                        chunk.opaque_cover());
-    result.snapshot = std::make_shared<const DisplaySnapshot>(std::move(owned), logical_size, scale, *extent);
+    result.snapshot = gui_forms::detail::make_library_shared<const DisplaySnapshot>(std::move(owned), logical_size, scale, *extent);
     result.refusal = DisplaySnapshotRefusal::none;
     return result;
 }

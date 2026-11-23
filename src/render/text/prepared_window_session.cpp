@@ -1,7 +1,8 @@
 #include "prepared_window_session.hpp"
-#include "../../core/thread_records/thread_records_end.hpp"
+#include "../../core/threading/start_thread.hpp"
 
 #include <new>
+#include <stxlib/threads.hpp>
 #include <system_error>
 
 namespace gui_forms::render::text {
@@ -15,25 +16,25 @@ PreparedWindowSession::PreparedWindowSession(const std::uint64_t provider_instan
       connection_(std::move(connection)), hook_(std::move(hook)) {}
 
 PreparedWindowSession::~PreparedWindowSession() {
-    if (owner_ != std::this_thread::get_id()) std::terminate();
+    if (owner_ != stxlib::current_thread()) std::terminate();
     const PreparedTextStatus status = join_and_release();
     if (status != PreparedTextStatus::success) std::terminate();
 }
 
 PreparedTextStatus PreparedWindowSession::start() {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     if (provider_instance_ == 0U || !fonts_ || !(*fonts_).ledger || !authority_ || !connection_)
         return PreparedTextStatus::invalid_input;
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (snapshot_.closing || snapshot_.joined) return PreparedTextStatus::closing;
         if (snapshot_.started) return PreparedTextStatus::busy;
-        std::lock_guard<std::mutex> authority_lock((*authority_).mutex);
+        const stxlib::ScopedLock authority_lock((*authority_).mutex);
         if ((*authority_).executor != owner_) return PreparedTextStatus::wrong_executor;
         if ((*authority_).closing) return PreparedTextStatus::closing;
         if ((*authority_).desired || (*authority_).controller_instance != 0U ||
             (*authority_).session != 0U || (*authority_).last_epoch != 0U) return PreparedTextStatus::invalid_input;
-        std::lock_guard<std::mutex> ledger_lock((*(*fonts_).ledger).mutex);
+        const stxlib::ScopedLock ledger_lock((*(*fonts_).ledger).mutex);
         if ((*(*fonts_).ledger).closing) return PreparedTextStatus::closing;
     }
     const PreparedTextStatus claimed = claim_.acquire((*fonts_).ledger);
@@ -48,8 +49,8 @@ PreparedTextStatus PreparedWindowSession::start() {
         return result;
     }
     {
-        std::lock_guard<std::mutex> lock(mutex_);
-        std::lock_guard<std::mutex> authority_lock((*authority_).mutex);
+        const stxlib::ScopedLock lock(mutex_);
+        const stxlib::ScopedLock authority_lock((*authority_).mutex);
         // Recheck lifetime-owner revocation before binding the allocated IDs.
         if ((*authority_).closing) identified = PreparedTextStatus::closing;
         else if ((*authority_).desired || (*authority_).controller_instance != 0U ||
@@ -70,10 +71,11 @@ PreparedTextStatus PreparedWindowSession::start() {
         if (hook_) (*hook_).before_thread_start();
         // Owner cannot call control methods concurrently. Worker sees started
         // before construction and its first access is protected by mutex_.
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         snapshot_.initialization = PreparedTextStatus::pending;
         snapshot_.started = true;
-        worker_ = std::thread(&PreparedWindowSession::run, this);
+        worker_ = detail::start_library_thread(&PreparedWindowSession::thread_main, this,
+                                               "the prepared window session could not start its worker");
     } catch (const std::bad_alloc&) {
         const PreparedTextStatus result = start_failed(PreparedTextStatus::resource_failure);
         return result;
@@ -89,7 +91,7 @@ PreparedTextStatus PreparedWindowSession::start() {
 
 PreparedTextStatus PreparedWindowSession::start_failed(const PreparedTextStatus failure) {
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         snapshot_.started = false;
         snapshot_.initialization = failure;
     }
@@ -104,14 +106,14 @@ PreparedTextStatus PreparedWindowSession::admission_locked() const noexcept {
 }
 
 PreparedTextStatus PreparedWindowSession::desire(const detail::PreparedWindowKey& key) {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
-    std::lock_guard<std::mutex> lock(mutex_);
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
+    const stxlib::ScopedLock lock(mutex_);
     const PreparedTextStatus available = admission_locked();
     if (available != PreparedTextStatus::success) return available;
     if (key.authority.session != snapshot_.session_instance || key.controller_instance != snapshot_.controller_instance)
         return PreparedTextStatus::stale;
     {
-        std::lock_guard<std::mutex> ledger_lock((*(*fonts_).ledger).mutex);
+        const stxlib::ScopedLock ledger_lock((*(*fonts_).ledger).mutex);
         if ((*(*fonts_).ledger).closing) return PreparedTextStatus::closing;
     }
     if (key.text.font_set != (*fonts_).identity || key.text.font_generation != (*fonts_).generation)
@@ -131,8 +133,8 @@ PreparedTextStatus PreparedWindowSession::desire(const detail::PreparedWindowKey
 }
 
 PreparedTextStatus PreparedWindowSession::submit(std::unique_ptr<detail::PreparedWindowBatchStorage>& batch) {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
-    std::lock_guard<std::mutex> lock(mutex_);
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
+    const stxlib::ScopedLock lock(mutex_);
     const PreparedTextStatus available = admission_locked();
     if (available != PreparedTextStatus::success) return available;
     if (snapshot_.slot != PreparedTextSlot::empty) return PreparedTextStatus::busy;
@@ -150,25 +152,25 @@ PreparedTextStatus PreparedWindowSession::submit(std::unique_ptr<detail::Prepare
 }
 
 PreparedTextStatus PreparedWindowSession::inspect(PreparedWindowSessionSnapshot& output) const {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
-    std::lock_guard<std::mutex> lock(mutex_);
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
+    const stxlib::ScopedLock lock(mutex_);
     output = snapshot_;
     return PreparedTextStatus::success;
 }
 
 PreparedTextStatus PreparedWindowSession::adopt(const detail::PreparedWindowKey& expected,
     std::shared_ptr<const detail::PreparedWindowBatchStorage>& output) {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     if (output) return PreparedTextStatus::busy;
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const PreparedTextStatus available = admission_locked();
     if (available != PreparedTextStatus::success) return available;
     if (snapshot_.slot != PreparedTextSlot::ready) return PreparedTextStatus::pending;
     if (snapshot_.completion != PreparedTextStatus::success) return snapshot_.completion;
     if (!batch_ || !snapshot_.desired || !detail::same_prepared_window_key(expected, *snapshot_.desired) ||
         !detail::same_prepared_window_key(expected, (*batch_).key)) return PreparedTextStatus::stale;
-    std::lock_guard<std::mutex> authority_lock((*authority_).mutex);
-    std::lock_guard<std::mutex> ledger_lock((*(*fonts_).ledger).mutex);
+    const stxlib::ScopedLock authority_lock((*authority_).mutex);
+    const stxlib::ScopedLock ledger_lock((*(*fonts_).ledger).mutex);
     const PreparedTextStatus current = detail::prepared_window_worker_current_locked(*batch_);
     if (current != PreparedTextStatus::success) return current;
     try {
@@ -182,10 +184,10 @@ PreparedTextStatus PreparedWindowSession::adopt(const detail::PreparedWindowKey&
 }
 
 PreparedTextStatus PreparedWindowSession::discard() {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     std::unique_ptr<detail::PreparedWindowBatchStorage> retired{};
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (snapshot_.slot != PreparedTextSlot::ready) return PreparedTextStatus::busy;
         retired = std::move(batch_);
         snapshot_.slot = PreparedTextSlot::empty;
@@ -194,10 +196,10 @@ PreparedTextStatus PreparedWindowSession::discard() {
 }
 
 PreparedTextStatus PreparedWindowSession::cancel() {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
-    std::lock_guard<std::mutex> lock(mutex_);
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
+    const stxlib::ScopedLock lock(mutex_);
     if (!snapshot_.started || !authority_) return PreparedTextStatus::invalid_input;
-    std::lock_guard<std::mutex> authority_lock((*authority_).mutex);
+    const stxlib::ScopedLock authority_lock((*authority_).mutex);
     (*authority_).desired.reset();
     snapshot_.desired.reset();
     return PreparedTextStatus::success;
@@ -207,28 +209,28 @@ void PreparedWindowSession::revoke_locked() {
     snapshot_.closing = true;
     snapshot_.desired.reset();
     if (snapshot_.started && authority_) {
-        std::lock_guard<std::mutex> authority_lock((*authority_).mutex);
+        const stxlib::ScopedLock authority_lock((*authority_).mutex);
         (*authority_).closing = true;
         (*authority_).desired.reset();
     }
 }
 
 PreparedTextStatus PreparedWindowSession::begin_close() {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
-    std::lock_guard<std::mutex> lock(mutex_);
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
+    const stxlib::ScopedLock lock(mutex_);
     revoke_locked();
     condition_.notify_one();
     return PreparedTextStatus::success;
 }
 
 PreparedTextStatus PreparedWindowSession::join_and_release() {
-    if (owner_ != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if (owner_ != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     const PreparedTextStatus closing = begin_close();
     if (closing != PreparedTextStatus::success) return closing;
-    if (worker_.joinable()) worker_.join();
+    detail::join_library_thread(worker_);
     std::unique_ptr<detail::PreparedWindowBatchStorage> retired{};
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (snapshot_.started && !snapshot_.exited) return PreparedTextStatus::native_failure;
         retired = std::move(batch_);
         snapshot_.slot = PreparedTextSlot::empty;
@@ -244,12 +246,12 @@ void PreparedWindowSession::notify_owner() noexcept {
     // Connection ownership cannot change until worker join. No user callback
     // occurs under a session, authority or ledger lock.
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (snapshot_.notification == PreparedWindowWakeResult::failed ||
             snapshot_.notification == PreparedWindowWakeResult::closed) return;
     }
     const PreparedWindowWakeResult result = (*connection_).signal();
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     if (snapshot_.notification == PreparedWindowWakeResult::failed ||
         snapshot_.notification == PreparedWindowWakeResult::closed) return;
     snapshot_.notification = result;
@@ -265,7 +267,7 @@ void PreparedWindowSession::work() {
     if (hook_) (*hook_).before_initialize();
     const PreparedTextStatus initialized = shaper.initialize();
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         snapshot_.initialization = initialized;
         if (initialized != PreparedTextStatus::success) revoke_locked();
     }
@@ -274,8 +276,8 @@ void PreparedWindowSession::work() {
         detail::PreparedWindowBatchStorage* job = nullptr;
         bool closing = false;
         {
-            std::unique_lock<std::mutex> lock(mutex_);
-            while (!snapshot_.closing && snapshot_.slot != PreparedTextSlot::queued) condition_.wait(lock);
+            stxlib::ScopedLock lock(mutex_);
+            condition_.wait(lock, &PreparedWindowSession::job_or_closing, this);
             if (snapshot_.slot != PreparedTextSlot::queued) break;
             snapshot_.slot = PreparedTextSlot::running;
             closing = snapshot_.closing;
@@ -292,7 +294,7 @@ void PreparedWindowSession::work() {
             catch (...) { completion = PreparedTextStatus::native_failure; }
         }
         {
-            std::lock_guard<std::mutex> lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             snapshot_.completion = completion;
             snapshot_.slot = PreparedTextSlot::ready;
         }
@@ -300,9 +302,19 @@ void PreparedWindowSession::work() {
     }
 }
 
+void PreparedWindowSession::thread_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+    // The snapshot's closing ends the loop; STXlib ends the thread's records
+    // after this returns.
+    static_cast<void>(stop);
+    (*static_cast<PreparedWindowSession*>(context)).run();
+}
+
+bool PreparedWindowSession::job_or_closing(const void* const context) noexcept {
+    const PreparedWindowSession& session = *static_cast<const PreparedWindowSession*>(context);
+    return session.snapshot_.closing || session.snapshot_.slot == PreparedTextSlot::queued;
+}
+
 void PreparedWindowSession::run() noexcept {
-    // Closes last: the thread's records are released here, on the thread.
-    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     try { work(); }
     catch (...) {
         const std::exception_ptr error = std::current_exception();
@@ -310,7 +322,7 @@ void PreparedWindowSession::run() noexcept {
         try { std::rethrow_exception(error); }
         catch (const std::bad_alloc&) { failure = PreparedTextStatus::resource_failure; }
         catch (...) {}
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (snapshot_.initialization == PreparedTextStatus::pending) snapshot_.initialization = failure;
         snapshot_.completion = failure;
         if (batch_) snapshot_.slot = PreparedTextSlot::ready;
@@ -318,7 +330,7 @@ void PreparedWindowSession::run() noexcept {
     }
     // work() has returned/unwound: shaper/native state has died on this worker.
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         snapshot_.exited = true;
     }
     notify_owner();

@@ -3,19 +3,52 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/dispatcher.hpp"
 
-#include <atomic>
 #include <deque>
 #include <functional>
-#include <mutex>
-#include <thread>
+#include <stxlib/atomic_word.hpp>
+#include <stxlib/threads.hpp>
+#include <stxlib/types.hpp>
 
 namespace gui_forms::detail {
 
 struct DispatcherState;
 
+// An operation's state on an STXlib AtomicWord (the shield: its waiters
+// park on the word itself, stxlib/atomic_word.hpp, as they did on
+// std::atomic's wait). The orders are the callers'.
+class DispatchStateWord final {
+public:
+    [[nodiscard]] DispatchOperationState load(const stxlib::MemoryOrder order) const noexcept {
+        const DispatchOperationState result = static_cast<DispatchOperationState>(word_.load(order));
+        return result;
+    }
+    void store(const DispatchOperationState state, const stxlib::MemoryOrder order) noexcept {
+        word_.store(static_cast<stxlib::u32>(state), order);
+    }
+    // Replaces `expected` with `desired`; on failure, `expected` is what was
+    // there.
+    [[nodiscard]] bool compare_exchange(DispatchOperationState& expected, const DispatchOperationState desired,
+                                        const stxlib::MemoryOrder success,
+                                        const stxlib::MemoryOrder failure) noexcept {
+        stxlib::u32 seen = static_cast<stxlib::u32>(expected);
+        const bool replaced = word_.compare_exchange(seen, static_cast<stxlib::u32>(desired), success, failure);
+        expected = static_cast<DispatchOperationState>(seen);
+        return replaced;
+    }
+    // Returns once the state is no longer `observed` (or spuriously; the
+    // caller loads again).
+    void wait(const DispatchOperationState observed, const stxlib::MemoryOrder order) const noexcept {
+        static_cast<void>(word_.wait(static_cast<stxlib::u32>(observed), order));
+    }
+    void notify_all() noexcept { word_.notify_all(); }
+
+private:
+    stxlib::AtomicWord word_{static_cast<stxlib::u32>(DispatchOperationState::pending)};
+};
+
 struct DispatchWork final {
     std::uint64_t sequence{};
-    std::atomic<DispatchOperationState> state{DispatchOperationState::pending};
+    DispatchStateWord state{};
     std::function<void()> callback;
     Control::WeakPtr owner;
     bool requires_owner{};
@@ -31,12 +64,12 @@ struct DispatchWork final {
 struct DispatcherState final {
     using Queue = std::deque<std::shared_ptr<DispatchWork>>;
 
-    explicit DispatcherState(std::thread::id thread) : ui_thread(thread) {}
+    explicit DispatcherState(stxlib::ThreadIdentity thread) : ui_thread(thread) {}
 
-    mutable std::mutex mutex;
+    mutable stxlib::Mutex mutex;
     Queue queue;
     std::function<void()> wake;
-    std::thread::id ui_thread;
+    stxlib::ThreadIdentity ui_thread;
     std::uint64_t next_sequence{1U};
     std::uint64_t posted{};
     std::uint64_t invoked{};
@@ -70,7 +103,7 @@ struct DispatcherState final {
 // lock: post_dispatch takes it under a dispatcher's, and nothing is taken
 // under it.
 struct RevocableInvokes final {
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     bool revoked{};
     // The synchronous invoke this thread queued last; expired or terminal
     // once it ran.

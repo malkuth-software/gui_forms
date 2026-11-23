@@ -8,6 +8,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
 #include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -18,6 +19,7 @@
 #include <stdexcept>
 #include <string>
 #include <stxlib/optional.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 #if defined(GUI_FORMS_PREPARED_TEXT)
@@ -152,11 +154,11 @@ struct Closing final {
 // that made them (A-gf-host-02-F12).
 struct Dialog final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostDialogResult operator()(const HostDialogRequest& request) const {
         HostDialogResult refused{};
         refused.request_id = request.request_id;
-        if (thread != std::this_thread::get_id()) {
+        if (thread != stxlib::current_thread()) {
             refused.status.error = HostServiceError::wrong_thread;
             return refused;
         }
@@ -171,10 +173,10 @@ struct Dialog final {
 };
 struct ReadText final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostClipboardTextResult operator()() const {
         HostClipboardTextResult refused{};
-        if (thread != std::this_thread::get_id()) {
+        if (thread != stxlib::current_thread()) {
             refused.status.error = HostServiceError::wrong_thread;
             return refused;
         }
@@ -189,9 +191,9 @@ struct ReadText final {
 };
 struct WriteText final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostServiceStatus operator()(std::string_view text) const {
-        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
         const std::shared_ptr<NativeWindow> window = owner.lock();
         if (!window || (*window).closed) return {HostServiceError::after_shutdown};
         const HostServiceStatus status = (*(*window).services).write_clipboard_text(text);
@@ -208,9 +210,9 @@ bool is_primary(const SurfaceApplicationWindow& entry) noexcept {
 // frame's.
 struct WindowTitle final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostServiceStatus operator()(const std::string_view text) const {
-        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
         const std::shared_ptr<NativeWindow> window = owner.lock();
         if (!window || (*window).closed) return {HostServiceError::after_shutdown};
         try {
@@ -232,9 +234,9 @@ struct WindowTitle final {
 // window's is the surface's, decided by the host.
 struct WindowClientSize final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostServiceStatus operator()(const Size client_size) const {
-        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
         const std::shared_ptr<NativeWindow> window = owner.lock();
         if (!window || (*window).closed) return {HostServiceError::after_shutdown};
         NativeWindow& native = *window;
@@ -333,7 +335,7 @@ void Wake::operator()() const noexcept {
 
 void ActionQueue::post(Action action) {
     {
-        const std::lock_guard<std::mutex> guard(mutex);
+        const stxlib::ScopedLock guard(mutex);
         pending.push_back(std::move(action));
     }
     (*input).wake();
@@ -1021,7 +1023,7 @@ bool NativeWindow::report_presented(const stxlib::Optional<PaintReceipt>& receip
 
 Runtime::Runtime(SurfaceHost& surface_host, std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts)
     : host(surface_host), queue(surface_host.input()), fonts(std::move(run_fonts)),
-      actions(std::make_shared<ActionQueue>(surface_host.input())) {
+      actions(gui_forms::detail::make_library_shared<ActionQueue>(surface_host.input())) {
     const SurfaceHostStart start = host.start();
     extent = Size{std::max(1.0, start.extent.width), std::max(1.0, start.extent.height)};
     scale = std::isfinite(start.scale) && start.scale > 0.0 ? start.scale : 1.0;
@@ -1051,7 +1053,7 @@ Runtime::~Runtime() {
 std::shared_ptr<NativeWindow> Runtime::add(SurfaceApplicationWindow entry, HostWindowId window_id, Rect content,
                                            bool initial) {
     const std::shared_ptr<NativeWindow> window =
-        std::make_shared<NativeWindow>(*this, std::move(entry), window_id, content, initial);
+        gui_forms::detail::make_library_shared<NativeWindow>(*this, std::move(entry), window_id, content, initial);
     windows.push_back(window);
     (*window).attach();
     scene_dirty_ = true;
@@ -1236,7 +1238,7 @@ void Runtime::step() {
     // The queued show, hide, close and full-screen requests.
     std::deque<Action> queued;
     {
-        const std::lock_guard<std::mutex> guard((*actions).mutex);
+        const stxlib::ScopedLock guard((*actions).mutex);
         queued.swap((*actions).pending);
     }
     for (std::size_t index = 0U; index < queued.size(); ++index) {
@@ -2095,7 +2097,7 @@ HostWindowAdmission RunOpen::operator()(SurfaceApplicationWindow entry) const {
         refused.status.error = HostServiceError::after_shutdown;
         return refused;
     }
-    if ((*state).thread != std::this_thread::get_id()) {
+    if ((*state).thread != stxlib::current_thread()) {
         refused.status.error = HostServiceError::wrong_thread;
         return refused;
     }
@@ -2131,7 +2133,7 @@ CompositorState surface_compositor_state() {
 
 int run_surface_application(SurfaceHost& host, std::vector<SurfaceApplicationWindow> windows,
                             SurfaceApplicationOptions application) {
-    const std::shared_ptr<RunOpenState> open_state = std::make_shared<RunOpenState>();
+    const std::shared_ptr<RunOpenState> open_state = gui_forms::detail::make_library_shared<RunOpenState>();
     try {
         // The run holds the bundled font set, so windows opened and closed
         // during it share one copy of each face.

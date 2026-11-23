@@ -1,3 +1,6 @@
+// Before drawing_support.hpp, which leaves namespace gui_drawing open for
+// the rest of this file.
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../support/drawing_support.hpp"
 
 Bitmap::Bitmap(std::uint32_t width, std::uint32_t height,
@@ -13,7 +16,7 @@ Bitmap::Bitmap(std::uint32_t width, std::uint32_t height,
         byte_count > std::numeric_limits<std::size_t>::max()) {
         throw std::length_error("bitmap byte limit exceeded");
     }
-    storage_ = std::make_shared<PixelStorage>();
+    storage_ = gui_forms::detail::make_library_shared<PixelStorage>();
     (*storage_).width = width;
     (*storage_).height = height;
     (*storage_).pixel_format = pixel_format;
@@ -475,7 +478,7 @@ ImageSnapshot Bitmap::snapshot() const {
     }
     // Borrowed pixels change under the native object's own drawing, so an
     // immutable snapshot of them is a copy (packed rows, owned).
-    std::shared_ptr<PixelStorage> copy = std::make_shared<PixelStorage>();
+    std::shared_ptr<PixelStorage> copy = gui_forms::detail::make_library_shared<PixelStorage>();
     (*copy).width = (*storage_).width;
     (*copy).height = (*storage_).height;
     (*copy).pixel_format = (*storage_).pixel_format;
@@ -525,7 +528,7 @@ void Bitmap::prepare_write() {
     // Copy on write for owned pixels a snapshot shares. Borrowed pixels are
     // never shared (snapshot copies them), so they are written in place.
     if (storage_.use_count() != 1 && (*storage_).borrowed == nullptr) {
-        storage_ = std::make_shared<PixelStorage>(*storage_);
+        storage_ = gui_forms::detail::make_library_shared<PixelStorage>(*storage_);
     }
 }
 

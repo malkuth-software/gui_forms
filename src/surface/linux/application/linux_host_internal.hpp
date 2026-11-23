@@ -24,15 +24,14 @@
 #include <atomic>
 #include <chrono>
 #include <deque>
-#include <mutex>
 #include <memory>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <cmath>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::host::linux_detail {
@@ -364,7 +363,7 @@ struct Action final {
   ActionKind kind;
 };
 struct ActionQueue final {
-  std::mutex mutex;
+  stxlib::Mutex mutex;
   std::deque<Action> pending;
   Wake wake;
   void post(Action action);
@@ -889,7 +888,7 @@ void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result);
 // The run's open operation (LinuxOpenWindow). Only the UI thread reaches the
 // windowing, and only while the run lives.
 struct RunOpenState final {
-  const std::thread::id thread{std::this_thread::get_id()};
+  const stxlib::ThreadIdentity thread{stxlib::current_thread()};
   X11Windowing *windowing{};
 };
 struct RunOpen final {

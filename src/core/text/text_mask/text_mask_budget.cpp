@@ -1,5 +1,7 @@
 #include "text_mask_budget.hpp"
 
+#include <stxlib/threads.hpp>
+
 namespace gui_forms::detail {
 namespace {
 TextMaskByteUsage byte_usage(const MaskUsage& usage) noexcept {
@@ -19,28 +21,28 @@ MaskLedger::MaskLedger() {
     for (std::size_t index = 0; index < usage.size(); ++index) usage[index].limit = limits[index];
 }
 void MaskLedger::reserve(const MaskResource resource, const std::size_t amount) {
-    std::lock_guard<std::mutex> lock(mutex);
+    const stxlib::ScopedLock lock(mutex);
     MaskUsage& entry = usage[static_cast<std::size_t>(resource)];
     if (amount > entry.limit - entry.live - entry.reserved) throw MaskBudgetFailure(resource);
     entry.reserved += amount;
     entry.peak = std::max(entry.peak, entry.live + entry.reserved);
 }
 void MaskLedger::commit(const MaskResource resource, const std::size_t amount) noexcept {
-    std::lock_guard<std::mutex> lock(mutex);
+    const stxlib::ScopedLock lock(mutex);
     MaskUsage& entry = usage[static_cast<std::size_t>(resource)];
     entry.reserved -= amount;
     entry.live += amount;
 }
 void MaskLedger::abandon(const MaskResource resource, const std::size_t amount) noexcept {
-    std::lock_guard<std::mutex> lock(mutex);
+    const stxlib::ScopedLock lock(mutex);
     usage[static_cast<std::size_t>(resource)].reserved -= amount;
 }
 void MaskLedger::release(const MaskResource resource, const std::size_t amount) noexcept {
-    std::lock_guard<std::mutex> lock(mutex);
+    const stxlib::ScopedLock lock(mutex);
     usage[static_cast<std::size_t>(resource)].live -= amount;
 }
 TextMaskBudgetSnapshot MaskLedger::snapshot() {
-    std::lock_guard<std::mutex> lock(mutex);
+    const stxlib::ScopedLock lock(mutex);
     const TextMaskBudgetSnapshot result{
         byte_usage(usage[0]), byte_usage(usage[1]), byte_usage(usage[2]),
         byte_usage(usage[3]), byte_usage(usage[4]), byte_usage(usage[5]),

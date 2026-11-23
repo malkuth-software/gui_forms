@@ -1,4 +1,5 @@
 #include "headless_application.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/application/application_state.hpp"
 
 #include <stxlib/optional.hpp>
@@ -459,7 +460,7 @@ HostServiceStatus HeadlessWindowing::hide_impl(HostWindowId window) {
 
 HeadlessApplication::HeadlessApplication(std::vector<ApplicationWindow> windows,
                                          HostCapabilities capabilities)
-    : run_(std::make_shared<detail::ApplicationRunState>()),
+    : run_(gui_forms::detail::make_library_shared<detail::ApplicationRunState>()),
       windowing_(*this, std::move(capabilities)) {
     const ApplicationResult validation = Application::validate(windows);
     if (!validation.accepted()) {
@@ -672,7 +673,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     }
     windowing_.report_frame(window.id, windowing_.native_frame(window.id));
 
-    window.state = std::make_shared<detail::ApplicationWindowState>();
+    window.state = gui_forms::detail::make_library_shared<detail::ApplicationWindowState>();
     detail::ApplicationWindowState& state = *window.state;
     state.stable_id = window.stable_id;
     state.run = run_;

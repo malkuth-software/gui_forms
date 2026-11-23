@@ -6,6 +6,8 @@
 #include "gui_forms/window/presentation/presentation_types.hpp"
 #include "include/core/SkSurface.h"
 
+#include <stxlib/threads.hpp>
+
 namespace gui_forms::render {
 
 // Composites prepared-text coverage into a canvas with the shared ADR-004
@@ -40,7 +42,7 @@ public:
     [[nodiscard]] double front_scale() const noexcept { return front_scale_; }
     [[nodiscard]] bool matches(const Size size, const double scale) const noexcept;
     [[nodiscard]] bool on_executor() const noexcept {
-        const bool result = std::this_thread::get_id() == executor_;
+        const bool result = stxlib::current_thread() == executor_;
         return result;
     }
 private:
@@ -62,7 +64,7 @@ private:
     double front_scale_{1.0};
     double candidate_scale_{1.0};
     PaintReceipt receipt_{};
-    std::thread::id executor_{std::this_thread::get_id()};
+    stxlib::ThreadIdentity executor_{stxlib::current_thread()};
     bool active_{false};
     bool failed_{false};
     // Deterministic allocation refusal fixture; never selected by the host.

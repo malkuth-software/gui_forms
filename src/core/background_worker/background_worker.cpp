@@ -4,13 +4,15 @@
 #include "../surface_root/access/surface_lifetime_access.hpp"
 
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <chrono>
 #include <functional>
 #include <optional>
 #include <stdexcept>
-#include <thread>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -82,7 +84,7 @@ bool post_from_worker(const BackgroundWorkerRun& run, BackgroundWorkerDelivery d
                                                           operation);
         if (outcome == PostOutcome::posted) return true;
         if (outcome != PostOutcome::queue_full || !wait_for_room) return false;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(1));
     }
 }
 
@@ -138,7 +140,7 @@ void BackgroundWorkerTask::report_progress(int percent, BindingValue user_state)
 BackgroundWorker::BackgroundWorker(Window& window)
     : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)),
       dispatcher_(detail::SurfaceLifetimeAccess::share_dispatcher(window)),
-      target_(std::make_shared<detail::BackgroundWorkerTarget>()) {
+      target_(gui_forms::detail::make_library_shared<detail::BackgroundWorkerTarget>()) {
     window.verify_access("BackgroundWorker construction");
     (*target_).owner = this;
 }
@@ -206,14 +208,14 @@ void BackgroundWorker::run_worker_async(BindingValue argument) {
     require_ui("BackgroundWorker start");
     if (is_busy()) throw std::logic_error("GUI.Forms BackgroundWorker is already running");
     {
-        std::scoped_lock lock((*dispatcher_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_).mutex);
         if (!(*dispatcher_).accepting) {
             throw std::logic_error("GUI.Forms BackgroundWorker cannot start after its dispatcher shut down");
         }
     }
     // An abandoned run's work has returned or is about to; collect it first.
     stop_run();
-    std::shared_ptr<Run> run = std::make_shared<Run>();
+    std::shared_ptr<Run> run = gui_forms::detail::make_library_shared<Run>();
     (*run).self = run;
     (*run).target = target_;
     (*run).dispatcher = dispatcher_;

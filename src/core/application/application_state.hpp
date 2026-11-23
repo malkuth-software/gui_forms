@@ -1,12 +1,13 @@
 #pragma once
 #include "gui_forms/application.hpp"
-#include <thread>
+
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::detail {
 struct ApplicationRunState;
 
 struct ApplicationWindowState final {
-    std::thread::id thread{std::this_thread::get_id()};
+    stxlib::ThreadIdentity thread{stxlib::current_thread()};
     bool ready{};
     bool closed{};
     bool can_hide{};
@@ -38,7 +39,7 @@ struct ApplicationRunWindow final {
 // by the code that runs the adapter (Application::run or a headless
 // application). Only the UI thread reads or changes it.
 struct ApplicationRunState final {
-    std::thread::id thread{std::this_thread::get_id()};
+    stxlib::ThreadIdentity thread{stxlib::current_thread()};
     bool closed{};
     // The running application's keyboard-command keys (DK-44), given to
     // every window the run opens.

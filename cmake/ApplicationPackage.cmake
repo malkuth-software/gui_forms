@@ -20,7 +20,8 @@
 #                                         GUIForms::Application, an interface
 #                                         target over the two
 #                                         (GUIFormsApplicationTargets.cmake.in).
-# The STXlib and stx packages, GUIForms::Threading and GUIForms::PlotPrimitives
+# The STXlib and stx packages, GUIForms::Threading, GUIForms::Memory and
+# GUIForms::PlotPrimitives
 # are installed archives of their own, which the interface names; the
 # program's link therefore holds one copy of each routine.
 #

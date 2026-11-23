@@ -5,6 +5,7 @@
 #include "gui_forms/controls/radial_gauge.hpp"
 #include "gui_forms/controls/range_control_values.hpp"
 #include "gui_forms/controls/seven_segment_display.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "instruments_form.hpp"
 
@@ -127,7 +128,7 @@ void InstrumentsPage::on_dial_changed(double value) {
 }
 
 void add_instruments(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<InstrumentsPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<InstrumentsPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

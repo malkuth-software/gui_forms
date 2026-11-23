@@ -4,12 +4,10 @@
 #include "gui_forms/document_view/types/document_view_types.hpp"
 
 #include <array>
-#include <condition_variable>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <string>
-#include <thread>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::render::worker_probe {
 
@@ -88,12 +86,16 @@ private:
         std::uint64_t authority_epoch{};
         std::string text{};
     };
+    // The thread's STXlib entry (`context` is the worker) and its body.
+    static void thread_main(const stxlib::StopSignal& stop, void* context) noexcept;
     void run();
+    // run's wait predicate, under the mutex: a queued job or closing.
+    [[nodiscard]] static bool job_or_closing(const void* context) noexcept;
     [[nodiscard]] bool valid(const Identity& identity) const noexcept;
     std::shared_ptr<const FontSet> fonts_{};
-    std::mutex mutex_{};
-    std::condition_variable wake_{};
-    std::thread thread_{};
+    stxlib::Mutex mutex_{};
+    stxlib::ConditionVariable wake_{};
+    stxlib::Thread thread_{};
     std::optional<Identity> desired_{};
     std::uint64_t authority_epoch_{};
     std::unique_ptr<Job> job_{};

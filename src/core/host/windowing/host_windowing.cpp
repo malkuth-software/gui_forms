@@ -7,6 +7,7 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 namespace {
@@ -194,7 +195,7 @@ std::string HostWindowingSnapshot::to_json() const {
 }
 
 HostWindowing::HostWindowing(HostCapabilities capabilities)
-    : ui_thread_(std::this_thread::get_id()) {
+    : ui_thread_(stxlib::current_thread()) {
     snapshot_.capabilities = std::move(capabilities);
     windows_.reserve(maximum_windows);
 }
@@ -208,7 +209,7 @@ HostServiceStatus HostWindowing::reject(HostServiceError error) noexcept {
 }
 
 HostServiceStatus HostWindowing::validate_request(HostCapability capability) noexcept {
-    if (std::this_thread::get_id() != ui_thread_) return reject(HostServiceError::wrong_thread);
+    if (stxlib::current_thread() != ui_thread_) return reject(HostServiceError::wrong_thread);
     if (snapshot_.shutdown) return reject(HostServiceError::after_shutdown);
     if (!snapshot_.capabilities.supports(capability)) return reject(HostServiceError::unsupported);
     return {};
@@ -493,7 +494,7 @@ bool HostWindowing::supports_modal_windows() const noexcept {
 
 HostWindowAdmission HostWindowing::admit(const HostWindowDescription& description) {
     HostWindowAdmission result;
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         result.status = reject(HostServiceError::wrong_thread);
         return result;
     }
@@ -552,7 +553,7 @@ void HostWindowing::retire(HostWindowId window) noexcept {
 }
 
 void HostWindowing::report_frame(HostWindowId window, const HostWindowFrame& frame) {
-    if (std::this_thread::get_id() != ui_thread_ || snapshot_.shutdown) return;
+    if (stxlib::current_thread() != ui_thread_ || snapshot_.shutdown) return;
     WindowRecord* entry = record(window);
     if (entry == nullptr || !valid_frame(frame)) return;
     (*entry).frame.set(frame);
@@ -634,7 +635,7 @@ void HostWindowing::window_created(HostWindowId window, bool initially_visible) 
 }
 
 HostServiceStatus HostWindowing::set_visible(HostWindowId window, bool visible) {
-    if (std::this_thread::get_id() != ui_thread_) return reject(HostServiceError::wrong_thread);
+    if (stxlib::current_thread() != ui_thread_) return reject(HostServiceError::wrong_thread);
     if (snapshot_.shutdown) return reject(HostServiceError::after_shutdown);
     WindowRecord* entry = record(window);
     if (entry == nullptr) return reject(HostServiceError::invalid_argument);
@@ -651,7 +652,7 @@ HostServiceStatus HostWindowing::set_visible(HostWindowId window, bool visible) 
 }
 
 HostServiceStatus HostWindowing::set_shown_while_inactive(HostWindowId window, bool shown) {
-    if (std::this_thread::get_id() != ui_thread_) return reject(HostServiceError::wrong_thread);
+    if (stxlib::current_thread() != ui_thread_) return reject(HostServiceError::wrong_thread);
     if (snapshot_.shutdown) return reject(HostServiceError::after_shutdown);
     WindowRecord* entry = record(window);
     if (entry == nullptr) return reject(HostServiceError::invalid_argument);
@@ -661,14 +662,14 @@ HostServiceStatus HostWindowing::set_shown_while_inactive(HostWindowId window, b
 }
 
 void HostWindowing::report_application_active(bool active) {
-    if (std::this_thread::get_id() != ui_thread_ || snapshot_.shutdown) return;
+    if (stxlib::current_thread() != ui_thread_ || snapshot_.shutdown) return;
     if (snapshot_.application_active == active) return;
     snapshot_.application_active = active;
     apply_floating_visibility();
 }
 
 void HostWindowing::report_minimized(HostWindowId window, bool minimized) {
-    if (std::this_thread::get_id() != ui_thread_ || snapshot_.shutdown) return;
+    if (stxlib::current_thread() != ui_thread_ || snapshot_.shutdown) return;
     WindowRecord* entry = record(window);
     if (entry == nullptr || (*entry).minimized == minimized) return;
     (*entry).minimized = minimized;

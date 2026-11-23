@@ -1,17 +1,18 @@
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include <atomic>
 #include <cmath>
 #include <limits>
-#include <thread>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 struct CursorLeaseState final {
     // UI-thread observer, cleared only after native cleanup. Host retains this
     // record too, so a mistaken wrong-thread lease destructor cannot destroy it.
     HostServices* owner{};
-    std::thread::id thread{};
+    stxlib::ThreadIdentity thread{};
     CursorLeaseSnapshot snapshot{};
     bool cleanup_retried{};
 };
@@ -52,7 +53,7 @@ CursorHiddenLease& CursorHiddenLease::operator=(CursorHiddenLease&& other) noexc
 CursorStatus CursorHiddenLease::release() noexcept {
     if (!state_) { return {}; }
     CursorLeaseState& state = *state_;
-    if (state.thread != std::this_thread::get_id()) { return {CursorError::wrong_thread}; }
+    if (state.thread != stxlib::current_thread()) { return {CursorError::wrong_thread}; }
     if (state.snapshot.phase != CursorLeasePhase::active) {
         const CursorStatus result = terminal_status(state.snapshot);
         return result;
@@ -64,7 +65,7 @@ CursorStatus CursorHiddenLease::release() noexcept {
 CursorLeaseSnapshot CursorHiddenLease::snapshot() const noexcept {
     if (!state_) { return {}; }
     const CursorLeaseState& state = *state_;
-    if (state.thread != std::this_thread::get_id()) {
+    if (state.thread != stxlib::current_thread()) {
         return {CursorLeasePhase::empty, {CursorError::wrong_thread}, {}};
     }
     return state.snapshot;
@@ -86,12 +87,12 @@ CursorStatus HostServices::hide_cursor_impl() noexcept { return {CursorError::un
 CursorStatus HostServices::restore_cursor_impl() noexcept { return {CursorError::unsupported}; }
 CursorStatus HostServices::warp_cursor_impl(int, int) noexcept { return {CursorError::unsupported}; }
 CursorCapabilities HostServices::cursor_capabilities() const noexcept {
-    if (std::this_thread::get_id() != ui_thread_ || snapshot_.shutdown) { return {}; }
+    if (stxlib::current_thread() != ui_thread_ || snapshot_.shutdown) { return {}; }
     const CursorCapabilities result = cursor_capabilities_impl();
     return result;
 }
 CursorStatus HostServices::validate_cursor_request(const Window& window) const noexcept {
-    if (std::this_thread::get_id() != ui_thread_) { return {CursorError::wrong_thread}; }
+    if (stxlib::current_thread() != ui_thread_) { return {CursorError::wrong_thread}; }
     if (snapshot_.shutdown) { return {CursorError::closing}; }
     if (window.host_services() != this) { return {CursorError::stale_window}; }
     if (!window.active() || !modal_stack_.empty()) { return {CursorError::denied}; }
@@ -115,7 +116,7 @@ CursorLeaseResult HostServices::begin_cursor_hidden(Window& window) {
     const CursorStatus authority = cursor_authority_impl(window, true);
     if (!authority.accepted()) { return {{}, authority}; }
     std::shared_ptr<CursorLeaseState> state{};
-    try { state = std::make_shared<CursorLeaseState>(); }
+    try { state = gui_forms::detail::make_library_shared<CursorLeaseState>(); }
     catch (const std::bad_alloc&) { return {{}, {CursorError::native_failure}}; }
     const CursorStatus hidden = hide_cursor_impl();
     if (!hidden.accepted()) { return {{}, hidden}; }
@@ -127,7 +128,7 @@ CursorLeaseResult HostServices::begin_cursor_hidden(Window& window) {
     return result;
 }
 CursorStatus HostServices::release_cursor_lease(CursorLeaseState& state) noexcept {
-    if (std::this_thread::get_id() != ui_thread_) { return {CursorError::wrong_thread}; }
+    if (stxlib::current_thread() != ui_thread_) { return {CursorError::wrong_thread}; }
     if (cursor_lease_.get() != &state) { return {CursorError::revoked}; }
     state.snapshot.phase = CursorLeasePhase::released;
     state.snapshot.cause = {};
@@ -136,7 +137,7 @@ CursorStatus HostServices::release_cursor_lease(CursorLeaseState& state) noexcep
     return state.snapshot.restoration;
 }
 void HostServices::revoke_cursor_interaction(CursorError cause) noexcept {
-    if (std::this_thread::get_id() != ui_thread_ || !cursor_lease_) { return; }
+    if (stxlib::current_thread() != ui_thread_ || !cursor_lease_) { return; }
     CursorLeaseState& state = *cursor_lease_;
     if (state.snapshot.phase == CursorLeasePhase::active) {
         state.snapshot.phase = CursorLeasePhase::revoked;
@@ -152,12 +153,12 @@ void HostServices::revoke_cursor_interaction(CursorError cause) noexcept {
     }
 }
 CursorLeaseSnapshot HostServices::cursor_interaction_snapshot() const noexcept {
-    if (std::this_thread::get_id() != ui_thread_) { return {CursorLeasePhase::empty, {CursorError::wrong_thread}, {}}; }
+    if (stxlib::current_thread() != ui_thread_) { return {CursorLeasePhase::empty, {CursorError::wrong_thread}, {}}; }
     if (!cursor_lease_) { return {}; }
     return (*cursor_lease_).snapshot;
 }
 bool HostServices::cursor_hidden() const noexcept {
-    if (std::this_thread::get_id() != ui_thread_) { return false; }
+    if (stxlib::current_thread() != ui_thread_) { return false; }
     const bool hidden = cursor_lease_ && (*cursor_lease_).snapshot.phase == CursorLeasePhase::active;
     return hidden;
 }
@@ -199,23 +200,23 @@ void Window::invalidate_cursor_interaction(CursorError cause) noexcept {
     if (cursor_metrics_generation_ != 0) { ++cursor_metrics_generation_; }
 }
 CursorMetrics Window::cursor_metrics() const noexcept {
-    if (std::this_thread::get_id() != root_thread_) { return {}; }
+    if (stxlib::current_thread() != root_thread_) { return {}; }
     return {cursor_window_id_, cursor_metrics_generation_, client_size_, scale_};
 }
 CursorCapabilities Window::cursor_capabilities() const noexcept {
-    if (std::this_thread::get_id() != root_thread_) { return {}; }
+    if (stxlib::current_thread() != root_thread_) { return {}; }
     if (host_services_ == nullptr) { return {}; }
     const CursorCapabilities result = (*host_services_).cursor_capabilities();
     return result;
 }
 CursorLeaseResult Window::begin_cursor_hidden() {
-    if (std::this_thread::get_id() != root_thread_) { return {{}, {CursorError::wrong_thread}}; }
+    if (stxlib::current_thread() != root_thread_) { return {{}, {CursorError::wrong_thread}}; }
     if (host_services_ == nullptr) { return {{}, {CursorError::stale_window}}; }
     CursorLeaseResult result = (*host_services_).begin_cursor_hidden(*this);
     return result;
 }
 CursorStatus Window::warp_cursor(CursorMetrics metrics, Point target) {
-    if (std::this_thread::get_id() != root_thread_) { return {CursorError::wrong_thread}; }
+    if (stxlib::current_thread() != root_thread_) { return {CursorError::wrong_thread}; }
     if (host_services_ == nullptr) { return {CursorError::stale_window}; }
     const CursorStatus result = (*host_services_).warp_cursor(*this, metrics, target);
     return result;

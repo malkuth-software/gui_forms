@@ -5,6 +5,7 @@
 #include "gui_forms/controls/numeric_up_down.hpp"
 #include "gui_forms/controls/property_grid.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "values-and-spinners_form.hpp"
 
@@ -205,7 +206,7 @@ private:
 
 void add_values(const std::shared_ptr<Surface>& page,
                 const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ValuesPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<ValuesPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

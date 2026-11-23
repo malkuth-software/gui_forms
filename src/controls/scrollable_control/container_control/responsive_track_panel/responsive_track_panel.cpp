@@ -1,6 +1,7 @@
 #include "gui_forms/controls/responsive_track_panel.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../container_layout_utilities.hpp"
 #include "../text_collection_property.hpp"
@@ -26,7 +27,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> orientation_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "responsive_track_orientation", {{"horizontal", 0}, {"vertical", 1}}, false});
     return value;
 }

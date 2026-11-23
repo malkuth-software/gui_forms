@@ -2,6 +2,7 @@
 
 #include "text_mask_budget.hpp"
 #include "../prepared/prepared_storage.hpp"
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::detail {
@@ -75,12 +76,12 @@ struct MaskCacheEntry final {
 struct TextMaskSessionState final {
     MaskCharge handle_charge{};
     std::shared_ptr<MaskLedger> ledger{};
-    std::thread::id executor{};
+    stxlib::ThreadIdentity executor{};
     std::uint64_t identity{0};
     std::uint64_t next_serial{1};
-    mutable std::mutex mutex{};
-    std::condition_variable condition{};
-    std::thread worker{};
+    mutable stxlib::Mutex mutex{};
+    stxlib::ConditionVariable condition{};
+    stxlib::Thread worker{};
     PreparedTextWakeTarget* wake{};
     MaskBackend* backend{};
     std::array<MaskSlot, 9> slots{};
@@ -90,7 +91,12 @@ struct TextMaskSessionState final {
     bool joined{false};
     bool wake_pending{false};
     bool wake_requested{false};
+    // The worker's STXlib entry (`context` is the state) and its body.
+    static void thread_main(const stxlib::StopSignal& stop, void* context) noexcept;
     void run() noexcept;
+    // run's wait predicate, under the mutex: closing, a wake or a slot to
+    // run.
+    [[nodiscard]] static bool work_waiting(const void* context) noexcept;
     void close();
     void join();
     void clear_cache_locked() noexcept;
@@ -103,7 +109,7 @@ struct TextMaskSessionState final {
 
 struct TextMaskServiceState final {
     std::shared_ptr<MaskLedger> ledger{};
-    std::thread::id executor{};
+    stxlib::ThreadIdentity executor{};
     std::weak_ptr<TextMaskSessionState> session{};
     std::array<std::weak_ptr<const MaskFontOwner>, 2> banks{};
     bool closing{false};
@@ -122,7 +128,7 @@ struct TextMaskAccess final {
     const std::shared_ptr<MaskLedger>& ledger, const std::shared_ptr<const MaskKey>& key,
     const TextMaskMetrics& metrics, const std::size_t line_count);
 [[nodiscard]] std::uint64_t next_mask_identity();
-void require_mask_executor(const std::thread::id executor);
+void require_mask_executor(const stxlib::ThreadIdentity executor);
 [[nodiscard]] MaskBackend& native_mask_backend() noexcept;
 
 } // namespace gui_forms::detail

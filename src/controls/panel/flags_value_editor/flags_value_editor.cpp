@@ -7,6 +7,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -200,7 +201,7 @@ void FlagsValueEditor::write_view(const decltype(descriptor)&, PropertyEnumDescr
         property.name = "value";
         property.kind = BindingValueKind::enumeration;
         property.enumeration =
-            std::make_shared<const PropertyEnumDescriptor>(incoming);
+            gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(incoming);
         const std::optional<BindingValue> normalized = convert_property_value(BindingValue{value_},
                                                         property);
         if (!normalized) {
@@ -228,7 +229,7 @@ void FlagsValueEditor::write_view(const decltype(value)&, PropertyEnumValue inco
     property.name = "value";
     property.kind = BindingValueKind::enumeration;
     property.enumeration =
-        std::make_shared<const PropertyEnumDescriptor>(descriptor_);
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(descriptor_);
     const std::optional<BindingValue> normalized = convert_property_value(BindingValue{std::move(incoming)},
                                                     property);
     if (!normalized) {
@@ -462,7 +463,7 @@ void FlagsValueEditor::apply_overlay_choice(std::size_t overlay_index,
     property.name = "value";
     property.kind = BindingValueKind::enumeration;
     property.enumeration =
-        std::make_shared<const PropertyEnumDescriptor>(descriptor_);
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(descriptor_);
     const std::optional<BindingValue> normalized = convert_property_value(
         BindingValue{static_cast<std::int64_t>(bits)}, property);
     if (!normalized) {

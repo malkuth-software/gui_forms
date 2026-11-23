@@ -10,6 +10,7 @@
 #include "../panel_anatomy.hpp"
 #include "../../../core/drag_engine/scrub_gesture.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
 
 #include <array>
@@ -26,7 +27,7 @@ namespace {
 // text_alignment's schema: HorizontalAlignment's values (Label's names).
 std::shared_ptr<const PropertyEnumDescriptor> numeric_text_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "horizontal_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
