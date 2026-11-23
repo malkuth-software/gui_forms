@@ -81,6 +81,10 @@ public:
     [[nodiscard]] bool register_window(HWND window, WindowsDragDispatch& dispatch);
     void revoke() noexcept;
     [[nodiscard]] bool registered() const noexcept { return target_ != nullptr; }
+    // The target OLE calls, for a driver in this process that stands in for
+    // OLE (tests/windows_drop_target_tests.cpp); null while unregistered.
+    // Borrowed: valid until revoke.
+    [[nodiscard]] IDropTarget* registered_target() const noexcept;
 
 private:
     HWND window_{};

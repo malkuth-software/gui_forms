@@ -1675,6 +1675,9 @@ class WindowsHostState final {
 #if defined(GUI_FORMS_WINDOWS_SCHEDULE_WAKE_TEST)
     friend struct ScheduleWakeHostFixture;
 #endif
+#if defined(GUI_FORMS_WINDOWS_DROP_TEST)
+    friend struct DropHostFixture;
+#endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
         : model_(std::move(model)), options_(std::move(options)),
@@ -4411,12 +4414,27 @@ private:
     DragEffect external_drag(DragEvent event, POINT client) {
         const bool receiving = native_phase_ == NativePhase::attached || native_phase_ == NativePhase::ready ||
                                native_phase_ == NativePhase::visible;
-        if (!receiving) return DragEffect::none;
+        if (!receiving) {
+            if (std::getenv("GUI_FORMS_TRACE_DROP") != nullptr) {
+                std::fprintf(stderr, "gui_forms drop:   refused outside the input phases (phase=%d)\n",
+                             static_cast<int>(native_phase_));
+                std::fflush(stderr);
+            }
+            return DragEffect::none;
+        }
         const DragAction action = event.action;
         // Window device pixels to logical units, at the boundary.
         event.position = {static_cast<double>(client.x) / scale_, static_cast<double>(client.y) / scale_};
         const HostDispatchResult result = dispatch(std::move(event));
         collect_damage();
+        if (std::getenv("GUI_FORMS_TRACE_DROP") != nullptr) {
+            std::fprintf(stderr,
+                         "gui_forms drop:   session result %s handled=%d deferred=%d effect=0x%x phase=%d\n",
+                         host_dispatch_error_name(result.error), result.handled ? 1 : 0,
+                         result.input_deferred ? 1 : 0, static_cast<unsigned>(result.drag_effect),
+                         static_cast<int>(native_phase_));
+            std::fflush(stderr);
+        }
         if (!result.accepted() || (action == DragAction::drop && !result.handled)) return DragEffect::none;
         return result.drag_effect;
     }

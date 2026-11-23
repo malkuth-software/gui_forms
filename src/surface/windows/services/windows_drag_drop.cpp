@@ -7,6 +7,8 @@
 #include <algorithm>
 #include <atomic>
 #include <cstddef>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -415,6 +417,23 @@ private:
     const bool& source_closed_;
 };
 
+// GUI_FORMS_TRACE_DROP set: each call OLE makes on a window's drop target,
+// and what the window answered, as one line on standard error. Read once.
+bool drop_traced() noexcept {
+    static const bool traced = std::getenv("GUI_FORMS_TRACE_DROP") != nullptr;
+    return traced;
+}
+
+void trace_drop_call(const char* call, DWORD offered, DWORD key_state, POINTL point, std::uint64_t session,
+                     DWORD answered) noexcept {
+    if (!drop_traced()) return;
+    std::fprintf(stderr, "gui_forms drop: %s offered=0x%lx keys=0x%lx screen=%ld,%ld session=%llu answered=0x%lx\n",
+                 call, static_cast<unsigned long>(offered), static_cast<unsigned long>(key_state),
+                 static_cast<long>(point.x), static_cast<long>(point.y), static_cast<unsigned long long>(session),
+                 static_cast<unsigned long>(answered));
+    std::fflush(stderr);
+}
+
 // The mouse buttons held now, as OLE key-state bits.
 DWORD held_buttons() noexcept {
     DWORD buttons = 0;
@@ -422,6 +441,21 @@ DWORD held_buttons() noexcept {
     if ((GetKeyState(VK_RBUTTON) & 0x8000) != 0) buttons |= MK_RBUTTON;
     if ((GetKeyState(VK_MBUTTON) & 0x8000) != 0) buttons |= MK_MBUTTON;
     return buttons;
+}
+
+const char* drag_action_trace_name(DragAction action) noexcept {
+    switch (action) {
+    case DragAction::enter:
+        return "enter";
+    case DragAction::over:
+        return "over";
+    case DragAction::drop:
+        return "drop";
+    case DragAction::leave:
+        return "leave";
+    default:
+        return "other";
+    }
 }
 
 // One effect of `effects`, or none: OLE reports one, and a window that
@@ -523,6 +557,7 @@ private:
                 items_.clear();
             }
         }
+        trace_drop_call("DragEnter", offered, key_state, point, session_id_, *effect);
         POINT screen{point.x, point.y};
         if (helper_ != nullptr && data != nullptr) static_cast<void>((*helper_).DragEnter(window_, data, &screen, *effect));
         return S_OK;
@@ -538,12 +573,14 @@ private:
             accepted_ = allowed_ == DragEffect::none ? DragEffect::none : send(DragAction::over, key_state, point);
             *effect = windows_drop_effects(accepted_);
         }
+        trace_drop_call("DragOver", offered, key_state, point, session_id_, *effect);
         POINT screen{point.x, point.y};
         if (helper_ != nullptr) static_cast<void>((*helper_).DragOver(&screen, *effect));
         return S_OK;
     }
 
     HRESULT answer_DragLeave() {
+        trace_drop_call("DragLeave", 0U, 0U, POINTL{}, session_id_, 0U);
         end_session();
         if (helper_ != nullptr) static_cast<void>((*helper_).DragLeave());
         return S_OK;
@@ -551,11 +588,20 @@ private:
 
     HRESULT answer_Drop(IDataObject* data, DWORD key_state, POINTL point, DWORD* effect) {
         if (effect == nullptr) return E_INVALIDARG;
+        const DWORD offered = *effect;
+        const std::uint64_t session = session_id_;
         *effect = DROPEFFECT_NONE;
+        if (drop_traced() && (session_id_ == 0 || dispatch_ == nullptr || accepted_ == DragEffect::none)) {
+            std::fprintf(stderr, "gui_forms drop: Drop not sent (session=%llu dispatch=%d accepted=0x%x)\n",
+                         static_cast<unsigned long long>(session_id_), dispatch_ != nullptr ? 1 : 0,
+                         static_cast<unsigned>(accepted_));
+            std::fflush(stderr);
+        }
         if (session_id_ != 0 && dispatch_ != nullptr && accepted_ != DragEffect::none) {
             const DragEffect performed = send(DragAction::drop, key_state, point);
             *effect = windows_drop_effects(performed);
         }
+        trace_drop_call("Drop", offered, key_state, point, session, *effect);
         session_id_ = 0;
         items_.clear();
         accepted_ = DragEffect::none;
@@ -592,6 +638,12 @@ private:
         static_cast<void>(ScreenToClient(window_, &client));
         const DragEffect answered = (*dispatch_).dispatch_external_drag(std::move(event), client);
         const DragEffect accepted = single_effect(answered, allowed_);
+        if (drop_traced()) {
+            std::fprintf(stderr, "gui_forms drop:   %s client=%ld,%ld window answered 0x%x, accepted 0x%x\n",
+                         drag_action_trace_name(action), static_cast<long>(client.x), static_cast<long>(client.y),
+                         static_cast<unsigned>(answered), static_cast<unsigned>(accepted));
+            std::fflush(stderr);
+        }
         return accepted;
     }
 
@@ -606,6 +658,11 @@ private:
     DragEffect allowed_{DragEffect::none};
     DragEffect accepted_{DragEffect::none};
 };
+
+IDropTarget* WindowsDropRegistration::registered_target() const noexcept {
+    IDropTarget* const target = target_;
+    return target;
+}
 
 DragEffect windows_drag_effects(DWORD effects) noexcept {
     const DragEffect result = static_cast<DragEffect>(static_cast<std::uint8_t>(effects & portable_effect_bits));
