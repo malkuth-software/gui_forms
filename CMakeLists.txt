@@ -3344,7 +3344,9 @@ endif()
 # into itself. Never a default, and only for an executable: a shared library
 # or plugin would replace operator new for the process that loads it. The
 # installed package defines the same function (cmake/GUIFormsConfig.cmake.in)
-# over the installed copy of the source.
+# over the installed copy of the source. The program links GUI.Forms itself:
+# the replacement uses gui_forms_core's teardown reserve
+# (src/core/allocation/library_memory).
 set(GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE
     "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/program_allocator/program_allocator_replacement.cpp")
 function(gui_forms_use_library_allocator target)

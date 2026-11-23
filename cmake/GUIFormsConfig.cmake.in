@@ -121,7 +121,8 @@ unset(_gui_forms_plugin)
 # STXlib's allocator (include/gui_forms/allocation/library_memory/
 # library_memory.hpp). Only an executable may opt in: a shared library or
 # plugin would replace operator new for the process that loads it. The
-# replacement leaves itself out under a sanitizer.
+# replacement leaves itself out under a sanitizer. The program links
+# GUIForms::Application, whose teardown reserve the replacement uses.
 function(gui_forms_use_library_allocator target)
     get_target_property(_gf_type ${target} TYPE)
     if(NOT _gf_type STREQUAL "EXECUTABLE")

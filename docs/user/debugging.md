@@ -203,3 +203,13 @@ replacement of the global `operator new` and `delete` into that program
 (left out under a sanitizer). Only a program may opt in, never a shared
 library or plugin, and it is never the default.
 
+When the C ABI library is unloaded, or the process ends, its static
+destructors never see `std::bad_alloc`. On Windows they run at the DLL's
+detach, where STXlib's allocator may refuse a new block once the process's
+other threads have stopped; from then on such a block comes from a small
+reserve inside the library, and a destructor that needs more than the
+reserve holds ends the process with an `out_of_memory` record named
+`gf.allocation.teardown_reserve`, which is a defect to report. Releasing
+memory always succeeds then. On Linux and macOS nothing is stopped at exit
+or `dlclose`, so the allocator serves the destructors as usual.
+

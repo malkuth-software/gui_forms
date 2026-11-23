@@ -46,9 +46,25 @@
 // thread's exit and during static destruction. On Windows, once
 // ExitProcess has stopped the other threads, an allocation the calling
 // thread's cached blocks cannot serve returns null (stxlib/memory.hpp,
-// "Process end"); a program's static destructors run before that, but the
-// C ABI library's run at DLL_PROCESS_DETACH, where an allocation that is
-// refused is std::bad_alloc.
+// "Process end"). The C ABI library's static destructors run there, at its
+// DLL_PROCESS_DETACH, so the library marks its teardown from its DllMain
+// (src/surface/windows/abi/c_abi_module_teardown.cpp) and from then on a
+// refused block comes from GUI.Forms' teardown reserve without calling the
+// new-handler; one the reserve cannot hold ends the process through
+// stxlib::fail_fast with a record, so no std::bad_alloc ever leaves a
+// destructor there (allocation/library_memory, "A module's end"). Every
+// delete succeeds then: STXlib's release returns at process end, and a
+// reserve block is left where it is. A program that opts in runs its
+// static destructors before ExitProcess stops its threads, so its teardown
+// is never marked and a refusal there is true exhaustion, as on Linux and
+// macOS, where no thread is stopped at exit or dlclose: __cxa_finalize runs
+// the module's destructors (a dlclose, or exit's atexit handlers) while
+// STXlib's allocator serves as before.
+//
+// The program links GUI.Forms (the teardown reserve is
+// gui_forms::detail's, in gui_forms_core).
+
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/memory.hpp>
 
@@ -98,10 +114,15 @@ constexpr std::size_t default_alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__;
 }
 
 // The throwing forms: retry after each new-handler call until a block comes
-// back or no handler is installed.
+// back or no handler is installed. After the module's teardown began a
+// refusal is served by the teardown reserve (or fails fast), never thrown.
 [[nodiscard]] void* allocate_or_throw(const std::size_t size, const std::size_t alignment) {
     void* block = stxlib::memory::allocate(size, alignment);
     while (block == nullptr) {
+        if (gui_forms::detail::library_teardown_begun()) {
+            block = gui_forms::detail::teardown_allocate(size, alignment);
+            return block;
+        }
         const std::new_handler handler = std::get_new_handler();
         if (handler == nullptr) {
             report_exhaustion();
@@ -117,6 +138,10 @@ constexpr std::size_t default_alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__;
 [[nodiscard]] void* allocate_or_null(const std::size_t size, const std::size_t alignment) noexcept {
     void* block = stxlib::memory::allocate(size, alignment);
     while (block == nullptr) {
+        if (gui_forms::detail::library_teardown_begun()) {
+            block = gui_forms::detail::teardown_allocate(size, alignment);
+            return block;
+        }
         const std::new_handler handler = std::get_new_handler();
         if (handler == nullptr) {
             return nullptr;
@@ -135,8 +160,12 @@ constexpr std::size_t default_alignment = __STDCPP_DEFAULT_NEW_ALIGNMENT__;
     return block;
 }
 
-// Every delete: null is a no-op (stxlib::memory::release).
+// Every delete: null is a no-op (stxlib::memory::release), and a block of
+// the teardown reserve is left where it is.
 void release_block(void* const block) noexcept {
+    if (gui_forms::detail::teardown_reserve_owns(block)) {
+        return;
+    }
     stxlib::memory::release(block);
 }
 

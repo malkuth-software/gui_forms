@@ -49,6 +49,26 @@
 // sanitizer). A
 // third-party program keeps its own allocator unless it asks.
 //
+// A module's end (the C ABI library's unload, and the process's end). On
+// Windows the library's static destructors run at its DLL_PROCESS_DETACH,
+// under the loader lock and, at process end, after ExitProcess has stopped
+// every other thread, when STXlib's allocator refuses whatever the calling
+// thread's cached blocks cannot serve (stxlib/memory.hpp, "Process end").
+// A static destructor must never meet std::bad_alloc there, so the module
+// marks its teardown (begin_library_teardown, from its DllMain:
+// src/surface/windows/abi/c_abi_module_teardown.cpp) and from then on:
+// - every release succeeds: STXlib's release returns at process end (it
+//   frees, or leaves the block to the ending process), and a block from the
+//   teardown reserve is left where it is;
+// - an allocation STXlib's allocator refuses comes from the teardown
+//   reserve, a fixed static block of this module; one the reserve cannot
+//   hold is a defect and ends the process through stxlib::fail_fast with an
+//   out_of_memory record (gf.allocation.teardown_reserve), never a thrown
+//   std::bad_alloc.
+// On Linux and macOS no thread is stopped at exit or dlclose, so STXlib's
+// allocator serves static destructors as it serves any code; only true
+// exhaustion refuses there, as everywhere.
+//
 // A library allocation passes through one out-of-line seam,
 // detail::library_allocate, which keeps per-thread counts and admits a
 // test-only observer that may refuse it, so tests that count or fail the
@@ -70,13 +90,15 @@ namespace detail {
 
 // `size` bytes aligned to `alignment` (a power of two, never less than
 // operator new's default is asked for by the callers below) from STXlib's
-// allocator; null when it refuses, or when the observer refuses. Never
-// throws and never calls a new-handler. A size of zero yields a unique
+// allocator; null when it refuses, or when the observer refuses, except
+// after the module's teardown began, when the teardown reserve serves it
+// (below). Never throws and never calls a new-handler. A size of zero yields a unique
 // block.
 [[nodiscard]] GUI_FORMS_API void* library_allocate(std::size_t size, std::size_t alignment) noexcept;
 
-// Releases a block from library_allocate; null is a no-op. A block from
-// anywhere else ends the process (stxlib/memory.hpp).
+// Releases a block from library_allocate; null and a block of the teardown
+// reserve are no-ops. A block from anywhere else ends the process
+// (stxlib/memory.hpp).
 GUI_FORMS_API void library_release(void* block) noexcept;
 
 // The test-only observer: called with the size before each library
@@ -92,6 +114,28 @@ GUI_FORMS_API void set_library_allocation_observer(LibraryAllocationObserver obs
 // since it started. Neither is reset.
 [[nodiscard]] GUI_FORMS_API std::uint64_t library_allocations_granted() noexcept;
 [[nodiscard]] GUI_FORMS_API std::uint64_t library_blocks_released() noexcept;
+
+// Marks the module's teardown (above); never undone. Called by the C ABI
+// library's DllMain at DLL_PROCESS_DETACH, and by tests.
+GUI_FORMS_API void begin_library_teardown() noexcept;
+
+// Whether begin_library_teardown has been called.
+[[nodiscard]] GUI_FORMS_API bool library_teardown_begun() noexcept;
+
+// A block of `size` bytes aligned to `alignment` (a power of two) from the
+// teardown reserve, for an allocation STXlib's allocator refused after the
+// teardown began. Never null and never throws: when the reserve cannot hold
+// it, ends the process through stxlib::fail_fast. Its blocks are never
+// reused.
+[[nodiscard]] GUI_FORMS_API void* teardown_allocate(std::size_t size, std::size_t alignment) noexcept;
+
+// Whether `block` lies in the teardown reserve; releasing such a block does
+// nothing.
+[[nodiscard]] GUI_FORMS_API bool teardown_reserve_owns(const void* block) noexcept;
+
+// The bytes of the teardown reserve handed out so far, and its capacity.
+[[nodiscard]] GUI_FORMS_API std::size_t teardown_reserve_used() noexcept;
+[[nodiscard]] GUI_FORMS_API std::size_t teardown_reserve_capacity() noexcept;
 
 // The alignment a library block of `alignment` is asked for: never less
 // than operator new's default.
