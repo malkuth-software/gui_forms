@@ -112,6 +112,7 @@ public:
 
 protected:
     void on_mouse_down(MouseEventArgs& arguments) override;
+    void on_mouse_up(MouseEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
     void on_key_down(KeyEventArgs& arguments) override;

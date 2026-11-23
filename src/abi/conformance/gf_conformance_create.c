@@ -16,7 +16,7 @@ static const char* const refused_by_create[] = {
     "color_command", "font_command", "gallery_command",
     "background_worker", "binding", "binding_context", "binding_source", "error_provider",
     "help_provider", "image_list", "notify_icon", "ribbon_tool_tip", "semantic_feedback",
-    "timer", "tool_tip",
+    "timer", "tool_tip", "toast_notification",
     "live_surface", "toast", "plot_link_group",
     "composite_control", "window",
 };
@@ -41,7 +41,7 @@ static const char* const made_by_neither[] = {
 /* Of those, the components bound to a window. */
 static const char* const bound_to_window[] = {
     "background_worker", "binding_context", "binding_source", "error_provider", "help_provider", "image_list",
-    "notify_icon", "ribbon_tool_tip", "semantic_feedback", "timer", "tool_tip",
+    "notify_icon", "ribbon_tool_tip", "semantic_feedback", "timer", "tool_tip", "toast_notification",
 };
 
 static int listed(gf_utf8_view id, const char* const* names, size_t count) {
