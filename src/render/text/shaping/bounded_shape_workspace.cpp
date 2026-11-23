@@ -1,5 +1,5 @@
 #include "bounded_shape_workspace.hpp"
-#include "harfbuzz_font_engine.hpp"
+#include "text_shape_engine.hpp"
 
 #include <algorithm>
 #include <limits>

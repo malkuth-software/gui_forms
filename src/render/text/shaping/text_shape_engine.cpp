@@ -1,4 +1,4 @@
-#include "harfbuzz_font_engine.hpp"
+#include "text_shape_engine.hpp"
 #include "bounded_shape_workspace.hpp"
 #include "reusable_shape_workspace.hpp"
 #include "../../../core/resources/fonts/program_typefaces.hpp"
@@ -357,7 +357,7 @@ private:
 
 } // namespace
 
-class HarfBuzzFontEngine::Impl final {
+class TextShapeEngine::Impl final {
 public:
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
     TextLayoutDiagnostics diagnostics{};
@@ -934,7 +934,7 @@ public:
             throw std::invalid_argument("Reusable workspace requires bounded font registration");
         }
         std::size_t bytes = 0U;
-        account_array(1U, sizeof(HarfBuzzFontEngine), limit, bytes);
+        account_array(1U, sizeof(TextShapeEngine), limit, bytes);
         account_array(1U, sizeof(Impl), limit, bytes);
         account_array(faces.capacity(), sizeof(Face), limit, bytes);
         account_array(maximum_faces, sizeof(Face*), limit, bytes);
@@ -1084,24 +1084,24 @@ public:
     }
 };
 
-HarfBuzzFontEngine::HarfBuzzFontEngine() : impl_(std::make_unique<Impl>()) {}
-HarfBuzzFontEngine::~HarfBuzzFontEngine() = default;
+TextShapeEngine::TextShapeEngine() : impl_(std::make_unique<Impl>()) {}
+TextShapeEngine::~TextShapeEngine() = default;
 
-std::size_t HarfBuzzFontEngine::configure_bounded_registration(std::size_t face_limit, std::size_t byte_limit) {
+std::size_t TextShapeEngine::configure_bounded_registration(std::size_t face_limit, std::size_t byte_limit) {
     Impl& implementation = *impl_;
     if (!implementation.faces.empty() || implementation.bounded_face_limit != 0 ||
         face_limit == 0 || face_limit > maximum_faces) throw std::invalid_argument("Bounded face initialization order");
-    std::size_t bytes = sizeof(HarfBuzzFontEngine) + sizeof(Impl);
+    std::size_t bytes = sizeof(TextShapeEngine) + sizeof(Impl);
     account_array(face_limit, sizeof(Impl::Face), byte_limit, bytes);
     implementation.faces.reserve(face_limit);
     implementation.bounded_face_limit = face_limit;
     // Count actual capacity too; no face insertion may grow this table.
-    bytes = sizeof(HarfBuzzFontEngine) + sizeof(Impl);
+    bytes = sizeof(TextShapeEngine) + sizeof(Impl);
     account_array(implementation.faces.capacity(), sizeof(Impl::Face), byte_limit, bytes);
     return bytes;
 }
 
-std::optional<FontFaceId> HarfBuzzFontEngine::register_shared_typeface(
+std::optional<FontFaceId> TextShapeEngine::register_shared_typeface(
     std::optional<FontRole> role, std::uint16_t weight, bool italic,
     std::shared_ptr<const std::vector<std::byte>> encoded, std::uint32_t face_index) {
     if (!encoded) return std::nullopt;
@@ -1111,7 +1111,7 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_shared_typeface(
     return result;
 }
 
-std::optional<FontFaceId> HarfBuzzFontEngine::register_owned_typeface(
+std::optional<FontFaceId> TextShapeEngine::register_owned_typeface(
     std::optional<FontRole> role, std::uint16_t weight, bool italic,
     std::span<const std::byte> encoded, std::shared_ptr<const void> owner,
     std::uint32_t face_index) {
@@ -1120,7 +1120,7 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_owned_typeface(
     return result;
 }
 
-std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_fallback_typeface(
+std::optional<FontFaceId> TextShapeEngine::register_lazy_fallback_typeface(
     std::uint16_t weight, bool italic, std::span<const gui_forms::detail::CodepointRange> coverage,
     LazyFaceLoader load) {
     const std::optional<FontFaceId> id =
@@ -1128,14 +1128,14 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_fallback_typeface(
     return id;
 }
 
-std::optional<FontFaceId> HarfBuzzFontEngine::register_lazy_family_typeface(
+std::optional<FontFaceId> TextShapeEngine::register_lazy_family_typeface(
     FontFamilyId family, std::uint16_t weight, bool italic, LazyFaceLoader load) {
     const std::optional<FontFaceId> id =
         (*impl_).register_lazy_family_face(family, weight, italic, std::move(load));
     return id;
 }
 
-std::optional<FontFaceId> HarfBuzzFontEngine::register_owned_family_typeface(
+std::optional<FontFaceId> TextShapeEngine::register_owned_family_typeface(
     FontFamilyId family, std::uint16_t weight, bool italic, std::span<const std::byte> encoded,
     std::shared_ptr<const void> owner, std::uint32_t face_index) {
     const std::optional<FontFaceId> id =
@@ -1143,7 +1143,7 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_owned_family_typeface(
     return id;
 }
 
-bool HarfBuzzFontEngine::set_face_language(const FontFaceId id, const TextLanguage language) noexcept {
+bool TextShapeEngine::set_face_language(const FontFaceId id, const TextLanguage language) noexcept {
     for (Impl::Face& face : (*impl_).faces) {
         if (face.id != id) continue;
         if (face.role || face.named_family.value != 0U) return false;
@@ -1153,7 +1153,7 @@ bool HarfBuzzFontEngine::set_face_language(const FontFaceId id, const TextLangua
     return false;
 }
 
-std::size_t HarfBuzzFontEngine::opened_face_count() const noexcept {
+std::size_t TextShapeEngine::opened_face_count() const noexcept {
     std::size_t count = 0U;
     for (const Impl::Face& face : (*impl_).faces) {
         if (face.open()) ++count;
@@ -1161,7 +1161,7 @@ std::size_t HarfBuzzFontEngine::opened_face_count() const noexcept {
     return count;
 }
 
-std::optional<FontFaceId> HarfBuzzFontEngine::register_typeface(
+std::optional<FontFaceId> TextShapeEngine::register_typeface(
     FontRole role, std::uint16_t weight, bool italic,
     std::span<const std::byte> encoded, std::uint32_t face_index) {
     if (encoded.empty() || encoded.size() > maximum_face_bytes ||
@@ -1173,7 +1173,7 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_typeface(
     return result;
 }
 
-std::optional<FontFaceId> HarfBuzzFontEngine::register_fallback_typeface(
+std::optional<FontFaceId> TextShapeEngine::register_fallback_typeface(
     std::uint16_t weight, bool italic, std::span<const std::byte> encoded,
     std::uint32_t face_index) {
     if (encoded.empty() || encoded.size() > maximum_face_bytes ||
@@ -1185,7 +1185,7 @@ std::optional<FontFaceId> HarfBuzzFontEngine::register_fallback_typeface(
     return result;
 }
 
-ShapedText HarfBuzzFontEngine::shape(std::string_view utf8, FontSpec font) {
+ShapedText TextShapeEngine::shape(std::string_view utf8, FontSpec font) {
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
     TextLayoutDiagnostics& counters = (*impl_).diagnostics;
     counters = TextLayoutDiagnostics{};
@@ -1308,7 +1308,7 @@ ShapedText HarfBuzzFontEngine::shape(std::string_view utf8, FontSpec font) {
     return result;
 }
 
-std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_bounded(
+std::unique_ptr<BoundedShapedText> TextShapeEngine::shape_bounded(
     std::string_view utf8, FontSpec font, ShapeStorageLimits limits) {
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
     (*impl_).diagnostics = TextLayoutDiagnostics{};
@@ -1392,7 +1392,7 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_bounded(
     return owner;
 }
 
-void HarfBuzzFontEngine::prepare_workspace(BoundedShapeWorkspace& workspace,
+void TextShapeEngine::prepare_workspace(BoundedShapeWorkspace& workspace,
     const ShapeStorageLimits& limits) {
     const std::size_t external_bytes = (*impl_).workspace_external_bytes(limits.workspace_bytes);
     workspace.prepare(limits, external_bytes);
@@ -1421,7 +1421,7 @@ private:
 
 } // namespace
 
-std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
+std::unique_ptr<BoundedShapedText> TextShapeEngine::shape_with_workspace(
     const std::string_view utf8, const FontSpec font, const ShapeStorageLimits& limits,
     BoundedShapeWorkspace& workspace) {
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
@@ -1491,12 +1491,12 @@ std::unique_ptr<BoundedShapedText> HarfBuzzFontEngine::shape_with_workspace(
     return result;
 }
 
-std::unique_ptr<ReusableShapeWorkspace> HarfBuzzFontEngine::create_reusable_workspace() const {
+std::unique_ptr<ReusableShapeWorkspace> TextShapeEngine::create_reusable_workspace() const {
     std::unique_ptr<ReusableShapeWorkspace> workspace = std::make_unique<ReusableShapeWorkspace>((*impl_).identity);
     return workspace;
 }
 
-GlyphSource HarfBuzzFontEngine::glyph_source() const noexcept {
+GlyphSource TextShapeEngine::glyph_source() const noexcept {
     GlyphSource source{};
     source.engine = (*impl_).identity;
     source.generation = static_cast<std::uint64_t>((*impl_).faces.size());
@@ -1516,7 +1516,7 @@ PrimaryLineMetrics sized_line_metrics(const stxlib::glyphs::Font& font, FontFace
 
 } // namespace
 
-TextExtent HarfBuzzFontEngine::shape_in_workspace(const std::string_view utf8, const FontSpec font,
+TextExtent TextShapeEngine::shape_in_workspace(const std::string_view utf8, const FontSpec font,
                                                   ReusableShapeWorkspace& workspace) {
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
     (*impl_).diagnostics = TextLayoutDiagnostics{};
@@ -1580,12 +1580,12 @@ TextExtent HarfBuzzFontEngine::shape_in_workspace(const std::string_view utf8, c
     return extent;
 }
 
-std::size_t HarfBuzzFontEngine::face_count() const noexcept {
+std::size_t TextShapeEngine::face_count() const noexcept {
     const std::size_t count = (*impl_).faces.size();
     return count;
 }
 
-std::optional<FontFaceSource> HarfBuzzFontEngine::face_source(const FontFaceId id) const {
+std::optional<FontFaceSource> TextShapeEngine::face_source(const FontFaceId id) const {
     for (const Impl::Face& face : (*impl_).faces) {
         if (face.id != id) continue;
         if (!face.open()) return std::nullopt;
@@ -1600,11 +1600,11 @@ std::optional<FontFaceSource> HarfBuzzFontEngine::face_source(const FontFaceId i
 }
 
 #if defined(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS)
-TextLayoutDiagnostics HarfBuzzFontEngine::diagnostics() const noexcept {
+TextLayoutDiagnostics TextShapeEngine::diagnostics() const noexcept {
     const TextLayoutDiagnostics result = (*impl_).diagnostics;
     return result;
 }
-void HarfBuzzFontEngine::set_diagnostic_failure(TextLayoutFailure failure, std::uint64_t run) {
+void TextShapeEngine::set_diagnostic_failure(TextLayoutFailure failure, std::uint64_t run) {
     if (failure != TextLayoutFailure::none && run == 0) {
         throw std::invalid_argument("Diagnostic failure run must be nonzero");
     }
@@ -1636,7 +1636,7 @@ PrimaryLineMetrics sized_line_metrics(const stxlib::glyphs::Font& font, FontFace
 
 } // namespace
 
-std::optional<PrimaryLineMetrics> HarfBuzzFontEngine::primary_line_metrics(const FontSpec font) {
+std::optional<PrimaryLineMetrics> TextShapeEngine::primary_line_metrics(const FontSpec font) {
     if (!valid_font_spec(font)) throw std::invalid_argument("Invalid primary line font");
     // The first family of the font's order with an openable face: its face nearest the weight
     // and slant (stage F decision 7), opened if it has not been. Otherwise the role's exact face.
@@ -1702,7 +1702,7 @@ FontVerticalMetrics design_line_metrics(const stxlib::glyphs::Font& font, const 
 
 } // namespace
 
-TextResolutionStatus HarfBuzzFontEngine::fill_line_break_opportunities_utf8(
+TextResolutionStatus TextShapeEngine::fill_line_break_opportunities_utf8(
     std::string_view utf8, std::span<LineBreakOpportunity> opportunities) noexcept {
     if (opportunities.size() != utf8.size()) return TextResolutionStatus::invalid_request;
     const stxlib::OperationResult<stxlib::TextView> validated = stxlib::validate_utf8(utf8.data(), utf8.size());
@@ -1742,7 +1742,7 @@ TextResolutionStatus HarfBuzzFontEngine::fill_line_break_opportunities_utf8(
     return TextResolutionStatus::exact;
 }
 
-TextResolutionStatus HarfBuzzFontEngine::fill_cluster_advances_utf8(
+TextResolutionStatus TextShapeEngine::fill_cluster_advances_utf8(
     std::string_view utf8, FontSpec font, std::span<double> advances) {
     if (advances.size() != utf8.size() || !validate_utf8(utf8).valid() || !valid_font_spec(font)) {
         return TextResolutionStatus::invalid_request;
@@ -1773,7 +1773,7 @@ TextResolutionStatus HarfBuzzFontEngine::fill_cluster_advances_utf8(
     return status;
 }
 
-ResolvedTextLayout HarfBuzzFontEngine::resolve(std::string_view utf8,
+ResolvedTextLayout TextShapeEngine::resolve(std::string_view utf8,
                                                FontSpec font) {
     ResolvedTextLayout result{};
     result.effective_font = font;

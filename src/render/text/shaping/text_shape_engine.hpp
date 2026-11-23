@@ -84,12 +84,12 @@ struct PrimaryLineMetrics final {
 // never cross this boundary. Shaping matches HarfBuzz 14.6 for a FreeType
 // font at the same size, unhinted, for the scripts STXlib shapes; Arabic and
 // the Indic scripts are drawn unshaped (stxlib/glyph_shape.hpp).
-class HarfBuzzFontEngine final {
+class TextShapeEngine final {
 public:
-    HarfBuzzFontEngine();
-    ~HarfBuzzFontEngine();
-    HarfBuzzFontEngine(const HarfBuzzFontEngine&) = delete;
-    HarfBuzzFontEngine& operator=(const HarfBuzzFontEngine&) = delete;
+    TextShapeEngine();
+    ~TextShapeEngine();
+    TextShapeEngine(const TextShapeEngine&) = delete;
+    TextShapeEngine& operator=(const TextShapeEngine&) = delete;
     // Before registering faces, preallocate a finite record table and omit
     // copied family labels (prepared glyph consumers do not use them). Returns
     // requested first-party persistent bytes, excluding shared encoded owners

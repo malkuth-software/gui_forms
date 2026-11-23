@@ -1,6 +1,6 @@
 #pragma once
 
-#include "harfbuzz_font_engine.hpp"
+#include "text_shape_engine.hpp"
 #include "gui_forms/document_view/types/document_view_types.hpp"
 
 #include <array>

@@ -1,6 +1,6 @@
 #include "font_metrics_differential.hpp"
 
-#include "harfbuzz_font_engine.hpp"
+#include "text_shape_engine.hpp"
 
 #include <stxlib/font_file.hpp>
 #include <stxlib/vector.hpp>
@@ -108,7 +108,7 @@ std::vector<std::string_view> split_words(std::string_view paragraph) {
 // Greedy breaking: a line takes words while its shaped width fits; a word
 // wider than the line stays alone on its own line. line is the caller's
 // reusable buffer, reserved to the paragraph's length.
-std::vector<std::uint32_t> wrap_paragraph(render::text::HarfBuzzFontEngine& engine,
+std::vector<std::uint32_t> wrap_paragraph(render::text::TextShapeEngine& engine,
                                           const std::vector<std::string_view>& words,
                                           FontSpec font, double width_px, std::string& line) {
     std::vector<std::uint32_t> starts{};
@@ -125,7 +125,7 @@ std::vector<std::uint32_t> wrap_paragraph(render::text::HarfBuzzFontEngine& engi
 }
 
 std::vector<EngineSizeMeasurement> measure_sizes(std::span<const std::byte> encoded, const Corpus& corpus) {
-    render::text::HarfBuzzFontEngine engine{};
+    render::text::TextShapeEngine engine{};
     const std::optional<FontFaceId> registered = engine.register_typeface(FontRole::content, 400U, false, encoded);
     if (!registered) throw InputRejected("the bundled engine refused the face");
     std::vector<std::vector<std::string_view>> paragraph_words{};

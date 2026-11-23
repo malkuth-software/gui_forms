@@ -81,7 +81,7 @@ Prepared worker_result(const std::shared_ptr<const FontSet>& fonts, std::string_
 
 Prepared reference_result(const Prepared& prepared) {
     Prepared reference = prepared;
-    text::HarfBuzzFontEngine engine{};
+    text::TextShapeEngine engine{};
     const FontSet& fonts = *prepared.fonts;
     const std::size_t count = fonts.faces.size();
     for (std::size_t index = 0; index < count; ++index) {

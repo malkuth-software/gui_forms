@@ -1,7 +1,7 @@
 #include "skia_raster.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
-#include "../text/harfbuzz/bundled_face_loader.hpp"
+#include "../text/shaping/bundled_face_loader.hpp"
 #include "stx_zlib/checksum.hpp"
 #if defined(_WIN32)
 #include "../../surface/windows/fonts/sealed_pages_windows.hpp"

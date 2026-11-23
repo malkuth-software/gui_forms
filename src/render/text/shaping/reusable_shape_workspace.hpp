@@ -18,7 +18,7 @@
 
 namespace gui_forms::render::text {
 
-class HarfBuzzFontEngine;
+class TextShapeEngine;
 
 // One shaping's runs and glyphs, in the workspace's arrays: the record the
 // engine's bounded shaping fills (BoundedShapedText's members, over arrays
@@ -40,8 +40,8 @@ struct StagedShaping final {
 };
 
 // The bundled engine's reusable shaping state (gui_forms::ShapingWorkspace),
-// which HarfBuzzFontEngine::create_reusable_workspace creates for one engine
-// and HarfBuzzFontEngine::shape_in_workspace shapes into. Reserved for texts
+// which TextShapeEngine::create_reusable_workspace creates for one engine
+// and TextShapeEngine::shape_in_workspace shapes into. Reserved for texts
 // of capacity_bytes() bytes, it holds every array one shaping uses:
 // - the grapheme boundaries, decoded scalars, font segments, bidi runs and
 //   visual segments (the bounded shaping's scratch: capacity, capacity,
@@ -75,7 +75,7 @@ public:
                                    std::span<PositionedGlyph> glyphs) const noexcept override;
 
 private:
-    friend class HarfBuzzFontEngine;
+    friend class TextShapeEngine;
 
     template <typename Value>
     using CountedArray = std::vector<Value, gui_forms::detail::CountedAllocator<Value, AllocationSubsystem::text_layout>>;

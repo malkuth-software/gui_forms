@@ -11,7 +11,7 @@
 //
 // Usage: gui_forms_text_engine_benchmark <font-directory> [passes]
 
-#include "harfbuzz_font_engine.hpp"
+#include "text_shape_engine.hpp"
 #include "../src/render/text/glyph_run/glyph_run_raster.hpp"
 #include "../src/core/text/composite/text_composite.hpp"
 
@@ -196,7 +196,7 @@ private:
         static_cast<void>(detail::composite_text_coverage(placed(coverage, origin), surface_.target(), whole_surface(), ink_));
     }
 
-    text::HarfBuzzFontEngine engine_;
+    text::TextShapeEngine engine_;
     text::GlyphRunRasterizer rasterizer_;
     Surface surface_;
     std::vector<Label> labels_;

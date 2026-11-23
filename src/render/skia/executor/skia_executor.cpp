@@ -27,7 +27,7 @@
 #include "../../../core/image/png_writer.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
-#include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
+#include "../../text/shaping/text_shape_engine.hpp"
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/types/linear_light/linear_light_stops.hpp"
@@ -1002,7 +1002,7 @@ struct FaceRecord final {
 };
 
 // A family's faces, indexed by the bold (1) and italic (2) bits of a font
-// style, with a private text engine that shapes them (HarfBuzzFontEngine,
+// style, with a private text engine that shapes them (TextShapeEngine,
 // over STXlib's shaper) and a rasterizer
 // over the same bytes (ADR-004). Declared in that order so the rasterizer is
 // destroyed before the engine it borrows.
@@ -1010,7 +1010,7 @@ struct TextFamily final {
     // The registry family these faces are, or zero for a family outside the registry.
     gui_forms::FontFamilyId id{};
     std::array<std::optional<FaceRecord>, 4> faces;
-    std::unique_ptr<text::HarfBuzzFontEngine> engine;
+    std::unique_ptr<text::TextShapeEngine> engine;
     std::unique_ptr<text::GlyphRunRasterizer> rasterizer;
 };
 
@@ -1202,7 +1202,7 @@ public:
         if (registered != nullptr) family.id = (*registered).id;
         family.faces[slot] = std::move(record);
         family.rasterizer.reset();
-        family.engine = std::make_unique<text::HarfBuzzFontEngine>();
+        family.engine = std::make_unique<text::TextShapeEngine>();
         for (std::size_t index = 0; index < family.faces.size(); ++index) {
             const std::optional<FaceRecord>& face = family.faces[index];
             if (!face) continue;
@@ -1545,7 +1545,7 @@ SizeF SkiaExecutor::measure_string(std::string_view utf8,
     const std::optional<ResolvedFont> resolved = (*impl_).resolve(font_spec);
     if (!resolved) return {};
     const ResolvedFont& font = *resolved;
-    text::HarfBuzzFontEngine& engine = *(*font.family).engine;
+    text::TextShapeEngine& engine = *(*font.family).engine;
     const double size = font.spec.size;
     const bool fit_black_box = (format.flags & UINT32_C(0x0004)) != 0U;
     const double overhang = fit_black_box ? 0.0 : size / 6.0;
@@ -1593,7 +1593,7 @@ SizeF SkiaExecutor::measure_string(std::string_view utf8,
             }
             opportunities.resize(length);
             const bool breaks_known =
-                text::HarfBuzzFontEngine::fill_line_break_opportunities_utf8(line, opportunities) !=
+                text::TextShapeEngine::fill_line_break_opportunities_utf8(line, opportunities) !=
                 gui_forms::TextResolutionStatus::invalid_request;
             std::size_t line_start = 0U;
             while (line_start < length) {

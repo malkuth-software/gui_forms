@@ -1,6 +1,6 @@
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/window.hpp"
-#include "harfbuzz_font_engine.hpp"
+#include "text_shape_engine.hpp"
 #include "../src/controls/basic/basic_control_rendering.hpp"
 
 #include <algorithm>
@@ -56,7 +56,7 @@ public:
     std::size_t bytes{};
 
 private:
-    render::text::HarfBuzzFontEngine engine_{};
+    render::text::TextShapeEngine engine_{};
 };
 
 struct ProbeWidth final {

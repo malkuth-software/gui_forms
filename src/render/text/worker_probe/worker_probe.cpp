@@ -137,10 +137,10 @@ void Worker::run() {
     // Closes last: the thread's records are released here, on the thread.
     const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     // This unique engine and every mutable native font live/die on this thread.
-    std::unique_ptr<text::HarfBuzzFontEngine> engine{};
+    std::unique_ptr<text::TextShapeEngine> engine{};
     std::array<FontFaceId, 4> face_ids{};
     try {
-        engine = std::make_unique<text::HarfBuzzFontEngine>();
+        engine = std::make_unique<text::TextShapeEngine>();
         const std::size_t face_count = (*fonts_).faces.size();
         for (std::size_t index = 0; index < face_count; ++index) {
             const FontBytes& face = (*fonts_).faces[index];

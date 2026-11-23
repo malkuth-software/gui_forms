@@ -107,7 +107,7 @@ bool ReusableShapeWorkspace::fill_cluster_advances(const std::span<double> advan
     std::fill(advances.begin(), advances.end(), 0.0);
     // A glyph's cluster is the byte offset of its cluster's first byte in
     // the shaped text, in either direction; the order does not matter to a
-    // sum (HarfBuzzFontEngine::fill_cluster_advances_utf8 reads shape()'s
+    // sum (TextShapeEngine::fill_cluster_advances_utf8 reads shape()'s
     // glyphs the same way).
     const std::size_t glyph_count = staged_.glyph_count;
     for (std::size_t index = 0U; index < glyph_count; ++index) {
