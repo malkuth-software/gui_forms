@@ -1750,6 +1750,7 @@ Related types
    .. cpp:function:: Event<const HostDragSourceEnd&>& drag_source_ended() noexcept
 
       Raised on the UI thread once for each accepted start_drag.
+
    .. cpp:function:: Event<const HostDesktopNotificationEvent&>& desktop_notification_events() noexcept
 
       Raised on the UI thread, once per live notification, when it is activated, dismissed or fails; the identity is no longer live when the event is raised.
@@ -1838,6 +1839,7 @@ Related types
    .. cpp:function:: HostDragSourceResult start_drag(const HostDragSourceRequest& request)
 
       Starts a drag of ``request.items`` to other programs (capability typed_drag_source); the program's own windows are destinations too. Call it while handling a pointer press or move with a button held down, as the drag follows that button. Refused, starting nothing: unsupported without typed_drag_source; invalid_argument for items outside the bounds HostDragSourceRequest states or for allowed effects that are none or hold an unknown bit; modal_limit while another drag from these services runs; backend_failure when the platform refuses (no button held, no pointer event to start from). An accepted drag ends exactly once, through drag_source_ended. On Windows (DoDragDrop) and X11 (the XDND source's loop) the drag runs a modal loop and ends before start_drag returns; on macOS it ends later, from the run loop. The platform takes the press's release; on macOS and X11 the window receives it right after the end is reported, so pressed and capture state end as after any press (Windows ends the capture with WM_CAPTURECHANGED). UI thread.
+
    .. cpp:function:: HostDesktopNotificationResult show_desktop_notification(const HostDesktopNotificationRequest& request)
 
       Desktop notifications (capability desktop_notifications), shown by the platform's notification service outside the application's windows. show_desktop_notification hands the request to the platform and returns its identity, assigned from 1 and never reused by this HostServices; the platform may still refuse it later, which arrives as a ``failed`` event. Refused, changing nothing: unsupported without the capability (always in a high-integrity build, which compiles the service out); too_large for a title or text past its maximum; invalid_utf8 for either not valid UTF-8; invalid_argument for empty text, a NUL, or an urgency outside the enumeration; backend_failure when the platform's service could not take it. With maximum_live_desktop_notifications live, the oldest is withdrawn first. UI thread.
@@ -2066,6 +2068,7 @@ Related types
       *Protected.*
 
       Adapters report the end of the drag start_drag_impl started here. Dropped off the UI thread and for an identity that is not the running drag's; a performed effect outside the drag's allowed effects is reported as none. Ends the drag before raising drag_source_ended, so a handler may start another.
+
    .. cpp:function:: void publish_desktop_notification_event(const HostDesktopNotificationEvent& event)
 
       *Protected.*
