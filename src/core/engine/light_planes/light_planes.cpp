@@ -395,11 +395,11 @@ void composite_dot(const LightPlanes& planes, std::span<const LampDrive> drives,
                         if (!(glint.strength > 0.0)) continue;
                         const double gx = ox - glint.x * radius;
                         const double gy = oy - glint.y * radius;
-                        const double core = engine_exponential(-(gx * gx + gy * gy) / glint_spread2);
-                        const double across = engine_exponential(-(gy * gy) / (0.25 * glint_spread2)) *
-                                              engine_exponential(-std::abs(gx) / (3.0 * glint_spread));
-                        const double down = engine_exponential(-(gx * gx) / (0.25 * glint_spread2)) *
-                                            engine_exponential(-std::abs(gy) / (3.0 * glint_spread));
+                        const double core = stxlib::math::exp(-(gx * gx + gy * gy) / glint_spread2);
+                        const double across = stxlib::math::exp(-(gy * gy) / (0.25 * glint_spread2)) *
+                                              stxlib::math::exp(-std::abs(gx) / (3.0 * glint_spread));
+                        const double down = stxlib::math::exp(-(gx * gx) / (0.25 * glint_spread2)) *
+                                            stxlib::math::exp(-std::abs(gy) / (3.0 * glint_spread));
                         glow = glow + glint.strength * (core + 0.35 * (across + down));
                     }
                     red = clamped_unit(red + glow * glint_power * glint_light.red);
@@ -657,12 +657,16 @@ LampGlint sparkle_glint(std::uint32_t seed, std::uint32_t stream, std::uint64_t 
     const double start = slot_start + room * fault_unit(stream_seed, slot, 11U);
     const double into = seconds - start;
     if (!(into > 0.0 && into < lamp_sparkle_glint_seconds)) return none;
-    const double swell = engine_sine_cosine(3.141592653589793 * into / lamp_sparkle_glint_seconds).sine;
+    double swell = 0.0;
+    double swell_cosine = 0.0;
+    stxlib::math::sincos(3.141592653589793 * into / lamp_sparkle_glint_seconds, swell, swell_cosine);
     const double facet = std::floor(8.0 * fault_unit(stream_seed, slot, 12U));
     const double angle = (facet + 0.5) * (3.141592653589793 / 4.0);
     const double out = 0.3 + 0.4 * fault_unit(stream_seed, slot, 13U);
-    const EngineSineCosine direction = engine_sine_cosine(angle);
-    const LampGlint glint{out * direction.cosine, out * direction.sine,
+    double direction_sine = 0.0;
+    double direction_cosine = 0.0;
+    stxlib::math::sincos(angle, direction_sine, direction_cosine);
+    const LampGlint glint{out * direction_cosine, out * direction_sine,
                           swell * swell * (0.6 + 0.4 * fault_unit(stream_seed, slot, 14U))};
     return glint;
 }
