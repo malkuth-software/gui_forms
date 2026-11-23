@@ -16,6 +16,14 @@ stable_id
 
 Properties
 ----------
+merge_tool_strip
+    The tool strip the active document's tool strip merges into (the main
+    window's), or null; `set_merge_tool_strip` names it and
+    `clear_merge_tool_strip` reverts any merge and forgets it.
+merge_ribbon
+    The ribbon the active document's ribbon merges into, or null;
+    `set_merge_ribbon` names it and `clear_merge_ribbon` reverts any merge
+    and forgets it.
 layout
     The layout. Restrictions, dock groups, the workspace lock, saving and
     restoring go through it directly; register panels through
@@ -182,6 +190,15 @@ dock_back_edit
     first the layout accepts. None when no edit is accepted.
 dock_back
     Applies `dock_back_edit` and activates the panel.
+set_panel_tool_strip
+    A panel's tool strip: while its document is the area's active document,
+    its items merge into the merge tool strip (`merge_strips`), reverted
+    when another document becomes active or the panel leaves. False for an
+    unknown panel; `clear_panel_tool_strip` removes it.
+set_panel_ribbon
+    A panel's ribbon: while its document is the area's active document, its
+    tabs merge into the merge ribbon (`Ribbon::merge`), reverted as the tool
+    strip's. False for an unknown panel; `clear_panel_ribbon` removes it.
 
 See Also
 --------

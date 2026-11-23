@@ -27,6 +27,7 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
@@ -37,9 +38,11 @@
 #include "gui_forms/controls/breadcrumb_trail.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/card.hpp"
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/checked_combo_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/color_picker.hpp"
@@ -97,12 +100,14 @@
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/pie_chart.hpp"
 #include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/controls/plot_view.hpp"
 #include "gui_forms/controls/plot_view_links.hpp"
+#include "gui_forms/controls/popup_container_box.hpp"
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/controls/progress_ring.hpp"
 #include "gui_forms/controls/property_grid.hpp"
@@ -166,7 +171,7 @@
 
 namespace gui_forms::abi1 {
 
-inline constexpr std::array<SchemaCatalogEntry, 154> schema_catalog{{
+inline constexpr std::array<SchemaCatalogEntry, 159> schema_catalog{{
     {"button_base", "ButtonBase", &describe_type<ButtonBase>, &create_type<ButtonBase>, &is_exact_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", &describe_type<Button>, &create_type<Button>, &is_exact_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", &describe_type<DropDownButton>, &create_type<DropDownButton>, &is_exact_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -176,6 +181,7 @@ inline constexpr std::array<SchemaCatalogEntry, 154> schema_catalog{{
     {"text_box", "TextBox", &describe_type<TextBox>, &create_type<TextBox>, &is_exact_type<TextBox>, CatalogConstruction::stable_id},
     {"token_box", "TokenBox", &describe_type<TokenBox>, &create_type<TokenBox>, &is_exact_type<TokenBox>, CatalogConstruction::stable_id},
     {"search_field", "SearchField", &describe_type<SearchField>, &create_type<SearchField>, &is_exact_type<SearchField>, CatalogConstruction::stable_id},
+    {"button_text_box", "ButtonTextBox", &describe_type<ButtonTextBox>, &create_type<ButtonTextBox>, &is_exact_type<ButtonTextBox>, CatalogConstruction::stable_id},
     {"masked_text_box", "MaskedTextBox", &describe_type<MaskedTextBox>, &create_type<MaskedTextBox>, &is_exact_type<MaskedTextBox>, CatalogConstruction::stable_id},
     {"rich_text_box", "RichTextBox", &describe_type<RichTextBox>, &create_type<RichTextBox>, &is_exact_type<RichTextBox>, CatalogConstruction::stable_id},
     {"label", "Label", &describe_type<Label>, &create_type<Label>, &is_exact_type<Label>, CatalogConstruction::stable_id},
@@ -192,6 +198,7 @@ inline constexpr std::array<SchemaCatalogEntry, 154> schema_catalog{{
     {"sweep_scope", "SweepScope", &describe_type<SweepScope>, &create_type<SweepScope>, &is_exact_type<SweepScope>, CatalogConstruction::stable_id},
     {"sparkline", "Sparkline", &describe_type<Sparkline>, &create_type<Sparkline>, &is_exact_type<Sparkline>, CatalogConstruction::stable_id},
     {"plot_view", "PlotView", &describe_type<PlotView>, &create_type<PlotView>, &is_exact_type<PlotView>, CatalogConstruction::stable_id},
+    {"pie_chart", "PieChart", &describe_type<PieChart>, &create_type<PieChart>, &is_exact_type<PieChart>, CatalogConstruction::stable_id},
     {"plot3d_view", "Plot3DView", &describe_type<Plot3DView>, &create_type<Plot3DView>, &is_exact_type<Plot3DView>, CatalogConstruction::stable_id},
     {"plot_axis_item", "PlotAxisItem", &describe_type<PlotAxisItem>, &create_type<PlotAxisItem>, &is_exact_type<PlotAxisItem>, CatalogConstruction::stable_id},
     {"plot_series_item", "PlotSeriesItem", &describe_type<PlotSeriesItem>, &create_type<PlotSeriesItem>, &is_exact_type<PlotSeriesItem>, CatalogConstruction::stable_id},
@@ -288,6 +295,8 @@ inline constexpr std::array<SchemaCatalogEntry, 154> schema_catalog{{
     {"callout", "Callout", &describe_type<Callout>, &create_type<Callout>, &is_exact_type<Callout>, CatalogConstruction::stable_id},
     {"modal_layer", "ModalLayer", &describe_type<ModalLayer>, &create_type<ModalLayer>, &is_exact_type<ModalLayer>, CatalogConstruction::stable_id},
     {"lookup_combo_box", "LookupComboBox", &describe_type<LookupComboBox>, &create_type<LookupComboBox>, &is_exact_type<LookupComboBox>, CatalogConstruction::stable_id},
+    {"popup_container_box", "PopupContainerBox", &describe_type<PopupContainerBox>, &create_type<PopupContainerBox>, &is_exact_type<PopupContainerBox>, CatalogConstruction::stable_id},
+    {"checked_combo_box", "CheckedComboBox", &describe_type<CheckedComboBox>, &create_type<CheckedComboBox>, &is_exact_type<CheckedComboBox>, CatalogConstruction::stable_id},
     {"about_dialog", "AboutDialog", &describe_type<AboutDialog>, &create_type<AboutDialog>, &is_exact_type<AboutDialog>, CatalogConstruction::stable_id},
     {"folder_browser_dialog", "FolderBrowserDialog", &describe_type<FolderBrowserDialog>, &create_type<FolderBrowserDialog>, &is_exact_type<FolderBrowserDialog>, CatalogConstruction::stable_id},
     {"color_dialog", "ColorDialog", &describe_type<ColorDialog>, &create_type<ColorDialog>, &is_exact_type<ColorDialog>, CatalogConstruction::stable_id},
@@ -305,6 +314,7 @@ inline constexpr std::array<SchemaCatalogEntry, 154> schema_catalog{{
     {"timer", "Timer", &describe_type<Timer>, &create_type<Timer>, &is_exact_type<Timer>, CatalogConstruction::stable_id},
     {"background_worker", "BackgroundWorker", &describe_type<BackgroundWorker>, &create_type<BackgroundWorker>, &is_exact_type<BackgroundWorker>, CatalogConstruction::stable_id},
     {"notify_icon", "NotifyIcon", &describe_type<NotifyIcon>, &create_type<NotifyIcon>, &is_exact_type<NotifyIcon>, CatalogConstruction::stable_id},
+    {"toast_notification", "ToastNotification", &describe_type<ToastNotification>, &create_type<ToastNotification>, &is_exact_type<ToastNotification>, CatalogConstruction::stable_id},
     {"open_file_dialog", "OpenFileDialog", &describe_type<OpenFileDialog>, &create_type<OpenFileDialog>, &is_exact_type<OpenFileDialog>, CatalogConstruction::stable_id},
     {"save_file_dialog", "SaveFileDialog", &describe_type<SaveFileDialog>, &create_type<SaveFileDialog>, &is_exact_type<SaveFileDialog>, CatalogConstruction::stable_id},
     {"image_list", "ImageList", &describe_type<ImageList>, &create_type<ImageList>, &is_exact_type<ImageList>, CatalogConstruction::stable_id},

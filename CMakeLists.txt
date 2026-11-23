@@ -1280,6 +1280,7 @@ add_library(gui_forms_controls STATIC
     src/controls/tool_strip_container/tool_strip_container.cpp
     src/controls/binding_navigator/binding_navigator.cpp
     src/controls/ribbon/ribbon.cpp
+    src/controls/ribbon/ribbon_merge.cpp
     src/controls/ribbon/ribbon_contextual.cpp
     src/controls/ribbon/ribbon_application_menu.cpp
     src/controls/ribbon/ribbon_file_area.cpp
@@ -1306,8 +1307,10 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view_cells.cpp
     src/controls/data_grid_view/data_grid_view_cells_region.cpp
     src/controls/task_dialog/task_dialog.cpp
+    src/controls/task_dialog/input_box.cpp
     src/controls/frame_chrome/frame_chrome.cpp
     src/controls/notify_icon/notify_icon.cpp
+    src/controls/toast_notification/toast_notification.cpp
     src/controls/file_dialog/file_dialog_support.cpp
     src/controls/file_dialog/file_dialog_types.cpp
     src/controls/open_file_dialog/open_file_dialog.cpp
@@ -1402,6 +1405,9 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/domain_up_down/domain_up_down.cpp
     src/controls/panel/token_box/token_box.cpp
     src/controls/search_field/search_field.cpp
+    src/controls/button_text_box/button_text_box.cpp
+    src/controls/popup_container_box/popup_container_box.cpp
+    src/controls/checked_combo_box/checked_combo_box.cpp
     src/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.cpp
     src/controls/panel/masked_text_box/masked_text_box.cpp
     src/controls/panel/numeric_up_down/numeric_up_down.cpp
@@ -1442,6 +1448,7 @@ add_library(gui_forms_controls STATIC
     src/controls/plots/plot_series_item/plot_series_item_custom.cpp
     src/controls/plots/plot_annotation_item/plot_annotation_item.cpp
     src/controls/plots/plot_view/plot_engine.cpp
+    src/controls/plots/pie_chart/pie_chart.cpp
     src/controls/plots/plot_view/plot_view.cpp
     src/controls/plots/plot_view/plot_view_live.cpp
     src/controls/plots/plot_view/plot_view_links.cpp
@@ -1889,6 +1896,13 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     find_library(GUI_FORMS_COREGRAPHICS CoreGraphics REQUIRED)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
     find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
+    # Desktop notifications (UNUserNotificationCenter), which a
+    # high-integrity build does not compile or link (cmake/HighIntegrity.cmake).
+    set(_gf_user_notifications "")
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
+        find_library(GUI_FORMS_USERNOTIFICATIONS UserNotifications REQUIRED)
+        set(_gf_user_notifications ${GUI_FORMS_USERNOTIFICATIONS})
+    endif()
     add_library(gui_forms_host_macos STATIC
         src/surface/macos/application/macos_host.mm
         src/surface/macos/application/macos_application_run.mm
@@ -1920,6 +1934,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     # not read (cmake/HighIntegrity.cmake).
     if(NOT GUI_FORMS_HIGH_INTEGRITY)
         target_sources(gui_forms_host_macos PRIVATE src/surface/macos/locale/macos_locale.cpp)
+        target_sources(gui_forms_host_macos PRIVATE src/surface/macos/services/appkit_desktop_notifications.mm)
     endif()
     target_include_directories(gui_forms_host_macos PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host/macos
@@ -1931,6 +1946,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
                 ${GUI_FORMS_COREGRAPHICS}
                 ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS}
                 ${GUI_FORMS_COREFOUNDATION}
+                ${_gf_user_notifications}
     )
 
     # The Application library (gui_forms_application_library above): the
@@ -1961,7 +1977,8 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         list(APPEND _gf_application_archives gui_forms_text_engine)
     endif()
     set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}
-        ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION})
+        ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION}
+        ${_gf_user_notifications})
     gui_forms_application_library(gui_forms_application
         ARCHIVES ${_gf_application_archives}
         LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
@@ -2000,6 +2017,8 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/surface/linux/services/x11_tray_icons.cpp
         # XDND drops: not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
         $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/surface/linux/services/linux_drag_drop.cpp>
+        # Desktop notifications (D-Bus): not compiled in a high-integrity build.
+        $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/surface/linux/services/linux_desktop_notifications.cpp>
         src/surface/linux/services/linux_dialogs.cpp
         src/surface/linux/compositor/x11_compositor.cpp)
     # The environment's POSIX locale (LC_ALL, LC_TIME, LANG), which a
@@ -2169,6 +2188,8 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         src/surface/windows/services/windows_clipboard_image.cpp
         src/surface/windows/services/windows_notify_icons.cpp
         src/surface/windows/services/windows_drag_drop.cpp
+        # Toast notifications: not compiled in a high-integrity build.
+        $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/surface/windows/services/windows_toast_notifications.cpp>
         src/surface/windows/locale/windows_date_pattern.cpp
         src/surface/windows/locale/windows_locale.cpp
         src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp

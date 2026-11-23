@@ -31,6 +31,7 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 
 namespace gui_forms {
 
@@ -400,7 +401,8 @@ public:
     // font control, colour picker or tab panel is refused the same way. If
     // adding a hosted control fails after validation (a call from inside a
     // lifecycle notification), the exception reaches the caller and the
-    // ribbon is left with no tabs.
+    // ribbon is left with no tabs. Throws std::logic_error while the ribbon
+    // holds a merge (merge).
     void set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets = {});
     [[nodiscard]] std::span<const RibbonTabSetSpec> tab_sets() const& noexcept {
         return std::span<const RibbonTabSetSpec>(tab_sets_.data(), tab_sets_.size());
@@ -418,6 +420,37 @@ public:
     // A newly shown set takes an index no other shown set has, keeping its
     // previous one when it can. Throws std::out_of_range for an unknown set.
     [[nodiscard]] stxlib::Optional<AccentIndex> tab_set_accent(std::string_view set_id) const;
+
+    // -- merging -------------------------------------------------------------------
+    // Ribbon merging (an MDI child's ribbon into the main window's, as
+    // Windows Forms merges an MDI child's menu strip into the parent's; the
+    // ribbon-merging behaviour of DockWorkspace::set_panel_ribbon). The
+    // source's tabs move into this ribbon: a core tab whose text matches a
+    // core tab here (ASCII case-insensitive, mnemonic marks ignored), when
+    // neither is a panel tab, adds its groups after that tab's groups and
+    // its reduction steps after that tab's; every other core tab follows
+    // this ribbon's core tabs, in the source's order; the source's
+    // contextual tab sets follow this ribbon's, with their tabs and their
+    // availability. The source is left with no tabs until the merge is
+    // reverted. A ribbon holds one merge at a time: merging again reverts
+    // the previous merge first.
+    //
+    // Returns false, changing nothing, when the source has no tabs or holds
+    // a merge itself, or when the merged tabs would be invalid (a repeated
+    // ID, too many groups on a tab). Throws std::invalid_argument when
+    // `source` is this ribbon and std::bad_weak_ptr when it is not owned by
+    // a shared pointer. While a merge is held, set_tabs throws
+    // std::logic_error; the source's tabs are its own again after
+    // revert_merge (a source destroyed meanwhile loses them). Destroying
+    // the merged ribbon drops the source's merged tabs: revert first.
+    bool merge(Ribbon& source);
+    // Restores this ribbon's own tabs and gives the source back its tabs
+    // and its sets' availability. Returns whether a merge was held. An
+    // exception from restoring the source (its tabs no longer valid there)
+    // propagates after this ribbon is restored and the merge forgotten.
+    bool revert_merge();
+    // The ribbon whose tabs are merged here, or null.
+    [[nodiscard]] std::shared_ptr<Ribbon> merge_source() const;
     // Whether a tab shows on the tab row now (its modes, and its set's
     // availability). Throws std::out_of_range for a tab past the end.
     [[nodiscard]] bool tab_shown(std::size_t tab) const;
@@ -1135,6 +1168,14 @@ private:
     void on_backstage_close_requested();
     void on_backstage_revoked();
     void validate_two_pane(const std::vector<MenuItemSpec>& items, std::size_t recent) const;
+
+    // The merge this ribbon holds as a target (merge): its own definition,
+    // and the source's definition and sets' availability to give back.
+    // Defined in ribbon_merge.cpp.
+    struct MergeState;
+    stxlib::Unique<MergeState> merge_{};
+    // Set while merge and revert_merge replace the tabs themselves.
+    bool merging_{};
 
     std::vector<RibbonTabSpec> tabs_{};
     // One record per command, indexed [tab][group][command] as tabs_.

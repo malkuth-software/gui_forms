@@ -88,6 +88,10 @@ set(GUI_FORMS_PACKAGE_FIND_DEPENDENCIES "")
 if(APPLE)
     set(GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES
         "-framework AppKit;-framework QuartzCore;-framework IOSurface;-framework CoreGraphics;-framework CoreText;-framework UniformTypeIdentifiers;-framework CoreFoundation")
+    # Desktop notifications; not linked in a high-integrity build.
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
+        string(APPEND GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES ";-framework UserNotifications")
+    endif()
     set(GUI_FORMS_PACKAGE_WHOLE_ARCHIVE
         "LINKER:-force_load,\${_gui_forms_application_prefix}/${CMAKE_INSTALL_LIBDIR}/libgui_forms_application.a")
 elseif(WIN32 AND MINGW)

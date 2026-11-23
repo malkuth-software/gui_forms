@@ -26,6 +26,8 @@ namespace gui_forms {
 
 class DockSite;
 class MenuStrip;
+class Ribbon;
+class ToolStrip;
 class WorkspaceTransaction;
 
 // A factory's request: build the content of `panel` and store it in
@@ -499,6 +501,37 @@ public:
     // none.
     [[nodiscard]] stxlib::Optional<DockPanelId> merged_document() const;
 
+    // Tool strip merging, as the menu strip's: while a panel's document is
+    // the area's active document, its tool strip's items merge into the
+    // workspace's merge tool strip (the main window's tool strip, which the
+    // application names: Windows Forms leaves tool strips to
+    // ToolStripManager.Merge) by the existing merge (merge_strips), and the
+    // merge is reverted when another document becomes active or the panel
+    // leaves. The strips are held by the workspace; a panel's need not be
+    // shown. False for an unknown panel. Setting or clearing either merges
+    // again.
+    void set_merge_tool_strip(ToolStrip& strip);
+    void clear_merge_tool_strip();
+    [[nodiscard]] Control::Ptr merge_tool_strip() const;
+    bool set_panel_tool_strip(const DockPanelId& panel, ToolStrip& strip);
+    bool clear_panel_tool_strip(const DockPanelId& panel);
+    [[nodiscard]] Control::Ptr panel_tool_strip(const DockPanelId& panel) const;
+    // The document whose tool strip is merged, or none.
+    [[nodiscard]] stxlib::Optional<DockPanelId> merged_tool_strip_document() const;
+
+    // Ribbon merging, likewise: the active document's ribbon merges into
+    // the workspace's merge ribbon (Ribbon::merge) and is reverted when
+    // another document becomes active or the panel leaves. A merge the
+    // ribbons refuse leaves both as they were.
+    void set_merge_ribbon(Ribbon& ribbon);
+    void clear_merge_ribbon();
+    [[nodiscard]] Control::Ptr merge_ribbon() const;
+    bool set_panel_ribbon(const DockPanelId& panel, Ribbon& ribbon);
+    bool clear_panel_ribbon(const DockPanelId& panel);
+    [[nodiscard]] Control::Ptr panel_ribbon(const DockPanelId& panel) const;
+    // The document whose ribbon is merged, or none.
+    [[nodiscard]] stxlib::Optional<DockPanelId> merged_ribbon_document() const;
+
 protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_dispose() noexcept override;
@@ -509,8 +542,11 @@ private:
     struct PanelEntry final {
         DockPanelRegistration registration{};
         Control::Ptr content{};
-        // The panel's menu strip (set_panel_menu_strip), a MenuStrip.
+        // The panel's menu strip (set_panel_menu_strip), a MenuStrip; its
+        // tool strip (set_panel_tool_strip) and ribbon (set_panel_ribbon).
         Control::Ptr menu_strip{};
+        Control::Ptr tool_strip{};
+        Control::Ptr ribbon{};
     };
     // The workspace as its main window's document area: the window's MDI
     // calls reach the workspace through it. Its titles are the panels'
@@ -662,6 +698,13 @@ private:
     void carry_maximized(const DockPanelId& previous, const DockPanelId& current);
     void update_menu_merge();
     void revert_menu_merge() noexcept;
+    // Every merge follows the active document: menu, tool strip, ribbon.
+    void update_merges();
+    void revert_merges() noexcept;
+    void update_tool_strip_merge();
+    void revert_tool_strip_merge() noexcept;
+    void update_ribbon_merge();
+    void revert_ribbon_merge() noexcept;
     [[nodiscard]] bool in_document_area(const DockPanelId& panel) const;
     // Starts a request (busy while another runs) and runs its prompts.
     DockCloseOutcome begin_close(CloseRequest request);
@@ -713,6 +756,17 @@ private:
     Control::WeakPtr merged_source_{};
     Control::WeakPtr merged_target_{};
     stxlib::Optional<DockPanelId> merged_document_{};
+    // The tool strip and ribbon merges: the targets the application named,
+    // and the merge in force (the panel's strip or ribbon, the target it
+    // merged into, and the document).
+    Control::Ptr merge_tool_strip_{};
+    Control::WeakPtr tool_merged_source_{};
+    Control::WeakPtr tool_merged_target_{};
+    stxlib::Optional<DockPanelId> tool_merged_document_{};
+    Control::Ptr merge_ribbon_{};
+    Control::WeakPtr ribbon_merged_source_{};
+    Control::WeakPtr ribbon_merged_target_{};
+    stxlib::Optional<DockPanelId> ribbon_merged_document_{};
     Event<const DockActivationChange&> activation_changed_{};
     Event<DockDocumentClosing&> document_closing_{};
     // property_codemod begin DockWorkspace (tools/property_families/dock_workspace.json; generated, do not edit)

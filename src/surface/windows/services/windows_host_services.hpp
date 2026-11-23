@@ -164,8 +164,29 @@ protected:
         return (*notify_icons_).show_menu(icon_id, request);
     }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Desktop notifications as toasts: one WindowsToastNotifications,
+    // created with the first, whose message window reports the toasts'
+    // events through forward_notification_event on the UI thread.
+    HostServiceStatus show_desktop_notification_impl(HostDesktopNotificationId notification_id,
+                                                     const HostDesktopNotificationRequest& request) override {
+        if (!toasts_) {
+            toasts_ = std::make_unique<gui_forms::host::detail::WindowsToastNotifications>(
+                Delegate<const HostDesktopNotificationEvent&>::bind<
+                    WindowsHostServices, &WindowsHostServices::forward_notification_event>(*this));
+        }
+        return (*toasts_).show(notification_id, request);
+    }
+    void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept override {
+        if (toasts_) (*toasts_).withdraw(notification_id);
+    }
+#endif
+
     void shutdown_impl() noexcept override {
         notify_icons_.reset();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        toasts_.reset();
+#endif
         for (const CursorEntry& entry : cursors_) {
             if (GetCursor() == entry.native) apply_system_cursor(CursorKind::arrow);
             DestroyCursor(entry.native);
@@ -495,6 +516,9 @@ private:
     }
 
     void forward_tray_event(const HostTrayIconEvent& event) { publish_tray_icon_event(event); }
+    void forward_notification_event(const HostDesktopNotificationEvent& event) {
+        publish_desktop_notification_event(event);
+    }
 
     struct CursorEntry final {
         CursorImagesPtr images;
@@ -710,6 +734,9 @@ private:
     // then every cursor call reports stale_window and touches nothing.
     WindowRef cursor_model_;
     std::unique_ptr<gui_forms::host::detail::WindowsNotifyIcons> notify_icons_;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    std::unique_ptr<gui_forms::host::detail::WindowsToastNotifications> toasts_;
+#endif
     std::array<COLORREF, 16> custom_colors_{};
     // The open message box's request identity; zero while none is open.
     std::uint64_t message_help_request_{};

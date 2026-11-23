@@ -25,6 +25,8 @@ stable_id
 
 Properties
 ----------
+merge_source
+    The ribbon whose tabs are merged here (`merge`), or null.
 tabs
     The tabs, each with its groups and their commands: the core tabs, then
     the contextual tabs, each set's together in the sets' order.
@@ -216,6 +218,19 @@ combo_box
     The `ComboBox` a combo box command holds. `numeric_up_down`, `check_box`
     and `text_box` return the other hosted controls. Each throws
     `std::out_of_range` for an ID that names no command of that kind.
+merge
+    Moves another ribbon's tabs into this one, as an MDI child's ribbon
+    merges into the main window's: a core tab whose text matches one here
+    (ASCII case-insensitive, mnemonic marks ignored) adds its groups after
+    that tab's, other core tabs follow this ribbon's, and contextual sets
+    follow with their availability. The source has no tabs until
+    `revert_merge`. Returns false, changing nothing, when the source has no
+    tabs or holds a merge, or the merged tabs would be invalid; a second
+    merge reverts the first. While a merge is held `set_tabs` throws
+    `std::logic_error`.
+revert_merge
+    Restores this ribbon's own tabs and the source's tabs and availability.
+    Returns whether a merge was held.
 
 See Also
 --------

@@ -133,7 +133,8 @@ public static unsafe class Mdi
 /// <summary>
 /// A dock workspace's frames presentation (the docking table's 1.6 slots
 /// and edit kinds): the presentation, each document's frame, the
-/// arrangements, the area's documents and a panel's menu strip.
+/// arrangements, the area's documents and a panel's menu strip; and its
+/// tool strip and ribbon merging (the 1.7 slots).
 /// </summary>
 public static unsafe class DockFrames
 {
@@ -295,6 +296,113 @@ public static unsafe class DockFrames
         {
             Abi.check(docking().set_panel_menu_strip(workspace.value, Utf8.view(data, bytes.Length), value));
         }
+    }
+
+    /// <summary>The document whose menu strip is merged into the main menu strip, or null.</summary>
+    public static string? merged_document(ObjectHandle workspace)
+    {
+        return optional_document(workspace, docking().merged_document);
+    }
+
+    /// <summary>
+    /// Names the workspace's merge tool strip (the main window's tool
+    /// strip), into which the active document's tool strip merges, or
+    /// clears it with null.
+    /// </summary>
+    public static void set_merge_tool_strip(ObjectHandle workspace, ObjectHandle? strip)
+    {
+        gf_object value = strip != null ? strip.value : 0;
+        Abi.check(docking().set_merge_tool_strip(workspace.value, value));
+    }
+
+    /// <summary>The merge tool strip as a new handle, or null when none is set.</summary>
+    public static ObjectHandle? merge_tool_strip(ObjectHandle workspace)
+    {
+        gf_object strip = 0;
+        Abi.check(docking().merge_tool_strip(workspace.value, &strip));
+        return strip != 0 ? ObjectHandle.adopt(strip) : null;
+    }
+
+    /// <summary>
+    /// Gives a panel a tool strip that merges into the merge tool strip
+    /// while its document is active, or takes it away with null.
+    /// </summary>
+    public static void set_panel_tool_strip(ObjectHandle workspace, string panel, ObjectHandle? strip)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(panel);
+        gf_object value = strip != null ? strip.value : 0;
+        fixed (byte* data = bytes)
+        {
+            Abi.check(docking().set_panel_tool_strip(workspace.value, Utf8.view(data, bytes.Length), value));
+        }
+    }
+
+    /// <summary>The document whose tool strip is merged, or null.</summary>
+    public static string? merged_tool_strip_document(ObjectHandle workspace)
+    {
+        return optional_document(workspace, docking().merged_tool_strip_document);
+    }
+
+    /// <summary>
+    /// Names the workspace's merge ribbon, into which the active
+    /// document's ribbon merges its tabs, or clears it with null.
+    /// </summary>
+    public static void set_merge_ribbon(ObjectHandle workspace, ObjectHandle? ribbon)
+    {
+        gf_object value = ribbon != null ? ribbon.value : 0;
+        Abi.check(docking().set_merge_ribbon(workspace.value, value));
+    }
+
+    /// <summary>The merge ribbon as a new handle, or null when none is set.</summary>
+    public static ObjectHandle? merge_ribbon(ObjectHandle workspace)
+    {
+        gf_object ribbon = 0;
+        Abi.check(docking().merge_ribbon(workspace.value, &ribbon));
+        return ribbon != 0 ? ObjectHandle.adopt(ribbon) : null;
+    }
+
+    /// <summary>
+    /// Gives a panel a ribbon whose tabs merge into the merge ribbon while
+    /// its document is active, or takes it away with null.
+    /// </summary>
+    public static void set_panel_ribbon(ObjectHandle workspace, string panel, ObjectHandle? ribbon)
+    {
+        byte[] bytes = Encoding.UTF8.GetBytes(panel);
+        gf_object value = ribbon != null ? ribbon.value : 0;
+        fixed (byte* data = bytes)
+        {
+            Abi.check(docking().set_panel_ribbon(workspace.value, Utf8.view(data, bytes.Length), value));
+        }
+    }
+
+    /// <summary>The document whose ribbon is merged, or null.</summary>
+    public static string? merged_ribbon_document(ObjectHandle workspace)
+    {
+        return optional_document(workspace, docking().merged_ribbon_document);
+    }
+
+    // A document id a slot writes as area_active_document does, or null
+    // when it writes none.
+    private static string? optional_document(ObjectHandle workspace,
+                                             delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> read)
+    {
+        ulong required = 0;
+        gf_status status = read(workspace.value, null, 0, &required);
+        if (status != Constants.GF_STATUS_OK && status != Constants.GF_STATUS_BUFFER_TOO_SMALL)
+        {
+            Abi.check(status);
+        }
+        if (required == 0)
+        {
+            return null;
+        }
+        byte[] text = new byte[checked((int)required)];
+        fixed (byte* buffer = text)
+        {
+            status = read(workspace.value, buffer, (ulong)text.Length, &required);
+        }
+        Abi.check(status);
+        return Encoding.UTF8.GetString(text, 0, checked((int)required));
     }
 
     private static gf_dock_edit new_edit(gf_dock_edit_kind kind)

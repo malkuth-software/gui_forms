@@ -39,6 +39,10 @@ std::string HostServicesSnapshot::to_json() const {
            << ",\"tray_notifications\":" << tray_notifications
            << ",\"tray_menus\":" << tray_menus
            << ",\"tray_events\":" << tray_events
+           << ",\"desktop_notifications\":" << desktop_notifications
+           << ",\"desktop_notification_withdrawals\":" << desktop_notification_withdrawals
+           << ",\"desktop_notifications_live\":" << desktop_notifications_live
+           << ",\"desktop_notification_events\":" << desktop_notification_events
            << ",\"rejected_requests\":" << rejected_requests
            << ",\"shutdown\":" << (shutdown ? "true" : "false") << '}';
     return output.str();

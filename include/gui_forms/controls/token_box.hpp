@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/token_box_capabilities.hpp"
@@ -53,10 +54,8 @@ public:
     void initialize_control_tree();
 
     // The tokens, first to last.
-    [[nodiscard]] std::span<const Token> tokens() const& noexcept {
-        return std::span<const Token>(tokens_.data(), tokens_.size());
-    }
-    std::span<const Token> tokens() const&& = delete;
+    [[nodiscard]] BorrowedSpan<Token> tokens() const& noexcept { return detail::lend_view(tokens_); }
+    BorrowedSpan<Token> tokens() const&& = delete;
     // Adds a token after the last and returns its identity. The text is
     // trimmed of ASCII spaces; text that is not valid UTF-8, or empty once
     // trimmed, throws std::invalid_argument and adds nothing.
@@ -203,7 +202,7 @@ private:
     SubscriptionToken editor_text_;
     SubscriptionToken editor_completion_;
     SubscriptionToken editor_focus_;
-    std::vector<Token> tokens_;
+    detail::LendingVector<Token> tokens_{};
     std::uint64_t next_id_{1U};
     stxlib::Optional<TokenId> selected_{};
     stxlib::Optional<TokenId> hot_{};

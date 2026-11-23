@@ -58,6 +58,10 @@ HostCapabilities headless_capabilities() {
                 // The reference host records each address it is asked to
                 // open (HeadlessHostServices::opened_urls) and opens none.
                 HostCapability::open_url |
+                // The reference host keeps each desktop notification it is
+                // asked to show (HeadlessHostServices::desktop_notification)
+                // and shows none; tests report what the user did.
+                HostCapability::desktop_notifications |
                 // Hosted content is real: the platform's process
                 // implementation runs under the reference host too.
                 HostCapability::hosted_content,

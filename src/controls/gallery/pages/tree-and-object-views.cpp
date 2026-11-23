@@ -448,6 +448,7 @@ private:
         on((*tree_list_).selection_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_selected);
         on((*tree_list_).sort_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_sorted);
         on((*tree_list_).column_moved(), *this, &TreeAndObjectViewsPage::on_tree_list_column_moved);
+        on((*tree_list_).check_state_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_checked);
     }
 
     // A VirtualRowsView over the seeded message history, following the tail
@@ -778,6 +779,15 @@ private:
     void on_tree_list_column_moved(const TreeListColumnMove& change) {
         (*status_).text = "TreeListView column " + (*tree_list_).columns()[change.column].text +
                             " moved to position " + std::to_string(change.display_position + 1U);
+    }
+
+    // A cascade raises one change per node, the toggled node first: the
+    // status line ends on the last node it checked or unchecked.
+    void on_tree_list_checked(const TreeListCheckChange& change) {
+        if (change.check_state == CheckState::indeterminate) return;
+        const char* state = change.check_state == CheckState::checked ? " checked" : " unchecked";
+        (*status_).text = "TreeListView node " + change.node_id + state + " · " +
+                            node_path(node_index(change.node_id));
     }
 
     // Value

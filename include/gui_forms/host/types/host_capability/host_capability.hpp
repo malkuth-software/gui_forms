@@ -147,8 +147,16 @@ enum class HostCapability : std::uint64_t {
     // Bits 46 to 48 are reserved, never reported and never reassigned: they
     // held the GPU-backed buffer routes (CAMetalLayer drawables, X11 DRI3
     // pixmaps, Wayland linux-dmabuf), withdrawn before the C ABI seal
-    // because GUI.Forms has no GPU surfaces (owner, 2026-11-16). The next
-    // flag is 1ULL << 49U.
+    // because GUI.Forms has no GPU surfaces (owner, 2026-11-16).
+    // Desktop notifications through the platform's notification service
+    // (HostServices::show_desktop_notification): UNUserNotificationCenter
+    // in a macOS application bundle, toast notifications on Windows for a
+    // packaged process or one with an explicit AppUserModelID, and the
+    // freedesktop notification service where the session bus has one. C ABI:
+    // GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS (1.7). Additive flag; no
+    // protocol version change.
+    desktop_notifications = 1ULL << 49U,
+    // The next flag is 1ULL << 50U.
 };
 
 [[nodiscard]] constexpr HostCapability operator|(HostCapability left,
@@ -168,15 +176,18 @@ enum class HostCapability : std::uint64_t {
 // The host services a high-integrity build does not compile
 // (cmake/HighIntegrity.cmake): opening addresses, clipboard images and
 // clipboard file references, frame capture to a file, drag and drop with
-// other programs, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from
+// other programs, desktop notifications, and clipboard text unless the build
+// keeps its allowance. Every host removes them from its report and HostServices from
 // its own, so their requests are refused as unsupported.
 inline constexpr HostCapability high_integrity_compiled_out_capabilities =
 #if defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture |
-    HostCapability::typed_drag_source | HostCapability::typed_drag_destination;
+    HostCapability::typed_drag_source | HostCapability::typed_drag_destination |
+    HostCapability::desktop_notifications;
 #else
     HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture |
-    HostCapability::typed_drag_source | HostCapability::typed_drag_destination | HostCapability::clipboard;
+    HostCapability::typed_drag_source | HostCapability::typed_drag_destination | HostCapability::clipboard |
+    HostCapability::desktop_notifications;
 #endif
 #endif
 

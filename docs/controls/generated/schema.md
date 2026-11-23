@@ -300,6 +300,34 @@ Properties beyond every control's: `busy` (boolean), `placeholder_text` (text), 
 | `search_requested` | `std::string` |
 | `cleared` | none |
 
+## `button_text_box` (ButtonTextBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `content` | content | `text_box` |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `button`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `button` | face |  |  |
+| `button_glyph` | glyph |  |  |
+| `button_label` | label |  |  |
+
+Item states: `hot`, `pressed`, `disabled`.
+
+Properties beyond every control's: `placeholder_text` (text), `read_only` (boolean), `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `text_changed` | `std::string` |
+| `button_clicked` | `EditButtonClick` |
+
 ## `masked_text_box` (MaskedTextBox, control)
 
 | Part | Role | Reuses | Own states |
@@ -633,6 +661,35 @@ Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `sho
 | `legend_toggled` | `std::size_t` |
 | `handle_moved` | `PlotHandleMove` |
 | `handle_committed` | `PlotHandleMove` |
+
+## `pie_chart` (PieChart, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `plot` | plot |  |  |
+| `legend` | legend |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `slice`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `slice` | series |  |  |
+| `slice_label` | label |  |  |
+| `legend_swatch` | well |  |  |
+| `legend_label` | legend_entry |  |  |
+
+Item states: `hot`, `selected`, `focus_visible`, `disabled`.
+
+Properties beyond every control's: `doughnut_radius` (number), `label_style` (enumeration), `legend_visible` (boolean), `start_angle` (number).
+
+| Interaction | Payload |
+|---|---|
+| `selection_changed` | `PieSliceSelection` |
+| `slice_activated` | `PieSliceActivation` |
 
 ## `plot3d_view` (Plot3DView, control)
 
@@ -1016,11 +1073,13 @@ Item system `row`:
 | `row` | region |  |  |
 | `row_face` | face |  |  |
 | `expander` | disclosure |  |  |
+| `check_well` | well |  |  |
+| `check` | indicator |  |  |
 | `icon` | icon |  |  |
 | `text` | content |  |  |
 | `row_focus` | focus |  |  |
 
-Item states: `selected`, `hot`, `current`, `open`, `closed`, `disabled`, `focus_visible`.
+Item states: `selected`, `hot`, `current`, `open`, `closed`, `disabled`, `focus_visible`, `checked`, `indeterminate`.
 
 Item system `cell`:
 
@@ -1043,7 +1102,7 @@ Item system `column`:
 
 Item states: `hot`, `pressed`, `captured`. Application-defined: `sorted_ascending`, `sorted_descending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `cascading_checks` (boolean), `check_boxes` (boolean).
 
 | Interaction | Payload |
 |---|---|
@@ -1053,6 +1112,7 @@ Properties beyond every control's: none.
 | `sort_changed` | `TreeListSortChange` |
 | `column_width_changed` | `TreeListColumnWidthChange` |
 | `column_moved` | `TreeListColumnMove` |
+| `check_state_changed` | `TreeListCheckChange` |
 
 ## `virtual_rows_view` (VirtualRowsView, control)
 
@@ -3261,6 +3321,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `icon_image` | icon |  |  |
 | `heading` | label | `label` |  |
 | `text` | content | `label` |  |
+| `input` | well | `text_box` |  |
 | `progress` | track | `progress_bar` |  |
 | `radio_group` | region | `radio_button` |  |
 | `expander_glyph` | disclosure |  | open |
@@ -3517,6 +3578,47 @@ Properties beyond every control's: `display_column` (unsigned_integer), `max_dro
 | `selected_key_changed` | `std::string` |
 | `drop_down_changed` | `bool` |
 
+## `popup_container_box` (PopupContainerBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `label` | content |  |  |
+| `actuator` | actuator |  |  |
+| `glyph` | disclosure |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`, `pressed`.
+
+Properties beyond every control's: `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `popup_opened` | none |
+| `popup_closed` | `PopupClosed` |
+| `text_changed` | `std::string` |
+
+## `checked_combo_box` (CheckedComboBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `label` | content |  |  |
+| `actuator` | actuator |  |  |
+| `glyph` | disclosure |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`, `pressed`.
+
+Properties beyond every control's: `max_drop_down_items` (unsigned_integer), `placeholder_text` (text), `separator` (text).
+
+| Interaction | Payload |
+|---|---|
+| `item_check_changed` | `CheckedComboItemChange` |
+| `drop_down_changed` | `bool` |
+
 ## `about_dialog` (AboutDialog, component)
 
 | Interaction | Payload |
@@ -3718,6 +3820,14 @@ Interactions: none.
 | `balloon_tip_clicked` | none |
 | `balloon_tip_closed` | none |
 | `menu_item_invoked` | `MenuItemInvocation` |
+
+## `toast_notification` (ToastNotification, component)
+
+| Interaction | Payload |
+|---|---|
+| `activated` | none |
+| `dismissed` | none |
+| `failed` | none |
 
 ## `open_file_dialog` (OpenFileDialog, component)
 

@@ -35,6 +35,10 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
      - A location bar that shows the path to the current place as clickable segments.
    * - :cpp:class:`LookupComboBox <gui_forms::LookupComboBox>`
      - A multi-column lookup: a drop-down field that chooses a row by its key and shows one of the row's cells, with a list of every column under headers when open.
+   * - :cpp:class:`PopupContainerBox <gui_forms::PopupContainerBox>`
+     - A drop-down field whose popup is a control the application gives it.
+   * - :cpp:class:`CheckedComboBox <gui_forms::CheckedComboBox>`
+     - A drop-down field whose list has a tick box on each item.
    * - :cpp:class:`ListControl <gui_forms::ListControl>`
      - The shared base of the list controls.
 
@@ -53,6 +57,8 @@ Lists, trees, combo boxes, choice groups and breadcrumbs.
    generated/gui_forms.ChoiceGroup
    generated/gui_forms.BreadcrumbTrail
    generated/gui_forms.LookupComboBox
+   generated/gui_forms.PopupContainerBox
+   generated/gui_forms.CheckedComboBox
    generated/gui_forms.ListControl
 
 Related types
@@ -82,6 +88,20 @@ Related types
      - Whether the exact-path editor replaces the segments.
    * - :cpp:class:`BreadcrumbTrailTabCompletionAvailableCapability <gui_forms::BreadcrumbTrailTabCompletionAvailableCapability>`
      - Whether Tab in the path editor requests completion (edit_completion_requested).
+   * - :cpp:class:`CheckedComboBox::Parts <gui_forms::CheckedComboBox::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`CheckedComboBoxCapabilities <gui_forms::CheckedComboBoxCapabilities>`
+     - Every CheckedComboBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`CheckedComboBoxMaxDropDownItemsCapability <gui_forms::CheckedComboBoxMaxDropDownItemsCapability>`
+     - The items the open list shows before it scrolls, from 1 to 64 (std::invalid_argument; MaxDropDownItems).
+   * - :cpp:class:`CheckedComboBoxPlaceholderTextCapability <gui_forms::CheckedComboBoxPlaceholderTextCapability>`
+     - The hint the field shows while nothing is checked, such as "Any colour".
+   * - :cpp:class:`CheckedComboBoxSeparatorCapability <gui_forms::CheckedComboBoxSeparatorCapability>`
+     - What the field's text puts between the checked items' texts, ", " by default.
+   * - :cpp:class:`CheckedComboItem <gui_forms::CheckedComboItem>`
+     - One item.
+   * - :cpp:class:`CheckedComboItemChange <gui_forms::CheckedComboItemChange>`
+     - An item checked or unchecked, after it happened.
    * - :cpp:class:`CheckedListBox::Item <gui_forms::CheckedListBox::Item>`
      -  
    * - :cpp:class:`CheckedListBox::ItemParts <gui_forms::CheckedListBox::ItemParts>`
@@ -500,6 +520,14 @@ Related types
      - Whether icon cells show each item's secondary text under its name.
    * - :cpp:class:`ObjectViewViewModeCapability <gui_forms::ObjectViewViewModeCapability>`
      - Icons or details.
+   * - :cpp:class:`PopupClosed <gui_forms::PopupClosed>`
+     - A popup that closed, and how.
+   * - :cpp:class:`PopupContainerBox::Parts <gui_forms::PopupContainerBox::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`PopupContainerBoxCapabilities <gui_forms::PopupContainerBoxCapabilities>`
+     - Every PopupContainerBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`PopupContainerBoxTextCapability <gui_forms::PopupContainerBoxTextCapability>`
+     - The text the field shows, which the application writes, usually from the content when the popup closes.
    * - :cpp:class:`ShowGroupsCapability <gui_forms::ShowGroupsCapability>`
      - Whether the items are shown in their groups (Windows Forms' ShowGroups; see groups).
    * - :cpp:class:`SmallImageListCapability <gui_forms::SmallImageListCapability>`
@@ -510,6 +538,8 @@ Related types
      - TreeExpansionChange reports the exact node and resulting expanded state.
    * - :cpp:class:`TreeListActivation <gui_forms::TreeListActivation>`
      - A node activated by a double click, Enter, or the semantic press action.
+   * - :cpp:class:`TreeListCheckChange <gui_forms::TreeListCheckChange>`
+     - A node's check state changed, by a click on its check box, Space, the semantic press, or set_check_state().
    * - :cpp:class:`TreeListColumn <gui_forms::TreeListColumn>`
      - One column.
    * - :cpp:class:`TreeListColumnMove <gui_forms::TreeListColumnMove>`
@@ -550,6 +580,10 @@ Related types
      -  
    * - :cpp:class:`TreeListViewCapabilities <gui_forms::TreeListViewCapabilities>`
      - Every TreeListView capability, in the order the declaring class takes them.
+   * - :cpp:class:`TreeListViewCascadingChecksCapability <gui_forms::TreeListViewCascadingChecksCapability>`
+     - Whether a check applies to the node's subtree and its ancestors show checked, unchecked or indeterminate from their children; turning it on does not recompute the states.
+   * - :cpp:class:`TreeListViewCheckBoxesCapability <gui_forms::TreeListViewCheckBoxesCapability>`
+     - Whether each row shows its node's check box after the expander (Windows Forms' TreeView.CheckBoxes); check_state and set_check_state read and write the state.
    * - :cpp:class:`TreeListViewImageListCapability <gui_forms::TreeListViewImageListCapability>`
      - The images that the nodes' image_key values name; a list must be alive and belong to this view's Window.
    * - :cpp:class:`TreeListViewIndentationCapability <gui_forms::TreeListViewIndentationCapability>`
@@ -786,6 +820,124 @@ Related types
    .. cpp:function:: static void assign(BreadcrumbTrailTabCompletionAvailableCapability& capability, bool incoming)
 
    .. cpp:member:: PropertyCell<bool, BreadcrumbTrailTabCompletionAvailableCapability<Declaring>> tab_completion_available
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CheckedComboBox::Parts final
+
+   ``#include <gui_forms/controls/checked_combo_box.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box.hpp>`)
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``well`` is the field's ground, ``label`` its text, ``actuator`` the drop-down button and ``glyph`` its arrow; the box is ``open`` while the list is.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry glyph
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedComboBoxCapabilities : public CheckedComboBoxSeparatorCapability<Declaring>, public CheckedComboBoxPlaceholderTextCapability<Declaring>, public CheckedComboBoxMaxDropDownItemsCapability<Declaring>
+
+   ``#include <gui_forms/controls/checked_combo_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box_capabilities.hpp>`)
+
+   Every CheckedComboBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string separator
+
+      What the field's text puts between the checked items' texts, ", " by default. Invalid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::string placeholder_text
+
+      The hint the field shows while nothing is checked, such as "Any colour". Invalid UTF-8 throws std::invalid_argument.
+
+   .. cpp:member:: std::uint32_t max_drop_down_items
+
+      The items the open list shows before it scrolls, from 1 to 64 (std::invalid_argument; MaxDropDownItems). A change applies the next time the list opens.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedComboBoxMaxDropDownItemsCapability
+
+   ``#include <gui_forms/controls/checked_combo_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box_capabilities.hpp>`)
+
+   The items the open list shows before it scrolls, from 1 to 64 (std::invalid_argument; MaxDropDownItems). A change applies the next time the list opens.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedComboBoxMaxDropDownItemsCapability& capability, std::uint32_t incoming)
+
+   .. cpp:member:: PropertyCell<std::uint32_t, CheckedComboBoxMaxDropDownItemsCapability<Declaring>> max_drop_down_items
+
+      Default: ``{8U}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedComboBoxPlaceholderTextCapability
+
+   ``#include <gui_forms/controls/checked_combo_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box_capabilities.hpp>`)
+
+   The hint the field shows while nothing is checked, such as "Any colour". Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedComboBoxPlaceholderTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, CheckedComboBoxPlaceholderTextCapability<Declaring>> placeholder_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> CheckedComboBoxSeparatorCapability
+
+   ``#include <gui_forms/controls/checked_combo_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box_capabilities.hpp>`)
+
+   What the field's text puts between the checked items' texts, ", " by default. Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(CheckedComboBoxSeparatorCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, CheckedComboBoxSeparatorCapability<Declaring>> separator
+
+      Default: ``{std::string(", ")}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CheckedComboItem final
+
+   ``#include <gui_forms/controls/checked_combo_box.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box.hpp>`)
+
+   One item. ``stable_id`` is unique within the box and names the item in item_check_changed and checked_ids.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: bool checked
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: CheckedComboItemChange final
+
+   ``#include <gui_forms/controls/checked_combo_box.hpp>`` (:src:`source <include/gui_forms/controls/checked_combo_box.hpp>`)
+
+   An item checked or unchecked, after it happened.
+
+   .. cpp:member:: std::string item_id
+
+   .. cpp:member:: bool checked
 
 .. cpp:namespace:: gui_forms
 
@@ -5069,6 +5221,73 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PopupClosed final
+
+   ``#include <gui_forms/controls/popup_container_box.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box.hpp>`)
+
+   A popup that closed, and how.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool accepted() const noexcept
+
+   .. cpp:member:: PopupCloseReason reason
+
+      Default: ``{PopupCloseReason::cancelled}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PopupContainerBox::Parts final
+
+   ``#include <gui_forms/controls/popup_container_box.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box.hpp>`)
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``well`` is the field's ground, ``label`` its text, ``actuator`` the drop-down button and ``glyph`` its arrow; the field is ``open`` while the popup is.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry label
+
+   .. cpp:member:: PartGeometry actuator
+
+   .. cpp:member:: PartGeometry glyph
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PopupContainerBoxCapabilities : public PopupContainerBoxTextCapability<Declaring>
+
+   ``#include <gui_forms/controls/popup_container_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box_capabilities.hpp>`)
+
+   Every PopupContainerBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text the field shows, which the application writes, usually from the content when the popup closes. Invalid UTF-8 throws std::invalid_argument.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PopupContainerBoxTextCapability
+
+   ``#include <gui_forms/controls/popup_container_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box_capabilities.hpp>`)
+
+   The text the field shows, which the application writes, usually from the content when the popup closes. Invalid UTF-8 throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PopupContainerBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, PopupContainerBoxTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> ShowGroupsCapability
 
    ``#include <gui_forms/controls/list_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/list_view_capabilities.hpp>`)
@@ -5138,6 +5357,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: TreeListCheckChange final
+
+   ``#include <gui_forms/controls/tree_list_view.hpp>`` (:src:`source <include/gui_forms/controls/tree_list_view.hpp>`)
+
+   A node's check state changed, by a click on its check box, Space, the semantic press, or set_check_state(). A cascading change raises one per node it changed (see TreeListView::set_check_state).
+
+   .. cpp:member:: std::string node_id
+
+   .. cpp:member:: CheckState check_state
+
+      Default: ``{CheckState::unchecked}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TreeListColumn final
 
    ``#include <gui_forms/controls/tree_list_view.hpp>`` (:src:`source <include/gui_forms/controls/tree_list_view.hpp>`)
@@ -5198,7 +5431,7 @@ Related types
 
    ``#include <gui_forms/controls/tree_list_view.hpp>`` (:src:`source <include/gui_forms/controls/tree_list_view.hpp>`)
 
-   One node of the tree. Nodes are given in preorder with their depth, as TreeView's items are: a node's children follow it directly, one level deeper. ``text`` is shown in the tree column and ``cells[n]`` in column n + 1; cells past the last column are kept but not shown. A node with children can always be expanded; ``expandable`` shows the expander on a node whose children are not loaded yet. ``expanded`` is ignored on a node that cannot be expanded. ``image_key`` names an image in the image list; an empty or unknown key shows none.
+   One node of the tree. Nodes are given in preorder with their depth, as TreeView's items are: a node's children follow it directly, one level deeper. ``text`` is shown in the tree column and ``cells[n]`` in column n + 1; cells past the last column are kept but not shown. A node with children can always be expanded; ``expandable`` shows the expander on a node whose children are not loaded yet. ``expanded`` is ignored on a node that cannot be expanded. ``image_key`` names an image in the image list; an empty or unknown key shows none. ``check_state`` is the node's check box, shown when the view's check_boxes is on and kept either way.
 
    .. cpp:member:: std::string stable_id
 
@@ -5218,6 +5451,10 @@ Related types
 
    .. cpp:member:: std::string image_key
 
+   .. cpp:member:: CheckState check_state
+
+      Default: ``{CheckState::unchecked}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: TreeListRowSource
@@ -5232,6 +5469,10 @@ Related types
    .. cpp:function:: virtual TreeListRowSplice set_row_expanded(std::size_t row, bool expanded) = 0
 
       Expands or collapses the row's node in the application's model and returns the rows that change.
+
+   .. cpp:function:: virtual bool set_row_check_state(std::size_t row, CheckState state)
+
+      Sets the row's node's check state in the application's model (with whatever cascade the application keeps) and returns whether it changed; the view then repaints, reading the rows again, and raises check_state_changed once, for this row's node. The row is below row_count() and its node enabled. Refused (false) by default: a virtual view's check boxes only show the rows' states.
 
 
    .. rubric:: Extension points
@@ -5438,6 +5679,10 @@ Related types
 
    .. cpp:member:: PartGeometry expander
 
+   .. cpp:member:: PartGeometry check_well
+
+   .. cpp:member:: PartGeometry check
+
    .. cpp:member:: PartGeometry icon
 
    .. cpp:member:: PartGeometry text
@@ -5464,9 +5709,13 @@ Related types
 
    .. cpp:member:: bool focus_visible
 
+   .. cpp:member:: bool checked
+
+   .. cpp:member:: bool indeterminate
+
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> TreeListViewCapabilities : public TreeListViewIndentationCapability<Declaring>, public TreeListViewImageListCapability<Declaring>, public FontCapability<Declaring>, public TreeListViewSelectedIdCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> TreeListViewCapabilities : public TreeListViewIndentationCapability<Declaring>, public TreeListViewImageListCapability<Declaring>, public FontCapability<Declaring>, public TreeListViewSelectedIdCapability<Declaring>, public TreeListViewCheckBoxesCapability<Declaring>, public TreeListViewCascadingChecksCapability<Declaring>
 
    ``#include <gui_forms/controls/tree_list_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tree_list_view_capabilities.hpp>`)
 
@@ -5495,6 +5744,46 @@ Related types
    .. cpp:member:: std::optional<std::string> selected_id
 
       The selected node's stable ID, or none.
+
+   .. cpp:member:: bool check_boxes
+
+      Whether each row shows its node's check box after the expander (Windows Forms' TreeView.CheckBoxes); check_state and set_check_state read and write the state.
+
+   .. cpp:member:: bool cascading_checks
+
+      Whether a check applies to the node's subtree and its ancestors show checked, unchecked or indeterminate from their children; turning it on does not recompute the states.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeListViewCascadingChecksCapability
+
+   ``#include <gui_forms/controls/tree_list_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tree_list_view_capabilities.hpp>`)
+
+   Whether a check applies to the node's subtree and its ancestors show checked, unchecked or indeterminate from their children; turning it on does not recompute the states.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeListViewCascadingChecksCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TreeListViewCascadingChecksCapability<Declaring>> cascading_checks
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> TreeListViewCheckBoxesCapability
+
+   ``#include <gui_forms/controls/tree_list_view_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/tree_list_view_capabilities.hpp>`)
+
+   Whether each row shows its node's check box after the expander (Windows Forms' TreeView.CheckBoxes); check_state and set_check_state read and write the state.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(TreeListViewCheckBoxesCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, TreeListViewCheckBoxesCapability<Declaring>> check_boxes
 
 .. cpp:namespace:: gui_forms
 
@@ -6632,6 +6921,20 @@ Enumerations
    .. cpp:enumerator:: icons
 
    .. cpp:enumerator:: details
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PopupCloseReason
+
+   ``#include <gui_forms/controls/popup_container_box.hpp>`` (:src:`source <include/gui_forms/controls/popup_container_box.hpp>`)
+
+   .. cpp:enumerator:: accepted
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: click_away
+
+   .. cpp:enumerator:: escape
 
 .. cpp:namespace:: gui_forms
 

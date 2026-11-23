@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/layout/flex_solver/flex_solver.hpp"
@@ -75,10 +76,10 @@ public:
     // last until its next arrange.
     [[nodiscard]] const FlexLayoutWorkspace& layout_snapshot() const& noexcept { return arranged_; }
     const FlexLayoutWorkspace& layout_snapshot() const&& = delete;
-    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept {
-        return std::span<const RuntimeId>(arranged_ids_.data(), arranged_ids_.size());
+    [[nodiscard]] BorrowedSpan<RuntimeId> laid_out_children() const& noexcept {
+        return detail::lend_view(arranged_ids_);
     }
-    std::span<const RuntimeId> laid_out_children() const&& = delete;
+    BorrowedSpan<RuntimeId> laid_out_children() const&& = delete;
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
@@ -155,7 +156,7 @@ private:
     // is kept for inspection with its children's runtime ids.
     FlexLayoutWorkspace workspace_{};
     FlexLayoutWorkspace arranged_{};
-    std::vector<RuntimeId> arranged_ids_{};
+    detail::LendingVector<RuntimeId> arranged_ids_{};
     // The pass's absolutely positioned children, outside the solve, and
     // the controls their containing block depends on (registered with the
     // window while there are any).

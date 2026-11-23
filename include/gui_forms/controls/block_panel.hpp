@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/container_control.hpp"
 #include "gui_forms/layout/block_flow_solver/block_flow_solver.hpp"
@@ -109,10 +110,10 @@ public:
     // panel's storage until its next arrange.
     [[nodiscard]] const BlockFlowLayoutWorkspace& layout_snapshot() const& noexcept { return arranged_; }
     const BlockFlowLayoutWorkspace& layout_snapshot() const&& = delete;
-    [[nodiscard]] std::span<const RuntimeId> laid_out_children() const& noexcept {
-        return std::span<const RuntimeId>(arranged_ids_.data(), arranged_ids_.size());
+    [[nodiscard]] BorrowedSpan<RuntimeId> laid_out_children() const& noexcept {
+        return detail::lend_view(arranged_ids_);
     }
-    std::span<const RuntimeId> laid_out_children() const&& = delete;
+    BorrowedSpan<RuntimeId> laid_out_children() const&& = delete;
     [[nodiscard]] BlockFlowSolveOutcome layout_outcome() const noexcept { return arranged_outcome_; }
 
     // The margins this panel's content shares with its parent block flow
@@ -191,7 +192,7 @@ private:
     std::vector<BlockFlowItemInput> inputs_{};
     BlockFlowLayoutWorkspace workspace_{};
     BlockFlowLayoutWorkspace arranged_{};
-    std::vector<RuntimeId> arranged_ids_{};
+    detail::LendingVector<RuntimeId> arranged_ids_{};
     // The pass's absolutely positioned children, outside the solve, and
     // the controls their containing block depends on (registered with the
     // window while there are any).

@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/controls/checked_combo_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/command_bar.hpp"
 #include "gui_forms/controls/list_view.hpp"
@@ -6,6 +7,7 @@
 #include "checked-collections_form.hpp"
 
 #include <array>
+#include <string>
 #include <vector>
 
 namespace gui_forms::gallery::pages {
@@ -30,6 +32,7 @@ public:
         build_immediate();
         build_commands();
         build_list_view();
+        build_combo();
     }
 
 private:
@@ -52,6 +55,23 @@ private:
 
     // The deliberate list's check states; the first click selects, the
     // second toggles (the CheckedListBox default).
+    // The columns the release checklist could show; each change reports
+    // the columns now shown.
+    void build_combo() {
+        CheckedComboBox& combo = *document_.gallery_checked_combo_field;
+        combo.set_items({{.stable_id = "task", .text = "Task", .checked = true},
+                         {.stable_id = "owner", .text = "Owner", .checked = true},
+                         {.stable_id = "due", .text = "Due", .checked = false},
+                         {.stable_id = "state", .text = "State", .checked = false}});
+        on(combo.item_check_changed(), *this, &CheckedCollectionsPage::on_combo_checked);
+    }
+
+    void on_combo_checked(const CheckedComboItemChange&) {
+        const std::string shown = (*document_.gallery_checked_combo_field).text();
+        (*document_.gallery_checked_combo_status).text = shown.empty() ? std::string("No columns shown")
+                                                                        : "Columns shown: " + shown;
+    }
+
     void build_deliberate() {
         CheckedListBox& deliberate = *document_.gallery_checked_deliberate_list;
         constexpr std::array<CheckState, 6> states{CheckState::checked,       CheckState::checked,

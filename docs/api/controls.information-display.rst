@@ -39,6 +39,8 @@ Labels, images, progress and review cards.
      - A word-sized trend line: the newest values drawn as one line across the control, with a dot on the newest.
    * - :cpp:class:`PlotView <gui_forms::PlotView>`
      - A retained, declarative plot: axes, series and annotations declared as item children, with panning, zooming, picking and a legend.
+   * - :cpp:class:`PieChart <gui_forms::PieChart>`
+     - A pie or doughnut chart: one slice per value, each a share of the total, with share labels and a legend.
    * - :cpp:class:`Plot3DView <gui_forms::Plot3DView>`
      - A 3D plot: surfaces, lines and scatters in a box with back panes, a grid and ticks, turned, zoomed and panned by the user.
    * - :cpp:class:`PlotAxisItem <gui_forms::PlotAxisItem>`
@@ -79,6 +81,7 @@ Labels, images, progress and review cards.
    generated/gui_forms.SweepScope
    generated/gui_forms.Sparkline
    generated/gui_forms.PlotView
+   generated/gui_forms.PieChart
    generated/gui_forms.Plot3DView
    generated/gui_forms.PlotAxisItem
    generated/gui_forms.PlotSeriesItem
@@ -294,6 +297,30 @@ Related types
      - The image's opacity from zero through one; anything else, or a value that is not finite, throws std::invalid_argument.
    * - :cpp:class:`PictureBoxSizeModePropertyCapability <gui_forms::PictureBoxSizeModePropertyCapability>`
      - How the image is placed and scaled (SizeMode): normal, stretch_image, auto_size, center_image or zoom.
+   * - :cpp:class:`PieChart::Parts <gui_forms::PieChart::Parts>`
+     - Stage T1 anatomy, as dot members.
+   * - :cpp:class:`PieChart::Slice <gui_forms::PieChart::Slice>`
+     -  
+   * - :cpp:class:`PieChart::SliceParts <gui_forms::PieChart::SliceParts>`
+     - The "slice" item system: one slice, its identity the slice's.
+   * - :cpp:class:`PieChart::SliceStates <gui_forms::PieChart::SliceStates>`
+     -  
+   * - :cpp:class:`PieChartCapabilities <gui_forms::PieChartCapabilities>`
+     - Every PieChart capability, in the order the declaring class takes them.
+   * - :cpp:class:`PieChartDoughnutRadiusCapability <gui_forms::PieChartDoughnutRadiusCapability>`
+     - The hole's radius as a percentage of the pie's (Windows Forms' DoughnutRadius), from 0 (a pie) to maximum_doughnut_radius; outside throws std::invalid_argument.
+   * - :cpp:class:`PieChartLabelStyleCapability <gui_forms::PieChartLabelStyleCapability>`
+     - Where each slice's share is written (Windows Forms' PieLabelStyle).
+   * - :cpp:class:`PieChartLegendVisibleCapability <gui_forms::PieChartLegendVisibleCapability>`
+     - Whether the legend beside the pie lists the slices with their colours.
+   * - :cpp:class:`PieChartStartAngleCapability <gui_forms::PieChartStartAngleCapability>`
+     - Where the first slice starts, in degrees clockwise from the top (Windows Forms' PieStartAngle), from 0 to below 360; outside throws std::invalid_argument.
+   * - :cpp:class:`PieSlice <gui_forms::PieSlice>`
+     - One slice.
+   * - :cpp:class:`PieSliceActivation <gui_forms::PieSliceActivation>`
+     - A slice activated by a double click, Enter or the semantic press.
+   * - :cpp:class:`PieSliceSelection <gui_forms::PieSliceSelection>`
+     - A change of the selected slice, after it happened.
    * - :cpp:class:`Plot3DView::Parts <gui_forms::Plot3DView::Parts>`
      - Stage T1 anatomy, as dot members (see Control::Parts).
    * - :cpp:class:`Plot3DView::States <gui_forms::Plot3DView::States>`
@@ -2495,6 +2522,219 @@ Related types
    .. cpp:member:: PropertyCell<PictureBoxSizeMode, PictureBoxSizeModePropertyCapability<Declaring>> size_mode
 
       Default: ``{PictureBoxSizeMode::normal}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PieChart::Parts final
+
+   ``#include <gui_forms/controls/pie_chart.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart.hpp>`)
+
+   Stage T1 anatomy, as dot members.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry plot
+
+   .. cpp:member:: PartGeometry legend
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PieChart::Slice final
+
+   ``#include <gui_forms/controls/pie_chart.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart.hpp>`)
+
+   .. cpp:member:: std::size_t index
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: SliceParts parts
+
+   .. cpp:member:: SliceStates states
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PieChart::SliceParts final
+
+   ``#include <gui_forms/controls/pie_chart.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart.hpp>`)
+
+   The "slice" item system: one slice, its identity the slice's. ``slice`` bounds the slice's wedge (its centre angle's box, not the wedge itself: slice_at hit tests the wedge); ``slice_label`` its share's text; the legend entry is ``legend_swatch`` (a well framing the colour) and ``legend_label``.
+
+   .. cpp:member:: PartGeometry slice
+
+   .. cpp:member:: PartGeometry slice_label
+
+   .. cpp:member:: PartGeometry legend_swatch
+
+   .. cpp:member:: PartGeometry legend_label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PieChart::SliceStates final
+
+   ``#include <gui_forms/controls/pie_chart.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart.hpp>`)
+
+   .. cpp:member:: bool hot
+
+   .. cpp:member:: bool selected
+
+   .. cpp:member:: bool focus_visible
+
+   .. cpp:member:: bool disabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PieChartCapabilities : public PieChartDoughnutRadiusCapability<Declaring>, public PieChartStartAngleCapability<Declaring>, public PieChartLabelStyleCapability<Declaring>, public PieChartLegendVisibleCapability<Declaring>, public FontCapability<Declaring>
+
+   ``#include <gui_forms/controls/pie_chart_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart_capabilities.hpp>`)
+
+   Every PieChart capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PieChartCapabilities()
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: double doughnut_radius
+
+      The hole's radius as a percentage of the pie's (Windows Forms' DoughnutRadius), from 0 (a pie) to maximum_doughnut_radius; outside throws std::invalid_argument.
+
+   .. cpp:member:: double start_angle
+
+      Where the first slice starts, in degrees clockwise from the top (Windows Forms' PieStartAngle), from 0 to below 360; outside throws std::invalid_argument.
+
+   .. cpp:member:: PieChartLabelStyle label_style
+
+      Where each slice's share is written (Windows Forms' PieLabelStyle).
+
+   .. cpp:member:: bool legend_visible
+
+      Whether the legend beside the pie lists the slices with their colours.
+
+   .. cpp:member:: FontSpec font
+
+      The font of the control's text (Font).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PieChartDoughnutRadiusCapability
+
+   ``#include <gui_forms/controls/pie_chart_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart_capabilities.hpp>`)
+
+   The hole's radius as a percentage of the pie's (Windows Forms' DoughnutRadius), from 0 (a pie) to maximum_doughnut_radius; outside throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PieChartDoughnutRadiusCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PieChartDoughnutRadiusCapability<Declaring>> doughnut_radius
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PieChartLabelStyleCapability
+
+   ``#include <gui_forms/controls/pie_chart_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart_capabilities.hpp>`)
+
+   Where each slice's share is written (Windows Forms' PieLabelStyle).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PieChartLabelStyleCapability& capability, PieChartLabelStyle incoming)
+
+   .. cpp:member:: PropertyCell<PieChartLabelStyle, PieChartLabelStyleCapability<Declaring>> label_style
+
+      Default: ``{PieChartLabelStyle::inside}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PieChartLegendVisibleCapability
+
+   ``#include <gui_forms/controls/pie_chart_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart_capabilities.hpp>`)
+
+   Whether the legend beside the pie lists the slices with their colours.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PieChartLegendVisibleCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, PieChartLegendVisibleCapability<Declaring>> legend_visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> PieChartStartAngleCapability
+
+   ``#include <gui_forms/controls/pie_chart_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart_capabilities.hpp>`)
+
+   Where the first slice starts, in degrees clockwise from the top (Windows Forms' PieStartAngle), from 0 to below 360; outside throws std::invalid_argument.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(PieChartStartAngleCapability& capability, double incoming)
+
+   .. cpp:member:: PropertyCell<double, PieChartStartAngleCapability<Declaring>> start_angle
+
+      Default: ``{0.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PieSlice final
+
+   ``#include <gui_forms/controls/pie_chart.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart.hpp>`)
+
+   One slice. ``stable_id`` is unique within the chart and names the slice in the published anatomy and semantics. ``value`` is finite and not negative; a zero slice is kept, listed in the legend and drawn as nothing. ``color``, when present, is drawn as given (it is data); otherwise the theme's series colour for the slice's position.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: std::string label
+
+   .. cpp:member:: double value
+
+   .. cpp:member:: stxlib::Optional<Color> color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PieSliceActivation final
+
+   ``#include <gui_forms/controls/pie_chart.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart.hpp>`)
+
+   A slice activated by a double click, Enter or the semantic press.
+
+   .. cpp:member:: std::string slice_id
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PieSliceSelection final
+
+   ``#include <gui_forms/controls/pie_chart.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart.hpp>`)
+
+   A change of the selected slice, after it happened.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PieSliceSelection() noexcept
+
+   .. cpp:function:: PieSliceSelection(const PieSliceSelection& other)
+
+      Spelt out because stxlib::Optional of a string is move-only (the string's copy may throw), while Control::publish_change keeps a copy of the payload for a selection changed during BeginInit/EndInit.
+
+   .. cpp:function:: PieSliceSelection(PieSliceSelection&& other) noexcept
+
+   .. cpp:member:: stxlib::Optional<std::string> previous_id
+
+   .. cpp:member:: stxlib::Optional<std::string> current_id
 
 .. cpp:namespace:: gui_forms
 
@@ -4864,6 +5104,18 @@ Enumerations
    .. cpp:enumerator:: center_image
 
    .. cpp:enumerator:: zoom
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: PieChartLabelStyle
+
+   ``#include <gui_forms/controls/pie_chart_values.hpp>`` (:src:`source <include/gui_forms/controls/pie_chart_values.hpp>`)
+
+   .. cpp:enumerator:: inside
+
+   .. cpp:enumerator:: outside
+
+   .. cpp:enumerator:: disabled
 
 .. cpp:namespace:: gui_forms
 

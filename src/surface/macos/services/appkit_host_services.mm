@@ -7,6 +7,9 @@
 #include "appkit_clipboard_image.hpp"
 #include "appkit_drag_release.hpp"
 #include "appkit_status_items.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "appkit_desktop_notifications.hpp"
+#endif
 #include "appkit_relative_pointer.hpp"
 #include "../compositor/macos_compositor.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
@@ -1177,6 +1180,24 @@ protected:
         return (*status_items_).show_menu(icon_id, request);
     }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Desktop notifications through UNUserNotificationCenter, created with
+    // the first (AppKitDesktopNotifications).
+    HostServiceStatus show_desktop_notification_impl(
+        gui_forms::HostDesktopNotificationId notification_id,
+        const gui_forms::HostDesktopNotificationRequest& request) override {
+        if (!notifications_) {
+            notifications_ = std::make_unique<gui_forms::host::detail::AppKitDesktopNotifications>(
+                gui_forms::Delegate<const gui_forms::HostDesktopNotificationEvent&>::bind<
+                    AppKitHostServices, &AppKitHostServices::forward_notification_event>(*this));
+        }
+        return (*notifications_).show(notification_id, request);
+    }
+    void withdraw_desktop_notification_impl(gui_forms::HostDesktopNotificationId notification_id) noexcept override {
+        if (notifications_) (*notifications_).withdraw(notification_id);
+    }
+#endif
+
     void shutdown_impl() noexcept override {
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
         // A drag still running ends without a report (HostServices::shutdown).
@@ -1184,6 +1205,9 @@ protected:
         drag_source_ = nil;
 #endif
         status_items_.reset();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        notifications_.reset();
+#endif
         for (const CursorEntry& entry : cursors_) {
             if ([NSCursor currentCursor] == entry.native) [[NSCursor arrowCursor] set];
         }
@@ -1220,6 +1244,9 @@ public:
 
 private:
     void forward_tray_event(const gui_forms::HostTrayIconEvent& event) { publish_tray_icon_event(event); }
+    void forward_notification_event(const gui_forms::HostDesktopNotificationEvent& event) {
+        publish_desktop_notification_event(event);
+    }
 
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Whether AppKit can start a drag from an event of `type`: a press or a
@@ -1350,6 +1377,9 @@ private:
     __strong NSPasteboard* pasteboard_{};
     bool cancel_dialogs_for_testing_{};
     std::unique_ptr<gui_forms::host::detail::AppKitStatusItems> status_items_;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    std::unique_ptr<gui_forms::host::detail::AppKitDesktopNotifications> notifications_;
+#endif
     // The raster view of the window these services belong to; weak, so a
     // view that is gone applies nothing. Set once, by the view's init.
     __weak NSView* backdrop_view_{};

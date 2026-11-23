@@ -1,0 +1,130 @@
+{
+  "family": "CheckedComboBox",
+  "step": "DX-3",
+  "declaring": "CheckedComboBox",
+  "header": "include/gui_forms/controls/checked_combo_box.hpp",
+  "source": "src/controls/checked_combo_box/checked_combo_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/checked_combo_box_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [
+    "<cstdint>"
+  ],
+  "properties": [
+    {
+      "name": "separator",
+      "capability": "CheckedComboBoxSeparator",
+      "value": "std::string",
+      "initial": "std::string(\", \")",
+      "comment": "What the field's text puts between the checked items' texts, \", \" by default. Invalid UTF-8 throws std::invalid_argument.",
+      "getter": "separator",
+      "setter": "set_separator",
+      "clear": null,
+      "field": "separator_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "separator",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "What the field's text puts between the checked items.",
+        "default": "BindingValue{std::string(\", \")}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "written_effects": "Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) throw std::invalid_argument(\"CheckedComboBox separator must be valid UTF-8\");"
+      ],
+      "sample": "std::string(\" + \")"
+    },
+    {
+      "name": "placeholder_text",
+      "capability": "CheckedComboBoxPlaceholderText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The hint the field shows while nothing is checked, such as \"Any colour\". Invalid UTF-8 throws std::invalid_argument.",
+      "getter": "placeholder_text",
+      "setter": "set_placeholder_text",
+      "clear": null,
+      "field": "placeholder_text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "placeholder",
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The hint the field shows while nothing is checked.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "written_effects": "Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) throw std::invalid_argument(\"CheckedComboBox placeholder must be valid UTF-8\");"
+      ],
+      "sample": "std::string(\"codemod.hint\")"
+    },
+    {
+      "name": "max_drop_down_items",
+      "capability": "CheckedComboBoxMaxDropDownItems",
+      "value": "std::uint32_t",
+      "initial": "8U",
+      "comment": "The items the open list shows before it scrolls, from 1 to 64 (std::invalid_argument; MaxDropDownItems). A change applies the next time the list opens.",
+      "getter": "max_drop_down_items",
+      "setter": "set_max_drop_down_items",
+      "clear": null,
+      "field": "max_drop_down_items_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "hooks": "generated",
+      "table": {
+        "kind": "unsigned_integer",
+        "category": "Behavior",
+        "description": "The items the open list shows before it scrolls.",
+        "default": "BindingValue{std::uint64_t{8U}}",
+        "effects": "Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "prepare": [
+        "if (incoming == 0U || incoming > 64U) throw std::invalid_argument(\"CheckedComboBox drop-down items must be from 1 to 64\");"
+      ],
+      "sample": "std::uint32_t{5U}"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "items",
+      "reason": "records kept by stable ID, set through set_items"
+    },
+    {
+      "name": "text",
+      "reason": "read-only: the checked items' texts joined by the separator"
+    }
+  ],
+  "test": {
+    "type": "CheckedComboBox",
+    "include": "gui_forms/controls/checked_combo_box.hpp"
+  }
+}

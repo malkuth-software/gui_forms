@@ -546,6 +546,65 @@ struct GUI_FORMS_API HostTrayMenuResult final {
 [[nodiscard]] GUI_FORMS_API std::size_t select_tray_icon_image(std::span<const HostImage> images,
                                                  std::uint32_t wanted_side) noexcept;
 
+// Desktop notifications (capability desktop_notifications): a notification
+// the platform's own notification service shows outside the application's
+// windows, kept in its notification list where it has one: macOS's
+// UNUserNotificationCenter, Windows' toast notifications and the
+// freedesktop notification service (org.freedesktop.Notifications). No tray
+// icon is needed. A notification is named by the identity
+// HostServices::show_desktop_notification returns; no native handle enters
+// the portable contract.
+struct GUI_FORMS_API HostDesktopNotificationId final {
+    std::uint64_t value{};
+
+    [[nodiscard]] bool valid() const noexcept { return value != 0U; }
+    friend bool operator==(HostDesktopNotificationId left, HostDesktopNotificationId right) noexcept {
+        const bool equal = left.value == right.value;
+        return equal;
+    }
+    friend bool operator!=(HostDesktopNotificationId left, HostDesktopNotificationId right) noexcept {
+        const bool different = !(left == right);
+        return different;
+    }
+};
+
+// How much a notification asks for attention. `low` and `normal` map to the
+// platform's ordinary notification (the freedesktop urgency hint 0 or 1);
+// `critical` to its insistent one where it has one: the freedesktop urgency
+// hint 2, Windows' urgent scenario and macOS's time-sensitive interruption
+// level (which the application's entitlement must allow).
+enum class HostDesktopNotificationUrgency : std::uint8_t { low, normal, critical };
+
+// A notification: a title of at most 255 bytes and text of 1 to 1023 bytes
+// of UTF-8, without NUL. `silent` asks the platform not to play its sound.
+struct GUI_FORMS_API HostDesktopNotificationRequest final {
+    std::string title;
+    std::string text;
+    HostDesktopNotificationUrgency urgency{HostDesktopNotificationUrgency::normal};
+    bool silent{};
+};
+
+struct GUI_FORMS_API HostDesktopNotificationResult final {
+    HostServiceStatus status;
+    HostDesktopNotificationId notification_id{};
+};
+
+// What became of a shown notification, reported once, on the UI thread:
+// the user activated it (clicked its body), dismissed it or let it expire,
+// or the platform refused it after accepting the request (the user turned
+// the application's notifications off, or the service failed). A
+// notification the application withdrew reports nothing.
+enum class HostDesktopNotificationAction : std::uint8_t {
+    activated,
+    dismissed,
+    failed,
+};
+
+struct GUI_FORMS_API HostDesktopNotificationEvent final {
+    HostDesktopNotificationId notification_id{};
+    HostDesktopNotificationAction action{HostDesktopNotificationAction::activated};
+};
+
 struct GUI_FORMS_API HostModalTransition final {
     std::uint64_t request_id{};
     std::uint32_t depth{};
