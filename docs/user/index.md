@@ -43,6 +43,13 @@ theme-language
 ```
 
 ```{toctree}
+:caption: Reliability
+:maxdepth: 1
+
+reliability
+```
+
+```{toctree}
 :caption: Coming from Windows Forms
 :maxdepth: 1
 
