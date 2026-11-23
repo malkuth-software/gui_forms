@@ -56,7 +56,7 @@ workers. Its conformance test runs one source against the original C
 implementation and against STXlib's pool, and both must pass. Beneath the
 layer, on 64-bit Arm Linux and FreeBSD, the atomic operations call STXlib's
 own outline-atomics helpers, not the toolchain's. See
-[The shield](reliability).
+[The shield](reliability.md).
 
 **Limits.** STXlib's proof report lists the threading properties as tested,
 not proved. Examples: 64 sequential threads, 8 threads each making 20,000
