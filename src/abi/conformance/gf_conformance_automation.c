@@ -71,6 +71,12 @@ static void marks(gf_kit* kit) {
     gf_kit_status(kit, (*kit).automation.set_clipboard_readable(2u), GF_STATUS_INVALID_ARGUMENT,
                   "readable is 0 or 1");
     gf_kit_status(kit, (*kit).automation.set_clipboard_readable(0u), GF_STATUS_OK, "the clipboard stays unread");
+    gf_kit_status(kit, (*kit).automation.set_window_drivable((gf_object)0u, 2u), GF_STATUS_INVALID_ARGUMENT,
+                  "drivable is 0 or 1");
+    gf_kit_status(kit, (*kit).automation.set_window_destructive((gf_object)0u, 2u), GF_STATUS_INVALID_ARGUMENT,
+                  "destructive is 0 or 1");
+    gf_kit_status(kit, (*kit).automation.set_command_hidden(gf_kit_text("kit.automation.secret"), 2u),
+                  GF_STATUS_INVALID_ARGUMENT, "hidden is 0 or 1");
 }
 
 static void tools(gf_kit* kit) {
@@ -103,6 +109,14 @@ static void tools(gf_kit* kit) {
                   "an unregistered tool is not found");
     gf_kit_status(kit, (*kit).automation.reply_text(NULL, gf_kit_text("x")), GF_STATUS_INVALID_ARGUMENT,
                   "a reply needs a call's token");
+    gf_kit_status(kit, (*kit).automation.reply_structured(NULL, gf_kit_text("{}")), GF_STATUS_INVALID_ARGUMENT,
+                  "structured content needs a call's token");
+    static const uint8_t image_byte = 0u;
+    gf_kit_status(kit, (*kit).automation.reply_image(NULL, &image_byte, 1u, gf_kit_text("")),
+                  GF_STATUS_INVALID_ARGUMENT, "an image needs a call's token");
+    gf_kit_status(kit, (*kit).automation.reply_fail(NULL, GF_AUTOMATION_TOOL_ERROR_NOT_FOUND, gf_kit_text("gone"),
+                                                    gf_kit_text("")),
+                  GF_STATUS_INVALID_ARGUMENT, "a failure needs a call's token");
 
     gf_automation_inspect_section section;
     memset(&section, 0, sizeof(section));
