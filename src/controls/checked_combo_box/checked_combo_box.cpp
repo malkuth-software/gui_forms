@@ -404,6 +404,13 @@ void CheckedComboBox::on_mouse_down(MouseEventArgs& arguments) {
     Control::on_mouse_down(arguments);
 }
 
+// The release of the press that opened or closed the list is the field's
+// too: the press captured it, and the click is complete (as ComboBox).
+void CheckedComboBox::on_mouse_up(MouseEventArgs& arguments) {
+    if (eligible_for_input() && arguments.button == PointerButton::primary) arguments.handled = true;
+    Control::on_mouse_up(arguments);
+}
+
 // F4, Alt+Down and Alt+Up open the list, or close an open one.
 void CheckedComboBox::on_key_down(KeyEventArgs& arguments) {
     Control::on_key_down(arguments);
