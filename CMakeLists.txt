@@ -2166,6 +2166,8 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         src/surface/windows/locale/windows_locale.cpp
         src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
         src/surface/windows/compositor/windows_compositor.cpp
+        src/surface/windows/input/windows_direct_manipulation.cpp
+        src/host/windows/input/windows_manipulation_rules.cpp
     )
     target_include_directories(gui_forms_windows_host_objects PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows)
     target_compile_definitions(gui_forms_windows_host_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})

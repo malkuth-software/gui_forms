@@ -8,6 +8,7 @@
 #include "../services/x11_tray_icons.hpp"
 #include "../compositor/x11_compositor.hpp"
 #include "../settings/xsettings_watch.hpp"
+#include "../../../host/linux/application/linux_input_rules.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
 #include "gui_forms/host/windowing/first_frame_show.hpp"
@@ -400,6 +401,11 @@ public:
   bool report_presented(const stxlib::Optional<PaintReceipt>& receipt, std::uint64_t elapsed,
                         PresentedArea copied);
   HostDispatchResult dispatch(HostEventPayload payload);
+  // One touchpad pinch event (XI 2.4, Runtime::dispatch), its values in
+  // device pixels as the server reports them: dispatched as a GestureEvent.
+  void pinch_event(LinuxPinchStage stage, bool cancelled, Point device_position,
+                   double absolute_scale, double delta_angle_clockwise, Point device_delta,
+                   unsigned modifier_state, Time time);
   // Reports the compositor's state to this window (stage T5, C4): after
   // attach, and on each XFixes notification about _NET_WM_CM_S<screen>. A
   // reading that differs from the window's last report only by its
@@ -576,6 +582,9 @@ public:
   std::uint64_t sequence{};
   // The last press, for the computed click count (linux_input_rules.hpp).
   LinuxClickHistory click_history{};
+  // The touchpad pinch in progress (XI 2.4 gesture events): its scale since
+  // it began, for the per-event ratio (linux_input_rules.hpp).
+  LinuxPinchState pinch{};
   std::vector<char> presentation;
   // A present's rectangles in device pixels (the logical damage times the
   // window's scale), reused across presents.
@@ -713,6 +722,11 @@ public:
   // pointer mode is not offered (Services drops relative_pointer and
   // raw_pointer_motion).
   int xi_opcode{-1};
+  // Whether the server speaks XI 2.4 and the build's libXi defines its
+  // gesture events: each window then selects the touchpad pinch
+  // (XI_GesturePinchBegin/Update/End). Otherwise no gesture is reported
+  // (an older server sends a pinch as nothing, never as wheel events).
+  bool xi_gestures{false};
   // The Present extension's opcode (x11_present_direct.hpp); -1 without it.
   int present_opcode{-1};
   // The server's 32-bit millisecond time of an event, unwrapped and mapped

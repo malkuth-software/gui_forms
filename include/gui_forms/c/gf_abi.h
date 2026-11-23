@@ -94,9 +94,12 @@ extern "C" {
  * SET_FRAME_ICON_SLOT with gf_dock_edit's 1.6 fields, and the docking slots
  * marked since 1.6), the window's MDI slots (gf_mdi_layout and the windows
  * table's slots marked since 1.6) and the window's mdi_child_activate
- * interaction, additions only. */
+ * interaction, additions only; 1.7 (provisional, renumbered in fold order)
+ * adds the touchpad gestures: the control's gesture interaction
+ * (GestureEventArgs fields by name) and gf_control_hooks.on_gesture,
+ * appended, additions only. */
 #define GF_ABI_MAJOR 1u
-#define GF_ABI_MINOR 6u
+#define GF_ABI_MINOR 7u
 
 /* gf_status: the result of every call. Zero is success; failures are
  * positive and the list only grows. */

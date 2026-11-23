@@ -223,6 +223,8 @@ typedef struct gf_control_hooks {
     gf_hook_entry on_validated;
     /* Control::on_validating: where validating happens; base raises validating; the event's fields are its ControlValidationEvent, writable. Since 1.3. */
     gf_hook_entry on_validating;
+    /* Control::on_gesture: where gesture happens; base raises gesture; the event's fields are its GestureEventArgs, writable. Since 1.7. */
+    gf_hook_entry on_gesture;
 } gf_control_hooks;
 
 /* MaskedTextBox's raisers (GF_CLASS_MASKED_TEXT_BOX). */

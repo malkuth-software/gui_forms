@@ -27,6 +27,17 @@ public:
 
     [[nodiscard]] HostDispatchResult dispatch(
         HostEventPayload payload, std::uint64_t timestamp_nanoseconds);
+    // A simulated trackpad pinch (gesture_events.hpp): one magnify gesture
+    // about `focal` (window logical units) whose scales multiply to
+    // `total_scale`: began (scale 1), `steps` changed events each scaling by
+    // total_scale^(1/steps), then ended (scale 1), as macOS and libinput
+    // report a pinch. Timestamps start at `first_timestamp_nanoseconds` and
+    // advance by `step_nanoseconds`. Returns how many of the events a
+    // control handled; refused events count as unhandled. total_scale must be
+    // finite and above zero and steps nonzero, or nothing is dispatched.
+    [[nodiscard]] std::uint32_t simulate_magnify(Point focal, double total_scale, std::uint32_t steps,
+                                                 std::uint64_t first_timestamp_nanoseconds,
+                                                 std::uint64_t step_nanoseconds);
     [[nodiscard]] DispatchDrainResult pump_dispatcher(
         std::size_t maximum_callbacks = maximum_callbacks_per_dispatch_turn);
     [[nodiscard]] bool dispatcher_wake_pending() const noexcept {

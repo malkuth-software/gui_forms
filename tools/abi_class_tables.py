@@ -84,6 +84,9 @@ CSHARP_TEST_RELATIVE: Path = Path("tests") / "abi" / "csharp" / "GuiForms.Forms.
 LEDGER_FORMAT: int = 1
 # The ABI minor the first tables enter at (the sealed-interface decision).
 FIRST_MINOR: str = "1.3"
+# gf_abi.h, whose GF_ABI_MAJOR and GF_ABI_MINOR name the minor an entry
+# appended now enters at.
+ABI_HEADER: Path = ROOT / "include" / "gui_forms" / "c" / "gf_abi.h"
 # A segment begins with struct_size and class_id; each entry is one pointer.
 SEGMENT_HEADER_BYTES: int = 8
 POINTER_BYTES: int = 8
@@ -95,7 +98,7 @@ NEEDS_RAISE_ARGUMENTS: frozenset[str] = frozenset({"PaintEventArgs"})
 # hand-written class in bindings/csharp/GuiForms.Forms that reads the entry's
 # event fields (from_native) and writes back the ones a hook may set. Other
 # OnX take EventArgs.
-MANAGED_ARGUMENTS: dict[str, str] = {"MouseEventArgs": "MouseEventArgs"}
+MANAGED_ARGUMENTS: dict[str, str] = {"MouseEventArgs": "MouseEventArgs", "GestureEventArgs": "GestureEventArgs"}
 
 
 def managed_arguments(raiser: "Raiser") -> str:
@@ -417,6 +420,17 @@ def empty_ledger() -> dict:
     }
 
 
+def current_minor() -> str:
+    """The ABI version gf_abi.h declares, as "major.minor"."""
+    text: str = ABI_HEADER.read_text(encoding="utf-8")
+    major: re.Match[str] | None = re.search(r"#define GF_ABI_MAJOR (\d+)u", text)
+    minor: re.Match[str] | None = re.search(r"#define GF_ABI_MINOR (\d+)u", text)
+    if major is None or minor is None:
+        raise TableError(f"{ABI_HEADER.name} declares no GF_ABI_MAJOR or GF_ABI_MINOR")
+    version: str = f"{major.group(1)}.{minor.group(1)}"
+    return version
+
+
 def extend_ledger(previous: dict, classes: dict[str, ClassInfo], raisers: dict[str, Raiser],
                   creatable: list[str], minor: str) -> dict:
     ledger: dict = json.loads(json.dumps(previous)) if previous else empty_ledger()
@@ -534,7 +548,10 @@ def build_model() -> Model:
     check_interactions(raisers, classes)
     creatable: list[str] = creatable_classes(schema_document["types"], classes)
     previous: dict = load_json(LEDGER) if LEDGER.exists() else {}
-    ledger: dict = extend_ledger(previous, classes, raisers, creatable, FIRST_MINOR)
+    # A first ledger enters at FIRST_MINOR; entries appended to an existing
+    # one enter at the header's current minor.
+    minor: str = current_minor() if previous else FIRST_MINOR
+    ledger: dict = extend_ledger(previous, classes, raisers, creatable, minor)
     by_class: dict[str, list[Raiser]] = {}
     segment: dict
     for segment in ledger["segments"]:

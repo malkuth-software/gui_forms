@@ -1060,15 +1060,25 @@ Runtime::Runtime() {
   // The Present extension, for the X11 direct path's idle notices.
   present_opcode = x11_present_opcode(display);
 #if defined(GUI_FORMS_HAVE_XI2)
-  // XI 2.0 raw motion, for relative pointer mode (Services).
+  // XI 2.0 raw motion, for relative pointer mode (Services), and, where
+  // the build's libXi knows them and the server answers 2.4 or later, the
+  // touchpad gesture events (Xorg 21.1 with libinput 1.19 sends them).
   int xi_event = 0;
   int xi_error = 0;
   int opcode = 0;
   if (XQueryExtension(display, "XInputExtension", &opcode, &xi_event, &xi_error)) {
     int major = 2;
+#if defined(XI_GesturePinchBegin)
+    int minor = 4;
+#else
     int minor = 0;
-    if (XIQueryVersion(display, &major, &minor) == Success && major >= 2)
+#endif
+    if (XIQueryVersion(display, &major, &minor) == Success && major >= 2) {
       xi_opcode = opcode;
+#if defined(XI_GesturePinchBegin)
+      xi_gestures = major > 2 || minor >= 4;
+#endif
+    }
   }
 #endif
   // The monitors, at the desktop's scale, before any window opens on one.
@@ -1251,6 +1261,20 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
                    PointerMotionMask | ButtonPressMask | ButtonReleaseMask |
                    KeyPressMask | KeyReleaseMask | EnterWindowMask |
                    LeaveWindowMask | PropertyChangeMask);
+#if defined(GUI_FORMS_HAVE_XI2) && defined(XI_GesturePinchBegin)
+  // The touchpad pinch, from every master pointer (XI 2.4).
+  if (runtime.xi_gestures) {
+    std::array<unsigned char, XIMaskLen(XI_LASTEVENT)> bits{};
+    XISetMask(bits.data(), XI_GesturePinchBegin);
+    XISetMask(bits.data(), XI_GesturePinchUpdate);
+    XISetMask(bits.data(), XI_GesturePinchEnd);
+    XIEventMask gesture_mask{};
+    gesture_mask.deviceid = XIAllMasterDevices;
+    gesture_mask.mask_len = static_cast<int>(bits.size());
+    gesture_mask.mask = bits.data();
+    XISelectEvents(runtime.display, xid, &gesture_mask, 1);
+  }
+#endif
   XStoreName(runtime.display, xid, entry.options.title.c_str());
   XClassHint identity{};
   identity.res_name = const_cast<char *>(entry.options.title.c_str());
@@ -1641,6 +1665,20 @@ void NativeWindow::close(HostCloseReason reason, bool force) {
     (*runtime.windowing).retire(window_id);
   if (entry.options.closed)
     entry.options.closed();
+}
+void NativeWindow::pinch_event(LinuxPinchStage stage, bool cancelled, Point device_position,
+                               double absolute_scale, double delta_angle_clockwise,
+                               Point device_delta, unsigned modifier_state, Time time) {
+  // The pinch state follows the server's gesture even while the window is
+  // disabled by a modal window, which drops the event, as pointer input.
+  const Point position{device_position.x / scale, device_position.y / scale};
+  const Point delta{device_delta.x / scale, device_delta.y / scale};
+  GestureEvent gesture = next_pinch_event(pinch, stage, cancelled, position, absolute_scale,
+                                          delta_angle_clockwise, delta, modifiers(modifier_state),
+                                          runtime.server_time_nanoseconds(time));
+  if (modal)
+    return;
+  static_cast<void>(dispatch(std::move(gesture)));
 }
 void NativeWindow::event(XEvent &event) {
   if (closed)
@@ -2326,6 +2364,25 @@ void Runtime::dispatch(XEvent &event) {
           if ((*receiving[i]).services)
             (*(*receiving[i]).services).relative_raw_motion(unaccelerated, accelerated, timestamp);
       }
+#if defined(XI_GesturePinchBegin)
+      // XI 2.4 touchpad pinch, to the window it was selected on.
+      if (event.xcookie.evtype == XI_GesturePinchBegin || event.xcookie.evtype == XI_GesturePinchUpdate ||
+          event.xcookie.evtype == XI_GesturePinchEnd) {
+        const XIGesturePinchEvent &pinch = *static_cast<const XIGesturePinchEvent *>(event.xcookie.data);
+        const LinuxPinchStage stage = event.xcookie.evtype == XI_GesturePinchBegin ? LinuxPinchStage::begin
+                                      : event.xcookie.evtype == XI_GesturePinchEnd ? LinuxPinchStage::end
+                                                                                   : LinuxPinchStage::update;
+        const bool cancelled = (pinch.flags & XIGesturePinchEventCancelled) != 0;
+        const std::vector<std::shared_ptr<NativeWindow>> receiving = windows;
+        for (std::size_t i = 0; i < receiving.size(); ++i)
+          if ((*receiving[i]).xid == pinch.event) {
+            (*receiving[i]).pinch_event(stage, cancelled, Point{pinch.event_x, pinch.event_y}, pinch.scale,
+                                        pinch.delta_angle, Point{pinch.delta_x, pinch.delta_y},
+                                        static_cast<unsigned>(pinch.mods.effective), pinch.time);
+            break;
+          }
+      }
+#endif
       XFreeEventData(display, &event.xcookie);
     }
     return;

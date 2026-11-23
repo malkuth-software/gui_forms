@@ -2628,6 +2628,8 @@ Types
 
    .. cpp:member:: gf_hook_entry on_validating
 
+   .. cpp:member:: gf_hook_entry on_gesture
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_controls_table

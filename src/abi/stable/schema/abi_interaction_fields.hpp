@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 199> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -79,6 +79,7 @@ inline constexpr std::array<InteractionFieldsEntry, 199> interaction_fields{{
     {"FontDialogResult", "result: enumeration, font.role: enumeration, font.size: number, font.weight: unsigned_integer, font.italic: boolean, font.letter_spacing: number, font.family: unsigned_integer, font.stack: unsigned_integer, font.language.tag: unsigned_integer"},
     {"FontSpec", "role: enumeration, size: number, weight: unsigned_integer, italic: boolean, letter_spacing: number, family: unsigned_integer, stack: unsigned_integer, language.tag: unsigned_integer"},
     {"GalleryPreview", "item_id: text, source_id: text"},
+    {"GestureEventArgs", "kind: enumeration, gesture_phase: enumeration, location: point, window_position: point, scale: number, rotation_degrees: number, translation: point, modifiers: enumeration, phase: enumeration, handled: boolean, timestamp_nanoseconds: unsigned_integer"},
     {"HelpLinkActivation", "page: text, kind: enumeration, target: text, fragment: text, bounds: rectangle, handled: boolean"},
     {"HelpPrintRequest", "page: text, book: boolean, handled: boolean"},
     {"HelpRequestEvent", "target_stable_id: text, position: point, help_namespace: text, help_string: text, keyword: text, navigator: enumeration, keyboard_initiated: boolean, handled: boolean"},

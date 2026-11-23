@@ -50,6 +50,7 @@ public static class HookKeys
     public static readonly HookKey control_on_preview_key_down = new HookKey(Constants.GF_CLASS_CONTROL, 40u);
     public static readonly HookKey control_on_validated = new HookKey(Constants.GF_CLASS_CONTROL, 41u);
     public static readonly HookKey control_on_validating = new HookKey(Constants.GF_CLASS_CONTROL, 42u);
+    public static readonly HookKey control_on_gesture = new HookKey(Constants.GF_CLASS_CONTROL, 43u);
     public static readonly HookKey picture_box_on_size_mode_changed = new HookKey(Constants.GF_CLASS_PICTURE_BOX, 0u);
     public static readonly HookKey check_box_on_appearance_changed = new HookKey(Constants.GF_CLASS_CHECK_BOX, 0u);
     public static readonly HookKey check_box_on_checked_changed = new HookKey(Constants.GF_CLASS_CHECK_BOX, 1u);

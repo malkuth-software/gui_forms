@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2375 | 3 | 370 | 4134 | 2490 |
+| 2381 | 3 | 370 | 4133 | 2495 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 250 | 0 | 12 | 323 | 228 |
+| `Control` | `Control` | 253 | 0 | 12 | 323 | 231 |
 | `Component` | `Component` | 10 | 0 | 0 | 10 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
@@ -57,7 +57,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ChoiceGroup` | GUI.Forms-only | 6 | 0 | 0 | 3 | 9 |
 | `BreadcrumbTrail` | GUI.Forms-only | 12 | 0 | 0 | 3 | 15 |
 | `CheckBox` | `CheckBox` | 4 | 0 | 0 | 14 | 3 |
-| `RadioButton` | `RadioButton` | 4 | 0 | 0 | 12 | 4 |
+| `RadioButton` | `RadioButton` | 4 | 0 | 0 | 11 | 3 |
 | `ToggleSwitch` | GUI.Forms-only | 4 | 0 | 0 | 3 | 7 |
 | `RangeControl` | GUI.Forms-only | 8 | 0 | 0 | 6 | 14 |
 | `TrackBar` | `TrackBar` | 12 | 0 | 1 | 29 | 8 |
@@ -170,7 +170,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 249 | 0 | 13 | 135 | 257 |
+| `Window` | `Form` | 252 | 0 | 13 | 135 | 260 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -313,5 +313,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 961 |
+| `untested` | 960 |
 | `w-open` | 5 |

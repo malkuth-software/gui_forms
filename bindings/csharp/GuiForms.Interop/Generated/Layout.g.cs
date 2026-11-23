@@ -1799,7 +1799,7 @@ public static unsafe class Layout
         {
             gf_control_hooks value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_control_hooks size", sizeof(gf_control_hooks), 352);
+            failures += expect(output, "gf_control_hooks size", sizeof(gf_control_hooks), 360);
             failures += expect(output, "gf_control_hooks.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_control_hooks.class_id offset", (long)((byte*)&value.class_id - start), 4);
             failures += expect(output, "gf_control_hooks.on_auto_size_changed offset", (long)((byte*)&value.on_auto_size_changed - start), 8);
@@ -1845,6 +1845,7 @@ public static unsafe class Layout
             failures += expect(output, "gf_control_hooks.on_preview_key_down offset", (long)((byte*)&value.on_preview_key_down - start), 328);
             failures += expect(output, "gf_control_hooks.on_validated offset", (long)((byte*)&value.on_validated - start), 336);
             failures += expect(output, "gf_control_hooks.on_validating offset", (long)((byte*)&value.on_validating - start), 344);
+            failures += expect(output, "gf_control_hooks.on_gesture offset", (long)((byte*)&value.on_gesture - start), 352);
         }
         {
             gf_masked_text_box_hooks value = default;

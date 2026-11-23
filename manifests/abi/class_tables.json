@@ -474,6 +474,12 @@
           "name": "on_validating",
           "raiser": "Control::on_validating",
           "since": "1.3"
+        },
+        {
+          "index": 43,
+          "name": "on_gesture",
+          "raiser": "Control::on_gesture",
+          "since": "1.7"
         }
       ]
     },

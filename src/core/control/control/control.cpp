@@ -5127,6 +5127,16 @@ void Control::on_mouse_wheel(MouseEventArgs& arguments) {
     if (mouse_events_) (*mouse_events_).mouse_wheel.emit(arguments);
 }
 
+void Control::set_gesture_input(bool requested) noexcept {
+    if (gesture_input_ == requested) return;
+    gesture_input_ = requested;
+    if (surface_root_ != nullptr) detail::SurfaceTreeAccess::note_gesture_input_change(*surface_root_, *this);
+}
+
+void Control::on_gesture(GestureEventArgs& arguments) {
+    if (mouse_events_) (*mouse_events_).gesture.emit(arguments);
+}
+
 void Control::on_mouse_enter() {
     if (mouse_events_) (*mouse_events_).mouse_enter.emit();
 }
@@ -5643,6 +5653,7 @@ void Control::disconnect_control_events() noexcept {
         mouse.double_click.disconnect_all();
         mouse.mouse_double_click.disconnect_all();
         mouse.context_menu_requested.disconnect_all();
+        mouse.gesture.disconnect_all();
     }
     if (key_events_) {
         KeyEvents& keys = *key_events_;
@@ -5660,7 +5671,7 @@ void Control::disconnect_control_events() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 35> control_interactions{{
+constexpr std::array<InteractionDeclaration, 36> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -5696,6 +5707,7 @@ constexpr std::array<InteractionDeclaration, 35> control_interactions{{
     {.name = "key_up", .payload = "KeyEventArgs", .mutable_payload = true},
     {.name = "relative_pointer", .payload = "RelativePointerEventArgs", .mutable_payload = true},
     {.name = "relative_pointer_ended", .payload = "RelativePointerEnded", .mutable_payload = false},
+    {.name = "gesture", .payload = "GestureEventArgs", .mutable_payload = false},
 }};
 
 } // namespace
