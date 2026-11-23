@@ -8,7 +8,10 @@
 format = 1
 root = ".."
 profile = "consumer"
-paths = ["src", "include", "examples", "demo", "benchmarks", "fuzz", "lab"]
+# The two tools that link the library or read its inputs through STXlib
+# (the shield); the rest of tools/ is not checked yet.
+paths = ["src", "include", "examples", "demo", "benchmarks", "fuzz", "lab",
+         "tools/preview_capture", "tools/stock_icon_generator"]
 # Native code, where the host-only rules (pthread, wchar_t and the rest)
 # do not apply: the platform hosts. (The tests, with the probes that drive a
 # native host directly, are gui_forms_tests', checked there with its own
@@ -29,8 +32,8 @@ allowance = "tools/std_rules_allowance.txt"
 # waits for (the queue entry gui_forms__shield-threads-files lists them):
 # the C ABI's recursive operation lock (a recursive mutex and a
 # deadlock-avoiding multi-lock), the atomic waits (an atomic wait), the
-# public std::stop_token parameters (a copyable stop token), and the
-# programs (benchmarks, examples, fuzz) not yet moved. std::filesystem::path
+# public std::stop_token parameters (a copyable stop token, coming in
+# STXlib claude/threads-additions with the others). std::filesystem::path
 # itself stays while FilePath is the public path type; the census
 # (tools/std_surface_census.py) counts it.
 [[rules]]

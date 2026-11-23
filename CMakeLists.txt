@@ -488,6 +488,9 @@ if(GUI_FORMS_STOCK_ICON_GENERATOR)
 else()
     add_executable(gui_forms_stock_icon_generator tools/stock_icon_generator/stock_icon_generator.cpp)
     target_compile_features(gui_forms_stock_icon_generator PRIVATE cxx_std_20)
+    # It reads the SVG folders and writes its output through STXlib's files
+    # (the shield).
+    target_link_libraries(gui_forms_stock_icon_generator PRIVATE stxlib::boundary stxlib::state)
     # Byte-identical to the Python oracle: no fused multiply-adds.
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(gui_forms_stock_icon_generator PRIVATE -ffp-contract=off)
@@ -3308,7 +3311,9 @@ if(GUI_FORMS_BUILD_FUZZERS)
     gui_forms_add_libfuzzer_target(rtf_import SOURCES fuzz/rtf_import_fuzz.cpp
         LIBRARIES gui_forms_core stx_rtf2md::stx_rtf2md)
     if(TARGET stx_vorbis::stx_vorbis_stb)
-        gui_forms_add_libfuzzer_target(vorbis SOURCES fuzz/vorbis_fuzz.cpp LIBRARIES stx_vorbis::stx_vorbis_stb)
+        # The standalone driver reads its corpus through STXlib.
+        gui_forms_add_libfuzzer_target(vorbis SOURCES fuzz/vorbis_fuzz.cpp
+            LIBRARIES stx_vorbis::stx_vorbis_stb stxlib::boundary stxlib::state)
     endif()
 endif()
 

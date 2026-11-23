@@ -29,6 +29,8 @@
 #include <filesystem>
 #include <limits>
 #include <optional>
+#include <span>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -216,5 +218,69 @@ struct ListedEntry final {
     }
     return true;
 }
+
+// The whole file `path` names as standard bytes, for the programs
+// (benchmarks, fuzz drivers, tools) that keep std::vector: absent when it
+// cannot be read or holds more than `limit` bytes. The copy throws
+// std::bad_alloc.
+[[nodiscard]] inline std::optional<std::vector<std::byte>> read_file_bytes(const std::filesystem::path& path,
+                                                                           const std::size_t limit) {
+    const stxlib::OperationResult<stxlib::Buffer<stxlib::Byte>> read = read_whole_file(path, limit);
+    if (read.failed()) return std::nullopt;
+    const stxlib::View<stxlib::Byte> view = (*read.value()).view();
+    const std::byte* const first = reinterpret_cast<const std::byte*>(view.data());
+    std::optional<std::vector<std::byte>> result(std::in_place, first, first + view.count());
+    return result;
+}
+
+// A file written front to back, created or emptied first (a standard
+// output stream's trunc): the programs' records and artifacts. Each write
+// goes to the host at once, unbuffered, so a caller with many small pieces
+// gathers them first. A failure sticks: every later write fails too, as a
+// stream's failbit did. Move-only, as File is.
+class OutputFile final {
+public:
+    // `path` created or emptied; is_open() says whether that succeeded.
+    [[nodiscard]] static OutputFile create(const std::filesystem::path& path) {
+        OutputFile made{};
+        stxlib::OperationResult<stxlib::File> opened = open_file(path, stxlib::FileMode::replace);
+        if (opened.succeeded()) {
+            made.file_ = static_cast<stxlib::OperationResult<stxlib::File>&&>(opened).take_value();
+            made.good_ = true;
+        }
+        return made;
+    }
+
+    [[nodiscard]] bool is_open() const noexcept { return file_.is_open(); }
+    // False once anything failed: the open, a write or the close.
+    [[nodiscard]] bool good() const noexcept { return good_; }
+
+    // Appends `text`; false when it, or anything before it, failed.
+    bool write(const std::string_view text) noexcept {
+        if (!good_) return false;
+        const stxlib::View<stxlib::Byte> bytes(reinterpret_cast<const stxlib::Byte*>(text.data()),
+                                               static_cast<stxlib::usize>(text.size()));
+        good_ = file_.write_all(bytes).succeeded();
+        return good_;
+    }
+
+    bool write(const std::span<const std::byte> bytes) noexcept {
+        if (!good_) return false;
+        good_ = file_.write_all(stxlib_bytes(bytes)).succeeded();
+        return good_;
+    }
+
+    // Closes the file; true when everything written reached the host.
+    bool close() noexcept {
+        if (!file_.is_open()) return false;
+        const bool closed = file_.close().succeeded();
+        good_ = good_ && closed;
+        return good_;
+    }
+
+private:
+    stxlib::File file_{};
+    bool good_{false};
+};
 
 } // namespace gui_forms::platform

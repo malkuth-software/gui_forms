@@ -1,25 +1,7 @@
 # check_std_rules allowance: existing findings, one line per rule and file.
 # Shrink-only: lower a count (or drop the line) as findings are fixed; never raise one.
-std-files benchmarks/blend_study_workload.cpp 7
-std-files benchmarks/bundled_font_memory_report.cpp 2
-std-files benchmarks/label_layout_probe.cpp 2
-std-files benchmarks/paint_profile_workload.cpp 7
-std-files benchmarks/present_profile_workload.cpp 2
-std-files benchmarks/renderer_benchmark.cpp 5
-std-threads benchmarks/sub_surface_cells_benchmark.cpp 9
-std-files benchmarks/text_engine_benchmark.cpp 2
-std-files benchmarks/text_layout_probe.cpp 2
-std-files benchmarks/text_paint_probe.cpp 2
-std-threads benchmarks/text_paint_probe.cpp 1
-std-files benchmarks/text_worker_probe.cpp 2
-std-threads benchmarks/text_worker_probe.cpp 2
 std-stop-token demo/vsync_lab.cpp 4
-std-threads examples/content_boundary/crashing_program.cpp 2
-std-threads examples/content_boundary/freezing_renderer.cpp 4
-std-threads examples/content_boundary/hosted_crash.cpp 2
 std-atomic-wait examples/reference/audio_worker.cpp 1
-std-threads examples/reference/cooperative_worker.cpp 3
-std-files fuzz/fuzz_standalone.hpp 6
 std-stop-token include/gui_forms/audio/audio.hpp 2
 std-stop-token include/gui_forms/content/frame_sink/content_frame_sink.hpp 2
 std-stop-token include/gui_forms/content/operation/content_operation.hpp 2

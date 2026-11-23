@@ -16,6 +16,8 @@
 // One header for the fuzz sources, each a single translation unit, so its
 // functions are inline.
 
+#include "../src/platform/library_files.hpp"
+
 #include <algorithm>
 #include <array>
 #include <cstddef>
@@ -23,12 +25,12 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
-#include <iterator>
+#include <limits>
+#include <optional>
 #include <span>
 #include <string>
 #include <string_view>
-#include <system_error>
+#include <stxlib/files.hpp>
 #include <utility>
 #include <vector>
 
@@ -68,12 +70,10 @@ inline std::uint64_t next_random(std::uint64_t& state) noexcept {
 // Appends the bytes of the file at `path` to `inputs` as one input. False
 // when the file cannot be read.
 inline bool read_corpus_file(const std::filesystem::path& path, std::vector<std::string>& inputs) {
-    std::ifstream stream(path, std::ios::binary);
-    if (!stream) return false;
-    const std::istreambuf_iterator<char> first(stream);
-    const std::istreambuf_iterator<char> end{};
-    std::string bytes(first, end);
-    if (stream.bad()) return false;
+    const std::optional<std::vector<std::byte>> read =
+        gui_forms::platform::read_file_bytes(path, std::numeric_limits<std::size_t>::max());
+    if (!read.has_value()) return false;
+    std::string bytes(reinterpret_cast<const char*>((*read).data()), (*read).size());
     inputs.push_back(std::move(bytes));
     return true;
 }
@@ -81,18 +81,15 @@ inline bool read_corpus_file(const std::filesystem::path& path, std::vector<std:
 // Appends the input at `path`: the file itself, or each regular file of the
 // directory in path order. False when the path or a file in it cannot be read.
 inline bool read_corpus_path(const std::filesystem::path& path, std::vector<std::string>& inputs) {
-    std::error_code error{};
-    if (!std::filesystem::is_directory(path, error)) {
+    if (!gui_forms::platform::names_directory(path)) {
         const bool read = read_corpus_file(path, inputs);
         return read;
     }
+    std::vector<gui_forms::platform::ListedEntry> entries{};
+    if (!gui_forms::platform::list_directory_entries(path, entries)) return false;
     std::vector<std::filesystem::path> files{};
-    std::filesystem::directory_iterator entry(path, error);
-    const std::filesystem::directory_iterator end{};
-    if (error) return false;
-    for (; entry != end; entry.increment(error)) {
-        if (error) return false;
-        if ((*entry).is_regular_file(error)) files.push_back((*entry).path());
+    for (const gui_forms::platform::ListedEntry& entry : entries) {
+        if (entry.kind == stxlib::FileKind::regular) files.push_back(entry.path);
     }
     std::sort(files.begin(), files.end());
     for (const std::filesystem::path& file : files) {
@@ -108,8 +105,9 @@ inline bool read_corpus_path(const std::filesystem::path& path, std::vector<std:
 inline void run_input(std::string_view input) {
     static const char* const last_input = std::getenv("GUI_FORMS_FUZZ_LAST_INPUT");
     if (last_input != nullptr) {
-        std::ofstream stream(last_input, std::ios::binary | std::ios::trunc);
-        stream.write(input.data(), static_cast<std::streamsize>(input.size()));
+        gui_forms::platform::OutputFile stream =
+            gui_forms::platform::OutputFile::create(std::filesystem::path(last_input));
+        static_cast<void>(stream.write(input));
     }
     const std::vector<std::uint8_t> bytes(input.begin(), input.end());
     static_cast<void>(LLVMFuzzerTestOneInput(bytes.data(), bytes.size()));

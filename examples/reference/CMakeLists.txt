@@ -32,7 +32,9 @@ foreach(example_name IN ITEMS bound_values window_rules shared_state collection_
     add_executable(${example_name} ${example_name}.cpp)
     target_compile_features(${example_name} PRIVATE cxx_std_20)
     if(example_name STREQUAL "cooperative_worker")
-        target_link_libraries(${example_name} PRIVATE GUIForms::Threading)
+        # Its waits yield through STXlib (stxlib::yield_thread), which the
+        # Threading package brings.
+        target_link_libraries(${example_name} PRIVATE GUIForms::Threading stxlib::boundary)
     else()
         target_link_libraries(${example_name} PRIVATE GUIForms::Controls)
     endif()

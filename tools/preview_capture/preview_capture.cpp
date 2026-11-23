@@ -30,6 +30,7 @@
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/window.hpp"
+#include "../../src/platform/library_files.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -38,13 +39,11 @@
 #include <cstdlib>
 #include <exception>
 #include <filesystem>
-#include <fstream>
 #include <memory>
 #include <optional>
 #include <span>
 #include <string>
 #include <string_view>
-#include <system_error>
 #include <utility>
 #include <vector>
 
@@ -198,11 +197,10 @@ bool engine_work_waiting(const Window& window) {
 // Writes `bytes` to `path`, replacing the file. False when it cannot be
 // opened or written whole; a partial file may then be left behind.
 bool write_file(const std::filesystem::path& path, const std::vector<std::byte>& bytes) {
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
+    gui_forms::platform::OutputFile file = gui_forms::platform::OutputFile::create(path);
     if (!file.is_open()) return false;
-    file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-    file.close();
-    const bool written = !file.fail();
+    static_cast<void>(file.write(std::span<const std::byte>(bytes)));
+    const bool written = file.close();
     return written;
 }
 
@@ -277,10 +275,8 @@ std::unique_ptr<Application> create_preview_application() {
 }
 
 int run(const CaptureOptions& options) {
-    std::error_code made_error{};
-    std::filesystem::create_directories(options.out, made_error);
-    if (made_error) {
-        std::fprintf(stderr, "cannot make %s: %s\n", options.out.string().c_str(), made_error.message().c_str());
+    if (!gui_forms::platform::create_directories(options.out)) {
+        std::fprintf(stderr, "cannot make %s\n", options.out.string().c_str());
         return 2;
     }
     // The application before any window: each specimen window joins it.

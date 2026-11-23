@@ -13,8 +13,11 @@
 #include "gui_forms/window/window.hpp"
 #include "skia_raster.hpp"
 #include "../src/core/damage/device_damage/device_damage.hpp"
+#include "../src/platform/library_files.hpp"
 
+#include <limits>
 #include <mach/mach.h>
+#include <optional>
 #include <sys/resource.h>
 #include <sys/sysctl.h>
 #include <sys/utsname.h>
@@ -27,7 +30,6 @@
 #include <cstdint>
 #include <cstring>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <iostream>
 #include <memory>
@@ -147,20 +149,18 @@ PixelDifference compare_pixels(std::span<const std::byte> expected,
 }
 
 std::vector<std::byte> read_file(const std::filesystem::path& path) {
-    std::ifstream input(path, std::ios::binary | std::ios::ate);
-    if (!input) {
+    if (!gui_forms::platform::names_regular_file(path)) {
         throw std::runtime_error("unable to open " + path.string());
     }
-    const auto length = input.tellg();
-    if (length <= 0) {
-        throw std::runtime_error("empty benchmark input " + path.string());
-    }
-    std::vector<std::byte> bytes(static_cast<std::size_t>(length));
-    input.seekg(0);
-    input.read(reinterpret_cast<char*>(bytes.data()), length);
-    if (!input) {
+    std::optional<std::vector<std::byte>> read =
+        gui_forms::platform::read_file_bytes(path, std::numeric_limits<std::size_t>::max());
+    if (!read.has_value()) {
         throw std::runtime_error("unable to read " + path.string());
     }
+    if ((*read).empty()) {
+        throw std::runtime_error("empty benchmark input " + path.string());
+    }
+    std::vector<std::byte> bytes = std::move(*read);
     return bytes;
 }
 
@@ -201,19 +201,19 @@ std::string json_escape(std::string_view text) {
 class RecordWriter final {
 public:
     explicit RecordWriter(const std::filesystem::path& output)
-        : file_(output) {
-        if (!file_) {
+        : file_(gui_forms::platform::OutputFile::create(output)) {
+        if (!file_.is_open()) {
             throw std::runtime_error("unable to create benchmark record");
         }
     }
 
     void write(const std::string& record) {
         std::cout << record << '\n';
-        file_ << record << '\n';
+        static_cast<void>(file_.write(record + '\n'));
     }
 
 private:
-    std::ofstream file_;
+    gui_forms::platform::OutputFile file_;
 };
 
 void write_ppm(const std::filesystem::path& path,
@@ -225,8 +225,9 @@ void write_ppm(const std::filesystem::path& path,
     if (bgra == nullptr) {
         throw std::runtime_error("renderer exposed no pixels for artifact");
     }
-    std::ofstream output(path, std::ios::binary);
-    output << "P6\n" << width << ' ' << height << "\n255\n";
+    // Gathered whole, then written once (OutputFile does not buffer).
+    std::string output = "P6\n" + std::to_string(width) + ' ' + std::to_string(height) + "\n255\n";
+    output.reserve(output.size() + static_cast<std::size_t>(width) * height * 3U);
     for (std::uint32_t y = 0; y < height; ++y) {
         const std::uint8_t* row = bgra + static_cast<std::size_t>(y) * row_bytes;
         for (std::uint32_t x = 0; x < width; ++x) {
@@ -234,9 +235,12 @@ void write_ppm(const std::filesystem::path& path,
             const std::uint8_t* const pixel = row + static_cast<std::size_t>(x) * 4U;
             const std::array<char, 3> colour{static_cast<char>(pixel[2]), static_cast<char>(pixel[1]),
                                              static_cast<char>(pixel[0])};
-            output.write(colour.data(), 3);
+            output.append(colour.data(), 3);
         }
     }
+    gui_forms::platform::OutputFile file = gui_forms::platform::OutputFile::create(path);
+    static_cast<void>(file.write(output));
+    static_cast<void>(file.close());
 }
 
 std::uint64_t copy_damage(const void* source,
@@ -562,7 +566,9 @@ int main(int argc, char** argv) {
         const std::filesystem::path output_directory = argc > 1
             ? std::filesystem::path(argv[1])
             : std::filesystem::path("m2d-renderer-results");
-        std::filesystem::create_directories(output_directory);
+        if (!gui_forms::platform::create_directories(output_directory)) {
+            throw std::runtime_error("unable to create " + output_directory.string());
+        }
         RecordWriter records(output_directory / "renderer-results.jsonl");
 
         utsname system{};

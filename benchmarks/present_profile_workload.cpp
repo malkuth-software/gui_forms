@@ -29,11 +29,12 @@
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
 #include "gui_forms/application.hpp"
 #include "gui_forms/control.hpp"
+#include "../src/platform/library_files.hpp"
 
 #include <chrono>
 #include <cstdint>
 #include <cstdlib>
-#include <fstream>
+#include <filesystem>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -226,9 +227,9 @@ int main(const int argc, char** const argv) {
     const std::string line = result_line(run, scale);
     std::cout << line << '\n';
     if (argc > 1) {
-        std::ofstream output(argv[1]);
-        output << line << '\n';
-        if (!output) {
+        gui_forms::platform::OutputFile output = gui_forms::platform::OutputFile::create(std::filesystem::path(argv[1]));
+        static_cast<void>(output.write(line + '\n'));
+        if (!output.close()) {
             std::cerr << "present profile: cannot write " << argv[1] << '\n';
             return 1;
         }
