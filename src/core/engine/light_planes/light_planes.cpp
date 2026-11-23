@@ -2,16 +2,20 @@
 
 #include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "../primitives/finish/finish_kernel.hpp"
+#include "../../../platform/library_files.hpp"
 
 #include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
-#include <fstream>
-#include <iterator>
 #include <limits>
 #include <string>
+#include <stxlib/buffer.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 #include <utility>
 
 // Identical bytes on every host: no fused multiply-add (engine_math.cpp).
@@ -687,11 +691,15 @@ LightPlaneCache::LightPlaneCache(std::filesystem::path directory) : directory_(s
 
 namespace {
 
-// The whole file at `path`, or nothing when it cannot be opened.
+// The whole file at `path`, or nothing when it cannot be read (STXlib's
+// read_file, unbounded as the stream read was).
 bool read_file(const std::filesystem::path& path, std::vector<char>& text) {
-    std::ifstream file(path, std::ios::binary);
-    if (!file) return false;
-    text.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    const stxlib::OperationResult<stxlib::Buffer<stxlib::Byte>> read =
+        platform::read_whole_file(path, std::numeric_limits<std::size_t>::max());
+    if (read.failed()) return false;
+    const stxlib::View<stxlib::Byte> bytes = (*read.value()).view();
+    const char* const first = reinterpret_cast<const char*>(bytes.data());
+    text.assign(first, first + bytes.count());
     return true;
 }
 

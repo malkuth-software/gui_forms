@@ -10,6 +10,7 @@
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -118,7 +119,7 @@ PreparedSessionClaim::~PreparedSessionClaim() { release(); }
 PreparedTextStatus PreparedSessionClaim::acquire(std::shared_ptr<PreparedLedger> ledger) {
     if (ledger_) return PreparedTextStatus::busy;
     if (!ledger) return PreparedTextStatus::invalid_input;
-    std::lock_guard<std::mutex> lock((*ledger).mutex);
+    const stxlib::ScopedLock lock((*ledger).mutex);
     if ((*ledger).closing) return PreparedTextStatus::closing;
     if ((*ledger).session_claimed) return PreparedTextStatus::busy;
     (*ledger).session_claimed = true;
@@ -129,7 +130,7 @@ PreparedTextStatus PreparedSessionClaim::acquire(std::shared_ptr<PreparedLedger>
 void PreparedSessionClaim::release() noexcept {
     if (!ledger_) return;
     {
-        std::lock_guard<std::mutex> lock((*ledger_).mutex);
+        const stxlib::ScopedLock lock((*ledger_).mutex);
         (*ledger_).session_claimed = false;
     }
     ledger_.reset();
@@ -207,7 +208,7 @@ void refund_reservation(PreparedTextBudgetSnapshot& usage, PreparedResource reso
 PreparedTextStatus PreparedReservation::acquire(std::shared_ptr<PreparedLedger> ledger,
     const PreparedResource resource, const std::size_t bytes) {
     if (ledger_ || !ledger) return PreparedTextStatus::invalid_input;
-    std::lock_guard<std::mutex> lock((*ledger).mutex);
+    const stxlib::ScopedLock lock((*ledger).mutex);
     if ((*ledger).closing) return PreparedTextStatus::closing;
     PreparedTextBudgetSnapshot& usage = (*ledger).usage;
     const PreparedTextStatus charged = charge_reservation(usage, resource, bytes);
@@ -220,7 +221,7 @@ PreparedTextStatus PreparedReservation::acquire(std::shared_ptr<PreparedLedger> 
 void PreparedReservation::release() noexcept {
     if (!ledger_) return;
     {
-        std::lock_guard<std::mutex> lock((*ledger_).mutex);
+        const stxlib::ScopedLock lock((*ledger_).mutex);
         PreparedTextBudgetSnapshot& usage = (*ledger_).usage;
         refund_reservation(usage, resource_, bytes_);
     }
@@ -345,7 +346,7 @@ PreparedTextStatus validate_prepared_input(const PreparedTextKey& key, const std
 bool prepared_authority_current(const PreparedTextStorage& storage, const LayoutAuthority expected) {
     if (!storage.authority_state || !same_layout_authority(storage.authority, expected)) return false;
     PreparedAuthorityState& state = *storage.authority_state;
-    std::lock_guard<std::mutex> lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const bool current = prepared_authority_current_locked(storage, expected);
     return current;
 }
@@ -376,7 +377,7 @@ PreparedFaceCharge::~PreparedFaceCharge() { release(); }
 void PreparedFaceCharge::charge(const std::shared_ptr<PreparedLedger>& ledger, const std::size_t held,
                                 const std::size_t peak) noexcept {
     if (!ledger) return;
-    std::lock_guard<std::mutex> lock((*ledger).mutex);
+    const stxlib::ScopedLock lock((*ledger).mutex);
     PreparedTextBudgetSnapshot& usage = (*ledger).usage;
     usage.glyph_face_bytes = usage.glyph_face_bytes - bytes_ + held;
     usage.glyph_face_peak_bytes = std::max(usage.glyph_face_peak_bytes, peak);
@@ -387,7 +388,7 @@ void PreparedFaceCharge::charge(const std::shared_ptr<PreparedLedger>& ledger, c
 void PreparedFaceCharge::release() noexcept {
     if (!ledger_) return;
     {
-        std::lock_guard<std::mutex> lock((*ledger_).mutex);
+        const stxlib::ScopedLock lock((*ledger_).mutex);
         (*ledger_).usage.glyph_face_bytes -= bytes_;
     }
     bytes_ = 0;
@@ -448,7 +449,7 @@ bool open_bank_typefaces(PreparedFontBank& bank) {
 std::unique_ptr<PreparedRasterFaces> PreparedFacePool::lease() {
     std::unique_ptr<PreparedRasterFaces> result{};
     {
-        const std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (!idle_.empty()) {
             result = std::move(idle_.back());
             idle_.pop_back();
@@ -462,7 +463,7 @@ std::unique_ptr<PreparedRasterFaces> PreparedFacePool::lease() {
 
 void PreparedFacePool::restore(std::unique_ptr<PreparedRasterFaces> faces) noexcept {
     if (!faces) return;
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     // lease reserved kept_sets before any set existed, so this never
     // allocates; a set beyond them is released as `faces` goes.
     if (idle_.size() < kept_sets && idle_.capacity() >= kept_sets) idle_.push_back(std::move(faces));
@@ -470,7 +471,7 @@ void PreparedFacePool::restore(std::unique_ptr<PreparedRasterFaces> faces) noexc
 
 std::size_t PreparedFacePool::idle_face_bytes() const noexcept {
     std::size_t held = 0U;
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (const std::unique_ptr<PreparedRasterFaces>& set : idle_) {
         for (const ExecutorFace& face : (*set).faces) held += face.face_bytes_held();
     }

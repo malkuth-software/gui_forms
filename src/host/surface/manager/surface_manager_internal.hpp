@@ -34,10 +34,9 @@
 #include <deque>
 #include <filesystem>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <string>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::host::surface_detail {
@@ -87,7 +86,7 @@ struct Action final {
 struct ActionQueue final {
     explicit ActionQueue(SurfaceInputQueue& wakes) : input(&wakes) {}
     SurfaceInputQueue* input;
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     std::deque<Action> pending;
     void post(Action action);
 };
@@ -564,7 +563,7 @@ HostDialogResult host_dialog(NativeWindow& owner, const HostDialogRequest& reque
 
 // The run's open operation (SurfaceOpenWindow), as RunOpen on Linux.
 struct RunOpenState final {
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     SurfaceWindowing* windowing{};
 };
 struct RunOpen final {

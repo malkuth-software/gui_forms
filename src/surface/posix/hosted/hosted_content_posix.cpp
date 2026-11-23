@@ -18,12 +18,14 @@
 #endif
 
 #include "gui_forms/content/hosted/hosted_content.hpp"
-#include "../../../core/thread_records/thread_records_end.hpp"
 
 #include <fcntl.h>
+#include <memory>
 #include <poll.h>
 #include <signal.h>
 #include <spawn.h>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <sys/mman.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
@@ -39,12 +41,10 @@
 #include <cstdint>
 #include <filesystem>
 #include <limits>
-#include <mutex>
 #include <span>
 #include <stdexcept>
 #include <stop_token>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
@@ -59,7 +59,7 @@ namespace detail {
 // while the process is connected, -1 otherwise; it and `backlog` (bytes of
 // whole messages not yet sent, in order) are guarded by `mutex`.
 struct HostedInputState final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     int descriptor{-1};
     std::vector<std::byte> backlog{};
     std::atomic<std::uint64_t> dropped{0U};
@@ -131,7 +131,7 @@ bool enqueue_locked(detail::HostedInputState& state, std::span<const std::byte> 
 // Sends as much of the backlog as the socket takes. False when the channel
 // is broken.
 bool flush_backlog(detail::HostedInputState& state) {
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     if (state.descriptor < 0 || state.backlog.empty()) return true;
     const std::ptrdiff_t sent = send_some(state.descriptor, state.backlog.data(), state.backlog.size());
     if (sent < 0) return false;
@@ -140,7 +140,7 @@ bool flush_backlog(detail::HostedInputState& state) {
 }
 
 bool backlog_pending(detail::HostedInputState& state) {
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const bool pending = !state.backlog.empty();
     return pending;
 }
@@ -292,11 +292,15 @@ ProcessEnd end_of(int status) noexcept {
 class LateReaper final {
 public:
     explicit LateReaper(pid_t process) noexcept : process_(process) {}
-    void operator()() const noexcept {
-        // Closes last: the thread's records are released here, on the thread.
-        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
+
+    // The abandoned STXlib thread's body: owns its reaper (`context`) and
+    // frees it when the child is reaped. STXlib ends the thread's records
+    // after it returns.
+    static void thread_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+        static_cast<void>(stop);
+        const std::unique_ptr<LateReaper> owned(static_cast<LateReaper*>(context));
         int status = 0;
-        while (waitpid(process_, &status, 0) < 0 && errno == EINTR) {
+        while (waitpid((*owned).process_, &status, 0) < 0 && errno == EINTR) {
         }
     }
 
@@ -343,7 +347,7 @@ public:
             const ProcessEnd end = poll();
             if (end.reaped || process_ <= 0) return end;
             if (std::chrono::steady_clock::now() >= deadline) return end;
-            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            stxlib::sleep_for(stxlib::Duration::milliseconds(2));
         }
     }
 
@@ -359,9 +363,15 @@ public:
         const ProcessEnd end = wait_for(hosted_reap_bound);
         if (end.reaped || process_ <= 0) return end;
         try {
-            const LateReaper late_reaper(process_);
-            std::thread reaper(late_reaper);
-            reaper.detach();
+            std::unique_ptr<LateReaper> late_reaper = std::make_unique<LateReaper>(process_);
+            stxlib::OperationResult<stxlib::Thread> started =
+                stxlib::Thread::start(&LateReaper::thread_main, late_reaper.get());
+            if (!started.failed()) {
+                // The thread owns the reaper from here, and runs on unowned.
+                static_cast<void>(late_reaper.release());
+                stxlib::Thread reaper = static_cast<stxlib::OperationResult<stxlib::Thread>&&>(started).take_value();
+                static_cast<void>(reaper.abandon());
+            }
         } catch (...) {
             static_cast<void>(0);
         }
@@ -559,7 +569,7 @@ private:
 };
 
 void PosixHostedProgram::disconnect_input() noexcept {
-    const std::scoped_lock lock((*input_).mutex);
+    const stxlib::ScopedLock lock((*input_).mutex);
     (*input_).descriptor = -1;
     (*input_).backlog.clear();
     (*input_).connected.store(false, std::memory_order_release);
@@ -570,7 +580,7 @@ bool PosixHostedProgram::queue_control(HostedMessageKind kind, std::span<const s
     append_hosted_message(outgoing_, kind, payload);
     bool stalled = false;
     {
-        const std::scoped_lock lock((*input_).mutex);
+        const stxlib::ScopedLock lock((*input_).mutex);
         const bool queued = enqueue_locked(*input_, outgoing_, false);
         stalled = !queued && (*input_).descriptor >= 0 &&
                   (*input_).backlog.size() > hosted_input_backlog_hard_limit;
@@ -731,7 +741,7 @@ void PosixHostedProgram::run(ContentContext& context) {
     child_.adopt(spawn_child(options_, child_end.get(), frames.get()));
     child_end.reset();
     {
-        const std::scoped_lock lock((*input_).mutex);
+        const stxlib::ScopedLock lock((*input_).mutex);
         (*input_).descriptor = parent_end.get();
         (*input_).backlog.clear();
     }
@@ -819,7 +829,7 @@ bool HostedInput::send(HostedMessageKind kind, std::span<const std::byte> payloa
     append_hosted_message(message, kind, payload);
     bool queued = false;
     {
-        const std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         if ((*state_).connected.load(std::memory_order_acquire)) queued = enqueue_locked(*state_, message, droppable);
     }
     if (!queued) (*state_).dropped.fetch_add(1U, std::memory_order_relaxed);

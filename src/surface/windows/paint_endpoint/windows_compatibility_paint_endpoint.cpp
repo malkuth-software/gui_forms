@@ -3,29 +3,53 @@
 #include "gui_forms/live_surface.hpp"
 
 #include "windows_compatibility_paint_endpoint_metrics.hpp"
-#include "../../../core/thread_records/thread_records_end.hpp"
 
+#include <stxlib/threads.hpp>
 #include <windows.h>
 
 #include <algorithm>
 #include <atomic>
 #include <chrono>
-#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
 #include <iomanip>
 #include <limits>
 #include <memory>
-#include <mutex>
 #include <sstream>
 #include <string>
-#include <thread>
 #include <utility>
 #include <vector>
 
 namespace gui_forms::host {
 namespace {
+
+// A held STXlib mutex that may be released and taken again before its scope
+// ends (a hand-over-hand section), and is released at the end if held.
+class ReleasableLock final {
+public:
+    explicit ReleasableLock(stxlib::Mutex& mutex) noexcept : mutex_(mutex) { mutex_.lock(); }
+    ~ReleasableLock() {
+        if (held_) mutex_.unlock();
+    }
+    ReleasableLock(const ReleasableLock&) = delete;
+    ReleasableLock& operator=(const ReleasableLock&) = delete;
+    ReleasableLock(ReleasableLock&&) = delete;
+    ReleasableLock& operator=(ReleasableLock&&) = delete;
+
+    void unlock() noexcept {
+        mutex_.unlock();
+        held_ = false;
+    }
+    void lock() noexcept {
+        mutex_.lock();
+        held_ = true;
+    }
+
+private:
+    stxlib::Mutex& mutex_;
+    bool held_{true};
+};
 
 struct CompatibilityPaintMetrics final {
     std::atomic<std::uint64_t> active{};
@@ -104,17 +128,16 @@ public:
 
     // An endpoint was created; false when the thread cannot start.
     bool register_endpoint() noexcept {
-        const std::scoped_lock lifecycle(lifecycle_mutex_);
+        const stxlib::ScopedLock lifecycle(lifecycle_mutex_);
         if (endpoints_ == 0U) {
             {
-                const std::scoped_lock lock(mutex_);
+                const stxlib::ScopedLock lock(mutex_);
                 stop_ = false;
             }
-            try {
-                thread_ = std::thread(&CompatibilityPublisher::loop, this);
-            } catch (...) {
-                return false;
-            }
+            stxlib::OperationResult<stxlib::Thread> started =
+                stxlib::Thread::start(&CompatibilityPublisher::thread_main, this);
+            if (started.failed()) return false;
+            thread_ = static_cast<stxlib::OperationResult<stxlib::Thread>&&>(started).take_value();
         }
         endpoints_ = endpoints_ + 1U;
         return true;
@@ -122,16 +145,16 @@ public:
 
     // An endpoint was released after leave(): the last one stops the thread.
     void unregister_endpoint() noexcept {
-        const std::scoped_lock lifecycle(lifecycle_mutex_);
+        const stxlib::ScopedLock lifecycle(lifecycle_mutex_);
         if (endpoints_ == 0U) return;
         endpoints_ = endpoints_ - 1U;
         if (endpoints_ != 0U) return;
         {
-            const std::scoped_lock lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             stop_ = true;
         }
         wake_.notify_all();
-        if (thread_.joinable()) thread_.join();
+        if (thread_.identity().present()) static_cast<void>(thread_.join());
     }
 
     // `endpoint` asks to be published once; `publish` runs on the thread.
@@ -140,7 +163,7 @@ public:
     // (A-gf-host-03-F11).
     [[nodiscard]] bool enqueue(void* endpoint, Publish publish) noexcept {
         {
-            const std::scoped_lock lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             try {
                 queue_.push_back(QueuedEndpoint{endpoint, publish});
             } catch (...) {
@@ -154,7 +177,7 @@ public:
     // `endpoint` leaves: its queued entries are removed, and the call waits
     // while the thread is publishing it. Called without its state_mutex.
     void leave(void* endpoint) noexcept {
-        std::unique_lock lock(mutex_);
+        stxlib::ScopedLock lock(mutex_);
         std::size_t kept = 0U;
         for (std::size_t index = 0; index < queue_.size(); ++index) {
             if (queue_[index].endpoint == endpoint) continue;
@@ -162,7 +185,8 @@ public:
             kept = kept + 1U;
         }
         queue_.resize(kept);
-        while (current_ == endpoint) idle_.wait(lock);
+        const LeaveWait wait{.publisher = this, .endpoint = endpoint};
+        idle_.wait(lock, &CompatibilityPublisher::not_publishing, &wait);
     }
 
 private:
@@ -170,33 +194,56 @@ private:
         void* endpoint{};
         Publish publish{};
     };
+    // What leave waits for: the thread is not publishing `endpoint`.
+    struct LeaveWait final {
+        const CompatibilityPublisher* publisher{};
+        const void* endpoint{};
+    };
+
+    static bool not_publishing(const void* const context) noexcept {
+        const LeaveWait& wait = *static_cast<const LeaveWait*>(context);
+        return (*wait.publisher).current_ != wait.endpoint;
+    }
+
+    static bool work_or_stop(const void* const context) noexcept {
+        const CompatibilityPublisher& publisher = *static_cast<const CompatibilityPublisher*>(context);
+        return publisher.stop_ || !publisher.queue_.empty();
+    }
+
+    // The STXlib thread's body. STXlib ends the thread's records (the
+    // drawing libraries' among them, as publishing draws) after it returns,
+    // on the thread, outside the loader lock its exit would run them under.
+    static void thread_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+        static_cast<void>(stop);
+        (*static_cast<CompatibilityPublisher*>(context)).loop();
+    }
 
     void loop() noexcept {
-        // Closes last, after the lock: the thread's records (the drawing
-        // libraries' among them, as publishing draws) are released here, on
-        // the thread, outside the loader lock its exit would run them under.
-        const gui_forms::detail::ThreadRecordsEnd thread_records_end;
-        std::unique_lock lock(mutex_);
         for (;;) {
-            while (!stop_ && queue_.empty()) wake_.wait(lock);
-            if (stop_) return;
-            const QueuedEndpoint next = queue_.front();
-            queue_.erase(queue_.begin());
-            current_ = next.endpoint;
-            lock.unlock();
+            QueuedEndpoint next{};
+            {
+                stxlib::ScopedLock lock(mutex_);
+                wake_.wait(lock, &CompatibilityPublisher::work_or_stop, this);
+                if (stop_) return;
+                next = queue_.front();
+                queue_.erase(queue_.begin());
+                current_ = next.endpoint;
+            }
             next.publish(next.endpoint);
-            lock.lock();
-            current_ = nullptr;
-            idle_.notify_all();
+            {
+                const stxlib::ScopedLock lock(mutex_);
+                current_ = nullptr;
+                idle_.notify_all();
+            }
         }
     }
 
-    std::mutex lifecycle_mutex_;
+    stxlib::Mutex lifecycle_mutex_;
     std::size_t endpoints_{};
-    std::thread thread_;
-    std::mutex mutex_;
-    std::condition_variable wake_;
-    std::condition_variable idle_;
+    stxlib::Thread thread_;
+    stxlib::Mutex mutex_;
+    stxlib::ConditionVariable wake_;
+    stxlib::ConditionVariable idle_;
     std::vector<QueuedEndpoint> queue_;
     void* current_{};
     bool stop_{};
@@ -314,10 +361,10 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         if (GetCurrentThreadId() != owner_thread) return false;
         const unsigned int next_width = std::max<std::uint32_t>(1U, requested_width);
         const unsigned int next_height = std::max<std::uint32_t>(1U, requested_height);
-        std::scoped_lock lock(state_mutex);
+        const stxlib::ScopedLock lock(state_mutex);
         if (released || compatibility_handle == 0U) return false;
         if (width == next_width && height == next_height) return true;
-        std::scoped_lock publish_lock(surface_publish_mutex);
+        const stxlib::ScopedLock publish_lock(surface_publish_mutex);
         if (!(*surface).reconfigure(opaque_description(next_width, next_height))) return false;
         if (!create_backing(next_width, next_height)) {
             // The DIB stays at the old size, so the surface goes back to it:
@@ -336,7 +383,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         if (released || pixels == nullptr || !surface) return false;
         const std::chrono::steady_clock::time_point started =
             std::chrono::steady_clock::now();
-        std::scoped_lock publish_lock(surface_publish_mutex);
+        const stxlib::ScopedLock publish_lock(surface_publish_mutex);
         LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
         if (!lease) return false;
         if (!copy_opaque(lease)) return false;
@@ -380,7 +427,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     // request already taken by the owner's drain, or an endpoint released
     // meanwhile, publishes nothing.
     void publish_requested_frame() noexcept {
-        std::unique_lock lock(state_mutex);
+        ReleasableLock lock(state_mutex);
         if (released || !publish_requested) return;
         publish_requested = false;
         const std::chrono::steady_clock::time_point started =
@@ -393,7 +440,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         const std::uint64_t copied_revision = content_revision;
         bool published = false;
         if (pixels != nullptr && surface) {
-            std::unique_lock publish_lock(surface_publish_mutex);
+            const stxlib::ScopedLock publish_lock(surface_publish_mutex);
             LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
             const bool copied = lease && copy_opaque(lease);
             lock.unlock();
@@ -417,7 +464,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     }
 
     bool drain() noexcept {
-        std::scoped_lock lock(state_mutex);
+        const stxlib::ScopedLock lock(state_mutex);
         if (released) return false;
         publish_requested = false;
         const bool result = publish_locked();
@@ -490,10 +537,10 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
             // direct C++ caller's row size (A-gf-host-03-F9).
             return false;
         }
-        std::scoped_lock lock(state_mutex);
+        const stxlib::ScopedLock lock(state_mutex);
         if (released || pixels == nullptr || submitted_width != width ||
             submitted_height != height) return false;
-        std::scoped_lock publish_lock(surface_publish_mutex);
+        const stxlib::ScopedLock publish_lock(surface_publish_mutex);
         LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
         if (!lease) return false;
         const std::size_t packed_row = static_cast<std::size_t>(width) * 4U;
@@ -523,7 +570,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     }
 
     std::string snapshot() const {
-        std::scoped_lock lock(state_mutex);
+        const stxlib::ScopedLock lock(state_mutex);
         const char* state = released || compatibility_handle == 0U
             ? "retired" : "live";
         std::ostringstream result;
@@ -545,7 +592,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
 
     void release() noexcept {
         {
-            std::scoped_lock lock(state_mutex);
+            const stxlib::ScopedLock lock(state_mutex);
             if (released) return;
             released = true;
             compatibility_handle = 0U;
@@ -557,7 +604,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
             CompatibilityPublisher::instance().unregister_endpoint();
             publisher_registered = false;
         }
-        std::scoped_lock lock(state_mutex);
+        const stxlib::ScopedLock lock(state_mutex);
         if (metrics_registered) {
             metrics_registered = false;
             compatibility_paint_metrics.active.fetch_sub(
@@ -575,8 +622,8 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         surface.reset();
     }
 
-    mutable std::mutex state_mutex;
-    std::mutex surface_publish_mutex;
+    mutable stxlib::Mutex state_mutex;
+    stxlib::Mutex surface_publish_mutex;
     // Registered with the shared publisher (create); left on release.
     bool publisher_registered{};
     std::uintptr_t compatibility_handle{};
@@ -626,27 +673,27 @@ WindowsCompatibilityPaintEndpoint::acquire(
 
 std::uintptr_t WindowsCompatibilityPaintEndpoint::compatibility_handle() const noexcept {
     if (!implementation_) return 0;
-    std::scoped_lock lock((*implementation_).state_mutex);
+    const stxlib::ScopedLock lock((*implementation_).state_mutex);
     return (*implementation_).compatibility_handle;
 }
 
 std::uintptr_t WindowsCompatibilityPaintEndpoint::device_context() const noexcept {
     if (!implementation_) return 0;
-    std::scoped_lock lock((*implementation_).state_mutex);
+    const stxlib::ScopedLock lock((*implementation_).state_mutex);
     return reinterpret_cast<std::uintptr_t>((*implementation_).memory_dc);
 }
 
 std::shared_ptr<LiveSurface>
 WindowsCompatibilityPaintEndpoint::live_surface() const noexcept {
     if (!implementation_) return {};
-    std::scoped_lock lock((*implementation_).state_mutex);
+    const stxlib::ScopedLock lock((*implementation_).state_mutex);
     return (*implementation_).surface;
 }
 
 bool WindowsCompatibilityPaintEndpoint::publish_device_context(
     std::uintptr_t device_context) noexcept {
     if (!implementation_ || device_context == 0U) return false;
-    std::scoped_lock lock((*implementation_).state_mutex);
+    const stxlib::ScopedLock lock((*implementation_).state_mutex);
     if (device_context !=
         reinterpret_cast<std::uintptr_t>((*implementation_).memory_dc)) {
         return false;
@@ -697,7 +744,7 @@ bool WindowsCompatibilityPaintEndpoint::submit_bgra32_premultiplied(
 
 void WindowsCompatibilityPaintEndpoint::touch(bool explicit_boundary) noexcept {
     if (implementation_) {
-        std::scoped_lock lock((*implementation_).state_mutex);
+        const stxlib::ScopedLock lock((*implementation_).state_mutex);
         static_cast<void>(
             (*implementation_).request_publish_locked(explicit_boundary));
     }

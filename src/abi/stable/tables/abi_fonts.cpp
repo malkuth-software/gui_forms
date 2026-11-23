@@ -30,9 +30,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <memory>
-#include <mutex>
 #include <span>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -112,7 +112,7 @@ gf_status GF_CALL fonts_family_name(std::uint32_t family, char* buffer, std::uin
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // The application families load_family gave and unload_family has not taken back.
 struct HeldAppFonts final {
-    std::mutex lock{};
+    stxlib::Mutex lock{};
     std::vector<AppFontFamily> families{};
 };
 
@@ -220,7 +220,7 @@ gf_status fonts_load_family_body(gf_utf8_view name, const gf_app_font_face* face
     const FontFamilyId id = loaded.family.id();
     HeldAppFonts& held = held_app_fonts();
     {
-        const std::lock_guard<std::mutex> guard(held.lock);
+        const stxlib::ScopedLock guard(held.lock);
         held.families.push_back(std::move(loaded.family));
     }
     *family = static_cast<std::uint32_t>(id.value);
@@ -245,7 +245,7 @@ gf_status fonts_unload_family_body(std::uint32_t family, std::uint32_t* deferred
     AppFontFamily taken{};
     if (family <= 0xFFFFU && app_font_family_number(id)) {
         HeldAppFonts& held = held_app_fonts();
-        const std::lock_guard<std::mutex> guard(held.lock);
+        const stxlib::ScopedLock guard(held.lock);
         const std::vector<AppFontFamily>::iterator found =
             std::find_if(held.families.begin(), held.families.end(), HoldsFamily{id});
         if (found != held.families.end()) {

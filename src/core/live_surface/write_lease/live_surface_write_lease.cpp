@@ -3,7 +3,7 @@
 #include "../buffer/live_surface_buffer.hpp"
 
 #include <atomic>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -59,7 +59,7 @@ std::uint64_t LiveSurfaceWriteLease::publish(Rect damage, const std::uint64_t co
     std::vector<std::shared_ptr<detail::LiveSurfaceWake>> wakes;
     std::uint64_t published{};
     {
-        std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         if ((*state_).epoch != epoch_ || (*state_).writing_slot != slot_ ||
             slot_ >= (*state_).buffers.size() ||
             (*state_).buffers[slot_].get() != buffer_.get()) {
@@ -101,7 +101,7 @@ std::uint64_t LiveSurfaceWriteLease::publish(Rect damage, const std::uint64_t co
 void LiveSurfaceWriteLease::abandon() noexcept {
     if (buffer_) (*buffer_).lender.invalidate();
     if (state_) {
-        std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         if ((*state_).epoch == epoch_ && (*state_).writing_slot == slot_) {
             (*state_).writing_slot = (*state_).buffers.size();
         }

@@ -29,12 +29,12 @@
 #include <cstdint>
 #include <filesystem>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -130,7 +130,7 @@ public:
     // A new handle to `sink`; zero when GF_CONTENT_MAXIMUM_SINKS are held.
     // Throws std::bad_alloc (nothing changes then).
     [[nodiscard]] gf_content_sink add(ContentFrameSink sink) {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (sinks_.size() >= GF_CONTENT_MAXIMUM_SINKS) return 0U;
         const gf_content_sink handle = next_;
         sinks_.emplace(handle, std::move(sink));
@@ -141,7 +141,7 @@ public:
     // A copy of the sink behind `handle`; none for zero, a released or an
     // unknown handle.
     [[nodiscard]] std::optional<ContentFrameSink> find(gf_content_sink handle) {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         const std::unordered_map<gf_content_sink, ContentFrameSink>::const_iterator found = sinks_.find(handle);
         if (found == sinks_.end()) return std::nullopt;
         std::optional<ContentFrameSink> copy((*found).second);
@@ -153,7 +153,7 @@ public:
     [[nodiscard]] bool remove(gf_content_sink handle) {
         ContentFrameSink released{};
         {
-            const std::scoped_lock lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             const std::unordered_map<gf_content_sink, ContentFrameSink>::iterator found = sinks_.find(handle);
             if (found == sinks_.end()) return false;
             released = std::move((*found).second);
@@ -163,7 +163,7 @@ public:
     }
 
 private:
-    std::mutex mutex_{};
+    stxlib::Mutex mutex_{};
     std::unordered_map<gf_content_sink, ContentFrameSink> sinks_{};
     // Handles are never reused: 2^64 hand-outs do not happen.
     gf_content_sink next_{1U};

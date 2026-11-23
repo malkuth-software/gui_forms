@@ -33,9 +33,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <memory>
-#include <mutex>
 #include <span>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -72,7 +72,7 @@ struct AppFontEntry final {
 };
 
 struct AppFontTable final {
-    std::mutex registration{};
+    stxlib::Mutex registration{};
     std::array<AppFontEntry, maximum_app_font_families> entries{};
     // How many entries have been given a number.
     std::atomic<std::size_t> given{0U};
@@ -163,7 +163,7 @@ AppFontUnload unload_app_font_family(FontFamilyId family) noexcept {
     std::shared_ptr<const AppFontBytes> held{};
     AppFontUnload result = AppFontUnload::not_loaded;
     {
-        const std::lock_guard<std::mutex> lock(table.registration);
+        const stxlib::ScopedLock lock(table.registration);
         AppFontEntry& entry = table.entries[index];
         if (!holds_name(entry.state.load(std::memory_order_relaxed))) return result;
         held = std::move(entry.bytes);
@@ -231,7 +231,7 @@ AppFontLoad load_app_font_family(std::string_view name, std::span<const AppFontF
     AppFontTable& table = app_font_table();
     FontFamilyId family{};
     {
-        const std::lock_guard<std::mutex> lock(table.registration);
+        const stxlib::ScopedLock lock(table.registration);
         const std::size_t given = table.given.load(std::memory_order_relaxed);
         for (std::size_t index = 0U; index < given; ++index) {
             const AppFontEntry& entry = table.entries[index];
@@ -285,7 +285,7 @@ AppFontState app_font_family_state(FontFamilyId family) noexcept {
     const AppFontState state = entry.state.load(std::memory_order_acquire);
     if (state != AppFontState::unloading) return state;
     // An unloading family becomes released once the last engine's reference is gone.
-    const std::lock_guard<std::mutex> lock(table.registration);
+    const stxlib::ScopedLock lock(table.registration);
     if (!entry.unloaded.expired()) return AppFontState::unloading;
     entry.state.store(AppFontState::released, std::memory_order_release);
     return AppFontState::released;
@@ -311,7 +311,7 @@ bool known_font_family(FontFamilyId family) noexcept {
 FontFamilyId app_font_family_named(std::string_view name) {
     FontFamilyId result{};
     AppFontTable& table = app_font_table();
-    const std::lock_guard<std::mutex> lock(table.registration);
+    const stxlib::ScopedLock lock(table.registration);
     const std::size_t given = table.given.load(std::memory_order_relaxed);
     for (std::size_t index = 0U; index < given; ++index) {
         const AppFontEntry& entry = table.entries[index];
@@ -343,7 +343,7 @@ std::size_t app_font_family_faces(FontFamilyId family, std::span<AppFontFaceSour
     const std::size_t index = given_index(family);
     if (index == maximum_app_font_families) return 0U;
     AppFontTable& table = app_font_table();
-    const std::lock_guard<std::mutex> lock(table.registration);
+    const stxlib::ScopedLock lock(table.registration);
     const AppFontEntry& entry = table.entries[index];
     if (entry.state.load(std::memory_order_relaxed) != AppFontState::live) return 0U;
     if (entry.bytes == nullptr) return 0U;

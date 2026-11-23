@@ -1,5 +1,5 @@
 {
-  "description": "Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), tools/std_surface_census.py. D15 and Q2: every count only falls, and V6 ends at zero. Occurrences are ratcheted; headers are reported.",
+  "description": "Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), tools/std_surface_census.py. D15 and Q2, and the STXlib shield's thread, lock, stop and file names: every count only falls, and V6 ends at zero. Occurrences are ratcheted; headers are reported.",
   "names": {
     "string": {
       "occurrences": 1771,
@@ -56,6 +56,74 @@
     "span": {
       "occurrences": 874,
       "headers": 235
+    },
+    "thread": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "jthread": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "mutex": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "recursive_mutex": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "shared_mutex": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "condition_variable": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "unique_lock": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "lock_guard": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "scoped_lock": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "this_thread": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "stop_token": {
+      "occurrences": 6,
+      "headers": 5
+    },
+    "stop_source": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "stop_callback": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "filesystem": {
+      "occurrences": 1,
+      "headers": 1
+    },
+    "ifstream": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "ofstream": {
+      "occurrences": 0,
+      "headers": 0
+    },
+    "fstream": {
+      "occurrences": 0,
+      "headers": 0
     }
   }
 }

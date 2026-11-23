@@ -19,8 +19,8 @@
 
 #include <stxlib/error.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 
-#include <mutex>
 #include <new>
 #include <utility>
 #include <vector>
@@ -42,7 +42,7 @@ struct TypefaceEntry final {
 };
 
 struct TypefaceTable final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     std::vector<TypefaceEntry> entries{};
 };
 
@@ -177,7 +177,7 @@ bool register_program_typeface(const std::span<const std::byte> bytes, const std
     entry.keeper = owner;
     entry.typeface = &typeface;
     TypefaceTable& table = typeface_table();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     std::erase_if(table.entries, ExpiredTypeface{});
     try {
         table.entries.push_back(std::move(entry));
@@ -192,7 +192,7 @@ TypefaceBorrow program_typeface(const std::span<const std::byte> bytes, std::sha
     TypefaceBorrow result{};
     if (bytes.empty()) return result;
     TypefaceTable& table = typeface_table();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     std::erase_if(table.entries, ExpiredTypeface{});
     if (owner) {
         result = find_locked(table, bytes, face_index, owner.get());
@@ -224,7 +224,7 @@ TypefaceBorrow program_typeface(const std::span<const std::byte> bytes, std::sha
 
 std::size_t program_typeface_count() {
     TypefaceTable& table = typeface_table();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     std::erase_if(table.entries, ExpiredTypeface{});
     const std::size_t count = table.entries.size();
     return count;

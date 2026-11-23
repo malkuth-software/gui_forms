@@ -15,6 +15,7 @@
 #include <limits>
 #include <stdexcept>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -451,7 +452,7 @@ ContentSurfaceStatistics ContentSurface::statistics() const noexcept {
 
 ContentRequest ContentSurface::request() const noexcept {
     if (!channel_) return ContentRequest{};
-    const std::scoped_lock lock((*channel_).request_mutex);
+    const stxlib::ScopedLock lock((*channel_).request_mutex);
     const ContentRequest result = (*channel_).request;
     return result;
 }

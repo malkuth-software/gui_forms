@@ -4,6 +4,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -33,7 +34,7 @@ DispatchOperation refused_operation(const std::shared_ptr<DispatcherState>& stat
 void revoke_invokes(RevocableInvokes& invokes) noexcept {
     std::shared_ptr<DispatchWork> waiting;
     {
-        std::scoped_lock lock(invokes.mutex);
+        const stxlib::ScopedLock lock(invokes.mutex);
         invokes.revoked = true;
         waiting = invokes.waiting.lock();
         invokes.waiting.reset();
@@ -83,7 +84,7 @@ PostOutcome post_dispatch_outcome(const std::shared_ptr<DispatcherState>& state,
 
     std::shared_ptr<DispatchWork> work;
     {
-        std::scoped_lock lock((*state).mutex);
+        const stxlib::ScopedLock lock((*state).mutex);
         // A closed window: its dispatcher shut down, or its teardown began
         // (which removes the host wake, so marshalled work could never run).
         // WindowDispatcher asks for the refusal in both cases; Window's own
@@ -114,7 +115,7 @@ PostOutcome post_dispatch_outcome(const std::shared_ptr<DispatcherState>& state,
         if (revocable != nullptr) {
             // Under the leaf lock, so a revocation either sees this work as
             // waiting or this post sees the revocation.
-            std::scoped_lock revocable_lock((*revocable).mutex);
+            const stxlib::ScopedLock revocable_lock((*revocable).mutex);
             if ((*revocable).revoked) {
                 ++(*state).cancelled;
                 operation = refused_operation(state);

@@ -25,7 +25,6 @@
 #include <memory>
 #include <stop_token>
 #include <string>
-#include <thread>
 
 namespace gui_forms {
 
@@ -134,7 +133,7 @@ public:
 
 private:
     std::shared_ptr<detail::ContentWorkerShared> shared_;
-    // The worker's thread (a pthread on POSIX, std::thread on Windows);
+    // The worker's thread (an STXlib thread on every host);
     // null only when the constructor threw.
     std::unique_ptr<detail::ContentWorkerThread> thread_;
 };

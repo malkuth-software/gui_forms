@@ -1,10 +1,11 @@
 #include "splash_baker.hpp"
-#include "../../thread_records/thread_records_end.hpp"
+#include "../../threading/start_thread.hpp"
 
 #include <algorithm>
 #include <cstddef>
 #include <exception>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -20,22 +21,28 @@ std::uint64_t installations{};
 SplashBaker::SplashBaker(std::unique_ptr<SplashBakeRasterFactory> factory) : factory_(std::move(factory)) {
     if (!factory_) throw std::invalid_argument("SplashBaker requires a raster factory");
     // Started last, when every member it reads exists.
-    worker_ = std::thread(WorkerEntry{this});
+    worker_ = start_library_thread(&SplashBaker::worker_main, this, "SplashBaker could not start its worker");
 }
 
 SplashBaker::~SplashBaker() {
     {
-        const std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         stopping_ = true;
     }
     wake_.notify_all();
-    if (worker_.joinable()) worker_.join();
+    join_library_thread(worker_);
 }
 
-void SplashBaker::WorkerEntry::operator()() const {
-    // Closes last: the thread's records are released here, on the thread.
-    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
-    (*baker).run();
+void SplashBaker::worker_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+    // The baker's own stopping_ ends the loop; STXlib ends the thread's
+    // records after this returns.
+    static_cast<void>(stop);
+    (*static_cast<SplashBaker*>(context)).run();
+}
+
+bool SplashBaker::work_or_stop(const void* const context) noexcept {
+    const SplashBaker& baker = *static_cast<const SplashBaker*>(context);
+    return baker.stopping_ || !baker.waiting_.empty();
 }
 
 SplashBakeTicket SplashBaker::submit(std::shared_ptr<const DisplaySnapshot> snapshot) {
@@ -43,7 +50,7 @@ SplashBakeTicket SplashBaker::submit(std::shared_ptr<const DisplaySnapshot> snap
     const SplashBakeTicket ticket{next_ticket_};
     ++next_ticket_;
     {
-        const std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (waiting_.size() >= maximum_waiting_bakes) {
             refused_.push_back(waiting_.front().ticket);
             waiting_.pop_front();
@@ -59,7 +66,7 @@ SplashBakeTicket SplashBaker::submit(std::shared_ptr<const DisplaySnapshot> snap
 
 SplashBakeOutcome SplashBaker::take(const SplashBakeTicket ticket) {
     SplashBakeOutcome outcome{};
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (std::size_t index = 0U; index < finished_.size(); ++index) {
         if (!(finished_[index].ticket == ticket)) continue;
         outcome.raster = std::move(finished_[index].raster);
@@ -117,27 +124,31 @@ void SplashBaker::run() {
     } catch (const std::exception&) {
         raster.reset();
     }
-    std::unique_lock<std::mutex> lock(mutex_);
     while (true) {
-        while (!stopping_ && waiting_.empty()) wake_.wait(lock);
-        if (stopping_) break;
-        Job job = std::move(waiting_.front());
-        waiting_.pop_front();
-        painting_ = job.ticket.value;
-        lock.unlock();
+        Job job{};
+        {
+            stxlib::ScopedLock lock(mutex_);
+            wake_.wait(lock, &SplashBaker::work_or_stop, this);
+            if (stopping_) {
+                // Dropped work reads refused; nothing waits on it after the
+                // join.
+                waiting_.clear();
+                break;
+            }
+            job = std::move(waiting_.front());
+            waiting_.pop_front();
+            painting_ = job.ticket.value;
+        }
         std::shared_ptr<const PartRaster> baked = paint(raster.get(), job);
         // The snapshot is released here, off the lock.
         job.snapshot.reset();
-        lock.lock();
+        const stxlib::ScopedLock lock(mutex_);
         painting_ = 0U;
         Done done{};
         done.ticket = job.ticket;
         done.raster = std::move(baked);
         publish_locked(std::move(done));
     }
-    // Dropped work reads refused; nothing waits on it after the join.
-    waiting_.clear();
-    lock.unlock();
     raster.reset();
 }
 

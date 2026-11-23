@@ -40,7 +40,6 @@
 #include <limits>
 #include <memory>
 #include <map>
-#include <mutex>
 #include <optional>
 #include <stxlib/optional.hpp>
 #include <span>

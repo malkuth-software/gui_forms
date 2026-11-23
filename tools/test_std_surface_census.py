@@ -58,6 +58,18 @@ class StdSurfaceCensusTests(unittest.TestCase):
         self.assertEqual(counts["shared_ptr"], 1)
         self.assertEqual(counts["span"], 0)
 
+    def test_counts_the_shield_names(self) -> None:
+        text = ("std::thread worker; std::thread::id owner; std::mutex lock; std::stop_token stop;\n"
+                "std::filesystem::path where; std::ifstream in; std::condition_variable_any other;\n")
+        counts = std_surface_census.count_text(text)
+        self.assertEqual(counts["thread"], 2)
+        self.assertEqual(counts["mutex"], 1)
+        self.assertEqual(counts["stop_token"], 1)
+        self.assertEqual(counts["filesystem"], 1)
+        self.assertEqual(counts["ifstream"], 1)
+        self.assertEqual(counts["fstream"], 0)
+        self.assertEqual(counts["condition_variable"], 0)
+
     def test_census_sums_headers_and_excludes_the_c_abi(self) -> None:
         counts = std_surface_census.census(self.surface)
         self.assertEqual(counts["optional"].occurrences, 3)

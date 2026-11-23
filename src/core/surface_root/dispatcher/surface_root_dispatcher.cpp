@@ -7,6 +7,7 @@
 
 #include <algorithm>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -15,7 +16,7 @@ namespace gui_forms {
 namespace {
 void record_inline_invoke(
     const std::shared_ptr<detail::DispatcherState>& state) {
-    std::scoped_lock lock((*state).mutex);
+    const stxlib::ScopedLock lock((*state).mutex);
     if (!(*state).accepting) {
         throw std::logic_error("GUI.Forms dispatcher is shut down");
     }
@@ -86,7 +87,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
 
     std::vector<std::shared_ptr<detail::DispatchWork>> turn;
     {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         (*dispatcher_state_).wake_pending = false;
         const std::size_t count = std::min(
             maximum_callbacks, (*dispatcher_state_).queue.size());
@@ -146,7 +147,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
     }
 
     {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         (*dispatcher_state_).invoked += result.invoked;
         (*dispatcher_state_).cancelled += result.cancelled;
         (*dispatcher_state_).faulted += result.faulted;
@@ -179,7 +180,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
 
 DispatcherSnapshot SurfaceRoot::dispatcher_snapshot() const noexcept {
     if (!dispatcher_state_) return {};
-    std::scoped_lock lock((*dispatcher_state_).mutex);
+    const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
     return {
         (*dispatcher_state_).posted,
         (*dispatcher_state_).invoked,
@@ -201,7 +202,7 @@ DispatcherSnapshot SurfaceRoot::dispatcher_snapshot() const noexcept {
 void SurfaceRoot::set_dispatch_wake_handler(std::function<void()> wake_handler) {
     require_root_thread("dispatcher wake-handler mutation");
     {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         if (!wake_handler) {
             bool synchronous_waiter{};
             for (const std::shared_ptr<detail::DispatchWork>& work :
@@ -230,7 +231,7 @@ void SurfaceRoot::set_dispatch_wake_handler(std::function<void()> wake_handler) 
 
 void SurfaceRoot::begin_dispatcher_teardown() noexcept {
     if (!dispatcher_state_) return;
-    std::scoped_lock lock((*dispatcher_state_).mutex);
+    const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
     (*dispatcher_state_).closing = true;
     // No host is woken from here on: the host may be going too. Work posted
     // during the teardown is queued and then cancelled by the shutdown that
@@ -243,7 +244,7 @@ void SurfaceRoot::close_dispatcher() noexcept {
     if (!dispatcher_state_) return;
     std::deque<std::shared_ptr<detail::DispatchWork>> pending;
     {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         if (!(*dispatcher_state_).accepting) return;
         (*dispatcher_state_).accepting = false;
         (*dispatcher_state_).wake_pending = false;
@@ -262,7 +263,7 @@ void SurfaceRoot::close_dispatcher() noexcept {
         }
     }
     if (cancelled != 0U) {
-        std::scoped_lock lock((*dispatcher_state_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         (*dispatcher_state_).cancelled += cancelled;
     }
 }

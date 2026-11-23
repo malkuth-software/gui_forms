@@ -8,14 +8,15 @@
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "../../../platform/library_files.hpp"
 #include "../application/linux_host_internal.hpp"
 #include <algorithm>
 #include <cctype>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 namespace gui_forms::host::linux_detail {
 namespace {
@@ -136,26 +137,20 @@ struct DialogState final {
     done = true;
   }
   void refresh(std::filesystem::path destination) {
-    std::error_code error;
-    destination = std::filesystem::absolute(destination, error);
-    if (error || !std::filesystem::is_directory(destination, error)) {
+    destination = platform::absolute_path(destination);
+    if (destination.empty() || !platform::names_directory(destination)) {
       (*status).text = "Choose an existing folder.";
       return;
     }
     directory = destination.lexically_normal();
     (*location).text = directory.string();
     entries.clear();
-    const std::filesystem::directory_iterator end;
-    std::filesystem::directory_iterator iterator(
-        directory, std::filesystem::directory_options::skip_permission_denied,
-        error);
-    for (; !error && iterator != end; iterator.increment(error)) {
-      const std::filesystem::directory_entry &item = *iterator;
-      const bool is_directory = item.is_directory(error);
-      if (error) {
-        error.clear();
-        continue;
-      }
+    // A folder that cannot be listed (refused, gone) shows empty, with a
+    // note in the status line.
+    std::vector<platform::ListedEntry> listed;
+    const bool listing_read = platform::list_directory_entries(directory, listed);
+    for (const platform::ListedEntry &item : listed) {
+      const bool is_directory = item.kind == stxlib::FileKind::directory;
       bool show = is_directory || !folder;
       const stxlib::Optional<std::size_t> chosen_filter =
           filter ? (*filter).selected_index.read() : stxlib::Optional<std::size_t>::none();
@@ -165,10 +160,10 @@ struct DialogState final {
             filters[*chosen_filter.value()];
         // Case-insensitive, so *.png lists photo.PNG.
         show = file_dialog_filter_matches(selected,
-                                          item.path().filename().string());
+                                          item.path.filename().string());
       }
       if (show)
-        entries.push_back({item.path(), is_directory});
+        entries.push_back({item.path, is_directory});
     }
     std::sort(entries.begin(), entries.end(), EntryLess{});
     std::vector<std::string> names;
@@ -176,7 +171,7 @@ struct DialogState final {
       names.push_back(entries[i].path.filename().string() +
                       (entries[i].directory ? "/" : ""));
     (*list).items = std::move(names);
-    (*status).text = error ? error.message() : "";
+    (*status).text = listing_read ? "" : "This folder cannot be listed.";
   }
   void activate(std::size_t index) {
     if (index >= entries.size())
@@ -218,7 +213,6 @@ struct DialogState final {
       done = true;
       return;
     }
-    std::error_code error;
     std::vector<std::string> paths;
     std::filesystem::path candidate =
         (*name).text.read().empty() ? directory
@@ -226,7 +220,7 @@ struct DialogState final {
     if (candidate.is_relative())
       candidate = directory / candidate;
     candidate = candidate.lexically_normal();
-    if (std::filesystem::is_directory(candidate, error)) {
+    if (platform::names_directory(candidate)) {
       if (!folder) {
         refresh(candidate);
         return;
@@ -240,11 +234,12 @@ struct DialogState final {
         candidate += default_extension.front() == '.' ? default_extension
                                                       : "." + default_extension;
       if (check_path_exists &&
-          !std::filesystem::is_directory(candidate.parent_path(), error)) {
+          !platform::names_directory(candidate.parent_path())) {
         (*status).text = "The destination folder does not exist.";
         return;
       }
-      const bool exists = std::filesystem::exists(candidate, error);
+      const bool exists =
+          platform::file_information(candidate, stxlib::LinkMode::follow).has_value();
       if (!exists && check_file_exists) {
         (*status).text = "Choose an existing file.";
         return;
@@ -285,12 +280,11 @@ struct DialogState final {
         for (std::size_t i = 0; i < selected.size(); ++i)
           if (selected[i] < entries.size() && !entries[selected[i]].directory)
             paths.push_back(entries[selected[i]].path.string());
-      } else if (std::filesystem::is_regular_file(candidate, error)) {
+      } else if (platform::names_regular_file(candidate)) {
         paths.push_back(candidate.string());
       } else if (!check_file_exists && !(*name).text.read().empty() &&
                  (!check_path_exists ||
-                  std::filesystem::is_directory(candidate.parent_path(),
-                                                error))) {
+                  platform::names_directory(candidate.parent_path()))) {
         // A typed name of a file that does not exist, where the request
         // allows one (CheckFileExists off).
         paths.push_back(candidate.string());
@@ -600,8 +594,7 @@ HostDialogResult retained_dialog(NativeWindow &owner,
     std::filesystem::path start =
         initial.empty() ? std::filesystem::path(home == nullptr ? "/" : home)
                         : std::filesystem::path(initial);
-    std::error_code error;
-    if (!std::filesystem::is_directory(start, error))
+    if (!platform::names_directory(start))
       start = "/";
     state.refresh(start);
     state.result.payload = HostPathDialogResult{};

@@ -6,8 +6,7 @@
 #include <atomic>
 #include <deque>
 #include <functional>
-#include <mutex>
-#include <thread>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::detail {
 
@@ -31,12 +30,12 @@ struct DispatchWork final {
 struct DispatcherState final {
     using Queue = std::deque<std::shared_ptr<DispatchWork>>;
 
-    explicit DispatcherState(std::thread::id thread) : ui_thread(thread) {}
+    explicit DispatcherState(stxlib::ThreadIdentity thread) : ui_thread(thread) {}
 
-    mutable std::mutex mutex;
+    mutable stxlib::Mutex mutex;
     Queue queue;
     std::function<void()> wake;
-    std::thread::id ui_thread;
+    stxlib::ThreadIdentity ui_thread;
     std::uint64_t next_sequence{1U};
     std::uint64_t posted{};
     std::uint64_t invoked{};
@@ -70,7 +69,7 @@ struct DispatcherState final {
 // lock: post_dispatch takes it under a dispatcher's, and nothing is taken
 // under it.
 struct RevocableInvokes final {
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     bool revoked{};
     // The synchronous invoke this thread queued last; expired or terminal
     // once it ran.

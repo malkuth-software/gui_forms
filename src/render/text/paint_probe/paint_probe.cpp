@@ -2,6 +2,7 @@
 
 #include <stxlib/glyph_face.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 #include <stxlib/types.hpp>
 #include <stxlib/view.hpp>
 
@@ -149,13 +150,13 @@ Status rasterize(const Prepared& prepared, const FontSet& pinned, PainterFaces& 
 } // namespace
 
 Painter::Painter(std::shared_ptr<const worker_probe::FontSet> pinned_fonts)
-    : pinned_fonts_(std::move(pinned_fonts)), executor_(std::this_thread::get_id()) {
+    : pinned_fonts_(std::move(pinned_fonts)), executor_(stxlib::current_thread()) {
     if (!pinned_fonts_) { throw std::invalid_argument("Paint requires pinned fonts"); }
 }
 
 Status Painter::paint(const worker_probe::Prepared& prepared, const worker_probe::Identity& expected,
                       std::uint64_t authority_epoch) {
-    if (std::this_thread::get_id() != executor_) { return Status::stale; }
+    if (stxlib::current_thread() != executor_) { return Status::stale; }
     if (!worker_probe::same_identity(prepared.identity, expected) ||
         authority_epoch == 0 || prepared.authority_epoch != authority_epoch) { return Status::stale; }
     if (!valid_font_spec(expected.font) || expected.scale != 1.0 || expected.wrap_width != 0.0 ||

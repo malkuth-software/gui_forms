@@ -10,7 +10,8 @@
 #include <functional>
 #include <optional>
 #include <stdexcept>
-#include <thread>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -82,7 +83,7 @@ bool post_from_worker(const BackgroundWorkerRun& run, BackgroundWorkerDelivery d
                                                           operation);
         if (outcome == PostOutcome::posted) return true;
         if (outcome != PostOutcome::queue_full || !wait_for_room) return false;
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(1));
     }
 }
 
@@ -206,7 +207,7 @@ void BackgroundWorker::run_worker_async(BindingValue argument) {
     require_ui("BackgroundWorker start");
     if (is_busy()) throw std::logic_error("GUI.Forms BackgroundWorker is already running");
     {
-        std::scoped_lock lock((*dispatcher_).mutex);
+        const stxlib::ScopedLock lock((*dispatcher_).mutex);
         if (!(*dispatcher_).accepting) {
             throw std::logic_error("GUI.Forms BackgroundWorker cannot start after its dispatcher shut down");
         }

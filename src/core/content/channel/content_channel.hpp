@@ -20,11 +20,10 @@
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 
 #include <atomic>
-#include <condition_variable>
 #include <cstdint>
 #include <memory>
-#include <mutex>
 #include <stop_token>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::detail {
 
@@ -60,18 +59,18 @@ struct ContentChannel final {
     std::atomic<std::uint64_t> recoveries{};
     std::atomic<std::uint8_t> last_refusal{static_cast<std::uint8_t>(ContentPublishResult::published)};
 
-    std::mutex publish_mutex;
+    stxlib::Mutex publish_mutex;
     // The size of the surface's buffers as the last publisher left them.
     ContentPixelSize published_size{};
 
-    mutable std::mutex request_mutex;
-    mutable std::condition_variable request_changed;
+    mutable stxlib::Mutex request_mutex;
+    mutable stxlib::ConditionVariable request_changed;
     ContentRequest request{};
     // The cooperative stop of the content's operation (ContentSurface::
     // terminate, ContentWorker::request_stop): set once, never cleared.
     std::stop_source stop{};
 
-    std::mutex semantics_mutex;
+    stxlib::Mutex semantics_mutex;
     ContentSemantics semantics{};
     std::uint64_t semantics_generation{};
     // Whether a notice is posted and not yet taken.

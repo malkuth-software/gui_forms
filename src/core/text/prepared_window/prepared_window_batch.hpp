@@ -1,12 +1,14 @@
 #pragma once
 #include "prepared_window_input.hpp"
 
+#include <stxlib/threads.hpp>
+
 namespace gui_forms::detail {
 // Private admission state, confined to the recorded executor for desire and
 // admission. The mutex also permits closing/revocation by the lifetime owner.
 struct PreparedWindowBatchAuthority final {
-    std::mutex mutex{};
-    std::thread::id executor{std::this_thread::get_id()};
+    stxlib::Mutex mutex{};
+    stxlib::ThreadIdentity executor{stxlib::current_thread()};
     std::optional<PreparedWindowKey> desired{};
     // Revoking desired must not erase lifetime identity or permit epoch reuse.
     std::uint64_t controller_instance{};

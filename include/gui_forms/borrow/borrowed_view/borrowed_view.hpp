@@ -77,6 +77,7 @@
 #include <cstdint>
 #include <span>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -87,7 +88,6 @@
 #include <iterator>
 #include <memory>
 #include <ranges>
-#include <thread>
 #endif
 
 #if GUI_FORMS_CHECKED_BORROWS
@@ -179,7 +179,7 @@ inline void require_current(const BorrowStamp& stamp) noexcept {
         fail_borrow(stamp, BorrowFault::structurally_invalidated);
     }
     const bool any_thread = stamp.thread == ThreadId();
-    if (!any_thread && std::this_thread::get_id() != stamp.thread) fail_borrow(stamp, BorrowFault::wrong_thread);
+    if (!any_thread && stxlib::current_thread() != stamp.thread) fail_borrow(stamp, BorrowFault::wrong_thread);
 }
 
 // The owner-state of one lending storage (ruling 5: a shared record). An

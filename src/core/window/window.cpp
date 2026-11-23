@@ -32,7 +32,7 @@
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <unordered_set>
 
@@ -3032,7 +3032,7 @@ void SurfaceRoot::attach_subtree_state(const Control::Ptr& control,
     // A request deferred while detached commits in this root's passes.
     if ((*control).layout_deferred_) list_layout_deferred(*control);
     {
-        std::scoped_lock lock((*control).dispatcher_mutex_);
+        const stxlib::ScopedLock lock((*control).dispatcher_mutex_);
         (*control).dispatcher_state_ = dispatcher_state_;
     }
     (*control).parent_ = parent;
@@ -3068,7 +3068,7 @@ void SurfaceRoot::detach_subtree_state(const Control::Ptr& control,
     control_table_.release((*control).surface_slot_);
     (*control).surface_slot_ = {};
     {
-        std::scoped_lock lock((*control).dispatcher_mutex_);
+        const stxlib::ScopedLock lock((*control).dispatcher_mutex_);
         (*control).dispatcher_state_.reset();
     }
     for (const Control::Ptr& child : (*control).children_) {
@@ -3098,7 +3098,7 @@ void SurfaceRoot::forget_destroyed_subtree(Control& root) noexcept {
         control.window_ = nullptr;
         control.surface_root_ = nullptr;
         {
-            std::scoped_lock lock(control.dispatcher_mutex_);
+            const stxlib::ScopedLock lock(control.dispatcher_mutex_);
             control.dispatcher_state_.reset();
         }
     }
@@ -3165,7 +3165,7 @@ void SurfaceRoot::attach_subtree(const Control::Ptr& control, const Control::Wea
             control_table_.release((*(*current)).surface_slot_);
             (*(*current)).surface_slot_ = {};
             {
-                std::scoped_lock lock((*(*current)).dispatcher_mutex_);
+                const stxlib::ScopedLock lock((*(*current)).dispatcher_mutex_);
                 (*(*current)).dispatcher_state_.reset();
             }
         }

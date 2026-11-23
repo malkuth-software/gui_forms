@@ -8,6 +8,8 @@
 #include "timing-and-tooltips_form.hpp"
 
 #include <array>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::gallery::pages {
@@ -145,7 +147,7 @@ void TimingPage::count_in_background(BackgroundWorkerTask& task) {
             return;
         }
         task.report_progress(percent);
-        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(60));
     }
     task.set_result(BindingValue{std::string("Counted to 100")});
 }

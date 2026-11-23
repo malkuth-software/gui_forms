@@ -19,7 +19,7 @@
 #include <exception>
 #include <new>
 #include <span>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -227,8 +227,8 @@ std::uint32_t finish_bake_pool_threads(const std::uint32_t requested) noexcept {
 #else
     std::uint32_t threads = requested;
     if (threads == 0U) {
-        const unsigned int hardware = std::thread::hardware_concurrency();
-        threads = hardware > 1U ? static_cast<std::uint32_t>(hardware - 1U) : 0U;
+        const std::uint32_t hardware = stxlib::processor_count();
+        threads = hardware > 1U ? hardware - 1U : 0U;
     }
     threads = std::min(threads, maximum_finish_bake_threads);
     const std::uint32_t pooled = threads < 2U ? 0U : threads;

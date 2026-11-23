@@ -29,16 +29,18 @@
 #include "gui_forms/capture/offscreen_raster/offscreen_raster.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/window.hpp"
+#include "../src/platform/library_files.hpp"
 
 #include <chrono>
 #include <cstddef>
 #include <cstdio>
 #include <filesystem>
-#include <fstream>
 #include <memory>
 #include <optional>
 #include <string>
 #include <string_view>
+#include <stxlib/files.hpp>
+#include <stxlib/result.hpp>
 #include <vector>
 
 namespace gui_forms::gallery {
@@ -97,11 +99,13 @@ inline bool engine_work_waiting(const Window& window) {
 // Writes `bytes` to `path`, replacing the file. False when it cannot be
 // opened or written whole.
 inline bool write_file(const std::string& path, const std::vector<std::byte>& bytes) {
-    std::ofstream file(path, std::ios::binary | std::ios::trunc);
-    if (!file.is_open()) return false;
-    file.write(reinterpret_cast<const char*>(bytes.data()), static_cast<std::streamsize>(bytes.size()));
-    file.close();
-    const bool written = !file.fail();
+    stxlib::OperationResult<stxlib::File> opened =
+        platform::open_file(std::filesystem::path(path), stxlib::FileMode::replace);
+    if (opened.failed()) return false;
+    stxlib::File& file = *opened.value();
+    const stxlib::OperationStatus wrote = file.write_all(platform::stxlib_bytes(bytes));
+    const stxlib::OperationStatus closed = file.close();
+    const bool written = wrote.succeeded() && closed.succeeded();
     return written;
 }
 

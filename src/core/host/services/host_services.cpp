@@ -10,6 +10,7 @@
 #include <atomic>
 #include <new>
 #include <sstream>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <unordered_set>
 
@@ -286,7 +287,7 @@ bool valid_dialog_result(const HostDialogRequest& request,
 
 } // namespace
 HostServices::HostServices(HostCapabilities capabilities)
-    : ui_thread_(std::this_thread::get_id()) {
+    : ui_thread_(stxlib::current_thread()) {
     snapshot_.capabilities = std::move(capabilities);
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
     // The services this build does not compile are never reported, whatever
@@ -350,7 +351,7 @@ HostWindowCornersResult HostServices::apply_window_corners_impl(WindowCornerPref
 
 HostWindowChromeResult HostServices::apply_window_chrome(const WindowChrome& chrome, WindowChromeFields fields) {
     HostWindowChromeResult result{};
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         result.status = reject(HostServiceError::wrong_thread);
         return result;
     }
@@ -384,7 +385,7 @@ HostWindowChromeResult HostServices::apply_window_chrome_impl(const WindowChrome
 
 HostServiceStatus HostServices::validate_request(HostCapability capability) noexcept {
     HostServiceStatus status;
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         status.error = HostServiceError::wrong_thread;
         return status;
     } else if (snapshot_.shutdown) {
@@ -813,7 +814,7 @@ HostAutoCompleteResult HostServices::query_auto_complete(const HostAutoCompleteR
     HostAutoCompleteResult result;
     // No capability flag names these sources yet; the adapter's own answer
     // (unsupported by default) is the capability report.
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         result.status.error = HostServiceError::wrong_thread;
     } else if (snapshot_.shutdown) {
         result.status.error = HostServiceError::after_shutdown;
@@ -1155,7 +1156,7 @@ HostTrayMenuResult HostServices::show_tray_menu(HostTrayIconId icon_id, const Ho
 }
 
 bool HostServices::publish_dialog_help(const HostDialogHelpEvent& event) {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) return false;
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_) return false;
     const bool open = std::find(modal_stack_.begin(), modal_stack_.end(), event.request_id) != modal_stack_.end();
     if (!open) return false;
     dialog_help_requested_.emit(event);
@@ -1163,7 +1164,7 @@ bool HostServices::publish_dialog_help(const HostDialogHelpEvent& event) {
 }
 
 void HostServices::publish_tray_icon_event(const HostTrayIconEvent& event) {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_ || !tray_icon_live(event.icon_id)) return;
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_ || !tray_icon_live(event.icon_id)) return;
     ++snapshot_.tray_events;
     tray_icon_events_.emit(event);
 }
@@ -1189,7 +1190,7 @@ HostTrayMenuResult HostServices::show_tray_menu_impl(HostTrayIconId, const HostT
 }
 
 void HostServices::shutdown() noexcept {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) {
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_) {
         return;
     }
     revoke_cursor_interaction(CursorError::closing);

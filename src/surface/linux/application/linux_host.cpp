@@ -15,13 +15,13 @@
 #include "../locale/posix_locale.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
-#include <thread>
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shapeconst.h>
+#include <stxlib/threads.hpp>
 #if defined(GUI_FORMS_HAVE_XRANDR)
 #include <X11/extensions/Xrandr.h>
 #endif
@@ -39,7 +39,6 @@
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <limits>
 #include <optional>
@@ -70,9 +69,9 @@ bool superseded_motion(Display *display, const XEvent &event) {
 }
 struct WindowTitle final {
   std::weak_ptr<NativeWindow> owner{};
-  const std::thread::id thread{std::this_thread::get_id()};
+  const stxlib::ThreadIdentity thread{stxlib::current_thread()};
   HostServiceStatus operator()(const std::string_view text) const {
-    if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+    if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
     const std::shared_ptr<NativeWindow> window = owner.lock();
     if (!window || (*window).closed) return {HostServiceError::after_shutdown};
     try {
@@ -159,9 +158,9 @@ bool window_state_fixed(NativeWindow& window) {
 // ConfigureNotify, which resizes the model on a later event.
 struct WindowClientSize final {
   std::weak_ptr<NativeWindow> owner{};
-  const std::thread::id thread{std::this_thread::get_id()};
+  const stxlib::ThreadIdentity thread{stxlib::current_thread()};
   HostServiceStatus operator()(const Size client_size) const {
-    if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+    if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
     const std::shared_ptr<NativeWindow> window = owner.lock();
     if (!window || (*window).closed) return {HostServiceError::after_shutdown};
     try {
@@ -964,7 +963,7 @@ void Wake::operator()() const noexcept {
 }
 void ActionQueue::post(Action action) {
   {
-    const std::lock_guard<std::mutex> guard(mutex);
+    const stxlib::ScopedLock guard(mutex);
     pending.push_back(std::move(action));
   }
   wake();
@@ -2364,7 +2363,7 @@ void Runtime::step(int maximum_wait) {
   }
   std::deque<Action> queued;
   {
-    const std::lock_guard<std::mutex> guard((*actions).mutex);
+    const stxlib::ScopedLock guard((*actions).mutex);
     queued.swap((*actions).pending);
   }
   for (std::size_t i = 0; i < queued.size(); ++i) {

@@ -13,6 +13,7 @@
 #include <stxlib/optional.hpp>
 #include <atomic>
 #include <cstdio>
+#include <stxlib/threads.hpp>
 
 #include <stdexcept>
 #include <string>
@@ -31,7 +32,7 @@ bool listed(const std::vector<SurfaceRoot*>& windows, const SurfaceRoot* window)
 } // namespace
 
 ApplicationResources::ApplicationResources(ImageRegistryLimits limits)
-    : ui_thread_(std::this_thread::get_id()),
+    : ui_thread_(stxlib::current_thread()),
       images_(limits),
       theme_(default_theme()),
       program_theme_(theme_) {}

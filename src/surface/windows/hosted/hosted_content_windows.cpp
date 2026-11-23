@@ -61,6 +61,7 @@
 
 #include "gui_forms/content/hosted/hosted_content.hpp"
 
+#include <stxlib/threads.hpp>
 #include <windows.h>
 
 #include <algorithm>
@@ -71,7 +72,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <mutex>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -93,7 +93,7 @@ namespace detail {
 // carrying out (whole messages, in order), untouched while `writing`;
 // `backlog` holds the whole messages queued behind it.
 struct HostedInputState final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     HANDLE channel{};
     HANDLE write_event{};
     OVERLAPPED write_overlapped{};
@@ -293,13 +293,13 @@ bool enqueue_locked(detail::HostedInputState& state, std::span<const std::byte> 
 
 // Moves the writes along without waiting. False when the channel is broken.
 bool pump_writes(detail::HostedInputState& state) {
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const bool healthy = finish_write_locked(state);
     return healthy;
 }
 
 bool write_in_flight(detail::HostedInputState& state) {
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const bool writing = state.writing;
     return writing;
 }
@@ -864,7 +864,7 @@ struct ChildGuard final {
 };
 
 void WindowsHostedProgram::connect_input(HANDLE channel, HANDLE write_event) {
-    const std::scoped_lock lock((*input_).mutex);
+    const stxlib::ScopedLock lock((*input_).mutex);
     (*input_).channel = channel;
     (*input_).write_event = write_event;
     (*input_).writing = false;
@@ -873,7 +873,7 @@ void WindowsHostedProgram::connect_input(HANDLE channel, HANDLE write_event) {
 }
 
 void WindowsHostedProgram::disconnect_input() noexcept {
-    const std::scoped_lock lock((*input_).mutex);
+    const stxlib::ScopedLock lock((*input_).mutex);
     cancel_write_locked(*input_);
     (*input_).channel = nullptr;
     (*input_).write_event = nullptr;
@@ -887,7 +887,7 @@ bool WindowsHostedProgram::queue_control(HostedMessageKind kind, std::span<const
     append_hosted_message(outgoing_, kind, payload);
     bool stalled = false;
     {
-        const std::scoped_lock lock((*input_).mutex);
+        const stxlib::ScopedLock lock((*input_).mutex);
         const bool queued = enqueue_locked(*input_, outgoing_, false);
         stalled = !queued && (*input_).channel != nullptr &&
                   (*input_).backlog.size() > hosted_input_backlog_hard_limit;
@@ -1136,7 +1136,7 @@ bool HostedInput::send(HostedMessageKind kind, std::span<const std::byte> payloa
     append_hosted_message(message, kind, payload);
     bool queued = false;
     {
-        const std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         if ((*state_).connected.load(std::memory_order_acquire)) queued = enqueue_locked(*state_, message, droppable);
     }
     if (!queued) (*state_).dropped.fetch_add(1U, std::memory_order_relaxed);

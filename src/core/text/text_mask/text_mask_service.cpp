@@ -1,11 +1,13 @@
 #include "text_mask_state.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "../../threading/start_thread.hpp"
 #include <cstring>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 namespace {
 TextMaskResult executor_result(const detail::TextMaskSessionState& state) noexcept {
-    if (state.executor != std::this_thread::get_id()) return {TextMaskStatus::wrong_executor};
+    if (state.executor != stxlib::current_thread()) return {TextMaskStatus::wrong_executor};
     if (state.joined) return {TextMaskStatus::closed};
     if (state.closing) return {TextMaskStatus::closing};
     return {TextMaskStatus::success};
@@ -33,7 +35,7 @@ TextMaskService::TextMaskService() {
     const detail::MaskAllocator<detail::TextMaskServiceState> allocator(ledger);
     state_ = std::allocate_shared<detail::TextMaskServiceState>(allocator);
     (*state_).ledger = std::move(ledger);
-    (*state_).executor = std::this_thread::get_id();
+    (*state_).executor = stxlib::current_thread();
     (*state_).backend = &detail::native_mask_backend();
 }
 TextMaskService::~TextMaskService() { close_service(*state_, true); }
@@ -48,7 +50,7 @@ void TextMaskService::begin_close() {
 TextMaskResult TextMaskService::create_font_bank(const std::span<const PreparedFontSource> sources,
     EncodedFontLease& output) {
     detail::TextMaskServiceState& state = *state_;
-    if (state.executor != std::this_thread::get_id()) return {TextMaskStatus::wrong_executor};
+    if (state.executor != stxlib::current_thread()) return {TextMaskStatus::wrong_executor};
     if (state.closing) return {TextMaskStatus::closing};
     if (sources.empty() || sources.size() > 8) return {TextMaskStatus::invalid_input};
     std::size_t bytes = 0;
@@ -107,7 +109,7 @@ TextMaskResult TextMaskService::create_font_bank(const std::span<const PreparedF
         state.banks[available] = candidate;
         const std::shared_ptr<detail::TextMaskSessionState> session = state.session.lock();
         if (session) {
-            std::lock_guard<std::mutex> lock((*session).mutex);
+            const stxlib::ScopedLock lock((*session).mutex);
             (*session).banks = state.banks;
         }
         detail::PreparedTextAccess::fonts(output) = alias;
@@ -122,16 +124,16 @@ TextMaskResult TextMaskService::create_font_bank(const std::span<const PreparedF
 TextMaskResult TextMaskService::open_session(PreparedTextWakeTarget* const wake,
     std::unique_ptr<TextMaskSession>& output) {
     detail::TextMaskServiceState& state = *state_;
-    if (state.executor != std::this_thread::get_id()) return {TextMaskStatus::wrong_executor};
+    if (state.executor != stxlib::current_thread()) return {TextMaskStatus::wrong_executor};
     if (state.closing) return {TextMaskStatus::closing};
     if (output) {
         const std::shared_ptr<detail::TextMaskSessionState>& old_output = detail::TextMaskAccess::state(*output);
-        std::lock_guard<std::mutex> lock((*old_output).mutex);
+        const stxlib::ScopedLock lock((*old_output).mutex);
         if (!(*old_output).joined) return {TextMaskStatus::busy};
     }
     const std::shared_ptr<detail::TextMaskSessionState> previous = state.session.lock();
     if (previous) {
-        std::lock_guard<std::mutex> lock((*previous).mutex);
+        const stxlib::ScopedLock lock((*previous).mutex);
         if (!(*previous).joined) return {TextMaskStatus::busy};
     }
     try {
@@ -147,7 +149,8 @@ TextMaskResult TextMaskService::open_session(PreparedTextWakeTarget* const wake,
         session.handle_charge.reserve(state.ledger, detail::MaskResource::metadata, sizeof(TextMaskSession));
         std::unique_ptr<TextMaskSession> handle = detail::TextMaskAccess::session(candidate);
         session.handle_charge.commit();
-        session.worker = std::thread(&detail::TextMaskSessionState::run, candidate.get());
+        session.worker = detail::start_library_thread(&detail::TextMaskSessionState::thread_main, candidate.get(),
+                                                      "the text mask session could not start its worker");
         state.session = candidate;
         output = std::move(handle);
         return {TextMaskStatus::success};
@@ -168,7 +171,7 @@ std::unique_ptr<TextMaskSession> detail::TextMaskAccess::session(std::shared_ptr
 }
 TextMaskResult TextMaskSession::lookup(const EncodedFontLease& fonts, const TextMaskRequest& request, TextMaskLease& output) {
     detail::TextMaskSessionState& state = *state_;
-    std::lock_guard<std::mutex> lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     TextMaskResult result = executor_result(state);
     if (result.status != TextMaskStatus::success) return result;
     detail::MaskOptions options{};
@@ -183,7 +186,7 @@ TextMaskResult TextMaskSession::lookup(const EncodedFontLease& fonts, const Text
 }
 TextMaskResult TextMaskSession::submit(const EncodedFontLease& fonts, const TextMaskRequest& request, TextMaskRequestId& output) {
     detail::TextMaskSessionState& state = *state_;
-    std::lock_guard<std::mutex> lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     TextMaskResult result = executor_result(state);
     if (result.status != TextMaskStatus::success) return result;
     detail::MaskOptions options{};
@@ -242,7 +245,7 @@ TextMaskResult TextMaskSession::submit(const EncodedFontLease& fonts, const Text
 TextMaskSessionSnapshot TextMaskSession::snapshot() const {
     detail::TextMaskSessionState& state = *state_;
     detail::require_mask_executor(state.executor);
-    std::lock_guard<std::mutex> lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     state.wake_pending = false;
     TextMaskSessionSnapshot result{};
     result.closing = state.closing;
@@ -260,8 +263,8 @@ TextMaskSessionSnapshot TextMaskSession::snapshot() const {
 }
 TextMaskResult TextMaskSession::take(const TextMaskRequestId id, TextMaskLease& output) {
     detail::TextMaskSessionState& state = *state_;
-    if (state.executor != std::this_thread::get_id()) return {TextMaskStatus::wrong_executor};
-    std::lock_guard<std::mutex> lock(state.mutex);
+    if (state.executor != stxlib::current_thread()) return {TextMaskStatus::wrong_executor};
+    const stxlib::ScopedLock lock(state.mutex);
     detail::MaskSlot* slot = find_slot(state, id);
     if (slot == nullptr) return {TextMaskStatus::stale};
     if ((*slot).state == TextMaskSlot::retiring) return {TextMaskStatus::cancelled};
@@ -273,8 +276,8 @@ TextMaskResult TextMaskSession::take(const TextMaskRequestId id, TextMaskLease& 
 }
 TextMaskCancellation TextMaskSession::cancel(const TextMaskRequestId id) {
     detail::TextMaskSessionState& state = *state_;
-    if (state.executor != std::this_thread::get_id()) return {{TextMaskStatus::wrong_executor}};
-    std::lock_guard<std::mutex> lock(state.mutex);
+    if (state.executor != stxlib::current_thread()) return {{TextMaskStatus::wrong_executor}};
+    const stxlib::ScopedLock lock(state.mutex);
     detail::MaskSlot* slot = find_slot(state, id);
     if (slot == nullptr) return {{TextMaskStatus::stale}};
     if ((*slot).state == TextMaskSlot::running || (*slot).state == TextMaskSlot::retiring) {
@@ -291,7 +294,7 @@ TextMaskResult TextMaskSession::discard(const TextMaskRequestId id) {
 void TextMaskSession::clear_cache() {
     detail::TextMaskSessionState& state = *state_;
     detail::require_mask_executor(state.executor);
-    std::lock_guard<std::mutex> lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     state.clear_cache_locked();
 }
 void TextMaskSession::begin_close() { detail::require_mask_executor((*state_).executor); (*state_).close(); }

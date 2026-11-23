@@ -3,7 +3,7 @@
 #include "../buffer/live_surface_buffer.hpp"
 
 #include <atomic>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -47,7 +47,7 @@ bool LiveSurface::reconfigure(LiveSurfaceDescription description) {
     }
     std::vector<std::shared_ptr<detail::LiveSurfaceWake>> wakes;
     {
-        std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         if ((*state_).writing_slot != (*state_).buffers.size()) return false;
         if ((*state_).published_slot < (*state_).buffers.size()) {
             (*state_).carried = (*state_).buffers[(*state_).published_slot];
@@ -92,7 +92,7 @@ LiveSurfaceWriteLease LiveSurface::try_acquire_write(
     std::size_t reserved = 0U;
     std::uint64_t epoch = 0U;
     {
-        std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         if ((*state_).writing_slot != (*state_).buffers.size()) {
             ++(*state_).dropped_acquires;
             return {};
@@ -127,7 +127,7 @@ LiveSurfaceWriteLease LiveSurface::try_acquire_write(
 
 LiveSurfaceFrame LiveSurface::acquire_latest() const noexcept {
     if (!state_) return {};
-    std::scoped_lock lock((*state_).mutex);
+    const stxlib::ScopedLock lock((*state_).mutex);
     if ((*state_).published_slot >= (*state_).buffers.size()) {
         if (!(*state_).carried) return {};
         ++(*state_).read_acquires;
@@ -143,7 +143,7 @@ LiveSurfaceFrame LiveSurface::acquire_latest() const noexcept {
 
 LiveSurfaceFrame LiveSurface::acquire_for_presentation(const void* const presenter) noexcept {
     if (!state_) return {};
-    std::scoped_lock lock((*state_).mutex);
+    const stxlib::ScopedLock lock((*state_).mutex);
     if ((*state_).published_slot >= (*state_).buffers.size()) {
         if (!(*state_).carried) return {};
         // The carried frame is presented whole; the new epoch's region stays
@@ -181,7 +181,7 @@ std::uint64_t snapshot_content_tag(const detail::LiveSurfaceState& state) noexce
 
 LiveSurfaceSnapshot LiveSurface::snapshot() const noexcept {
     if (!state_) return {};
-    std::scoped_lock lock((*state_).mutex);
+    const stxlib::ScopedLock lock((*state_).mutex);
     return {(*state_).description, (*state_).epoch, (*state_).generation,
             (*state_).publishes, (*state_).dropped_acquires,
             (*state_).read_acquires, (*state_).last_read_generation,
@@ -197,7 +197,7 @@ LiveSurfaceWakeConnection LiveSurface::connect_presentation_wake(
     std::shared_ptr<gui_forms::detail::LiveSurfaceWake> connection = std::make_shared<detail::LiveSurfaceWake>();
     (*connection).callback = std::move(wake);
     {
-        std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         (*connection).sequence = (*state_).next_wake_sequence++;
         if ((*state_).next_wake_sequence == 0U) (*state_).next_wake_sequence = 1U;
         (*state_).wakes.push_back(connection);
@@ -209,13 +209,14 @@ void LiveSurface::notify_presented(const std::uint64_t generation, const LiveDis
     if (!state_) return;
     std::vector<std::shared_ptr<detail::LiveSurfaceWake>> wakes;
     {
-        std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         LivePresentationRecord& record = (*state_).presentation_record;
         // Generations only grow: a late report of an older frame keeps the
         // newer one, but still counts as a tick.
         if (generation > record.presented_generation) record.presented_generation = generation;
         record.timing = timing;
         ++record.presents;
+        ++(*state_).wake_sequence;
         wakes = (*state_).presented_wakes;
     }
     (*state_).presented.notify_all();
@@ -227,7 +228,7 @@ void LiveSurface::notify_presented(const std::uint64_t generation, const LiveDis
 
 LivePresentationRecord LiveSurface::presentation_record() const noexcept {
     if (!state_) return {};
-    std::scoped_lock lock((*state_).mutex);
+    const stxlib::ScopedLock lock((*state_).mutex);
     return (*state_).presentation_record;
 }
 
@@ -236,7 +237,7 @@ LiveSurfaceWakeConnection LiveSurface::connect_presented_wake(std::function<void
     std::shared_ptr<gui_forms::detail::LiveSurfaceWake> connection = std::make_shared<detail::LiveSurfaceWake>();
     (*connection).callback = std::move(wake);
     {
-        std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         (*connection).sequence = (*state_).next_wake_sequence++;
         if ((*state_).next_wake_sequence == 0U) (*state_).next_wake_sequence = 1U;
         (*state_).presented_wakes.push_back(connection);

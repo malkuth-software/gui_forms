@@ -15,7 +15,7 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms {
@@ -93,7 +93,7 @@ public:
     ApplicationResources& operator=(const ApplicationResources&) = delete;
 
     [[nodiscard]] bool check_access() const noexcept {
-        const bool same = std::this_thread::get_id() == ui_thread_;
+        const bool same = stxlib::current_thread() == ui_thread_;
         return same;
     }
     [[nodiscard]] const ImageRegistry& images() const noexcept { return images_; }

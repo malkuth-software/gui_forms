@@ -11808,14 +11808,14 @@ Functions, constants and aliases
 
    A point on the monotonic clock: intervals between two of them are meaningful, the points themselves are not times of day.
 
-.. cpp:type:: Thread = std::thread
+.. cpp:type:: Thread = stxlib::Thread
 
    A thread the library starts and joins (a sub-surface's).
 
-.. cpp:type:: Mutex = std::mutex
+.. cpp:type:: Mutex = stxlib::Mutex
 
    A mutual-exclusion lock.
 
-.. cpp:type:: ThreadId = std::thread::id
+.. cpp:type:: ThreadId = stxlib::ThreadIdentity
 
-   A thread's identity (an owner thread, a UI thread); default-constructed, no thread.
+   A thread's identity (an owner thread, a UI thread); default-constructed, no thread. Never reused, even after its thread ends.

@@ -1,9 +1,10 @@
 #include "worker_probe.hpp"
-#include "../../../core/thread_records/thread_records_end.hpp"
+#include "../../../core/threading/start_thread.hpp"
 
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::render::worker_probe {
@@ -33,9 +34,9 @@ Worker::Worker(std::shared_ptr<const FontSet> fonts) : fonts_(std::move(fonts)) 
 Worker::~Worker() { close(); }
 
 void Worker::start() {
-    std::lock_guard<std::mutex> lock(mutex_);
-    if (state_.closing || thread_.joinable()) { throw std::logic_error("Worker already started/closed"); }
-    thread_ = std::thread(&Worker::run, this);
+    const stxlib::ScopedLock lock(mutex_);
+    if (state_.closing || thread_.identity().present()) { throw std::logic_error("Worker already started/closed"); }
+    thread_ = gui_forms::detail::start_library_thread(&Worker::thread_main, this, "Worker could not start its thread");
 }
 
 bool Worker::valid(const Identity& identity) const noexcept {
@@ -53,7 +54,7 @@ bool Worker::valid(const Identity& identity) const noexcept {
 }
 
 Outcome Worker::desire(const Identity& identity) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     if (state_.closing) { return Outcome::closed; }
     if (!valid(identity)) { return Outcome::invalid; }
     if (authority_epoch_ == std::numeric_limits<std::uint64_t>::max()) { return Outcome::invalid; }
@@ -64,7 +65,7 @@ Outcome Worker::desire(const Identity& identity) {
 }
 
 Outcome Worker::submit(const Identity& identity, std::string_view input) {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     if (state_.closing) { return Outcome::closed; }
     if (state_.slot != Slot::empty) { return Outcome::busy; }
     if (!thread_.joinable()) { return Outcome::invalid; }
@@ -83,13 +84,13 @@ Outcome Worker::submit(const Identity& identity, std::string_view input) {
 }
 
 void Worker::cancel() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     desired_.reset();
     state_.desired = false;
 }
 
 Outcome Worker::publish() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     if (state_.closing) { return Outcome::closed; }
     if (state_.slot != Slot::ready) { return Outcome::busy; }
     if (state_.completion != Outcome::success || !result_) { return Outcome::failed; }
@@ -101,7 +102,7 @@ Outcome Worker::publish() {
 }
 
 Outcome Worker::discard() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     if (state_.slot != Slot::ready) { return Outcome::busy; }
     result_.reset();
     state_.slot = Slot::empty;
@@ -109,7 +110,7 @@ Outcome Worker::discard() {
 }
 
 Snapshot Worker::snapshot() {
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     return state_;
 }
 const Prepared* Worker::displayed() const noexcept {
@@ -119,23 +120,33 @@ const Prepared* Worker::displayed() const noexcept {
 
 void Worker::close() {
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         state_.closing = true;
         desired_.reset();
         state_.desired = false;
         wake_.notify_one();
     }
-    if (thread_.joinable()) { thread_.join(); }
-    std::lock_guard<std::mutex> lock(mutex_);
+    gui_forms::detail::join_library_thread(thread_);
+    const stxlib::ScopedLock lock(mutex_);
     job_.reset();
     result_.reset();
     state_.slot = Slot::empty;
     state_.joined = true;
 }
 
+void Worker::thread_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+    // state_.closing ends the loop; STXlib ends the thread's records after
+    // this returns.
+    static_cast<void>(stop);
+    (*static_cast<Worker*>(context)).run();
+}
+
+bool Worker::job_or_closing(const void* const context) noexcept {
+    const Worker& worker = *static_cast<const Worker*>(context);
+    return worker.state_.closing || worker.state_.slot == Slot::queued;
+}
+
 void Worker::run() {
-    // Closes last: the thread's records are released here, on the thread.
-    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     // This unique engine and every mutable native font live/die on this thread.
     std::unique_ptr<text::HarfBuzzFontEngine> engine{};
     std::array<FontFaceId, 4> face_ids{};
@@ -153,14 +164,14 @@ void Worker::run() {
         engine.reset();
     }
     {
-        std::lock_guard<std::mutex> lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         state_.engine_alive = static_cast<bool>(engine);
     }
     for (;;) {
         std::unique_ptr<Job> active{};
         {
-            std::unique_lock<std::mutex> lock(mutex_);
-            while (!state_.closing && state_.slot != Slot::queued) { wake_.wait(lock); }
+            stxlib::ScopedLock lock(mutex_);
+            wake_.wait(lock, &Worker::job_or_closing, this);
             if (state_.closing) { break; }
             active = std::move(job_);
             state_.slot = Slot::running;
@@ -185,7 +196,7 @@ void Worker::run() {
         }
         active.reset();
         {
-            std::lock_guard<std::mutex> lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             result_ = std::move(prepared);
             state_.completion = completion;
             ++state_.completed;
@@ -193,7 +204,7 @@ void Worker::run() {
         }
     }
     engine.reset();
-    std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     state_.engine_alive = false;
 }
 

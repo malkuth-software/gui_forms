@@ -15,9 +15,8 @@
 #include <array>
 #include <atomic>
 #include <functional>
-#include <mutex>
 #include <stdexcept>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -27,10 +26,10 @@ namespace detail {
 // BindingProviderLink). source is read and written on the UI thread only and
 // is null once revoked; posted and post_pending are guarded by mutex.
 struct BindingLinkState final {
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     BindingSource* source{};
     std::atomic<bool> revoked{false};
-    std::thread::id ui_thread;
+    stxlib::ThreadIdentity ui_thread;
     WindowDispatcher dispatcher;
     std::vector<BindingNotification> posted;
     bool post_pending{};
@@ -44,7 +43,7 @@ struct ApplyPostedNotifications final {
     void operator()() const {
         std::vector<BindingNotification> taken;
         {
-            const std::lock_guard<std::mutex> lock((*state).mutex);
+            const stxlib::ScopedLock lock((*state).mutex);
             taken.swap((*state).posted);
             (*state).post_pending = false;
         }
@@ -106,7 +105,7 @@ void post_notification(const std::shared_ptr<detail::BindingLinkState>& state,
                        const BindingNotification& notification) {
     bool post = false;
     {
-        const std::lock_guard<std::mutex> lock((*state).mutex);
+        const stxlib::ScopedLock lock((*state).mutex);
         if ((*state).revoked.load()) {
             return;
         }
@@ -167,7 +166,7 @@ void BindingProviderLink::notify(const BindingNotification& notification) const 
     if (revoked()) {
         return;
     }
-    if (std::this_thread::get_id() == (*state_).ui_thread) {
+    if (stxlib::current_thread() == (*state_).ui_thread) {
         BindingSource* source = (*state_).source;
         if (source != nullptr) {
             (*source).receive_notification(notification);
@@ -226,7 +225,7 @@ void BindingSource::revoke_link() noexcept {
     if (link_) {
         (*link_).revoked.store(true);
         {
-            const std::lock_guard<std::mutex> lock((*link_).mutex);
+            const stxlib::ScopedLock lock((*link_).mutex);
             (*link_).posted.clear();
         }
         (*link_).source = nullptr;
@@ -242,7 +241,7 @@ void BindingSource::bind_provider(std::shared_ptr<BindingProvider> provider) {
     provider_ = std::move(provider);
     std::shared_ptr<detail::BindingLinkState> state = std::make_shared<detail::BindingLinkState>();
     (*state).source = this;
-    (*state).ui_thread = std::this_thread::get_id();
+    (*state).ui_thread = stxlib::current_thread();
     if (Window* owner = bound_window()) {
         (*state).dispatcher = (*owner).dispatcher();
     }

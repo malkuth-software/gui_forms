@@ -1,9 +1,10 @@
 #include "pages.hpp"
 
 #include "states-and-diagnostics_form.hpp"
-#include "../../../core/thread_records/thread_records_end.hpp"
+#include "../../../core/threading/start_thread.hpp"
 
 #include <array>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::gallery::pages {
@@ -56,6 +57,8 @@ private:
     void on_post();
     void on_cancel();
     void on_invoke_from_worker();
+    // The worker's STXlib entry (`context` is the page) and its body.
+    static void worker_entry(const stxlib::StopSignal& stop, void* context) noexcept;
     void worker_main();
     [[nodiscard]] DispatcherSnapshot dispatcher_snapshot() const;
 
@@ -67,7 +70,7 @@ private:
     StatesDocument<StatesPage> document_{};
     std::shared_ptr<Label> status_;
     std::vector<DispatchOperation> operations_;
-    std::thread worker_;
+    stxlib::Thread worker_;
     std::string trace_;
     std::uint64_t batch_{};
 };
@@ -88,7 +91,7 @@ StatesPage::StatesPage(const std::shared_ptr<Surface>& body,
 }
 
 StatesPage::~StatesPage() {
-    if (worker_.joinable()) worker_.join();
+    detail::join_library_thread(worker_);
 }
 
 // The document's root is a declared boundary only: its children move into
@@ -207,13 +210,17 @@ void StatesPage::on_invoke_from_worker() {
     // waits; the posted completion step re-enables it on the UI thread.
     invoke_.set_enabled(false);
     (*status_).text = "Worker blocked · no nested pump · waiting for UI turn";
-    if (worker_.joinable()) worker_.join();
-    worker_ = std::thread(&StatesPage::worker_main, this);
+    detail::join_library_thread(worker_);
+    worker_ = detail::start_library_thread(&StatesPage::worker_entry, this, "the states page could not start its worker");
+}
+
+void StatesPage::worker_entry(const stxlib::StopSignal& stop, void* const context) noexcept {
+    // STXlib ends the thread's records after this returns.
+    static_cast<void>(stop);
+    (*static_cast<StatesPage*>(context)).worker_main();
 }
 
 void StatesPage::worker_main() {
-    // Closes last: the thread's records are released here, on the thread.
-    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     try {
         (*status_).invoke(PostedStep(self_, DispatcherStep::worker_released));
     } catch (const DispatchCancelledError&) {

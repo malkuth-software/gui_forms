@@ -40,6 +40,7 @@
 #endif
 
 #include <stxlib/font_file.hpp>
+#include <stxlib/threads.hpp>
 #include <stxlib/vector.hpp>
 #include <stxlib/view.hpp>
 
@@ -1461,7 +1462,7 @@ std::string_view SkiaExecutor::Impl::trimmed_line(std::string_view line, const R
 }
 
 SkiaExecutor::SkiaExecutor()
-    : impl_(std::make_unique<Impl>()), owner_thread_(std::this_thread::get_id()) {}
+    : impl_(std::make_unique<Impl>()), owner_thread_(stxlib::current_thread()) {}
 SkiaExecutor::~SkiaExecutor() = default;
 
 bool SkiaExecutor::register_bundled_typeface(std::string_view family,
@@ -1997,7 +1998,7 @@ std::vector<std::byte> SkiaExecutor::encode_png(
 }
 
 bool SkiaExecutor::owner_thread() const noexcept {
-    return std::this_thread::get_id() == owner_thread_;
+    return stxlib::current_thread() == owner_thread_;
 }
 
 } // namespace gui_drawing::render

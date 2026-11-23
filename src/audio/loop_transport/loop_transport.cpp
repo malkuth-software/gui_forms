@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <cmath>
 #include <limits>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -61,7 +62,7 @@ ma_result loop_cursor(ma_data_source* raw, ma_uint64* position) {
 const ma_data_source_vtable loop_vtable{&loop_read, nullptr, &loop_format, &loop_cursor, nullptr, nullptr, 0};
 }
 AudioLoopTransportState::AudioLoopTransportState(std::uint64_t identity)
-    : control_thread(std::this_thread::get_id()), epoch(identity), scheduler(identity) {
+    : control_thread(stxlib::current_thread()), epoch(identity), scheduler(identity) {
     payload_map.fill(32);
 }
 AudioLoopTransportState::~AudioLoopTransportState() { close(); }
@@ -87,7 +88,7 @@ AudioLoopStatus AudioLoopTransportState::initialize(ma_engine& engine_node) {
     return result;
 }
 AudioLoopStatus AudioLoopTransportState::status() const noexcept {
-    if (std::this_thread::get_id() != control_thread) { return AudioLoopStatus::wrong_thread; }
+    if (stxlib::current_thread() != control_thread) { return AudioLoopStatus::wrong_thread; }
     if (closing.load(std::memory_order_acquire) || !engine) { return AudioLoopStatus::closed; }
     const AudioLoopStatus failed = failure.load(std::memory_order_acquire);
     if (failed != AudioLoopStatus::ok) { return failed; }
@@ -163,7 +164,7 @@ AudioLoopCommand AudioLoopTransportState::enqueue(LoopCommandCell item, std::sha
     return result;
 }
 AudioLoopReceipt AudioLoopTransportState::poll(std::uint64_t id) {
-    if (std::this_thread::get_id() != control_thread) {
+    if (stxlib::current_thread() != control_thread) {
         AudioLoopReceipt result{}; result.status = AudioLoopStatus::wrong_thread; return result;
     }
     collect();
@@ -361,7 +362,7 @@ AudioLoopReceipt AudioLoopTransport::poll(std::uint64_t id) {
 }
 AudioLoopStatus AudioLoopTransport::close() {
     if (!state_) { return AudioLoopStatus::closed; }
-    if (std::this_thread::get_id() != (*state_).control_thread) { return AudioLoopStatus::wrong_thread; }
+    if (stxlib::current_thread() != (*state_).control_thread) { return AudioLoopStatus::wrong_thread; }
     (*state_).close();
     return AudioLoopStatus::ok;
 }

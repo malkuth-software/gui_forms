@@ -11,6 +11,7 @@
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
+#include "../platform/library_files.hpp"
 #ifdef GUI_FORMS_AUDIO_LOOP_TRANSPORT
 #include "loop_transport/loop_transport_state.hpp"
 #endif
@@ -19,9 +20,10 @@
 #include <atomic>
 #include <bit>
 #include <cmath>
-#include <fstream>
 #include <limits>
-#include <mutex>
+#include <optional>
+#include <stxlib/files.hpp>
+#include <stxlib/threads.hpp>
 
 #ifdef GUI_FORMS_AUDIO_VORBIS_STX
 #include "stx_vorbis/stb_compatible.h"
@@ -77,9 +79,9 @@ constexpr std::uint64_t ogg_file_limit = 64ULL * 1024 * 1024;
 constexpr std::size_t vorbis_arena_bytes = 16 * 1024 * 1024;
 // Upstream initializes a process-global CRC table on each open. Our decoder
 // uses sequential pull only (never seek/length/push, which read that table).
-std::mutex& vorbis_open_mutex() {
+stxlib::Mutex& vorbis_open_mutex() {
     // Never destroyed (rule 1: process termination releases none of our state).
-    static std::mutex* const value = new std::mutex();
+    static stxlib::Mutex* const value = new stxlib::Mutex();
     return *value;
 }
 std::atomic<std::uint64_t> clip_bytes{0};
@@ -258,14 +260,18 @@ AudioClipResult AudioClip::copy(std::span<const float> stereo) {
 
 AudioClipResult AudioClip::load_wav(const std::filesystem::path& path, std::uint64_t trim_frames) {
     try {
-        std::error_code error{};
-        std::uint64_t file_bytes = std::filesystem::file_size(path, error);
-        if (error) { return {{}, AudioStatus::file_error}; }
+        const std::optional<std::uint64_t> regular_bytes = gui_forms::platform::regular_file_bytes(path);
+        if (!regular_bytes.has_value()) { return {{}, AudioStatus::file_error}; }
+        const std::uint64_t file_bytes = *regular_bytes;
         if (file_bytes < 44 || file_bytes > file_limit) { return {{}, AudioStatus::invalid_format}; }
-        std::ifstream file(path, std::ios::binary);
+        // A file that cannot be opened reads nothing, which the RIFF check
+        // refuses as before.
+        stxlib::OperationResult<stxlib::File> opened = gui_forms::platform::open_file(path, stxlib::FileMode::read);
+        if (opened.failed()) { return {{}, AudioStatus::invalid_format}; }
+        stxlib::File& file = *opened.value();
         std::array<unsigned char, 64> header{};
-        file.read(reinterpret_cast<char*>(header.data()), 12);
-        if (!file || !tag(header.data(), "RIFF") || !tag(header.data() + 8, "WAVE") ||
+        const bool riff_read = gui_forms::platform::read_exactly_at(file, 0, header.data(), 12);
+        if (!riff_read || !tag(header.data(), "RIFF") || !tag(header.data() + 8, "WAVE") ||
             std::uint64_t(little32(header.data() + 4)) + 8 != file_bytes) {
             return {{}, AudioStatus::invalid_format};
         }
@@ -273,21 +279,21 @@ AudioClipResult AudioClip::load_wav(const std::filesystem::path& path, std::uint
         unsigned sample_bytes = 0;
         bool format_seen = false;
         while (position + 8 <= file_bytes) {
-            file.seekg(static_cast<std::streamoff>(position));
-            file.read(reinterpret_cast<char*>(header.data()), 8);
+            const bool chunk_read = gui_forms::platform::read_exactly_at(file, position, header.data(), 8);
             std::uint64_t chunk_bytes = little32(header.data() + 4);
-            if (!file || chunk_bytes > file_bytes - position - 8) {
+            if (!chunk_read || chunk_bytes > file_bytes - position - 8) {
                 return {{}, AudioStatus::invalid_format};
             }
             if (tag(header.data(), "fmt ")) {
                 if (format_seen || chunk_bytes < 16 || chunk_bytes > header.size()) {
                     return {{}, AudioStatus::invalid_format};
                 }
-                file.read(reinterpret_cast<char*>(header.data()), static_cast<std::streamsize>(chunk_bytes));
+                const bool format_read = gui_forms::platform::read_exactly_at(
+                    file, position + 8, header.data(), static_cast<std::size_t>(chunk_bytes));
                 unsigned encoding = little16(header.data());
                 unsigned bits = little16(header.data() + 14);
                 sample_bytes = bits / 8;
-                if (!file || little16(header.data() + 2) != 2 || little32(header.data() + 4) != 48000 ||
+                if (!format_read || little16(header.data() + 2) != 2 || little32(header.data() + 4) != 48000 ||
                     !((encoding == 1 && bits == 16) || (encoding == 3 && bits == 32)) ||
                     little16(header.data() + 12) != sample_bytes * 2 ||
                     little32(header.data() + 8) != sample_bytes * 2 * 48000) {
@@ -308,15 +314,18 @@ AudioClipResult AudioClip::load_wav(const std::filesystem::path& path, std::uint
         // One bounded conversion workspace, independent of the live-clip budget.
         // No whole encoded file allocation; extra workspace <=230,400,000 bytes.
         std::vector<float> decoded(static_cast<std::size_t>(frames * 2));
-        file.seekg(static_cast<std::streamoff>(data_offset));
+        std::uint64_t read_offset = data_offset;
         std::array<unsigned char, 8192> block{};
         using DecodeKernel = bool (*)(const unsigned char*, std::span<float>);
         const DecodeKernel decode = sample_bytes == 2 ? &decode_pcm16 : &decode_float32;
         std::size_t sample_index = 0;
         while (sample_index < decoded.size()) {
             std::size_t count = std::min(decoded.size() - sample_index, block.size() / sample_bytes);
-            file.read(reinterpret_cast<char*>(block.data()), static_cast<std::streamsize>(count * sample_bytes));
-            if (!file) { return {{}, AudioStatus::file_error}; }
+            const std::size_t block_bytes = count * sample_bytes;
+            if (!gui_forms::platform::read_exactly_at(file, read_offset, block.data(), block_bytes)) {
+                return {{}, AudioStatus::file_error};
+            }
+            read_offset += block_bytes;
             std::span<float> destination(decoded.data() + sample_index, count);
             const bool valid = decode(block.data(), destination);
             if (!valid) { return {{}, AudioStatus::invalid_value}; }
@@ -328,10 +337,6 @@ AudioClipResult AudioClip::load_wav(const std::filesystem::path& path, std::uint
         return result;
     } catch (const std::bad_alloc&) {
         return {{}, AudioStatus::allocation_failed};
-    } catch (const std::filesystem::filesystem_error&) {
-        return {{}, AudioStatus::file_error};
-    } catch (const std::ios_base::failure&) {
-        return {{}, AudioStatus::file_error};
     }
 }
 
@@ -341,23 +346,27 @@ AudioClipResult AudioClip::load_ogg_impl(const std::filesystem::path& path, cons
     bool owned_charge = false;
     try {
         if (cancellation.requested()) { return {{}, AudioStatus::cancelled}; }
-        std::error_code error{};
-        const std::uint64_t file_bytes = std::filesystem::file_size(path, error);
-        if (error) { return {{}, AudioStatus::file_error}; }
+        const std::optional<std::uint64_t> regular_bytes = gui_forms::platform::regular_file_bytes(path);
+        if (!regular_bytes.has_value()) { return {{}, AudioStatus::file_error}; }
+        const std::uint64_t file_bytes = *regular_bytes;
         if (file_bytes < 58 || file_bytes > ogg_file_limit) { return {{}, AudioStatus::invalid_format}; }
         VorbisOwner owner{};
         owner.input = std::make_unique<unsigned char[]>(static_cast<std::size_t>(file_bytes));
-        std::ifstream file(path, std::ios::binary);
+        stxlib::OperationResult<stxlib::File> opened = gui_forms::platform::open_file(path, stxlib::FileMode::read);
+        if (opened.failed()) { return {{}, AudioStatus::file_error}; }
+        stxlib::File& file = *opened.value();
         std::size_t offset = 0;
         while (offset < file_bytes) {
             if (cancellation.requested()) { return {{}, AudioStatus::cancelled}; }
             const std::size_t count = std::min<std::size_t>(65536, static_cast<std::size_t>(file_bytes) - offset);
-            file.read(reinterpret_cast<char*>(owner.input.get() + offset), static_cast<std::streamsize>(count));
-            if (!file) { return {{}, AudioStatus::file_error}; }
+            if (!gui_forms::platform::read_exactly_at(file, offset, owner.input.get() + offset, count)) {
+                return {{}, AudioStatus::file_error};
+            }
             offset += count;
         }
-        const int trailing = file.peek();
-        if (trailing != std::char_traits<char>::eof()) { return {{}, AudioStatus::invalid_format}; }
+        // A file that grew while it was read is refused, as a byte past the
+        // size taken first was.
+        if (!gui_forms::platform::ends_at(file, offset)) { return {{}, AudioStatus::invalid_format}; }
         const std::span<const unsigned char> bytes(owner.input.get(), static_cast<std::size_t>(file_bytes));
         const OggExtent extent = inspect_ogg(bytes, cancellation);
         if (extent.status != AudioStatus::ok) { return {{}, extent.status}; }
@@ -369,7 +378,7 @@ AudioClipResult AudioClip::load_ogg_impl(const std::filesystem::path& path, cons
         const stb_vorbis_alloc allocation{reinterpret_cast<char*>(owner.arena.get()), static_cast<int>(arena_bytes)};
         int decoder_error = 0;
         {
-            std::lock_guard<std::mutex> lock(vorbis_open_mutex());
+            const stxlib::ScopedLock lock(vorbis_open_mutex());
             if (cancellation.requested()) { return {{}, AudioStatus::cancelled}; }
             owner.decoder = stb_vorbis_open_memory(owner.input.get(), static_cast<int>(file_bytes), &decoder_error, &allocation);
         }
@@ -420,10 +429,6 @@ AudioClipResult AudioClip::load_ogg_impl(const std::filesystem::path& path, cons
     } catch (const std::bad_alloc&) {
         if (!owned_charge) { clip_bytes.fetch_sub(reserved_bytes); }
         return {{}, AudioStatus::allocation_failed};
-    } catch (const std::filesystem::filesystem_error&) {
-        return {{}, AudioStatus::file_error};
-    } catch (const std::ios_base::failure&) {
-        return {{}, AudioStatus::file_error};
     }
 }
 
@@ -451,7 +456,7 @@ struct AudioEngineState final {
     std::array<AudioVoiceState*, 64> voices{}; // Non-owning, control-thread only.
 #ifdef GUI_FORMS_AUDIO_LOOP_TRANSPORT
     std::array<AudioLoopTransportState*, 64> transports{};
-    const std::thread::id control_thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity control_thread{stxlib::current_thread()};
 #endif
     std::atomic<AudioStatus> status{AudioStatus::closed};
     bool initialized{false}, device_initialized{false}, offline{false};
@@ -789,7 +794,7 @@ AudioStatus AudioEngine::render(std::span<float> stereo) {
 AudioLoopStatus AudioEngine::loop_transport(AudioLoopTransport& output) {
     if (!state_ || status() != AudioStatus::ok) { return AudioLoopStatus::closed; }
     AudioEngineState& engine = *state_;
-    if (std::this_thread::get_id() != engine.control_thread) { return AudioLoopStatus::wrong_thread; }
+    if (stxlib::current_thread() != engine.control_thread) { return AudioLoopStatus::wrong_thread; }
     std::size_t slot{};
     while (slot < engine.voices.size() && (engine.voices[slot] != nullptr || engine.transports[slot] != nullptr)) { ++slot; }
     if (slot == engine.voices.size()) { return AudioLoopStatus::quota_exceeded; }

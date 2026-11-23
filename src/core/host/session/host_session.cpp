@@ -8,6 +8,7 @@
 #include <cmath>
 #include <array>
 #include <sstream>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <unordered_set>
 
@@ -210,7 +211,7 @@ HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool 
 HostSession::HostSession(Window& window,
                          HostCapabilities capabilities,
                          HostServices* services)
-    : window_(window.window_ref()), services_(services), ui_thread_(std::this_thread::get_id()) {
+    : window_(window.window_ref()), services_(services), ui_thread_(stxlib::current_thread()) {
     snapshot_.capabilities = std::move(capabilities);
     // The window's non-opaque declaration is fixed from here (stage T5).
     detail::SurfaceHostAccess::mark_session_bound(window);
@@ -409,7 +410,7 @@ void HostSession::DispatchVisitor::operator()(
 
 HostDispatchResult HostSession::dispatch(HostEvent event) {
     HostDispatchResult result;
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         result.error = HostDispatchError::wrong_thread;
         return result;
     } else if (event.sequence == 0) {
@@ -559,7 +560,7 @@ void HostSession::deliver(HostEvent& event, HostDispatchResult& result) {
 }
 
 void HostSession::shutdown() noexcept {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) {
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_) {
         return;
     }
     snapshot_.active = false;

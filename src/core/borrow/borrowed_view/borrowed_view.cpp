@@ -8,6 +8,7 @@
 #include <cstdlib>
 #include <span>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -91,7 +92,7 @@ BorrowStamp BorrowLender::stamp() const {
     made.owner = state_;
     made.generation = (*state_).generation.load(std::memory_order_relaxed);
     made.creation_site = GUI_FORMS_BORROW_CALLER();
-    if (threading_ == BorrowThreading::owner_thread) made.thread = std::this_thread::get_id();
+    if (threading_ == BorrowThreading::owner_thread) made.thread = stxlib::current_thread();
     return made;
 }
 

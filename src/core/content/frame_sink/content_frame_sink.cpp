@@ -2,12 +2,32 @@
 
 #include "../channel/content_channel.hpp"
 
+#include <atomic>
 #include <chrono>
-#include <condition_variable>
-#include <mutex>
+#include <cstdint>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
+
+namespace {
+
+// What wait_for_request waits for, read under the request mutex: a newer
+// request, the revocation or the stop.
+struct RequestWait final {
+    const detail::ContentChannel* channel{};
+    std::uint64_t seen_generation{};
+};
+
+bool request_wait_over(const void* const context) noexcept {
+    const RequestWait& wait = *static_cast<const RequestWait*>(context);
+    const detail::ContentChannel& channel = *wait.channel;
+    return channel.request.generation > wait.seen_generation || channel.revoked.load(std::memory_order_acquire) ||
+           channel.stop.stop_requested();
+}
+
+} // namespace
 
 ContentFrameSink::ContentFrameSink(std::shared_ptr<detail::ContentChannel> channel) noexcept
     : channel_(std::move(channel)) {}
@@ -31,7 +51,7 @@ ContentSemanticsResult ContentFrameSink::publish_semantics(ContentSemantics sema
 
 ContentRequest ContentFrameSink::request() const noexcept {
     if (!channel_) return ContentRequest{};
-    const std::scoped_lock lock((*channel_).request_mutex);
+    const stxlib::ScopedLock lock((*channel_).request_mutex);
     const ContentRequest result = (*channel_).request;
     return result;
 }
@@ -40,15 +60,13 @@ ContentRequest ContentFrameSink::wait_for_request(std::uint64_t seen_generation,
                                                   std::chrono::milliseconds timeout) const {
     if (!channel_) return ContentRequest{};
     detail::ContentChannel& channel = *channel_;
-    const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + timeout;
-    std::unique_lock<std::mutex> lock(channel.request_mutex);
+    const RequestWait wait{.channel = &channel, .seen_generation = seen_generation};
+    stxlib::ScopedLock lock(channel.request_mutex);
     // The revocation and the stop are read under the lock their setters take
-    // before they notify (content_channel.cpp), so no wake is lost.
-    while (channel.request.generation <= seen_generation && !channel.revoked.load(std::memory_order_acquire) &&
-           !channel.stop.stop_requested()) {
-        const std::cv_status status = channel.request_changed.wait_until(lock, deadline);
-        if (status == std::cv_status::timeout) break;
-    }
+    // before they notify (content_channel.cpp), so no wake is lost. A timeout
+    // returns the request as it stands.
+    static_cast<void>(channel.request_changed.wait_for(lock, &request_wait_over, &wait,
+                                                       stxlib::Duration::milliseconds(timeout.count())));
     const ContentRequest result = channel.request;
     return result;
 }

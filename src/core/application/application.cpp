@@ -15,6 +15,7 @@
 #include <cstdio>
 #include <span>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -47,7 +48,7 @@ std::shared_ptr<detail::ApplicationWindowState> ready_state(
     status = {};
     std::shared_ptr<detail::ApplicationWindowState> state = weak.lock();
     if (!state) { status.error = HostServiceError::after_shutdown; return {}; }
-    if ((*state).thread != std::this_thread::get_id()) {
+    if ((*state).thread != stxlib::current_thread()) {
         status.error = HostServiceError::wrong_thread;
         return {};
     }
@@ -304,7 +305,7 @@ ApplicationWindowHandle::ApplicationWindowHandle(
 
 bool ApplicationWindowHandle::active() const noexcept {
     const std::shared_ptr<detail::ApplicationWindowState> state = state_.lock();
-    const bool active = state && (*state).thread == std::this_thread::get_id() &&
+    const bool active = state && (*state).thread == stxlib::current_thread() &&
         (*state).ready && !(*state).closed;
     return active;
 }
@@ -645,7 +646,7 @@ std::shared_ptr<detail::ApplicationRunState> live_run(
     status = {};
     std::shared_ptr<detail::ApplicationRunState> run = weak.lock();
     if (!run) { status.error = HostServiceError::after_shutdown; return {}; }
-    if ((*run).thread != std::this_thread::get_id()) {
+    if ((*run).thread != stxlib::current_thread()) {
         status.error = HostServiceError::wrong_thread;
         return {};
     }
@@ -730,7 +731,7 @@ ApplicationWindows::ApplicationWindows(std::weak_ptr<detail::ApplicationRunState
 
 bool ApplicationWindows::active() const noexcept {
     const std::shared_ptr<detail::ApplicationRunState> run = run_.lock();
-    const bool result = run && (*run).thread == std::this_thread::get_id() &&
+    const bool result = run && (*run).thread == stxlib::current_thread() &&
         !(*run).closed && (*run).windowing != nullptr;
     return result;
 }

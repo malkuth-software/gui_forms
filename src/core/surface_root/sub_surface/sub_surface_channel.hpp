@@ -4,11 +4,10 @@
 
 #include "../../dispatcher/state/dispatcher_state.hpp"
 
-#include <condition_variable>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <string>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 #include <stxlib/optional.hpp>
@@ -27,10 +26,10 @@ struct SubSurfaceInputRecord final {
 // wake handler takes it); neither side posts or calls into a SurfaceRoot
 // while holding it.
 struct SubSurfaceChannel final {
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     // Signalled on a new configuration, a stop request, and every dispatch
     // or paint wake of the sub-surface.
-    std::condition_variable wake;
+    stxlib::ConditionVariable wake;
     // The newest configuration not yet applied.
     std::optional<SubSurfaceConfiguration> pending{};
     // Input not yet dispatched, in posting order. The loop swaps the whole
@@ -92,7 +91,7 @@ public:
     explicit SignalSubSurfaceChannel(std::shared_ptr<SubSurfaceChannel> channel) noexcept
         : channel_(std::move(channel)) {}
     void operator()() const {
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         (*channel_).signalled = true;
         (*channel_).wake.notify_one();
     }

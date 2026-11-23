@@ -5,7 +5,10 @@
 #include "../state/live_surface_state.hpp"
 
 #include <chrono>
-#include <mutex>
+#include <cstdint>
+#include <stop_token>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -36,7 +39,8 @@ public:
     explicit NotifyPacerStop(detail::LiveSurfaceState& state) noexcept : state_(&state) {}
     void operator()() const noexcept {
         {
-            const std::scoped_lock lock((*state_).mutex);
+            const stxlib::ScopedLock lock((*state_).mutex);
+            ++(*state_).wake_sequence;
         }
         (*state_).presented.notify_all();
     }
@@ -44,6 +48,19 @@ public:
 private:
     detail::LiveSurfaceState* state_;
 };
+
+// What a pacer's wait waits for, read under the surface's lock: a signal
+// since it planned (a report, arm() or the stop), seen as a new
+// wake_sequence.
+struct PacerWait final {
+    const detail::LiveSurfaceState* state{};
+    std::uint64_t planned_at{};
+};
+
+bool pacer_woken(const void* const context) noexcept {
+    const PacerWait& wait = *static_cast<const PacerWait*>(context);
+    return (*wait.state).wake_sequence != wait.planned_at;
+}
 
 } // namespace
 
@@ -53,7 +70,7 @@ LiveSurfacePacer::LiveSurfacePacer(std::shared_ptr<LiveSurface> surface) noexcep
 FrameTime LiveSurfacePacer::display_time(FrameTime now) const {
     if (!surface_ || !(*surface_).state_) return now;
     detail::LiveSurfaceState& state = *(*surface_).state_;
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const LiveDisplayTiming timing = state.presentation_record.timing;
     const FrameInterval period =
         timing.refresh_period > FrameInterval::zero() ? timing.refresh_period : fallback_refresh_period;
@@ -69,7 +86,7 @@ LivePacingResult LiveSurfacePacer::plan(FrameTime now) {
         return result;
     }
     detail::LiveSurfaceState& state = *(*surface_).state_;
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const LivePacingResult result = plan_locked(now, state.generation, state.presentation_record);
     return result;
 }
@@ -129,7 +146,7 @@ LivePacingResult LiveSurfacePacer::wait_for_frame(const std::stop_token& stop) {
     // Made before the lock is taken: a token already stopped runs the
     // callback here, and the callback takes the lock.
     const std::stop_callback<NotifyPacerStop> on_stop(stop, NotifyPacerStop(state));
-    std::unique_lock<std::mutex> lock(state.mutex);
+    stxlib::ScopedLock lock(state.mutex);
     for (;;) {
         if (stop.stop_requested()) {
             LivePacingResult stopped;
@@ -143,10 +160,16 @@ LivePacingResult LiveSurfacePacer::wait_for_frame(const std::stop_token& stop) {
         // One wait per frame: woken by a report, arm() or the stop token,
         // or at the deadline. On Windows the deadline's timeout is bound to
         // the system timer grain; frames normally come from the reports.
+        const PacerWait wait{.state = &state, .planned_at = state.wake_sequence};
         if (result.wake_at == FrameTime::max()) {
-            state.presented.wait(lock);
+            state.presented.wait(lock, &pacer_woken, &wait);
         } else {
-            static_cast<void>(state.presented.wait_until(lock, result.wake_at));
+            // The frame clock and STXlib's interval clock are both the
+            // monotonic clock; the wait takes the interval to the deadline.
+            const FrameInterval left = result.wake_at - FrameClock::now();
+            const std::int64_t nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(left).count();
+            static_cast<void>(
+                state.presented.wait_for(lock, &pacer_woken, &wait, stxlib::Duration::nanoseconds(nanoseconds)));
         }
     }
 }
@@ -160,7 +183,8 @@ void LiveSurfacePacer::arm() noexcept {
     if (!surface_ || !(*surface_).state_) return;
     detail::LiveSurfaceState& state = *(*surface_).state_;
     {
-        const std::scoped_lock lock(state.mutex);
+        const stxlib::ScopedLock lock(state.mutex);
+        ++state.wake_sequence;
     }
     state.presented.notify_all();
 }

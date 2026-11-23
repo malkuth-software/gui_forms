@@ -4,7 +4,7 @@
 #include "sub_surface_channel.hpp"
 #include "sub_surface_request_posts.hpp"
 
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -35,7 +35,7 @@ void SubSurfaceAlertRequester::raise(AlertRecord record) {
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceRequestTarget> target;
     if (root_.channel_) {
-        const std::lock_guard<std::mutex> lock((*root_.channel_).mutex);
+        const stxlib::ScopedLock lock((*root_.channel_).mutex);
         SubSurfaceChannel& channel = *root_.channel_;
         if (!channel.request_target.expired()) {
             parent = channel.request_dispatcher;
@@ -71,7 +71,7 @@ void SubSurfaceAlertRequester::withdraw(std::uint64_t id) {
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceRequestTarget> target;
     {
-        const std::lock_guard<std::mutex> lock((*root_.channel_).mutex);
+        const stxlib::ScopedLock lock((*root_.channel_).mutex);
         parent = (*root_.channel_).request_dispatcher;
         target = (*root_.channel_).request_target;
         ++(*root_.channel_).statistics.requests_revoked;

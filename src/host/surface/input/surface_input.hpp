@@ -16,13 +16,12 @@
 #include "gui_forms/types.hpp"
 
 #include <chrono>
-#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
-#include <mutex>
 #include <optional>
 #include <string>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::host::surface_detail {
@@ -138,8 +137,11 @@ public:
     [[nodiscard]] std::uint64_t dropped() const;
 
 private:
-    mutable std::mutex mutex_;
-    std::condition_variable ready_;
+    // take's wait predicate, under the mutex: a record or a wake.
+    [[nodiscard]] static bool record_or_wake(const void* context) noexcept;
+
+    mutable stxlib::Mutex mutex_;
+    stxlib::ConditionVariable ready_;
     std::deque<SurfaceInputRecord> records_;
     bool woken_{};
     std::uint64_t dropped_{};
