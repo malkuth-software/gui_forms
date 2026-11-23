@@ -4,7 +4,7 @@
 
 % Not on main yet: the GUI.Forms declarations, refusal orders and the C ABI fuzz blocks are on
 % gui_forms claude/ic3 (4606347a0); STXlib's engine, deducer and its later declarations are on
-% STXlib claude/ic-full (d044e38). STXlib's first declarations (allocator, containers, files) are
+% STXlib claude/ic-full (ea52d1c; deduction counts as of that commit, not yet run). STXlib's first declarations (allocator, containers, files) are
 % on STXlib main.
 
 Each stateful component has one declaration file beside its header
@@ -70,12 +70,25 @@ states and edges reached, and for defects found, still read "not run".
 
 STXlib's deducer (`tools/ic_deduce.py`) discharges obligations three ways:
 by linear arithmetic, by popcount laws, and by reading the guards in the
-source. Each deduction records the hashes of its declaration and sources,
-and holds only while they match. 97 of STXlib's 148 obligations are
-discharged, each relative to premises it states. The other 51 are open.
-Most of them are state refusals and transitions that the deducer does not
-yet handle. The largest discharged obligation is the allocator's page
-protocol, with its premises listed in
+source. A state-aware reader (`tools/ic_typestate.py`) uses the per-class
+state tables in the `.ic.toml` files to discharge state refusals and
+transitions. Each deduction records the hashes of its declaration and
+sources, and holds only while they match. 141 of STXlib's 148 obligations
+are discharged, each relative to premises it states. The other 7 are open,
+and each record names what covers it instead:
+
+- Five `File` refusals that come from the host (for example, `read` while
+  the file is open for writing) are covered by the engine's misuse blocks.
+  Each block drives the call in that state and checks the refusal, and that
+  nothing changed.
+- Two identity rules, that a stale address is refused, one for the
+  allocator and one for `stxlib::memory`, are covered by tests: the
+  refusals in `stx_minmallocpp_direct_tests`, the engine's
+  `interior_refused` input, and the death tests `double_release`,
+  `foreign_release` and `foreign_release_page`.
+
+None of this has been run yet. The largest discharged obligation is the
+allocator's page protocol, with its premises listed in
 [Memory and the allocator](reliability-memory).
 
 ## The state-machine gate

@@ -19,6 +19,13 @@ clang 22.1.8) gave these results:
 - **STXlib:** 124 tests in each of 12 modes, with no sanitizer report. See
   [Memory and the allocator](reliability-memory).
 
+% Not on main yet, and not yet run: the obligation counts below (STXlib claude/ic-full ea52d1c).
+
+STXlib's proof obligations stand at 141 of 148 discharged by deduction.
+For each of the 7 open ones, the record names the test or misuse block that
+covers it (see [Constraints](reliability-constraints)). None of these
+checks has been run yet.
+
 Sanitizers find defects on the paths that ran. They do not show that the
 other paths are free of them.
 
