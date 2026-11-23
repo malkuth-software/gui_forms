@@ -1490,6 +1490,7 @@ void append_field(EventFields& fields, std::string_view name, const FontSpec& va
 void read_field(EventFields& fields, std::string_view name, FontSpec& value);
 void append_field(EventFields& fields, std::string_view name, const GalleryPreview& value);
 void append_field(EventFields& fields, std::string_view name, const GestureEventArgs& value);
+void read_field(EventFields& fields, std::string_view name, GestureEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const GradientStop& value);
 void append_field(EventFields& fields, std::string_view name, const HelpLinkActivation& value);
 void read_field(EventFields& fields, std::string_view name, HelpLinkActivation& value);
@@ -2503,6 +2504,22 @@ inline void append_field(EventFields& fields, std::string_view name, const Gestu
     append_field(fields, "phase", value.phase);
     append_field(fields, "handled", value.handled);
     append_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, GestureEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "kind", value.kind);
+    read_field(fields, "gesture_phase", value.gesture_phase);
+    read_field(fields, "location", value.location);
+    read_field(fields, "window_position", value.window_position);
+    read_field(fields, "scale", value.scale);
+    read_field(fields, "rotation_degrees", value.rotation_degrees);
+    read_field(fields, "translation", value.translation);
+    read_field(fields, "modifiers", value.modifiers);
+    read_field(fields, "phase", value.phase);
+    read_field(fields, "handled", value.handled);
+    read_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
     fields.leave(prefix);
 }
 
