@@ -155,6 +155,7 @@ void GalleryContext::synchronize(std::string_view cause)
 
     if (cause == "gallery.command.reset") {
         drop_status.clear();
+        (*pages.gallery_collection).clear_dropped_rows();
         invalidate_subtrees(styled_controls());
         (*pages.gallery_checkbox_indeterminate).check_state = CheckState::indeterminate;
         (*pages.gallery_link).visited = false;

@@ -15,8 +15,10 @@
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 namespace gui_forms::gallery {
 
@@ -44,20 +46,35 @@ private:
 };
 
 // The retained-rows collection (`gallery-collection`, a list-box): a typed
-// copy drop target. A drop raises dropped() with a summary of the payload
-// ("Drop received · 1 file · 0 text · 0 data"); hovering shows a drop cue.
+// copy drop target. A drop adds a row for each item it carries, after the
+// authored rows, so the drop shows where it lands: "File: <name>",
+// "Text: <first line>" or "Data: <media type> · <n> bytes", with stable IDs
+// gallery.collection.drop.<n>; past max_dropped_rows the oldest dropped rows
+// go. It then raises dropped() with a summary of the payload ("Drop received
+// · 1 file · 0 text · 0 data"). Hovering shows a drop cue.
 class CollectionList final : public ListBox {
 public:
     explicit CollectionList(StableId stable_id);
 
+    static constexpr std::size_t max_dropped_rows = 8U;
+
     [[nodiscard]] Event<const std::string&>& dropped() noexcept { return dropped_; }
+    // The rows drops added, oldest first.
+    [[nodiscard]] std::size_t dropped_row_count() const noexcept { return dropped_ids_.size(); }
+    // Removes the rows drops added (the Gallery's Reset).
+    void clear_dropped_rows();
 
     void on_paint(Painter& painter, Rect local_damage) override;
     void on_drag(DragEvent& event) override;
 
 private:
+    void add_dropped_rows(std::vector<std::string> labels);
+    void show_last_row();
+
     bool drag_hovered_{};
     Event<const std::string&> dropped_;
+    std::vector<std::string> dropped_ids_;
+    std::uint64_t drop_serial_{};
 };
 
 } // namespace gui_forms::gallery

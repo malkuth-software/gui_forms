@@ -44,7 +44,7 @@ inline constexpr std::array<GalleryPageSpec, 42> gallery_pages {{
      "Form-document group binding one retained model value to public TrackBar, ProgressBar and Label instances.",
      false, "Value setting"},
     {"retained-rows", "Retained rows",
-     "Form-document ListBox subclass with exclusive selection over stable row IDs and a typed copy drop target (an application type).",
+     "Form-document ListBox subclass with exclusive selection over stable row IDs and a typed copy drop target (an application type) that adds a row for each dropped file, text or data item.",
      false, "Selection from a list"},
     {"instrument", "Custom instrument",
      "Form-document custom control (a UserControl application type) on a paint-gated 30 fps animation timer.",
