@@ -21,8 +21,10 @@
 //                       (gallery_headless_capture.hpp): a still of the
 //                       staged page at --size and --scale. The
 //                       process-control demonstrator draws its window the
-//                       same way (process_control_program.hpp). Other
-//                       programs ignore it.
+//                       same way (process_control_program.hpp), as does
+//                       the touch start demonstrator
+//                       (touch_start_program.hpp). Other programs ignore
+//                       it.
 //   --size <W>x<H>      Create the window at this logical size.
 //   --scale <factor>    Recorded as a hint only; hosts take the device scale
 //                       from the display.
@@ -54,7 +56,9 @@
 //                       click would (capture staging: the industrial-
 //                       surfaces page's industrial theme). The
 //                       process-control demonstrator sets its own check
-//                       boxes the same way. Other programs ignore it.
+//                       boxes the same way; the touch start demonstrator
+//                       selects the tile with this id segment (weather,
+//                       map, ...). Other programs ignore it.
 //
 // Every host's Gallery main applies --page, --reveal, --open-menu, --check
 // and --scheme through gallery_staging.hpp.

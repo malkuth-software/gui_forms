@@ -2720,6 +2720,20 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_data_workbench_model PUBLIC
         gui_forms_controls)
 
+    # The touch start demonstrator (owner, 2026-11-21; TC-touch): a panning
+    # surface of live tiles whose input runs through the touch seams
+    # (demo/touch_start/touch_start.hpp, touch_input.hpp).
+    add_library(gui_forms_touch_start_model STATIC
+        demo/touch_start/touch_input.cpp
+        demo/touch_start/touch_start.cpp
+    )
+    target_include_directories(gui_forms_touch_start_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo/touch_start
+    )
+    target_link_libraries(gui_forms_touch_start_model PUBLIC
+        gui_forms_controls)
+
     add_library(gui_forms_custom_chrome_lab_model STATIC
         demo/custom_chrome_lab.cpp
     )
@@ -2872,6 +2886,27 @@ if(GUI_FORMS_BUILD_GALLERY)
             MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Data Workbench"
+        )
+
+        # The touch start demonstrator; its headless capture draws through
+        # OffscreenRaster too.
+        add_executable(gui_forms_touch_start MACOSX_BUNDLE
+            src/host/macos/touch_start_main.mm
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_touch_start PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_touch_start PRIVATE
+            gui_forms_touch_start_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_touch_start PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Touch Start"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.touch-start"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Touch Start"
         )
 
         add_executable(gui_forms_vsync_lab MACOSX_BUNDLE
@@ -3102,6 +3137,19 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Data Workbench"
         )
 
+        add_executable(gui_forms_touch_start_windows
+            src/host/windows/touch_start_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_touch_start_windows PRIVATE
+            gui_forms_touch_start_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_touch_start_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Touch Start"
+        )
+
         # The Gallery under Application::run, so menus open in Popup
         # windows (tools/menu_probe.py drives it).
         # Application::run is built in (not the shared application
@@ -3301,6 +3349,19 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_data_workbench_linux PROPERTIES
             OUTPUT_NAME "gui-forms-data-workbench"
+        )
+
+        add_executable(gui_forms_touch_start_linux
+            src/host/linux/touch_start_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_touch_start_linux PRIVATE
+            gui_forms_touch_start_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_touch_start_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-touch-start"
         )
 
         add_executable(gui_forms_compositor_lab_linux
@@ -3723,6 +3784,7 @@ set(gui_forms_font_sources)
 foreach(gallery_program IN ITEMS
         gui_forms_gallery_windows
         gui_forms_process_control_windows
+        gui_forms_touch_start_windows
         gui_forms_data_workbench_windows
         gui_forms_vsync_lab_windows
         gui_forms_visual_inspector_lab_windows
@@ -3736,6 +3798,7 @@ foreach(gallery_program IN ITEMS
         gui_forms_code_zoom_windows
         gui_forms_gallery_linux
         gui_forms_process_control_linux
+        gui_forms_touch_start_linux
         gui_forms_data_workbench_linux
         gui_forms_correspondence_linux
         gui_forms_code_zoom_linux)
