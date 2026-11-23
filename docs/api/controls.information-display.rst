@@ -2700,6 +2700,17 @@ Related types
 
    A change of the selected slice, after it happened.
 
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PieSliceSelection() noexcept
+
+   .. cpp:function:: PieSliceSelection(const PieSliceSelection& other)
+
+      Spelt out because stxlib::Optional of a string is move-only (the string's copy may throw), while Control::publish_change keeps a copy of the payload for a selection changed during BeginInit/EndInit.
+
+   .. cpp:function:: PieSliceSelection(PieSliceSelection&& other) noexcept
+
    .. cpp:member:: stxlib::Optional<std::string> previous_id
 
    .. cpp:member:: stxlib::Optional<std::string> current_id
