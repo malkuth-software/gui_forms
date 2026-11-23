@@ -1371,6 +1371,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "button_clicked", "payload": "EditButtonClick", "mutable_payload": false}
       ]
@@ -3160,6 +3161,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "selection_changed", "payload": "PieSliceSelection", "mutable_payload": false},
         {"name": "slice_activated", "payload": "PieSliceActivation", "mutable_payload": false}
       ]
@@ -13566,6 +13568,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "popup_opened", "payload": "", "mutable_payload": false},
         {"name": "popup_closed", "payload": "PopupClosed", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
@@ -13668,6 +13671,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "item_check_changed", "payload": "CheckedComboItemChange", "mutable_payload": false},
         {"name": "drop_down_changed", "payload": "bool", "mutable_payload": false}
       ]
