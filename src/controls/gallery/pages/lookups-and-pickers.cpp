@@ -11,6 +11,8 @@
 #include "gui_forms/controls/track_bar.hpp"
 #include "gui_forms/controls/tree_view.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
+#include "stxlib/math.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -286,7 +288,7 @@ public:
             for (std::size_t corner = 0; corner < outline.size(); ++corner) {
                 const double radius = corner % 2U == 0U ? star_radius : star_radius * 0.42;
                 const double angle = -1.5707963267948966 + 0.6283185307179586 * static_cast<double>(corner);
-                outline[corner] = Point{centre.x + radius * std::cos(angle), centre.y + radius * std::sin(angle)};
+                outline[corner] = Point{centre.x + radius * stxlib::math::cos(angle), centre.y + radius * stxlib::math::sin(angle)};
             }
             painter.fill_polygon(outline, star < shown ? lit : unlit, PolygonFillRule::nonzero);
         }
@@ -370,7 +372,7 @@ private:
         (*zoom).add_at(zoom_in_, {208.0, 30.0, 28.0, 26.0});
         zoom_label_ = label("gallery.lookups.zoom.value", "100%", 11.0, 600, "ink");
         (*zoom).add_at(zoom_label_, {240.0, 32.0, 52.0, 22.0});
-        zoom_state_ = std::make_shared<ZoomState>();
+        zoom_state_ = gui_forms::detail::make_library_shared<ZoomState>();
         zoom_preview_ = make_control<DrawingSurface>(StableId("gallery.lookups.zoom.preview"));
         (*zoom_preview_).accessible_name = "Zoomed page";
         (*zoom_preview_).set_paint_callback(ZoomPreviewPaint(zoom_state_));
@@ -472,7 +474,7 @@ private:
     void build_rating(Surface& body) {
         const std::shared_ptr<LayoutGroup> rating = group("gallery.lookups.rating", "Rating", {320.0, 170.0});
         body.add_at(rating, {656.0, 92.0, 320.0, 170.0});
-        rating_state_ = std::make_shared<RatingState>();
+        rating_state_ = gui_forms::detail::make_library_shared<RatingState>();
         rating_ = make_control<DrawingSurface>(StableId("gallery.lookups.rating.stars"));
         (*rating_).hit_test_visible = true;
         (*rating_).semantic_role = SemanticRole::slider;
@@ -552,7 +554,7 @@ private:
         range_apply_ = make_control<Button>(StableId("gallery.lookups.range.apply"), "Apply");
         (*range_apply_).set_requested_bounds({456.0, 180.0, 112.0, 28.0});
         (*content).add_child(range_apply_);
-        range_popup_ = std::make_shared<PopupPanel>("gallery.lookups.range.layer", range_button_, content, calendar_,
+        range_popup_ = gui_forms::detail::make_library_shared<PopupPanel>("gallery.lookups.range.layer", range_button_, content, calendar_,
                                                     Size{576.0, 216.0});
         (*context).components.add(range_popup_);
         chosen_range_ = (*calendar_).selection_range();
@@ -613,14 +615,14 @@ private:
              .default_cell_style = {.alignment = stxlib::Optional<DataGridViewContentAlignment>::of(
                                         DataGridViewContentAlignment::middle_end)}},
         });
-        customer_rows_ = std::make_shared<CustomerRows>();
+        customer_rows_ = gui_forms::detail::make_library_shared<CustomerRows>();
         (*customer_grid_).set_virtual_rows(customer_rows_, (*customer_rows_).order());
         (*customer_grid_).set_requested_bounds({8.0, 44.0, 504.0, 212.0});
         (*content).add_child(customer_grid_);
         customer_choose_ = make_control<Button>(StableId("gallery.lookups.grid.choose"), "Choose");
         (*customer_choose_).set_requested_bounds({412.0, 264.0, 100.0, 28.0});
         (*content).add_child(customer_choose_);
-        customer_popup_ = std::make_shared<PopupPanel>("gallery.lookups.grid.layer", customer_button_, content,
+        customer_popup_ = gui_forms::detail::make_library_shared<PopupPanel>("gallery.lookups.grid.layer", customer_button_, content,
                                                        customer_search_, Size{520.0, 300.0});
         (*context).components.add(customer_popup_);
     }
@@ -689,7 +691,7 @@ private:
         folder_choose_ = make_control<Button>(StableId("gallery.lookups.tree.choose"), "Choose");
         (*folder_choose_).set_requested_bounds({212.0, 264.0, 100.0, 28.0});
         (*content).add_child(folder_choose_);
-        folder_popup_ = std::make_shared<PopupPanel>("gallery.lookups.tree.layer", folder_button_, content,
+        folder_popup_ = gui_forms::detail::make_library_shared<PopupPanel>("gallery.lookups.tree.layer", folder_button_, content,
                                                      folder_tree_, Size{320.0, 300.0});
         (*context).components.add(folder_popup_);
     }
@@ -778,7 +780,7 @@ private:
 } // namespace
 
 void add_lookups_and_pickers(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    const std::shared_ptr<LookupsAndPickersPage> owner = std::make_shared<LookupsAndPickersPage>(page);
+    const std::shared_ptr<LookupsAndPickersPage> owner = gui_forms::detail::make_library_shared<LookupsAndPickersPage>(page);
     (*owner).build(context);
     (*context).components.add(owner);
     (*owner).connect();

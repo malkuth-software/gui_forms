@@ -513,7 +513,7 @@ bool input_payload(const HostEventPayload& payload) noexcept {
 
 HostDispatchResult HostSession::dispatch_model_input(HostEventPayload payload, std::uint64_t timestamp_nanoseconds) {
     HostDispatchResult result;
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         result.error = HostDispatchError::wrong_thread;
         return result;
     }

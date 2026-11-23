@@ -1239,7 +1239,7 @@ HostServiceStatus HostServices::withdraw_desktop_notification(HostDesktopNotific
 }
 
 void HostServices::publish_desktop_notification_event(const HostDesktopNotificationEvent& event) {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) return;
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_) return;
     const std::vector<HostDesktopNotificationId>::iterator found =
         std::find(desktop_notifications_.begin(), desktop_notifications_.end(), event.notification_id);
     if (found == desktop_notifications_.end()) return;
@@ -1322,7 +1322,7 @@ HostDragSourceResult HostServices::start_drag(const HostDragSourceRequest& reque
 }
 
 void HostServices::publish_drag_source_end(const HostDragSourceEnd& event) {
-    if (std::this_thread::get_id() != ui_thread_ || event.session_id == 0U ||
+    if (stxlib::current_thread() != ui_thread_ || event.session_id == 0U ||
         event.session_id != active_drag_source_) {
         return;
     }

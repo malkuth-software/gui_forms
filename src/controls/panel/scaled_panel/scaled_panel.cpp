@@ -3,6 +3,7 @@
 #include "../../scrollable_control/container_control/scaled_layout_utilities.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -86,7 +87,7 @@ const ControlAnatomy& ScaledPanel::anatomy() const noexcept {
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> scaled_layout_detail::scaled_aspect_enum() {
-    static const std::shared_ptr<const PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{"scaled_aspect", {{"stretch", 0}, {"uniform", 1}}, false});
     return value;
 }

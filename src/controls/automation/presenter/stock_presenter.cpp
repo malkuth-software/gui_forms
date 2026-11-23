@@ -6,6 +6,7 @@
 #include "gui_forms/surface_root/requests/surface_requests.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/band/window_band.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <chrono>
 #include <utility>
@@ -116,7 +117,7 @@ WindowBandAppearance band_appearance(WindowBandState state) {
 
 } // namespace
 
-StockPresenter::StockPresenter() : self_(std::make_shared<StockPresenter*>(this)) {}
+StockPresenter::StockPresenter() : self_(gui_forms::detail::make_library_shared<StockPresenter*>(this)) {}
 
 StockPresenter::~StockPresenter() {
     self_.reset();

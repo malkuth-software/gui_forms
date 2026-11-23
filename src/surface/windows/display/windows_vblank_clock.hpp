@@ -12,12 +12,8 @@
 
 #include <windows.h>
 
-#include <condition_variable>
-#include <mutex>
-#include <stop_token>
-#include <thread>
-
 #include <stxlib/optional.hpp>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::host::windows_detail {
 
@@ -45,21 +41,26 @@ public:
     [[nodiscard]] stxlib::Optional<DisplayTiming> timing(HMONITOR monitor) const;
 
 private:
-    class Runner;
-    class WantedNow;
+    // The waiting thread's entry (stxlib::Thread) and its wake condition:
+    // a stop, or timing wanted for a monitor. The condition reads state
+    // mutex_ guards and is called with it held.
+    static void thread_main(const stxlib::StopSignal& stop, void* context) noexcept;
+    [[nodiscard]] static bool wake_now(const void* context) noexcept;
 
-    void run(const std::stop_token& stop);
+    void run(const stxlib::StopSignal& stop);
 
     using CreateFactoryFunction = HRESULT(WINAPI*)(REFIID, void**);
     CreateFactoryFunction create_factory_{};
-    mutable std::mutex mutex_;
-    std::condition_variable_any changed_;
+    mutable stxlib::Mutex mutex_;
+    stxlib::ConditionVariable changed_;
     // Guarded by mutex_.
     HMONITOR monitor_{};
     bool wanted_{};
+    bool stopping_{};
     HMONITOR measured_monitor_{};
     stxlib::Optional<DisplayTiming> measured_;
-    std::jthread thread_;
+    // Last: joined before the state its thread reads goes.
+    stxlib::Thread thread_;
 };
 
 } // namespace gui_forms::host::windows_detail

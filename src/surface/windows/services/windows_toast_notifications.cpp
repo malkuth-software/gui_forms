@@ -1,6 +1,7 @@
 #include "windows_toast_notifications.hpp"
 
 #include "../../../core/failure/fail_fast.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <windows.h>
 #include <appmodel.h>
@@ -15,7 +16,7 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -116,7 +117,7 @@ constexpr const wchar_t* window_class_name = L"GUIFormsToastNotifications";
 // gone. Shared by the object and every handler; the lock orders the post
 // against the window's destruction.
 struct ToastMailbox final {
-    std::mutex lock;
+    stxlib::Mutex lock;
     HWND window{};
 };
 
@@ -169,7 +170,7 @@ private:
                 if (SUCCEEDED(read) && reason == dismissal_application_hidden) return S_OK;
             }
         }
-        const std::lock_guard<std::mutex> guard((*mailbox_).lock);
+        const stxlib::ScopedLock guard((*mailbox_).lock);
         if ((*mailbox_).window != nullptr) {
             PostMessageW((*mailbox_).window, toast_message, static_cast<WPARAM>(action_),
                          static_cast<LPARAM>(notification_id_.value));
@@ -297,7 +298,7 @@ struct WindowsToastNotifications::Impl final {
     DeleteString delete_string{};
     ToastNotifierAbi* notifier{};
     ToastNotificationFactoryAbi* factory{};
-    std::shared_ptr<ToastMailbox> mailbox{std::make_shared<ToastMailbox>()};
+    std::shared_ptr<ToastMailbox> mailbox{gui_forms::detail::make_library_shared<ToastMailbox>()};
     std::vector<Toast> toasts{};
     // Whether ensure ran and failed; it is not tried again.
     bool unavailable{};
@@ -337,7 +338,7 @@ WindowsToastNotifications::~WindowsToastNotifications() {
     Impl& impl = *impl_;
     HWND window = nullptr;
     {
-        const std::lock_guard<std::mutex> guard((*impl.mailbox).lock);
+        const stxlib::ScopedLock guard((*impl.mailbox).lock);
         window = (*impl.mailbox).window;
         (*impl.mailbox).window = nullptr;
     }
@@ -423,7 +424,7 @@ bool WindowsToastNotifications::Impl::ensure() {
     }
     SetWindowLongPtrW(window, GWLP_USERDATA, reinterpret_cast<LONG_PTR>(this));
     {
-        const std::lock_guard<std::mutex> guard((*mailbox).lock);
+        const stxlib::ScopedLock guard((*mailbox).lock);
         (*mailbox).window = window;
     }
     unavailable = false;

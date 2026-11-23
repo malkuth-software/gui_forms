@@ -8,6 +8,8 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window/window.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "stxlib/math.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -48,7 +50,7 @@ namespace {
 // storage; any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> pie_chart_label_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "pie_chart_label_style", {{"inside", 0}, {"outside", 1}, {"disabled", 2}}, false});
     return value;
 }
@@ -324,8 +326,8 @@ double PieChart::slice_sweep(std::size_t slice) const noexcept {
 // Clockwise from the top in reading order; right to left the angle runs
 // counter-clockwise, the pie mirrored about its vertical.
 Point PieChart::polar(const Layout& placed, double angle, double radius) const noexcept {
-    const double across = std::sin(angle) * radius;
-    const double down = -std::cos(angle) * radius;
+    const double across = stxlib::math::sin(angle) * radius;
+    const double down = -stxlib::math::cos(angle) * radius;
     const double x = placed.mirrored ? placed.centre.x - across : placed.centre.x + across;
     const Point point{x, placed.centre.y + down};
     return point;
@@ -513,10 +515,10 @@ stxlib::Optional<std::size_t> PieChart::slice_at(Point local) const {
     const Layout placed = layout_for(Rect{0.0, 0.0, arranged.width, arranged.height});
     const double across = placed.mirrored ? placed.centre.x - local.x : local.x - placed.centre.x;
     const double down = local.y - placed.centre.y;
-    const double distance = std::hypot(across, down);
+    const double distance = stxlib::math::hypot(across, down);
     if (total_ > 0.0 && distance <= placed.radius && distance >= placed.inner_radius) {
         // Clockwise from the top, then measured from the first slice's start.
-        double angle = std::atan2(across, -down) - start_angle.read() * std::numbers::pi / 180.0;
+        double angle = stxlib::math::atan2(across, -down) - start_angle.read() * std::numbers::pi / 180.0;
         angle = std::fmod(angle, whole_turn);
         if (angle < 0.0) angle += whole_turn;
         double reached = 0.0;

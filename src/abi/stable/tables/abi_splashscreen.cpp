@@ -182,7 +182,7 @@ gf_status GF_CALL runtime_splashscreen_state(const gf_splashscreen splashscreen,
     try {
         if (!ic_runtime::admits_splashscreen_state_state(state)) return GF_STATUS_INVALID_ARGUMENT;
         SplashscreenState& held = splashscreen_state();
-        const std::lock_guard<std::mutex> lock(held.mutex);
+        const stxlib::ScopedLock lock(held.mutex);
         const gf_status checked = check_handle(held, splashscreen);
         if (checked != GF_STATUS_OK) return checked;
         *state = (*held.shown).shown() ? GF_SPLASHSCREEN_STATE_SHOWN : GF_SPLASHSCREEN_STATE_HANDED_OVER;

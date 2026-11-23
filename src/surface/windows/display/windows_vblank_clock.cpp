@@ -46,54 +46,58 @@ public:
 
 // How long the thread rests after a wait that failed or returned at once
 // (a monitor asleep, an output gone), before it looks again.
-constexpr std::chrono::milliseconds failed_wait_rest{50};
+constexpr stxlib::Duration failed_wait_rest = stxlib::Duration::milliseconds(50);
 // Waits in a row that return at once before the thread rests.
 constexpr unsigned int immediate_return_limit = 3U;
 
 } // namespace
 
-class WindowsVBlankClock::Runner final {
-public:
-    explicit Runner(WindowsVBlankClock& clock) noexcept : clock_(&clock) {}
-    void operator()(const std::stop_token& stop) const { (*clock_).run(stop); }
+void WindowsVBlankClock::thread_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+    WindowsVBlankClock& clock = *static_cast<WindowsVBlankClock*>(context);
+    clock.run(stop);
+}
 
-private:
-    WindowsVBlankClock* clock_;
-};
-
-class WindowsVBlankClock::WantedNow final {
-public:
-    explicit WantedNow(const WindowsVBlankClock& clock) noexcept : clock_(&clock) {}
-    bool operator()() const noexcept { return (*clock_).wanted_ && (*clock_).monitor_ != nullptr; }
-
-private:
-    const WindowsVBlankClock* clock_;
-};
+bool WindowsVBlankClock::wake_now(const void* const context) noexcept {
+    const WindowsVBlankClock& clock = *static_cast<const WindowsVBlankClock*>(context);
+    const bool wake = clock.stopping_ || (clock.wanted_ && clock.monitor_ != nullptr);
+    return wake;
+}
 
 WindowsVBlankClock::~WindowsVBlankClock() { stop(); }
 
 bool WindowsVBlankClock::start() {
-    if (thread_.joinable()) return true;
+    if (thread_.identity().present()) return true;
     const HMODULE dxgi = LoadLibraryExW(L"dxgi.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
     if (dxgi == nullptr) return false;
     create_factory_ = reinterpret_cast<CreateFactoryFunction>(
         reinterpret_cast<void*>(GetProcAddress(dxgi, "CreateDXGIFactory1")));
     if (create_factory_ == nullptr) return false;
-    thread_ = std::jthread(Runner(*this));
+    {
+        const stxlib::ScopedLock lock(mutex_);
+        stopping_ = false;
+    }
+    stxlib::OperationResult<stxlib::Thread> started = stxlib::Thread::start(&WindowsVBlankClock::thread_main, this);
+    if (started.failed()) return false;
+    thread_ = static_cast<stxlib::OperationResult<stxlib::Thread>&&>(started).take_value();
     return true;
 }
 
 void WindowsVBlankClock::stop() noexcept {
-    if (!thread_.joinable()) return;
+    if (!thread_.identity().present()) return;
+    {
+        const stxlib::ScopedLock lock(mutex_);
+        stopping_ = true;
+    }
     thread_.request_stop();
     changed_.notify_all();
-    thread_.join();
+    static_cast<void>(thread_.join());
+    thread_ = stxlib::Thread{};
 }
 
 void WindowsVBlankClock::want(HMONITOR monitor, bool wanted) noexcept {
     bool changed = false;
     {
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         changed = monitor_ != monitor || wanted_ != wanted;
         monitor_ = monitor;
         wanted_ = wanted;
@@ -102,14 +106,14 @@ void WindowsVBlankClock::want(HMONITOR monitor, bool wanted) noexcept {
 }
 
 stxlib::Optional<DisplayTiming> WindowsVBlankClock::timing(HMONITOR monitor) const {
-    const std::scoped_lock lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     stxlib::Optional<DisplayTiming> result;
     if (monitor == nullptr || measured_monitor_ != monitor) return result;
     result = measured_;
     return result;
 }
 
-void WindowsVBlankClock::run(const std::stop_token& stop) {
+void WindowsVBlankClock::run(const stxlib::StopSignal& stop) {
     ComReference<IDXGIFactory1> factory;
     if ((*create_factory_)(dxgi_factory1_interface, reinterpret_cast<void**>(&factory.pointer)) != S_OK ||
         factory.pointer == nullptr) {
@@ -119,11 +123,12 @@ void WindowsVBlankClock::run(const std::stop_token& stop) {
     HMONITOR timed{};
     DisplayTimingEstimator estimator;
     unsigned int immediate_returns = 0U;
-    while (!stop.stop_requested()) {
+    while (!stop.requested()) {
         HMONITOR monitor{};
         {
-            std::unique_lock<std::mutex> lock(mutex_);
-            if (!changed_.wait(lock, stop, WantedNow(*this))) return;
+            stxlib::ScopedLock lock(mutex_);
+            changed_.wait(lock, &WindowsVBlankClock::wake_now, this);
+            if (stopping_) return;
             monitor = monitor_;
         }
         if (monitor != timed || output.pointer == nullptr) {
@@ -133,7 +138,7 @@ void WindowsVBlankClock::run(const std::stop_token& stop) {
             estimator.reset();
             timed = monitor;
             {
-                const std::scoped_lock lock(mutex_);
+                const stxlib::ScopedLock lock(mutex_);
                 measured_monitor_ = monitor;
                 measured_.reset();
             }
@@ -148,14 +153,14 @@ void WindowsVBlankClock::run(const std::stop_token& stop) {
             }
             output.pointer = output_for(*factory.pointer, monitor);
             if (output.pointer == nullptr) {
-                std::this_thread::sleep_for(failed_wait_rest);
+                stxlib::sleep_for(failed_wait_rest);
                 continue;
             }
         }
         const FrameTime before = FrameClock::now();
         if ((*output.pointer).WaitForVBlank() != S_OK) {
             output.reset();
-            std::this_thread::sleep_for(failed_wait_rest);
+            stxlib::sleep_for(failed_wait_rest);
             continue;
         }
         const FrameTime blank = FrameClock::now();
@@ -165,7 +170,7 @@ void WindowsVBlankClock::run(const std::stop_token& stop) {
             immediate_returns = immediate_returns + 1U;
             if (immediate_returns >= immediate_return_limit) {
                 immediate_returns = 0U;
-                std::this_thread::sleep_for(failed_wait_rest);
+                stxlib::sleep_for(failed_wait_rest);
             }
             continue;
         }
@@ -174,7 +179,7 @@ void WindowsVBlankClock::run(const std::stop_token& stop) {
         if (measured.absent()) continue;
         DisplayTiming timing = *measured.value();
         timing.source = DisplayTimingSource::display;
-        const std::scoped_lock lock(mutex_);
+        const stxlib::ScopedLock lock(mutex_);
         if (measured_monitor_ == timed) measured_.set(timing);
     }
 }

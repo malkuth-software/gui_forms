@@ -479,7 +479,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         (*body).design_size = Size{1000.0, body_height};
         (*page).set_design_bounds(*body, {0.0, strip_height, 1000.0, body_height});
         const std::shared_ptr<PageSourceToggle> source_toggle =
-            std::make_shared<PageSourceToggle>(surface_id, spec.id, page, body, source, strip_height);
+            gui_forms::detail::make_library_shared<PageSourceToggle>(surface_id, spec.id, page, body, source, strip_height);
         (*context).components.add(source_toggle);
         (*source_toggle).connect();
         (*page).design_size = Size{1000.0, page_height};

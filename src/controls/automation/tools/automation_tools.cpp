@@ -4,6 +4,7 @@
 
 #include <cstring>
 #include <exception>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::automation {
 
@@ -167,7 +168,7 @@ ToolRegistration ToolRegistry::add(ToolSpec spec, ToolHandler handler, void* con
     // user's hold and the destructive question are applied to it.
     if (spec.access == ToolAccess::acting && spec.thread != ToolThread::ui) return ToolRegistration::invalid_spec;
     if (reserved_tool_name(spec.name)) return ToolRegistration::duplicate;
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (const ToolEntry& entry : tools_) {
         if (entry.spec.name == spec.name) return ToolRegistration::duplicate;
     }
@@ -178,7 +179,7 @@ ToolRegistration ToolRegistry::add(ToolSpec spec, ToolHandler handler, void* con
 }
 
 bool ToolRegistry::remove(std::string_view name) {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (std::size_t index = 0U; index < tools_.size(); ++index) {
         if (tools_[index].spec.name != name) continue;
         tools_.erase(tools_.begin() + static_cast<std::ptrdiff_t>(index));
@@ -189,7 +190,7 @@ bool ToolRegistry::remove(std::string_view name) {
 }
 
 bool ToolRegistry::find(std::string_view name, ToolEntry& entry) const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (const ToolEntry& candidate : tools_) {
         if (candidate.spec.name != name) continue;
         entry = candidate;
@@ -199,7 +200,7 @@ bool ToolRegistry::find(std::string_view name, ToolEntry& entry) const {
 }
 
 void ToolRegistry::fill_specs(std::vector<ToolSpec>& specs) const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     specs.clear();
     specs.reserve(tools_.size());
     for (const ToolEntry& entry : tools_) specs.push_back(entry.spec);
@@ -211,7 +212,7 @@ ToolRegistration ToolRegistry::add_inspect_section(std::string name, std::string
     if (handler == nullptr || description.size() > maximum_tool_description_bytes || !valid_utf8(description)) {
         return ToolRegistration::invalid_spec;
     }
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (const InspectSectionEntry& entry : sections_) {
         if (entry.name == name) return ToolRegistration::duplicate;
     }
@@ -221,7 +222,7 @@ ToolRegistration ToolRegistry::add_inspect_section(std::string name, std::string
 }
 
 bool ToolRegistry::remove_inspect_section(std::string_view name) {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (std::size_t index = 0U; index < sections_.size(); ++index) {
         if (sections_[index].name != name) continue;
         sections_.erase(sections_.begin() + static_cast<std::ptrdiff_t>(index));
@@ -231,7 +232,7 @@ bool ToolRegistry::remove_inspect_section(std::string_view name) {
 }
 
 bool ToolRegistry::find_inspect_section(std::string_view name, InspectSectionEntry& entry) const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (const InspectSectionEntry& candidate : sections_) {
         if (candidate.name != name) continue;
         entry = candidate;
@@ -241,12 +242,12 @@ bool ToolRegistry::find_inspect_section(std::string_view name, InspectSectionEnt
 }
 
 void ToolRegistry::fill_inspect_sections(std::vector<InspectSectionEntry>& sections) const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     sections = sections_;
 }
 
 std::uint64_t ToolRegistry::generation() const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     const std::uint64_t generation = generation_;
     return generation;
 }

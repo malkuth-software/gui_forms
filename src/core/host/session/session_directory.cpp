@@ -2,7 +2,7 @@
 
 #include <cstddef>
 #include <atomic>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::detail {
@@ -32,7 +32,7 @@ struct ReadyHookEntry final {
 // (Application::maximum_windows, popups and sub-surfaces), so a linear
 // search is the whole cost.
 struct SessionDirectory final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     std::vector<WindowSessionEntry> entries{};
     InputGateEntry gate{};
     ReadyHookEntry ready{};
@@ -54,7 +54,7 @@ SessionDirectory& directory() noexcept {
 
 void note_window_session(const SurfaceRoot& window, HostSession& session) {
     SessionDirectory& table = directory();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (WindowSessionEntry& entry : table.entries) {
         if (entry.window != &window) continue;
         entry.session = &session;
@@ -65,7 +65,7 @@ void note_window_session(const SurfaceRoot& window, HostSession& session) {
 
 void forget_window_session(const HostSession& session) noexcept {
     SessionDirectory& table = directory();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     std::size_t index = 0U;
     while (index < table.entries.size()) {
         if (table.entries[index].session == &session) {
@@ -79,7 +79,7 @@ void forget_window_session(const HostSession& session) noexcept {
 
 HostSession* window_session(const SurfaceRoot& window) noexcept {
     SessionDirectory& table = directory();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (const WindowSessionEntry& entry : table.entries) {
         if (entry.window == &window) return entry.session;
     }
@@ -88,7 +88,7 @@ HostSession* window_session(const SurfaceRoot& window) noexcept {
 
 void install_user_input_gate(UserInputGate gate, void* context) noexcept {
     SessionDirectory& table = directory();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     table.gate = InputGateEntry{gate, gate == nullptr ? nullptr : context};
 }
 
@@ -96,7 +96,7 @@ bool user_input_held(const SurfaceRoot& window) noexcept {
     SessionDirectory& table = directory();
     InputGateEntry gate{};
     {
-        const std::lock_guard<std::mutex> lock(table.mutex);
+        const stxlib::ScopedLock lock(table.mutex);
         gate = table.gate;
     }
     // Called after the lock is released: the gate reads only its own state
@@ -108,7 +108,7 @@ bool user_input_held(const SurfaceRoot& window) noexcept {
 
 void install_window_ready_hook(WindowReadyHook hook, void* context) noexcept {
     SessionDirectory& table = directory();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     table.ready = ReadyHookEntry{hook, hook == nullptr ? nullptr : context};
 }
 
@@ -117,7 +117,7 @@ void notify_window_ready(SurfaceRoot& window, std::string_view stable_id,
     SessionDirectory& table = directory();
     ReadyHookEntry ready{};
     {
-        const std::lock_guard<std::mutex> lock(table.mutex);
+        const stxlib::ScopedLock lock(table.mutex);
         ready = table.ready;
     }
     if (ready.hook == nullptr) return;
@@ -126,7 +126,7 @@ void notify_window_ready(SurfaceRoot& window, std::string_view stable_id,
 
 void install_route_observer(RouteObserver observer, void* context) noexcept {
     SessionDirectory& table = directory();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     table.route = RouteObserverEntry{observer, observer == nullptr ? nullptr : context};
     route_observer_installed.store(observer != nullptr, std::memory_order_relaxed);
 }
@@ -140,7 +140,7 @@ void notify_route(const SurfaceRoot& window, const RouteRecord& record) noexcept
     SessionDirectory& table = directory();
     RouteObserverEntry route{};
     {
-        const std::lock_guard<std::mutex> lock(table.mutex);
+        const stxlib::ScopedLock lock(table.mutex);
         route = table.route;
     }
     if (route.observer == nullptr) return;

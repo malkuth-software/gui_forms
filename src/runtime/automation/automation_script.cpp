@@ -10,12 +10,17 @@
 // named on standard output, and every window is then asked to close.
 
 #include "automation_run_internal.hpp"
+#include "../../platform/library_files.hpp"
 
 #include <stxlib/threads.hpp>
 
 #include <atomic>
 #include <cstdio>
-#include <fstream>
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -61,11 +66,11 @@ void script_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
             for (std::size_t index = 0U; index < (*success).images.size(); ++index) {
                 const ToolImage& image = (*success).images[index];
                 const std::string written = state.path + "." + std::to_string(index + 1U) + ".png";
-                std::ofstream file(written, std::ios::binary | std::ios::trunc);
-                file.write(reinterpret_cast<const char*>(image.bytes.data()),
-                           static_cast<std::streamsize>(image.bytes.size()));
+                platform::OutputFile file = platform::OutputFile::create(written);
+                static_cast<void>(file.write(std::span<const std::byte>(image.bytes)));
+                const bool saved = file.close();
                 std::fprintf(stdout, "image %zu: %s%s\n", index + 1U, written.c_str(),
-                             file ? "" : " (not written)");
+                             saved ? "" : " (not written)");
             }
             std::fprintf(stderr, "GUI.Forms: --mcp-script: %zu steps passed\n", state.steps);
         } else {
@@ -84,11 +89,17 @@ void script_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
 } // namespace
 
 std::unique_ptr<ScriptRunner> ScriptRunner::start(AutomationRun& run, const std::string& path, std::string& error) {
-    std::ifstream file(path, std::ios::binary);
-    if (!file) {
+    const std::optional<std::uint64_t> size = platform::regular_file_bytes(path);
+    if (size.has_value() && *size > maximum_script_bytes) {
+        error = path + " is longer than 4 MiB";
+        return nullptr;
+    }
+    const std::optional<std::vector<std::byte>> read = platform::read_file_bytes(path, maximum_script_bytes);
+    if (!read.has_value()) {
         error = "cannot read " + path;
         return nullptr;
     }
+    std::istringstream file(std::string(reinterpret_cast<const char*>((*read).data()), (*read).size()));
     std::unique_ptr<State> state = std::make_unique<State>();
     (*state).run = &run;
     (*state).path = path;

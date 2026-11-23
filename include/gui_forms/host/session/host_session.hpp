@@ -6,7 +6,6 @@
 #include "gui_forms/types/platform_types/platform_types.hpp"
 
 #include <cstdint>
-#include <thread>
 
 namespace gui_forms {
 
@@ -52,7 +51,6 @@ public:
     // ic: (HostDispatchError::wrong_thread)), unchanged; invalid_payload (a payload its own rules refuse: invalid UTF-8
     // ic: text, input settings out of range, a stale compositor report), unchanged.
     [[nodiscard]] HostDispatchResult dispatch(HostEvent event);
-    // ic: Admitted in any state; then shutdown.
     // A model's input (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
     // section 8.1): the automation core builds a pointer, key, text, hover
     // or context request event as a host would and delivers it through this
@@ -68,6 +66,7 @@ public:
     // model_input_events. UI thread.
     [[nodiscard]] HostDispatchResult dispatch_model_input(HostEventPayload payload,
                                                           std::uint64_t timestamp_nanoseconds);
+    // ic: Admitted in any state; then shutdown.
     void shutdown() noexcept;
 
     [[nodiscard]] Event<HostCloseRequest&>& closing() noexcept {

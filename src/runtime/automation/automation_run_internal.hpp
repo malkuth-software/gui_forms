@@ -16,7 +16,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -83,7 +83,7 @@ private:
     AutomationControl control_;
     AutomationCore core_;
 
-    mutable std::mutex mutex_{};
+    mutable stxlib::Mutex mutex_{};
     std::vector<WindowDispatcher> dispatchers_{};
     std::atomic<bool> ended_{false};
     // The UI thread's: the windows' handles, for the portable shutdown.

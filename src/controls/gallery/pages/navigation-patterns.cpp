@@ -8,6 +8,8 @@
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "stxlib/math.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -76,7 +78,7 @@ struct RadialState final {
     const double distance = std::sqrt(offset.x * offset.x + offset.y * offset.y);
     if (distance < radial_hub || distance > radial_outer + 24.0) return -1;
     const double sector_angle = 2.0 * pi / static_cast<double>(radial_items.size());
-    double angle = std::atan2(offset.x, -offset.y) + sector_angle * 0.5;
+    double angle = stxlib::math::atan2(offset.x, -offset.y) + sector_angle * 0.5;
     while (angle < 0.0) angle += 2.0 * pi;
     const int sector = static_cast<int>(angle / sector_angle) % static_cast<int>(radial_items.size());
     return sector;
@@ -106,10 +108,10 @@ public:
             const double last = first + sector_angle - 0.06;
             for (std::size_t step = 0; step <= steps; ++step) {
                 const double angle = first + (last - first) * static_cast<double>(step) / steps;
-                outline[step] = Point{centre.x + radial_outer * std::cos(angle), centre.y + radial_outer * std::sin(angle)};
+                outline[step] = Point{centre.x + radial_outer * stxlib::math::cos(angle), centre.y + radial_outer * stxlib::math::sin(angle)};
                 const double back = last - (last - first) * static_cast<double>(step) / steps;
                 outline[steps + 1U + step] =
-                    Point{centre.x + radial_hub * std::cos(back), centre.y + radial_hub * std::sin(back)};
+                    Point{centre.x + radial_hub * stxlib::math::cos(back), centre.y + radial_hub * stxlib::math::sin(back)};
             }
             const bool hot = static_cast<int>(sector) == (*state_).hot;
             painter.fill_polygon(outline, hot ? Color::rgba(39, 116, 184) : Color::rgba(255, 255, 255),
@@ -117,15 +119,15 @@ public:
             const double middle = -pi * 0.5 + sector_angle * static_cast<double>(sector);
             const double reach = (radial_hub + radial_outer) * 0.5;
             const std::string_view text = radial_items[sector];
-            const Point origin{centre.x + reach * std::cos(middle) - static_cast<double>(text.size()) * 3.0,
-                               centre.y + reach * std::sin(middle) + 4.0};
+            const Point origin{centre.x + reach * stxlib::math::cos(middle) - static_cast<double>(text.size()) * 3.0,
+                               centre.y + reach * stxlib::math::sin(middle) + 4.0};
             painter.draw_text_utf8(origin, text, font, hot ? Color::rgba(255, 255, 255) : Color::rgba(28, 39, 50));
         }
         std::array<Point, 16> hub{};
         for (std::size_t corner = 0; corner < hub.size(); ++corner) {
             const double angle = 2.0 * pi * static_cast<double>(corner) / static_cast<double>(hub.size());
-            hub[corner] = Point{centre.x + (radial_hub - 4.0) * std::cos(angle),
-                                centre.y + (radial_hub - 4.0) * std::sin(angle)};
+            hub[corner] = Point{centre.x + (radial_hub - 4.0) * stxlib::math::cos(angle),
+                                centre.y + (radial_hub - 4.0) * stxlib::math::sin(angle)};
         }
         painter.fill_polygon(hub, Color::rgba(91, 107, 121), PolygonFillRule::nonzero);
     }
@@ -418,7 +420,7 @@ private:
     void build_radial(Surface& body) {
         const std::shared_ptr<LayoutGroup> box = group("gallery.navigation.radial", "Radial menu", {300.0, 260.0});
         body.add_at(box, {342.0, 368.0, 300.0, 260.0});
-        radial_state_ = std::make_shared<RadialState>();
+        radial_state_ = gui_forms::detail::make_library_shared<RadialState>();
         radial_ = make_control<DrawingSurface>(StableId("gallery.navigation.radial.surface"));
         (*radial_).accessible_name = "Radial menu area";
         (*radial_).hit_test_visible = true;
@@ -581,7 +583,7 @@ private:
 } // namespace
 
 void add_navigation_patterns(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    const std::shared_ptr<NavigationPatternsPage> owner = std::make_shared<NavigationPatternsPage>(page);
+    const std::shared_ptr<NavigationPatternsPage> owner = gui_forms::detail::make_library_shared<NavigationPatternsPage>(page);
     (*owner).build();
     (*context).components.add(owner);
     (*owner).connect();

@@ -6,7 +6,7 @@
 #include <atomic>
 #include <cstddef>
 #include <cstring>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -38,7 +38,7 @@ struct UserStep final {
 // mutex keeps a program with several UI threads safe, and nothing is called
 // while it is held.
 struct MarkTable final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     std::vector<WindowMark> windows{};
     std::vector<ActionMark> destructive_actions{};
     std::vector<std::string> hidden_commands{};
@@ -110,13 +110,13 @@ bool mcp_capability_built() noexcept {
 
 void set_model_drivable(Window& window, bool drivable) {
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     ensure_window_mark(table, window).drivable = drivable;
 }
 
 bool model_drivable(const Window& window) noexcept {
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     const WindowMark* const mark = window_mark(table, window);
     const bool drivable = mark != nullptr && (*mark).drivable;
     return drivable;
@@ -124,13 +124,13 @@ bool model_drivable(const Window& window) noexcept {
 
 void set_window_destructive(Window& window, bool destructive) {
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     ensure_window_mark(table, window).destructive = destructive;
 }
 
 bool window_destructive(const Window& window) noexcept {
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     const WindowMark* const mark = window_mark(table, window);
     const bool destructive = mark != nullptr && (*mark).destructive;
     return destructive;
@@ -140,7 +140,7 @@ bool set_action_destructive(const char* stable_id, SemanticAction action, bool d
     std::string_view identity{};
     if (!read_text(stable_id, identity)) return false;
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (std::size_t index = 0U; index < table.destructive_actions.size(); ++index) {
         const ActionMark& mark = table.destructive_actions[index];
         if (mark.stable_id != identity || mark.action != action) continue;
@@ -165,7 +165,7 @@ bool set_command_hidden_from_model(const char* stable_id, bool hidden) {
     std::string_view identity{};
     if (!read_text(stable_id, identity)) return false;
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (std::size_t index = 0U; index < table.hidden_commands.size(); ++index) {
         if (table.hidden_commands[index] != identity) continue;
         if (!hidden) table.hidden_commands.erase(table.hidden_commands.begin() + static_cast<std::ptrdiff_t>(index));
@@ -187,7 +187,7 @@ bool require_user_step(const char* stable_id, const char* what_user_must_do) {
     std::string_view what{};
     if (!read_text(stable_id, identity) || !read_text(what_user_must_do, what)) return false;
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (UserStep& step : table.user_steps) {
         if (step.stable_id != identity) continue;
         step.what = std::string(what);
@@ -201,7 +201,7 @@ void complete_user_step(const char* stable_id) {
     std::string_view identity{};
     if (!read_text(stable_id, identity)) return;
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (std::size_t index = 0U; index < table.user_steps.size(); ++index) {
         if (table.user_steps[index].stable_id != identity) continue;
         table.user_steps.erase(table.user_steps.begin() + static_cast<std::ptrdiff_t>(index));
@@ -213,7 +213,7 @@ bool user_step_pending(const char* stable_id) noexcept {
     std::string_view identity{};
     if (!read_text(stable_id, identity)) return false;
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (const UserStep& step : table.user_steps) {
         if (step.stable_id == identity) return true;
     }
@@ -242,14 +242,14 @@ bool set_mcp_identity(const char* identity) {
     }
     if (!dotted) return false;
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     table.identity = std::string(text);
     return true;
 }
 
 const char* mcp_identity_override() noexcept {
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     const char* const identity = table.identity.c_str();
     return identity;
 }
@@ -283,7 +283,7 @@ namespace detail {
 
 bool pending_user_step(std::string_view stable_id, std::string& what) {
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (const UserStep& step : table.user_steps) {
         if (step.stable_id != stable_id) continue;
         what = step.what;
@@ -294,7 +294,7 @@ bool pending_user_step(std::string_view stable_id, std::string& what) {
 
 bool action_destructive_mark(std::string_view stable_id, SemanticAction action) {
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (const ActionMark& mark : table.destructive_actions) {
         if (mark.stable_id == stable_id && mark.action == action) return true;
     }
@@ -303,7 +303,7 @@ bool action_destructive_mark(std::string_view stable_id, SemanticAction action) 
 
 bool command_hidden_mark(std::string_view stable_id) {
     MarkTable& table = marks();
-    const std::lock_guard<std::mutex> lock(table.mutex);
+    const stxlib::ScopedLock lock(table.mutex);
     for (const std::string& hidden : table.hidden_commands) {
         if (hidden == stable_id) return true;
     }

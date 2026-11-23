@@ -38,7 +38,7 @@
 
 #include <cstddef>
 #include <cstdint>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <span>
 #include <string>
 #include <string_view>
@@ -245,7 +245,7 @@ public:
     [[nodiscard]] std::uint64_t generation() const;
 
 private:
-    mutable std::mutex mutex_{};
+    mutable stxlib::Mutex mutex_{};
     std::vector<ToolEntry> tools_{};
     std::vector<InspectSectionEntry> sections_{};
     std::uint64_t generation_{1U};

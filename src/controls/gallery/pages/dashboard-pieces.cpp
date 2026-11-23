@@ -7,6 +7,8 @@
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/xml/types/xml_types.hpp"
 #include "gui_forms/xml/xml_reader/xml_reader.hpp"
+#include "stxlib/math.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -235,9 +237,9 @@ void fill_arc(Painter& painter, Point centre, double inner, double outer, double
     std::array<Point, (steps + 1U) * 2U> outline{};
     for (std::size_t step = 0; step <= steps; ++step) {
         const double angle = start + sweep * static_cast<double>(step) / steps;
-        outline[step] = Point{centre.x + outer * std::cos(angle), centre.y + outer * std::sin(angle)};
+        outline[step] = Point{centre.x + outer * stxlib::math::cos(angle), centre.y + outer * stxlib::math::sin(angle)};
         const double back = start + sweep - sweep * static_cast<double>(step) / steps;
-        outline[steps + 1U + step] = Point{centre.x + inner * std::cos(back), centre.y + inner * std::sin(back)};
+        outline[steps + 1U + step] = Point{centre.x + inner * stxlib::math::cos(back), centre.y + inner * stxlib::math::sin(back)};
     }
     painter.fill_polygon(outline, colour, PolygonFillRule::nonzero);
 }
@@ -460,7 +462,7 @@ private:
     void build_treemap(Surface& body) {
         const std::shared_ptr<LayoutGroup> box = group("gallery.dashboard.treemap", "Treemap", {320.0, 260.0});
         body.add_at(box, {356.0, 92.0, 320.0, 260.0});
-        treemap_layout_ = std::make_shared<TreemapLayout>(layout_treemap(treemap_aspect));
+        treemap_layout_ = gui_forms::detail::make_library_shared<TreemapLayout>(layout_treemap(treemap_aspect));
         treemap_ = make_control<DrawingSurface>(StableId("gallery.dashboard.treemap.view"));
         (*treemap_).accessible_name = "Disk usage treemap";
         (*treemap_).hit_test_visible = true;
@@ -499,7 +501,7 @@ private:
     void build_gauge(Surface& body) {
         const std::shared_ptr<LayoutGroup> box = group("gallery.dashboard.gauge", "Bar gauge", {288.0, 260.0});
         body.add_at(box, {688.0, 92.0, 288.0, 260.0});
-        gauge_state_ = std::make_shared<GaugeState>();
+        gauge_state_ = gui_forms::detail::make_library_shared<GaugeState>();
         gauge_ = make_control<DrawingSurface>(StableId("gallery.dashboard.gauge.view"));
         (*gauge_).semantic_role = SemanticRole::meter;
         (*gauge_).set_paint_callback(GaugePaint(gauge_state_));
@@ -735,7 +737,7 @@ private:
 } // namespace
 
 void add_dashboard_pieces(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    const std::shared_ptr<DashboardPiecesPage> owner = std::make_shared<DashboardPiecesPage>(page);
+    const std::shared_ptr<DashboardPiecesPage> owner = gui_forms::detail::make_library_shared<DashboardPiecesPage>(page);
     (*owner).build();
     (*context).components.add(owner);
     (*owner).connect();

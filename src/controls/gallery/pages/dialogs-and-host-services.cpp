@@ -417,7 +417,7 @@ void HostServicesPage::on_show_toast() {
     if (!toast_) {
         Window* const window = (*notify_toggle_button_).attached_window();
         if (window == nullptr) return;
-        toast_ = std::make_shared<ToastNotification>(*window);
+        toast_ = gui_forms::detail::make_library_shared<ToastNotification>(*window);
         (*toast_).title = "GUI.Forms Gallery";
         (*toast_).text = "A desktop notification from the host services page";
         on((*toast_).activated(), *this, &HostServicesPage::on_toast_activated);

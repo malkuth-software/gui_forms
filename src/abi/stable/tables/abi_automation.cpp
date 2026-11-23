@@ -29,7 +29,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <memory>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -140,7 +140,7 @@ struct SectionAdapter final {
 };
 
 struct Adapters final {
-    std::mutex lock{};
+    stxlib::Mutex lock{};
     std::vector<std::unique_ptr<ToolAdapter>> tools{};
     std::vector<std::unique_ptr<SectionAdapter>> sections{};
 };
@@ -407,7 +407,7 @@ gf_status register_tool_body(const gf_automation_tool* tool) {
                                                                          : automation::ModelToolThread::ui;
     spec.settles = ((*tool).flags & GF_AUTOMATION_TOOL_SETTLES) != 0U;
     Adapters& held = adapters();
-    const std::lock_guard<std::mutex> lock(held.lock);
+    const stxlib::ScopedLock lock(held.lock);
     ToolAdapter* const adapter = made.get();
     held.tools.push_back(std::move(made));
     const ModelToolRegistration added = automation::register_model_tool(spec, &tool_trampoline, adapter);
@@ -431,7 +431,7 @@ gf_status unregister_tool_body(gf_utf8_view name) {
     ToolAdapter* adapter = nullptr;
     {
         Adapters& held = adapters();
-        const std::lock_guard<std::mutex> lock(held.lock);
+        const stxlib::ScopedLock lock(held.lock);
         for (const std::unique_ptr<ToolAdapter>& candidate : held.tools) {
             if ((*candidate).registered && (*candidate).name == text) adapter = candidate.get();
         }
@@ -534,7 +534,7 @@ gf_status register_section_body(const gf_automation_inspect_section* section) {
     (*made).inspect = (*section).inspect;
     (*made).release = (*section).release;
     Adapters& held = adapters();
-    const std::lock_guard<std::mutex> lock(held.lock);
+    const stxlib::ScopedLock lock(held.lock);
     SectionAdapter* const adapter = made.get();
     held.sections.push_back(std::move(made));
     const ModelToolRegistration added =
@@ -558,7 +558,7 @@ gf_status unregister_section_body(gf_utf8_view name) {
     SectionAdapter* adapter = nullptr;
     {
         Adapters& held = adapters();
-        const std::lock_guard<std::mutex> lock(held.lock);
+        const stxlib::ScopedLock lock(held.lock);
         for (const std::unique_ptr<SectionAdapter>& candidate : held.sections) {
             if ((*candidate).registered && (*candidate).name == text) adapter = candidate.get();
         }

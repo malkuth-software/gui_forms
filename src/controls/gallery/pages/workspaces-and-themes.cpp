@@ -13,6 +13,7 @@
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/theme/familiar_themes/familiar_themes.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <chrono>
@@ -220,8 +221,8 @@ private:
     void build_themes(Surface& body) {
         const std::shared_ptr<LayoutGroup> box = group("gallery.workspaces.themes", "Theme gallery", {336.0, 300.0});
         body.add_at(box, {640.0, 92.0, 336.0, 300.0});
-        theme_command_ = std::make_shared<GalleryCommand>(
-            std::make_shared<Command>("gallery.workspaces.themes.command", "Theme"));
+        theme_command_ = gui_forms::detail::make_library_shared<GalleryCommand>(
+            gui_forms::detail::make_library_shared<Command>("gallery.workspaces.themes.command", "Theme"));
         theme_gallery_ = make_control<RibbonGallery>(StableId("gallery.workspaces.themes.gallery"));
         (*theme_gallery_).accessible_name = "Themes";
         (*theme_gallery_).item_size = Size{100.0, 26.0};
@@ -410,7 +411,7 @@ private:
 } // namespace
 
 void add_workspaces_and_themes(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    const std::shared_ptr<WorkspacesAndThemesPage> owner = std::make_shared<WorkspacesAndThemesPage>(page);
+    const std::shared_ptr<WorkspacesAndThemesPage> owner = gui_forms::detail::make_library_shared<WorkspacesAndThemesPage>(page);
     (*owner).build();
     (*context).components.add(owner);
     (*owner).connect();

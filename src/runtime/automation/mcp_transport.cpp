@@ -16,6 +16,7 @@
 #include <stxlib/mcp.hpp>
 #include <stxlib/pipes.hpp>
 #include <stxlib/text.hpp>
+#include <stxlib/threads.hpp>
 #endif
 
 namespace gui_forms::automation {
@@ -111,7 +112,7 @@ struct McpTransport::State final {
     AutomationRun* run{};
     std::string identity{};
     stxlib::mcp::Server server{};
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     std::vector<std::string> bound{};
 };
 
@@ -168,7 +169,7 @@ void McpTransport::stop() noexcept {
 
 void McpTransport::bind_tools(const std::vector<ToolSpec>& specs) {
     State& state = *state_;
-    const std::lock_guard<std::mutex> lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     // Unbind what is gone, or changed (bound again below).
     for (const std::string& name : state.bound) {
         static_cast<void>(state.server.unbind_tool(text_view(name)));

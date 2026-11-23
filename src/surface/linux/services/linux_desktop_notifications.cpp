@@ -1,6 +1,7 @@
 #include "linux_desktop_notifications.hpp"
 
 #include "../../../core/failure/fail_fast.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <gio/gio.h>
 
@@ -46,7 +47,7 @@ struct LinuxDesktopNotifications::Impl final {
     GCancellable* cancellable{};
     guint action_subscription{};
     guint closed_subscription{};
-    std::shared_ptr<NotificationAnchor> anchor{std::make_shared<NotificationAnchor>()};
+    std::shared_ptr<NotificationAnchor> anchor{gui_forms::detail::make_library_shared<NotificationAnchor>()};
     std::vector<Entry> entries{};
 
     [[nodiscard]] bool connect();

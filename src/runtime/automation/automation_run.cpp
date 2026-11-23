@@ -6,6 +6,7 @@
 #include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/clocks.hpp>
 #include <stxlib/environment.hpp>
 #include <stxlib/process.hpp>
 #include <stxlib/result.hpp>
@@ -16,8 +17,8 @@
 #include <chrono>
 #include <cstdio>
 #include <exception>
-#include <thread>
 #include <utility>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::automation {
 
@@ -180,7 +181,7 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         run.presenter_.set_windowing(handle, stable_id);
         run.handles_.push_back(handle);
         {
-            const std::lock_guard<std::mutex> lock(run.mutex_);
+            const stxlib::ScopedLock lock(run.mutex_);
             run.dispatchers_.push_back((*model).dispatcher());
         }
         run.sync_tools();
@@ -191,21 +192,32 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
 }
 
 WindowDispatcher AutomationRun::home_dispatcher() const {
-    const std::lock_guard<std::mutex> lock(mutex_);
+    const stxlib::ScopedLock lock(mutex_);
     for (const WindowDispatcher& dispatcher : dispatchers_) {
         if (dispatcher.window_alive()) return dispatcher;
     }
     return WindowDispatcher{};
 }
 
+namespace {
+
+// A frame-clock interval as STXlib's Duration, for its sleep.
+stxlib::Duration stxlib_interval(const FrameInterval interval) noexcept {
+    const stxlib::Duration converted = stxlib::Duration::nanoseconds(
+        static_cast<stxlib::i64>(std::chrono::duration_cast<std::chrono::nanoseconds>(interval).count()));
+    return converted;
+}
+
+} // namespace
+
 bool AutomationRun::wait_for_window(const CallStop* stop) const {
     while (!ended_.load()) {
         if (stop != nullptr && (*stop).stopped()) return false;
         {
-            const std::lock_guard<std::mutex> lock(mutex_);
+            const stxlib::ScopedLock lock(mutex_);
             if (!dispatchers_.empty()) return true;
         }
-        std::this_thread::sleep_for(stop_slice);
+        stxlib::sleep_for(stxlib_interval(stop_slice));
     }
     return false;
 }
@@ -230,7 +242,7 @@ ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json
         while (FrameClock::now() < resume) {
             if (stop != nullptr && (*stop).stopped()) break;
             const FrameInterval left = resume - FrameClock::now();
-            std::this_thread::sleep_for(std::min<FrameInterval>(left, stop_slice));
+            stxlib::sleep_for(stxlib_interval(std::min<FrameInterval>(left, stop_slice)));
         }
         if (stop != nullptr && (*stop).stopped()) {
             dispatcher = home_dispatcher();

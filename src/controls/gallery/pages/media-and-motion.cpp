@@ -4,6 +4,8 @@
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/theme/owner_draw/owner_draw.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "stxlib/math.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -89,7 +91,7 @@ void paint_slide(Painter& painter, const Slide& slide, Rect area, double fade, C
     std::array<Point, 24> disc{};
     for (std::size_t corner = 0; corner < disc.size(); ++corner) {
         const double angle = 6.283185307179586 * static_cast<double>(corner) / static_cast<double>(disc.size());
-        disc[corner] = Point{centre.x + radius * std::cos(angle), centre.y + radius * std::sin(angle)};
+        disc[corner] = Point{centre.x + radius * stxlib::math::cos(angle), centre.y + radius * stxlib::math::sin(angle)};
     }
     painter.fill_polygon(disc, sun, PolygonFillRule::nonzero);
     const std::array<Point, 3> hill{Point{area.x, horizon}, Point{area.x + area.width * 0.35, horizon - area.height * 0.2},
@@ -292,7 +294,7 @@ private:
     void build_slider(Surface& body) {
         const std::shared_ptr<LayoutGroup> slider = group("gallery.media.slider", "Image slider", {470.0, 270.0});
         body.add_at(slider, {24.0, 92.0, 470.0, 270.0});
-        slider_state_ = std::make_shared<SliderState>();
+        slider_state_ = gui_forms::detail::make_library_shared<SliderState>();
         slider_view_ = make_control<DrawingSurface>(StableId("gallery.media.slider.view"));
         (*slider_view_).set_paint_callback(SliderPaint(slider_state_));
         (*slider).add_at(slider_view_, {12.0, 30.0, 446.0, 190.0});
@@ -417,7 +419,7 @@ private:
         const std::shared_ptr<LayoutGroup> transitions =
             group("gallery.media.transitions", "Transitions", {466.0, 270.0});
         body.add_at(transitions, {510.0, 92.0, 466.0, 270.0});
-        transition_state_ = std::make_shared<TransitionState>();
+        transition_state_ = gui_forms::detail::make_library_shared<TransitionState>();
         transition_view_ = make_control<DrawingSurface>(StableId("gallery.media.transitions.view"));
         (*transition_view_).accessible_name = "Transition preview";
         (*transition_view_).set_paint_callback(TransitionPaint(transition_state_));
@@ -457,7 +459,7 @@ private:
     void build_carousel(Surface& body) {
         const std::shared_ptr<LayoutGroup> carousel = group("gallery.media.carousel", "Carousel", {466.0, 250.0});
         body.add_at(carousel, {510.0, 376.0, 466.0, 250.0});
-        carousel_state_ = std::make_shared<CarouselState>();
+        carousel_state_ = gui_forms::detail::make_library_shared<CarouselState>();
         carousel_view_ = make_control<DrawingSurface>(StableId("gallery.media.carousel.view"));
         (*carousel_view_).set_paint_callback(CarouselPaint(carousel_state_));
         (*carousel).add_at(carousel_view_, {12.0, 30.0, 442.0, 170.0});
@@ -611,7 +613,7 @@ private:
 } // namespace
 
 void add_media_and_motion(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    const std::shared_ptr<MediaAndMotionPage> owner = std::make_shared<MediaAndMotionPage>(page);
+    const std::shared_ptr<MediaAndMotionPage> owner = gui_forms::detail::make_library_shared<MediaAndMotionPage>(page);
     (*owner).build();
     (*context).components.add(owner);
     (*owner).connect();

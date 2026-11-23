@@ -9,6 +9,7 @@
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/host/session/host_session.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <exception>
@@ -1098,7 +1099,7 @@ StepOutcome CoreAccess::post_act(RunningCall& call, FrameTime now) {
     core.fill_windows(windows);
     call.windows_before.clear();
     for (Window* const open : windows) call.windows_before.push_back(core.window_stable_id(*open));
-    call.outcome = std::make_shared<ActOutcome>();
+    call.outcome = gui_forms::detail::make_library_shared<ActOutcome>();
     PostedAct work{call.window, call.act, core.control().client(), call.outcome};
     static_cast<void>((*window).begin_invoke(std::move(work)));
     if (AutomationPresenter* const presenter = core.control().presenter()) {

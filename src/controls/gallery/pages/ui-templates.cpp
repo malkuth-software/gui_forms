@@ -12,6 +12,7 @@
 #include "template-record_form.hpp"
 #include "template-settings_form.hpp"
 #include "template-sign-in_form.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <cstddef>
@@ -212,7 +213,7 @@ private:
 } // namespace
 
 void add_ui_templates(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    const std::shared_ptr<UiTemplatesPage> owner = std::make_shared<UiTemplatesPage>(page);
+    const std::shared_ptr<UiTemplatesPage> owner = gui_forms::detail::make_library_shared<UiTemplatesPage>(page);
     (*owner).build();
     (*context).components.add(owner);
     (*owner).connect();
