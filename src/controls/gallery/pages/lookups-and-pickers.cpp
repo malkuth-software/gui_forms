@@ -114,8 +114,6 @@ struct Customer final {
 // a header click.
 class CustomerRows final : public DataGridViewCellValueProvider {
 public:
-    static constexpr std::size_t column_count = 4U;
-
     CustomerRows() {
         for (std::size_t city = 0; city < customer_cities.size(); ++city) {
             for (std::size_t name = 0; name < customer_names.size(); ++name) {
