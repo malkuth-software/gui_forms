@@ -170,7 +170,11 @@ SheetColour colour_of(const stxlib::syntax::TokenKind kind) noexcept {
     }
 }
 
-CodeSheet::CodeSheet(StableId stable_id) : Control(std::move(stable_id)) {}
+CodeSheet::CodeSheet(StableId stable_id) : Control(std::move(stable_id)) {
+    // The sheet handles the touchpad's pinch (on_gesture): its window asks
+    // the host for gestures.
+    set_gesture_input(true);
+}
 
 bool CodeSheet::load_source(const std::string_view name, const std::string_view source) {
     if (source.size() > maximum_source_bytes) return false;
@@ -391,6 +395,26 @@ void CodeSheet::on_mouse_wheel(MouseEventArgs& arguments) {
     }
     arguments.handled = true;
     Control::on_mouse_wheel(arguments);
+}
+
+void CodeSheet::on_gesture(GestureEventArgs& arguments) {
+    if (arguments.kind == GestureKind::magnify) {
+        // At once, as a precise Ctrl+wheel: the scale about the fingers,
+        // then the content follows their travel.
+        glide_timer_.stop();
+        sync_extent();
+        model_.zoom_at(model_.zoom() * arguments.scale, arguments.location);
+        invalidate(Dirty::paint);
+        if (arguments.translation.x != 0.0 || arguments.translation.y != 0.0)
+            scroll_screen(Point{-arguments.translation.x, -arguments.translation.y});
+        arguments.handled = true;
+    } else if (arguments.kind == GestureKind::smart_magnify) {
+        const bool at_one = model_.target_zoom() == 1.0;
+        glide_to(at_one ? smart_zoom : 1.0, arguments.location);
+        arguments.handled = true;
+    }
+    // Rotate and swipe mean nothing to the sheet: they bubble on.
+    Control::on_gesture(arguments);
 }
 
 double CodeSheet::advance_at(Painter& painter, const FontSpec font) {
