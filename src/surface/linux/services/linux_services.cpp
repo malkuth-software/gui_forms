@@ -692,6 +692,19 @@ HostServiceStatus Services::write_clipboard_image_impl(HostImageView image) {
               : HostServiceError::backend_failure};
 }
 #endif
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+HostServiceStatus Services::start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest &request) {
+  XdndDragOutcome outcome = run_xdnd_drag(window_, request);
+  if (!outcome.status.accepted())
+    return outcome.status;
+  publish_drag_source_end(HostDragSourceEnd{session_id, outcome.performed_effect});
+  // The grab took the release from the window: it gets it now, so its
+  // pressed and capture state end as after any press.
+  if (outcome.release.has_value())
+    window_.event(*outcome.release);
+  return {};
+}
+#endif
 HostDialogResult Services::show_dialog_impl(const HostDialogRequest &request) {
   return window_.dialog(request);
 }
@@ -735,6 +748,35 @@ std::vector<std::byte> latin1_from_utf8(std::string_view text) {
   return latin1;
 }
 } // namespace
+bool Runtime::write_selection_reply(const XSelectionRequestEvent &request, Atom property,
+                                    std::vector<std::byte> bytes) {
+  if (bytes.size() > 64U * 1024U) {
+    if (transfers.size() >= 8)
+      return false;
+    XWindowAttributes attributes{};
+    if (XGetWindowAttributes(display, request.requestor, &attributes) == 0)
+      return false;
+    XSelectInput(display, request.requestor,
+                 attributes.your_event_mask | PropertyChangeMask | StructureNotifyMask);
+    const unsigned long count = static_cast<unsigned long>(bytes.size());
+    XChangeProperty(display, request.requestor, property, atom("INCR"), 32, PropModeReplace,
+                    reinterpret_cast<const unsigned char *>(&count), 1);
+    transfers.push_back({request.requestor, property, request.target, std::move(bytes), 0,
+                         std::chrono::steady_clock::now() + std::chrono::seconds(30)});
+  } else {
+    XChangeProperty(display, request.requestor, property, request.target, 8, PropModeReplace,
+                    reinterpret_cast<const unsigned char *>(bytes.data()), static_cast<int>(bytes.size()));
+  }
+  return true;
+}
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+const std::vector<std::byte> *Runtime::drag_offer_bytes(Atom target) const noexcept {
+  for (const DragOfferTarget &offered : drag_offer)
+    if (offered.target == target)
+      return &offered.bytes;
+  return nullptr;
+}
+#endif
 void Runtime::selection_request(const XSelectionRequestEvent &request) {
   const ForeignWindowScope guard(display, request.requestor, ForeignWindowErrors::selection_reply);
   XEvent response{};
@@ -747,10 +789,15 @@ void Runtime::selection_request(const XSelectionRequestEvent &request) {
   response.xselection.property = None;
   const Atom property =
       request.property == None ? request.target : request.property;
+  // What the request is answered with: a target list, or the target's
+  // bytes; neither refuses it.
+  std::vector<Atom> targets;
+  std::vector<std::byte> bytes;
+  bool answered = false;
   if (request.selection == atom("CLIPBOARD") &&
       request.owner == clipboard_owner && clipboard_owner != 0) {
     if (request.target == atom("TARGETS")) {
-      std::vector<Atom> targets{atom("TARGETS")};
+      targets.push_back(atom("TARGETS"));
       if (clipboard_image.width != 0) {
         targets.push_back(atom("image/png"));
         targets.push_back(atom("application/x-gui-forms-bgra"));
@@ -758,17 +805,10 @@ void Runtime::selection_request(const XSelectionRequestEvent &request) {
         targets.push_back(atom("UTF8_STRING"));
         targets.push_back(XA_STRING);
       }
-      XChangeProperty(display, request.requestor, property, XA_ATOM, 32,
-                      PropModeReplace,
-                      reinterpret_cast<const unsigned char *>(targets.data()),
-                      static_cast<int>(targets.size()));
-      response.xselection.property = property;
     } else {
-      std::vector<std::byte> bytes;
       // A text target is answered whenever TARGETS offers text, so an empty
       // clipboard text is pasted as empty rather than refused; STRING is
       // ISO Latin-1 by ICCCM, so it is converted (A-gf-host-01-F10).
-      bool answered = false;
       if (request.target == atom("UTF8_STRING") &&
           clipboard_image.width == 0) {
         bytes.resize(clipboard_text.size());
@@ -784,34 +824,36 @@ void Runtime::selection_request(const XSelectionRequestEvent &request) {
         bytes = detail::encode_clipboard_image(clipboard_image.view());
       if (!bytes.empty())
         answered = true;
-      if (answered) {
-        if (bytes.size() > 64U * 1024U) {
-          if (transfers.size() >= 8) {
-            XSendEvent(display, request.requestor, False, 0, &response);
-            return;
-          }
-          XWindowAttributes attributes{};
-          if (XGetWindowAttributes(display, request.requestor, &attributes) ==
-              0)
-            return;
-          XSelectInput(display, request.requestor,
-                       attributes.your_event_mask | PropertyChangeMask |
-                           StructureNotifyMask);
-          const unsigned long count = static_cast<unsigned long>(bytes.size());
-          XChangeProperty(display, request.requestor, property, atom("INCR"),
-                          32, PropModeReplace,
-                          reinterpret_cast<const unsigned char *>(&count), 1);
-          transfers.push_back(
-              {request.requestor, property, request.target, std::move(bytes), 0,
-               std::chrono::steady_clock::now() + std::chrono::seconds(30)});
-        } else
-          XChangeProperty(display, request.requestor, property, request.target,
-                          8, PropModeReplace,
-                          reinterpret_cast<const unsigned char *>(bytes.data()),
-                          static_cast<int>(bytes.size()));
-        response.xselection.property = property;
-      }
     }
+  }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // A running drag's data (run_xdnd_drag): its targets, each answered
+  // even when empty (an empty text).
+  if (request.selection == atom("XdndSelection") &&
+      request.owner == drag_offer_owner && drag_offer_owner != 0) {
+    if (request.target == atom("TARGETS")) {
+      targets.push_back(atom("TARGETS"));
+      for (const DragOfferTarget &offered : drag_offer)
+        targets.push_back(offered.target);
+    } else if (const std::vector<std::byte> *offered = drag_offer_bytes(request.target)) {
+      bytes = *offered;
+      answered = true;
+    }
+  }
+#endif
+  if (!targets.empty()) {
+    XChangeProperty(display, request.requestor, property, XA_ATOM, 32,
+                    PropModeReplace,
+                    reinterpret_cast<const unsigned char *>(targets.data()),
+                    static_cast<int>(targets.size()));
+    response.xselection.property = property;
+  } else if (answered) {
+    if (!write_selection_reply(request, property, std::move(bytes))) {
+      XSendEvent(display, request.requestor, False, 0, &response);
+      XFlush(display);
+      return;
+    }
+    response.xselection.property = property;
   }
   XSendEvent(display, request.requestor, False, 0, &response);
   XFlush(display);
@@ -860,6 +902,17 @@ std::vector<std::byte> Runtime::read_selection(NativeWindow &window,
                                                Time time, std::size_t limit) {
   if (XGetSelectionOwner(display, selection) == None)
     return {};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // A drop of this program's own drag reads the offer, without a round
+  // trip through the server.
+  if (selection == atom("XdndSelection") && drag_offer_owner != 0 &&
+      XGetSelectionOwner(display, selection) == drag_offer_owner) {
+    const std::vector<std::byte> *offered = drag_offer_bytes(target);
+    if (offered == nullptr || (*offered).size() > limit)
+      return {};
+    return *offered;
+  }
+#endif
   if (selection == atom("CLIPBOARD") &&
       XGetSelectionOwner(display, selection) == clipboard_owner) {
     if (target == atom("image/png"))

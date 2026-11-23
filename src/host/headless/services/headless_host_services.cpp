@@ -48,6 +48,23 @@ HostServiceStatus HeadlessHostServices::warp_pointer_impl(Point position) {
 
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+HostServiceStatus HeadlessHostServices::start_drag_impl(std::uint64_t session_id,
+                                                        const HostDragSourceRequest& request) {
+    if (fail_next_drag_source_) {
+        fail_next_drag_source_ = false;
+        return {HostServiceError::backend_failure};
+    }
+    drag_source_request_ = request;
+    drag_source_session_ = session_id;
+    return {};
+}
+
+void HeadlessHostServices::finish_drag_source(DragEffect performed_effect) {
+    const HostDragSourceEnd end{drag_source_session_, performed_effect};
+    drag_source_session_ = 0U;
+    publish_drag_source_end(end);
+}
+
 HostServiceStatus HeadlessHostServices::open_url_impl(std::string_view url_utf8) {
     opened_urls_.emplace_back(url_utf8);
     return {};

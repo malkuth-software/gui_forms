@@ -4,7 +4,11 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdio>
+#include <string>
+#include <string_view>
+#include <utility>
 #include <variant>
+#include <vector>
 
 namespace gui_forms::gallery {
 namespace {
@@ -37,6 +41,54 @@ private:
     std::size_t* files_{};
     std::size_t* text_items_{};
     std::size_t* binary_items_{};
+};
+
+// The longest text a dropped row shows, in bytes, before "…".
+constexpr std::size_t dropped_text_limit = 48U;
+
+// `text` cut to at most `limit` bytes at a UTF-8 character boundary, with
+// "…" when it was cut.
+std::string shortened(std::string_view text, std::size_t limit) {
+    if (text.size() <= limit) return std::string(text);
+    std::size_t end = limit;
+    while (end > 0U && (static_cast<unsigned char>(text[end]) & 0xC0U) == 0x80U) --end;
+    std::string result(text.substr(0U, end));
+    result += "…";
+    return result;
+}
+
+// The last part of a path, after its last '/' or '\\'.
+std::string_view file_name(std::string_view path) {
+    const std::size_t slash = path.find_last_of("/\\");
+    const std::string_view name = slash == std::string_view::npos ? path : path.substr(slash + 1U);
+    return name.empty() ? path : name;
+}
+
+// The rows a drop adds: one for each file, text and data item.
+class DroppedRowLabels final {
+public:
+    explicit DroppedRowLabels(std::vector<std::string>& labels) noexcept : labels_(&labels) {}
+
+    void operator()(const DragFileListData& data) const {
+        for (const std::string& path : data.paths_utf8) {
+            (*labels_).push_back("File: " + shortened(file_name(path), dropped_text_limit));
+        }
+    }
+    void operator()(const DragTextData& data) const {
+        const std::string_view text(data.text_utf8);
+        const std::string_view line = text.substr(0U, text.find_first_of("\r\n"));
+        (*labels_).push_back(line.empty() ? std::string("Text: (no text on its first line)")
+                                          : "Text: " + shortened(line, dropped_text_limit));
+    }
+    void operator()(const DragBinaryData& data) const {
+        std::string label = "Data: " + shortened(data.media_type, dropped_text_limit) + " · ";
+        label += std::to_string(data.bytes.size());
+        label += data.bytes.size() == 1U ? " byte" : " bytes";
+        (*labels_).push_back(std::move(label));
+    }
+
+private:
+    std::vector<std::string>* labels_{};
 };
 
 } // namespace
@@ -130,12 +182,65 @@ void CollectionList::on_drag(DragEvent& event) {
     std::size_t files = 0U;
     std::size_t text_items = 0U;
     std::size_t binary_items = 0U;
-    for (const DragDataItem& item : event.items) std::visit(DropDataCounter(files, text_items, binary_items), item);
+    std::vector<std::string> labels;
+    for (const DragDataItem& item : event.items) {
+        std::visit(DropDataCounter(files, text_items, binary_items), item);
+        std::visit(DroppedRowLabels(labels), item);
+    }
+    add_dropped_rows(std::move(labels));
     char status[128]{};
     std::snprintf(status, sizeof(status), "Drop received · %zu file%s · %zu text · %zu data", files,
                   files == 1U ? "" : "s", text_items, binary_items);
     const std::string summary(status);
     dropped_.emit(summary);
+}
+
+// Appends the rows after the authored ones, keeping at most
+// max_dropped_rows dropped rows (the newest), and gives every row its
+// stable ID again: an insertion returns a list to index-derived IDs.
+void CollectionList::add_dropped_rows(std::vector<std::string> labels) {
+    if (labels.empty()) return;
+    if (labels.size() > max_dropped_rows) {
+        labels.erase(labels.begin(), labels.end() - static_cast<std::ptrdiff_t>(max_dropped_rows));
+    }
+    const std::size_t authored = items.read().size() - dropped_ids_.size();
+    const std::size_t room = max_dropped_rows - labels.size();
+    if (dropped_ids_.size() > room) {
+        const std::size_t oldest = dropped_ids_.size() - room;
+        items.erase(authored, oldest);
+        dropped_ids_.erase(dropped_ids_.begin(), dropped_ids_.begin() + static_cast<std::ptrdiff_t>(oldest));
+    }
+    std::vector<std::string> ids;
+    ids.reserve(authored + dropped_ids_.size() + labels.size());
+    for (std::size_t index = 0U; index < authored + dropped_ids_.size(); ++index) ids.push_back(item_stable_id(index));
+    for (std::size_t added = 0U; added < labels.size(); ++added) {
+        ++drop_serial_;
+        dropped_ids_.push_back("gallery.collection.drop." + std::to_string(drop_serial_));
+        ids.push_back(dropped_ids_.back());
+    }
+    items.append(std::move(labels));
+    set_item_stable_ids(std::move(ids));
+    show_last_row();
+}
+
+// Scrolls so the last row shows, from the arranged height (within the
+// list's 2-pixel frame) and the row height.
+void CollectionList::show_last_row() {
+    const std::size_t count = items.read().size();
+    const double row_height = item_height.read();
+    if (count == 0U || row_height <= 0.0) return;
+    const double inner = std::max(0.0, committed_arranged_bounds().height - 4.0);
+    const std::size_t rows = std::max<std::size_t>(1U, static_cast<std::size_t>(inner / row_height));
+    const std::size_t top = top_index.read();
+    if (count - 1U < top + rows) return;
+    top_index = count - rows;
+}
+
+void CollectionList::clear_dropped_rows() {
+    if (dropped_ids_.empty()) return;
+    const std::size_t authored = items.read().size() - dropped_ids_.size();
+    items.erase(authored, dropped_ids_.size());
+    dropped_ids_.clear();
 }
 
 } // namespace gui_forms::gallery

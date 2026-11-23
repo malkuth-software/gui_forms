@@ -5,6 +5,7 @@
 #include "../services/windows_clipboard_image.hpp"
 #include "../services/windows_clipboard_open.hpp"
 #include "../services/windows_cursor.hpp"
+#include "../services/windows_drag_drop.hpp"
 #include "../services/windows_notify_icons.hpp"
 #include "../compositor/windows_compositor.hpp"
 #include "../display/windows_vblank_clock.hpp"
@@ -1683,6 +1684,9 @@ class WindowsHostState final : private windows_detail::DirectManipulationInput::
 #if defined(GUI_FORMS_WINDOWS_SCHEDULE_WAKE_TEST)
     friend struct ScheduleWakeHostFixture;
 #endif
+#if defined(GUI_FORMS_WINDOWS_DROP_TEST)
+    friend struct DropHostFixture;
+#endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
         : model_(std::move(model)), options_(std::move(options)),
@@ -1727,6 +1731,9 @@ public:
         // The vertical-blank thread reads nothing of the window, but goes
         // first: it outlives no state it was started with.
         vblank_clock_.stop();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        drop_registration_.revoke();
+#endif
         // The modal live clock posts to the window: stop it first.
         if (modal_live_clock_ != nullptr) {
             stop_modal_live_clock();
@@ -1810,6 +1817,11 @@ public:
         // otherwise Windows keeps sending the pan as WM_MOUSEWHEEL and the
         // pinch as Ctrl+wheel, exactly as without it.
         sync_manipulation();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        // Drops from other programs (typed_drag_destination). A window OLE
+        // refuses still runs; it takes no drops.
+        static_cast<void>(drop_registration_.register_window(hwnd_, drop_sink_));
+#endif
         (*model_).set_dispatch_wake_handler(
             gui_forms::detail::BoundMemberFunction<
                 void (WindowsHostState::*)() noexcept>(
@@ -2392,6 +2404,13 @@ public:
             (*size_state_).host = nullptr;
             services_.revoke_cursor_interaction(CursorError::closing);
             accessibility_.detach();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+            // While the window still exists (RevokeDragDrop needs it).
+            drop_registration_.revoke();
+            // A drag from this window, if one runs (a handler DoDragDrop's
+            // loop dispatched destroyed it), ends cancelled.
+            services_.source_window_destroyed();
+#endif
             if (!closed_) {
                 const HostLifecyclePhase phase = session_.snapshot().phase;
                 if (phase == HostLifecyclePhase::attached ||
@@ -4558,6 +4577,53 @@ private:
         shutdown,
     };
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Drops from other programs reach the session through this window
+    // (windows_drag_drop.hpp); the registration that calls it is declared
+    // after it and revoked first.
+    class ExternalDragSink final : public gui_forms::host::detail::WindowsDragDispatch {
+    public:
+        explicit ExternalDragSink(WindowsHostState& host) noexcept : host_(&host) {}
+        DragEffect dispatch_external_drag(DragEvent event, POINT client) override {
+            const DragEffect accepted = (*host_).external_drag(std::move(event), client);
+            return accepted;
+        }
+
+    private:
+        WindowsHostState* host_;
+    };
+
+    // One drag event from the drop target: refused outside the window's
+    // input phases; a drop counts only when the window handled it.
+    DragEffect external_drag(DragEvent event, POINT client) {
+        const bool receiving = native_phase_ == NativePhase::attached || native_phase_ == NativePhase::ready ||
+                               native_phase_ == NativePhase::visible;
+        if (!receiving) {
+            if (std::getenv("GUI_FORMS_TRACE_DROP") != nullptr) {
+                std::fprintf(stderr, "gui_forms drop:   refused outside the input phases (phase=%d)\n",
+                             static_cast<int>(native_phase_));
+                std::fflush(stderr);
+            }
+            return DragEffect::none;
+        }
+        const DragAction action = event.action;
+        // Window device pixels to logical units, at the boundary.
+        event.position = {static_cast<double>(client.x) / scale_, static_cast<double>(client.y) / scale_};
+        const HostDispatchResult result = dispatch(std::move(event));
+        collect_damage();
+        if (std::getenv("GUI_FORMS_TRACE_DROP") != nullptr) {
+            std::fprintf(stderr,
+                         "gui_forms drop:   session result %s handled=%d deferred=%d effect=0x%x phase=%d\n",
+                         host_dispatch_error_name(result.error), result.handled ? 1 : 0,
+                         result.input_deferred ? 1 : 0, static_cast<unsigned>(result.drag_effect),
+                         static_cast<int>(native_phase_));
+            std::fflush(stderr);
+        }
+        if (!result.accepted() || (action == DragAction::drop && !result.handled)) return DragEffect::none;
+        return result.drag_effect;
+    }
+
+#endif
     WindowsAccessibility accessibility_;
     // The touchpad's DirectManipulation (engaged by sync_manipulation while
     // the window wants gestures, released at WM_DESTROY), its gesture in
@@ -4571,6 +4637,10 @@ private:
     WindowsHostOptions options_;
     WindowsHostServices services_;
     HostSession session_;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    ExternalDragSink drop_sink_{*this};
+    gui_forms::host::detail::WindowsDropRegistration drop_registration_;
+#endif
     HWND hwnd_{};
     bool full_screen_{};
     LONG_PTR restore_style_{};
@@ -4806,6 +4876,10 @@ HostCapabilities windows_capabilities() {
                 HostCapability::cursor |
                 HostCapability::clipboard |
                 HostCapability::clipboard_images |
+                // OLE drag and drop (windows_drag_drop.hpp): the window as
+                // a drop target, and drags from the program.
+                HostCapability::typed_drag_destination |
+                HostCapability::typed_drag_source |
                 HostCapability::dialogs |
                 HostCapability::sound_cues |
                 HostCapability::notification_area |

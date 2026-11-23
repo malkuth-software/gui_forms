@@ -819,6 +819,7 @@
     _ZGVZN9gui_forms17HelpSearchPosting*;
     _ZGVZN9gui_forms17HelpSectionToggle*;
     _ZGVZN9gui_forms17HostDialogRequest*;
+    _ZGVZN9gui_forms17HostDragSourceEnd*;
     _ZGVZN9gui_forms17HostMonitorResult*;
     _ZGVZN9gui_forms17HostServiceStatus*;
     _ZGVZN9gui_forms17HostShutdownEvent*;
@@ -1142,6 +1143,7 @@
     _ZGVZN9gui_forms20HelpBookViewerLabels*;
     _ZGVZN9gui_forms20HelpLocaleReadResult*;
     _ZGVZN9gui_forms20HelpProviderSnapshot*;
+    _ZGVZN9gui_forms20HostDragSourceResult*;
     _ZGVZN9gui_forms20HostFileDialogFilter*;
     _ZGVZN9gui_forms20HostPathDialogResult*;
     _ZGVZN9gui_forms20HostProtocolRevision*;
@@ -1216,6 +1218,7 @@
     _ZGVZN9gui_forms21HelpBookCompileResult*;
     _ZGVZN9gui_forms21HelpBookSystemOptions*;
     _ZGVZN9gui_forms21HostColorDialogResult*;
+    _ZGVZN9gui_forms21HostDragSourceRequest*;
     _ZGVZN9gui_forms21HostScreenPointResult*;
     _ZGVZN9gui_forms21HostWindowDescription*;
     _ZGVZN9gui_forms21HostWindowFrameResult*;
@@ -2513,6 +2516,7 @@
     _ZGVZNK9gui_forms17HelpSearchPosting*;
     _ZGVZNK9gui_forms17HelpSectionToggle*;
     _ZGVZNK9gui_forms17HostDialogRequest*;
+    _ZGVZNK9gui_forms17HostDragSourceEnd*;
     _ZGVZNK9gui_forms17HostMonitorResult*;
     _ZGVZNK9gui_forms17HostServiceStatus*;
     _ZGVZNK9gui_forms17HostShutdownEvent*;
@@ -2836,6 +2840,7 @@
     _ZGVZNK9gui_forms20HelpBookViewerLabels*;
     _ZGVZNK9gui_forms20HelpLocaleReadResult*;
     _ZGVZNK9gui_forms20HelpProviderSnapshot*;
+    _ZGVZNK9gui_forms20HostDragSourceResult*;
     _ZGVZNK9gui_forms20HostFileDialogFilter*;
     _ZGVZNK9gui_forms20HostPathDialogResult*;
     _ZGVZNK9gui_forms20HostProtocolRevision*;
@@ -2910,6 +2915,7 @@
     _ZGVZNK9gui_forms21HelpBookCompileResult*;
     _ZGVZNK9gui_forms21HelpBookSystemOptions*;
     _ZGVZNK9gui_forms21HostColorDialogResult*;
+    _ZGVZNK9gui_forms21HostDragSourceRequest*;
     _ZGVZNK9gui_forms21HostScreenPointResult*;
     _ZGVZNK9gui_forms21HostWindowDescription*;
     _ZGVZNK9gui_forms21HostWindowFrameResult*;
@@ -4545,6 +4551,7 @@
     _ZN9gui_forms17HelpSearchPosting*;
     _ZN9gui_forms17HelpSectionToggle*;
     _ZN9gui_forms17HostDialogRequest*;
+    _ZN9gui_forms17HostDragSourceEnd*;
     _ZN9gui_forms17HostMonitorResult*;
     _ZN9gui_forms17HostServiceStatus*;
     _ZN9gui_forms17HostShutdownEvent*;
@@ -5208,6 +5215,7 @@
     _ZN9gui_forms20HelpBookViewerLabels*;
     _ZN9gui_forms20HelpLocaleReadResult*;
     _ZN9gui_forms20HelpProviderSnapshot*;
+    _ZN9gui_forms20HostDragSourceResult*;
     _ZN9gui_forms20HostFileDialogFilter*;
     _ZN9gui_forms20HostPathDialogResult*;
     _ZN9gui_forms20HostProtocolRevision*;
@@ -5376,6 +5384,7 @@
     _ZN9gui_forms21HelpBookCompileResult*;
     _ZN9gui_forms21HelpBookSystemOptions*;
     _ZN9gui_forms21HostColorDialogResult*;
+    _ZN9gui_forms21HostDragSourceRequest*;
     _ZN9gui_forms21HostScreenPointResult*;
     _ZN9gui_forms21HostWindowDescription*;
     _ZN9gui_forms21HostWindowFrameResult*;
@@ -7627,6 +7636,7 @@
     _ZNK[RO]9gui_forms17HelpSearchPosting*;
     _ZNK[RO]9gui_forms17HelpSectionToggle*;
     _ZNK[RO]9gui_forms17HostDialogRequest*;
+    _ZNK[RO]9gui_forms17HostDragSourceEnd*;
     _ZNK[RO]9gui_forms17HostMonitorResult*;
     _ZNK[RO]9gui_forms17HostServiceStatus*;
     _ZNK[RO]9gui_forms17HostShutdownEvent*;
@@ -7950,6 +7960,7 @@
     _ZNK[RO]9gui_forms20HelpBookViewerLabels*;
     _ZNK[RO]9gui_forms20HelpLocaleReadResult*;
     _ZNK[RO]9gui_forms20HelpProviderSnapshot*;
+    _ZNK[RO]9gui_forms20HostDragSourceResult*;
     _ZNK[RO]9gui_forms20HostFileDialogFilter*;
     _ZNK[RO]9gui_forms20HostPathDialogResult*;
     _ZNK[RO]9gui_forms20HostProtocolRevision*;
@@ -8024,6 +8035,7 @@
     _ZNK[RO]9gui_forms21HelpBookCompileResult*;
     _ZNK[RO]9gui_forms21HelpBookSystemOptions*;
     _ZNK[RO]9gui_forms21HostColorDialogResult*;
+    _ZNK[RO]9gui_forms21HostDragSourceRequest*;
     _ZNK[RO]9gui_forms21HostScreenPointResult*;
     _ZNK[RO]9gui_forms21HostWindowDescription*;
     _ZNK[RO]9gui_forms21HostWindowFrameResult*;
@@ -9321,6 +9333,7 @@
     _ZN[KRO]9gui_forms17HelpSearchPosting*;
     _ZN[KRO]9gui_forms17HelpSectionToggle*;
     _ZN[KRO]9gui_forms17HostDialogRequest*;
+    _ZN[KRO]9gui_forms17HostDragSourceEnd*;
     _ZN[KRO]9gui_forms17HostMonitorResult*;
     _ZN[KRO]9gui_forms17HostServiceStatus*;
     _ZN[KRO]9gui_forms17HostShutdownEvent*;
@@ -9644,6 +9657,7 @@
     _ZN[KRO]9gui_forms20HelpBookViewerLabels*;
     _ZN[KRO]9gui_forms20HelpLocaleReadResult*;
     _ZN[KRO]9gui_forms20HelpProviderSnapshot*;
+    _ZN[KRO]9gui_forms20HostDragSourceResult*;
     _ZN[KRO]9gui_forms20HostFileDialogFilter*;
     _ZN[KRO]9gui_forms20HostPathDialogResult*;
     _ZN[KRO]9gui_forms20HostProtocolRevision*;
@@ -9718,6 +9732,7 @@
     _ZN[KRO]9gui_forms21HelpBookCompileResult*;
     _ZN[KRO]9gui_forms21HelpBookSystemOptions*;
     _ZN[KRO]9gui_forms21HostColorDialogResult*;
+    _ZN[KRO]9gui_forms21HostDragSourceRequest*;
     _ZN[KRO]9gui_forms21HostScreenPointResult*;
     _ZN[KRO]9gui_forms21HostWindowDescription*;
     _ZN[KRO]9gui_forms21HostWindowFrameResult*;
@@ -11015,6 +11030,7 @@
     _ZT[VIST]N9gui_forms17HelpSearchPosting*E;
     _ZT[VIST]N9gui_forms17HelpSectionToggle*E;
     _ZT[VIST]N9gui_forms17HostDialogRequest*E;
+    _ZT[VIST]N9gui_forms17HostDragSourceEnd*E;
     _ZT[VIST]N9gui_forms17HostMonitorResult*E;
     _ZT[VIST]N9gui_forms17HostServiceStatus*E;
     _ZT[VIST]N9gui_forms17HostShutdownEvent*E;
@@ -11338,6 +11354,7 @@
     _ZT[VIST]N9gui_forms20HelpBookViewerLabels*E;
     _ZT[VIST]N9gui_forms20HelpLocaleReadResult*E;
     _ZT[VIST]N9gui_forms20HelpProviderSnapshot*E;
+    _ZT[VIST]N9gui_forms20HostDragSourceResult*E;
     _ZT[VIST]N9gui_forms20HostFileDialogFilter*E;
     _ZT[VIST]N9gui_forms20HostPathDialogResult*E;
     _ZT[VIST]N9gui_forms20HostProtocolRevision*E;
@@ -11412,6 +11429,7 @@
     _ZT[VIST]N9gui_forms21HelpBookCompileResult*E;
     _ZT[VIST]N9gui_forms21HelpBookSystemOptions*E;
     _ZT[VIST]N9gui_forms21HostColorDialogResult*E;
+    _ZT[VIST]N9gui_forms21HostDragSourceRequest*E;
     _ZT[VIST]N9gui_forms21HostScreenPointResult*E;
     _ZT[VIST]N9gui_forms21HostWindowDescription*E;
     _ZT[VIST]N9gui_forms21HostWindowFrameResult*E;
@@ -12709,6 +12727,7 @@
     _ZT[hvc]*9gui_forms17HelpSearchPosting*;
     _ZT[hvc]*9gui_forms17HelpSectionToggle*;
     _ZT[hvc]*9gui_forms17HostDialogRequest*;
+    _ZT[hvc]*9gui_forms17HostDragSourceEnd*;
     _ZT[hvc]*9gui_forms17HostMonitorResult*;
     _ZT[hvc]*9gui_forms17HostServiceStatus*;
     _ZT[hvc]*9gui_forms17HostShutdownEvent*;
@@ -13032,6 +13051,7 @@
     _ZT[hvc]*9gui_forms20HelpBookViewerLabels*;
     _ZT[hvc]*9gui_forms20HelpLocaleReadResult*;
     _ZT[hvc]*9gui_forms20HelpProviderSnapshot*;
+    _ZT[hvc]*9gui_forms20HostDragSourceResult*;
     _ZT[hvc]*9gui_forms20HostFileDialogFilter*;
     _ZT[hvc]*9gui_forms20HostPathDialogResult*;
     _ZT[hvc]*9gui_forms20HostProtocolRevision*;
@@ -13106,6 +13126,7 @@
     _ZT[hvc]*9gui_forms21HelpBookCompileResult*;
     _ZT[hvc]*9gui_forms21HelpBookSystemOptions*;
     _ZT[hvc]*9gui_forms21HostColorDialogResult*;
+    _ZT[hvc]*9gui_forms21HostDragSourceRequest*;
     _ZT[hvc]*9gui_forms21HostScreenPointResult*;
     _ZT[hvc]*9gui_forms21HostWindowDescription*;
     _ZT[hvc]*9gui_forms21HostWindowFrameResult*;
@@ -14403,6 +14424,7 @@
     _ZZN9gui_forms17HelpSearchPosting*;
     _ZZN9gui_forms17HelpSectionToggle*;
     _ZZN9gui_forms17HostDialogRequest*;
+    _ZZN9gui_forms17HostDragSourceEnd*;
     _ZZN9gui_forms17HostMonitorResult*;
     _ZZN9gui_forms17HostServiceStatus*;
     _ZZN9gui_forms17HostShutdownEvent*;
@@ -14726,6 +14748,7 @@
     _ZZN9gui_forms20HelpBookViewerLabels*;
     _ZZN9gui_forms20HelpLocaleReadResult*;
     _ZZN9gui_forms20HelpProviderSnapshot*;
+    _ZZN9gui_forms20HostDragSourceResult*;
     _ZZN9gui_forms20HostFileDialogFilter*;
     _ZZN9gui_forms20HostPathDialogResult*;
     _ZZN9gui_forms20HostProtocolRevision*;
@@ -14800,6 +14823,7 @@
     _ZZN9gui_forms21HelpBookCompileResult*;
     _ZZN9gui_forms21HelpBookSystemOptions*;
     _ZZN9gui_forms21HostColorDialogResult*;
+    _ZZN9gui_forms21HostDragSourceRequest*;
     _ZZN9gui_forms21HostScreenPointResult*;
     _ZZN9gui_forms21HostWindowDescription*;
     _ZZN9gui_forms21HostWindowFrameResult*;
@@ -16097,6 +16121,7 @@
     _ZZNK9gui_forms17HelpSearchPosting*;
     _ZZNK9gui_forms17HelpSectionToggle*;
     _ZZNK9gui_forms17HostDialogRequest*;
+    _ZZNK9gui_forms17HostDragSourceEnd*;
     _ZZNK9gui_forms17HostMonitorResult*;
     _ZZNK9gui_forms17HostServiceStatus*;
     _ZZNK9gui_forms17HostShutdownEvent*;
@@ -16420,6 +16445,7 @@
     _ZZNK9gui_forms20HelpBookViewerLabels*;
     _ZZNK9gui_forms20HelpLocaleReadResult*;
     _ZZNK9gui_forms20HelpProviderSnapshot*;
+    _ZZNK9gui_forms20HostDragSourceResult*;
     _ZZNK9gui_forms20HostFileDialogFilter*;
     _ZZNK9gui_forms20HostPathDialogResult*;
     _ZZNK9gui_forms20HostProtocolRevision*;
@@ -16494,6 +16520,7 @@
     _ZZNK9gui_forms21HelpBookCompileResult*;
     _ZZNK9gui_forms21HelpBookSystemOptions*;
     _ZZNK9gui_forms21HostColorDialogResult*;
+    _ZZNK9gui_forms21HostDragSourceRequest*;
     _ZZNK9gui_forms21HostScreenPointResult*;
     _ZZNK9gui_forms21HostWindowDescription*;
     _ZZNK9gui_forms21HostWindowFrameResult*;

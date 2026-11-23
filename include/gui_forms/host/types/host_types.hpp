@@ -477,6 +477,38 @@ struct GUI_FORMS_API HostTrayIconEvent final {
     HostTrayIconAction action{HostTrayIconAction::click};
 };
 
+// A drag to other programs (capability typed_drag_source,
+// HostServices::start_drag): what the drag carries and the effects the
+// destination may choose. Each item becomes the platform's own format: a
+// file list its file references (CF_HDROP, file URLs), text its Unicode
+// text, and bytes the format its media type names ("image/png" the
+// platform's PNG type). The same bounds as an inbound drag hold: 1 to
+// DragLimits::maximum_items items within the total, UTF-8 throughout, no
+// NUL. A file list names paths the platform can resolve (full paths).
+struct GUI_FORMS_API HostDragSourceRequest final {
+    std::vector<DragDataItem> items;
+    DragEffect allowed_effects{DragEffect::copy};
+};
+
+// A started drag's identity, when `status` is accepted (zero otherwise).
+// The drag's end arrives later as a HostDragSourceEnd with this identity.
+struct GUI_FORMS_API HostDragSourceResult final {
+    HostServiceStatus status;
+    std::uint64_t session_id{};
+};
+
+// How a drag to other programs ended (HostServices::drag_source_ended),
+// raised once per started drag on the UI thread. `performed_effect` is
+// the effect the destination took, one of the request's allowed effects,
+// or none when the drag was cancelled (Escape, released over nothing, or
+// refused by the destination). The program removes its own copy only on
+// `move`; a Windows shell destination that moves files itself (an
+// optimized move) reports none, as it has already removed them.
+struct GUI_FORMS_API HostDragSourceEnd final {
+    std::uint64_t session_id{};
+    DragEffect performed_effect{DragEffect::none};
+};
+
 enum class HostTrayNotificationIcon : std::uint8_t { none, information, warning, error };
 
 // Notification text from a tray icon: a title of at most 63 bytes and text
