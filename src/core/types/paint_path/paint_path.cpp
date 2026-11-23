@@ -3,7 +3,7 @@
 // and the owned builder. Renderer-neutral; the Skia painter draws the
 // verbs exactly instead of flattening them.
 #include "gui_forms/types/paint_path/paint_path.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <algorithm>
 #include <array>
@@ -35,8 +35,10 @@ double held_sweep(double sweep_degrees) noexcept {
 }
 
 Point arc_point(Point center, Point radii, double degrees) noexcept {
-    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
-    const Point point{center.x + radii.x * turn.cosine, center.y + radii.y * turn.sine};
+    double turn_sine = 0.0;
+    double turn_cosine = 0.0;
+    stxlib::math::sincosd(degrees, turn_sine, turn_cosine);
+    const Point point{center.x + radii.x * turn_cosine, center.y + radii.y * turn_sine};
     return point;
 }
 
@@ -437,7 +439,7 @@ private:
 };
 
 double point_distance(Point from, Point to) noexcept {
-    const double length = engine_hypotenuse(to.x - from.x, to.y - from.y);
+    const double length = stxlib::math::hypot(to.x - from.x, to.y - from.y);
     return length;
 }
 
@@ -453,13 +455,13 @@ std::size_t segment_chords(const PathSegment& segment, double tolerance) noexcep
     switch (segment.kind) {
     case SegmentKind::line: return 1U;
     case SegmentKind::quadratic: {
-        const double second = engine_hypotenuse(p[0].x - 2.0 * p[1].x + p[2].x, p[0].y - 2.0 * p[1].y + p[2].y);
+        const double second = stxlib::math::hypot(p[0].x - 2.0 * p[1].x + p[2].x, p[0].y - 2.0 * p[1].y + p[2].y);
         wanted = std::ceil(std::sqrt(0.25 * second / tolerance));
         break;
     }
     case SegmentKind::cubic: {
-        const double first = engine_hypotenuse(p[0].x - 2.0 * p[1].x + p[2].x, p[0].y - 2.0 * p[1].y + p[2].y);
-        const double second = engine_hypotenuse(p[1].x - 2.0 * p[2].x + p[3].x, p[1].y - 2.0 * p[2].y + p[3].y);
+        const double first = stxlib::math::hypot(p[0].x - 2.0 * p[1].x + p[2].x, p[0].y - 2.0 * p[1].y + p[2].y);
+        const double second = stxlib::math::hypot(p[1].x - 2.0 * p[2].x + p[3].x, p[1].y - 2.0 * p[2].y + p[3].y);
         wanted = std::ceil(std::sqrt(0.75 * std::max(first, second) / tolerance));
         break;
     }

@@ -28,7 +28,7 @@
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/types/linear_light/linear_light_stops.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
@@ -250,15 +250,15 @@ void mark_hatch_pixel(std::array<SkPMColor, Count>& pixels,
                           static_cast<SkScalar>(element.sweep_angle),
                           !has_current_point);
             {
-                // The engine's deterministic sine and cosine.
-                const gui_forms::EngineSineCosine turn =
-                    gui_forms::engine_sine_cosine_degrees(
-                        element.start_angle + element.sweep_angle);
+                // STXlib's deterministic sine and cosine.
+                double turn_sine = 0.0;
+                double turn_cosine = 0.0;
+                stxlib::math::sincosd(element.start_angle + element.sweep_angle, turn_sine, turn_cosine);
                 current_point = {
                     element.rect.x + element.rect.width * 0.5 +
-                        element.rect.width * 0.5 * turn.cosine,
+                        element.rect.width * 0.5 * turn_cosine,
                     element.rect.y + element.rect.height * 0.5 +
-                        element.rect.height * 0.5 * turn.sine,
+                        element.rect.height * 0.5 * turn_sine,
                 };
             }
             has_current_point = true;
@@ -557,18 +557,20 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
         return true;
     }
     if (brush.kind == BrushKind::linear_gradient) {
-        // The engine's deterministic sine and cosine, exact at quarter turns
+        // STXlib's deterministic sine and cosine, exact at quarter turns
         // (drawing replay draws the same line).
-        const gui_forms::EngineSineCosine along = gui_forms::engine_sine_cosine_degrees(brush.angle);
-        const double half_length = std::abs(along.cosine) * brush.bounds.width / 2.0 +
-            std::abs(along.sine) * brush.bounds.height / 2.0;
+        double along_sine = 0.0;
+        double along_cosine = 0.0;
+        stxlib::math::sincosd(brush.angle, along_sine, along_cosine);
+        const double half_length = std::abs(along_cosine) * brush.bounds.width / 2.0 +
+            std::abs(along_sine) * brush.bounds.height / 2.0;
         const PointF center{brush.bounds.x + brush.bounds.width / 2.0,
                             brush.bounds.y + brush.bounds.height / 2.0};
         const SkPoint points[] = {
-            {static_cast<SkScalar>(center.x - along.cosine * half_length),
-             static_cast<SkScalar>(center.y - along.sine * half_length)},
-            {static_cast<SkScalar>(center.x + along.cosine * half_length),
-             static_cast<SkScalar>(center.y + along.sine * half_length)},
+            {static_cast<SkScalar>(center.x - along_cosine * half_length),
+             static_cast<SkScalar>(center.y - along_sine * half_length)},
+            {static_cast<SkScalar>(center.x + along_cosine * half_length),
+             static_cast<SkScalar>(center.y + along_sine * half_length)},
         };
         SkGradientShaderResult made = SkShaders::LinearGradient(points, gradient);
         if (made.rejection != SkGradientRejection::kNone) return false;
@@ -607,7 +609,7 @@ std::vector<SkScalar> preset_dash_pattern(DashStyle style, SkScalar width) {
     }
     double radius{};
     for (const PointF point : brush.points) {
-        radius = std::max(radius, gui_forms::engine_hypotenuse(point.x - brush.center.x,
+        radius = std::max(radius, stxlib::math::hypot(point.x - brush.center.x,
                                                                point.y - brush.center.y));
     }
     if (radius <= 0.0) {

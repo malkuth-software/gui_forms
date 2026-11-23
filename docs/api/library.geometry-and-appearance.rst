@@ -170,8 +170,6 @@ Types
      - The table.
    * - :cpp:class:`EnginePrimitive <gui_forms::EnginePrimitive>`
      - One kind of effect.
-   * - :cpp:class:`EngineSineCosine <gui_forms::EngineSineCosine>`
-     - The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50.
    * - :cpp:class:`EngineVersion <gui_forms::EngineVersion>`
      - The engine version a primitive was introduced in, and the version a theme declares it needs.
    * - :cpp:class:`ExpressionCompilation <gui_forms::ExpressionCompilation>`
@@ -2881,18 +2879,6 @@ Types
    .. cpp:function:: virtual PrimitiveSlicePlan slice_plan(const PrimitiveParameterBlock& parameters, const PrimitiveTarget& target, DeviceExtent extent) const noexcept
 
       How a raster of ``extent`` for this target may be assembled from a shorter reference bake (E7r slicing). A plan that slices an axis promises that assembling the reference gives the bytes a whole bake would. Never slices unless the primitive says otherwise. Called as accepts() is, with a target the primitive accepts.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: EngineSineCosine final
-
-   ``#include <gui_forms/engine/engine_math/engine_math.hpp>`` (:src:`source <include/gui_forms/engine/engine_math/engine_math.hpp>`)
-
-   The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50. The argument is reduced by the nearest multiple of π/2: up to 2^20 with π/2 split in three parts (Cody and Waite), exact to about 2^-100 relative; above that by Payne and Hanek's method, in integers against a fixed 1280-bit table of 2/π, which is exact for every finite double up to the largest. Exact case: x = 0 gives sine 0 and cosine 1. Infinities and NaN have no angle and give the stated value sine 0 and cosine 1, the turn of angle 0, so no NaN reaches geometry from here.
-
-   .. cpp:member:: double sine
-
-   .. cpp:member:: double cosine
 
 .. cpp:namespace:: gui_forms
 
@@ -9924,9 +9910,9 @@ Functions, constants and aliases
 
    0 below edge0, 1 above edge1, u²(3 − 2u) between; equal edges give 0.
 
-.. cpp:function:: inline double effect_sine(double x) noexcept
+.. cpp:function:: double effect_sine(double x) noexcept
 
-   The sine of x radians (engine_sine_cosine: the same bits on every host).
+   The sine of x radians: STXlib's sine (stxlib/math.hpp), the same bits on every host, defined out of line (effect_canvas.cpp) so an effect's own translation unit needs no STXlib header. NaN for \|x\| above 2^32 and for infinities and NaN, as STXlib's sine.
 
 .. cpp:function:: constexpr Color effect_faded(Color color, double factor) noexcept
 
@@ -10102,47 +10088,13 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(ExpressionOperation::count)``.
 
-.. cpp:namespace:: gui_forms
-
-``#include <gui_forms/engine/engine_math/engine_math.hpp>`` (:src:`source <include/gui_forms/engine/engine_math/engine_math.hpp>`)
-
-.. cpp:function:: double engine_logarithm(double x) noexcept
-
-   Natural logarithm of ``x``. Requires x > 0 and finite; returns NaN for x < 0 or NaN, −infinity for 0, and +infinity for +infinity.
-
-.. cpp:function:: double engine_exponential(double x) noexcept
-
-   e raised to ``x``. Returns 0 below about −745, +infinity above about 709.8, and NaN for NaN.
-
-.. cpp:function:: double engine_power(double base, double exponent) noexcept
-
-   ``base`` raised to ``exponent``, for base ≥ 0. Exact cases: base^0 is 1, 1^exponent is 1, and 0^exponent is 0 for exponent > 0. Returns NaN for a negative or NaN base and for a NaN exponent.
-
-.. cpp:function:: EngineSineCosine engine_sine_cosine(double x) noexcept
-
-.. cpp:function:: double engine_arctangent2(double y, double x) noexcept
-
-   The angle of the point (x, y) from the positive x axis, in radians in [−π, π], as std::atan2(y, x) (E9.6's conic gradient). Exact cases: (0, 0) gives 0, and a point on an axis gives 0, ±π/2 or π. NaN in either argument gives NaN. The ratio of the smaller to the larger magnitude is reduced twice (by π/4 and by the half-angle formula) to at most 0.2, where a 13-term series converges past 2^-60.
-
-.. cpp:function:: EngineSineCosine engine_sine_cosine_degrees(double degrees) noexcept
-
-   The sine and cosine of ``degrees``, for every finite angle (the theme language's rotate() and arc rotations, drawing replay's gradient directions). Exact at every multiple of 90 degrees: 0, 90, 180 and 270 give (0, 1), (1, 0), (0, −1) and (−1, 0) with no rounding. The angle is reduced exactly (fmod by 360, then the nearest multiple of 90, both without rounding), the remainder of at most 45 degrees is turned into radians (one rounding) and passed to engine_sine_cosine, and the quarter turns are applied by swapping and negating. Absolute error at most 2^-49. Infinities and NaN give the stated value sine 0 and cosine 1, as engine_sine_cosine does. This and the radian functions above are the only trigonometry the raster and theme paths call, so a later move to STXlib's certified kernels (stxlib/math.hpp's sincos and atan2, once gui_forms_core links stxlib::algorithms at a pin that carries them) changes their bodies only; STXlib's glyph seat needs the same exact quarter turns for rotated text.
-
-.. cpp:function:: double engine_tangent(double x) noexcept
-
-   The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with \|piece/4\| at most π/8). For \|x\| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Every finite x has a finite result (no double but 0 is a multiple of π/2); infinities and NaN give the stated value 0.
-
-.. cpp:function:: double engine_hypotenuse(double x, double y) noexcept
-
-   The length of (x, y), as sqrt(x² + y²): each square, the sum and the root round once, so the result has the same bits on every host, where the host's hypot need not. Relative error at most 2^-52 (about one unit in the last place). No scaling: the squares overflow for magnitudes above about 1e154 and lose precision below about 1e-154, far outside the coordinates and colours this serves. NaN in either gives NaN.
-
 .. cpp:namespace:: gui_forms::engine_light
 
 ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
 .. cpp:function:: LampColour lamp_colour_from_srgb(Color colour) noexcept
 
-   A colour given as sRGB, such as a control's lamp colour property, as a lamp's linear colour at unit power: each channel decoded by the sRGB curve (through engine_power, so every host decodes alike). Alpha is ignored.
+   A colour given as sRGB, such as a control's lamp colour property, as a lamp's linear colour at unit power: each channel decoded by the sRGB curve (through STXlib's pow, so every host decodes alike). Alpha is ignored.
 
 .. cpp:function:: LightPlanesDefect read_light_planes(std::span<const std::byte> bytes, LightPlanes& planes)
 
@@ -11662,7 +11614,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::size_t maximum_measured_curve_chords
 
-   Path length and trimming (owner, 2026-11-16: trim paths in the core). Both measure a path on chords, in + - * / and sqrt only (engine_math), so the same path and tolerance give the same bits on every host. The chord counts are fixed by the geometry: a Bezier curve takes Wang's count for ``tolerance`` (at most maximum_measured_curve_chords), an arc enough equal angular steps that no chord's sagitta exceeds ``tolerance`` and none turns more than a quarter (at most maximum_measured_arc_chords). These are counts of their own, finer for arcs than flatten_paint_path's. Value: ``1024U``.
+   Path length and trimming (owner, 2026-11-16: trim paths in the core). Both measure a path on chords, in + - * /, sqrt and STXlib's hypot only, so the same path and tolerance give the same bits on every host. The chord counts are fixed by the geometry: a Bezier curve takes Wang's count for ``tolerance`` (at most maximum_measured_curve_chords), an arc enough equal angular steps that no chord's sagitta exceeds ``tolerance`` and none turns more than a quarter (at most maximum_measured_arc_chords). These are counts of their own, finer for arcs than flatten_paint_path's. Value: ``1024U``.
 
 .. cpp:var:: constexpr std::size_t maximum_measured_arc_chords
 

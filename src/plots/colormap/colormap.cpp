@@ -1,6 +1,6 @@
 #include "gui_forms/plots/colormap/colormap.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -23,7 +23,7 @@ SrgbTable make_srgb_table() noexcept {
     for (std::size_t index = 0U; index < 256U; ++index) {
         const double encoded = static_cast<double>(index) / 255.0;
         const double linear = encoded <= 0.04045 ? encoded / 12.92
-                                                 : engine_power((encoded + 0.055) / 1.055, 2.4);
+                                                 : stxlib::math::pow((encoded + 0.055) / 1.055, 2.4);
         table.linear[index] = linear;
     }
     for (std::size_t index = 0U; index < 255U; ++index) {

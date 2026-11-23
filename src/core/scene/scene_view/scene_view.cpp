@@ -1,5 +1,5 @@
 #include "gui_forms/scene/scene_view/scene_view.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <algorithm>
 #include <array>
@@ -48,7 +48,7 @@ namespace {
     t = std::clamp(t, 0.0, 1.0);
     const double nearest_x = a.x + dx * t;
     const double nearest_y = a.y + dy * t;
-    const double distance = engine_hypotenuse(point.x - nearest_x, point.y - nearest_y);
+    const double distance = stxlib::math::hypot(point.x - nearest_x, point.y - nearest_y);
     return distance;
 }
 
@@ -228,7 +228,7 @@ std::size_t flatten_scene_cubic(const SceneCubic& cubic, std::size_t segments, c
 
 double scene_distance_to_polyline(std::span<const Point> points, Point point) noexcept {
     if (points.empty()) return std::numeric_limits<double>::infinity();
-    if (points.size() == 1U) return engine_hypotenuse(point.x - points[0].x, point.y - points[0].y);
+    if (points.size() == 1U) return stxlib::math::hypot(point.x - points[0].x, point.y - points[0].y);
     double nearest = std::numeric_limits<double>::infinity();
     for (std::size_t index = 1U; index < points.size(); ++index) {
         const double distance = distance_to_segment(points[index - 1U], points[index], point);

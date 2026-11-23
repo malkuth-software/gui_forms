@@ -1,5 +1,5 @@
 #include "skia_raster.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/types/linear_light/linear_light_stops.hpp"
@@ -3560,8 +3560,8 @@ bool SkiaRaster::Impl::make_clip_mask(const SkCanvas& target, const PaintPathVie
     // The longest a unit of content becomes on the device bounds the chord
     // error the device sees. The engine's hypotenuse has the same bits on
     // every host; the stretch decides how many points the flattened clip has.
-    const double first_column = engine_hypotenuse(sx, ky);
-    const double second_column = engine_hypotenuse(kx, sy);
+    const double first_column = stxlib::math::hypot(sx, ky);
+    const double second_column = stxlib::math::hypot(kx, sy);
     const double stretch = std::max(first_column, second_column);
     if (!(stretch > 0.0) || !std::isfinite(stretch)) return false;
     const double tolerance = clip_mask_device_tolerance / stretch;

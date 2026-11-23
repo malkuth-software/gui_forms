@@ -1,5 +1,5 @@
 #include "gui_forms/controls/button.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
@@ -169,7 +169,7 @@ double Button::danger_glow_level(FrameInterval since) noexcept {
     const double turns = seconds / period;
     const double phase = (turns - std::floor(turns)) * 2.0 * 3.14159265358979323846;
     // A raised cosine: 1 at the start of each period, the floor half way.
-    const double rise = 0.5 + 0.5 * engine_sine_cosine(phase).cosine;
+    const double rise = 0.5 + 0.5 * stxlib::math::cos(phase);
     const double level = danger_glow_floor + (1.0 - danger_glow_floor) * rise;
     return level;
 }

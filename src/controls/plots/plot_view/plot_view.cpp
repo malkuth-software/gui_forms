@@ -1,5 +1,5 @@
 #include "gui_forms/controls/plot_view.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include "plot_engine.hpp"
 #include "plot_view_live.hpp"
@@ -632,7 +632,7 @@ stxlib::Optional<std::size_t> PlotView::handle_at(Point local) const {
         } else if (handle.kind == PlotHandleKind::horizontal_line) {
             distance = std::abs(local.y - at.y);
         } else {
-            distance = engine_hypotenuse(local.x - at.x, local.y - at.y);
+            distance = stxlib::math::hypot(local.x - at.x, local.y - at.y);
         }
         if (distance <= handle_pick_radius) return stxlib::Optional<std::size_t>::of(remaining - 1U);
     }

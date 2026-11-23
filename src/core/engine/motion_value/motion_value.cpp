@@ -5,7 +5,7 @@
 #include "gui_forms/engine/motion_value/motion_value.hpp"
 
 #include "gui_forms/control.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/window.hpp"
 
@@ -130,8 +130,8 @@ double easing_slope(const MotionCurve& curve, double p) noexcept {
         return slope;
     }
     case MotionEasing::exponential_approach: {
-        const double normalization = 1.0 - engine_exponential(-approach_rate);
-        const double slope = approach_rate * engine_exponential(-approach_rate * p) / normalization;
+        const double normalization = 1.0 - stxlib::math::exp(-approach_rate);
+        const double slope = approach_rate * stxlib::math::exp(-approach_rate * p) / normalization;
         return slope;
     }
     case MotionEasing::linear:
@@ -262,8 +262,8 @@ double motion_easing(MotionEasing easing, double progress) noexcept {
         return eased;
     }
     case MotionEasing::exponential_approach: {
-        const double normalization = 1.0 - engine_exponential(-approach_rate);
-        const double eased = (1.0 - engine_exponential(-approach_rate * p)) / normalization;
+        const double normalization = 1.0 - stxlib::math::exp(-approach_rate);
+        const double eased = (1.0 - stxlib::math::exp(-approach_rate * p)) / normalization;
         return eased;
     }
     case MotionEasing::linear:
@@ -332,7 +332,7 @@ MotionValue::Segment MotionValue::make_segment(const MotionCurve& curve, FrameTi
             // The damping ratio whose step response from rest overshoots by
             // M: M = e^(−πζ/√(1 − ζ²)), so ζ = −ln M / √(π² + ln² M). For
             // M = 8 % it is about 0.627.
-            const double logarithm = engine_logarithm(curve.overshoot);
+            const double logarithm = stxlib::math::log(curve.overshoot);
             const double zeta = -logarithm / std::sqrt(pi * pi + logarithm * logarithm);
             segment.rate = zeta * segment.natural;
             segment.damped = segment.natural * std::sqrt(1.0 - zeta * zeta);
@@ -394,13 +394,13 @@ MotionValue::Sample MotionValue::evaluate(const Segment& segment, double moved) 
     }
     case MotionKind::follow:
     case MotionKind::decay: {
-        const double factor = engine_exponential(-segment.rate * moved);
+        const double factor = stxlib::math::exp(-segment.rate * moved);
         sample.position = segment.target + gap * factor;
         sample.velocity = -segment.rate * gap * factor;
         return sample;
     }
     case MotionKind::spring: {
-        const double envelope = engine_exponential(-segment.rate * moved);
+        const double envelope = stxlib::math::exp(-segment.rate * moved);
         // Beyond e^-745 the envelope is zero: the spring stands at its target.
         if (envelope == 0.0) return sample;
         if (segment.damped == 0.0) {
@@ -414,11 +414,13 @@ MotionValue::Sample MotionValue::evaluate(const Segment& segment, double moved) 
         const double a = segment.rate;
         const double w = segment.damped;
         const double c = (segment.origin_velocity + a * gap) / w;
-        const EngineSineCosine phase = engine_sine_cosine(w * moved);
-        const double oscillation = gap * phase.cosine + c * phase.sine;
+        double phase_sine = 0.0;
+        double phase_cosine = 0.0;
+        stxlib::math::sincos(w * moved, phase_sine, phase_cosine);
+        const double oscillation = gap * phase_cosine + c * phase_sine;
         sample.position = segment.target + envelope * oscillation;
-        const double cosine_part = (c * w - a * gap) * phase.cosine;
-        const double sine_part = (a * c + gap * w) * phase.sine;
+        const double cosine_part = (c * w - a * gap) * phase_cosine;
+        const double sine_part = (a * c + gap * w) * phase_sine;
         sample.velocity = envelope * (cosine_part - sine_part);
         return sample;
     }

@@ -689,7 +689,6 @@
     _ZGVZN9gui_forms16EncodedFontLease*;
     _ZGVZN9gui_forms16EngineExpression*;
     _ZGVZN9gui_forms16EnginePartRecord*;
-    _ZGVZN9gui_forms16EngineSineCosine*;
     _ZGVZN9gui_forms16ExpressionLimits*;
     _ZGVZN9gui_forms16ExpressionResult*;
     _ZGVZN9gui_forms16FlagsValueEditor*;
@@ -2377,7 +2376,6 @@
     _ZGVZNK9gui_forms16EncodedFontLease*;
     _ZGVZNK9gui_forms16EngineExpression*;
     _ZGVZNK9gui_forms16EnginePartRecord*;
-    _ZGVZNK9gui_forms16EngineSineCosine*;
     _ZGVZNK9gui_forms16ExpressionLimits*;
     _ZGVZNK9gui_forms16ExpressionResult*;
     _ZGVZNK9gui_forms16FlagsValueEditor*;
@@ -3667,6 +3665,8 @@
     _ZN9gui_forms11WovenStripe*;
     _ZN9gui_forms11day_of_weekB*;
     _ZN9gui_forms11day_of_weekE*;
+    _ZN9gui_forms11effect_sineB*;
+    _ZN9gui_forms11effect_sineE*;
     _ZN9gui_forms11find_choiceB*;
     _ZN9gui_forms11find_choiceE*;
     _ZN9gui_forms11is_mnemonicB*;
@@ -3811,8 +3811,6 @@
     _ZN9gui_forms12engine_light25shipped_light_plane_storeB*;
     _ZN9gui_forms12engine_light25shipped_light_plane_storeE*;
     _ZN9gui_forms12engine_light9LampDrive*;
-    _ZN9gui_forms12engine_powerB*;
-    _ZN9gui_forms12engine_powerE*;
     _ZN9gui_forms12marker_linesB*;
     _ZN9gui_forms12marker_linesE*;
     _ZN9gui_forms12merge_stripsB*;
@@ -4072,8 +4070,6 @@
     _ZN9gui_forms14dock_drop_editE*;
     _ZN9gui_forms14em_lengths_fitB*;
     _ZN9gui_forms14em_lengths_fitE*;
-    _ZN9gui_forms14engine_tangentB*;
-    _ZN9gui_forms14engine_tangentE*;
     _ZN9gui_forms14familiar_themeB*;
     _ZN9gui_forms14familiar_themeE*;
     _ZN9gui_forms14find_item_partB*;
@@ -4321,7 +4317,6 @@
     _ZN9gui_forms16EncodedFontLease*;
     _ZN9gui_forms16EngineExpression*;
     _ZN9gui_forms16EnginePartRecord*;
-    _ZN9gui_forms16EngineSineCosine*;
     _ZN9gui_forms16ExpressionLimits*;
     _ZN9gui_forms16ExpressionResult*;
     _ZN9gui_forms16FlagsValueEditor*;
@@ -4416,8 +4411,6 @@
     _ZN9gui_forms16drag_effect_nameE*;
     _ZN9gui_forms16drag_end_commitsB*;
     _ZN9gui_forms16drag_end_commitsE*;
-    _ZN9gui_forms16engine_logarithmB*;
-    _ZN9gui_forms16engine_logarithmE*;
     _ZN9gui_forms16find_interactionB*;
     _ZN9gui_forms16find_interactionE*;
     _ZN9gui_forms16find_item_systemB*;
@@ -4602,8 +4595,6 @@
     _ZN9gui_forms17effect_name_validE*;
     _ZN9gui_forms17encode_hosted_keyB*;
     _ZN9gui_forms17encode_hosted_keyE*;
-    _ZN9gui_forms17engine_hypotenuseB*;
-    _ZN9gui_forms17engine_hypotenuseE*;
     _ZN9gui_forms17engine_input_nameB*;
     _ZN9gui_forms17engine_input_nameE*;
     _ZN9gui_forms17familiar_theme_idB*;
@@ -4840,12 +4831,6 @@
     _ZN9gui_forms18encode_hosted_slotE*;
     _ZN9gui_forms18encode_hosted_textB*;
     _ZN9gui_forms18encode_hosted_textE*;
-    _ZN9gui_forms18engine_arctangent2B*;
-    _ZN9gui_forms18engine_arctangent2E*;
-    _ZN9gui_forms18engine_exponentialB*;
-    _ZN9gui_forms18engine_exponentialE*;
-    _ZN9gui_forms18engine_sine_cosineB*;
-    _ZN9gui_forms18engine_sine_cosineE*;
     _ZN9gui_forms18export_user_themesB*;
     _ZN9gui_forms18export_user_themesE*;
     _ZN9gui_forms18find_declared_partB*;
@@ -6013,8 +5998,6 @@
     _ZN9gui_forms26copy_failure_shadow_framesE*;
     _ZN9gui_forms26end_surface_material_shapeB*;
     _ZN9gui_forms26end_surface_material_shapeE*;
-    _ZN9gui_forms26engine_sine_cosine_degreesB*;
-    _ZN9gui_forms26engine_sine_cosine_degreesE*;
     _ZN9gui_forms26familiar_theme_floor_sheetB*;
     _ZN9gui_forms26familiar_theme_floor_sheetE*;
     _ZN9gui_forms26file_dialog_filter_matchesB*;
@@ -7467,7 +7450,6 @@
     _ZNK[RO]9gui_forms16EncodedFontLease*;
     _ZNK[RO]9gui_forms16EngineExpression*;
     _ZNK[RO]9gui_forms16EnginePartRecord*;
-    _ZNK[RO]9gui_forms16EngineSineCosine*;
     _ZNK[RO]9gui_forms16ExpressionLimits*;
     _ZNK[RO]9gui_forms16ExpressionResult*;
     _ZNK[RO]9gui_forms16FlagsValueEditor*;
@@ -9155,7 +9137,6 @@
     _ZN[KRO]9gui_forms16EncodedFontLease*;
     _ZN[KRO]9gui_forms16EngineExpression*;
     _ZN[KRO]9gui_forms16EnginePartRecord*;
-    _ZN[KRO]9gui_forms16EngineSineCosine*;
     _ZN[KRO]9gui_forms16ExpressionLimits*;
     _ZN[KRO]9gui_forms16ExpressionResult*;
     _ZN[KRO]9gui_forms16FlagsValueEditor*;
@@ -10843,7 +10824,6 @@
     _ZT[VIST]N9gui_forms16EncodedFontLease*E;
     _ZT[VIST]N9gui_forms16EngineExpression*E;
     _ZT[VIST]N9gui_forms16EnginePartRecord*E;
-    _ZT[VIST]N9gui_forms16EngineSineCosine*E;
     _ZT[VIST]N9gui_forms16ExpressionLimits*E;
     _ZT[VIST]N9gui_forms16ExpressionResult*E;
     _ZT[VIST]N9gui_forms16FlagsValueEditor*E;
@@ -12531,7 +12511,6 @@
     _ZT[hvc]*9gui_forms16EncodedFontLease*;
     _ZT[hvc]*9gui_forms16EngineExpression*;
     _ZT[hvc]*9gui_forms16EnginePartRecord*;
-    _ZT[hvc]*9gui_forms16EngineSineCosine*;
     _ZT[hvc]*9gui_forms16ExpressionLimits*;
     _ZT[hvc]*9gui_forms16ExpressionResult*;
     _ZT[hvc]*9gui_forms16FlagsValueEditor*;
@@ -14219,7 +14198,6 @@
     _ZZN9gui_forms16EncodedFontLease*;
     _ZZN9gui_forms16EngineExpression*;
     _ZZN9gui_forms16EnginePartRecord*;
-    _ZZN9gui_forms16EngineSineCosine*;
     _ZZN9gui_forms16ExpressionLimits*;
     _ZZN9gui_forms16ExpressionResult*;
     _ZZN9gui_forms16FlagsValueEditor*;
@@ -15907,7 +15885,6 @@
     _ZZNK9gui_forms16EncodedFontLease*;
     _ZZNK9gui_forms16EngineExpression*;
     _ZZNK9gui_forms16EnginePartRecord*;
-    _ZZNK9gui_forms16EngineSineCosine*;
     _ZZNK9gui_forms16ExpressionLimits*;
     _ZZNK9gui_forms16ExpressionResult*;
     _ZZNK9gui_forms16FlagsValueEditor*;

@@ -154,7 +154,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_property_codemod.py
           python3 -B tools/paint_census.py check
           # The host's sin, cos, tan, atan2 and hypot stay out of src/core, src/controls and src/render
-          # (engine_math.hpp; manifests/host_trig_allowance.json only shrinks).
+          # (stxlib/math.hpp instead; manifests/host_trig_allowance.json only shrinks).
           python3 -B -m unittest discover -s tools -p test_host_trig_check.py
           python3 -B tools/host_trig_check.py check
           # Platform headers only under src/surface/<platform>/; the rest reaches the

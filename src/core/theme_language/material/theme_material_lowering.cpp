@@ -6,7 +6,7 @@
 #include "gui_forms/typography/font_families/font_families.hpp"
 
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 #include "gui_forms/surface_material/painting/surface_material_painting.hpp"
 
@@ -309,11 +309,11 @@ constexpr std::string_view path_function_name = "path";
 // The linear map rotate(degrees) names: clockwise on screen (y down), as
 // CSS turns. A multiple of 90 degrees is exact.
 [[nodiscard]] MaterialTransform rotation_transform(double degrees) noexcept {
-    // The engine's deterministic sine and cosine: the same bits on every
+    // STXlib's deterministic sine and cosine: the same bits on every
     // host, and exact at every quarter turn.
-    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
-    const double cosine = turn.cosine;
-    const double sine = turn.sine;
+    double sine = 0.0;
+    double cosine = 0.0;
+    stxlib::math::sincosd(degrees, sine, cosine);
     MaterialTransform turned{};
     turned.xx = cosine;
     turned.yx = sine;
@@ -501,11 +501,11 @@ SvgPathProblem SvgPathReader::push_arc(Point radii, double rotation_degrees, boo
         const std::array<Point, 1> line{end};
         return push(MaterialClipVerb::line, line, clip);
     }
-    // The engine's deterministic trigonometry throughout, so the control
+    // STXlib's deterministic trigonometry throughout, so the control
     // points have the same bits on every host.
-    const EngineSineCosine rotation = engine_sine_cosine_degrees(rotation_degrees);
-    const double cosine = rotation.cosine;
-    const double sine = rotation.sine;
+    double sine = 0.0;
+    double cosine = 0.0;
+    stxlib::math::sincosd(rotation_degrees, sine, cosine);
     // The endpoints' half difference in the ellipse's own axes (SVG F.6.5).
     const double half_x = (begin.x - end.x) * 0.5;
     const double half_y = (begin.y - end.y) * 0.5;
@@ -534,23 +534,27 @@ SvgPathProblem SvgPathReader::push_arc(Point radii, double rotation_degrees, boo
     const double start_y = (turned_y - centre_turned_y) / radius_y;
     const double end_x = (-turned_x - centre_turned_x) / radius_x;
     const double end_y = (-turned_y - centre_turned_y) / radius_y;
-    const double start_angle = engine_arctangent2(start_y, start_x);
-    double sweep_angle = engine_arctangent2(start_x * end_y - start_y * end_x, start_x * end_x + start_y * end_y);
+    const double start_angle = stxlib::math::atan2(start_y, start_x);
+    double sweep_angle = stxlib::math::atan2(start_x * end_y - start_y * end_x, start_x * end_x + start_y * end_y);
     if (!sweep && sweep_angle > 0.0) sweep_angle = sweep_angle - 2.0 * 3.14159265358979323846;
     if (sweep && sweep_angle < 0.0) sweep_angle = sweep_angle + 2.0 * 3.14159265358979323846;
     const double pieces_wanted = std::ceil(std::abs(sweep_angle) / arc_piece_limit - arc_piece_slack);
     const std::size_t pieces = static_cast<std::size_t>(std::clamp(pieces_wanted, 1.0, 4.0));
     const double piece = sweep_angle / static_cast<double>(pieces);
-    const double handle = 4.0 / 3.0 * engine_tangent(piece * 0.25);
+    const double handle = 4.0 / 3.0 * stxlib::math::tan(piece * 0.25);
     for (std::size_t index = 0U; index < pieces; ++index) {
         const double from = start_angle + piece * static_cast<double>(index);
         const double to = from + piece;
-        const EngineSineCosine from_turn = engine_sine_cosine(from);
-        const EngineSineCosine to_turn = engine_sine_cosine(to);
-        const double from_cos = from_turn.cosine;
-        const double from_sin = from_turn.sine;
-        const double to_cos = to_turn.cosine;
-        const double to_sin = to_turn.sine;
+        double from_turn_sine = 0.0;
+        double from_turn_cosine = 0.0;
+        stxlib::math::sincos(from, from_turn_sine, from_turn_cosine);
+        double to_turn_sine = 0.0;
+        double to_turn_cosine = 0.0;
+        stxlib::math::sincos(to, to_turn_sine, to_turn_cosine);
+        const double from_cos = from_turn_cosine;
+        const double from_sin = from_turn_sine;
+        const double to_cos = to_turn_cosine;
+        const double to_sin = to_turn_sine;
         // On the unit circle, then onto the ellipse: scaled, turned, moved.
         const std::array<Point, 3> unit{Point{from_cos - handle * from_sin, from_sin + handle * from_cos},
                                         Point{to_cos + handle * to_sin, to_sin - handle * to_cos},

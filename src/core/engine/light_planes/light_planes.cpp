@@ -1,6 +1,6 @@
 #include "gui_forms/engine/light_planes/light_planes.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "../primitives/finish/finish_kernel.hpp"
 
 #include <algorithm>
@@ -14,7 +14,7 @@
 #include <string>
 #include <utility>
 
-// Identical bytes on every host: no fused multiply-add (engine_math.cpp).
+// Identical bytes on every host: no fused multiply-add.
 // Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
 // 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
 // "Floating-point contraction").
@@ -256,7 +256,7 @@ bool complete(const LightPlanes& planes) noexcept {
 double decoded_channel(std::uint8_t encoded) noexcept {
     const double value = static_cast<double>(encoded) / 255.0;
     if (value <= 0.04045) return value / 12.92;
-    const double linear = engine_power((value + 0.055) / 1.055, 2.4);
+    const double linear = stxlib::math::pow((value + 0.055) / 1.055, 2.4);
     return linear;
 }
 
@@ -290,9 +290,9 @@ Toned toned_at(const LightPlanes& planes, double bx, double by, std::span<const 
     const double cover = light.coverage < 0.0 ? 0.0 : (light.coverage > 1.0 ? 1.0 : light.coverage);
     const double inverse = cover > 1e-6 ? 1.0 / cover : 0.0;
     const double exposure = settings.exposure;
-    const Toned toned{1.0 - engine_exponential(-(light.red * inverse) * exposure),
-                      1.0 - engine_exponential(-(light.green * inverse) * exposure),
-                      1.0 - engine_exponential(-(light.blue * inverse) * exposure)};
+    const Toned toned{1.0 - stxlib::math::exp(-(light.red * inverse) * exposure),
+                      1.0 - stxlib::math::exp(-(light.green * inverse) * exposure),
+                      1.0 - stxlib::math::exp(-(light.blue * inverse) * exposure)};
     return toned;
 }
 
@@ -375,7 +375,7 @@ void composite_dot(const LightPlanes& planes, std::span<const LampDrive> drives,
             double under_alpha = 0.0;
             if (pinpoint) {
                 const double beyond = std::max(0.0, d - radius * pinpoint_halo_start);
-                const double halo = spread > 0.0 ? pinpoint_halo_strength * engine_exponential(-(beyond * beyond) / spread) : 0.0;
+                const double halo = spread > 0.0 ? pinpoint_halo_strength * stxlib::math::exp(-(beyond * beyond) / spread) : 0.0;
                 const double power = halo_drive.power * halo;
                 under_red = clamped_unit(power * halo_drive.colour.red * settings.filter.red);
                 under_green = clamped_unit(power * halo_drive.colour.green * settings.filter.green);
@@ -518,9 +518,9 @@ std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& dow
             if (pressed) light = mix(light, sample(down, column, row, drives, settings.room, settings.filter), press);
             const double cover = light.coverage < 0.0 ? 0.0 : (light.coverage > 1.0 ? 1.0 : light.coverage);
             const double inverse = cover > 1e-6 ? 1.0 / cover : 0.0;
-            const double red = 1.0 - engine_exponential(-(light.red * inverse) * exposure);
-            const double green = 1.0 - engine_exponential(-(light.green * inverse) * exposure);
-            const double blue = 1.0 - engine_exponential(-(light.blue * inverse) * exposure);
+            const double red = 1.0 - stxlib::math::exp(-(light.red * inverse) * exposure);
+            const double green = 1.0 - stxlib::math::exp(-(light.green * inverse) * exposure);
+            const double blue = 1.0 - stxlib::math::exp(-(light.blue * inverse) * exposure);
             const std::uint32_t alpha = static_cast<std::uint32_t>(std::floor(cover * 255.0 + 0.5));
             // The finishes' sRGB table: the study's, identical in panel_lamps.html.
             pixel[0] = premultiplied(engine_primitives::encode_linear(blue), alpha);
@@ -586,7 +586,7 @@ double fault_event(std::uint32_t seed, std::uint64_t slot, double seconds) noexc
     const double constant = dropout ? 0.03 + 0.12 * fault_unit(seed, slot, 4U) : 0.02 + 0.04 * fault_unit(seed, slot, 4U);
     const double caught = dropout ? 0.40 + 0.40 * fault_unit(seed, slot, 5U) : low;
     const double since = seconds - (start + hold);
-    const double recovered = 1.0 - (1.0 - caught) * engine_exponential(-since / constant);
+    const double recovered = 1.0 - (1.0 - caught) * stxlib::math::exp(-since / constant);
     return recovered;
 }
 

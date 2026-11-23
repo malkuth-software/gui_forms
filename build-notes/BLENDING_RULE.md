@@ -67,8 +67,8 @@ the bytes as they are (not checked for the Linux host's other paths).
    effect sources add the pragma; with it OFF (deployment: the SDK, the
    release packages' consumers, profiling) the compiler contracts as it
    chooses (the SDK, profiling, and the release programs job that builds
-   what ships, section 5, item 5). `engine_math` (its error bounds) and the
-   value paths (parsed text, layout lengths, theme values, motion) stay
+   what ships, section 5, item 5). STXlib's math compiles unfused under
+   its own flags whatever this option says, and the value paths (parsed text, layout lengths, theme values, motion) stay
    unfused in every build (section 5, item 4);
    stx_skia sets its own `-ffp-contract=off`. Skia's explicit fused stages
    are logged, not fixed, before 1.0.
@@ -153,8 +153,7 @@ Follow-ups (coordinator, 2026-11-16):
    (`MaterialColourTable::duotone`), as `tritone()` does, so it mixes in
    linear light too. The `MaterialColourMatrix::duotone` matrix remains for
    C++ callers, as a straight line on sRGB-encoded values.
-4. The value paths stay unfused in every build, accepted: `engine_math`
-   (its stated error bounds) and `engine_expression`, `theme_value`,
+4. The value paths stay unfused in every build, accepted: `engine_expression`, `theme_value`,
    `value_text`, `scrub_gesture`, `layout_style_reader`,
    `theme_motion_lowering` and `motion_value`, which produce numbers
    (parsed text, theme values, layout lengths, motion samples), not

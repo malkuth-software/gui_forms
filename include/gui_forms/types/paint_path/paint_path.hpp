@@ -110,7 +110,7 @@ inline constexpr double paint_path_flattening_tolerance = 0.25;
                                                              std::span<FlattenedContour> contours) noexcept;
 
 // Path length and trimming (owner, 2026-11-16: trim paths in the core).
-// Both measure a path on chords, in + - * / and sqrt only (engine_math), so
+// Both measure a path on chords, in + - * /, sqrt and STXlib's hypot only, so
 // the same path and tolerance give the same bits on every host. The chord
 // counts are fixed by the geometry: a Bezier curve takes Wang's count for
 // `tolerance` (at most maximum_measured_curve_chords), an arc enough equal

@@ -687,7 +687,6 @@ __ZGVZN9gui_forms16EffectInputEvent*
 __ZGVZN9gui_forms16EncodedFontLease*
 __ZGVZN9gui_forms16EngineExpression*
 __ZGVZN9gui_forms16EnginePartRecord*
-__ZGVZN9gui_forms16EngineSineCosine*
 __ZGVZN9gui_forms16ExpressionLimits*
 __ZGVZN9gui_forms16ExpressionResult*
 __ZGVZN9gui_forms16FlagsValueEditor*
@@ -2375,7 +2374,6 @@ __ZGVZNK9gui_forms16EffectInputEvent*
 __ZGVZNK9gui_forms16EncodedFontLease*
 __ZGVZNK9gui_forms16EngineExpression*
 __ZGVZNK9gui_forms16EnginePartRecord*
-__ZGVZNK9gui_forms16EngineSineCosine*
 __ZGVZNK9gui_forms16ExpressionLimits*
 __ZGVZNK9gui_forms16ExpressionResult*
 __ZGVZNK9gui_forms16FlagsValueEditor*
@@ -3665,6 +3663,8 @@ __ZN9gui_forms11UserControl*
 __ZN9gui_forms11WovenStripe*
 __ZN9gui_forms11day_of_weekB*
 __ZN9gui_forms11day_of_weekE*
+__ZN9gui_forms11effect_sineB*
+__ZN9gui_forms11effect_sineE*
 __ZN9gui_forms11find_choiceB*
 __ZN9gui_forms11find_choiceE*
 __ZN9gui_forms11is_mnemonicB*
@@ -3809,8 +3809,6 @@ __ZN9gui_forms12engine_light22read_light_plane_storeE*
 __ZN9gui_forms12engine_light25shipped_light_plane_storeB*
 __ZN9gui_forms12engine_light25shipped_light_plane_storeE*
 __ZN9gui_forms12engine_light9LampDrive*
-__ZN9gui_forms12engine_powerB*
-__ZN9gui_forms12engine_powerE*
 __ZN9gui_forms12marker_linesB*
 __ZN9gui_forms12marker_linesE*
 __ZN9gui_forms12merge_stripsB*
@@ -4070,8 +4068,6 @@ __ZN9gui_forms14dock_drop_editB*
 __ZN9gui_forms14dock_drop_editE*
 __ZN9gui_forms14em_lengths_fitB*
 __ZN9gui_forms14em_lengths_fitE*
-__ZN9gui_forms14engine_tangentB*
-__ZN9gui_forms14engine_tangentE*
 __ZN9gui_forms14familiar_themeB*
 __ZN9gui_forms14familiar_themeE*
 __ZN9gui_forms14find_item_partB*
@@ -4319,7 +4315,6 @@ __ZN9gui_forms16EffectInputEvent*
 __ZN9gui_forms16EncodedFontLease*
 __ZN9gui_forms16EngineExpression*
 __ZN9gui_forms16EnginePartRecord*
-__ZN9gui_forms16EngineSineCosine*
 __ZN9gui_forms16ExpressionLimits*
 __ZN9gui_forms16ExpressionResult*
 __ZN9gui_forms16FlagsValueEditor*
@@ -4414,8 +4409,6 @@ __ZN9gui_forms16drag_effect_nameB*
 __ZN9gui_forms16drag_effect_nameE*
 __ZN9gui_forms16drag_end_commitsB*
 __ZN9gui_forms16drag_end_commitsE*
-__ZN9gui_forms16engine_logarithmB*
-__ZN9gui_forms16engine_logarithmE*
 __ZN9gui_forms16find_interactionB*
 __ZN9gui_forms16find_interactionE*
 __ZN9gui_forms16find_item_systemB*
@@ -4600,8 +4593,6 @@ __ZN9gui_forms17effect_name_validB*
 __ZN9gui_forms17effect_name_validE*
 __ZN9gui_forms17encode_hosted_keyB*
 __ZN9gui_forms17encode_hosted_keyE*
-__ZN9gui_forms17engine_hypotenuseB*
-__ZN9gui_forms17engine_hypotenuseE*
 __ZN9gui_forms17engine_input_nameB*
 __ZN9gui_forms17engine_input_nameE*
 __ZN9gui_forms17familiar_theme_idB*
@@ -4838,12 +4829,6 @@ __ZN9gui_forms18encode_hosted_slotB*
 __ZN9gui_forms18encode_hosted_slotE*
 __ZN9gui_forms18encode_hosted_textB*
 __ZN9gui_forms18encode_hosted_textE*
-__ZN9gui_forms18engine_arctangent2B*
-__ZN9gui_forms18engine_arctangent2E*
-__ZN9gui_forms18engine_exponentialB*
-__ZN9gui_forms18engine_exponentialE*
-__ZN9gui_forms18engine_sine_cosineB*
-__ZN9gui_forms18engine_sine_cosineE*
 __ZN9gui_forms18export_user_themesB*
 __ZN9gui_forms18export_user_themesE*
 __ZN9gui_forms18find_declared_partB*
@@ -6011,8 +5996,6 @@ __ZN9gui_forms26copy_failure_shadow_framesB*
 __ZN9gui_forms26copy_failure_shadow_framesE*
 __ZN9gui_forms26end_surface_material_shapeB*
 __ZN9gui_forms26end_surface_material_shapeE*
-__ZN9gui_forms26engine_sine_cosine_degreesB*
-__ZN9gui_forms26engine_sine_cosine_degreesE*
 __ZN9gui_forms26familiar_theme_floor_sheetB*
 __ZN9gui_forms26familiar_theme_floor_sheetE*
 __ZN9gui_forms26file_dialog_filter_matchesB*
@@ -7465,7 +7448,6 @@ __ZNK[RO]9gui_forms16EffectInputEvent*
 __ZNK[RO]9gui_forms16EncodedFontLease*
 __ZNK[RO]9gui_forms16EngineExpression*
 __ZNK[RO]9gui_forms16EnginePartRecord*
-__ZNK[RO]9gui_forms16EngineSineCosine*
 __ZNK[RO]9gui_forms16ExpressionLimits*
 __ZNK[RO]9gui_forms16ExpressionResult*
 __ZNK[RO]9gui_forms16FlagsValueEditor*
@@ -9153,7 +9135,6 @@ __ZN[KRO]9gui_forms16EffectInputEvent*
 __ZN[KRO]9gui_forms16EncodedFontLease*
 __ZN[KRO]9gui_forms16EngineExpression*
 __ZN[KRO]9gui_forms16EnginePartRecord*
-__ZN[KRO]9gui_forms16EngineSineCosine*
 __ZN[KRO]9gui_forms16ExpressionLimits*
 __ZN[KRO]9gui_forms16ExpressionResult*
 __ZN[KRO]9gui_forms16FlagsValueEditor*
@@ -10841,7 +10822,6 @@ __ZT[VIST]N9gui_forms16EffectInputEvent*E
 __ZT[VIST]N9gui_forms16EncodedFontLease*E
 __ZT[VIST]N9gui_forms16EngineExpression*E
 __ZT[VIST]N9gui_forms16EnginePartRecord*E
-__ZT[VIST]N9gui_forms16EngineSineCosine*E
 __ZT[VIST]N9gui_forms16ExpressionLimits*E
 __ZT[VIST]N9gui_forms16ExpressionResult*E
 __ZT[VIST]N9gui_forms16FlagsValueEditor*E
@@ -12529,7 +12509,6 @@ __ZT[hvc]*9gui_forms16EffectInputEvent*
 __ZT[hvc]*9gui_forms16EncodedFontLease*
 __ZT[hvc]*9gui_forms16EngineExpression*
 __ZT[hvc]*9gui_forms16EnginePartRecord*
-__ZT[hvc]*9gui_forms16EngineSineCosine*
 __ZT[hvc]*9gui_forms16ExpressionLimits*
 __ZT[hvc]*9gui_forms16ExpressionResult*
 __ZT[hvc]*9gui_forms16FlagsValueEditor*
@@ -14217,7 +14196,6 @@ __ZZN9gui_forms16EffectInputEvent*
 __ZZN9gui_forms16EncodedFontLease*
 __ZZN9gui_forms16EngineExpression*
 __ZZN9gui_forms16EnginePartRecord*
-__ZZN9gui_forms16EngineSineCosine*
 __ZZN9gui_forms16ExpressionLimits*
 __ZZN9gui_forms16ExpressionResult*
 __ZZN9gui_forms16FlagsValueEditor*
@@ -15905,7 +15883,6 @@ __ZZNK9gui_forms16EffectInputEvent*
 __ZZNK9gui_forms16EncodedFontLease*
 __ZZNK9gui_forms16EngineExpression*
 __ZZNK9gui_forms16EnginePartRecord*
-__ZZNK9gui_forms16EngineSineCosine*
 __ZZNK9gui_forms16ExpressionLimits*
 __ZZNK9gui_forms16ExpressionResult*
 __ZZNK9gui_forms16FlagsValueEditor*

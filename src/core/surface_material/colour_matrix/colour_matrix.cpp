@@ -1,6 +1,6 @@
 #include "gui_forms/surface_material/colour_matrix/colour_matrix.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
@@ -110,11 +110,13 @@ MaterialColourMatrix MaterialColourMatrix::hue_rotate(double degrees) {
     constexpr double degrees_to_radians = 3.14159265358979323846264338327950288 / 180.0;
     const double turns = finite_amount(degrees) / 360.0;
     // Reduced to one turn first, so that any finite angle is within the
-    // engine sine's range.
+    // range of STXlib's sine (2^32 radians).
     const double within = (turns - std::floor(turns)) * 360.0;
-    const EngineSineCosine turned = engine_sine_cosine(within * degrees_to_radians);
-    const double c = turned.cosine;
-    const double s = turned.sine;
+    double turned_sine = 0.0;
+    double turned_cosine = 0.0;
+    stxlib::math::sincos(within * degrees_to_radians, turned_sine, turned_cosine);
+    const double c = turned_cosine;
+    const double s = turned_sine;
     const std::array<double, 9> colour{0.213 + c * 0.787 - s * 0.213, 0.715 - c * 0.715 - s * 0.715,
                                        0.072 - c * 0.072 + s * 0.928, 0.213 - c * 0.213 + s * 0.143,
                                        0.715 + c * 0.285 + s * 0.140, 0.072 - c * 0.072 - s * 0.283,
@@ -227,7 +229,7 @@ double transferred(const MaterialTransferFunction& function, double c) noexcept 
         return value;
     }
     case MaterialTransferKind::gamma: {
-        const double value = function.amplitude * engine_power(c, function.exponent) + function.offset;
+        const double value = function.amplitude * stxlib::math::pow(c, function.exponent) + function.offset;
         return value;
     }
     }

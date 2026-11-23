@@ -98,8 +98,8 @@ struct GUI_FORMS_API MaterialColourMatrix final {
 // - discrete, values v0 .. vn-1 (n >= 1): vk with k = floor(C n), at most
 //   n - 1;
 // - linear: slope C + intercept;
-// - gamma: amplitude C^exponent + offset, the power the engine's
-//   (engine_power), so the same bits on every host.
+// - gamma: amplitude C^exponent + offset, the power STXlib's
+//   (stxlib::math::pow), so the same bits on every host.
 // Valid when every number is finite and at most 256 in size, a table has
 // 2 to maximum_values values and discrete 1 to maximum_values, and the
 // exponent lies in (0, 64].

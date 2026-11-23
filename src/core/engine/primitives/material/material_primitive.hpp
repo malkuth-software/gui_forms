@@ -22,7 +22,7 @@ namespace gui_forms::engine_primitives {
 // 1. outer shadows, under the box;
 // 2. fills, clipped to the box (rounded by the material's corner radius, or
 //    the part's own when it sets one): solid; linear (endpoints, or a CSS
-//    angle through engine_sine_cosine), padded, repeated or reflected;
+//    angle through STXlib's sincos), padded, repeated or reflected;
 //    radial, padded; images (see material_image.hpp) and procedural
 //    patterns (E10, procedural_pattern.hpp: a tile repeated from the box's
 //    first device pixel, or the fresco over the box; the fill's ground

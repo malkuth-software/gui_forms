@@ -15,7 +15,7 @@
 // 0, 1/9, ..., 1).
 //
 // The sRGB transfer uses a 256-entry decode table built once from
-// engine_power, and encodes by nearest search in it, so a colour is the
+// STXlib's pow, and encodes by nearest search in it, so a colour is the
 // same bytes on every host.
 
 #include "gui_forms/export/application_export.hpp"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/drawing.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 
 #include <algorithm>
@@ -69,30 +69,33 @@ inline void require_finite(RectF rect, std::string_view field) {
 
 [[nodiscard]] inline PointF point_on_ellipse(RectF bounds,
                                       double angle_degrees) noexcept {
-    // The engine's deterministic sine and cosine, exact at quarter turns.
-    const gui_forms::EngineSineCosine turn =
-        gui_forms::engine_sine_cosine_degrees(angle_degrees);
-    return {bounds.x + bounds.width * 0.5 + bounds.width * 0.5 * turn.cosine,
+    // STXlib's deterministic sine and cosine, exact at quarter turns.
+    double turn_sine = 0.0;
+    double turn_cosine = 0.0;
+    stxlib::math::sincosd(angle_degrees, turn_sine, turn_cosine);
+    return {bounds.x + bounds.width * 0.5 + bounds.width * 0.5 * turn_cosine,
             bounds.y + bounds.height * 0.5 +
-                bounds.height * 0.5 * turn.sine};
+                bounds.height * 0.5 * turn_sine};
 }
 
 [[nodiscard]] inline double ellipse_parameter_angle(
     double radius_x, double radius_y, double geometric_degrees) noexcept {
-    const gui_forms::EngineSineCosine geometric =
-        gui_forms::engine_sine_cosine_degrees(geometric_degrees);
-    const double parameter = gui_forms::engine_arctangent2(
-        radius_x * geometric.sine, radius_y * geometric.cosine);
+    double geometric_sine = 0.0;
+    double geometric_cosine = 0.0;
+    stxlib::math::sincosd(geometric_degrees, geometric_sine, geometric_cosine);
+    const double parameter = stxlib::math::atan2(
+        radius_x * geometric_sine, radius_y * geometric_cosine);
     return parameter;
 }
 
 [[nodiscard]] inline PointF ellipse_point(double center_x, double center_y,
                                    double radius_x, double radius_y,
                                    double parameter) noexcept {
-    const gui_forms::EngineSineCosine turn =
-        gui_forms::engine_sine_cosine(parameter);
-    return {center_x + radius_x * turn.cosine,
-            center_y + radius_y * turn.sine};
+    double turn_sine = 0.0;
+    double turn_cosine = 0.0;
+    stxlib::math::sincos(parameter, turn_sine, turn_cosine);
+    return {center_x + radius_x * turn_cosine,
+            center_y + radius_y * turn_sine};
 }
 
 class RectBoundsAccumulator final {
