@@ -2,9 +2,9 @@ To the Holy One, blessed be He, from whom all good things come. We dedicate this
 
 # GUI.Forms
 
-GUI.Forms is a C++20 toolkit for macOS, Windows and Linux. It keeps Windows
-Forms' model of controls, properties and events, draws every control on the
-CPU, and opens to C, C# and Python through a C ABI.
+GUI.Forms is a C++20 toolkit for macOS, Windows and Linux. It includes a
+superset of Windows Forms' model of controls, properties and events, draws
+every control on the CPU, and opens to C, C# and Python through a C ABI.
 
 [![CI](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml/badge.svg)](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml) [![Docs](https://app.readthedocs.org/projects/gui-forms/badge/?version=latest)](https://gui-forms.readthedocs.io/) [![Release](https://img.shields.io/github/v/release/malkuth-software/gui_forms?display_name=tag)](https://github.com/malkuth-software/gui_forms/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg) ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)
 
