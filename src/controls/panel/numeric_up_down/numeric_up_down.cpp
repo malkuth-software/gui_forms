@@ -397,7 +397,7 @@ void NumericUpDown::set_scrub_glow_target(bool lit) {
     scrub_glow_timeline_.set_specification(specification);
     scrub_glow_timeline_.start(FrameClock::now());
     const std::shared_ptr<NumericUpDown> self = std::static_pointer_cast<NumericUpDown>(shared_from_this());
-    scrub_glow_frames_.start(*this, display_frame_interval, ScrubGlowTick{self});
+    scrub_glow_frames_.start_every_frame(*this, ScrubGlowTick{self});
 }
 
 AnimationTickResult NumericUpDown::ScrubGlowTick::operator()(FrameTime now) const {

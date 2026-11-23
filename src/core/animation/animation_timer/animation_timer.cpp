@@ -19,20 +19,6 @@ namespace {
 // that a very slow speed cannot overflow the conversion to FrameInterval.
 constexpr double longest_travel_interval_seconds = 3600.0;
 
-// The period a timer of `interval` ticks at: an interval of at least one
-// display interval rounds to the nearest whole number of display intervals,
-// so that animations of different speeds, all ticking on multiples of their
-// period in clock time, fall due in the same frame poll and share one wake
-// and one frame instead of each presenting its own. A shorter interval is
-// kept: such a timer is paced by its owner's paints.
-FrameInterval paced_interval(FrameInterval interval) noexcept {
-    if (interval < display_frame_interval) return interval;
-    const FrameInterval half = display_frame_interval / 2;
-    const std::int64_t frames = (interval + half) / display_frame_interval;
-    const FrameInterval period = display_frame_interval * frames;
-    return period;
-}
-
 } // namespace
 
 FrameInterval animation_interval_for_travel(double device_pixels_per_second,
@@ -78,6 +64,15 @@ void AnimationTimer::start(Control& owner, FrameInterval interval, Tick tick) {
         throw std::invalid_argument("an animation timer interval must be at least 1 ms");
     }
     if (!tick) throw std::invalid_argument("an animation timer needs a tick target");
+    begin(owner, interval, std::move(tick));
+}
+
+void AnimationTimer::start_every_frame(Control& owner, Tick tick) {
+    if (!tick) throw std::invalid_argument("an animation timer needs a tick target");
+    begin(owner, FrameInterval::zero(), std::move(tick));
+}
+
+void AnimationTimer::begin(Control& owner, FrameInterval interval, Tick tick) {
     if (!state_) state_ = std::make_shared<State>();
     State& state = *state_;
     state.owner = owner.shared_from_this();
@@ -88,6 +83,7 @@ void AnimationTimer::start(Control& owner, FrameInterval interval, Tick tick) {
     // timer validates its arguments and never ticks, so no clock is read and
     // no frame is requested; the control keeps the presentation it has at
     // rest. (Timer, the program's own, still ticks.)
+    static_cast<void>(tick);
     state.started = false;
 #else
     state.tick = std::make_shared<const Tick>(std::move(tick));
@@ -180,15 +176,11 @@ void AnimationTimer::schedule(const std::shared_ptr<State>& shared) {
     // The first tick counts the paint that started the timer (or the one
     // its caller requested with the change that started it).
     state.painted_since_tick = true;
-    // The first tick falls on a multiple of the period in clock time, so
-    // that timers whose periods are multiples of one another tick in the
-    // same frame poll.
-    const FrameInterval period = paced_interval(state.interval);
-    const FrameTime now = FrameClock::now();
-    const FrameInterval into_period = now.time_since_epoch() % period;
-    const FrameTime first_tick = now + (period - into_period);
-    state.request = (*window).schedule_ui_timer(*owner, period, first_tick,
-                                                Callback{shared});
+    // The window paces the timer to its display: the period in whole
+    // refreshes, the first tick on the display's grid, and each tick at the
+    // frame's presentation time (SurfaceRoot::schedule_animation_frames).
+    state.request = detail::SurfaceScheduleAccess::schedule_animation_frames(*window, *owner, state.interval,
+                                                                             Callback{shared});
 #endif
 }
 

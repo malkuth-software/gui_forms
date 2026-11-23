@@ -6,7 +6,8 @@
 // timer waiting for paint compares.
 //
 // Holders: ToolTipPresenter and ToastPresenter (one-shot wakes), MotionClock
-// (its single frame request), AnimationTimer (the cancellation count),
+// (its single frame request), AnimationTimer (its display-paced timer and
+// the cancellation count),
 // CaretBlinkSchedule (the text controls' resting caret timer), ContentSurface
 // (its watchdog's resting check timer).
 //
@@ -55,6 +56,14 @@ public:
     // (SurfaceRoot::set_motion_frame_deadline).
     static void set_motion_frame_deadline(SurfaceRoot& root, FrameTime deadline) noexcept {
         root.set_motion_frame_deadline(deadline);
+    }
+    // An animation timer's display-paced UI timer
+    // (SurfaceRoot::schedule_animation_frames).
+    [[nodiscard]] static FrameRequestToken schedule_animation_frames(SurfaceRoot& root, Component& owner,
+                                                                     FrameInterval requested,
+                                                                     std::function<void(FrameTime)> callback) {
+        FrameRequestToken result = root.schedule_animation_frames(owner, requested, std::move(callback));
+        return result;
     }
     // How many times `root` cancelled its frame requests.
     [[nodiscard]] static std::uint64_t frame_request_cancellations(const SurfaceRoot& root) noexcept {

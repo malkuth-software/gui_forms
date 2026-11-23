@@ -337,6 +337,7 @@ __ZGVZN9gui_forms13ContentWorker*
 __ZGVZN9gui_forms13ControlLookup*
 __ZGVZN9gui_forms13CursorMetrics*
 __ZGVZN9gui_forms13DateTimeValue*
+__ZGVZN9gui_forms13DisplayTiming*
 __ZGVZN9gui_forms13DisposedError*
 __ZGVZN9gui_forms13DockNavigator*
 __ZGVZN9gui_forms13DockWorkspace*
@@ -1160,6 +1161,7 @@ __ZGVZN9gui_forms20ProgressWovenStripes*
 __ZGVZN9gui_forms20PropertyObjectMember*
 __ZGVZN9gui_forms20PropertyRegistration*
 __ZGVZN9gui_forms20PropertyResetRequest*
+__ZGVZN9gui_forms20RefreshCounterTiming*
 __ZGVZN9gui_forms20RelativePointerEnded*
 __ZGVZN9gui_forms20RelativePointerGrant*
 __ZGVZN9gui_forms20ResponsiveTrackPanel*
@@ -1269,6 +1271,7 @@ __ZGVZN9gui_forms22DataGridViewCellsParts*
 __ZGVZN9gui_forms22DataGridViewRowHeights*
 __ZGVZN9gui_forms22DateTimeFormatProvider*
 __ZGVZN9gui_forms22DispatchCancelledError*
+__ZGVZN9gui_forms22DisplayTimingEstimator*
 __ZGVZN9gui_forms22EffectInstanceCounters*
 __ZGVZN9gui_forms22ExpressionDependencies*
 __ZGVZN9gui_forms22FirstFrameShowSnapshot*
@@ -2027,6 +2030,7 @@ __ZGVZNK9gui_forms13ContentWorker*
 __ZGVZNK9gui_forms13ControlLookup*
 __ZGVZNK9gui_forms13CursorMetrics*
 __ZGVZNK9gui_forms13DateTimeValue*
+__ZGVZNK9gui_forms13DisplayTiming*
 __ZGVZNK9gui_forms13DisposedError*
 __ZGVZNK9gui_forms13DockNavigator*
 __ZGVZNK9gui_forms13DockWorkspace*
@@ -2850,6 +2854,7 @@ __ZGVZNK9gui_forms20ProgressWovenStripes*
 __ZGVZNK9gui_forms20PropertyObjectMember*
 __ZGVZNK9gui_forms20PropertyRegistration*
 __ZGVZNK9gui_forms20PropertyResetRequest*
+__ZGVZNK9gui_forms20RefreshCounterTiming*
 __ZGVZNK9gui_forms20RelativePointerEnded*
 __ZGVZNK9gui_forms20RelativePointerGrant*
 __ZGVZNK9gui_forms20ResponsiveTrackPanel*
@@ -2959,6 +2964,7 @@ __ZGVZNK9gui_forms22DataGridViewCellsParts*
 __ZGVZNK9gui_forms22DataGridViewRowHeights*
 __ZGVZNK9gui_forms22DateTimeFormatProvider*
 __ZGVZNK9gui_forms22DispatchCancelledError*
+__ZGVZNK9gui_forms22DisplayTimingEstimator*
 __ZGVZNK9gui_forms22EffectInstanceCounters*
 __ZGVZNK9gui_forms22ExpressionDependencies*
 __ZGVZNK9gui_forms22FirstFrameShowSnapshot*
@@ -3820,6 +3826,8 @@ __ZN9gui_forms12marker_linesB*
 __ZN9gui_forms12marker_linesE*
 __ZN9gui_forms12merge_stripsB*
 __ZN9gui_forms12merge_stripsE*
+__ZN9gui_forms12next_on_gridB*
+__ZN9gui_forms12next_on_gridE*
 __ZN9gui_forms12revert_mergeB*
 __ZN9gui_forms12revert_mergeE*
 __ZN9gui_forms12scene_framedB*
@@ -3853,6 +3861,7 @@ __ZN9gui_forms13ContentWorker*
 __ZN9gui_forms13ControlLookup*
 __ZN9gui_forms13CursorMetrics*
 __ZN9gui_forms13DateTimeValue*
+__ZN9gui_forms13DisplayTiming*
 __ZN9gui_forms13DisposedError*
 __ZN9gui_forms13DockNavigator*
 __ZN9gui_forms13DockWorkspace*
@@ -4638,6 +4647,8 @@ __ZN9gui_forms17locale_xml_limitsB*
 __ZN9gui_forms17locale_xml_limitsE*
 __ZN9gui_forms17measure_paragraphB*
 __ZN9gui_forms17measure_paragraphE*
+__ZN9gui_forms17next_presentationB*
+__ZN9gui_forms17next_presentationE*
 __ZN9gui_forms17paint_canvas_lampB*
 __ZN9gui_forms17paint_canvas_lampE*
 __ZN9gui_forms17paint_canvas_linkB*
@@ -5079,6 +5090,8 @@ __ZN9gui_forms19host_sound_cue_nameB*
 __ZN9gui_forms19host_sound_cue_nameE*
 __ZN9gui_forms19is_stock_icon_imageB*
 __ZN9gui_forms19is_stock_icon_imageE*
+__ZN9gui_forms19live_display_timingB*
+__ZN9gui_forms19live_display_timingE*
 __ZN9gui_forms19locale_record_emptyB*
 __ZN9gui_forms19locale_record_emptyE*
 __ZN9gui_forms19locale_record_fieldB*
@@ -5208,6 +5221,7 @@ __ZN9gui_forms20ProgressWovenStripes*
 __ZN9gui_forms20PropertyObjectMember*
 __ZN9gui_forms20PropertyRegistration*
 __ZN9gui_forms20PropertyResetRequest*
+__ZN9gui_forms20RefreshCounterTiming*
 __ZN9gui_forms20RelativePointerEnded*
 __ZN9gui_forms20RelativePointerGrant*
 __ZN9gui_forms20ResponsiveTrackPanel*
@@ -5505,6 +5519,7 @@ __ZN9gui_forms22DataGridViewCellsParts*
 __ZN9gui_forms22DataGridViewRowHeights*
 __ZN9gui_forms22DateTimeFormatProvider*
 __ZN9gui_forms22DispatchCancelledError*
+__ZN9gui_forms22DisplayTimingEstimator*
 __ZN9gui_forms22EffectInstanceCounters*
 __ZN9gui_forms22ExpressionDependencies*
 __ZN9gui_forms22FirstFrameShowSnapshot*
@@ -6015,6 +6030,8 @@ __ZN9gui_forms26content_layout_result_nameB*
 __ZN9gui_forms26content_layout_result_nameE*
 __ZN9gui_forms26copy_failure_shadow_framesB*
 __ZN9gui_forms26copy_failure_shadow_framesE*
+__ZN9gui_forms26display_timing_source_nameB*
+__ZN9gui_forms26display_timing_source_nameE*
 __ZN9gui_forms26end_surface_material_shapeB*
 __ZN9gui_forms26end_surface_material_shapeE*
 __ZN9gui_forms26engine_sine_cosine_degreesB*
@@ -7121,6 +7138,7 @@ __ZNK[RO]9gui_forms13ContentWorker*
 __ZNK[RO]9gui_forms13ControlLookup*
 __ZNK[RO]9gui_forms13CursorMetrics*
 __ZNK[RO]9gui_forms13DateTimeValue*
+__ZNK[RO]9gui_forms13DisplayTiming*
 __ZNK[RO]9gui_forms13DisposedError*
 __ZNK[RO]9gui_forms13DockNavigator*
 __ZNK[RO]9gui_forms13DockWorkspace*
@@ -7944,6 +7962,7 @@ __ZNK[RO]9gui_forms20ProgressWovenStripes*
 __ZNK[RO]9gui_forms20PropertyObjectMember*
 __ZNK[RO]9gui_forms20PropertyRegistration*
 __ZNK[RO]9gui_forms20PropertyResetRequest*
+__ZNK[RO]9gui_forms20RefreshCounterTiming*
 __ZNK[RO]9gui_forms20RelativePointerEnded*
 __ZNK[RO]9gui_forms20RelativePointerGrant*
 __ZNK[RO]9gui_forms20ResponsiveTrackPanel*
@@ -8053,6 +8072,7 @@ __ZNK[RO]9gui_forms22DataGridViewCellsParts*
 __ZNK[RO]9gui_forms22DataGridViewRowHeights*
 __ZNK[RO]9gui_forms22DateTimeFormatProvider*
 __ZNK[RO]9gui_forms22DispatchCancelledError*
+__ZNK[RO]9gui_forms22DisplayTimingEstimator*
 __ZNK[RO]9gui_forms22EffectInstanceCounters*
 __ZNK[RO]9gui_forms22ExpressionDependencies*
 __ZNK[RO]9gui_forms22FirstFrameShowSnapshot*
@@ -8811,6 +8831,7 @@ __ZN[KRO]9gui_forms13ContentWorker*
 __ZN[KRO]9gui_forms13ControlLookup*
 __ZN[KRO]9gui_forms13CursorMetrics*
 __ZN[KRO]9gui_forms13DateTimeValue*
+__ZN[KRO]9gui_forms13DisplayTiming*
 __ZN[KRO]9gui_forms13DisposedError*
 __ZN[KRO]9gui_forms13DockNavigator*
 __ZN[KRO]9gui_forms13DockWorkspace*
@@ -9634,6 +9655,7 @@ __ZN[KRO]9gui_forms20ProgressWovenStripes*
 __ZN[KRO]9gui_forms20PropertyObjectMember*
 __ZN[KRO]9gui_forms20PropertyRegistration*
 __ZN[KRO]9gui_forms20PropertyResetRequest*
+__ZN[KRO]9gui_forms20RefreshCounterTiming*
 __ZN[KRO]9gui_forms20RelativePointerEnded*
 __ZN[KRO]9gui_forms20RelativePointerGrant*
 __ZN[KRO]9gui_forms20ResponsiveTrackPanel*
@@ -9743,6 +9765,7 @@ __ZN[KRO]9gui_forms22DataGridViewCellsParts*
 __ZN[KRO]9gui_forms22DataGridViewRowHeights*
 __ZN[KRO]9gui_forms22DateTimeFormatProvider*
 __ZN[KRO]9gui_forms22DispatchCancelledError*
+__ZN[KRO]9gui_forms22DisplayTimingEstimator*
 __ZN[KRO]9gui_forms22EffectInstanceCounters*
 __ZN[KRO]9gui_forms22ExpressionDependencies*
 __ZN[KRO]9gui_forms22FirstFrameShowSnapshot*
@@ -10501,6 +10524,7 @@ __ZT[VIST]N9gui_forms13ContentWorker*E
 __ZT[VIST]N9gui_forms13ControlLookup*E
 __ZT[VIST]N9gui_forms13CursorMetrics*E
 __ZT[VIST]N9gui_forms13DateTimeValue*E
+__ZT[VIST]N9gui_forms13DisplayTiming*E
 __ZT[VIST]N9gui_forms13DisposedError*E
 __ZT[VIST]N9gui_forms13DockNavigator*E
 __ZT[VIST]N9gui_forms13DockWorkspace*E
@@ -11324,6 +11348,7 @@ __ZT[VIST]N9gui_forms20ProgressWovenStripes*E
 __ZT[VIST]N9gui_forms20PropertyObjectMember*E
 __ZT[VIST]N9gui_forms20PropertyRegistration*E
 __ZT[VIST]N9gui_forms20PropertyResetRequest*E
+__ZT[VIST]N9gui_forms20RefreshCounterTiming*E
 __ZT[VIST]N9gui_forms20RelativePointerEnded*E
 __ZT[VIST]N9gui_forms20RelativePointerGrant*E
 __ZT[VIST]N9gui_forms20ResponsiveTrackPanel*E
@@ -11433,6 +11458,7 @@ __ZT[VIST]N9gui_forms22DataGridViewCellsParts*E
 __ZT[VIST]N9gui_forms22DataGridViewRowHeights*E
 __ZT[VIST]N9gui_forms22DateTimeFormatProvider*E
 __ZT[VIST]N9gui_forms22DispatchCancelledError*E
+__ZT[VIST]N9gui_forms22DisplayTimingEstimator*E
 __ZT[VIST]N9gui_forms22EffectInstanceCounters*E
 __ZT[VIST]N9gui_forms22ExpressionDependencies*E
 __ZT[VIST]N9gui_forms22FirstFrameShowSnapshot*E
@@ -12191,6 +12217,7 @@ __ZT[hvc]*9gui_forms13ContentWorker*
 __ZT[hvc]*9gui_forms13ControlLookup*
 __ZT[hvc]*9gui_forms13CursorMetrics*
 __ZT[hvc]*9gui_forms13DateTimeValue*
+__ZT[hvc]*9gui_forms13DisplayTiming*
 __ZT[hvc]*9gui_forms13DisposedError*
 __ZT[hvc]*9gui_forms13DockNavigator*
 __ZT[hvc]*9gui_forms13DockWorkspace*
@@ -13014,6 +13041,7 @@ __ZT[hvc]*9gui_forms20ProgressWovenStripes*
 __ZT[hvc]*9gui_forms20PropertyObjectMember*
 __ZT[hvc]*9gui_forms20PropertyRegistration*
 __ZT[hvc]*9gui_forms20PropertyResetRequest*
+__ZT[hvc]*9gui_forms20RefreshCounterTiming*
 __ZT[hvc]*9gui_forms20RelativePointerEnded*
 __ZT[hvc]*9gui_forms20RelativePointerGrant*
 __ZT[hvc]*9gui_forms20ResponsiveTrackPanel*
@@ -13123,6 +13151,7 @@ __ZT[hvc]*9gui_forms22DataGridViewCellsParts*
 __ZT[hvc]*9gui_forms22DataGridViewRowHeights*
 __ZT[hvc]*9gui_forms22DateTimeFormatProvider*
 __ZT[hvc]*9gui_forms22DispatchCancelledError*
+__ZT[hvc]*9gui_forms22DisplayTimingEstimator*
 __ZT[hvc]*9gui_forms22EffectInstanceCounters*
 __ZT[hvc]*9gui_forms22ExpressionDependencies*
 __ZT[hvc]*9gui_forms22FirstFrameShowSnapshot*
@@ -13881,6 +13910,7 @@ __ZZN9gui_forms13ContentWorker*
 __ZZN9gui_forms13ControlLookup*
 __ZZN9gui_forms13CursorMetrics*
 __ZZN9gui_forms13DateTimeValue*
+__ZZN9gui_forms13DisplayTiming*
 __ZZN9gui_forms13DisposedError*
 __ZZN9gui_forms13DockNavigator*
 __ZZN9gui_forms13DockWorkspace*
@@ -14704,6 +14734,7 @@ __ZZN9gui_forms20ProgressWovenStripes*
 __ZZN9gui_forms20PropertyObjectMember*
 __ZZN9gui_forms20PropertyRegistration*
 __ZZN9gui_forms20PropertyResetRequest*
+__ZZN9gui_forms20RefreshCounterTiming*
 __ZZN9gui_forms20RelativePointerEnded*
 __ZZN9gui_forms20RelativePointerGrant*
 __ZZN9gui_forms20ResponsiveTrackPanel*
@@ -14813,6 +14844,7 @@ __ZZN9gui_forms22DataGridViewCellsParts*
 __ZZN9gui_forms22DataGridViewRowHeights*
 __ZZN9gui_forms22DateTimeFormatProvider*
 __ZZN9gui_forms22DispatchCancelledError*
+__ZZN9gui_forms22DisplayTimingEstimator*
 __ZZN9gui_forms22EffectInstanceCounters*
 __ZZN9gui_forms22ExpressionDependencies*
 __ZZN9gui_forms22FirstFrameShowSnapshot*
@@ -15571,6 +15603,7 @@ __ZZNK9gui_forms13ContentWorker*
 __ZZNK9gui_forms13ControlLookup*
 __ZZNK9gui_forms13CursorMetrics*
 __ZZNK9gui_forms13DateTimeValue*
+__ZZNK9gui_forms13DisplayTiming*
 __ZZNK9gui_forms13DisposedError*
 __ZZNK9gui_forms13DockNavigator*
 __ZZNK9gui_forms13DockWorkspace*
@@ -16394,6 +16427,7 @@ __ZZNK9gui_forms20ProgressWovenStripes*
 __ZZNK9gui_forms20PropertyObjectMember*
 __ZZNK9gui_forms20PropertyRegistration*
 __ZZNK9gui_forms20PropertyResetRequest*
+__ZZNK9gui_forms20RefreshCounterTiming*
 __ZZNK9gui_forms20RelativePointerEnded*
 __ZZNK9gui_forms20RelativePointerGrant*
 __ZZNK9gui_forms20ResponsiveTrackPanel*
@@ -16503,6 +16537,7 @@ __ZZNK9gui_forms22DataGridViewCellsParts*
 __ZZNK9gui_forms22DataGridViewRowHeights*
 __ZZNK9gui_forms22DateTimeFormatProvider*
 __ZZNK9gui_forms22DispatchCancelledError*
+__ZZNK9gui_forms22DisplayTimingEstimator*
 __ZZNK9gui_forms22EffectInstanceCounters*
 __ZZNK9gui_forms22ExpressionDependencies*
 __ZZNK9gui_forms22FirstFrameShowSnapshot*

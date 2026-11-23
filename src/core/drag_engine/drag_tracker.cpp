@@ -6,6 +6,7 @@
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "drag_engine.hpp"
+#include "../surface_root/access/surface_schedule_access.hpp"
 
 #include <algorithm>
 #include <array>
@@ -840,8 +841,11 @@ void DragTrackerSession::update_scroll(Point pointer) {
     const BorrowedPointer<Window> window = (*owner).attached_window();
     if (window == nullptr) return;
     last_tick_ = FrameClock::now();
-    const FrameTime first_tick = last_tick_ + display_frame_interval;
-    scroll_frames_ = (*window).schedule_ui_timer(*owner, display_frame_interval, first_tick, ScrollTick{this});
+    // Every refresh of the window's display, on its grid, each tick at the
+    // time its frame is shown (SurfaceRoot::schedule_animation_frames); the
+    // step is the time since the last, so the speed holds at any rate.
+    scroll_frames_ = detail::SurfaceScheduleAccess::schedule_animation_frames(*window, *owner, FrameInterval::zero(),
+                                                                             ScrollTick{this});
 }
 
 void DragTrackerSession::stop_scroll() noexcept {

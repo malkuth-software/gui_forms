@@ -13,6 +13,8 @@
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
 #include "gui_forms/host/windowing/first_frame_show.hpp"
 #include "gui_forms/platform/linux_host.hpp"
+#include "gui_forms/scheduler/display_timing/display_timing.hpp"
+#include "../../../host/linux/frame_sync/x11_frame_sync.hpp"
 #include <X11/Xlib.h>
 #include <signal.h>
 #include <array>
@@ -368,6 +370,31 @@ public:
   void ready();
   void event(XEvent &event);
   void update();
+  // A frame presented through the direct path was shown at `ust`
+  // (microseconds of CLOCK_MONOTONIC) on refresh `msc`: the display's
+  // timing it gives reaches the model (set_display_timing).
+  void present_completed(std::uint64_t ust, std::uint64_t msc);
+  // Reads the nominal refresh rate of the monitor under the window
+  // (x11_refresh_period_at) and reports it as nominal timing, unless the
+  // model already holds the display's own timing at that rate.
+  void report_nominal_rate();
+  // The compositor's frame synchronisation (src/host/linux/frame_sync):
+  // creates the basic and extended XSync counters and names them in
+  // _NET_WM_SYNC_REQUEST_COUNTER where the server has XSync; false (and
+  // _NET_WM_SYNC_REQUEST stays out of WM_PROTOCOLS) otherwise.
+  bool create_frame_sync();
+  void destroy_frame_sync() noexcept;
+  void set_sync_counter(XID counter, std::uint64_t value) noexcept;
+  // Around each present: the extended counter odd, then even, and a
+  // resize's basic request answered once the frame is sent.
+  void begin_frame_sync() noexcept;
+  void end_frame_sync() noexcept;
+  // _NET_WM_SYNC_REQUEST, _NET_WM_FRAME_DRAWN and _NET_WM_FRAME_TIMINGS:
+  // the frame timings reach the model as display timing
+  // (set_display_timing); a compositor that sends only drawn stamps feeds
+  // the estimator (note_presentation_completed). False for any other
+  // message.
+  bool frame_sync_message(const XClientMessageEvent &message);
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
   // XDND drops (linux_drag_drop.cpp): not compiled in a high-integrity build.
   bool drag_message(const XClientMessageEvent &message);
@@ -395,6 +422,7 @@ public:
   // Compose: draws each gathered frame into the raster under its region. A
   // fragment that fails to draw falls back to retained painting.
   void compose_live_frames();
+  void report_live_shown(std::size_t source);
   // Reports one present that copied `copied`: the live frames' share as live
   // frames, the rest as the retained present (when `receipt` is set), the
   // duration split by pixels. Returns whether the window accepted the receipt.
@@ -602,6 +630,26 @@ public:
   // null while the presentation policy leaves it off. Receives the
   // window's PresentIdleNotify events (Runtime::dispatch).
   X11PresentPath *direct_path{};
+  // The display's timing from the direct path's completions (Present's ust
+  // and msc; present_completed), and whether the nominal rate of the
+  // monitor under the window was read since the window last moved or the
+  // screens changed (report_nominal_rate).
+  RefreshCounterTiming refresh_timing;
+  bool nominal_rate_read{};
+  // The sync counters (zero without XSync or before they are made), the
+  // values they are set to, the drawn times of the last few frames by
+  // counter value (a timings message gives its presentation as an offset
+  // from its frame's), and whether any timings message gave a timing.
+  struct DrawnFrame final {
+    std::uint64_t counter{};
+    std::uint64_t drawn_microseconds{};
+  };
+  XID sync_basic_counter{};
+  XID sync_extended_counter{};
+  X11FrameSyncCounter frame_sync;
+  std::array<DrawnFrame, 8> drawn_frames{};
+  std::size_t drawn_frame_next{};
+  bool frame_timings_seen{};
   // The presentation policy turned host scroll on (set with the shim).
   bool host_scroll_policy{};
   std::vector<presentation::PresentRect> present_rects;
@@ -622,6 +670,8 @@ public:
   // composes it or nothing changed.
   std::vector<LiveSurfacePresentation> live_updates;
   std::vector<LiveSurfaceFrame> live_frames;
+  // The sources this tick reported shown (report_live_shown).
+  std::vector<bool> live_reported;
   std::vector<std::size_t> live_frame_sources;
   std::vector<Rect> live_regions;
   std::vector<std::uint64_t> live_frame_pixels;
@@ -729,6 +779,9 @@ public:
   bool xi_gestures{false};
   // The Present extension's opcode (x11_present_direct.hpp); -1 without it.
   int present_opcode{-1};
+  // The server offers XSync (GUI_FORMS_HAVE_XSYNC): windows make their
+  // frame sync counters (NativeWindow::create_frame_sync).
+  bool xsync_available{};
   // The server's 32-bit millisecond time of an event, unwrapped and mapped
   // onto the steady clock (HostEventClock): PointerEvent and
   // HostRelativeMotionEvent timestamps. UI thread.
@@ -812,6 +865,12 @@ HostDialogResult retained_dialog(NativeWindow &owner,
 // Every scale is the desktop's (Runtime::desktop_scale, from Xft.dpi). Device
 // units. UI thread.
 void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result);
+// The nominal refresh period of the RandR mode of the first enabled CRTC
+// containing root point (`x`, `y`) in X pixels (design note frame-source,
+// section 3): the mode's pixel clock over the pixels a refresh scans. Zero
+// without RandR, outside every CRTC, or for a rate outside 1 to 1000 Hz.
+// UI thread.
+[[nodiscard]] FrameInterval x11_refresh_period_at(Display *display, int x, int y);
 // The run's open operation (LinuxOpenWindow). Only the UI thread reaches the
 // windowing, and only while the run lives.
 struct RunOpenState final {

@@ -47,6 +47,16 @@ private:
 
 } // namespace
 
+LiveDisplayTiming live_display_timing(const DisplayTiming& timing, FrameTime now) noexcept {
+    LiveDisplayTiming result;
+    if (!timing.paced() || timing.refresh_period <= FrameInterval::zero()) return result;
+    result.refresh_period = timing.refresh_period;
+    result.last_vblank = next_on_grid(timing.presentation_phase, timing.refresh_period, now) - timing.refresh_period;
+    result.source = timing.source == DisplayTimingSource::display ? LiveTimingSource::display_phased
+                                                                   : LiveTimingSource::phased_timer;
+    return result;
+}
+
 LiveSurfacePacer::LiveSurfacePacer(std::shared_ptr<LiveSurface> surface) noexcept
     : surface_(std::move(surface)) {}
 

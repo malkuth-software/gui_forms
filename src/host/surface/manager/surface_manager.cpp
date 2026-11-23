@@ -749,7 +749,12 @@ bool NativeWindow::has_compose_work() const noexcept {
 }
 
 bool NativeWindow::wants_frames() const noexcept {
-    const bool wanted = !closed && (*entry.model).has_live_surface_presentations() && !live_idle;
+    // Live surfaces that are not resting, or display-paced motion and
+    // animation timers (Window::wants_display_frames): either wants the
+    // host's display frames, which also time the window (handle's frame
+    // record).
+    const bool live = (*entry.model).has_live_surface_presentations() && !live_idle;
+    const bool wanted = !closed && (live || (*entry.model).wants_display_frames());
     return wanted;
 }
 
@@ -940,6 +945,7 @@ bool NativeWindow::gather_live_frames() {
 }
 
 void NativeWindow::compose_live_frames() {
+    live_reported.clear();
     for (std::size_t index = 0U; index < live_regions.size(); ++index) {
         const Rect region = live_regions[index];
         if (region.empty()) continue;
@@ -950,10 +956,27 @@ void NativeWindow::compose_live_frames() {
         raster.restore();
         if (drawn) {
             (*entry.model).note_live_surface_presented(live_updates[index], region);
+            report_live_shown(live_frame_sources[index]);
             continue;
         }
         live_regions[index] = {};
         damage.add(region);
+    }
+}
+
+// Reports a live frame the compose showed to its surface, once per source
+// per tick, with the window's display timing (Window::
+// report_live_surface_shown): the surface's producer paces to the window's
+// frame source.
+void NativeWindow::report_live_shown(std::size_t source) {
+    if (source >= live_frames.size() || !live_frames[source]) return;
+    if (live_reported.size() < live_frames.size()) live_reported.resize(live_frames.size(), false);
+    if (live_reported[source]) return;
+    live_reported[source] = true;
+    for (std::size_t index = 0U; index < live_updates.size(); ++index) {
+        if (live_frame_sources[index] != source || !live_updates[index].surface) continue;
+        (*entry.model).report_live_surface_shown(*live_updates[index].surface, live_frames[source].generation());
+        return;
     }
 }
 
@@ -1704,9 +1727,21 @@ void Runtime::handle(SurfaceInputRecord& record) {
         surface_inactive_ = !record.down;
         if (record.down) damage_surface();
         break;
-    case SurfaceInputKind::frame:
-        // The turn's update follows: live surfaces sample.
+    case SurfaceInputKind::frame: {
+        // The turn's update follows: live surfaces sample. The host reports
+        // no display timing, so the frames' arrival times are each window's
+        // presentation completions: the estimator measures the display's
+        // period and phase from them (SurfaceRoot::
+        // note_presentation_completed), on its own thread.
+        const FrameTime arrived = FrameClock::now();
+        const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+        for (std::size_t index = 0U; index < snapshot.size(); ++index) {
+            NativeWindow& candidate = *snapshot[index];
+            if (candidate.closed || !candidate.entry.model) continue;
+            static_cast<void>((*candidate.entry.model).note_presentation_completed(arrived));
+        }
         break;
+    }
     case SurfaceInputKind::dialog:
         for (std::size_t index = 0U; index < dialogs_.size(); ++index) {
             PendingDialog& pending = *dialogs_[index];

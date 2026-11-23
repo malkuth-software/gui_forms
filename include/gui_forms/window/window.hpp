@@ -141,6 +141,12 @@ public:
     // paint endpoint's surface, named for the surface's control. Nothing
     // while the overlay is off. UI thread.
     void note_live_surface_presented(const LiveSurfacePresentation& presentation, Rect presented);
+    // A host showed `generation` of `surface` in this present tick: reports
+    // it to the surface (LiveSurface::notify_presented) with this window's
+    // display timing (live_display_timing of display_timing() at now), so
+    // the surface's producer paces to the window's frame source. Once per
+    // surface per tick, however many fragments showed it. UI thread.
+    void report_live_surface_shown(LiveSurface& surface, std::uint64_t generation) const noexcept;
     // Content pairing (stage S2, design note section 6): the surface
     // registered for `control` must next show a frame published with a
     // content tag of at least `content_tag`. Until one is published, the next
