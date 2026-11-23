@@ -445,13 +445,26 @@ const PropertyDescriptor& describe_popup_container_box_text() {
 
 } // namespace
 
+namespace {
+
+// The table's text connector: text_changed_ lives in State, so the entry
+// reaches it through the public accessor rather than a member pointer.
+SubscriptionToken connect_popup_container_box_text_changed(Component& owner, Component& subscriber, std::function<void()> changed) {
+    PopupContainerBox& box = static_cast<PopupContainerBox&>(owner);
+    const detail::EventChangeConnector connector(box.text_changed());
+    SubscriptionToken token = connector(subscriber, std::move(changed));
+    return token;
+}
+
+} // namespace
+
 const std::array<PropertyEntry, PopupContainerBox::popup_container_box_property_count>& PopupContainerBox::popup_container_box_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, 1U> own{{
         {"text", &describe_popup_container_box_text,
          &read_cell_entry<PopupContainerBox, decltype(&PopupContainerBox::text), &PopupContainerBox::text>,
          &write_cell_entry<PopupContainerBox, decltype(&PopupContainerBox::text), &PopupContainerBox::text>,
          nullptr, nullptr, nullptr,
-         &connect_event_entry<PopupContainerBox, decltype(&PopupContainerBox::text_changed_), &PopupContainerBox::text_changed_>},
+         &connect_popup_container_box_text_changed},
     }};
     static_assert(property_names_distinct(own), "PopupContainerBox's property table names a property twice");
     static const std::array<PropertyEntry, popup_container_box_property_count> entries =
