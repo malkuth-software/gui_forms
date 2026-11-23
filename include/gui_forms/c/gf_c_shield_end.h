@@ -559,6 +559,7 @@
 #pragma pop_macro("on_grid_color_changed")
 #pragma pop_macro("on_graph_edited")
 #pragma pop_macro("on_got_focus")
+#pragma pop_macro("on_gesture")
 #pragma pop_macro("on_format_changed")
 #pragma pop_macro("on_fore_color_changed")
 #pragma pop_macro("on_fill_color")
