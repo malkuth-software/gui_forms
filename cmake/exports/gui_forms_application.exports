@@ -825,6 +825,7 @@ __ZGVZN9gui_forms17HelpSearchOptions*
 __ZGVZN9gui_forms17HelpSearchPosting*
 __ZGVZN9gui_forms17HelpSectionToggle*
 __ZGVZN9gui_forms17HostDialogRequest*
+__ZGVZN9gui_forms17HostDragSourceEnd*
 __ZGVZN9gui_forms17HostMonitorResult*
 __ZGVZN9gui_forms17HostServiceStatus*
 __ZGVZN9gui_forms17HostShutdownEvent*
@@ -1153,6 +1154,7 @@ __ZGVZN9gui_forms20GridItemContribution*
 __ZGVZN9gui_forms20HelpBookViewerLabels*
 __ZGVZN9gui_forms20HelpLocaleReadResult*
 __ZGVZN9gui_forms20HelpProviderSnapshot*
+__ZGVZN9gui_forms20HostDragSourceResult*
 __ZGVZN9gui_forms20HostFileDialogFilter*
 __ZGVZN9gui_forms20HostPathDialogResult*
 __ZGVZN9gui_forms20HostProtocolRevision*
@@ -1227,6 +1229,7 @@ __ZGVZN9gui_forms21FlowLayoutPanelCompat*
 __ZGVZN9gui_forms21HelpBookCompileResult*
 __ZGVZN9gui_forms21HelpBookSystemOptions*
 __ZGVZN9gui_forms21HostColorDialogResult*
+__ZGVZN9gui_forms21HostDragSourceRequest*
 __ZGVZN9gui_forms21HostScreenPointResult*
 __ZGVZN9gui_forms21HostWindowDescription*
 __ZGVZN9gui_forms21HostWindowFrameResult*
@@ -2539,6 +2542,7 @@ __ZGVZNK9gui_forms17HelpSearchOptions*
 __ZGVZNK9gui_forms17HelpSearchPosting*
 __ZGVZNK9gui_forms17HelpSectionToggle*
 __ZGVZNK9gui_forms17HostDialogRequest*
+__ZGVZNK9gui_forms17HostDragSourceEnd*
 __ZGVZNK9gui_forms17HostMonitorResult*
 __ZGVZNK9gui_forms17HostServiceStatus*
 __ZGVZNK9gui_forms17HostShutdownEvent*
@@ -2867,6 +2871,7 @@ __ZGVZNK9gui_forms20GridItemContribution*
 __ZGVZNK9gui_forms20HelpBookViewerLabels*
 __ZGVZNK9gui_forms20HelpLocaleReadResult*
 __ZGVZNK9gui_forms20HelpProviderSnapshot*
+__ZGVZNK9gui_forms20HostDragSourceResult*
 __ZGVZNK9gui_forms20HostFileDialogFilter*
 __ZGVZNK9gui_forms20HostPathDialogResult*
 __ZGVZNK9gui_forms20HostProtocolRevision*
@@ -2941,6 +2946,7 @@ __ZGVZNK9gui_forms21FlowLayoutPanelCompat*
 __ZGVZNK9gui_forms21HelpBookCompileResult*
 __ZGVZNK9gui_forms21HelpBookSystemOptions*
 __ZGVZNK9gui_forms21HostColorDialogResult*
+__ZGVZNK9gui_forms21HostDragSourceRequest*
 __ZGVZNK9gui_forms21HostScreenPointResult*
 __ZGVZNK9gui_forms21HostWindowDescription*
 __ZGVZNK9gui_forms21HostWindowFrameResult*
@@ -4593,6 +4599,7 @@ __ZN9gui_forms17HelpSearchOptions*
 __ZN9gui_forms17HelpSearchPosting*
 __ZN9gui_forms17HelpSectionToggle*
 __ZN9gui_forms17HostDialogRequest*
+__ZN9gui_forms17HostDragSourceEnd*
 __ZN9gui_forms17HostMonitorResult*
 __ZN9gui_forms17HostServiceStatus*
 __ZN9gui_forms17HostShutdownEvent*
@@ -5261,6 +5268,7 @@ __ZN9gui_forms20GridItemContribution*
 __ZN9gui_forms20HelpBookViewerLabels*
 __ZN9gui_forms20HelpLocaleReadResult*
 __ZN9gui_forms20HelpProviderSnapshot*
+__ZN9gui_forms20HostDragSourceResult*
 __ZN9gui_forms20HostFileDialogFilter*
 __ZN9gui_forms20HostPathDialogResult*
 __ZN9gui_forms20HostProtocolRevision*
@@ -5429,6 +5437,7 @@ __ZN9gui_forms21FlowLayoutPanelCompat*
 __ZN9gui_forms21HelpBookCompileResult*
 __ZN9gui_forms21HelpBookSystemOptions*
 __ZN9gui_forms21HostColorDialogResult*
+__ZN9gui_forms21HostDragSourceRequest*
 __ZN9gui_forms21HostScreenPointResult*
 __ZN9gui_forms21HostWindowDescription*
 __ZN9gui_forms21HostWindowFrameResult*
@@ -7695,6 +7704,7 @@ __ZNK[RO]9gui_forms17HelpSearchOptions*
 __ZNK[RO]9gui_forms17HelpSearchPosting*
 __ZNK[RO]9gui_forms17HelpSectionToggle*
 __ZNK[RO]9gui_forms17HostDialogRequest*
+__ZNK[RO]9gui_forms17HostDragSourceEnd*
 __ZNK[RO]9gui_forms17HostMonitorResult*
 __ZNK[RO]9gui_forms17HostServiceStatus*
 __ZNK[RO]9gui_forms17HostShutdownEvent*
@@ -8023,6 +8033,7 @@ __ZNK[RO]9gui_forms20GridItemContribution*
 __ZNK[RO]9gui_forms20HelpBookViewerLabels*
 __ZNK[RO]9gui_forms20HelpLocaleReadResult*
 __ZNK[RO]9gui_forms20HelpProviderSnapshot*
+__ZNK[RO]9gui_forms20HostDragSourceResult*
 __ZNK[RO]9gui_forms20HostFileDialogFilter*
 __ZNK[RO]9gui_forms20HostPathDialogResult*
 __ZNK[RO]9gui_forms20HostProtocolRevision*
@@ -8097,6 +8108,7 @@ __ZNK[RO]9gui_forms21FlowLayoutPanelCompat*
 __ZNK[RO]9gui_forms21HelpBookCompileResult*
 __ZNK[RO]9gui_forms21HelpBookSystemOptions*
 __ZNK[RO]9gui_forms21HostColorDialogResult*
+__ZNK[RO]9gui_forms21HostDragSourceRequest*
 __ZNK[RO]9gui_forms21HostScreenPointResult*
 __ZNK[RO]9gui_forms21HostWindowDescription*
 __ZNK[RO]9gui_forms21HostWindowFrameResult*
@@ -9409,6 +9421,7 @@ __ZN[KRO]9gui_forms17HelpSearchOptions*
 __ZN[KRO]9gui_forms17HelpSearchPosting*
 __ZN[KRO]9gui_forms17HelpSectionToggle*
 __ZN[KRO]9gui_forms17HostDialogRequest*
+__ZN[KRO]9gui_forms17HostDragSourceEnd*
 __ZN[KRO]9gui_forms17HostMonitorResult*
 __ZN[KRO]9gui_forms17HostServiceStatus*
 __ZN[KRO]9gui_forms17HostShutdownEvent*
@@ -9737,6 +9750,7 @@ __ZN[KRO]9gui_forms20GridItemContribution*
 __ZN[KRO]9gui_forms20HelpBookViewerLabels*
 __ZN[KRO]9gui_forms20HelpLocaleReadResult*
 __ZN[KRO]9gui_forms20HelpProviderSnapshot*
+__ZN[KRO]9gui_forms20HostDragSourceResult*
 __ZN[KRO]9gui_forms20HostFileDialogFilter*
 __ZN[KRO]9gui_forms20HostPathDialogResult*
 __ZN[KRO]9gui_forms20HostProtocolRevision*
@@ -9811,6 +9825,7 @@ __ZN[KRO]9gui_forms21FlowLayoutPanelCompat*
 __ZN[KRO]9gui_forms21HelpBookCompileResult*
 __ZN[KRO]9gui_forms21HelpBookSystemOptions*
 __ZN[KRO]9gui_forms21HostColorDialogResult*
+__ZN[KRO]9gui_forms21HostDragSourceRequest*
 __ZN[KRO]9gui_forms21HostScreenPointResult*
 __ZN[KRO]9gui_forms21HostWindowDescription*
 __ZN[KRO]9gui_forms21HostWindowFrameResult*
@@ -11123,6 +11138,7 @@ __ZT[VIST]N9gui_forms17HelpSearchOptions*E
 __ZT[VIST]N9gui_forms17HelpSearchPosting*E
 __ZT[VIST]N9gui_forms17HelpSectionToggle*E
 __ZT[VIST]N9gui_forms17HostDialogRequest*E
+__ZT[VIST]N9gui_forms17HostDragSourceEnd*E
 __ZT[VIST]N9gui_forms17HostMonitorResult*E
 __ZT[VIST]N9gui_forms17HostServiceStatus*E
 __ZT[VIST]N9gui_forms17HostShutdownEvent*E
@@ -11451,6 +11467,7 @@ __ZT[VIST]N9gui_forms20GridItemContribution*E
 __ZT[VIST]N9gui_forms20HelpBookViewerLabels*E
 __ZT[VIST]N9gui_forms20HelpLocaleReadResult*E
 __ZT[VIST]N9gui_forms20HelpProviderSnapshot*E
+__ZT[VIST]N9gui_forms20HostDragSourceResult*E
 __ZT[VIST]N9gui_forms20HostFileDialogFilter*E
 __ZT[VIST]N9gui_forms20HostPathDialogResult*E
 __ZT[VIST]N9gui_forms20HostProtocolRevision*E
@@ -11525,6 +11542,7 @@ __ZT[VIST]N9gui_forms21FlowLayoutPanelCompat*E
 __ZT[VIST]N9gui_forms21HelpBookCompileResult*E
 __ZT[VIST]N9gui_forms21HelpBookSystemOptions*E
 __ZT[VIST]N9gui_forms21HostColorDialogResult*E
+__ZT[VIST]N9gui_forms21HostDragSourceRequest*E
 __ZT[VIST]N9gui_forms21HostScreenPointResult*E
 __ZT[VIST]N9gui_forms21HostWindowDescription*E
 __ZT[VIST]N9gui_forms21HostWindowFrameResult*E
@@ -12837,6 +12855,7 @@ __ZT[hvc]*9gui_forms17HelpSearchOptions*
 __ZT[hvc]*9gui_forms17HelpSearchPosting*
 __ZT[hvc]*9gui_forms17HelpSectionToggle*
 __ZT[hvc]*9gui_forms17HostDialogRequest*
+__ZT[hvc]*9gui_forms17HostDragSourceEnd*
 __ZT[hvc]*9gui_forms17HostMonitorResult*
 __ZT[hvc]*9gui_forms17HostServiceStatus*
 __ZT[hvc]*9gui_forms17HostShutdownEvent*
@@ -13165,6 +13184,7 @@ __ZT[hvc]*9gui_forms20GridItemContribution*
 __ZT[hvc]*9gui_forms20HelpBookViewerLabels*
 __ZT[hvc]*9gui_forms20HelpLocaleReadResult*
 __ZT[hvc]*9gui_forms20HelpProviderSnapshot*
+__ZT[hvc]*9gui_forms20HostDragSourceResult*
 __ZT[hvc]*9gui_forms20HostFileDialogFilter*
 __ZT[hvc]*9gui_forms20HostPathDialogResult*
 __ZT[hvc]*9gui_forms20HostProtocolRevision*
@@ -13239,6 +13259,7 @@ __ZT[hvc]*9gui_forms21FlowLayoutPanelCompat*
 __ZT[hvc]*9gui_forms21HelpBookCompileResult*
 __ZT[hvc]*9gui_forms21HelpBookSystemOptions*
 __ZT[hvc]*9gui_forms21HostColorDialogResult*
+__ZT[hvc]*9gui_forms21HostDragSourceRequest*
 __ZT[hvc]*9gui_forms21HostScreenPointResult*
 __ZT[hvc]*9gui_forms21HostWindowDescription*
 __ZT[hvc]*9gui_forms21HostWindowFrameResult*
@@ -14551,6 +14572,7 @@ __ZZN9gui_forms17HelpSearchOptions*
 __ZZN9gui_forms17HelpSearchPosting*
 __ZZN9gui_forms17HelpSectionToggle*
 __ZZN9gui_forms17HostDialogRequest*
+__ZZN9gui_forms17HostDragSourceEnd*
 __ZZN9gui_forms17HostMonitorResult*
 __ZZN9gui_forms17HostServiceStatus*
 __ZZN9gui_forms17HostShutdownEvent*
@@ -14879,6 +14901,7 @@ __ZZN9gui_forms20GridItemContribution*
 __ZZN9gui_forms20HelpBookViewerLabels*
 __ZZN9gui_forms20HelpLocaleReadResult*
 __ZZN9gui_forms20HelpProviderSnapshot*
+__ZZN9gui_forms20HostDragSourceResult*
 __ZZN9gui_forms20HostFileDialogFilter*
 __ZZN9gui_forms20HostPathDialogResult*
 __ZZN9gui_forms20HostProtocolRevision*
@@ -14953,6 +14976,7 @@ __ZZN9gui_forms21FlowLayoutPanelCompat*
 __ZZN9gui_forms21HelpBookCompileResult*
 __ZZN9gui_forms21HelpBookSystemOptions*
 __ZZN9gui_forms21HostColorDialogResult*
+__ZZN9gui_forms21HostDragSourceRequest*
 __ZZN9gui_forms21HostScreenPointResult*
 __ZZN9gui_forms21HostWindowDescription*
 __ZZN9gui_forms21HostWindowFrameResult*
@@ -16265,6 +16289,7 @@ __ZZNK9gui_forms17HelpSearchOptions*
 __ZZNK9gui_forms17HelpSearchPosting*
 __ZZNK9gui_forms17HelpSectionToggle*
 __ZZNK9gui_forms17HostDialogRequest*
+__ZZNK9gui_forms17HostDragSourceEnd*
 __ZZNK9gui_forms17HostMonitorResult*
 __ZZNK9gui_forms17HostServiceStatus*
 __ZZNK9gui_forms17HostShutdownEvent*
@@ -16593,6 +16618,7 @@ __ZZNK9gui_forms20GridItemContribution*
 __ZZNK9gui_forms20HelpBookViewerLabels*
 __ZZNK9gui_forms20HelpLocaleReadResult*
 __ZZNK9gui_forms20HelpProviderSnapshot*
+__ZZNK9gui_forms20HostDragSourceResult*
 __ZZNK9gui_forms20HostFileDialogFilter*
 __ZZNK9gui_forms20HostPathDialogResult*
 __ZZNK9gui_forms20HostProtocolRevision*
@@ -16667,6 +16693,7 @@ __ZZNK9gui_forms21FlowLayoutPanelCompat*
 __ZZNK9gui_forms21HelpBookCompileResult*
 __ZZNK9gui_forms21HelpBookSystemOptions*
 __ZZNK9gui_forms21HostColorDialogResult*
+__ZZNK9gui_forms21HostDragSourceRequest*
 __ZZNK9gui_forms21HostScreenPointResult*
 __ZZNK9gui_forms21HostWindowDescription*
 __ZZNK9gui_forms21HostWindowFrameResult*
