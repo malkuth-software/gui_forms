@@ -1,102 +1,118 @@
 # Math you can reproduce
 
-STXlib's transcendental functions (STXlib `include/stxlib/math.hpp`) replace
-`<cmath>`, whose results differ between C libraries. Inside GUI.Forms, the
-raster, theme and control paths call the deterministic functions of
-{src}`include/gui_forms/engine/engine_math/engine_math.hpp`. Each states its
-error bound. For example, `engine_sine_cosine_degrees` is exact at every
-multiple of 90 degrees and within 2^-49 absolute elsewhere. Moving their
-bodies to STXlib's kernels is planned. {src}`tools/host_trig_check.py`
-refuses the host's `sin`, `cos`, `tan`, `atan2` and `hypot` in
-`src/core`, `src/controls` and `src/render`. Its allowance file only
-shrinks.
+An interface does more floating-point work than it appears to: every
+rotated shape, gradient, curve, colour conversion, eased animation and
+plotted axis. When that arithmetic gives different bits on different
+machines, the difference is usually invisible. Sometimes it is not: an
+edge lands on the next pixel, a value rounds the other way at a threshold,
+a golden image matches on one host and not on another, and a test that
+passed in the lab fails in the field for reasons nobody can reproduce.
+GUI.Forms' math gives the same bits on every host, processor tier and
+compiler, within bounds that are stated and, for the central functions,
+proved.
 
-The rest of this page is about STXlib's kernels.
+## The usual approach, and how it fails
 
-## The contract
+Toolkits call the platform's `<cmath>`, and through it the C library's
+math library, which differs from one host to the next.
 
-- **The same bits on every architecture and compiler.** The kernels compile
-  only with STXlib's own flags: `-ffp-contract=off -fno-fast-math
-  -fno-math-errno`, never `-ffast-math`, `-Ofast` or reassociation. A
-  consumer's flags never reach them. The one exact product the kernels use
-  gives the same result from a hardware fused multiply-add or from Dekker's
-  split.
+- **The math library is not correctly rounded, and its errors are its
+  own.** The GNU C Library "does not aim for correctly rounded results"
+  outside a few exactly specified functions, and its test suite flags
+  results only when they are more than 9 ulp out
+  ([glibc manual, *Errors in Math Functions*](https://sourceware.org/glibc/manual/latest/html_node/Errors-in-Math-Functions.html)).
+  macOS, Windows and musl each ship their own implementations, with their
+  own errors, so `sin(x)` is not the same function on each.
+- **The compiler may change the arithmetic.** GCC fuses multiplies and
+  adds into fused multiply-adds by default outside strict ISO modes
+  (`-ffp-contract=fast`;
+  [GCC, *Optimize Options*](https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html)),
+  so the same source gives different bits on a processor with fused
+  multiply-add, or from a different compiler. Options such as
+  `-ffast-math` go further and reassociate sums.
+- **Subnormal numbers behave differently.** Some code turns on
+  flush-to-zero for speed, a library built with `-ffast-math` can turn it
+  on when it is loaded, and the same expression then gives a tiny number
+  in one process or thread and zero in another.
+
+None of this is a bug in any one library. It is the result of a toolkit
+borrowing arithmetic it does not own.
+
+## What GUI.Forms does instead
+
+GUI.Forms' raster, theme, plot and control code calls STXlib's math
+(STXlib `include/stxlib/math.hpp`) directly, and
+{src}`tools/host_trig_check.py` refuses the host's `sin`, `cos`, `tan`,
+`atan2` and `hypot` in the core, the controls and the renderer, with an
+allowance file that only shrinks. Angles in degrees go through `sincosd`,
+which is exact at every multiple of 90 degrees, so a quarter turn gives
+exactly zero and one, not a residue that moves an edge.
+
+% Not on main yet: the move from engine_math to stxlib::math is gui_forms branch claude/shield-math,
+% landing in checkpoint 37. Until then the same paths call engine_math's deterministic functions.
+
+STXlib's math has one contract for every function.
+
+- **The same bits on every architecture and compiler.** The kernels
+  compile only with STXlib's own flags: contraction off, no fast-math, no
+  reassociation. A program's own flags never reach them. The one exact
+  product they use gives the same result from a hardware fused
+  multiply-add or from Dekker's split.
 - **Every input is owned.** Rare inputs leave the fast path through one
-  comparison, and no function returns the C library's result.
-- **No subnormals.** A subnormal argument is read as zero of its sign, and a
-  result that would be subnormal is returned as zero of its sign. This is
-  done in software, on the bits. The floating-point environment
-  (flush-to-zero, rounding mode, flags) is never changed (STXlib
-  `docs/CODE_STYLE_APPENDIX.md`, A1).
-- **Bounds are stated per function** and measured against double-double
-  references (`tests/reference/wide.hpp`), with the method named.
+  comparison; no function ever returns the C library's result.
+- **No subnormals, without touching the environment.** A subnormal
+  argument is read as zero of its sign, and a result that would be
+  subnormal is returned as zero of its sign. This is done in software, on
+  the bits; the floating-point environment (flush-to-zero, rounding mode,
+  flags) is never changed, so nothing depends on which thread set what.
+- **Bounds are stated per function,** measured against double-double
+  references, with the method named.
+
+**Why it holds.** `stxlib_bit_identity` hashes each promised output over
+fixed inputs (FNV-1a over each value's bits, NaN hashed as one canonical
+NaN), and every host, SIMD level and product form must print the same line;
+`tools/compare_bit_identity.py` compares the lines with a frozen file, and a
+frozen item's inputs never change. The math tests also carry frozen output
+hashes, run once per forced SIMD level and once with Dekker's product. The
+FFT kernels give every SIMD tier the scalar tier's value for every output,
+except possibly the sign of a zero.
 
 ## Stated bounds
 
-Each bound below is quoted from the function's contract or from the proof
-report. The large counts, for example the exhaustive float checks, were run
-on the build of the same kernels in STXlib's predecessor library. STXlib's
-own build reruns the frozen-hash tests in CTest, and the proof report says
-which of the larger runs have been repeated on it.
+Each bound is quoted from the function's contract or from STXlib's proof
+report. "Proved" means a deductive argument or a certificate in exact
+arithmetic; "sampled" means a test over many inputs, which is evidence,
+not proof.
 
 | Function | Bound | How it is established |
 |---|---|---|
 | `sincos(float)`, 2^-27 ≤ \|x\| ≤ 2^32 | correctly rounded | proved: an error bound with all 989,855,746 floats in range screened against it, and the 44 it leaves decided exactly |
 | `sincos(double)`, same range | within 0.51 ulp | proved by certificate (`tools/math/sincos_certificate.py`); largest measured error 0.500415 ulp over 120 million inputs |
-| `exp(float)` | correctly rounded | exhaustive: 4,278,190,080 finite floats |
-| `exp(double)` | within 0.500001 ulp | measured over 100 million inputs |
-| `log`, `log2`, `log10` (double) | within 0.500012 ulp | measured over 240 million inputs per function |
-| `pow(double)`, normal results | within 0.51 ulp | an exact rational budget of every rounding gives 0.509424 ulp for a model of the kernel (`tools/math/pow_grid_certificate.py`). That the model matches the code is argued, not machine-checked. The tests hold 0.51 (`pow_ulp_limit`) |
-| `sinpi`, `cospi`, `sincpi`, `cosm1` | within 0.5005 ulp (test limit) | sampled, not proved: at most 0.500102 to 0.500169 ulp over 4 × 100,000 inputs |
-| `cosm1pi` | within 0.502 ulp (test limit) | sampled, not proved |
-
-## Half-turn trigonometry
+| `exp(float)` | correctly rounded | exhaustive: all 4,278,190,080 finite floats |
+| `exp(double)` | within 0.500001 ulp | sampled: 100 million inputs |
+| `log`, `log2`, `log10` (double) | within 0.500012 ulp | sampled: 240 million inputs per function |
+| `pow(double)`, normal results | within 0.51 ulp | an exact rational budget gives 0.509424 ulp for a model of the kernel (`tools/math/pow_grid_certificate.py`); that the model matches the code is argued, not machine-checked |
+| `sinpi`, `cospi`, `sincpi`, `cosm1` | within 0.5005 ulp (test limit) | sampled, not proved |
 
 `sinpi`, `cospi` and `sincospi` take the angle in half turns, so whole and
-half numbers give exact results with stated signs. The phase is reduced
-modulo 2 in whole numbers from 2^44 up. The head of each result (anchor plus
-slope over 256 cells) is exact by construction. This is proved by
-compile-time checks over all 256 cells (`half_turn_cells_valid`) and by
-`tools/math/half_turn_certificate.py`. The same certificate checks that the
-series coefficients are correctly rounded and bounds the truncation: sin
-below 2^-75, cos below 2^-83 absolute.
+half turns give exact results with stated signs; the exactness of the
+head of each result over all 256 table cells is checked at compile time and
+by a certificate. `cosm1` computes cos − 1 without the cancellation that
+`cos(x) - 1` suffers near zero.
 
-`cosm1(x)` and `cosm1pi(x)` compute cos − 1 without the cancellation that
-`cos(x) - 1` suffers near zero. For sin(x)/x, use `sincpi(x / pi)`.
+Faster or more accurate kernels found in outside studies are not pasted in.
+They are reimplemented in the house style with the study's code as a
+reference: the faster `pow`'s 1,024-cell table is generated, checked cell
+for cell against the study's, and every cell's reduction is checked by a
+`static_assert` (STXlib `PROVENANCE.md`).
 
-## Bit identity across hosts and SIMD tiers
+## Limits
 
-`stxlib_bit_identity` hashes each promised output over fixed inputs, using
-FNV-1a 64 over each value's bits as little-endian bytes, with NaN hashed as
-one canonical NaN. Every host, SIMD level and product form must print the
-same line. `tools/compare_bit_identity.py` compares the lines with
-`tests/bit_identity_expected.txt`, and a frozen item must match exactly. An
-item's inputs never change once frozen. The math tests also carry frozen
-output hashes, run once per forced SIMD level and once with the Dekker
-product.
-
-The FFT kernels give every SIMD tier the scalar tier's value for every
-output, except possibly the sign of a zero. Each operation is element-wise,
-and every fused multiply-add of the original kernels is spelled as a
-separate multiply and add with contraction off.
-
-## Replace, do not replicate
-
-Faster or more accurate kernels found in outside studies are not folded in
-as written. They are reimplemented in the house style, with the study's
-code used only as a reference. The faster `pow` uses a 1024-cell reciprocal
-grid. Its table is generated, the written table equals the study's cell for
-cell (`tools/math/gen_pow_grid_table.py --check`), and a `static_assert`
-checks every cell's reduction. Each replaced implementation keeps its
-reference, and a conformance check against it (STXlib `PROVENANCE.md`).
-
-## How it is tested
-
-- frozen output hashes and the bit-identity check, above;
-- double-double references, and reference rows computed with MPFR;
-- certificates in exact rational arithmetic (`tools/math/*_certificate.py`),
-  each stating what it covers and what is argued;
-- STXlib's `proofs/REPORT.md`, which labels every property as proved,
-  argued, sampled or not yet run.
-
-Speed is not a reliability claim, and none is made here.
+- Several of the large counts (the exhaustive float checks among them)
+  were run on the same kernels in STXlib's predecessor library. STXlib's
+  own build reruns the frozen-hash tests, and its proof report says which
+  larger runs have been repeated on it.
+- Angles for `sin`, `cos` and `tan` are supported up to 2^32 radians;
+  larger ones return NaN. A phase that grows without bound must reset
+  itself.
+- Speed is not a reliability claim, and none is made here.
