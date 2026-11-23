@@ -1424,7 +1424,7 @@ public static unsafe class Layout
         {
             gf_docking_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_docking_table size", sizeof(gf_docking_table), 208);
+            failures += expect(output, "gf_docking_table size", sizeof(gf_docking_table), 272);
             failures += expect(output, "gf_docking_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_docking_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_docking_table.register_panel offset", (long)((byte*)&value.register_panel - start), 8);
@@ -1452,6 +1452,14 @@ public static unsafe class Layout
             failures += expect(output, "gf_docking_table.area_active_document offset", (long)((byte*)&value.area_active_document - start), 184);
             failures += expect(output, "gf_docking_table.set_panel_menu_strip offset", (long)((byte*)&value.set_panel_menu_strip - start), 192);
             failures += expect(output, "gf_docking_table.merged_document offset", (long)((byte*)&value.merged_document - start), 200);
+            failures += expect(output, "gf_docking_table.set_merge_tool_strip offset", (long)((byte*)&value.set_merge_tool_strip - start), 208);
+            failures += expect(output, "gf_docking_table.merge_tool_strip offset", (long)((byte*)&value.merge_tool_strip - start), 216);
+            failures += expect(output, "gf_docking_table.set_panel_tool_strip offset", (long)((byte*)&value.set_panel_tool_strip - start), 224);
+            failures += expect(output, "gf_docking_table.merged_tool_strip_document offset", (long)((byte*)&value.merged_tool_strip_document - start), 232);
+            failures += expect(output, "gf_docking_table.set_merge_ribbon offset", (long)((byte*)&value.set_merge_ribbon - start), 240);
+            failures += expect(output, "gf_docking_table.merge_ribbon offset", (long)((byte*)&value.merge_ribbon - start), 248);
+            failures += expect(output, "gf_docking_table.set_panel_ribbon offset", (long)((byte*)&value.set_panel_ribbon - start), 256);
+            failures += expect(output, "gf_docking_table.merged_ribbon_document offset", (long)((byte*)&value.merged_ribbon_document - start), 264);
         }
         {
             gf_app_font_face value = default;

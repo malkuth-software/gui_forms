@@ -54,7 +54,7 @@ gui_forms::PieChart
       **font** : ``FontSpec``
          The font of the share labels and the legend.
 
-      **slices** : ``std::span<const PieSlice>``
+      **slices** : ``BorrowedSpan<PieSlice>``
          The slices in the order given. :cpp:func:`set_slices <gui_forms::PieChart::set_slices>` replaces them, keeps the
          selection on its ID, and throws ``std::invalid_argument`` for a repeated
          ID or one that breaks the :cpp:class:`StableId <gui_forms::StableId>` segment rule, invalid UTF-8, a
@@ -150,7 +150,7 @@ gui_forms::PieChart
 
       The font of the share labels and the legend.
 
-   .. cpp:function:: std::span<const PieSlice> slices() const& noexcept
+   .. cpp:function:: BorrowedSpan<PieSlice> slices() const& noexcept
 
       The slices in the order given. :cpp:func:`set_slices <gui_forms::PieChart::set_slices>` replaces them, keeps the
       selection on its ID, and throws ``std::invalid_argument`` for a repeated

@@ -31,6 +31,7 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 
 namespace gui_forms {
 
@@ -1152,15 +1153,9 @@ private:
 
     // The merge this ribbon holds as a target (merge): its own definition,
     // and the source's definition and sets' availability to give back.
-    struct MergeState final {
-        std::weak_ptr<Ribbon> source{};
-        std::vector<RibbonTabSpec> own_tabs{};
-        std::vector<RibbonTabSetSpec> own_sets{};
-        std::vector<RibbonTabSpec> source_tabs{};
-        std::vector<RibbonTabSetSpec> source_sets{};
-        std::vector<RibbonTabSetAvailability> source_availability{};
-    };
-    std::unique_ptr<MergeState> merge_{};
+    // Defined in ribbon_merge.cpp.
+    struct MergeState;
+    stxlib::Unique<MergeState> merge_{};
     // Set while merge and revert_merge replace the tabs themselves.
     bool merging_{};
 

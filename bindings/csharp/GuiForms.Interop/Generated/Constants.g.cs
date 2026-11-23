@@ -7,7 +7,7 @@ namespace GuiForms.Interop;
 public static class Constants
 {
     public const uint GF_ABI_MAJOR = 1u;
-    public const uint GF_ABI_MINOR = 6u;
+    public const uint GF_ABI_MINOR = 7u;
     public const int GF_STATUS_OK = 0;
     public const int GF_STATUS_INVALID_ARGUMENT = 1;
     public const int GF_STATUS_STALE_HANDLE = 2;
@@ -279,6 +279,7 @@ public static class Constants
     public const ulong GF_HOST_CAPABILITY_DIRECT_BUFFERS = 8796093022208ul;
     public const ulong GF_HOST_CAPABILITY_HOST_SCROLL = 17592186044416ul;
     public const ulong GF_HOST_CAPABILITY_REFERENCE_PRESENTATION = 35184372088832ul;
+    public const ulong GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS = 562949953421312ul;
     public const uint GF_WINDOW_CORNER_SHAPE_SQUARE = 1u;
     public const uint GF_WINDOW_CORNER_SHAPE_ROUNDED = 2u;
     public const uint GF_TRANSIENT_SURFACE_TOOLTIP = 1u;

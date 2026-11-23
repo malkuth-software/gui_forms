@@ -21,6 +21,7 @@
 // share as the value; select and press act on them.
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/controls/pie_chart_values.hpp"
@@ -71,10 +72,8 @@ public:
     explicit PieChart(StableId stable_id);
 
     // -- slices --------------------------------------------------------------------
-    [[nodiscard]] std::span<const PieSlice> slices() const& noexcept {
-        return std::span<const PieSlice>(slices_.data(), slices_.size());
-    }
-    std::span<const PieSlice> slices() const&& = delete;
+    [[nodiscard]] BorrowedSpan<PieSlice> slices() const& noexcept { return detail::lend_view(slices_); }
+    BorrowedSpan<PieSlice> slices() const&& = delete;
     // Replaces the slices. Throws std::invalid_argument for an empty or
     // duplicate ID or one that breaks the StableId segment rule, invalid
     // UTF-8, a value that is negative or not finite, or more than
@@ -201,7 +200,7 @@ private:
     [[nodiscard]] stxlib::Optional<std::string> selected_copy() const;
     void recompute_total() noexcept;
 
-    std::vector<PieSlice> slices_{};
+    detail::LendingVector<PieSlice> slices_{};
     double total_{};
     stxlib::Optional<std::size_t> selected_{};
     stxlib::Optional<std::size_t> hot_{};

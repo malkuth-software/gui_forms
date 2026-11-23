@@ -15,6 +15,7 @@
 // the field.
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/controls/checked_combo_box_capabilities.hpp"
@@ -62,10 +63,8 @@ public:
     ~CheckedComboBox() override;
 
     // -- items ---------------------------------------------------------------------
-    [[nodiscard]] std::span<const CheckedComboItem> items() const& noexcept {
-        return std::span<const CheckedComboItem>(items_.data(), items_.size());
-    }
-    std::span<const CheckedComboItem> items() const&& = delete;
+    [[nodiscard]] BorrowedSpan<CheckedComboItem> items() const& noexcept { return detail::lend_view(items_); }
+    BorrowedSpan<CheckedComboItem> items() const&& = delete;
     // Replaces the items (an open list closes first). Throws
     // std::invalid_argument for an empty or duplicate ID or one that breaks
     // the StableId segment rule, invalid UTF-8, or more than maximum_items
@@ -152,7 +151,7 @@ private:
     void on_overlay_revoked();
     void release_overlay() noexcept;
 
-    std::vector<CheckedComboItem> items_{};
+    detail::LendingVector<CheckedComboItem> items_{};
     std::shared_ptr<AnchoredOverlayLayer> layer_{};
     std::shared_ptr<CheckedListBox> list_{};
     OverlayToken overlay_{};

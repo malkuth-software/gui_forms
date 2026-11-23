@@ -20,6 +20,7 @@
 // by its description.
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/controls/button_text_box_capabilities.hpp"
@@ -96,10 +97,8 @@ public:
     [[nodiscard]] Ptr focus_target() const override;
 
     // -- buttons -------------------------------------------------------------------
-    [[nodiscard]] std::span<const EditButton> buttons() const& noexcept {
-        return std::span<const EditButton>(buttons_.data(), buttons_.size());
-    }
-    std::span<const EditButton> buttons() const&& = delete;
+    [[nodiscard]] BorrowedSpan<EditButton> buttons() const& noexcept { return detail::lend_view(buttons_); }
+    BorrowedSpan<EditButton> buttons() const&& = delete;
     // Replaces the buttons, in the order given at each end (the leading
     // ones from the outer edge in, the trailing ones from the text out).
     // Throws std::invalid_argument for an empty or duplicate ID or one that
@@ -220,7 +219,7 @@ private:
     std::shared_ptr<TextBox> editor_{};
     SubscriptionToken editor_text_;
     SubscriptionToken editor_focus_;
-    std::vector<EditButton> buttons_{};
+    detail::LendingVector<EditButton> buttons_{};
     Event<const std::string&> text_changed_;
     Event<const EditButtonClick&> button_clicked_;
     // The editor's natural height from the last measure.

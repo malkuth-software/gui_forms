@@ -7,7 +7,7 @@
   ],
   "abi": {
     "major": 1,
-    "minor": 6
+    "minor": 7
   },
   "targets": [
     "x86_64-w64-windows-gnu",
@@ -23,7 +23,7 @@
     },
     {
       "name": "GF_ABI_MINOR",
-      "value": 6,
+      "value": 7,
       "type": "uint32"
     },
     {
@@ -1379,6 +1379,11 @@
     {
       "name": "GF_HOST_CAPABILITY_REFERENCE_PRESENTATION",
       "value": 35184372088832,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS",
+      "value": 562949953421312,
       "type": "uint64"
     },
     {
@@ -14670,7 +14675,7 @@
     {
       "name": "gf_docking_table",
       "kind": "table",
-      "size": 208,
+      "size": 272,
       "align": 8,
       "fields": [
         {
@@ -15284,6 +15289,190 @@
             ]
           },
           "since": "1.6"
+        },
+        {
+          "name": "set_merge_tool_strip",
+          "type": "function",
+          "offset": 208,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "strip",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "merge_tool_strip",
+          "type": "function",
+          "offset": 216,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "strip",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "set_panel_tool_strip",
+          "type": "function",
+          "offset": 224,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "strip",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "merged_tool_strip_document",
+          "type": "function",
+          "offset": 232,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "set_merge_ribbon",
+          "type": "function",
+          "offset": 240,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "ribbon",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "merge_ribbon",
+          "type": "function",
+          "offset": 248,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "ribbon",
+                "type": "gf_object*"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "set_panel_ribbon",
+          "type": "function",
+          "offset": 256,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "panel",
+                "type": "gf_utf8_view"
+              },
+              {
+                "name": "ribbon",
+                "type": "gf_object"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "merged_ribbon_document",
+          "type": "function",
+          "offset": 264,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "workspace",
+                "type": "gf_object"
+              },
+              {
+                "name": "buffer",
+                "type": "char*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.7"
         }
       ]
     },

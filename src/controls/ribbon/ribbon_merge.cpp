@@ -6,11 +6,15 @@
 
 #include <cstddef>
 #include <memory>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <utility>
 #include <vector>
+
+#include <stxlib/result.hpp>
+#include <stxlib/unique.hpp>
 
 namespace gui_forms {
 namespace {
@@ -81,13 +85,26 @@ std::vector<RibbonTabSpec> merged_tabs(const std::vector<RibbonTabSpec>& own,
 
 } // namespace
 
+// The merge this ribbon holds as a target: its own definition, and the
+// source's definition and sets' availability to give back.
+struct Ribbon::MergeState final {
+    std::weak_ptr<Ribbon> source{};
+    std::vector<RibbonTabSpec> own_tabs{};
+    std::vector<RibbonTabSetSpec> own_sets{};
+    std::vector<RibbonTabSpec> source_tabs{};
+    std::vector<RibbonTabSetSpec> source_sets{};
+    std::vector<RibbonTabSetAvailability> source_availability{};
+};
+
 bool Ribbon::merge(Ribbon& source) {
     require_mutable();
     if (&source == this) throw std::invalid_argument("Ribbon cannot merge into itself");
     const std::shared_ptr<Ribbon> held = std::static_pointer_cast<Ribbon>(source.shared_from_this());
     if (merge_) static_cast<void>(revert_merge());
     if (source.tabs_.empty() || source.merge_) return false;
-    std::unique_ptr<MergeState> state = std::make_unique<MergeState>();
+    stxlib::OperationResult<stxlib::Unique<MergeState>> made = stxlib::Unique<MergeState>::make();
+    if (made.failed()) throw std::bad_alloc();
+    stxlib::Unique<MergeState> state = std::move(made).take_value();
     (*state).source = held;
     (*state).own_tabs = tabs_;
     (*state).own_sets = tab_sets_;
@@ -127,7 +144,7 @@ bool Ribbon::merge(Ribbon& source) {
 bool Ribbon::revert_merge() {
     require_mutable();
     if (!merge_) return false;
-    std::unique_ptr<MergeState> state = std::move(merge_);
+    stxlib::Unique<MergeState> state = std::move(merge_);
     std::vector<RibbonTabSetAvailability> availability;
     for (const RibbonTabSetSpec& set : (*state).source_sets) {
         availability.push_back(tab_set_availability(set.stable_id));

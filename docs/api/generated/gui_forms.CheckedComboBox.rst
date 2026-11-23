@@ -45,7 +45,7 @@ gui_forms::CheckedComboBox
          The items the open list shows before it scrolls, from 1 to 64
          (``std::invalid_argument``); read when the list opens.
 
-      **items** : ``std::span<const CheckedComboItem>``
+      **items** : ``BorrowedSpan<CheckedComboItem>``
          The items, in order; :cpp:func:`set_items <gui_forms::CheckedComboBox::set_items>` replaces them (an open list closes
          first) and throws ``std::invalid_argument`` for an empty, invalid or
          repeated ID, invalid UTF-8, or more than ``maximum_items`` items, the old
@@ -159,7 +159,7 @@ gui_forms::CheckedComboBox
       The items the open list shows before it scrolls, from 1 to 64
       (``std::invalid_argument``); read when the list opens.
 
-   .. cpp:function:: std::span<const CheckedComboItem> items() const& noexcept
+   .. cpp:function:: BorrowedSpan<CheckedComboItem> items() const& noexcept
 
       The items, in order; :cpp:func:`set_items <gui_forms::CheckedComboBox::set_items>` replaces them (an open list closes
       first) and throws ``std::invalid_argument`` for an empty, invalid or

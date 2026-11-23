@@ -49,7 +49,7 @@ gui_forms::ButtonTextBox
       **editor** : ``std::shared_ptr<TextBox>``, read-only
          The inner TextBox, owned as the field's only child.
 
-      **buttons** : ``std::span<const EditButton>``
+      **buttons** : ``BorrowedSpan<EditButton>``
          The buttons, in the order given; :cpp:func:`set_buttons <gui_forms::ButtonTextBox::set_buttons>` replaces them and throws
          ``std::invalid_argument`` for an empty, invalid or repeated ID, invalid
          UTF-8, or more than ``maximum_buttons`` buttons, the old buttons then
@@ -160,7 +160,7 @@ gui_forms::ButtonTextBox
 
       The inner TextBox, owned as the field's only child.
 
-   .. cpp:function:: std::span<const EditButton> buttons() const& noexcept
+   .. cpp:function:: BorrowedSpan<EditButton> buttons() const& noexcept
 
       The buttons, in the order given; :cpp:func:`set_buttons <gui_forms::ButtonTextBox::set_buttons>` replaces them and throws
       ``std::invalid_argument`` for an empty, invalid or repeated ID, invalid

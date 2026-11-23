@@ -152,8 +152,8 @@ enum class HostCapability : std::uint64_t {
     // (HostServices::show_desktop_notification): UNUserNotificationCenter
     // in a macOS application bundle, toast notifications on Windows for a
     // packaged process or one with an explicit AppUserModelID, and the
-    // freedesktop notification service where the session bus has one. Not
-    // in the C ABI yet (it takes a minor version). Additive flag; no
+    // freedesktop notification service where the session bus has one. C ABI:
+    // GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS (1.7). Additive flag; no
     // protocol version change.
     desktop_notifications = 1ULL << 49U,
     // The next flag is 1ULL << 50U.

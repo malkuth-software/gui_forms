@@ -449,6 +449,94 @@ static void frames(gf_kit* kit, gf_object workspace) {
     gf_kit_status(kit, (*kit).objects.release(strip), GF_STATUS_OK, "release the menu strip");
 }
 
+/* Tool strip and ribbon merging (since 1.7): the merge targets are held
+ * and read back as new references, a panel takes a strip or a ribbon and
+ * gives it back with zero, another object is the wrong kind, and the
+ * merged document is the area's active document or none (empty strips and
+ * ribbons may merge nothing). */
+static void merges(gf_kit* kit, gf_object workspace) {
+    char active[64];
+    uint64_t active_size = 0u;
+    gf_kit_status(kit, (*kit).docking.area_active_document(workspace, active, sizeof(active), &active_size),
+                  GF_STATUS_OK, "read the area's active document");
+    char text[64];
+    uint64_t required = 0u;
+
+    const gf_object target_strip = gf_kit_create(kit, "tool_strip", "kit.dock.merge.tools");
+    const gf_object panel_strip = gf_kit_create(kit, "tool_strip", "kit.dock.panel.tools");
+    const gf_object label = gf_kit_create(kit, "label", "kit.dock.merge.not-a-strip");
+    gf_object held = 99u;
+    gf_kit_status(kit, (*kit).docking.merge_tool_strip(workspace, &held), GF_STATUS_OK,
+                  "read the merge tool strip before one is set");
+    gf_kit_check(kit, held == 0u, "no merge tool strip is set");
+    gf_kit_status(kit, (*kit).docking.set_merge_tool_strip(workspace, target_strip), GF_STATUS_OK,
+                  "set the merge tool strip");
+    gf_kit_status(kit, (*kit).docking.merge_tool_strip(workspace, &held), GF_STATUS_OK, "read it back");
+    gf_kit_check(kit, held != 0u, "the workspace gives a reference to its merge tool strip");
+    gf_kit_status(kit, (*kit).objects.release(held), GF_STATUS_OK, "release that reference");
+    gf_kit_status(kit, (*kit).docking.merge_tool_strip(workspace, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "merge_tool_strip needs an output");
+    gf_kit_status(kit, (*kit).docking.set_merge_tool_strip(workspace, label), GF_STATUS_WRONG_HANDLE_KIND,
+                  "a label is not a tool strip");
+    gf_kit_status(kit, (*kit).docking.set_panel_tool_strip(workspace, gf_kit_text("spectrum"), panel_strip),
+                  GF_STATUS_OK, "give the document a tool strip");
+    gf_kit_status(kit, (*kit).docking.set_panel_tool_strip(workspace, gf_kit_text("spectrum"), label),
+                  GF_STATUS_WRONG_HANDLE_KIND, "a label is not a panel's tool strip");
+    gf_kit_status(kit, (*kit).docking.set_panel_tool_strip(workspace, gf_kit_text("nobody"), panel_strip),
+                  GF_STATUS_NOT_FOUND, "an unregistered panel takes no tool strip");
+    required = 99u;
+    gf_kit_status(kit, (*kit).docking.merged_tool_strip_document(workspace, text, sizeof(text), &required),
+                  GF_STATUS_OK, "read the tool strip's merged document");
+    gf_kit_check(kit, required == 0u || (required == active_size && memcmp(text, active, (size_t)required) == 0),
+                 "a merged tool strip is the active document's");
+    gf_kit_status(kit, (*kit).docking.set_panel_tool_strip(workspace, gf_kit_text("spectrum"), 0u), GF_STATUS_OK,
+                  "take the panel's tool strip away");
+    required = 99u;
+    gf_kit_status(kit, (*kit).docking.merged_tool_strip_document(workspace, text, sizeof(text), &required),
+                  GF_STATUS_OK, "read it again");
+    gf_kit_check(kit, required == 0u, "no tool strip is merged once the panel has none");
+    gf_kit_status(kit, (*kit).docking.set_merge_tool_strip(workspace, 0u), GF_STATUS_OK,
+                  "clear the merge tool strip");
+    held = 99u;
+    gf_kit_status(kit, (*kit).docking.merge_tool_strip(workspace, &held), GF_STATUS_OK, "read it once cleared");
+    gf_kit_check(kit, held == 0u, "the merge tool strip is cleared");
+
+    const gf_object target_ribbon = gf_kit_create(kit, "ribbon", "kit.dock.merge.ribbon");
+    const gf_object panel_ribbon = gf_kit_create(kit, "ribbon", "kit.dock.panel.ribbon");
+    gf_kit_status(kit, (*kit).docking.set_merge_ribbon(workspace, target_ribbon), GF_STATUS_OK,
+                  "set the merge ribbon");
+    held = 0u;
+    gf_kit_status(kit, (*kit).docking.merge_ribbon(workspace, &held), GF_STATUS_OK, "read the merge ribbon");
+    gf_kit_check(kit, held != 0u, "the workspace gives a reference to its merge ribbon");
+    gf_kit_status(kit, (*kit).objects.release(held), GF_STATUS_OK, "release that reference");
+    gf_kit_status(kit, (*kit).docking.merge_ribbon(workspace, NULL), GF_STATUS_INVALID_ARGUMENT,
+                  "merge_ribbon needs an output");
+    gf_kit_status(kit, (*kit).docking.set_merge_ribbon(workspace, target_strip), GF_STATUS_WRONG_HANDLE_KIND,
+                  "a tool strip is not a ribbon");
+    gf_kit_status(kit, (*kit).docking.set_panel_ribbon(workspace, gf_kit_text("spectrum"), panel_ribbon),
+                  GF_STATUS_OK, "give the document a ribbon");
+    gf_kit_status(kit, (*kit).docking.set_panel_ribbon(workspace, gf_kit_text("spectrum"), label),
+                  GF_STATUS_WRONG_HANDLE_KIND, "a label is not a panel's ribbon");
+    gf_kit_status(kit, (*kit).docking.set_panel_ribbon(workspace, gf_kit_text("nobody"), panel_ribbon),
+                  GF_STATUS_NOT_FOUND, "an unregistered panel takes no ribbon");
+    required = 99u;
+    gf_kit_status(kit, (*kit).docking.merged_ribbon_document(workspace, text, sizeof(text), &required),
+                  GF_STATUS_OK, "read the ribbon's merged document");
+    gf_kit_check(kit, required == 0u, "a ribbon without tabs merges nothing");
+    gf_kit_status(kit, (*kit).docking.set_panel_ribbon(workspace, gf_kit_text("spectrum"), 0u), GF_STATUS_OK,
+                  "take the panel's ribbon away");
+    gf_kit_status(kit, (*kit).docking.set_merge_ribbon(workspace, 0u), GF_STATUS_OK, "clear the merge ribbon");
+    held = 99u;
+    gf_kit_status(kit, (*kit).docking.merge_ribbon(workspace, &held), GF_STATUS_OK, "read it once cleared");
+    gf_kit_check(kit, held == 0u, "the merge ribbon is cleared");
+
+    gf_kit_status(kit, (*kit).objects.release(panel_ribbon), GF_STATUS_OK, "release the panel's ribbon");
+    gf_kit_status(kit, (*kit).objects.release(target_ribbon), GF_STATUS_OK, "release the merge ribbon");
+    gf_kit_status(kit, (*kit).objects.release(label), GF_STATUS_OK, "release the label");
+    gf_kit_status(kit, (*kit).objects.release(panel_strip), GF_STATUS_OK, "release the panel's tool strip");
+    gf_kit_status(kit, (*kit).objects.release(target_strip), GF_STATUS_OK, "release the merge tool strip");
+}
+
 /* A window's MDI slots (since 1.6): over a plain root no document area is
  * bound, so the window keeps its settings, has no children and arranges
  * nothing; its main menu strip is held weakly and refuses another object.
@@ -561,6 +649,7 @@ void gf_kit_docking(gf_kit* kit) {
     persistence(kit, workspace);
     restricting(kit, workspace);
     frames(kit, workspace);
+    merges(kit, workspace);
     mdi_window(kit, workspace, site);
     gf_kit_check(kit, changes.invoked >= 10u, "every applied edit and the restore raised layout_changed");
     gf_kit_status(kit, (*kit).docking.attach_windows(workspace), GF_STATUS_INVALID_STATE,

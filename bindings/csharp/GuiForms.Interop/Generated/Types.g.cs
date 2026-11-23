@@ -1517,7 +1517,7 @@ public unsafe struct gf_dock_frame_memory
     public uint reserved;
 }
 
-/// <summary>gf_docking_table (table, 208 bytes).</summary>
+/// <summary>gf_docking_table (table, 272 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_docking_table
 {
@@ -1548,6 +1548,14 @@ public unsafe struct gf_docking_table
     public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> area_active_document;
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object, gf_status> set_panel_menu_strip;
     public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> merged_document;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> set_merge_tool_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> merge_tool_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object, gf_status> set_panel_tool_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> merged_tool_strip_document;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> set_merge_ribbon;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> merge_ribbon;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object, gf_status> set_panel_ribbon;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> merged_ribbon_document;
 }
 
 /// <summary>gf_app_font_face (extensible, 32 bytes).</summary>
