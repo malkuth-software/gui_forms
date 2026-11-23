@@ -738,7 +738,7 @@ Types
 
    .. cpp:function:: gf_status sink_heartbeat(gf_content_sink sink) const noexcept
 
-   .. cpp:function:: gf_status sink_publish_semantics(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* result) const noexcept
+   .. cpp:function:: gf_status sink_publish_semantics(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* outcome) const noexcept
 
    .. cpp:function:: gf_status sink_request(gf_content_sink sink, gf_content_request* request) const noexcept
 
@@ -859,6 +859,8 @@ Types
 
    .. cpp:function:: gf_status warp_pointer(gf_object object, gf_logical_point position, uint32_t* warped) const noexcept
 
+   .. cpp:function:: gf_status viewport_fit(gf_object object, gf_viewport_fit* fit) const noexcept
+
    .. cpp:function:: gf_status set_pointer_capture(gf_object object, uint32_t captured) const noexcept
 
    .. cpp:function:: gf_status set_scroll_axis(gf_object object, gf_scroll_orientation orientation, const gf_scroll_axis* axis) const noexcept
@@ -866,6 +868,8 @@ Types
    .. cpp:function:: gf_status set_pointer_release_regions(gf_object object, const gf_logical_rect* regions, uint32_t count) const noexcept
 
    .. cpp:function:: gf_status set_content_effect(gf_object object, const gf_content_effect* effect) const noexcept
+
+   .. cpp:function:: gf_status set_viewport_fit(gf_object object, const gf_viewport_fit* fit) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -2744,9 +2748,9 @@ Types
 
       ic: Thread: any.
 
-   .. cpp:member:: gf_status (*sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* result)
+   .. cpp:member:: gf_status (*sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* outcome)
 
-      ic: Requires not_null(result), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
+      ic: Requires not_null(outcome), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*sink_request)(gf_content_sink sink, gf_content_request* request)
 
@@ -7501,6 +7505,12 @@ Types
    .. cpp:function:: gf_status mdi_children_minimized_anchor_bottom(gf_object window_or_root, uint32_t* bottom) const noexcept
 
    .. cpp:function:: gf_status main_menu_strip(gf_object window_or_root, gf_object* strip) const noexcept
+
+   .. cpp:function:: gf_status overflow_records(gf_object window_or_root, gf_overflow_record* records, uint64_t capacity, uint64_t* required, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status unanswered_overflow_count(gf_object window_or_root, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status safe_insets(gf_object window_or_root, gf_logical_insets* insets) const noexcept
 
    .. cpp:function:: gf_status lifecycle(gf_object window, gf_window_lifecycle* lifecycle) const noexcept
 

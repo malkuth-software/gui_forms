@@ -757,8 +757,35 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status overflow_records(gf_object window_or_root, gf_overflow_record* records, uint64_t capacity,
+                                             uint64_t* required, char* text_buffer, uint64_t text_capacity,
+                                             uint64_t* text_required) const noexcept {
+        if (table_.struct_size < 264u || table_.overflow_records == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.overflow_records(window_or_root, records, capacity, required, text_buffer,
+                                                         text_capacity, text_required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status unanswered_overflow_count(gf_object window_or_root, uint64_t* count) const noexcept {
+        if (table_.struct_size < 272u || table_.unanswered_overflow_count == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.unanswered_overflow_count(window_or_root, count);
+        return called;
+    }
+
+    [[nodiscard]] gf_status safe_insets(gf_object window_or_root, gf_logical_insets* insets) const noexcept {
+        if (table_.struct_size < 280u || table_.safe_insets == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.safe_insets(window_or_root, insets);
+        return called;
+    }
+
     [[nodiscard]] gf_status lifecycle(gf_object window, gf_window_lifecycle* lifecycle) const noexcept {
-        if (table_.struct_size < 264u || table_.lifecycle == nullptr) {
+        if (table_.struct_size < 288u || table_.lifecycle == nullptr) {
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.lifecycle(window, lifecycle);
@@ -1623,6 +1650,22 @@ public:
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
         const gf_status called = table_.set_content_effect(object, effect);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_viewport_fit(gf_object object, const gf_viewport_fit* fit) const noexcept {
+        if (table_.struct_size < 168u || table_.set_viewport_fit == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_viewport_fit(object, fit);
+        return called;
+    }
+
+    [[nodiscard]] gf_status viewport_fit(gf_object object, gf_viewport_fit* fit) const noexcept {
+        if (table_.struct_size < 176u || table_.viewport_fit == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.viewport_fit(object, fit);
         return called;
     }
 
@@ -3461,11 +3504,11 @@ public:
     }
 
     [[nodiscard]] gf_status sink_publish_semantics(gf_content_sink sink, const gf_content_semantics* semantics,
-                                                   gf_content_semantics_result* result) const noexcept {
+                                                   gf_content_semantics_result* outcome) const noexcept {
         if (table_.struct_size < 160u || table_.sink_publish_semantics == nullptr) {
             return GF_STATUS_UNSUPPORTED_VERSION;
         }
-        const gf_status called = table_.sink_publish_semantics(sink, semantics, result);
+        const gf_status called = table_.sink_publish_semantics(sink, semantics, outcome);
         return called;
     }
 

@@ -195,9 +195,9 @@ name = "sink_publish_semantics"
 declarations = ["gf_status (GF_CALL* sink_publish_semantics)("]
 kind = "static"
 thread = "any"
-parameters = { result = "gf_content_semantics_result*" }
+parameters = { outcome = "gf_content_semantics_result*" }
 requires = [
-  { holds = "not_null(result)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_publish_semantics_result" },
+  { holds = "not_null(outcome)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "sink_publish_semantics_outcome" },
 ]
 
 [[call]]

@@ -330,9 +330,33 @@ public static unsafe class Layout
             failures += expect(output, "gf_window_shaping.corner_radius offset", (long)((byte*)&value.corner_radius - start), 24);
         }
         {
+            gf_viewport_fit value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_viewport_fit size", sizeof(gf_viewport_fit), 32);
+            failures += expect(output, "gf_viewport_fit.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_viewport_fit.answer offset", (long)((byte*)&value.answer - start), 4);
+            failures += expect(output, "gf_viewport_fit.minimum_scale offset", (long)((byte*)&value.minimum_scale - start), 8);
+            failures += expect(output, "gf_viewport_fit.maximum_scale offset", (long)((byte*)&value.maximum_scale - start), 16);
+            failures += expect(output, "gf_viewport_fit.below_minimum offset", (long)((byte*)&value.below_minimum - start), 24);
+            failures += expect(output, "gf_viewport_fit.alignment offset", (long)((byte*)&value.alignment - start), 28);
+        }
+        {
+            gf_overflow_record value = default;
+            byte* start = (byte*)&value;
+            failures += expect(output, "gf_overflow_record size", sizeof(gf_overflow_record), 72);
+            failures += expect(output, "gf_overflow_record.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
+            failures += expect(output, "gf_overflow_record.cause offset", (long)((byte*)&value.cause - start), 4);
+            failures += expect(output, "gf_overflow_record.answer offset", (long)((byte*)&value.answer - start), 8);
+            failures += expect(output, "gf_overflow_record.answered offset", (long)((byte*)&value.answered - start), 12);
+            failures += expect(output, "gf_overflow_record.content_extent offset", (long)((byte*)&value.content_extent - start), 16);
+            failures += expect(output, "gf_overflow_record.viewport_extent offset", (long)((byte*)&value.viewport_extent - start), 32);
+            failures += expect(output, "gf_overflow_record.effective_scale offset", (long)((byte*)&value.effective_scale - start), 48);
+            failures += expect(output, "gf_overflow_record.owner offset", (long)((byte*)&value.owner - start), 56);
+        }
+        {
             gf_windows_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 264);
+            failures += expect(output, "gf_windows_table size", sizeof(gf_windows_table), 288);
             failures += expect(output, "gf_windows_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_windows_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_windows_table.run offset", (long)((byte*)&value.run - start), 8);
@@ -366,7 +390,10 @@ public static unsafe class Layout
             failures += expect(output, "gf_windows_table.mdi_children_minimized_anchor_bottom offset", (long)((byte*)&value.mdi_children_minimized_anchor_bottom - start), 232);
             failures += expect(output, "gf_windows_table.set_main_menu_strip offset", (long)((byte*)&value.set_main_menu_strip - start), 240);
             failures += expect(output, "gf_windows_table.main_menu_strip offset", (long)((byte*)&value.main_menu_strip - start), 248);
-            failures += expect(output, "gf_windows_table.lifecycle offset", (long)((byte*)&value.lifecycle - start), 256);
+            failures += expect(output, "gf_windows_table.overflow_records offset", (long)((byte*)&value.overflow_records - start), 256);
+            failures += expect(output, "gf_windows_table.unanswered_overflow_count offset", (long)((byte*)&value.unanswered_overflow_count - start), 264);
+            failures += expect(output, "gf_windows_table.safe_insets offset", (long)((byte*)&value.safe_insets - start), 272);
+            failures += expect(output, "gf_windows_table.lifecycle offset", (long)((byte*)&value.lifecycle - start), 280);
         }
         {
             gf_schema_type value = default;
@@ -869,7 +896,7 @@ public static unsafe class Layout
         {
             gf_controls_table value = default;
             byte* start = (byte*)&value;
-            failures += expect(output, "gf_controls_table size", sizeof(gf_controls_table), 160);
+            failures += expect(output, "gf_controls_table size", sizeof(gf_controls_table), 176);
             failures += expect(output, "gf_controls_table.struct_size offset", (long)((byte*)&value.struct_size - start), 0);
             failures += expect(output, "gf_controls_table.abi_minor offset", (long)((byte*)&value.abi_minor - start), 4);
             failures += expect(output, "gf_controls_table.suspend_layout offset", (long)((byte*)&value.suspend_layout - start), 8);
@@ -891,6 +918,8 @@ public static unsafe class Layout
             failures += expect(output, "gf_controls_table.warp_pointer offset", (long)((byte*)&value.warp_pointer - start), 136);
             failures += expect(output, "gf_controls_table.set_pointer_release_regions offset", (long)((byte*)&value.set_pointer_release_regions - start), 144);
             failures += expect(output, "gf_controls_table.set_content_effect offset", (long)((byte*)&value.set_content_effect - start), 152);
+            failures += expect(output, "gf_controls_table.set_viewport_fit offset", (long)((byte*)&value.set_viewport_fit - start), 160);
+            failures += expect(output, "gf_controls_table.viewport_fit offset", (long)((byte*)&value.viewport_fit - start), 168);
         }
         {
             gf_text_decoration value = default;

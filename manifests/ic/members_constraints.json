@@ -360,7 +360,7 @@
     {
       "type": "gf_abi::content",
       "member": "sink_publish_semantics",
-      "constraints": "Requires not_null(result), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.",
+      "constraints": "Requires not_null(outcome), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.",
       "declaration": "include/gui_forms/c/gf_abi_content.ic.toml"
     },
     {

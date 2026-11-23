@@ -9,6 +9,7 @@
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <chrono>
+#include <string>
 #include <utility>
 
 namespace gui_forms::automation {
@@ -319,7 +320,7 @@ bool StockPresenter::open_popup(bool question, const std::string& heading, const
     if (!windowing.active()) return false;
     const Size size = question ? question_size : take_back_size;
     const char* const id = question ? "automation.question" : "automation.take-back";
-    const Control::Ptr panel = make_control<PresenterPanel>(StableId(id), this, question, heading, text);
+    const Control::Ptr panel = make_control<PresenterPanel>(StableId(std::string(id)), this, question, heading, text);
     std::unique_ptr<Window> model = std::make_unique<Window>(panel, size);
     const WindowRef reference = (*model).window_ref();
     ApplicationWindow entry{};

@@ -1431,24 +1431,24 @@
       "moves": null,
       "inputs": [
         {
-          "name": "result",
+          "name": "outcome",
           "type": "gf_content_semantics_result*",
           "bounded_by": [
-            "not_null(result)"
+            "not_null(outcome)"
           ]
         }
       ],
       "requires": [
-        "not_null(result)"
+        "not_null(outcome)"
       ],
       "fails": [],
       "returns": {}
     },
     {
-      "name": "gf_abi.content.sink_publish_semantics.misuse.sink_publish_semantics_result",
+      "name": "gf_abi.content.sink_publish_semantics.misuse.sink_publish_semantics_outcome",
       "mode": "misuse",
       "call": "sink_publish_semantics",
-      "violates": "not_null(result)",
+      "violates": "not_null(outcome)",
       "expect": {
         "kind": "value",
         "value": "GF_STATUS_INVALID_ARGUMENT"

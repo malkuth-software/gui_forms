@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/c/gf_abi_content.ic.toml",
-    "sha256": "16d710376de2b4ecbc106280c5c7a7e6a1733a712ca00134e0ab218499e29396"
+    "sha256": "9c57606bca46d74da1a9800eb365d3dd5d40f0702812e9b079897a8c7c5bf05a"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [
@@ -188,19 +188,19 @@
       "status": "open"
     },
     {
-      "id": "gf_abi.content.sink_publish_semantics.requires.sink_publish_semantics_result",
+      "id": "gf_abi.content.sink_publish_semantics.requires.sink_publish_semantics_outcome",
       "kind": "entry-check",
-      "statement": "sink_publish_semantics runs only when not_null(result); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "statement": "sink_publish_semantics runs only when not_null(outcome); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
       "level": "none",
       "tool": null,
       "premises": [],
       "status": "open",
-      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_publish_semantics_result, called in src/abi/stable/tables/abi_content.cpp"
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_publish_semantics_outcome, called in src/abi/stable/tables/abi_content.cpp"
     },
     {
-      "id": "gf_abi.content.sink_publish_semantics.refusal.sink_publish_semantics_result",
+      "id": "gf_abi.content.sink_publish_semantics.refusal.sink_publish_semantics_outcome",
       "kind": "refusal-leaves",
-      "statement": "Unless not_null(result), sink_publish_semantics changes nothing observable.",
+      "statement": "Unless not_null(outcome), sink_publish_semantics changes nothing observable.",
       "level": "none",
       "tool": null,
       "premises": [],

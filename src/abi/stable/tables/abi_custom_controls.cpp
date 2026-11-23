@@ -38,7 +38,6 @@ constexpr SlotIdentity create_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 3U};
 constexpr SlotIdentity perform_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 4U};
 constexpr SlotIdentity composite_child_slot{GF_TABLE_CUSTOM_CONTROLS, 5U};
 
-constexpr std::uint32_t spec_size_1_0 = ic_custom_controls::spec_size_1_0;
 constexpr std::uint32_t callbacks_size_1_0 = 48U;
 constexpr std::uint32_t property_size_1_0 = 96U;
 constexpr std::uint32_t paint_target_size_1_0 = 72U;

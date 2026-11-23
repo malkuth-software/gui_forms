@@ -698,7 +698,7 @@ gui_forms::Window
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 258 supported, 0 deferred, 13 excluded, 142 unclassified; 273 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 264 supported, 0 deferred, 13 excluded, 136 unclassified; 273 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1492,7 +1492,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 258 support
    * - property
      - GUI.Forms-only
      - ``overflow_records``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``overrides``
@@ -1564,7 +1564,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 258 support
    * - property
      - GUI.Forms-only
      - ``root_frame``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``root_slot``
@@ -1572,7 +1572,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 258 support
    * - property
      - GUI.Forms-only
      - ``safe_insets``
-     - unclassified (untested)
+     - supported
    * - method
      - ``Control.Scale``
      - ``scale``
@@ -1652,7 +1652,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 258 support
    * - property
      - GUI.Forms-only
      - ``unanswered_overflow_count``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``user_theme_rules``
@@ -1664,7 +1664,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 258 support
    * - property
      - GUI.Forms-only
      - ``visible_client_rectangle``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``wants_display_frames``
@@ -2024,7 +2024,7 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 258 support
    * - method
      - GUI.Forms-only
      - ``overflow_owner``
-     - unclassified (untested)
+     - supported
    * - event
      - ``Control.Paint``
      - ``paint``

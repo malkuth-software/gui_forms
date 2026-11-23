@@ -511,7 +511,6 @@ bool BreadcrumbTrail::raised_face_contains(Rect bounds, Point local) const noexc
 stxlib::Optional<std::size_t> BreadcrumbTrail::visible_index_at(
     Point absolute) const noexcept {
     const ScaleFrame bounds_frame = window_frame();
-    const Rect bounds = frame_to_outer(bounds_frame, client_rectangle());
     const Point local = frame_to_inner(bounds_frame, absolute);
     for (std::size_t index = visible_items_.size(); index > 0U; --index) {
         const VisibleItem& item = visible_items_[index - 1U];

@@ -862,6 +862,91 @@
       "type": "uint32"
     },
     {
+      "name": "GF_OVERFLOW_ANSWER_SCROLL",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OVERFLOW_ANSWER_CONTAIN",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OVERFLOW_ANSWER_COVER",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OVERFLOW_ANSWER_CLIP",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OVERFLOW_CAUSE_MINIMUM_CONTENT_EXCEEDS_VIEWPORT",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OVERFLOW_CAUSE_DESIGN_SIZE_EXCEEDS_VIEWPORT",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OVERFLOW_CAUSE_PLACED_CHILD_OUTSIDE_VIEWPORT",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_OVERFLOW_CAUSE_MINIMUM_SIZE_EXCEEDS_WORK_AREA",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_TOP_LEFT",
+      "value": 0,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_TOP_CENTER",
+      "value": 1,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_TOP_RIGHT",
+      "value": 2,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_MIDDLE_LEFT",
+      "value": 3,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_MIDDLE_CENTER",
+      "value": 4,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_MIDDLE_RIGHT",
+      "value": 5,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_BOTTOM_LEFT",
+      "value": 6,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_BOTTOM_CENTER",
+      "value": 7,
+      "type": "uint32"
+    },
+    {
+      "name": "GF_CONTENT_ALIGNMENT_BOTTOM_RIGHT",
+      "value": 8,
+      "type": "uint32"
+    },
+    {
       "name": "GF_SCHEMA_KIND_CONTROL",
       "value": 0,
       "type": "uint32"
@@ -1414,6 +1499,11 @@
     {
       "name": "GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS",
       "value": 562949953421312,
+      "type": "uint64"
+    },
+    {
+      "name": "GF_HOST_CAPABILITY_SAFE_INSETS",
+      "value": 1125899906842624,
       "type": "uint64"
     },
     {
@@ -3823,6 +3913,18 @@
       "type": "uint32_t"
     },
     {
+      "name": "gf_overflow_answer",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_overflow_cause",
+      "type": "uint32_t"
+    },
+    {
+      "name": "gf_content_alignment",
+      "type": "uint32_t"
+    },
+    {
       "name": "gf_schema_kind",
       "type": "uint32_t"
     },
@@ -6162,9 +6264,109 @@
       ]
     },
     {
+      "name": "gf_viewport_fit",
+      "kind": "extensible",
+      "size": 32,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "answer",
+          "type": "gf_overflow_answer",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "minimum_scale",
+          "type": "double",
+          "offset": 8,
+          "size": 8
+        },
+        {
+          "name": "maximum_scale",
+          "type": "double",
+          "offset": 16,
+          "size": 8
+        },
+        {
+          "name": "below_minimum",
+          "type": "gf_overflow_answer",
+          "offset": 24,
+          "size": 4
+        },
+        {
+          "name": "alignment",
+          "type": "gf_content_alignment",
+          "offset": 28,
+          "size": 4
+        }
+      ]
+    },
+    {
+      "name": "gf_overflow_record",
+      "kind": "extensible",
+      "size": 72,
+      "align": 8,
+      "fields": [
+        {
+          "name": "struct_size",
+          "type": "uint32_t",
+          "offset": 0,
+          "size": 4
+        },
+        {
+          "name": "cause",
+          "type": "gf_overflow_cause",
+          "offset": 4,
+          "size": 4
+        },
+        {
+          "name": "answer",
+          "type": "gf_overflow_answer",
+          "offset": 8,
+          "size": 4
+        },
+        {
+          "name": "answered",
+          "type": "uint32_t",
+          "offset": 12,
+          "size": 4
+        },
+        {
+          "name": "content_extent",
+          "type": "gf_logical_size",
+          "offset": 16,
+          "size": 16
+        },
+        {
+          "name": "viewport_extent",
+          "type": "gf_logical_size",
+          "offset": 32,
+          "size": 16
+        },
+        {
+          "name": "effective_scale",
+          "type": "double",
+          "offset": 48,
+          "size": 8
+        },
+        {
+          "name": "owner",
+          "type": "gf_utf8_view",
+          "offset": 56,
+          "size": 16
+        }
+      ]
+    },
+    {
       "name": "gf_windows_table",
       "kind": "table",
-      "size": 264,
+      "size": 288,
       "align": 8,
       "fields": [
         {
@@ -6836,9 +7038,89 @@
           "since": "1.6"
         },
         {
-          "name": "lifecycle",
+          "name": "overflow_records",
           "type": "function",
           "offset": 256,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "records",
+                "type": "gf_overflow_record*"
+              },
+              {
+                "name": "capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "required",
+                "type": "uint64_t*"
+              },
+              {
+                "name": "text_buffer",
+                "type": "char*"
+              },
+              {
+                "name": "text_capacity",
+                "type": "uint64_t"
+              },
+              {
+                "name": "text_required",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "unanswered_overflow_count",
+          "type": "function",
+          "offset": 264,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "count",
+                "type": "uint64_t*"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "safe_insets",
+          "type": "function",
+          "offset": 272,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "window_or_root",
+                "type": "gf_object"
+              },
+              {
+                "name": "insets",
+                "type": "gf_logical_insets*"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "lifecycle",
+          "type": "function",
+          "offset": 280,
           "size": 8,
           "signature": {
             "returns": "gf_status",
@@ -10098,7 +10380,7 @@
     {
       "name": "gf_controls_table",
       "kind": "table",
-      "size": 160,
+      "size": 176,
       "align": 8,
       "fields": [
         {
@@ -10504,6 +10786,46 @@
             ]
           },
           "since": "1.5"
+        },
+        {
+          "name": "set_viewport_fit",
+          "type": "function",
+          "offset": 160,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "fit",
+                "type": "const gf_viewport_fit*"
+              }
+            ]
+          },
+          "since": "1.7"
+        },
+        {
+          "name": "viewport_fit",
+          "type": "function",
+          "offset": 168,
+          "size": 8,
+          "signature": {
+            "returns": "gf_status",
+            "parameters": [
+              {
+                "name": "object",
+                "type": "gf_object"
+              },
+              {
+                "name": "fit",
+                "type": "gf_viewport_fit*"
+              }
+            ]
+          },
+          "since": "1.7"
         }
       ]
     },
@@ -17275,7 +17597,7 @@
                 "type": "const gf_content_semantics*"
               },
               {
-                "name": "result",
+                "name": "outcome",
                 "type": "gf_content_semantics_result*"
               }
             ]

@@ -6349,9 +6349,9 @@ typedef struct gf_content_table {
     // ic: Thread: any.
     gf_status (GF_CALL* sink_heartbeat)(gf_content_sink sink);
     /* Replaces the surface's semantic text; the newest wins. Any thread. */
-    // ic: Requires not_null(result), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
+    // ic: Requires not_null(outcome), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
     gf_status (GF_CALL* sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics,
-                                                gf_content_semantics_result* result);
+                                                gf_content_semantics_result* outcome);
     /* The newest request. Any thread. */
     // ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >=
     // ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply:

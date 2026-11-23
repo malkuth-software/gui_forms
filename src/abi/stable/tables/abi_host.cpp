@@ -35,10 +35,6 @@ constexpr SlotIdentity write_clipboard_text_slot{GF_TABLE_HOST, 4U};
 constexpr SlotIdentity show_dialog_slot{GF_TABLE_HOST, 5U};
 constexpr SlotIdentity dialog_path_at_slot{GF_TABLE_HOST, 6U};
 
-// The 1.0 size of gf_host_capabilities: a caller passes at least this much
-// and receives the fields that fit (1.1 added transient_surfaces, then
-// window_corner_shapes and window_band_maximum_width).
-constexpr std::uint32_t host_capabilities_size_1_0 = 16U;
 static_assert(sizeof(gf_host_capabilities) == 32U);
 static_assert(sizeof(gf_file_filter) == 32U);
 static_assert(sizeof(gf_dialog_result) == 32U);

@@ -64,9 +64,9 @@ inline constexpr uint32_t statistics_size_1_4 = 0x50ULL;
     return result;
 }
 
-// gf_content_table::sink_publish_semantics: not_null(result); else returns GF_STATUS_INVALID_ARGUMENT.
-[[nodiscard]] constexpr bool admits_sink_publish_semantics_result(const gf_content_semantics_result* result) noexcept {
-    const bool result = result != nullptr;
+// gf_content_table::sink_publish_semantics: not_null(outcome); else returns GF_STATUS_INVALID_ARGUMENT.
+[[nodiscard]] constexpr bool admits_sink_publish_semantics_outcome(const gf_content_semantics_result* outcome) noexcept {
+    const bool result = outcome != nullptr;
     return result;
 }
 

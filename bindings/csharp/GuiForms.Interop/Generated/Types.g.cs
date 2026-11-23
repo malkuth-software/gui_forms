@@ -349,7 +349,33 @@ public unsafe struct gf_window_shaping
     public double corner_radius;
 }
 
-/// <summary>gf_windows_table (table, 264 bytes).</summary>
+/// <summary>gf_viewport_fit (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_viewport_fit
+{
+    public uint struct_size;
+    public gf_overflow_answer answer;
+    public double minimum_scale;
+    public double maximum_scale;
+    public gf_overflow_answer below_minimum;
+    public gf_content_alignment alignment;
+}
+
+/// <summary>gf_overflow_record (extensible, 72 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_overflow_record
+{
+    public uint struct_size;
+    public gf_overflow_cause cause;
+    public gf_overflow_answer answer;
+    public uint answered;
+    public gf_logical_size content_extent;
+    public gf_logical_size viewport_extent;
+    public double effective_scale;
+    public gf_utf8_view owner;
+}
+
+/// <summary>gf_windows_table (table, 288 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -386,6 +412,9 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> mdi_children_minimized_anchor_bottom;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> set_main_menu_strip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> main_menu_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_overflow_record*, ulong, ulong*, byte*, ulong, ulong*, gf_status> overflow_records;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> unanswered_overflow_count;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_insets*, gf_status> safe_insets;
     public delegate* unmanaged[Cdecl]<gf_object, gf_window_lifecycle*, gf_status> lifecycle;
 }
 
@@ -922,7 +951,7 @@ public unsafe struct gf_content_effect
     public gf_effect_mask_layer* masks;
 }
 
-/// <summary>gf_controls_table (table, 160 bytes).</summary>
+/// <summary>gf_controls_table (table, 176 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_controls_table
 {
@@ -947,6 +976,8 @@ public unsafe struct gf_controls_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point, uint*, gf_status> warp_pointer;
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, uint, gf_status> set_pointer_release_regions;
     public delegate* unmanaged[Cdecl]<gf_object, gf_content_effect*, gf_status> set_content_effect;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_viewport_fit*, gf_status> set_viewport_fit;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_viewport_fit*, gf_status> viewport_fit;
 }
 
 /// <summary>gf_text_decoration (record, 56 bytes).</summary>

@@ -809,7 +809,7 @@ gf_status GF_CALL content_sink_heartbeat(gf_content_sink sink) noexcept {
 
 gf_status content_sink_publish_semantics_body(gf_content_sink sink, const gf_content_semantics* semantics,
                                               gf_content_semantics_result* result) {
-    if (!ic_content::admits_sink_publish_semantics_result(result)) {
+    if (!ic_content::admits_sink_publish_semantics_outcome(result)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, sink_publish_semantics_slot, "publish_semantics needs a result");
     }
     ContentSemantics read{};

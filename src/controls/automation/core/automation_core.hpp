@@ -86,11 +86,11 @@ struct CallId final {
 class StepOutcome final {
 public:
     [[nodiscard]] static StepOutcome resume_at(FrameTime when) {
-        const StepOutcome outcome(std::variant<FrameTime, ToolReply>(when));
+        const StepOutcome outcome{std::variant<FrameTime, ToolReply>{when}};
         return outcome;
     }
     [[nodiscard]] static StepOutcome finished(ToolReply reply) {
-        const StepOutcome outcome(std::variant<FrameTime, ToolReply>(std::move(reply)));
+        const StepOutcome outcome{std::variant<FrameTime, ToolReply>{std::move(reply)}};
         return outcome;
     }
     [[nodiscard]] bool done() const noexcept { return std::holds_alternative<ToolReply>(state_); }

@@ -2564,7 +2564,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 253 supported, 0 deferred, 12 excluded, 329 unclassified; 237 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 258 supported, 0 deferred, 12 excluded, 324 unclassified; 237 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4130,7 +4130,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
    * - property
      - GUI.Forms-only
      - ``content_frame``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``content_layout_rectangle``
@@ -4366,7 +4366,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
    * - property
      - GUI.Forms-only
      - ``window_frame``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``arranged_bounds_changed``
@@ -4438,7 +4438,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
    * - method
      - GUI.Forms-only
      - ``applied_viewport_scale``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``apply_provider_semantics``
@@ -4518,7 +4518,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
    * - method
      - GUI.Forms-only
      - ``content_scrolls``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``control_property_entries``
@@ -4898,7 +4898,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
    * - method
      - GUI.Forms-only
      - ``shows_media_content``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``size_depends_on_content``

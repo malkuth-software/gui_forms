@@ -174,8 +174,9 @@ void AutomationRun::start() {
 void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string_view stable_id,
                                  const ApplicationWindowHandle& handle) noexcept {
     AutomationRun& run = *static_cast<AutomationRun*>(context);
-    Window* const model = dynamic_cast<Window*>(&window);
-    if (model == nullptr) return;
+    // Only application windows reach the hook, and every one is a Window
+    // (attach_application_window's callers).
+    Window* const model = static_cast<Window*>(&window);
     try {
         if (!run.core_.attach_window(*model, std::string(stable_id))) return;
         run.presenter_.set_windowing(handle, stable_id);
