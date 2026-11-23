@@ -62,9 +62,16 @@
 //                       boxes the same way; the touch start demonstrator
 //                       selects the tile with this id segment (weather,
 //                       map, ...). Other programs ignore it.
+//   --familiar-theme <id>
+//                       The Gallery runs in this stock familiar theme
+//                       (familiar_theme_named: classic, xp_style, ...)
+//                       in place of its own sheet, as the Theme settings
+//                       page's every-window choice does (capture staging:
+//                       a familiar theme across the control catalogue).
+//                       Other programs ignore it.
 //
-// Every host's Gallery main applies --page, --reveal, --open-menu, --check
-// and --scheme through gallery_staging.hpp.
+// Every host's Gallery main applies --page, --reveal, --open-menu, --check,
+// --familiar-theme and --scheme through gallery_staging.hpp.
 //
 // The user-theme options every GUI.Forms program takes (--theme
 // <name|built-in|path.css> and --export-themes [folder];
@@ -114,6 +121,8 @@ struct ProgramOptions final {
     std::string reveal;
     std::string open_menu;
     std::string check;
+    // --familiar-theme <id> (capture staging); empty when not given.
+    std::string familiar_theme;
 };
 
 inline void print_program_usage(const char* program) {
@@ -121,6 +130,7 @@ inline void print_program_usage(const char* program) {
                  "usage: %s [--mcp] [--mcp-script <file.jsonl>] [--smoke-test] [--capture <path.png>] [--headless] "
                  "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]\n"
                  "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]] [--check <id>]\n"
+                 "       [--familiar-theme <id>]\n"
                  "       [--theme <name|built-in|path.css>]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
@@ -192,7 +202,8 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                                  argument == "--scale" || argument == "--page" ||
                                  argument == "--backdrop" || argument == "--theme-base" ||
                                  argument == "--scheme" || argument == "--reveal" ||
-                                 argument == "--open-menu" || argument == "--check";
+                                 argument == "--open-menu" || argument == "--check" ||
+                                 argument == "--familiar-theme";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
@@ -233,6 +244,12 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.scheme = std::string(value);
+        } else if (argument == "--familiar-theme") {
+            if (value.empty()) {
+                print_program_usage(program);
+                return std::nullopt;
+            }
+            options.familiar_theme = std::string(value);
         } else if (argument == "--reveal" || argument == "--open-menu" || argument == "--check") {
             if (value.empty()) {
                 print_program_usage(program);
