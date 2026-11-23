@@ -10,12 +10,33 @@
 #include <array>
 #include <cmath>
 #include <memory>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <utility>
 #include <vector>
 
+#include <stxlib/result.hpp>
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
+
+struct PopupContainerBox::State final {
+    std::shared_ptr<AnchoredOverlayLayer> layer_{};
+    Event<const std::string&> text_changed_;
+};
+
+stxlib::Unique<PopupContainerBox::State> PopupContainerBox::make_state() {
+    stxlib::OperationResult<stxlib::Unique<State>> made = stxlib::Unique<State>::make();
+    if (made.failed()) throw std::bad_alloc();
+    stxlib::Unique<State> state = std::move(made).take_value();
+    return state;
+}
+
+Event<const std::string&>& PopupContainerBox::text_changed() noexcept {
+    return (*state_).text_changed_;
+}
+
 namespace {
 
 // The field's metrics, in logical units: the drop-down button's width, its
@@ -106,6 +127,7 @@ void PopupContainerBox::set_popup_size(Size size) {
 // The popup is the content's measured size on each axis the application
 // left at zero, and at least as wide as the field.
 bool PopupContainerBox::show_popup() {
+    State& state = *state_;
     require_mutable();
     Window* const host = attached_window();
     if (shown_ || host == nullptr || !content_ || !effectively_enabled()) return false;
@@ -123,10 +145,10 @@ bool PopupContainerBox::show_popup() {
     placement.preferred_size = size;
     placement.gap = 1.0;
     const std::string prefix(stable_id().value());
-    layer_ = make_control<AnchoredOverlayLayer>(StableId(prefix + ".popup.layer"), retained, placement);
-    (*layer_).set_content(content_);
-    overlay_ = (*host).open_overlay(retained, layer_);
-    dismissal_ = (*layer_).dismiss_requested().subscribe(
+    state.layer_ = make_control<AnchoredOverlayLayer>(StableId(prefix + ".popup.layer"), retained, placement);
+    (*state.layer_).set_content(content_);
+    overlay_ = (*host).open_overlay(retained, state.layer_);
+    dismissal_ = (*state.layer_).dismiss_requested().subscribe(
         *this, Delegate<OverlayDismissReason>::bind<PopupContainerBox, &PopupContainerBox::on_dismiss>(*this));
     if (Event<>* revoked = overlay_.closed_event()) {
         overlay_revoked_ = (*revoked).subscribe(
@@ -161,19 +183,20 @@ bool PopupContainerBox::close_popup(PopupCloseReason reason) {
 // it.
 bool PopupContainerBox::focus_within_popup() const {
     const Window* const host = window();
-    if (host == nullptr || !layer_) return false;
+    if (host == nullptr || !(*state_).layer_) return false;
     for (Control::Ptr at = (*host).focused_control(); at; at = (*at).parent()) {
-        if (at.get() == layer_.get()) return true;
+        if (at.get() == (*state_).layer_.get()) return true;
     }
     return false;
 }
 
 void PopupContainerBox::release_overlay() noexcept {
+    State& state = *state_;
     dismissal_.disconnect();
     overlay_revoked_.disconnect();
-    if (layer_) (*layer_).clear_content();
+    if (state.layer_) (*state.layer_).clear_content();
     overlay_.disconnect();
-    layer_.reset();
+    state.layer_.reset();
 }
 
 void PopupContainerBox::on_dismiss(OverlayDismissReason reason) {
@@ -185,12 +208,13 @@ void PopupContainerBox::on_dismiss(OverlayDismissReason reason) {
 // The window closed the overlay itself (as when it closes): the popup is
 // cancelled.
 void PopupContainerBox::on_overlay_revoked() {
+    State& state = *state_;
     if (!shown_) return;
     shown_ = false;
     dismissal_.disconnect();
     overlay_revoked_.disconnect();
-    if (layer_) (*layer_).clear_content();
-    layer_.reset();
+    if (state.layer_) (*state.layer_).clear_content();
+    state.layer_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
     const PopupClosed closed{PopupCloseReason::cancelled};
     publish_change(popup_closed_, closed);
@@ -451,7 +475,7 @@ void PopupContainerBox::written(const decltype(text)&) {
 }
 
 void PopupContainerBox::on_text_changed() {
-    publish_change(text_changed_, text.read());
+    publish_change((*state_).text_changed_, text.read());
 }
 
 // property_codemod end PopupContainerBox

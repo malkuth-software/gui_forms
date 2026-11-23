@@ -13,12 +13,34 @@
 #include <charconv>
 #include <cmath>
 #include <memory>
+#include <new>
 #include <numbers>
 #include <stdexcept>
 #include <string>
 #include <utility>
 
+#include <stxlib/result.hpp>
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
+
+struct PieChart::State final {
+    // Paint scratch, reused for every slice of a paint pass.
+    std::vector<Point> wedge_{};
+    std::string paint_text_{};
+    // The share as text: "42%", or "0.5%" under one percent.
+    [[nodiscard]] static std::string share_text(const PieChart& self, std::size_t slice);
+    [[nodiscard]] static stxlib::Optional<std::string> selected_copy(const PieChart& self);
+    static void publish_selection(PieChart& self, stxlib::Optional<std::string> previous);
+};
+
+stxlib::Unique<PieChart::State> PieChart::make_state() {
+    stxlib::OperationResult<stxlib::Unique<State>> made = stxlib::Unique<State>::make();
+    if (made.failed()) throw std::bad_alloc();
+    stxlib::Unique<State> state = std::move(made).take_value();
+    return state;
+}
+
 namespace {
 
 // The PieChartLabelStyle enumeration, numbered as declared. Static
@@ -142,7 +164,7 @@ void PieChart::set_slices(std::vector<PieSlice> slices) {
             }
         }
     }
-    const stxlib::Optional<std::string> previous = selected_copy();
+    const stxlib::Optional<std::string> previous = State::selected_copy(*this);
     slices_.swap(slices);
     selected_.reset();
     hot_.reset();
@@ -152,7 +174,7 @@ void PieChart::set_slices(std::vector<PieSlice> slices) {
     }
     recompute_total();
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    if (previous != selected_copy()) publish_selection(previous);
+    if (previous != State::selected_copy(*this)) State::publish_selection(*this, previous);
 }
 
 void PieChart::set_slice_value(std::string_view slice_id, double value) {
@@ -196,9 +218,9 @@ stxlib::Optional<std::string_view> PieChart::selected_id() const noexcept {
     return stxlib::Optional<std::string_view>::of(id);
 }
 
-stxlib::Optional<std::string> PieChart::selected_copy() const {
+stxlib::Optional<std::string> PieChart::State::selected_copy(const PieChart& self) {
     stxlib::Optional<std::string> copy{};
-    if (selected_.present()) copy.set(slices_[*selected_.value()].stable_id);
+    if (self.selected_.present()) copy.set(self.slices_[*self.selected_.value()].stable_id);
     return copy;
 }
 
@@ -210,26 +232,26 @@ void PieChart::set_selected_id(stxlib::Optional<std::string_view> slice_id) {
         if (next.absent()) throw std::out_of_range("PieChart selection names an unknown slice");
     }
     if (next == selected_) return;
-    const stxlib::Optional<std::string> previous = selected_copy();
+    const stxlib::Optional<std::string> previous = State::selected_copy(*this);
     selected_ = next;
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_selection(previous);
+    State::publish_selection(*this, previous);
 }
 
-void PieChart::publish_selection(stxlib::Optional<std::string> previous) {
+void PieChart::State::publish_selection(PieChart& self, stxlib::Optional<std::string> previous) {
     PieSliceSelection change{};
     change.previous_id = std::move(previous);
-    change.current_id = selected_copy();
-    publish_change(selection_changed_, change);
+    change.current_id = State::selected_copy(self);
+    self.publish_change(self.selection_changed_, change);
 }
 
 void PieChart::choose_slice(std::size_t slice) {
     if (slice >= slices_.size()) return;
     if (selected_ == stxlib::Optional<std::size_t>::of(slice)) return;
-    const stxlib::Optional<std::string> previous = selected_copy();
+    const stxlib::Optional<std::string> previous = State::selected_copy(*this);
     selected_.set(slice);
     invalidate(Dirty::paint | Dirty::semantics);
-    publish_selection(previous);
+    State::publish_selection(*this, previous);
 }
 
 void PieChart::activate_slice(std::size_t slice) {
@@ -363,8 +385,8 @@ Color PieChart::slice_color(std::size_t slice) const {
     return themed;
 }
 
-std::string PieChart::share_text(std::size_t slice) const {
-    const double percent = share(slice) * 100.0;
+std::string PieChart::State::share_text(const PieChart& self, std::size_t slice) {
+    const double percent = self.share(slice) * 100.0;
     std::string text;
     const int precision = percent > 0.0 && percent < 1.0 ? 1 : 0;
     number_text::append_number_text(text, percent, std::chars_format::fixed, precision);
@@ -376,7 +398,8 @@ std::string PieChart::share_text(std::size_t slice) const {
 // arc out and the inner arc back. A whole slice (one of one) is drawn as
 // its arc alone, closed.
 void PieChart::build_wedge(const Layout& placed, std::size_t slice, double scale) {
-    wedge_.clear();
+    State& state = *state_;
+    state.wedge_.clear();
     const double sweep = slice_sweep(slice);
     const double start = slice_start(slice);
     const double middle = start + sweep * 0.5;
@@ -391,24 +414,25 @@ void PieChart::build_wedge(const Layout& placed, std::size_t slice, double scale
     const std::size_t segments =
         std::clamp(static_cast<std::size_t>(std::max(0.0, wanted)), minimum_arc_segments, maximum_arc_segments);
     const double step = sweep / static_cast<double>(segments);
-    if (placed.inner_radius <= 0.0 && sweep < whole_turn - 1e-9) wedge_.push_back(shifted.centre);
+    if (placed.inner_radius <= 0.0 && sweep < whole_turn - 1e-9) state.wedge_.push_back(shifted.centre);
     for (std::size_t point = 0; point <= segments; ++point) {
-        wedge_.push_back(polar(shifted, start + step * static_cast<double>(point), placed.radius));
+        state.wedge_.push_back(polar(shifted, start + step * static_cast<double>(point), placed.radius));
     }
     if (placed.inner_radius <= 0.0) return;
     for (std::size_t point = segments + 1U; point > 0U; --point) {
-        wedge_.push_back(polar(shifted, start + step * static_cast<double>(point - 1U), placed.inner_radius));
+        state.wedge_.push_back(polar(shifted, start + step * static_cast<double>(point - 1U), placed.inner_radius));
     }
 }
 
 void PieChart::paint_slice(Painter& painter, const Layout& placed, std::size_t slice, double scale) {
     if (slice_sweep(slice) <= 0.0 || placed.radius <= 0.0) return;
     build_wedge(placed, slice, scale);
-    const std::span<const Point> outline(wedge_.data(), wedge_.size());
+    const std::span<const Point> outline((*state_).wedge_.data(), (*state_).wedge_.size());
     painter.fill_polygon(outline, slice_color(slice), PolygonFillRule::even_odd);
 }
 
 void PieChart::on_paint(Painter& painter, Rect) {
+    State& state = *state_;
     const Rect arranged = committed_arranged_bounds();
     const Layout placed = layout_for(Rect{0.0, 0.0, arranged.width, arranged.height});
     const SurfaceRoot* const root = attached_surface_root();
@@ -435,8 +459,8 @@ void PieChart::on_paint(Painter& painter, Rect) {
             part.role = PartRole::label;
             part.bounds = parts.slice_label.bounds;
             part.alignment = PartTextAlignment::center;
-            paint_text_ = share_text(slice);
-            part.text = lend_paint_text(paint_text_);
+            state.paint_text_ = State::share_text(*this, slice);
+            part.text = lend_paint_text(state.paint_text_);
             paint_part(painter, *this, part);
             part.text = {};
         }
@@ -458,10 +482,10 @@ void PieChart::on_paint(Painter& painter, Rect) {
             part.role = PartRole::legend_entry;
             part.bounds = parts.legend_label.bounds;
             part.alignment = PartTextAlignment::start;
-            paint_text_ = slices_[slice].label;
-            paint_text_ += "  ";
-            paint_text_ += share_text(slice);
-            part.text = lend_paint_text(paint_text_);
+            state.paint_text_ = slices_[slice].label;
+            state.paint_text_ += "  ";
+            state.paint_text_ += State::share_text(*this, slice);
+            part.text = lend_paint_text(state.paint_text_);
             paint_part(painter, *this, part);
             part.text = {};
         }
@@ -602,7 +626,7 @@ std::vector<SemanticNode> PieChart::semantic_virtual_children() const {
         std::string value;
         number_text::append_number_text(value, slices_[slice].value, std::chars_format::general, 6);
         value += ", ";
-        value += share_text(slice);
+        value += State::share_text(*this, slice);
         node.value = value;
         node.position_in_set.set(slice + 1U);
         node.set_size.set(slices_.size());

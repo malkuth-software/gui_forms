@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/breadcrumb_trail_values.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -27,15 +28,13 @@ public:
                              std::string editor_stable_id = {});
     void initialize_control_tree();
 
-    [[nodiscard]] std::span<const BreadcrumbSegment> segments() const& noexcept {
-        return std::span<const BreadcrumbSegment>(segments_.data(), segments_.size());
-    }
-    std::span<const BreadcrumbSegment> segments() const&& = delete;
+    [[nodiscard]] BorrowedSpan<BreadcrumbSegment> segments() const& noexcept { return detail::lend_view(segments_); }
+    BorrowedSpan<BreadcrumbSegment> segments() const&& = delete;
     void set_segments(std::vector<BreadcrumbSegment> segments);
-    [[nodiscard]] std::span<const std::string> hidden_segment_ids() const& noexcept {
-        return std::span<const std::string>(hidden_segment_ids_.data(), hidden_segment_ids_.size());
+    [[nodiscard]] BorrowedSpan<std::string> hidden_segment_ids() const& noexcept {
+        return detail::lend_view(hidden_segment_ids_);
     }
-    std::span<const std::string> hidden_segment_ids() const&& = delete;
+    BorrowedSpan<std::string> hidden_segment_ids() const&& = delete;
 
     void begin_edit(std::string text, bool select_all = true);
     [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept {
@@ -158,9 +157,9 @@ private:
     [[nodiscard]] double raised_point(Rect bounds) const noexcept;
     [[nodiscard]] bool raised_face_contains(Rect bounds, Point local) const noexcept;
 
-    std::vector<BreadcrumbSegment> segments_{};
+    detail::LendingVector<BreadcrumbSegment> segments_{};
     std::vector<VisibleItem> visible_items_{};
-    std::vector<std::string> hidden_segment_ids_{};
+    detail::LendingVector<std::string> hidden_segment_ids_{};
     std::string editor_stable_id_{};
     std::string overflow_stable_id_{};
     std::string edit_stable_id_{};

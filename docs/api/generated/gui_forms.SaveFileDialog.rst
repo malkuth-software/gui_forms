@@ -93,10 +93,10 @@ gui_forms::SaveFileDialog
          (Windows Forms' ``CreatePrompt``). Answering No keeps the dialog open,
          or shows it again.
 
-      **filters** : ``std::span<const HostFileDialogFilter>``, read-only
+      **filters** : ``BorrowedSpan<HostFileDialogFilter>``, read-only
          The host filters the filter parsed into, in order.
 
-      **file_names** : ``std::span<const std::string>``, read-only
+      **file_names** : ``BorrowedSpan<std::string>``, read-only
          The chosen path as a list of one, or none.
 
       **status** : ``HostServiceStatus``, read-only
@@ -255,11 +255,11 @@ gui_forms::SaveFileDialog
       (Windows Forms' ``CreatePrompt``). Answering No keeps the dialog open,
       or shows it again.
 
-   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const& noexcept
+   .. cpp:function:: BorrowedSpan<HostFileDialogFilter> filters() const& noexcept
 
       The host filters the filter parsed into, in order.
 
-   .. cpp:function:: std::span<const std::string> file_names() const& noexcept
+   .. cpp:function:: BorrowedSpan<std::string> file_names() const& noexcept
 
       The chosen path as a list of one, or none.
 

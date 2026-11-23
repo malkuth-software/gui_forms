@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/plot_values.hpp"
@@ -127,10 +128,8 @@ public:
     // maximum_plot_handles; a running handle drag is cancelled first
     // (model_changed).
     void set_handles(std::vector<PlotHandle> handles);
-    [[nodiscard]] std::span<const PlotHandle> handles() const& noexcept {
-        return std::span<const PlotHandle>(handles_.data(), handles_.size());
-    }
-    std::span<const PlotHandle> handles() const&& = delete;
+    [[nodiscard]] BorrowedSpan<PlotHandle> handles() const& noexcept { return detail::lend_view(handles_); }
+    BorrowedSpan<PlotHandle> handles() const&& = delete;
     // Moves a handle (false for an unknown id or a non-finite position);
     // raises nothing.
     bool set_handle_position(std::uint32_t id, double x, double y);
@@ -325,7 +324,7 @@ private:
     Event<std::size_t> legend_toggled_{};
     Event<const PlotHandleMove&> handle_moved_{};
     Event<const PlotHandleMove&> handle_committed_{};
-    std::vector<PlotHandle> handles_{};
+    detail::LendingVector<PlotHandle> handles_{};
     // The dragged handle and where it was when the drag began.
     struct HandleDrag final {
         std::uint32_t id{};

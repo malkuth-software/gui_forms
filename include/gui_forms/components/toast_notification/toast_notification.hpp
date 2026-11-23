@@ -12,6 +12,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
 
 class Window;
@@ -82,13 +84,15 @@ protected:
 private:
     [[nodiscard]] Window* bound_window() const noexcept;
     [[nodiscard]] HostServices* current_services() const noexcept;
-    void require_ui(std::string_view operation) const;
     // Leaves the notification's host state without withdrawing it: the
     // identity and the subscription are dropped. Never throws.
     void forget_notification() noexcept;
     void on_notification_event(const HostDesktopNotificationEvent& event);
 
-    std::weak_ptr<detail::WindowLifetime> window_lifetime_;
+    // The private state, defined in toast_notification.cpp.
+    struct State;
+    [[nodiscard]] static stxlib::Unique<State> make_state();
+    stxlib::Unique<State> state_{make_state()};
     // The services the notification was shown through and its identity
     // there. The pointer is used only while the window still has these
     // services.

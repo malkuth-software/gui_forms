@@ -70,14 +70,14 @@ gui_forms::BreadcrumbTrail
          moving the focus. It can only be true while :cpp:member:`editing <gui_forms::BreadcrumbTrail::editing>`; setting it at
          other times keeps it false.
 
-      **segments** : ``std::span<const BreadcrumbSegment>``
+      **segments** : ``BorrowedSpan<BreadcrumbSegment>``
          The path, from the root to the current location. Empty by default. Each
          :cpp:class:`BreadcrumbSegment <gui_forms::BreadcrumbSegment>` has an ID, text, a description of at most 4096
          bytes used as its accessible description, and an ``enabled`` flag. IDs
          must be unique, follow the :cpp:class:`StableId <gui_forms::StableId>` segment rule and differ from the
          overflow and edit IDs, or :cpp:func:`set_segments <gui_forms::BreadcrumbTrail::set_segments>` throws ``std::invalid_argument``.
 
-      **hidden_segment_ids** : ``std::span<const std::string>``, read-only
+      **hidden_segment_ids** : ``BorrowedSpan<std::string>``, read-only
          The IDs of the middle segments hidden behind the overflow item, in path
          order; empty when every segment fits. Show them, for example in a menu,
          when :cpp:func:`overflow_activated <gui_forms::BreadcrumbTrail::overflow_activated>` is raised.
@@ -258,7 +258,7 @@ gui_forms::BreadcrumbTrail
       moving the focus. It can only be true while :cpp:member:`editing <gui_forms::BreadcrumbTrail::editing>`; setting it at
       other times keeps it false.
 
-   .. cpp:function:: std::span<const BreadcrumbSegment> segments() const& noexcept
+   .. cpp:function:: BorrowedSpan<BreadcrumbSegment> segments() const& noexcept
 
       The path, from the root to the current location. Empty by default. Each
       :cpp:class:`BreadcrumbSegment <gui_forms::BreadcrumbSegment>` has an ID, text, a description of at most 4096
@@ -270,7 +270,7 @@ gui_forms::BreadcrumbTrail
 
       Sets :cpp:func:`segments <gui_forms::BreadcrumbTrail::segments>`; see the property's description above.
 
-   .. cpp:function:: std::span<const std::string> hidden_segment_ids() const& noexcept
+   .. cpp:function:: BorrowedSpan<std::string> hidden_segment_ids() const& noexcept
 
       The IDs of the middle segments hidden behind the overflow item, in path
       order; empty when every segment fits. Show them, for example in a menu,

@@ -11,13 +11,36 @@
 #include <array>
 #include <cmath>
 #include <memory>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include <stxlib/result.hpp>
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
+
+struct CheckedComboBox::State final {
+    std::shared_ptr<AnchoredOverlayLayer> layer_{};
+    std::shared_ptr<CheckedListBox> list_{};
+    // Paint scratch.
+    std::string paint_text_{};
+};
+
+stxlib::Unique<CheckedComboBox::State> CheckedComboBox::make_state() {
+    stxlib::OperationResult<stxlib::Unique<State>> made = stxlib::Unique<State>::make();
+    if (made.failed()) throw std::bad_alloc();
+    stxlib::Unique<State> state = std::move(made).take_value();
+    return state;
+}
+
+std::shared_ptr<CheckedListBox> CheckedComboBox::drop_down_list() const noexcept {
+    return (*state_).list_;
+}
+
 namespace {
 
 // The field's metrics, in logical units: the drop-down button's width, its
@@ -156,11 +179,12 @@ std::string CheckedComboBox::text() const {
 
 // Stores the check, mirrors it into an open list and raises the change.
 void CheckedComboBox::apply_check(std::size_t item, bool checked) {
+    State& state = *state_;
     if (items_[item].checked == checked) return;
     items_[item].checked = checked;
-    if (list_ && item < (*list_).items.read().size()) {
+    if (state.list_ && item < (*state.list_).items.read().size()) {
         syncing_ = true;
-        (*list_).set_item_checked(item, checked);
+        (*state.list_).set_item_checked(item, checked);
         syncing_ = false;
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -178,28 +202,29 @@ void CheckedComboBox::on_list_check(std::size_t index, CheckState state) {
 // The list is the field's width (at least) and tall enough for
 // max_drop_down_items rows, and a check list of the items in order.
 bool CheckedComboBox::show_drop_down() {
+    State& state = *state_;
     require_mutable();
     Window* const host = attached_window();
     if (dropped_down_ || host == nullptr || items_.empty() || !effectively_enabled()) return false;
     const Control::Ptr retained = shared_from_this();
     const std::string prefix(stable_id().value());
-    list_ = make_control<CheckedListBox>(StableId(prefix + ".list"));
-    (*list_).check_on_click = true;
+    state.list_ = make_control<CheckedListBox>(StableId(prefix + ".list"));
+    (*state.list_).check_on_click = true;
     for (const CheckedComboItem& item : items_) {
-        (*list_).add_item(item.text, item.checked ? CheckState::checked : CheckState::unchecked);
+        (*state.list_).add_item(item.text, item.checked ? CheckState::checked : CheckState::unchecked);
     }
-    (*list_).select_index(0U);
+    (*state.list_).select_index(0U);
     const std::size_t rows = std::min<std::size_t>(items_.size(), max_drop_down_items.read());
-    const double row = (*list_).item_height.read() * effective_text_scale();
+    const double row = (*state.list_).item_height.read() * effective_text_scale();
     AnchoredOverlayPlacement placement{};
     placement.preferred_size = Size{absolute_bounds().width, row * static_cast<double>(rows) + list_frame};
     placement.gap = 1.0;
-    layer_ = make_control<AnchoredOverlayLayer>(StableId(prefix + ".layer"), retained, placement);
-    (*layer_).set_content(list_);
-    overlay_ = (*host).open_overlay(retained, layer_);
-    list_check_ = (*list_).item_check_state_changed().subscribe(
+    state.layer_ = make_control<AnchoredOverlayLayer>(StableId(prefix + ".layer"), retained, placement);
+    (*state.layer_).set_content(state.list_);
+    overlay_ = (*host).open_overlay(retained, state.layer_);
+    list_check_ = (*state.list_).item_check_state_changed().subscribe(
         *this, Delegate<std::size_t, CheckState>::bind<CheckedComboBox, &CheckedComboBox::on_list_check>(*this));
-    dismissal_ = (*layer_).dismiss_requested().subscribe(
+    dismissal_ = (*state.layer_).dismiss_requested().subscribe(
         *this, Delegate<OverlayDismissReason>::bind<CheckedComboBox, &CheckedComboBox::on_dismiss>(*this));
     if (Event<>* revoked = overlay_.closed_event()) {
         overlay_revoked_ = (*revoked).subscribe(
@@ -207,7 +232,7 @@ bool CheckedComboBox::show_drop_down() {
     }
     dropped_down_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
-    static_cast<void>((*host).request_focus(list_));
+    static_cast<void>((*host).request_focus(state.list_));
     if (!is_alive()) return true;
     publish_change(drop_down_changed_, true);
     return true;
@@ -229,21 +254,22 @@ bool CheckedComboBox::close_drop_down() {
 
 bool CheckedComboBox::focus_within_list() const {
     const Window* const host = window();
-    if (host == nullptr || !layer_) return false;
+    if (host == nullptr || !(*state_).layer_) return false;
     for (Control::Ptr at = (*host).focused_control(); at; at = (*at).parent()) {
-        if (at.get() == layer_.get()) return true;
+        if (at.get() == (*state_).layer_.get()) return true;
     }
     return false;
 }
 
 void CheckedComboBox::release_overlay() noexcept {
+    State& state = *state_;
     list_check_.disconnect();
     dismissal_.disconnect();
     overlay_revoked_.disconnect();
-    if (layer_) (*layer_).clear_content();
+    if (state.layer_) (*state.layer_).clear_content();
     overlay_.disconnect();
-    list_.reset();
-    layer_.reset();
+    state.list_.reset();
+    state.layer_.reset();
 }
 
 void CheckedComboBox::on_dismiss(OverlayDismissReason) {
@@ -252,14 +278,15 @@ void CheckedComboBox::on_dismiss(OverlayDismissReason) {
 
 // The window closed the overlay itself (as when it closes).
 void CheckedComboBox::on_overlay_revoked() {
+    State& state = *state_;
     if (!dropped_down_) return;
     dropped_down_ = false;
     list_check_.disconnect();
     dismissal_.disconnect();
     overlay_revoked_.disconnect();
-    if (layer_) (*layer_).clear_content();
-    list_.reset();
-    layer_.reset();
+    if (state.layer_) (*state.layer_).clear_content();
+    state.list_.reset();
+    state.layer_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, false);
 }
@@ -308,6 +335,7 @@ Size CheckedComboBox::measure(Size available) {
 // The text is the checked items' texts, or the placeholder in the muted
 // tone while none is checked.
 void CheckedComboBox::on_paint(Painter& painter, Rect) {
+    State& state = *state_;
     const Placement placed = placement();
     const AnatomyStateSet states = anatomy_states();
     PartPaint well{.role = PartRole::well, .bounds = placed.well, .states = states,
@@ -320,14 +348,14 @@ void CheckedComboBox::on_paint(Painter& painter, Rect) {
                          .family = ControlVisualRole::choice};
     disclosure.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
     paint_part(painter, *this, disclosure);
-    paint_text_ = text();
+    state.paint_text_ = text();
     PartPaint content{.role = PartRole::content, .bounds = placed.label, .states = states,
                       .family = ControlVisualRole::editor};
-    if (paint_text_.empty()) {
-        paint_text_ = placeholder_text.read();
+    if (state.paint_text_.empty()) {
+        state.paint_text_ = placeholder_text.read();
         content.tone = PartTextTone::secondary;
     }
-    content.text = lend_paint_text(paint_text_);
+    content.text = lend_paint_text(state.paint_text_);
     content.font = field_font();
     paint_part(painter, *this, content);
     PartPaint ring{.role = PartRole::focus, .bounds = placed.well, .states = states,
@@ -404,7 +432,7 @@ SemanticDescriptor CheckedComboBox::semantic_descriptor() const {
         accessible_description.read().empty() ? placeholder_text.read() : accessible_description.read();
     descriptor.value = text();
     descriptor.has_popup = true;
-    if (list_) descriptor.controlled_panel = std::string((*list_).stable_id().value());
+    if ((*state_).list_) descriptor.controlled_panel = std::string((*(*state_).list_).stable_id().value());
     if (dropped_down_) descriptor.states |= SemanticState::expanded;
     descriptor.states |= SemanticState::read_only;
     descriptor.actions = {SemanticAction::focus, dropped_down_ ? SemanticAction::collapse : SemanticAction::expand};

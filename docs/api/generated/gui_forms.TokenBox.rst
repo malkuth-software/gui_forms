@@ -60,7 +60,7 @@ gui_forms::TokenBox
       **auto_complete_custom_source** : ``std::shared_ptr<AutoCompleteStringCollection>``
          The editor's custom source collection, shared as :cpp:class:`TextBox <gui_forms::TextBox>`'s is.
 
-      **tokens** : ``std::span<const Token>``, read-only
+      **tokens** : ``BorrowedSpan<Token>``, read-only
          The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
 
       **selected_token** : ``stxlib::Optional<TokenId>``, default none, read-only
@@ -208,7 +208,7 @@ gui_forms::TokenBox
 
       The editor's custom source collection, shared as :cpp:class:`TextBox <gui_forms::TextBox>`'s is.
 
-   .. cpp:function:: std::span<const Token> tokens() const& noexcept
+   .. cpp:function:: BorrowedSpan<Token> tokens() const& noexcept
 
       The tokens, first to last, each a :cpp:class:`Token <gui_forms::Token>` with its :cpp:class:`TokenId <gui_forms::TokenId>` and text.
 

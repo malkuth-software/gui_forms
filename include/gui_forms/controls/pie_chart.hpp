@@ -37,6 +37,7 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 
 namespace gui_forms {
 
@@ -188,16 +189,12 @@ private:
     // The selected slice's legend entry, or the plot without one.
     [[nodiscard]] Rect focus_bounds(const Layout& placed) const;
     [[nodiscard]] Color slice_color(std::size_t slice) const;
-    // The share as text: "42%", or "0.5%" under one percent.
-    [[nodiscard]] std::string share_text(std::size_t slice) const;
     // Fills wedge_ with the slice's outline, the arcs at about one segment
     // per three device pixels.
     void build_wedge(const Layout& placed, std::size_t slice, double scale);
     void paint_slice(Painter& painter, const Layout& placed, std::size_t slice, double scale);
     void choose_slice(std::size_t slice);
     void activate_slice(std::size_t slice);
-    void publish_selection(stxlib::Optional<std::string> previous);
-    [[nodiscard]] stxlib::Optional<std::string> selected_copy() const;
     void recompute_total() noexcept;
 
     detail::LendingVector<PieSlice> slices_{};
@@ -205,9 +202,10 @@ private:
     stxlib::Optional<std::size_t> selected_{};
     stxlib::Optional<std::size_t> hot_{};
     bool focused_{};
-    // Paint scratch, reused for every slice of a paint pass.
-    std::vector<Point> wedge_{};
-    std::string paint_text_{};
+    // The private state, defined in pie_chart.cpp.
+    struct State;
+    [[nodiscard]] static stxlib::Unique<State> make_state();
+    stxlib::Unique<State> state_{make_state()};
     Event<const PieSliceSelection&> selection_changed_{};
     Event<const PieSliceActivation&> slice_activated_{};
     // property_codemod begin PieChart (tools/property_families/pie_chart.json; generated, do not edit)

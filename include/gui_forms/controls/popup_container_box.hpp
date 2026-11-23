@@ -33,6 +33,8 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
 
 class AnchoredOverlayLayer;
@@ -85,7 +87,7 @@ public:
     // Raised after the popup closes.
     [[nodiscard]] Event<const PopupClosed&>& popup_closed() noexcept { return popup_closed_; }
     // Raised after the text changes, with the new text.
-    [[nodiscard]] Event<const std::string&>& text_changed() noexcept { return text_changed_; }
+    [[nodiscard]] Event<const std::string&>& text_changed() noexcept;
 
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -133,14 +135,16 @@ private:
     void release_overlay() noexcept;
 
     Control::Ptr content_{};
-    std::shared_ptr<AnchoredOverlayLayer> layer_{};
+    // The private state, defined in popup_container_box.cpp.
+    struct State;
+    [[nodiscard]] static stxlib::Unique<State> make_state();
+    stxlib::Unique<State> state_{make_state()};
     OverlayToken overlay_{};
     SubscriptionToken overlay_revoked_{};
     SubscriptionToken dismissal_{};
     Size popup_size_{};
     Event<> popup_opened_;
     Event<const PopupClosed&> popup_closed_;
-    Event<const std::string&> text_changed_;
     bool shown_{};
     bool hot_{};
     bool focused_{};

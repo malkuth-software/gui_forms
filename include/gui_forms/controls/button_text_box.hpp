@@ -36,6 +36,7 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 
 namespace gui_forms {
 
@@ -91,7 +92,7 @@ public:
     void initialize_control_tree();
 
     // The inner editor, owned as a child.
-    [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept { return editor_; }
+    [[nodiscard]] std::shared_ptr<TextBox> editor() const noexcept;
     // Focus on the field goes to its editor (null without one). Defined in
     // the source: TextBox is only declared here.
     [[nodiscard]] Ptr focus_target() const override;
@@ -120,7 +121,7 @@ public:
     bool perform_button_click(std::string_view button_id);
 
     // Raised after the text changes, with the new text.
-    [[nodiscard]] Event<const std::string&>& text_changed() noexcept { return text_changed_; }
+    [[nodiscard]] Event<const std::string&>& text_changed() noexcept;
     // Raised when a button acts.
     [[nodiscard]] Event<const EditButtonClick&>& button_clicked() noexcept { return button_clicked_; }
 
@@ -191,21 +192,14 @@ protected:
     void on_detached_from_window() noexcept override;
 
 private:
+    // Defined in button_text_box.cpp.
     // Where everything sits for a size: the well, the editor's slot, and
     // each button's face (empty for a hidden one), by button position.
-    struct Placement final {
-        Rect well{};
-        Rect content{};
-        std::vector<Rect> faces{};
-    };
+    struct Placement;
     [[nodiscard]] Placement placement(Size size) const;
     [[nodiscard]] double face_width(const EditButton& button) const;
-    // The visible buttons' positions, leading ones first: what the item
-    // system and the semantic children list.
-    [[nodiscard]] std::vector<std::size_t> visible_order() const;
     [[nodiscard]] ButtonParts button_parts(const Placement& placed, std::size_t button) const;
     [[nodiscard]] AnatomyStateSet button_states(std::size_t button) const;
-    [[nodiscard]] std::string_view button_name(const EditButton& button) const noexcept;
     [[nodiscard]] bool button_acts(std::size_t button) const noexcept;
     // The button F4 and Alt+Down act on, if any.
     [[nodiscard]] stxlib::Optional<std::size_t> default_button() const;
@@ -216,19 +210,19 @@ private:
     void editor_text_changed(const std::string& value);
     void editor_focus_changed(bool focused);
 
-    std::shared_ptr<TextBox> editor_{};
+    // The private state, defined in button_text_box.cpp.
+    struct State;
+    [[nodiscard]] static stxlib::Unique<State> make_state();
+    stxlib::Unique<State> state_{make_state()};
     SubscriptionToken editor_text_;
     SubscriptionToken editor_focus_;
     detail::LendingVector<EditButton> buttons_{};
-    Event<const std::string&> text_changed_;
     Event<const EditButtonClick&> button_clicked_;
     // The editor's natural height from the last measure.
     double editor_height_{};
     stxlib::Optional<std::size_t> hot_button_{};
     stxlib::Optional<std::size_t> pressed_button_{};
     bool editor_focused_{};
-    // Paint scratch.
-    std::string paint_text_{};
     // property_codemod begin ButtonTextBox (tools/property_families/button_text_box.json; generated, do not edit)
 public:
     // ButtonTextBox's property table: Control's entries, then its own.

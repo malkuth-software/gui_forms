@@ -11,13 +11,43 @@
 #include <array>
 #include <cmath>
 #include <memory>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <unordered_set>
 #include <utility>
 #include <vector>
 
+#include <stxlib/result.hpp>
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
+
+// Where everything sits for a size: the well, the editor's slot, and
+// each button's face (empty for a hidden one), by button position.
+struct ButtonTextBox::Placement final {
+    Rect well{};
+    Rect content{};
+    std::vector<Rect> faces{};
+};
+
+struct ButtonTextBox::State final {
+    std::shared_ptr<TextBox> editor_{};
+    Event<const std::string&> text_changed_;
+    // Paint scratch.
+    std::string paint_text_{};
+    // The visible buttons' positions, leading ones first: what the item
+    // system and the semantic children list.
+    [[nodiscard]] static std::vector<std::size_t> visible_order(const ButtonTextBox& self);
+};
+
+stxlib::Unique<ButtonTextBox::State> ButtonTextBox::make_state() {
+    stxlib::OperationResult<stxlib::Unique<State>> made = stxlib::Unique<State>::make();
+    if (made.failed()) throw std::bad_alloc();
+    stxlib::Unique<State> state = std::move(made).take_value();
+    return state;
+}
+
 namespace {
 
 // The field's metrics, in logical units: the well's frame (the borderless
@@ -142,6 +172,14 @@ ButtonTextBox::ButtonTextBox(StableId stable_id) : Control(std::move(stable_id))
     cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }
 
+std::shared_ptr<TextBox> ButtonTextBox::editor() const noexcept {
+    return (*state_).editor_;
+}
+
+Event<const std::string&>& ButtonTextBox::text_changed() noexcept {
+    return (*state_).text_changed_;
+}
+
 ButtonTextBox::~ButtonTextBox() {
     editor_text_.disconnect();
     editor_focus_.disconnect();
@@ -149,19 +187,20 @@ ButtonTextBox::~ButtonTextBox() {
 
 // The editor draws no border of its own (the field's well is the ground).
 void ButtonTextBox::initialize_control_tree() {
-    if (editor_) return;
+    State& state = *state_;
+    if (state.editor_) return;
     std::string id(stable_id().value());
     id += ".editor";
-    editor_ = make_control<TextBox>(StableId(id));
-    (*editor_).border_style = BorderStyle::none;
-    add_child(editor_);
-    editor_text_ = (*editor_).text_changed().subscribe(
+    state.editor_ = make_control<TextBox>(StableId(id));
+    (*state.editor_).border_style = BorderStyle::none;
+    add_child(state.editor_);
+    editor_text_ = (*state.editor_).text_changed().subscribe(
         *this, Delegate<const std::string&>::bind<ButtonTextBox, &ButtonTextBox::editor_text_changed>(*this));
-    editor_focus_ = (*editor_).focus_observed().subscribe(
+    editor_focus_ = (*state.editor_).focus_observed().subscribe(
         *this, Delegate<bool>::bind<ButtonTextBox, &ButtonTextBox::editor_focus_changed>(*this));
 }
 
-Control::Ptr ButtonTextBox::focus_target() const { return editor_; }
+Control::Ptr ButtonTextBox::focus_target() const { return (*state_).editor_; }
 
 // -- buttons ----------------------------------------------------------------------------------------
 
@@ -256,21 +295,25 @@ void ButtonTextBox::raise_click(std::size_t button) {
     publish_change(button_clicked_, click);
 }
 
-std::vector<std::size_t> ButtonTextBox::visible_order() const {
+std::vector<std::size_t> ButtonTextBox::State::visible_order(const ButtonTextBox& self) {
     std::vector<std::size_t> order;
-    order.reserve(buttons_.size());
+    order.reserve(self.buttons_.size());
     for (const EditButtonPlacement end : {EditButtonPlacement::leading, EditButtonPlacement::trailing}) {
-        for (std::size_t button = 0; button < buttons_.size(); ++button) {
-            if (buttons_[button].visible && buttons_[button].placement == end) order.push_back(button);
+        for (std::size_t button = 0; button < self.buttons_.size(); ++button) {
+            if (self.buttons_[button].visible && self.buttons_[button].placement == end) order.push_back(button);
         }
     }
     return order;
 }
 
-std::string_view ButtonTextBox::button_name(const EditButton& button) const noexcept {
+namespace {
+
+std::string_view button_name(const EditButton& button) noexcept {
     if (!button.caption.empty()) return button.caption;
     return kind_name(button.kind);
 }
+
+} // namespace
 
 // -- editor -----------------------------------------------------------------------------------------
 
@@ -305,7 +348,7 @@ double ButtonTextBox::face_width(const EditButton& button) const {
     const Rect client = client_rectangle();
     const double side = std::max(0.0, client.height - (well_frame + face_inset) * 2.0);
     if (button.kind != EditButtonKind::caption) return side;
-    const FontSpec font = editor_ ? text_font((*editor_).font.read()) : effective_font(FontSpec{});
+    const FontSpec font = (*state_).editor_ ? text_font((*(*state_).editor_).font.read()) : effective_font(FontSpec{});
     const ResolvedTextLayout metrics = resolve_text_layout_utf8(button.caption, font);
     const double width = std::max(side, std::ceil(metrics.logical_size.width) + caption_padding * 2.0);
     return width;
@@ -363,7 +406,7 @@ ButtonTextBox::Placement ButtonTextBox::placement(Size size) const {
 // The natural size is natural_width wide and tall enough for the editor's
 // line; a requested size wins on either axis.
 Size ButtonTextBox::measure(Size available) {
-    const Control::Ptr retained = editor_;
+    const Control::Ptr retained = (*state_).editor_;
     double editor_height = 0.0;
     if (retained && is_current_layout_child(retained)) {
         const Size desired = (*retained).measure(available);
@@ -384,7 +427,7 @@ Size ButtonTextBox::measure(Size available) {
 // it, so the editor is measured again here.
 void ButtonTextBox::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
-    const Control::Ptr retained = editor_;
+    const Control::Ptr retained = (*state_).editor_;
     if (!retained || !is_current_layout_child(retained)) return;
     const Rect client = client_rectangle();
     const Size desired = (*retained).measure(Size{client.width, client.height});
@@ -431,13 +474,14 @@ AnatomyStateSet ButtonTextBox::button_states(std::size_t button) const {
 // only when hot or pressed by today's recipe) with its mark or caption,
 // then the focus cue.
 void ButtonTextBox::on_paint(Painter& painter, Rect) {
+    State& state = *state_;
     const Rect client = client_rectangle();
     const Placement placed = placement(Size{client.width, client.height});
     const AnatomyStateSet states = anatomy_states();
     PartPaint well{.role = PartRole::well, .bounds = placed.well, .states = states,
                    .family = ControlVisualRole::editor};
     paint_part(painter, *this, well);
-    for (const std::size_t button : visible_order()) {
+    for (const std::size_t button : State::visible_order(*this)) {
         const ButtonParts parts = button_parts(placed, button);
         PartPaint face{.role = PartRole::face, .bounds = parts.button.bounds, .states = parts.button.states,
                        .family = ControlVisualRole::button};
@@ -453,9 +497,9 @@ void ButtonTextBox::on_paint(Painter& painter, Rect) {
             PartPaint label{.role = PartRole::label, .bounds = parts.button_label.bounds,
                             .states = parts.button_label.states, .family = ControlVisualRole::button};
             label.alignment = PartTextAlignment::center;
-            label.font = editor_ ? text_font((*editor_).font.read()) : effective_font(FontSpec{});
-            paint_text_ = buttons_[button].caption;
-            label.text = lend_paint_text(paint_text_);
+            label.font = state.editor_ ? text_font((*state.editor_).font.read()) : effective_font(FontSpec{});
+            state.paint_text_ = buttons_[button].caption;
+            label.text = lend_paint_text(state.paint_text_);
             paint_part(painter, *this, label);
         }
     }
@@ -494,7 +538,7 @@ void ButtonTextBox::on_mouse_down(MouseEventArgs& arguments) {
     if (eligible_for_input() && arguments.button == PointerButton::primary) {
         const stxlib::Optional<std::size_t> over = button_at_window(arguments.window_position);
         Window* const host = window();
-        if (host != nullptr && editor_) static_cast<void>((*host).request_focus(editor_));
+        if (host != nullptr && (*state_).editor_) static_cast<void>((*host).request_focus((*state_).editor_));
         if (!is_alive()) return;
         arguments.handled = true;
         if (over.present() && button_acts(*over.value())) {
@@ -550,7 +594,7 @@ SemanticDescriptor ButtonTextBox::semantic_descriptor() const {
     descriptor.description =
         accessible_description.read().empty() ? placeholder_text.read() : accessible_description.read();
     descriptor.value = text.read();
-    if (editor_) descriptor.text_selection = (*editor_).semantic_descriptor().text_selection;
+    if ((*state_).editor_) descriptor.text_selection = (*(*state_).editor_).semantic_descriptor().text_selection;
     if (read_only.read()) descriptor.states |= SemanticState::read_only;
     descriptor.actions = {SemanticAction::focus, SemanticAction::set_value};
     descriptor.exposed = true;
@@ -562,7 +606,7 @@ SemanticDescriptor ButtonTextBox::semantic_descriptor() const {
 
 std::vector<SemanticNode> ButtonTextBox::semantic_virtual_children() const {
     std::vector<SemanticNode> children{};
-    const std::vector<std::size_t> order = visible_order();
+    const std::vector<std::size_t> order = State::visible_order(*this);
     children.reserve(order.size());
     const Rect client = client_rectangle();
     const Placement placed = placement(Size{client.width, client.height});
@@ -598,26 +642,27 @@ bool ButtonTextBox::on_semantic_child_action(std::string_view id, SemanticAction
 // The text requests of the field's node reach the editor, whose text is
 // the published value.
 SemanticTextResult ButtonTextBox::on_semantic_text_layout(SemanticTextLayout& layout) {
-    if (!editor_) return SemanticTextResult::no_text;
-    const SemanticTextResult result = (*editor_).on_semantic_text_layout(layout);
+    if (!(*state_).editor_) return SemanticTextResult::no_text;
+    const SemanticTextResult result = (*(*state_).editor_).on_semantic_text_layout(layout);
     return result;
 }
 
 SemanticTextResult ButtonTextBox::on_set_semantic_text_selection(SemanticTextSelection selection) {
-    if (!editor_) return SemanticTextResult::no_text;
-    const SemanticTextResult result = (*editor_).on_set_semantic_text_selection(selection);
+    if (!(*state_).editor_) return SemanticTextResult::no_text;
+    const SemanticTextResult result = (*(*state_).editor_).on_set_semantic_text_selection(selection);
     return result;
 }
 
 // Focus goes to the editor; a set value is written as the text, which the
 // editor validates, and is refused while read only.
 bool ButtonTextBox::on_semantic_action(SemanticAction action, std::string_view value) {
+    State& state = *state_;
     Window* const host = window();
-    if (action == SemanticAction::focus && editor_ && host != nullptr) {
-        const bool focused = (*host).request_focus(editor_);
+    if (action == SemanticAction::focus && state.editor_ && host != nullptr) {
+        const bool focused = (*host).request_focus(state.editor_);
         return focused;
     }
-    if (action == SemanticAction::set_value && editor_ && eligible_for_input() && !read_only.read()) {
+    if (action == SemanticAction::set_value && state.editor_ && eligible_for_input() && !read_only.read()) {
         if (!validate_utf8(value).valid()) return false;
         text = std::string(value);
         return true;
@@ -658,30 +703,30 @@ ButtonTextBox::Parts ButtonTextBox::parts() const {
 }
 
 std::size_t ButtonTextBox::realized_item_count() const {
-    return visible_order().size();
+    return State::visible_order(*this).size();
 }
 
 std::string ButtonTextBox::realized_item_stable_id(std::size_t item) const {
-    const std::vector<std::size_t> order = visible_order();
+    const std::vector<std::size_t> order = State::visible_order(*this);
     if (item >= order.size()) throw std::out_of_range("ButtonTextBox realized item is past the visible buttons");
     return buttons_[order[item]].stable_id;
 }
 
 AnatomyStateSet ButtonTextBox::realized_item_anatomy_states(std::size_t item) const {
-    const std::vector<std::size_t> order = visible_order();
+    const std::vector<std::size_t> order = State::visible_order(*this);
     if (item >= order.size()) throw std::out_of_range("ButtonTextBox realized item is past the visible buttons");
     return button_states(order[item]);
 }
 
 ItemSystemIndex ButtonTextBox::publish_realized_item_system(std::size_t item) const {
-    if (item >= visible_order().size()) {
+    if (item >= State::visible_order(*this).size()) {
         throw std::out_of_range("ButtonTextBox realized item is past the visible buttons");
     }
     return button_system;
 }
 
 void ButtonTextBox::publish_realized_item_geometry(std::size_t item, std::span<PartGeometry> geometry) const {
-    const std::vector<std::size_t> order = visible_order();
+    const std::vector<std::size_t> order = State::visible_order(*this);
     if (item >= order.size()) throw std::out_of_range("ButtonTextBox realized item is past the visible buttons");
     const Rect client = client_rectangle();
     const Placement placed = placement(Size{client.width, client.height});
@@ -691,7 +736,7 @@ void ButtonTextBox::publish_realized_item_geometry(std::size_t item, std::span<P
 }
 
 std::vector<ButtonTextBox::RealizedButton> ButtonTextBox::realized_buttons() const {
-    const std::vector<std::size_t> order = visible_order();
+    const std::vector<std::size_t> order = State::visible_order(*this);
     std::vector<RealizedButton> records;
     records.reserve(order.size());
     for (std::size_t item = 0; item < order.size(); ++item) {
@@ -719,39 +764,39 @@ void ButtonTextBox::append_interactions(std::vector<InteractionDeclaration>& int
 // empty and a write is refused.
 void ButtonTextBox::write_view(const decltype(text)&, std::string incoming) {
     require_mutable();
-    if (!editor_) throw std::logic_error("ButtonTextBox has no editor yet");
-    (*editor_).text = std::move(incoming);
+    if (!(*state_).editor_) throw std::logic_error("ButtonTextBox has no editor yet");
+    (*(*state_).editor_).text = std::move(incoming);
 }
 
 std::string ButtonTextBox::read_view(const decltype(text)&) const {
-    if (!editor_) return std::string{};
-    std::string value = (*editor_).text.read();
+    if (!(*state_).editor_) return std::string{};
+    std::string value = (*(*state_).editor_).text.read();
     return value;
 }
 
 void ButtonTextBox::write_view(const decltype(placeholder_text)&, std::string incoming) {
     require_mutable();
-    if (!editor_) throw std::logic_error("ButtonTextBox has no editor yet");
-    (*editor_).placeholder_text = std::move(incoming);
+    if (!(*state_).editor_) throw std::logic_error("ButtonTextBox has no editor yet");
+    (*(*state_).editor_).placeholder_text = std::move(incoming);
     invalidate(Dirty::semantics);
 }
 
 std::string ButtonTextBox::read_view(const decltype(placeholder_text)&) const {
-    if (!editor_) return std::string{};
-    std::string value = (*editor_).placeholder_text.read();
+    if (!(*state_).editor_) return std::string{};
+    std::string value = (*(*state_).editor_).placeholder_text.read();
     return value;
 }
 
 void ButtonTextBox::write_view(const decltype(read_only)&, bool incoming) {
     require_mutable();
-    if (!editor_) throw std::logic_error("ButtonTextBox has no editor yet");
-    (*editor_).read_only = incoming;
+    if (!(*state_).editor_) throw std::logic_error("ButtonTextBox has no editor yet");
+    (*(*state_).editor_).read_only = incoming;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 bool ButtonTextBox::read_view(const decltype(read_only)&) const {
-    if (!editor_) return false;
-    const bool value = (*editor_).read_only.read();
+    if (!(*state_).editor_) return false;
+    const bool value = (*(*state_).editor_).read_only.read();
     return value;
 }
 
@@ -847,7 +892,7 @@ std::span<const PropertyEntry> ButtonTextBox::property_table() const noexcept {
 }
 
 void ButtonTextBox::on_text_changed() {
-    publish_change(text_changed_, text.read());
+    publish_change((*state_).text_changed_, text.read());
 }
 
 // property_codemod end ButtonTextBox

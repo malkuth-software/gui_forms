@@ -7,10 +7,27 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
 #include <array>
+#include <new>
 #include <stdexcept>
 #include <utility>
 
+#include <stxlib/result.hpp>
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
+
+struct ToastNotification::State final {
+    std::weak_ptr<detail::WindowLifetime> window_lifetime_;
+    static void require_ui(const ToastNotification& self, std::string_view operation);
+};
+
+stxlib::Unique<ToastNotification::State> ToastNotification::make_state() {
+    stxlib::OperationResult<stxlib::Unique<State>> made = stxlib::Unique<State>::make();
+    if (made.failed()) throw std::bad_alloc();
+    stxlib::Unique<State> state = std::move(made).take_value();
+    return state;
+}
+
 namespace {
 
 // Valid UTF-8 without NUL of at most `maximum` bytes, as the host takes it.
@@ -22,8 +39,8 @@ bool notification_text_valid(std::string_view text, std::size_t maximum) {
 
 } // namespace
 
-ToastNotification::ToastNotification(Window& window)
-    : window_lifetime_(detail::SurfaceLifetimeAccess::observe(window)) {
+ToastNotification::ToastNotification(Window& window) {
+    (*state_).window_lifetime_ = detail::SurfaceLifetimeAccess::observe(window);
     window.verify_access("ToastNotification construction");
 }
 
@@ -32,7 +49,7 @@ ToastNotification::~ToastNotification() {
 }
 
 Window* ToastNotification::bound_window() const noexcept {
-    const std::shared_ptr<detail::WindowLifetime> lifetime = window_lifetime_.lock();
+    const std::shared_ptr<detail::WindowLifetime> lifetime = (*state_).window_lifetime_.lock();
     return lifetime ? (*lifetime).window : nullptr;
 }
 
@@ -41,9 +58,9 @@ HostServices* ToastNotification::current_services() const noexcept {
     return window != nullptr ? (*window).host_services() : nullptr;
 }
 
-void ToastNotification::require_ui(std::string_view operation) const {
-    if (!is_alive()) throw std::logic_error("GUI.Forms cannot use a disposed ToastNotification");
-    Window* const window = bound_window();
+void ToastNotification::State::require_ui(const ToastNotification& self, std::string_view operation) {
+    if (!self.is_alive()) throw std::logic_error("GUI.Forms cannot use a disposed ToastNotification");
+    Window* const window = self.bound_window();
     if (window == nullptr) throw std::logic_error("GUI.Forms cannot use a ToastNotification after Window shutdown");
     (*window).verify_access(operation);
 }
@@ -70,7 +87,7 @@ void ToastNotification::forget_notification() noexcept {
 }
 
 HostServiceStatus ToastNotification::show() {
-    require_ui("ToastNotification show");
+    State::require_ui(*this, "ToastNotification show");
     HostServices* const services = current_services();
     if (services == nullptr) {
         status_ = {HostServiceError::unsupported};
@@ -101,7 +118,7 @@ HostServiceStatus ToastNotification::show() {
 }
 
 HostServiceStatus ToastNotification::hide() {
-    require_ui("ToastNotification hide");
+    State::require_ui(*this, "ToastNotification hide");
     if (!shown()) {
         forget_notification();
         status_ = {};
@@ -138,7 +155,7 @@ void ToastNotification::verify_dispose_thread() {
 
 void ToastNotification::on_dispose() noexcept {
     forget_notification();
-    window_lifetime_.reset();
+    (*state_).window_lifetime_.reset();
 }
 
 namespace {
@@ -162,7 +179,7 @@ void ToastNotification::append_interactions(std::vector<InteractionDeclaration>&
 // property_codemod begin ToastNotification (tools/property_families/toast_notification.json; generated, do not edit)
 
 void ToastNotification::prepare_write(const decltype(title)&, std::string& incoming) {
-    require_ui("ToastNotification property mutation");
+    State::require_ui(*this, "ToastNotification property mutation");
     if (!notification_text_valid(incoming, HostServices::maximum_desktop_notification_title_bytes)) {
         throw std::invalid_argument("ToastNotification title must be UTF-8 without NUL of at most 255 bytes");
     }
@@ -171,7 +188,7 @@ void ToastNotification::prepare_write(const decltype(title)&, std::string& incom
 void ToastNotification::written(const decltype(title)&) {}
 
 void ToastNotification::prepare_write(const decltype(text)&, std::string& incoming) {
-    require_ui("ToastNotification property mutation");
+    State::require_ui(*this, "ToastNotification property mutation");
     if (!notification_text_valid(incoming, HostServices::maximum_desktop_notification_text_bytes)) {
         throw std::invalid_argument("ToastNotification text must be UTF-8 without NUL of at most 1023 bytes");
     }
@@ -180,7 +197,7 @@ void ToastNotification::prepare_write(const decltype(text)&, std::string& incomi
 void ToastNotification::written(const decltype(text)&) {}
 
 void ToastNotification::prepare_write(const decltype(urgency)&, HostDesktopNotificationUrgency& incoming) {
-    require_ui("ToastNotification property mutation");
+    State::require_ui(*this, "ToastNotification property mutation");
     if (incoming != HostDesktopNotificationUrgency::low && incoming != HostDesktopNotificationUrgency::normal &&
         incoming != HostDesktopNotificationUrgency::critical) {
         throw std::invalid_argument("ToastNotification urgency is outside HostDesktopNotificationUrgency");
@@ -190,7 +207,7 @@ void ToastNotification::prepare_write(const decltype(urgency)&, HostDesktopNotif
 void ToastNotification::written(const decltype(urgency)&) {}
 
 void ToastNotification::prepare_write(const decltype(silent)&, bool&) {
-    require_ui("ToastNotification property mutation");
+    State::require_ui(*this, "ToastNotification property mutation");
 }
 
 void ToastNotification::written(const decltype(silent)&) {}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
@@ -41,16 +42,12 @@ public:
     ~SaveFileDialog() override;
 
     // The host filters parsed from filter.
-    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const& noexcept {
-        return std::span<const HostFileDialogFilter>(filters_.data(), filters_.size());
-    }
-    std::span<const HostFileDialogFilter> filters() const&& = delete;
+    [[nodiscard]] BorrowedSpan<HostFileDialogFilter> filters() const& noexcept { return detail::lend_view(filters_); }
+    BorrowedSpan<HostFileDialogFilter> filters() const&& = delete;
 
     // The chosen path as a list of one, or none (Windows Forms' FileNames).
-    [[nodiscard]] std::span<const std::string> file_names() const& noexcept {
-        return std::span<const std::string>(file_names_.data(), file_names_.size());
-    }
-    std::span<const std::string> file_names() const&& = delete;
+    [[nodiscard]] BorrowedSpan<std::string> file_names() const& noexcept { return detail::lend_view(file_names_); }
+    BorrowedSpan<std::string> file_names() const&& = delete;
 
     // The host's answer to the last show_dialog.
     [[nodiscard]] HostServiceStatus status() const noexcept { return status_; }
@@ -83,8 +80,8 @@ private:
     [[nodiscard]] HostSaveFileDialogRequest request() const;
     [[nodiscard]] std::string_view added_extension(const stxlib::Optional<std::size_t>& chosen_filter) const noexcept;
 
-    std::vector<HostFileDialogFilter> filters_{};
-    std::vector<std::string> file_names_{};
+    detail::LendingVector<HostFileDialogFilter> filters_{};
+    detail::LendingVector<std::string> file_names_{};
     HostServiceStatus status_{};
     bool showing_{};
     std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};

@@ -32,6 +32,7 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 
 namespace gui_forms {
 
@@ -124,7 +125,7 @@ public:
     [[nodiscard]] Parts parts() const;
 
     // The open list, or null while it is closed.
-    [[nodiscard]] std::shared_ptr<CheckedListBox> drop_down_list() const noexcept { return list_; }
+    [[nodiscard]] std::shared_ptr<CheckedListBox> drop_down_list() const noexcept;
 
 protected:
     void on_mouse_down(MouseEventArgs& arguments) override;
@@ -152,16 +153,16 @@ private:
     void release_overlay() noexcept;
 
     detail::LendingVector<CheckedComboItem> items_{};
-    std::shared_ptr<AnchoredOverlayLayer> layer_{};
-    std::shared_ptr<CheckedListBox> list_{};
+    // The private state, defined in checked_combo_box.cpp.
+    struct State;
+    [[nodiscard]] static stxlib::Unique<State> make_state();
+    stxlib::Unique<State> state_{make_state()};
     OverlayToken overlay_{};
     SubscriptionToken overlay_revoked_{};
     SubscriptionToken dismissal_{};
     SubscriptionToken list_check_{};
     Event<const CheckedComboItemChange&> item_check_changed_;
     Event<bool> drop_down_changed_;
-    // Paint scratch.
-    std::string paint_text_{};
     bool dropped_down_{};
     bool hot_{};
     bool focused_{};

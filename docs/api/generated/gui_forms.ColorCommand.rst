@@ -46,7 +46,7 @@ gui_forms::ColorCommand
          The colour, or none for Automatic. :cpp:func:`set_value <gui_forms::ColorCommand::set_value>` is the program's change:
          it raises :cpp:func:`value_changed <gui_forms::ColorCommand::value_changed>` when the value differs and invokes nothing.
 
-      **recent_colors** : ``std::span<const Color>``, read-only
+      **recent_colors** : ``BorrowedSpan<Color>``, read-only
          Recently committed colours, most recent first, without repeats, at most
          ``ColorCommand::maximum_recent_colors`` (10).
 
@@ -124,7 +124,7 @@ gui_forms::ColorCommand
 
       Sets :cpp:func:`value <gui_forms::ColorCommand::value>`; see the property's description above.
 
-   .. cpp:function:: std::span<const Color> recent_colors() const& noexcept
+   .. cpp:function:: BorrowedSpan<Color> recent_colors() const& noexcept
 
       Recently committed colours, most recent first, without repeats, at most
       ``ColorCommand::maximum_recent_colors`` (10).
