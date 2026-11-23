@@ -78,7 +78,7 @@ gui_forms::OpenFileDialog
          Whether the dialog accepts only a name in a folder that exists (Windows
          Forms' ``CheckPathExists``). macOS's panel always requires one.
 
-      **filters** : ``std::span<const HostFileDialogFilter>``, read-only
+      **filters** : ``BorrowedSpan<HostFileDialogFilter>``, read-only
          The host filters the filter parsed into, in order.
 
       **file_names** : ``std::span<const std::string>``, read-only
@@ -221,7 +221,7 @@ gui_forms::OpenFileDialog
       Whether the dialog accepts only a name in a folder that exists (Windows
       Forms' ``CheckPathExists``). macOS's panel always requires one.
 
-   .. cpp:function:: std::span<const HostFileDialogFilter> filters() const& noexcept
+   .. cpp:function:: BorrowedSpan<HostFileDialogFilter> filters() const& noexcept
 
       The host filters the filter parsed into, in order.
 

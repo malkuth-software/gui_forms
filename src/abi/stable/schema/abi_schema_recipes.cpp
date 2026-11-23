@@ -294,6 +294,11 @@ void describe_type<NotifyIcon>(SchemaSample& sample) {
 }
 
 template <>
+void describe_type<ToastNotification>(SchemaSample& sample) {
+    describe_window_component<ToastNotification>(sample);
+}
+
+template <>
 void describe_type<OpenFileDialog>(SchemaSample& sample) {
     describe_free_component<OpenFileDialog>(sample);
 }

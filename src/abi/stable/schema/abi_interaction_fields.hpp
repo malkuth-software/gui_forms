@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 206> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -32,6 +32,7 @@ inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
     {"CalloutCloseReason", "value: enumeration"},
     {"Card", ""},
     {"CheckState", "value: enumeration"},
+    {"CheckedComboItemChange", "item_id: text, checked: boolean"},
     {"Color", "value: color"},
     {"CommandInvocation", "command_id: text, source_id: text, sequence: unsigned_integer"},
     {"CommandItem", "id: signed_integer, glyph: text, shortcut.physical_key: unsigned_integer optional, shortcut.modifiers: enumeration optional, command: object"},
@@ -72,6 +73,7 @@ inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
     {"DockNavigatorChoice", "panel: text, list: enumeration"},
     {"DragInteraction", "mode: enumeration, has_candidate: boolean, candidate: unsigned_integer, has_value: boolean, value: number, pointer: point, end: enumeration"},
     {"DropDownButton", ""},
+    {"EditButtonClick", "button_id: text"},
     {"ErrorProviderChange", "target_stable_id: text, error: text"},
     {"FileDialogOk", "file_names: collection, cancel: boolean"},
     {"FocusedControlChange", "previous_id: unsigned_integer, current_id: unsigned_integer, stable_id: text"},
@@ -127,12 +129,15 @@ inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
     {"PageDragStart", "page: text, press_point: point, pointer: point, claimed: boolean"},
     {"PageInvocation", "page: text, cause: enumeration"},
     {"PagePinRequest", "page: text, pinned: boolean, handled: boolean"},
+    {"PieSliceActivation", "slice_id: text"},
+    {"PieSliceSelection", "previous_id: text optional, current_id: text optional"},
     {"PlotHandleMove", "id: unsigned_integer, x: number, y: number, end: enumeration"},
     {"PlotPointPick", "series: unsigned_integer, element: unsigned_integer, x: number, y: number"},
     {"PlotQuery", "present: boolean, x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
     {"PlotViewRanges", "x_minimum: number, x_maximum: number, y_minimum: number, y_maximum: number"},
     {"Point", "value: point"},
     {"PointerEvent", "action: enumeration, button: enumeration, position: point, wheel_delta: point, modifiers: enumeration, pointer_id: unsigned_integer, phase: enumeration, handled: boolean, click_count: unsigned_integer, wheel_unit: enumeration, wheel_phase: enumeration, timestamp_nanoseconds: unsigned_integer"},
+    {"PopupClosed", "reason: enumeration"},
     {"PresentationSettings", "text_scale: number, high_contrast: boolean, reduced_motion: boolean, sound_enabled: boolean, ambient_motion: boolean, reduced_transparency: boolean, double_click_milliseconds: unsigned_integer, double_click_origin: enumeration, pointer.drag_width: number, pointer.drag_height: number, pointer.drag_origin: enumeration, pointer.hover_milliseconds: unsigned_integer, pointer.hover_width: number, pointer.hover_height: number, pointer.hover_origin: enumeration, pointer.native_hover: boolean, pointer.menu_show_milliseconds: unsigned_integer, pointer.menu_show_origin: enumeration, caret.blink_milliseconds: unsigned_integer, caret.origin: enumeration, colour_scheme: enumeration"},
     {"PreviewKeyDownEventArgs", "key_code: unsigned_integer, physical_key: unsigned_integer, modifiers: enumeration, repeat: boolean, is_input_key: boolean"},
     {"PropertyEditorInputError", "attempted_value: text, message: text"},
@@ -169,7 +174,7 @@ inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
     {"TabControlEvent", "page: object, index: unsigned_integer, action: enumeration"},
     {"TabSelectionChange", "old_index: unsigned_integer optional, new_index: unsigned_integer optional"},
     {"TaskDialogButtonClick", "button_id: text, keep_open: boolean"},
-    {"TaskDialogResult", "button_id: text, verification_checked: boolean, radio_button_id: text"},
+    {"TaskDialogResult", "button_id: text, verification_checked: boolean, radio_button_id: text, input_text: text"},
     {"TextSelection", "anchor: unsigned_integer, caret: unsigned_integer"},
     {"Theme", ""},
     {"ThemeCompileResult", ""},
@@ -181,6 +186,7 @@ inline constexpr std::array<InteractionFieldsEntry, 200> interaction_fields{{
     {"ToolTipEvent", "target_stable_id: text, item_id: text, text: text, shown: boolean, keyboard_initiated: boolean"},
     {"TreeExpansionChange", "stable_id: text, expanded: boolean"},
     {"TreeListActivation", "node_id: text"},
+    {"TreeListCheckChange", "node_id: text, check_state: enumeration"},
     {"TreeListColumnMove", "column: unsigned_integer, display_position: unsigned_integer"},
     {"TreeListColumnWidthChange", "column: unsigned_integer, width: number"},
     {"TreeListExpansionChange", "node_id: text, expanded: boolean"},

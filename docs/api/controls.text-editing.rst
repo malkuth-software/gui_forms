@@ -17,6 +17,8 @@ Text entry.
      - A text field that turns each accepted entry into a removable token.
    * - :cpp:class:`SearchField <gui_forms::SearchField>`
      - A text field for a query, such as the search box above a list of messages.
+   * - :cpp:class:`ButtonTextBox <gui_forms::ButtonTextBox>`
+     - A text field with buttons in its frame, such as a path field with a browse button or a value field with a reset button.
    * - :cpp:class:`MaskedTextBox <gui_forms::MaskedTextBox>`
      - A text box that takes input through a mask.
    * - :cpp:class:`RichTextBox <gui_forms::RichTextBox>`
@@ -34,6 +36,7 @@ Text entry.
    generated/gui_forms.TextBox
    generated/gui_forms.TokenBox
    generated/gui_forms.SearchField
+   generated/gui_forms.ButtonTextBox
    generated/gui_forms.MaskedTextBox
    generated/gui_forms.RichTextBox
    generated/gui_forms.TextBoxBase
@@ -47,8 +50,28 @@ Related types
    :class: autosummary longtable
    :widths: 35 65
 
+   * - :cpp:class:`ButtonTextBox::ButtonParts <gui_forms::ButtonTextBox::ButtonParts>`
+     - The "button" item system: one visible button, its identity the button's.
+   * - :cpp:class:`ButtonTextBox::ButtonStates <gui_forms::ButtonTextBox::ButtonStates>`
+     -  
+   * - :cpp:class:`ButtonTextBox::Parts <gui_forms::ButtonTextBox::Parts>`
+     - Stage T1 anatomy, as dot members (see Control::Parts).
+   * - :cpp:class:`ButtonTextBox::RealizedButton <gui_forms::ButtonTextBox::RealizedButton>`
+     -  
+   * - :cpp:class:`ButtonTextBoxCapabilities <gui_forms::ButtonTextBoxCapabilities>`
+     - Every ButtonTextBox capability, in the order the declaring class takes them.
+   * - :cpp:class:`ButtonTextBoxPlaceholderTextCapability <gui_forms::ButtonTextBoxPlaceholderTextCapability>`
+     - The hint the empty field shows: a view onto the inner editor's placeholder (see TextBox).
+   * - :cpp:class:`ButtonTextBoxReadOnlyCapability <gui_forms::ButtonTextBoxReadOnlyCapability>`
+     - Whether the user may select and copy the text but not change it (ReadOnly): a view onto the inner editor's.
+   * - :cpp:class:`ButtonTextBoxTextCapability <gui_forms::ButtonTextBoxTextCapability>`
+     - The text: a view onto the inner editor's text (see TextBox).
    * - :cpp:class:`DelimitersCapability <gui_forms::DelimitersCapability>`
      - The characters that end an entry when typed or pasted, default ",;".
+   * - :cpp:class:`EditButton <gui_forms::EditButton>`
+     - One button.
+   * - :cpp:class:`EditButtonClick <gui_forms::EditButtonClick>`
+     - A button that acted, by its ID.
    * - :cpp:class:`MaskCulture <gui_forms::MaskCulture>`
      - The symbols the mask's culture characters stand for: ``.`` the decimal separator, ``,`` the group separator, ``:`` the time separator, ``/`` the date separator and ``$`` the currency symbol.
    * - :cpp:class:`MaskEditResult <gui_forms::MaskEditResult>`
@@ -210,6 +233,136 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ButtonTextBox::ButtonParts final
+
+   ``#include <gui_forms/controls/button_text_box.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box.hpp>`)
+
+   The "button" item system: one visible button, its identity the button's. ``button`` is its face, ``button_glyph`` its mark (absent for a caption button) and ``button_label`` its caption (absent for a mark button).
+
+   .. cpp:member:: PartGeometry button
+
+   .. cpp:member:: PartGeometry button_glyph
+
+   .. cpp:member:: PartGeometry button_label
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ButtonTextBox::ButtonStates final
+
+   ``#include <gui_forms/controls/button_text_box.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box.hpp>`)
+
+   .. cpp:member:: bool hot
+
+   .. cpp:member:: bool pressed
+
+   .. cpp:member:: bool disabled
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ButtonTextBox::Parts final
+
+   ``#include <gui_forms/controls/button_text_box.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box.hpp>`)
+
+   Stage T1 anatomy, as dot members (see Control::Parts). ``well`` is the field's ground, ``content`` the inner editor's slot and ``focus`` the cue shown while the editor has the keyboard focus.
+
+   .. cpp:member:: PartGeometry region
+
+   .. cpp:member:: PartGeometry well
+
+   .. cpp:member:: PartGeometry content
+
+   .. cpp:member:: PartGeometry focus
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ButtonTextBox::RealizedButton final
+
+   ``#include <gui_forms/controls/button_text_box.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box.hpp>`)
+
+   .. cpp:member:: std::size_t index
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: ButtonParts parts
+
+   .. cpp:member:: ButtonStates states
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonTextBoxCapabilities : public ButtonTextBoxTextCapability<Declaring>, public ButtonTextBoxPlaceholderTextCapability<Declaring>, public ButtonTextBoxReadOnlyCapability<Declaring>
+
+   ``#include <gui_forms/controls/button_text_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box_capabilities.hpp>`)
+
+   Every ButtonTextBox capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string text
+
+      The text: a view onto the inner editor's text (see TextBox). A change raises text_changed.
+
+   .. cpp:member:: std::string placeholder_text
+
+      The hint the empty field shows: a view onto the inner editor's placeholder (see TextBox).
+
+   .. cpp:member:: bool read_only
+
+      Whether the user may select and copy the text but not change it (ReadOnly): a view onto the inner editor's. The buttons still act.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonTextBoxPlaceholderTextCapability
+
+   ``#include <gui_forms/controls/button_text_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box_capabilities.hpp>`)
+
+   The hint the empty field shows: a view onto the inner editor's placeholder (see TextBox).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonTextBoxPlaceholderTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const ButtonTextBoxPlaceholderTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, ButtonTextBoxPlaceholderTextCapability<Declaring>> placeholder_text
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonTextBoxReadOnlyCapability
+
+   ``#include <gui_forms/controls/button_text_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box_capabilities.hpp>`)
+
+   Whether the user may select and copy the text but not change it (ReadOnly): a view onto the inner editor's. The buttons still act.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonTextBoxReadOnlyCapability& capability, bool incoming)
+
+   .. cpp:function:: static bool read(const ButtonTextBoxReadOnlyCapability& capability)
+
+   .. cpp:member:: PropertyView<bool, ButtonTextBoxReadOnlyCapability<Declaring>> read_only
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ButtonTextBoxTextCapability
+
+   ``#include <gui_forms/controls/button_text_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box_capabilities.hpp>`)
+
+   The text: a view onto the inner editor's text (see TextBox). A change raises text_changed.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ButtonTextBoxTextCapability& capability, std::string incoming)
+
+   .. cpp:function:: static std::string read(const ButtonTextBoxTextCapability& capability)
+
+   .. cpp:member:: PropertyView<std::string, ButtonTextBoxTextCapability<Declaring>> text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: template <typename Declaring> DelimitersCapability
 
    ``#include <gui_forms/controls/token_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/token_box_capabilities.hpp>`)
@@ -224,6 +377,46 @@ Related types
    .. cpp:member:: PropertyCell<std::string, DelimitersCapability<Declaring>> delimiters
 
       Default: ``{std::string{",;"}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EditButton final
+
+   ``#include <gui_forms/controls/button_text_box.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box.hpp>`)
+
+   One button. ``stable_id`` is unique within the field and names the button in button_clicked, the published anatomy and the semantics. ``caption`` is the text a caption button shows and every button's accessible name (a mark button without one is named after its kind); ``description`` is its accessible description. A hidden button takes no room; a disabled one is drawn dimmed and does not act.
+
+   .. cpp:member:: std::string stable_id
+
+   .. cpp:member:: EditButtonKind kind
+
+      Default: ``{EditButtonKind::ellipsis}``.
+
+   .. cpp:member:: std::string caption
+
+   .. cpp:member:: std::string description
+
+   .. cpp:member:: EditButtonPlacement placement
+
+      Default: ``{EditButtonPlacement::trailing}``.
+
+   .. cpp:member:: bool enabled
+
+      Default: ``{true}``.
+
+   .. cpp:member:: bool visible
+
+      Default: ``{true}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: EditButtonClick final
+
+   ``#include <gui_forms/controls/button_text_box.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box.hpp>`)
+
+   A button that acted, by its ID.
+
+   .. cpp:member:: std::string button_id
 
 .. cpp:namespace:: gui_forms
 
@@ -1859,6 +2052,32 @@ Enumerations
    .. cpp:enumerator:: all_url
 
    .. cpp:enumerator:: all_system_sources
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: EditButtonKind
+
+   ``#include <gui_forms/controls/button_text_box.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box.hpp>`)
+
+   .. cpp:enumerator:: ellipsis
+
+   .. cpp:enumerator:: drop_down
+
+   .. cpp:enumerator:: close
+
+   .. cpp:enumerator:: search
+
+   .. cpp:enumerator:: caption
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: EditButtonPlacement
+
+   ``#include <gui_forms/controls/button_text_box.hpp>`` (:src:`source <include/gui_forms/controls/button_text_box.hpp>`)
+
+   .. cpp:enumerator:: trailing
+
+   .. cpp:enumerator:: leading
 
 .. cpp:namespace:: gui_forms
 

@@ -58,6 +58,16 @@ gui_forms::TreeListView
          and scrolling it into view), ``selected_id = std::nullopt`` selects
          nothing, and a write throws ``std::out_of_range`` for an unknown node.
 
+      **check_boxes** : ``bool``
+         Whether each row shows its node's check box after the expander, as
+         Windows Forms' ``TreeView.CheckBoxes`` does. Off by default; the nodes'
+         :cpp:func:`check_state <gui_forms::TreeListView::check_state>` is kept either way.
+
+      **cascading_checks** : ``bool``
+         Whether a check applies to the node's subtree, with each ancestor
+         checked or unchecked when all its children are and indeterminate
+         otherwise. On by default; turning it on does not recompute the states.
+
       **columns** : ``std::span<const TreeListColumn>``
          The columns, column 0 first. :cpp:func:`set_columns <gui_forms::TreeListView::set_columns>` replaces them, resets the
          display order and throws ``std::invalid_argument`` for a repeated ID or one
@@ -139,6 +149,13 @@ gui_forms::TreeListView
          Raised when a header drag or :cpp:func:`move_column <gui_forms::TreeListView::move_column>` moves a column to a new
          display position.
 
+      **check_state_changed** : ``Event<const TreeListCheckChange&>``
+         Raised after a node's check state changes, by a click on its check box,
+         Space, the accessibility press of a row (with check boxes shown), or
+         :cpp:func:`set_check_state <gui_forms::TreeListView::set_check_state>`. A cascade raises it once per changed node, after
+         every state is set: the node, its descendants in the order given, then
+         its ancestors, nearest first.
+
    :Inherited:
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
@@ -159,6 +176,8 @@ gui_forms::TreeListView
         - Whether a node is expanded.
       * - :cpp:func:`expand_subtree <gui_forms::TreeListView::expand_subtree>`
         - Expands a node and every expandable node under it.
+      * - :cpp:func:`check_state <gui_forms::TreeListView::check_state>`
+        - A node's check state.
       * - :cpp:func:`splice_rows <gui_forms::TreeListView::splice_rows>`
         - Tells the view the source replaced ``removed`` rows at ``first`` with ``inserted`` rows (a bulk insertion or removal the application made).
       * - :cpp:func:`refresh_rows <gui_forms::TreeListView::refresh_rows>`
@@ -171,12 +190,16 @@ gui_forms::TreeListView
         - Expands a node's ancestors and scrolls it fully into view.
       * - :cpp:func:`node_id_at <gui_forms::TreeListView::node_id_at>`
         - The node under a point in window coordinates, or none.
+      * - :cpp:func:`tree_list_view_property_entries <gui_forms::TreeListView::tree_list_view_property_entries>`
+        -  
       * - :cpp:func:`set_column_width <gui_forms::TreeListView::set_column_width>`
         - Sets one column's width in logical units.
       * - :cpp:func:`set_cell_text <gui_forms::TreeListView::set_cell_text>`
         - Edits one cell (column 0 is the node's text).
       * - :cpp:func:`set_expanded <gui_forms::TreeListView::set_expanded>`
         - Expands or collapses one node; a node that cannot be expanded is left alone.
+      * - :cpp:func:`set_check_state <gui_forms::TreeListView::set_check_state>`
+        - Sets a node's check state, cascading when :cpp:member:`cascading_checks <gui_forms::TreeListView::cascading_checks>` is on.
       * - :cpp:func:`set_row_source <gui_forms::TreeListView::set_row_source>`
         - -- virtual rows ------------------------------------------------------------ Shows the source's rows instead of nodes (a null source returns to an empty node model).
       * - :cpp:func:`set_sort <gui_forms::TreeListView::set_sort>`
@@ -299,6 +322,18 @@ gui_forms::TreeListView
       and scrolling it into view), ``selected_id = std::nullopt`` selects
       nothing, and a write throws ``std::out_of_range`` for an unknown node.
 
+   .. cpp:member:: bool check_boxes
+
+      Whether each row shows its node's check box after the expander, as
+      Windows Forms' ``TreeView.CheckBoxes`` does. Off by default; the nodes'
+      :cpp:func:`check_state <gui_forms::TreeListView::check_state>` is kept either way.
+
+   .. cpp:member:: bool cascading_checks
+
+      Whether a check applies to the node's subtree, with each ancestor
+      checked or unchecked when all its children are and indeterminate
+      otherwise. On by default; turning it on does not recompute the states.
+
    .. cpp:function:: std::span<const TreeListColumn> columns() const& noexcept
 
       The columns, column 0 first. :cpp:func:`set_columns <gui_forms::TreeListView::set_columns>` replaces them, resets the
@@ -415,6 +450,14 @@ gui_forms::TreeListView
       Raised when a header drag or :cpp:func:`move_column <gui_forms::TreeListView::move_column>` moves a column to a new
       display position.
 
+   .. cpp:function:: Event<const TreeListCheckChange&>& check_state_changed() noexcept
+
+      Raised after a node's check state changes, by a click on its check box,
+      Space, the accessibility press of a row (with check boxes shown), or
+      :cpp:func:`set_check_state <gui_forms::TreeListView::set_check_state>`. A cascade raises it once per changed node, after
+      every state is set: the node, its descendants in the order given, then
+      its ancestors, nearest first.
+
 
    .. rubric:: Methods
 
@@ -442,6 +485,10 @@ gui_forms::TreeListView
 
       Expands a node and every expandable node under it.
 
+   .. cpp:function:: CheckState check_state(std::string_view node_id) const
+
+      A node's check state. Throws ``std::out_of_range`` for an unknown node.
+
    .. cpp:function:: void splice_rows(std::size_t first, std::size_t removed, std::size_t inserted)
 
       Tells the view the source replaced ``removed`` rows at ``first`` with ``inserted`` rows (a bulk insertion or removal the application made). Selection, current row and scroll follow their rows; those inside the removed range are dropped. Throws std::logic_error outside virtual mode or when the source's count does not match, std::out_of_range for a range past the rows.
@@ -467,6 +514,8 @@ gui_forms::TreeListView
 
       The node under a point in window coordinates, or none.
 
+   .. cpp:function:: static const std::array<PropertyEntry, tree_list_view_property_count>& tree_list_view_property_entries() noexcept
+
    .. cpp:function:: void set_column_width(std::size_t column, double width)
 
       Sets one column's width in logical units. Throws ``std::out_of_range`` for
@@ -483,6 +532,13 @@ gui_forms::TreeListView
 
       Expands or collapses one node; a node that cannot be expanded is left
       alone. Throws ``std::out_of_range`` for an unknown node.
+
+   .. cpp:function:: void set_check_state(std::string_view node_id, CheckState state)
+
+      Sets a node's check state, cascading when :cpp:member:`cascading_checks <gui_forms::TreeListView::cascading_checks>` is on. A
+      virtual view asks its row source (``set_row_check_state``). Throws
+      ``std::out_of_range`` for an unknown node and ``std::invalid_argument`` for
+      a state outside :cpp:enum:`CheckState <gui_forms::CheckState>` or an indeterminate write while cascading.
 
    .. cpp:function:: void set_row_source(std::shared_ptr<TreeListRowSource> source)
 
@@ -573,6 +629,8 @@ gui_forms::TreeListView
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:function:: void on_font_changed()
 
       *Protected.*
@@ -607,9 +665,13 @@ gui_forms::TreeListView
 
       Default: ``96.0``.
 
+   .. cpp:member:: constexpr std::size_t tree_list_view_property_count
+
+      TreeListView's property table: Control's entries, then its own. Default: ``Control::control_property_count + 2U``.
+
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 32 supported, 0 deferred, 0 excluded, 4 unclassified; 36 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 35 supported, 0 deferred, 0 excluded, 7 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -620,6 +682,14 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 32 s
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``cascading_checks``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``check_boxes``
+     - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``column_order``
@@ -674,6 +744,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 32 s
      - supported
    * - event
      - GUI.Forms-only
+     - ``check_state_changed``
+     - supported
+   * - event
+     - GUI.Forms-only
      - ``column_moved``
      - supported
    * - event
@@ -695,6 +769,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 32 s
    * - event
      - GUI.Forms-only
      - ``sort_changed``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``check_state``
      - supported
    * - method
      - GUI.Forms-only
@@ -746,6 +824,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 32 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``set_check_state``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``set_column_width``
      - supported
    * - method
@@ -764,3 +846,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 32 s
      - GUI.Forms-only
      - ``splice_rows``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``tree_list_view_property_entries``
+     - unclassified (untested)

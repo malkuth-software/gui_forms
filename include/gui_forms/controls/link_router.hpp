@@ -51,6 +51,7 @@
 // Threads: a router is used on one thread, with a graph not mutated during
 // route().
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/node_graph.hpp"
 
@@ -137,10 +138,8 @@ public:
     LinkRouteStatistics route(const NodeGraph& graph, const LinkRouterOptions& options);
 
     // The routes in link slot order; borrowed until the next route().
-    [[nodiscard]] std::span<const RoutedLink> routes() const& noexcept {
-        return std::span<const RoutedLink>(routes_.data(), routes_.size());
-    }
-    std::span<const RoutedLink> routes() const&& = delete;
+    [[nodiscard]] BorrowedSpan<RoutedLink> routes() const& noexcept { return detail::lend_view(routes_); }
+    BorrowedSpan<RoutedLink> routes() const&& = delete;
     [[nodiscard]] std::span<const WorldPoint> points(const RoutedLink& route) const noexcept;
     [[nodiscard]] std::span<const WorldPoint> drawn(const RoutedLink& route) const noexcept;
     // The route of a link, or null.
@@ -277,7 +276,7 @@ private:
     std::vector<std::uint32_t> path_{};
     std::uint32_t search_stamp_{};
     // Output.
-    std::vector<RoutedLink> routes_{};
+    detail::LendingVector<RoutedLink> routes_{};
     std::vector<WorldPoint> points_{};
     std::vector<WorldPoint> drawn_{};
     std::vector<Segment> segments_{};

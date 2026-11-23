@@ -501,7 +501,7 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:function:: std::span<const RoutedLink> routes() const& noexcept
+   .. cpp:function:: BorrowedSpan<RoutedLink> routes() const& noexcept
 
       The routes in link slot order; borrowed until the next route().
 

@@ -2974,6 +2974,73 @@ public:
         return called;
     }
 
+    [[nodiscard]] gf_status set_merge_tool_strip(gf_object workspace, gf_object strip) const noexcept {
+        if (table_.struct_size < 216u || table_.set_merge_tool_strip == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_merge_tool_strip(workspace, strip);
+        return called;
+    }
+
+    [[nodiscard]] gf_status merge_tool_strip(gf_object workspace, gf_object* strip) const noexcept {
+        if (table_.struct_size < 224u || table_.merge_tool_strip == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.merge_tool_strip(workspace, strip);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_panel_tool_strip(gf_object workspace, gf_utf8_view panel,
+                                                 gf_object strip) const noexcept {
+        if (table_.struct_size < 232u || table_.set_panel_tool_strip == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_panel_tool_strip(workspace, panel, strip);
+        return called;
+    }
+
+    [[nodiscard]] gf_status merged_tool_strip_document(gf_object workspace, char* buffer, uint64_t capacity,
+                                                       uint64_t* required) const noexcept {
+        if (table_.struct_size < 240u || table_.merged_tool_strip_document == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.merged_tool_strip_document(workspace, buffer, capacity, required);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_merge_ribbon(gf_object workspace, gf_object ribbon) const noexcept {
+        if (table_.struct_size < 248u || table_.set_merge_ribbon == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_merge_ribbon(workspace, ribbon);
+        return called;
+    }
+
+    [[nodiscard]] gf_status merge_ribbon(gf_object workspace, gf_object* ribbon) const noexcept {
+        if (table_.struct_size < 256u || table_.merge_ribbon == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.merge_ribbon(workspace, ribbon);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_panel_ribbon(gf_object workspace, gf_utf8_view panel, gf_object ribbon) const noexcept {
+        if (table_.struct_size < 264u || table_.set_panel_ribbon == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_panel_ribbon(workspace, panel, ribbon);
+        return called;
+    }
+
+    [[nodiscard]] gf_status merged_ribbon_document(gf_object workspace, char* buffer, uint64_t capacity,
+                                                   uint64_t* required) const noexcept {
+        if (table_.struct_size < 272u || table_.merged_ribbon_document == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.merged_ribbon_document(workspace, buffer, capacity, required);
+        return called;
+    }
+
 private:
     gf_docking_table table_;
 };

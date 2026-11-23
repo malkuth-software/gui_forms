@@ -97,7 +97,9 @@ extern "C" {
  * interaction, additions only; 1.7 (provisional, renumbered in fold order)
  * adds the touchpad gestures: the control's gesture interaction
  * (GestureEventArgs fields by name) and gf_control_hooks.on_gesture,
- * appended, additions only. */
+ * appended, additions only; 1.7 also adds the host capability
+ * DESKTOP_NOTIFICATIONS and the docking table's tool strip and ribbon
+ * merging (the docking slots marked since 1.7), additions only. */
 #define GF_ABI_MAJOR 1u
 #define GF_ABI_MINOR 7u
 
@@ -2050,6 +2052,15 @@ typedef uint64_t gf_host_capability;
 #define GF_HOST_CAPABILITY_DIRECT_BUFFERS 8796093022208ull
 #define GF_HOST_CAPABILITY_HOST_SCROLL 17592186044416ull
 #define GF_HOST_CAPABILITY_REFERENCE_PRESENTATION 35184372088832ull
+/* Since 1.7: the host shows desktop notifications through the platform's
+ * notification service, outside the application's windows (C++
+ * HostServices::show_desktop_notification and ToastNotification):
+ * UNUserNotificationCenter in a macOS application bundle, toasts on
+ * Windows for a packaged process or one with an explicit AppUserModelID,
+ * and the freedesktop notification service where the session bus has one.
+ * It depends on how the process runs, not only on the host, so the same
+ * host may report it or not; a high-integrity build never does. */
+#define GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS 562949953421312ull
 /* Bits 46 to 48 (70368744177664, 140737488355328 and 281474976710656)
  * are reserved: no host reports them and no constant will take them.
  * GUI.Forms has no GPU surfaces (owner, 2026-11-16), and the GPU-backed
@@ -4697,6 +4708,37 @@ typedef struct gf_docking_table {
     /* The id of the document whose menu strip is merged into the main menu
      * strip, as area_active_document writes one; empty when none is. */
     gf_status (GF_CALL* merged_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required);
+    /* Since 1.7: tool strip merging, as the menu strip's. The workspace's
+     * merge tool strip (a tool_strip or menu_strip object; zero takes it
+     * away) is the main window's tool strip, which the application names
+     * (Windows Forms leaves tool strips to ToolStripManager.Merge): while a
+     * panel's document is the area's active document, the panel's tool
+     * strip's items merge into it by their merge actions, and the merge is
+     * reverted when another document becomes active or the panel leaves.
+     * The workspace holds both strips; a panel's need not be shown.
+     * Another object than a tool strip gives GF_STATUS_WRONG_HANDLE_KIND.
+     * merge_tool_strip gives the merge tool strip as a new reference the
+     * caller releases, or zero when none is set. merged_tool_strip_document
+     * writes the id of the document whose strip is merged, as
+     * area_active_document writes one; empty when none is. */
+    gf_status (GF_CALL* set_merge_tool_strip)(gf_object workspace, gf_object strip);
+    gf_status (GF_CALL* merge_tool_strip)(gf_object workspace, gf_object* strip);
+    gf_status (GF_CALL* set_panel_tool_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip);
+    gf_status (GF_CALL* merged_tool_strip_document)(gf_object workspace, char* buffer, uint64_t capacity,
+                                                    uint64_t* required);
+    /* Since 1.7: ribbon merging, likewise: the active document's ribbon
+     * (set_panel_ribbon, a ribbon object; zero takes it away) merges its
+     * tabs into the workspace's merge ribbon (set_merge_ribbon) and is
+     * reverted when another document becomes active or the panel leaves.
+     * A merge the ribbons refuse leaves both as they were, and
+     * merged_ribbon_document then writes nothing (required zero). Another
+     * object than a ribbon gives GF_STATUS_WRONG_HANDLE_KIND. merge_ribbon
+     * gives a new reference or zero, as merge_tool_strip. */
+    gf_status (GF_CALL* set_merge_ribbon)(gf_object workspace, gf_object ribbon);
+    gf_status (GF_CALL* merge_ribbon)(gf_object workspace, gf_object* ribbon);
+    gf_status (GF_CALL* set_panel_ribbon)(gf_object workspace, gf_utf8_view panel, gf_object ribbon);
+    gf_status (GF_CALL* merged_ribbon_document)(gf_object workspace, char* buffer, uint64_t capacity,
+                                                uint64_t* required);
 } gf_docking_table;
 
 /*

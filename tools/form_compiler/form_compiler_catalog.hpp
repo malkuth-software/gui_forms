@@ -27,6 +27,7 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
@@ -37,9 +38,11 @@
 #include "gui_forms/controls/breadcrumb_trail.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/card.hpp"
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/checked_combo_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/color_picker.hpp"
@@ -97,12 +100,14 @@
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/panel.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/pie_chart.hpp"
 #include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_annotation_item.hpp"
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/controls/plot_view.hpp"
 #include "gui_forms/controls/plot_view_links.hpp"
+#include "gui_forms/controls/popup_container_box.hpp"
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/controls/progress_ring.hpp"
 #include "gui_forms/controls/property_grid.hpp"
@@ -166,7 +171,7 @@
 
 namespace gui_forms::form_compiler {
 
-inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
+inline constexpr std::array<FormCatalogEntry, 159> form_catalog{{
     {"button_base", "ButtonBase", "gui_forms/controls/button_base.hpp", &add_catalog_type<ButtonBase>, CatalogConstruction::stable_id},
     {"button", "Button", "gui_forms/controls/button.hpp", &add_catalog_type<Button>, CatalogConstruction::stable_id},
     {"drop_down_button", "DropDownButton", "gui_forms/controls/drop_down_button.hpp", &add_catalog_type<DropDownButton>, CatalogConstruction::stable_id},
@@ -176,6 +181,7 @@ inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
     {"text_box", "TextBox", "gui_forms/controls/text_box.hpp", &add_catalog_type<TextBox>, CatalogConstruction::stable_id},
     {"token_box", "TokenBox", "gui_forms/controls/token_box.hpp", &add_catalog_type<TokenBox>, CatalogConstruction::stable_id},
     {"search_field", "SearchField", "gui_forms/controls/search_field.hpp", &add_catalog_type<SearchField>, CatalogConstruction::stable_id},
+    {"button_text_box", "ButtonTextBox", "gui_forms/controls/button_text_box.hpp", &add_catalog_type<ButtonTextBox>, CatalogConstruction::stable_id},
     {"masked_text_box", "MaskedTextBox", "gui_forms/controls/masked_text_box.hpp", &add_catalog_type<MaskedTextBox>, CatalogConstruction::stable_id},
     {"rich_text_box", "RichTextBox", "gui_forms/controls/rich_text_box.hpp", &add_catalog_type<RichTextBox>, CatalogConstruction::stable_id},
     {"label", "Label", "gui_forms/controls/label.hpp", &add_catalog_type<Label>, CatalogConstruction::stable_id},
@@ -192,6 +198,7 @@ inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
     {"sweep_scope", "SweepScope", "gui_forms/controls/sweep_scope.hpp", &add_catalog_type<SweepScope>, CatalogConstruction::stable_id},
     {"sparkline", "Sparkline", "gui_forms/controls/sparkline.hpp", &add_catalog_type<Sparkline>, CatalogConstruction::stable_id},
     {"plot_view", "PlotView", "gui_forms/controls/plot_view.hpp", &add_catalog_type<PlotView>, CatalogConstruction::stable_id},
+    {"pie_chart", "PieChart", "gui_forms/controls/pie_chart.hpp", &add_catalog_type<PieChart>, CatalogConstruction::stable_id},
     {"plot3d_view", "Plot3DView", "gui_forms/controls/plot3d_view.hpp", &add_catalog_type<Plot3DView>, CatalogConstruction::stable_id},
     {"plot_axis_item", "PlotAxisItem", "gui_forms/controls/plot_axis_item.hpp", &add_catalog_type<PlotAxisItem>, CatalogConstruction::stable_id},
     {"plot_series_item", "PlotSeriesItem", "gui_forms/controls/plot_series_item.hpp", &add_catalog_type<PlotSeriesItem>, CatalogConstruction::stable_id},
@@ -288,6 +295,8 @@ inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
     {"callout", "Callout", "gui_forms/controls/callout.hpp", &add_catalog_type<Callout>, CatalogConstruction::stable_id},
     {"modal_layer", "ModalLayer", "gui_forms/controls/modal_layer.hpp", &add_catalog_type<ModalLayer>, CatalogConstruction::stable_id},
     {"lookup_combo_box", "LookupComboBox", "gui_forms/controls/lookup_combo_box.hpp", &add_catalog_type<LookupComboBox>, CatalogConstruction::stable_id},
+    {"popup_container_box", "PopupContainerBox", "gui_forms/controls/popup_container_box.hpp", &add_catalog_type<PopupContainerBox>, CatalogConstruction::stable_id},
+    {"checked_combo_box", "CheckedComboBox", "gui_forms/controls/checked_combo_box.hpp", &add_catalog_type<CheckedComboBox>, CatalogConstruction::stable_id},
     {"about_dialog", "AboutDialog", "gui_forms/components/about_dialog/about_dialog.hpp", &add_catalog_type<AboutDialog>, CatalogConstruction::stable_id},
     {"folder_browser_dialog", "FolderBrowserDialog", "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp", &add_catalog_type<FolderBrowserDialog>, CatalogConstruction::stable_id},
     {"color_dialog", "ColorDialog", "gui_forms/components/color_dialog/color_dialog.hpp", &add_catalog_type<ColorDialog>, CatalogConstruction::stable_id},
@@ -305,6 +314,7 @@ inline constexpr std::array<FormCatalogEntry, 154> form_catalog{{
     {"timer", "Timer", "gui_forms/timer/timer/timer.hpp", &add_catalog_type<Timer>, CatalogConstruction::stable_id},
     {"background_worker", "BackgroundWorker", "gui_forms/background_worker/background_worker.hpp", &add_catalog_type<BackgroundWorker>, CatalogConstruction::stable_id},
     {"notify_icon", "NotifyIcon", "gui_forms/components/notify_icon/notify_icon.hpp", &add_catalog_type<NotifyIcon>, CatalogConstruction::stable_id},
+    {"toast_notification", "ToastNotification", "gui_forms/components/toast_notification/toast_notification.hpp", &add_catalog_type<ToastNotification>, CatalogConstruction::stable_id},
     {"open_file_dialog", "OpenFileDialog", "gui_forms/components/open_file_dialog/open_file_dialog.hpp", &add_catalog_type<OpenFileDialog>, CatalogConstruction::stable_id},
     {"save_file_dialog", "SaveFileDialog", "gui_forms/components/save_file_dialog/save_file_dialog.hpp", &add_catalog_type<SaveFileDialog>, CatalogConstruction::stable_id},
     {"image_list", "ImageList", "gui_forms/image_list/image_list/image_list.hpp", &add_catalog_type<ImageList>, CatalogConstruction::stable_id},

@@ -1071,6 +1071,14 @@ Types
 
    .. cpp:function:: gf_status merged_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
 
+   .. cpp:function:: gf_status merge_tool_strip(gf_object workspace, gf_object* strip) const noexcept
+
+   .. cpp:function:: gf_status merged_tool_strip_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status merge_ribbon(gf_object workspace, gf_object* ribbon) const noexcept
+
+   .. cpp:function:: gf_status merged_ribbon_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
    .. cpp:function:: gf_status set_panel_content(gf_object workspace, gf_utf8_view panel, gf_object content) const noexcept
 
    .. cpp:function:: gf_status set_panel_title(gf_object workspace, gf_utf8_view panel, gf_utf8_view title) const noexcept
@@ -1082,6 +1090,14 @@ Types
    .. cpp:function:: gf_status set_frame_icons_at_bottom(gf_object workspace, uint32_t bottom) const noexcept
 
    .. cpp:function:: gf_status set_panel_menu_strip(gf_object workspace, gf_utf8_view panel, gf_object strip) const noexcept
+
+   .. cpp:function:: gf_status set_merge_tool_strip(gf_object workspace, gf_object strip) const noexcept
+
+   .. cpp:function:: gf_status set_panel_tool_strip(gf_object workspace, gf_utf8_view panel, gf_object strip) const noexcept
+
+   .. cpp:function:: gf_status set_merge_ribbon(gf_object workspace, gf_object ribbon) const noexcept
+
+   .. cpp:function:: gf_status set_panel_ribbon(gf_object workspace, gf_utf8_view panel, gf_object ribbon) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -3377,6 +3393,22 @@ Types
    .. cpp:member:: gf_status (*set_panel_menu_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip)
 
    .. cpp:member:: gf_status (*merged_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*set_merge_tool_strip)(gf_object workspace, gf_object strip)
+
+   .. cpp:member:: gf_status (*merge_tool_strip)(gf_object workspace, gf_object* strip)
+
+   .. cpp:member:: gf_status (*set_panel_tool_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip)
+
+   .. cpp:member:: gf_status (*merged_tool_strip_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*set_merge_ribbon)(gf_object workspace, gf_object ribbon)
+
+   .. cpp:member:: gf_status (*merge_ribbon)(gf_object workspace, gf_object* ribbon)
+
+   .. cpp:member:: gf_status (*set_panel_ribbon)(gf_object workspace, gf_utf8_view panel, gf_object ribbon)
+
+   .. cpp:member:: gf_status (*merged_ribbon_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
 
    .. cpp:member:: uint32_t struct_size
 

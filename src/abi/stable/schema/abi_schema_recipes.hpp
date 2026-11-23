@@ -37,6 +37,7 @@
 #include "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
@@ -178,6 +179,7 @@ template <> void describe_type<PlotLinkGroup>(SchemaSample& sample);
 template <> void describe_type<RibbonToolTip>(SchemaSample& sample);
 template <> void describe_type<SaveFileDialog>(SchemaSample& sample);
 template <> void describe_type<SemanticFeedback>(SchemaSample& sample);
+template <> void describe_type<ToastNotification>(SchemaSample& sample);
 template <> void describe_type<ThreadExceptionDialog>(SchemaSample& sample);
 template <> void describe_type<Timer>(SchemaSample& sample);
 template <> void describe_type<ToolTip>(SchemaSample& sample);

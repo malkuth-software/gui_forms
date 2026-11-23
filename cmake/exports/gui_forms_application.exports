@@ -82,6 +82,7 @@ __ZGVZN9gui_forms10DockNodeId*
 __ZGVZN9gui_forms10DockSiteId*
 __ZGVZN9gui_forms10DragLimits*
 __ZGVZN9gui_forms10DragTarget*
+__ZGVZN9gui_forms10EditButton*
 __ZGVZN9gui_forms10EffectCost*
 __ZGVZN9gui_forms10EmptyState*
 __ZGVZN9gui_forms10FinishFill*
@@ -199,6 +200,7 @@ __ZGVZN9gui_forms11PartProfile*
 __ZGVZN9gui_forms11PhysicalKey*
 __ZGVZN9gui_forms11PlotPalette*
 __ZGVZN9gui_forms11PngMetadata*
+__ZGVZN9gui_forms11PopupClosed*
 __ZGVZN9gui_forms11ProgressBar*
 __ZGVZN9gui_forms11RadialGauge*
 __ZGVZN9gui_forms11RadioButton*
@@ -330,6 +332,7 @@ __ZGVZN9gui_forms13BindingFilter*
 __ZGVZN9gui_forms13BindingSchema*
 __ZGVZN9gui_forms13BindingSource*
 __ZGVZN9gui_forms13BlockFlowLine*
+__ZGVZN9gui_forms13ButtonTextBox*
 __ZGVZN9gui_forms13CaretSettings*
 __ZGVZN9gui_forms13CommandTarget*
 __ZGVZN9gui_forms13ContentRegion*
@@ -473,6 +476,7 @@ __ZGVZN9gui_forms14HostHoverEvent*
 __ZGVZN9gui_forms14HostScaleEvent*
 __ZGVZN9gui_forms14HostTrayIconId*
 __ZGVZN9gui_forms14ImageAtlasSlot*
+__ZGVZN9gui_forms14InputBoxResult*
 __ZGVZN9gui_forms14ItemCheckEvent*
 __ZGVZN9gui_forms14KeyStateChange*
 __ZGVZN9gui_forms14LineBoxMetrics*
@@ -546,6 +550,7 @@ __ZGVZN9gui_forms15BindingProvider*
 __ZGVZN9gui_forms15BindingSnapshot*
 __ZGVZN9gui_forms15BreadcrumbTrail*
 __ZGVZN9gui_forms15BundledFontFace*
+__ZGVZN9gui_forms15CheckedComboBox*
 __ZGVZN9gui_forms15CollapsedMargin*
 __ZGVZN9gui_forms15CollectionDirty*
 __ZGVZN9gui_forms15ColourSchemeSet*
@@ -568,6 +573,7 @@ __ZGVZN9gui_forms15DockTransaction*
 __ZGVZN9gui_forms15DockWindowFrame*
 __ZGVZN9gui_forms15DocumentMapSpan*
 __ZGVZN9gui_forms15DragInteraction*
+__ZGVZN9gui_forms15EditButtonClick*
 __ZGVZN9gui_forms15EffectSelection*
 __ZGVZN9gui_forms15EnginePartTable*
 __ZGVZN9gui_forms15EnginePrimitive*
@@ -593,6 +599,7 @@ __ZGVZN9gui_forms15HostedKeyRecord*
 __ZGVZN9gui_forms15IconDeclaration*
 __ZGVZN9gui_forms15ImageListChange*
 __ZGVZN9gui_forms15ImageLoadResult*
+__ZGVZN9gui_forms15InputBoxRequest*
 __ZGVZN9gui_forms15InputTimeSource*
 __ZGVZN9gui_forms15ItemPositioning*
 __ZGVZN9gui_forms15ItemSystemIndex*
@@ -630,6 +637,7 @@ __ZGVZN9gui_forms15StableIdLiteral*
 __ZGVZN9gui_forms15SubSurfaceInput*
 __ZGVZN9gui_forms15SurfaceMaterial*
 __ZGVZN9gui_forms15TabControlEvent*
+__ZGVZN9gui_forms15TaskDialogInput*
 __ZGVZN9gui_forms15TextDecorations*
 __ZGVZN9gui_forms15TextMaskMetrics*
 __ZGVZN9gui_forms15TextMaskRequest*
@@ -660,6 +668,7 @@ __ZGVZN9gui_forms16BindingPredicate*
 __ZGVZN9gui_forms16BlendHeatMapView*
 __ZGVZN9gui_forms16BlendStudyPlanes*
 __ZGVZN9gui_forms16CachedPartRaster*
+__ZGVZN9gui_forms16CheckedComboItem*
 __ZGVZN9gui_forms16ColorValueEditor*
 __ZGVZN9gui_forms16CompositeControl*
 __ZGVZN9gui_forms16ContainerControl*
@@ -844,7 +853,9 @@ __ZGVZN9gui_forms17NodeLinkConnected*
 __ZGVZN9gui_forms17ObjectDetailsCell*
 __ZGVZN9gui_forms17ObjectDetailsSort*
 __ZGVZN9gui_forms17PartRasterRequest*
+__ZGVZN9gui_forms17PieSliceSelection*
 __ZGVZN9gui_forms17PlotHeatmapSeries*
+__ZGVZN9gui_forms17PopupContainerBox*
 __ZGVZN9gui_forms17PresentationState*
 __ZGVZN9gui_forms17PrimitiveRegistry*
 __ZGVZN9gui_forms17PropertyEnumValue*
@@ -875,6 +886,7 @@ __ZGVZN9gui_forms17TextStoreSnapshot*
 __ZGVZN9gui_forms17ThemeBackdropBase*
 __ZGVZN9gui_forms17ThemeExportReport*
 __ZGVZN9gui_forms17ThemeMotionTokens*
+__ZGVZN9gui_forms17ToastNotification*
 __ZGVZN9gui_forms17ToolStripItemSpec*
 __ZGVZN9gui_forms17TreeListRowSource*
 __ZGVZN9gui_forms17TreeListRowSplice*
@@ -960,6 +972,7 @@ __ZGVZN9gui_forms18PaintLeaseSnapshot*
 __ZGVZN9gui_forms18ParagraphGlyphRuns*
 __ZGVZN9gui_forms18PartGeometryBuffer*
 __ZGVZN9gui_forms18PartRasterInterior*
+__ZGVZN9gui_forms18PieSliceActivation*
 __ZGVZN9gui_forms18PlotAnnotationItem*
 __ZGVZN9gui_forms18PreparedFontSource*
 __ZGVZN9gui_forms18PreparedTextLayout*
@@ -1103,6 +1116,7 @@ __ZGVZN9gui_forms19ThemeRequestContext*
 __ZGVZN9gui_forms19ThemeWindowBackdrop*
 __ZGVZN9gui_forms19ToolStripDropTarget*
 __ZGVZN9gui_forms19TreeExpansionChange*
+__ZGVZN9gui_forms19TreeListCheckChange*
 __ZGVZN9gui_forms19TreeSelectionChange*
 __ZGVZN9gui_forms19VirtualRowSelection*
 __ZGVZN9gui_forms19WindowBackdropGrant*
@@ -1264,6 +1278,7 @@ __ZGVZN9gui_forms22ApplicationThemeConfig*
 __ZGVZN9gui_forms22BindingNavigatorAddNew*
 __ZGVZN9gui_forms22BlockFlowSharedMargins*
 __ZGVZN9gui_forms22BundledFontDiagnostics*
+__ZGVZN9gui_forms22CheckedComboItemChange*
 __ZGVZN9gui_forms22ContentLayoutTransform*
 __ZGVZN9gui_forms22ControlValidationEvent*
 __ZGVZN9gui_forms22CustomStateDeclaration*
@@ -1385,6 +1400,7 @@ __ZGVZN9gui_forms25ControlBindingsCollection*
 __ZGVZN9gui_forms25DataGridViewCellsProvided*
 __ZGVZN9gui_forms25DataGridViewCellsSnapshot*
 __ZGVZN9gui_forms25DataGridViewRowPaintParts*
+__ZGVZN9gui_forms25HostDesktopNotificationId*
 __ZGVZN9gui_forms25HostOpenFileDialogRequest*
 __ZGVZN9gui_forms25HostSaveFileDialogRequest*
 __ZGVZN9gui_forms25InvalidationOverlayTarget*
@@ -1431,12 +1447,14 @@ __ZGVZN9gui_forms28DataGridViewRowPrePaintEvent*
 __ZGVZN9gui_forms28DataGridViewRowsChangedEvent*
 __ZGVZN9gui_forms28DataGridViewScrollStatistics*
 __ZGVZN9gui_forms28DataGridViewSortCompareEvent*
+__ZGVZN9gui_forms28HostDesktopNotificationEvent*
 __ZGVZN9gui_forms28NavigationPaneOptionsRequest*
 __ZGVZN9gui_forms28VisualPaintOperationSnapshot*
 __ZGVZN9gui_forms28WindowChromeRegionValidation*
 __ZGVZN9gui_forms29DataGridViewCellValueProvider*
 __ZGVZN9gui_forms29DataGridViewCellsTextProvider*
 __ZGVZN9gui_forms29DataGridViewRowPostPaintEvent*
+__ZGVZN9gui_forms29HostDesktopNotificationResult*
 __ZGVZN9gui_forms29PrimitiveParameterDeclaration*
 __ZGVZN9gui_forms30AnchoredOverlayPlacementResult*
 __ZGVZN9gui_forms30ConnectedControlVisualGeometry*
@@ -1444,6 +1462,7 @@ __ZGVZN9gui_forms30DataGridViewColumnChangedEvent*
 __ZGVZN9gui_forms30DataGridViewRowOrderModeChange*
 __ZGVZN9gui_forms30DataGridViewRowOrderStatistics*
 __ZGVZN9gui_forms30DataGridViewRowOrderThresholds*
+__ZGVZN9gui_forms30HostDesktopNotificationRequest*
 __ZGVZN9gui_forms30MasterDetailPresentationChange*
 __ZGVZN9gui_forms30ProgressBarAnimationAppearance*
 __ZGVZN9gui_forms30PropertyValueConverterRegistry*
@@ -1637,6 +1656,8 @@ __ZGVZN9gui_forms8LinkFlow*
 __ZGVZN9gui_forms8ListView*
 __ZGVZN9gui_forms8NodeSpec*
 __ZGVZN9gui_forms8PageView*
+__ZGVZN9gui_forms8PieChart*
+__ZGVZN9gui_forms8PieSlice*
 __ZGVZN9gui_forms8PlotView*
 __ZGVZN9gui_forms8Splitter*
 __ZGVZN9gui_forms8StableId*
@@ -1775,6 +1796,7 @@ __ZGVZNK9gui_forms10DockNodeId*
 __ZGVZNK9gui_forms10DockSiteId*
 __ZGVZNK9gui_forms10DragLimits*
 __ZGVZNK9gui_forms10DragTarget*
+__ZGVZNK9gui_forms10EditButton*
 __ZGVZNK9gui_forms10EffectCost*
 __ZGVZNK9gui_forms10EmptyState*
 __ZGVZNK9gui_forms10FinishFill*
@@ -1892,6 +1914,7 @@ __ZGVZNK9gui_forms11PartProfile*
 __ZGVZNK9gui_forms11PhysicalKey*
 __ZGVZNK9gui_forms11PlotPalette*
 __ZGVZNK9gui_forms11PngMetadata*
+__ZGVZNK9gui_forms11PopupClosed*
 __ZGVZNK9gui_forms11ProgressBar*
 __ZGVZNK9gui_forms11RadialGauge*
 __ZGVZNK9gui_forms11RadioButton*
@@ -2023,6 +2046,7 @@ __ZGVZNK9gui_forms13BindingFilter*
 __ZGVZNK9gui_forms13BindingSchema*
 __ZGVZNK9gui_forms13BindingSource*
 __ZGVZNK9gui_forms13BlockFlowLine*
+__ZGVZNK9gui_forms13ButtonTextBox*
 __ZGVZNK9gui_forms13CaretSettings*
 __ZGVZNK9gui_forms13CommandTarget*
 __ZGVZNK9gui_forms13ContentRegion*
@@ -2166,6 +2190,7 @@ __ZGVZNK9gui_forms14HostHoverEvent*
 __ZGVZNK9gui_forms14HostScaleEvent*
 __ZGVZNK9gui_forms14HostTrayIconId*
 __ZGVZNK9gui_forms14ImageAtlasSlot*
+__ZGVZNK9gui_forms14InputBoxResult*
 __ZGVZNK9gui_forms14ItemCheckEvent*
 __ZGVZNK9gui_forms14KeyStateChange*
 __ZGVZNK9gui_forms14LineBoxMetrics*
@@ -2239,6 +2264,7 @@ __ZGVZNK9gui_forms15BindingProvider*
 __ZGVZNK9gui_forms15BindingSnapshot*
 __ZGVZNK9gui_forms15BreadcrumbTrail*
 __ZGVZNK9gui_forms15BundledFontFace*
+__ZGVZNK9gui_forms15CheckedComboBox*
 __ZGVZNK9gui_forms15CollapsedMargin*
 __ZGVZNK9gui_forms15CollectionDirty*
 __ZGVZNK9gui_forms15ColourSchemeSet*
@@ -2261,6 +2287,7 @@ __ZGVZNK9gui_forms15DockTransaction*
 __ZGVZNK9gui_forms15DockWindowFrame*
 __ZGVZNK9gui_forms15DocumentMapSpan*
 __ZGVZNK9gui_forms15DragInteraction*
+__ZGVZNK9gui_forms15EditButtonClick*
 __ZGVZNK9gui_forms15EffectSelection*
 __ZGVZNK9gui_forms15EnginePartTable*
 __ZGVZNK9gui_forms15EnginePrimitive*
@@ -2286,6 +2313,7 @@ __ZGVZNK9gui_forms15HostedKeyRecord*
 __ZGVZNK9gui_forms15IconDeclaration*
 __ZGVZNK9gui_forms15ImageListChange*
 __ZGVZNK9gui_forms15ImageLoadResult*
+__ZGVZNK9gui_forms15InputBoxRequest*
 __ZGVZNK9gui_forms15InputTimeSource*
 __ZGVZNK9gui_forms15ItemPositioning*
 __ZGVZNK9gui_forms15ItemSystemIndex*
@@ -2323,6 +2351,7 @@ __ZGVZNK9gui_forms15StableIdLiteral*
 __ZGVZNK9gui_forms15SubSurfaceInput*
 __ZGVZNK9gui_forms15SurfaceMaterial*
 __ZGVZNK9gui_forms15TabControlEvent*
+__ZGVZNK9gui_forms15TaskDialogInput*
 __ZGVZNK9gui_forms15TextDecorations*
 __ZGVZNK9gui_forms15TextMaskMetrics*
 __ZGVZNK9gui_forms15TextMaskRequest*
@@ -2353,6 +2382,7 @@ __ZGVZNK9gui_forms16BindingPredicate*
 __ZGVZNK9gui_forms16BlendHeatMapView*
 __ZGVZNK9gui_forms16BlendStudyPlanes*
 __ZGVZNK9gui_forms16CachedPartRaster*
+__ZGVZNK9gui_forms16CheckedComboItem*
 __ZGVZNK9gui_forms16ColorValueEditor*
 __ZGVZNK9gui_forms16CompositeControl*
 __ZGVZNK9gui_forms16ContainerControl*
@@ -2537,7 +2567,9 @@ __ZGVZNK9gui_forms17NodeLinkConnected*
 __ZGVZNK9gui_forms17ObjectDetailsCell*
 __ZGVZNK9gui_forms17ObjectDetailsSort*
 __ZGVZNK9gui_forms17PartRasterRequest*
+__ZGVZNK9gui_forms17PieSliceSelection*
 __ZGVZNK9gui_forms17PlotHeatmapSeries*
+__ZGVZNK9gui_forms17PopupContainerBox*
 __ZGVZNK9gui_forms17PresentationState*
 __ZGVZNK9gui_forms17PrimitiveRegistry*
 __ZGVZNK9gui_forms17PropertyEnumValue*
@@ -2568,6 +2600,7 @@ __ZGVZNK9gui_forms17TextStoreSnapshot*
 __ZGVZNK9gui_forms17ThemeBackdropBase*
 __ZGVZNK9gui_forms17ThemeExportReport*
 __ZGVZNK9gui_forms17ThemeMotionTokens*
+__ZGVZNK9gui_forms17ToastNotification*
 __ZGVZNK9gui_forms17ToolStripItemSpec*
 __ZGVZNK9gui_forms17TreeListRowSource*
 __ZGVZNK9gui_forms17TreeListRowSplice*
@@ -2653,6 +2686,7 @@ __ZGVZNK9gui_forms18PaintLeaseSnapshot*
 __ZGVZNK9gui_forms18ParagraphGlyphRuns*
 __ZGVZNK9gui_forms18PartGeometryBuffer*
 __ZGVZNK9gui_forms18PartRasterInterior*
+__ZGVZNK9gui_forms18PieSliceActivation*
 __ZGVZNK9gui_forms18PlotAnnotationItem*
 __ZGVZNK9gui_forms18PreparedFontSource*
 __ZGVZNK9gui_forms18PreparedTextLayout*
@@ -2796,6 +2830,7 @@ __ZGVZNK9gui_forms19ThemeRequestContext*
 __ZGVZNK9gui_forms19ThemeWindowBackdrop*
 __ZGVZNK9gui_forms19ToolStripDropTarget*
 __ZGVZNK9gui_forms19TreeExpansionChange*
+__ZGVZNK9gui_forms19TreeListCheckChange*
 __ZGVZNK9gui_forms19TreeSelectionChange*
 __ZGVZNK9gui_forms19VirtualRowSelection*
 __ZGVZNK9gui_forms19WindowBackdropGrant*
@@ -2957,6 +2992,7 @@ __ZGVZNK9gui_forms22ApplicationThemeConfig*
 __ZGVZNK9gui_forms22BindingNavigatorAddNew*
 __ZGVZNK9gui_forms22BlockFlowSharedMargins*
 __ZGVZNK9gui_forms22BundledFontDiagnostics*
+__ZGVZNK9gui_forms22CheckedComboItemChange*
 __ZGVZNK9gui_forms22ContentLayoutTransform*
 __ZGVZNK9gui_forms22ControlValidationEvent*
 __ZGVZNK9gui_forms22CustomStateDeclaration*
@@ -3078,6 +3114,7 @@ __ZGVZNK9gui_forms25ControlBindingsCollection*
 __ZGVZNK9gui_forms25DataGridViewCellsProvided*
 __ZGVZNK9gui_forms25DataGridViewCellsSnapshot*
 __ZGVZNK9gui_forms25DataGridViewRowPaintParts*
+__ZGVZNK9gui_forms25HostDesktopNotificationId*
 __ZGVZNK9gui_forms25HostOpenFileDialogRequest*
 __ZGVZNK9gui_forms25HostSaveFileDialogRequest*
 __ZGVZNK9gui_forms25InvalidationOverlayTarget*
@@ -3124,12 +3161,14 @@ __ZGVZNK9gui_forms28DataGridViewRowPrePaintEvent*
 __ZGVZNK9gui_forms28DataGridViewRowsChangedEvent*
 __ZGVZNK9gui_forms28DataGridViewScrollStatistics*
 __ZGVZNK9gui_forms28DataGridViewSortCompareEvent*
+__ZGVZNK9gui_forms28HostDesktopNotificationEvent*
 __ZGVZNK9gui_forms28NavigationPaneOptionsRequest*
 __ZGVZNK9gui_forms28VisualPaintOperationSnapshot*
 __ZGVZNK9gui_forms28WindowChromeRegionValidation*
 __ZGVZNK9gui_forms29DataGridViewCellValueProvider*
 __ZGVZNK9gui_forms29DataGridViewCellsTextProvider*
 __ZGVZNK9gui_forms29DataGridViewRowPostPaintEvent*
+__ZGVZNK9gui_forms29HostDesktopNotificationResult*
 __ZGVZNK9gui_forms29PrimitiveParameterDeclaration*
 __ZGVZNK9gui_forms30AnchoredOverlayPlacementResult*
 __ZGVZNK9gui_forms30ConnectedControlVisualGeometry*
@@ -3137,6 +3176,7 @@ __ZGVZNK9gui_forms30DataGridViewColumnChangedEvent*
 __ZGVZNK9gui_forms30DataGridViewRowOrderModeChange*
 __ZGVZNK9gui_forms30DataGridViewRowOrderStatistics*
 __ZGVZNK9gui_forms30DataGridViewRowOrderThresholds*
+__ZGVZNK9gui_forms30HostDesktopNotificationRequest*
 __ZGVZNK9gui_forms30MasterDetailPresentationChange*
 __ZGVZNK9gui_forms30ProgressBarAnimationAppearance*
 __ZGVZNK9gui_forms30PropertyValueConverterRegistry*
@@ -3330,6 +3370,8 @@ __ZGVZNK9gui_forms8LinkFlow*
 __ZGVZNK9gui_forms8ListView*
 __ZGVZNK9gui_forms8NodeSpec*
 __ZGVZNK9gui_forms8PageView*
+__ZGVZNK9gui_forms8PieChart*
+__ZGVZNK9gui_forms8PieSlice*
 __ZGVZNK9gui_forms8PlotView*
 __ZGVZNK9gui_forms8Splitter*
 __ZGVZNK9gui_forms8StableId*
@@ -3522,6 +3564,7 @@ __ZN9gui_forms10DockNodeId*
 __ZN9gui_forms10DockSiteId*
 __ZN9gui_forms10DragLimits*
 __ZN9gui_forms10DragTarget*
+__ZN9gui_forms10EditButton*
 __ZN9gui_forms10EffectCost*
 __ZN9gui_forms10EmptyState*
 __ZN9gui_forms10FinishFill*
@@ -3651,6 +3694,7 @@ __ZN9gui_forms11PartProfile*
 __ZN9gui_forms11PhysicalKey*
 __ZN9gui_forms11PlotPalette*
 __ZN9gui_forms11PngMetadata*
+__ZN9gui_forms11PopupClosed*
 __ZN9gui_forms11ProgressBar*
 __ZN9gui_forms11RadialGauge*
 __ZN9gui_forms11RadioButton*
@@ -3854,6 +3898,7 @@ __ZN9gui_forms13BindingFilter*
 __ZN9gui_forms13BindingSchema*
 __ZN9gui_forms13BindingSource*
 __ZN9gui_forms13BlockFlowLine*
+__ZN9gui_forms13ButtonTextBox*
 __ZN9gui_forms13CaretSettings*
 __ZN9gui_forms13CommandTarget*
 __ZN9gui_forms13ContentRegion*
@@ -4015,6 +4060,7 @@ __ZN9gui_forms14HostHoverEvent*
 __ZN9gui_forms14HostScaleEvent*
 __ZN9gui_forms14HostTrayIconId*
 __ZN9gui_forms14ImageAtlasSlot*
+__ZN9gui_forms14InputBoxResult*
 __ZN9gui_forms14ItemCheckEvent*
 __ZN9gui_forms14KeyStateChange*
 __ZN9gui_forms14LineBoxMetrics*
@@ -4100,6 +4146,8 @@ __ZN9gui_forms14gloss_materialB*
 __ZN9gui_forms14gloss_materialE*
 __ZN9gui_forms14has_stock_iconB*
 __ZN9gui_forms14has_stock_iconE*
+__ZN9gui_forms14input_box_pageB*
+__ZN9gui_forms14input_box_pageE*
 __ZN9gui_forms14looks_like_rtfB*
 __ZN9gui_forms14looks_like_rtfE*
 __ZN9gui_forms14marker_outlineB*
@@ -4118,6 +4166,8 @@ __ZN9gui_forms14shape_containsB*
 __ZN9gui_forms14shape_containsE*
 __ZN9gui_forms14shape_coverageB*
 __ZN9gui_forms14shape_coverageE*
+__ZN9gui_forms14show_input_boxB*
+__ZN9gui_forms14show_input_boxE*
 __ZN9gui_forms14text_extent_ofB*
 __ZN9gui_forms14text_extent_ofE*
 __ZN9gui_forms14text_role_nameB*
@@ -4138,6 +4188,7 @@ __ZN9gui_forms15BindingProvider*
 __ZN9gui_forms15BindingSnapshot*
 __ZN9gui_forms15BreadcrumbTrail*
 __ZN9gui_forms15BundledFontFace*
+__ZN9gui_forms15CheckedComboBox*
 __ZN9gui_forms15CollapsedMargin*
 __ZN9gui_forms15CollectionDirty*
 __ZN9gui_forms15ColourSchemeSet*
@@ -4160,6 +4211,7 @@ __ZN9gui_forms15DockTransaction*
 __ZN9gui_forms15DockWindowFrame*
 __ZN9gui_forms15DocumentMapSpan*
 __ZN9gui_forms15DragInteraction*
+__ZN9gui_forms15EditButtonClick*
 __ZN9gui_forms15EffectSelection*
 __ZN9gui_forms15EnginePartTable*
 __ZN9gui_forms15EnginePrimitive*
@@ -4185,6 +4237,7 @@ __ZN9gui_forms15HostedKeyRecord*
 __ZN9gui_forms15IconDeclaration*
 __ZN9gui_forms15ImageListChange*
 __ZN9gui_forms15ImageLoadResult*
+__ZN9gui_forms15InputBoxRequest*
 __ZN9gui_forms15InputTimeSource*
 __ZN9gui_forms15ItemPositioning*
 __ZN9gui_forms15ItemSystemIndex*
@@ -4222,6 +4275,7 @@ __ZN9gui_forms15StableIdLiteral*
 __ZN9gui_forms15SubSurfaceInput*
 __ZN9gui_forms15SurfaceMaterial*
 __ZN9gui_forms15TabControlEvent*
+__ZN9gui_forms15TaskDialogInput*
 __ZN9gui_forms15TextDecorations*
 __ZN9gui_forms15TextMaskMetrics*
 __ZN9gui_forms15TextMaskRequest*
@@ -4304,6 +4358,7 @@ __ZN9gui_forms16BindingPredicate*
 __ZN9gui_forms16BlendHeatMapView*
 __ZN9gui_forms16BlendStudyPlanes*
 __ZN9gui_forms16CachedPartRaster*
+__ZN9gui_forms16CheckedComboItem*
 __ZN9gui_forms16ColorValueEditor*
 __ZN9gui_forms16CompositeControl*
 __ZN9gui_forms16ContainerControl*
@@ -4441,6 +4496,8 @@ __ZN9gui_forms16host_locale_jsonB*
 __ZN9gui_forms16host_locale_jsonE*
 __ZN9gui_forms16host_window_kindB*
 __ZN9gui_forms16host_window_kindE*
+__ZN9gui_forms16input_box_resultB*
+__ZN9gui_forms16input_box_resultE*
 __ZN9gui_forms16key_command_nameB*
 __ZN9gui_forms16key_command_nameE*
 __ZN9gui_forms16line_box_metricsB*
@@ -4564,7 +4621,9 @@ __ZN9gui_forms17NodeLinkConnected*
 __ZN9gui_forms17ObjectDetailsCell*
 __ZN9gui_forms17ObjectDetailsSort*
 __ZN9gui_forms17PartRasterRequest*
+__ZN9gui_forms17PieSliceSelection*
 __ZN9gui_forms17PlotHeatmapSeries*
+__ZN9gui_forms17PopupContainerBox*
 __ZN9gui_forms17PresentationState*
 __ZN9gui_forms17PrimitiveRegistry*
 __ZN9gui_forms17PropertyEnumValue*
@@ -4595,6 +4654,7 @@ __ZN9gui_forms17TextStoreSnapshot*
 __ZN9gui_forms17ThemeBackdropBase*
 __ZN9gui_forms17ThemeExportReport*
 __ZN9gui_forms17ThemeMotionTokens*
+__ZN9gui_forms17ToastNotification*
 __ZN9gui_forms17ToolStripItemSpec*
 __ZN9gui_forms17TreeListRowSource*
 __ZN9gui_forms17TreeListRowSplice*
@@ -4768,6 +4828,7 @@ __ZN9gui_forms18PaintLeaseSnapshot*
 __ZN9gui_forms18ParagraphGlyphRuns*
 __ZN9gui_forms18PartGeometryBuffer*
 __ZN9gui_forms18PartRasterInterior*
+__ZN9gui_forms18PieSliceActivation*
 __ZN9gui_forms18PlotAnnotationItem*
 __ZN9gui_forms18PreparedFontSource*
 __ZN9gui_forms18PreparedTextLayout*
@@ -5023,6 +5084,7 @@ __ZN9gui_forms19ThemeRequestContext*
 __ZN9gui_forms19ThemeWindowBackdrop*
 __ZN9gui_forms19ToolStripDropTarget*
 __ZN9gui_forms19TreeExpansionChange*
+__ZN9gui_forms19TreeListCheckChange*
 __ZN9gui_forms19TreeSelectionChange*
 __ZN9gui_forms19VirtualRowSelection*
 __ZN9gui_forms19WindowBackdropGrant*
@@ -5512,6 +5574,7 @@ __ZN9gui_forms22ApplicationThemeConfig*
 __ZN9gui_forms22BindingNavigatorAddNew*
 __ZN9gui_forms22BlockFlowSharedMargins*
 __ZN9gui_forms22BundledFontDiagnostics*
+__ZN9gui_forms22CheckedComboItemChange*
 __ZN9gui_forms22ContentLayoutTransform*
 __ZN9gui_forms22ControlValidationEvent*
 __ZN9gui_forms22CustomStateDeclaration*
@@ -5911,6 +5974,7 @@ __ZN9gui_forms25ControlBindingsCollection*
 __ZN9gui_forms25DataGridViewCellsProvided*
 __ZN9gui_forms25DataGridViewCellsSnapshot*
 __ZN9gui_forms25DataGridViewRowPaintParts*
+__ZN9gui_forms25HostDesktopNotificationId*
 __ZN9gui_forms25HostOpenFileDialogRequest*
 __ZN9gui_forms25HostSaveFileDialogRequest*
 __ZN9gui_forms25InvalidationOverlayTarget*
@@ -6139,6 +6203,7 @@ __ZN9gui_forms28DataGridViewRowPrePaintEvent*
 __ZN9gui_forms28DataGridViewRowsChangedEvent*
 __ZN9gui_forms28DataGridViewScrollStatistics*
 __ZN9gui_forms28DataGridViewSortCompareEvent*
+__ZN9gui_forms28HostDesktopNotificationEvent*
 __ZN9gui_forms28NavigationPaneOptionsRequest*
 __ZN9gui_forms28VisualPaintOperationSnapshot*
 __ZN9gui_forms28WindowChromeRegionValidation*
@@ -6175,6 +6240,7 @@ __ZN9gui_forms28window_band_appearance_validE*
 __ZN9gui_forms29DataGridViewCellValueProvider*
 __ZN9gui_forms29DataGridViewCellsTextProvider*
 __ZN9gui_forms29DataGridViewRowPostPaintEvent*
+__ZN9gui_forms29HostDesktopNotificationResult*
 __ZN9gui_forms29PrimitiveParameterDeclaration*
 __ZN9gui_forms29animation_interval_for_travelB*
 __ZN9gui_forms29animation_interval_for_travelE*
@@ -6208,6 +6274,7 @@ __ZN9gui_forms30DataGridViewColumnChangedEvent*
 __ZN9gui_forms30DataGridViewRowOrderModeChange*
 __ZN9gui_forms30DataGridViewRowOrderStatistics*
 __ZN9gui_forms30DataGridViewRowOrderThresholds*
+__ZN9gui_forms30HostDesktopNotificationRequest*
 __ZN9gui_forms30MasterDetailPresentationChange*
 __ZN9gui_forms30ProgressBarAnimationAppearance*
 __ZN9gui_forms30PropertyValueConverterRegistry*
@@ -6681,6 +6748,8 @@ __ZN9gui_forms8LinkFlow*
 __ZN9gui_forms8ListView*
 __ZN9gui_forms8NodeSpec*
 __ZN9gui_forms8PageView*
+__ZN9gui_forms8PieChart*
+__ZN9gui_forms8PieSlice*
 __ZN9gui_forms8PlotView*
 __ZN9gui_forms8Splitter*
 __ZN9gui_forms8StableId*
@@ -6883,6 +6952,7 @@ __ZNK[RO]9gui_forms10DockNodeId*
 __ZNK[RO]9gui_forms10DockSiteId*
 __ZNK[RO]9gui_forms10DragLimits*
 __ZNK[RO]9gui_forms10DragTarget*
+__ZNK[RO]9gui_forms10EditButton*
 __ZNK[RO]9gui_forms10EffectCost*
 __ZNK[RO]9gui_forms10EmptyState*
 __ZNK[RO]9gui_forms10FinishFill*
@@ -7000,6 +7070,7 @@ __ZNK[RO]9gui_forms11PartProfile*
 __ZNK[RO]9gui_forms11PhysicalKey*
 __ZNK[RO]9gui_forms11PlotPalette*
 __ZNK[RO]9gui_forms11PngMetadata*
+__ZNK[RO]9gui_forms11PopupClosed*
 __ZNK[RO]9gui_forms11ProgressBar*
 __ZNK[RO]9gui_forms11RadialGauge*
 __ZNK[RO]9gui_forms11RadioButton*
@@ -7131,6 +7202,7 @@ __ZNK[RO]9gui_forms13BindingFilter*
 __ZNK[RO]9gui_forms13BindingSchema*
 __ZNK[RO]9gui_forms13BindingSource*
 __ZNK[RO]9gui_forms13BlockFlowLine*
+__ZNK[RO]9gui_forms13ButtonTextBox*
 __ZNK[RO]9gui_forms13CaretSettings*
 __ZNK[RO]9gui_forms13CommandTarget*
 __ZNK[RO]9gui_forms13ContentRegion*
@@ -7274,6 +7346,7 @@ __ZNK[RO]9gui_forms14HostHoverEvent*
 __ZNK[RO]9gui_forms14HostScaleEvent*
 __ZNK[RO]9gui_forms14HostTrayIconId*
 __ZNK[RO]9gui_forms14ImageAtlasSlot*
+__ZNK[RO]9gui_forms14InputBoxResult*
 __ZNK[RO]9gui_forms14ItemCheckEvent*
 __ZNK[RO]9gui_forms14KeyStateChange*
 __ZNK[RO]9gui_forms14LineBoxMetrics*
@@ -7347,6 +7420,7 @@ __ZNK[RO]9gui_forms15BindingProvider*
 __ZNK[RO]9gui_forms15BindingSnapshot*
 __ZNK[RO]9gui_forms15BreadcrumbTrail*
 __ZNK[RO]9gui_forms15BundledFontFace*
+__ZNK[RO]9gui_forms15CheckedComboBox*
 __ZNK[RO]9gui_forms15CollapsedMargin*
 __ZNK[RO]9gui_forms15CollectionDirty*
 __ZNK[RO]9gui_forms15ColourSchemeSet*
@@ -7369,6 +7443,7 @@ __ZNK[RO]9gui_forms15DockTransaction*
 __ZNK[RO]9gui_forms15DockWindowFrame*
 __ZNK[RO]9gui_forms15DocumentMapSpan*
 __ZNK[RO]9gui_forms15DragInteraction*
+__ZNK[RO]9gui_forms15EditButtonClick*
 __ZNK[RO]9gui_forms15EffectSelection*
 __ZNK[RO]9gui_forms15EnginePartTable*
 __ZNK[RO]9gui_forms15EnginePrimitive*
@@ -7394,6 +7469,7 @@ __ZNK[RO]9gui_forms15HostedKeyRecord*
 __ZNK[RO]9gui_forms15IconDeclaration*
 __ZNK[RO]9gui_forms15ImageListChange*
 __ZNK[RO]9gui_forms15ImageLoadResult*
+__ZNK[RO]9gui_forms15InputBoxRequest*
 __ZNK[RO]9gui_forms15InputTimeSource*
 __ZNK[RO]9gui_forms15ItemPositioning*
 __ZNK[RO]9gui_forms15ItemSystemIndex*
@@ -7431,6 +7507,7 @@ __ZNK[RO]9gui_forms15StableIdLiteral*
 __ZNK[RO]9gui_forms15SubSurfaceInput*
 __ZNK[RO]9gui_forms15SurfaceMaterial*
 __ZNK[RO]9gui_forms15TabControlEvent*
+__ZNK[RO]9gui_forms15TaskDialogInput*
 __ZNK[RO]9gui_forms15TextDecorations*
 __ZNK[RO]9gui_forms15TextMaskMetrics*
 __ZNK[RO]9gui_forms15TextMaskRequest*
@@ -7461,6 +7538,7 @@ __ZNK[RO]9gui_forms16BindingPredicate*
 __ZNK[RO]9gui_forms16BlendHeatMapView*
 __ZNK[RO]9gui_forms16BlendStudyPlanes*
 __ZNK[RO]9gui_forms16CachedPartRaster*
+__ZNK[RO]9gui_forms16CheckedComboItem*
 __ZNK[RO]9gui_forms16ColorValueEditor*
 __ZNK[RO]9gui_forms16CompositeControl*
 __ZNK[RO]9gui_forms16ContainerControl*
@@ -7645,7 +7723,9 @@ __ZNK[RO]9gui_forms17NodeLinkConnected*
 __ZNK[RO]9gui_forms17ObjectDetailsCell*
 __ZNK[RO]9gui_forms17ObjectDetailsSort*
 __ZNK[RO]9gui_forms17PartRasterRequest*
+__ZNK[RO]9gui_forms17PieSliceSelection*
 __ZNK[RO]9gui_forms17PlotHeatmapSeries*
+__ZNK[RO]9gui_forms17PopupContainerBox*
 __ZNK[RO]9gui_forms17PresentationState*
 __ZNK[RO]9gui_forms17PrimitiveRegistry*
 __ZNK[RO]9gui_forms17PropertyEnumValue*
@@ -7676,6 +7756,7 @@ __ZNK[RO]9gui_forms17TextStoreSnapshot*
 __ZNK[RO]9gui_forms17ThemeBackdropBase*
 __ZNK[RO]9gui_forms17ThemeExportReport*
 __ZNK[RO]9gui_forms17ThemeMotionTokens*
+__ZNK[RO]9gui_forms17ToastNotification*
 __ZNK[RO]9gui_forms17ToolStripItemSpec*
 __ZNK[RO]9gui_forms17TreeListRowSource*
 __ZNK[RO]9gui_forms17TreeListRowSplice*
@@ -7761,6 +7842,7 @@ __ZNK[RO]9gui_forms18PaintLeaseSnapshot*
 __ZNK[RO]9gui_forms18ParagraphGlyphRuns*
 __ZNK[RO]9gui_forms18PartGeometryBuffer*
 __ZNK[RO]9gui_forms18PartRasterInterior*
+__ZNK[RO]9gui_forms18PieSliceActivation*
 __ZNK[RO]9gui_forms18PlotAnnotationItem*
 __ZNK[RO]9gui_forms18PreparedFontSource*
 __ZNK[RO]9gui_forms18PreparedTextLayout*
@@ -7904,6 +7986,7 @@ __ZNK[RO]9gui_forms19ThemeRequestContext*
 __ZNK[RO]9gui_forms19ThemeWindowBackdrop*
 __ZNK[RO]9gui_forms19ToolStripDropTarget*
 __ZNK[RO]9gui_forms19TreeExpansionChange*
+__ZNK[RO]9gui_forms19TreeListCheckChange*
 __ZNK[RO]9gui_forms19TreeSelectionChange*
 __ZNK[RO]9gui_forms19VirtualRowSelection*
 __ZNK[RO]9gui_forms19WindowBackdropGrant*
@@ -8065,6 +8148,7 @@ __ZNK[RO]9gui_forms22ApplicationThemeConfig*
 __ZNK[RO]9gui_forms22BindingNavigatorAddNew*
 __ZNK[RO]9gui_forms22BlockFlowSharedMargins*
 __ZNK[RO]9gui_forms22BundledFontDiagnostics*
+__ZNK[RO]9gui_forms22CheckedComboItemChange*
 __ZNK[RO]9gui_forms22ContentLayoutTransform*
 __ZNK[RO]9gui_forms22ControlValidationEvent*
 __ZNK[RO]9gui_forms22CustomStateDeclaration*
@@ -8186,6 +8270,7 @@ __ZNK[RO]9gui_forms25ControlBindingsCollection*
 __ZNK[RO]9gui_forms25DataGridViewCellsProvided*
 __ZNK[RO]9gui_forms25DataGridViewCellsSnapshot*
 __ZNK[RO]9gui_forms25DataGridViewRowPaintParts*
+__ZNK[RO]9gui_forms25HostDesktopNotificationId*
 __ZNK[RO]9gui_forms25HostOpenFileDialogRequest*
 __ZNK[RO]9gui_forms25HostSaveFileDialogRequest*
 __ZNK[RO]9gui_forms25InvalidationOverlayTarget*
@@ -8232,12 +8317,14 @@ __ZNK[RO]9gui_forms28DataGridViewRowPrePaintEvent*
 __ZNK[RO]9gui_forms28DataGridViewRowsChangedEvent*
 __ZNK[RO]9gui_forms28DataGridViewScrollStatistics*
 __ZNK[RO]9gui_forms28DataGridViewSortCompareEvent*
+__ZNK[RO]9gui_forms28HostDesktopNotificationEvent*
 __ZNK[RO]9gui_forms28NavigationPaneOptionsRequest*
 __ZNK[RO]9gui_forms28VisualPaintOperationSnapshot*
 __ZNK[RO]9gui_forms28WindowChromeRegionValidation*
 __ZNK[RO]9gui_forms29DataGridViewCellValueProvider*
 __ZNK[RO]9gui_forms29DataGridViewCellsTextProvider*
 __ZNK[RO]9gui_forms29DataGridViewRowPostPaintEvent*
+__ZNK[RO]9gui_forms29HostDesktopNotificationResult*
 __ZNK[RO]9gui_forms29PrimitiveParameterDeclaration*
 __ZNK[RO]9gui_forms30AnchoredOverlayPlacementResult*
 __ZNK[RO]9gui_forms30ConnectedControlVisualGeometry*
@@ -8245,6 +8332,7 @@ __ZNK[RO]9gui_forms30DataGridViewColumnChangedEvent*
 __ZNK[RO]9gui_forms30DataGridViewRowOrderModeChange*
 __ZNK[RO]9gui_forms30DataGridViewRowOrderStatistics*
 __ZNK[RO]9gui_forms30DataGridViewRowOrderThresholds*
+__ZNK[RO]9gui_forms30HostDesktopNotificationRequest*
 __ZNK[RO]9gui_forms30MasterDetailPresentationChange*
 __ZNK[RO]9gui_forms30ProgressBarAnimationAppearance*
 __ZNK[RO]9gui_forms30PropertyValueConverterRegistry*
@@ -8438,6 +8526,8 @@ __ZNK[RO]9gui_forms8LinkFlow*
 __ZNK[RO]9gui_forms8ListView*
 __ZNK[RO]9gui_forms8NodeSpec*
 __ZNK[RO]9gui_forms8PageView*
+__ZNK[RO]9gui_forms8PieChart*
+__ZNK[RO]9gui_forms8PieSlice*
 __ZNK[RO]9gui_forms8PlotView*
 __ZNK[RO]9gui_forms8Splitter*
 __ZNK[RO]9gui_forms8StableId*
@@ -8576,6 +8666,7 @@ __ZN[KRO]9gui_forms10DockNodeId*
 __ZN[KRO]9gui_forms10DockSiteId*
 __ZN[KRO]9gui_forms10DragLimits*
 __ZN[KRO]9gui_forms10DragTarget*
+__ZN[KRO]9gui_forms10EditButton*
 __ZN[KRO]9gui_forms10EffectCost*
 __ZN[KRO]9gui_forms10EmptyState*
 __ZN[KRO]9gui_forms10FinishFill*
@@ -8693,6 +8784,7 @@ __ZN[KRO]9gui_forms11PartProfile*
 __ZN[KRO]9gui_forms11PhysicalKey*
 __ZN[KRO]9gui_forms11PlotPalette*
 __ZN[KRO]9gui_forms11PngMetadata*
+__ZN[KRO]9gui_forms11PopupClosed*
 __ZN[KRO]9gui_forms11ProgressBar*
 __ZN[KRO]9gui_forms11RadialGauge*
 __ZN[KRO]9gui_forms11RadioButton*
@@ -8824,6 +8916,7 @@ __ZN[KRO]9gui_forms13BindingFilter*
 __ZN[KRO]9gui_forms13BindingSchema*
 __ZN[KRO]9gui_forms13BindingSource*
 __ZN[KRO]9gui_forms13BlockFlowLine*
+__ZN[KRO]9gui_forms13ButtonTextBox*
 __ZN[KRO]9gui_forms13CaretSettings*
 __ZN[KRO]9gui_forms13CommandTarget*
 __ZN[KRO]9gui_forms13ContentRegion*
@@ -8967,6 +9060,7 @@ __ZN[KRO]9gui_forms14HostHoverEvent*
 __ZN[KRO]9gui_forms14HostScaleEvent*
 __ZN[KRO]9gui_forms14HostTrayIconId*
 __ZN[KRO]9gui_forms14ImageAtlasSlot*
+__ZN[KRO]9gui_forms14InputBoxResult*
 __ZN[KRO]9gui_forms14ItemCheckEvent*
 __ZN[KRO]9gui_forms14KeyStateChange*
 __ZN[KRO]9gui_forms14LineBoxMetrics*
@@ -9040,6 +9134,7 @@ __ZN[KRO]9gui_forms15BindingProvider*
 __ZN[KRO]9gui_forms15BindingSnapshot*
 __ZN[KRO]9gui_forms15BreadcrumbTrail*
 __ZN[KRO]9gui_forms15BundledFontFace*
+__ZN[KRO]9gui_forms15CheckedComboBox*
 __ZN[KRO]9gui_forms15CollapsedMargin*
 __ZN[KRO]9gui_forms15CollectionDirty*
 __ZN[KRO]9gui_forms15ColourSchemeSet*
@@ -9062,6 +9157,7 @@ __ZN[KRO]9gui_forms15DockTransaction*
 __ZN[KRO]9gui_forms15DockWindowFrame*
 __ZN[KRO]9gui_forms15DocumentMapSpan*
 __ZN[KRO]9gui_forms15DragInteraction*
+__ZN[KRO]9gui_forms15EditButtonClick*
 __ZN[KRO]9gui_forms15EffectSelection*
 __ZN[KRO]9gui_forms15EnginePartTable*
 __ZN[KRO]9gui_forms15EnginePrimitive*
@@ -9087,6 +9183,7 @@ __ZN[KRO]9gui_forms15HostedKeyRecord*
 __ZN[KRO]9gui_forms15IconDeclaration*
 __ZN[KRO]9gui_forms15ImageListChange*
 __ZN[KRO]9gui_forms15ImageLoadResult*
+__ZN[KRO]9gui_forms15InputBoxRequest*
 __ZN[KRO]9gui_forms15InputTimeSource*
 __ZN[KRO]9gui_forms15ItemPositioning*
 __ZN[KRO]9gui_forms15ItemSystemIndex*
@@ -9124,6 +9221,7 @@ __ZN[KRO]9gui_forms15StableIdLiteral*
 __ZN[KRO]9gui_forms15SubSurfaceInput*
 __ZN[KRO]9gui_forms15SurfaceMaterial*
 __ZN[KRO]9gui_forms15TabControlEvent*
+__ZN[KRO]9gui_forms15TaskDialogInput*
 __ZN[KRO]9gui_forms15TextDecorations*
 __ZN[KRO]9gui_forms15TextMaskMetrics*
 __ZN[KRO]9gui_forms15TextMaskRequest*
@@ -9154,6 +9252,7 @@ __ZN[KRO]9gui_forms16BindingPredicate*
 __ZN[KRO]9gui_forms16BlendHeatMapView*
 __ZN[KRO]9gui_forms16BlendStudyPlanes*
 __ZN[KRO]9gui_forms16CachedPartRaster*
+__ZN[KRO]9gui_forms16CheckedComboItem*
 __ZN[KRO]9gui_forms16ColorValueEditor*
 __ZN[KRO]9gui_forms16CompositeControl*
 __ZN[KRO]9gui_forms16ContainerControl*
@@ -9338,7 +9437,9 @@ __ZN[KRO]9gui_forms17NodeLinkConnected*
 __ZN[KRO]9gui_forms17ObjectDetailsCell*
 __ZN[KRO]9gui_forms17ObjectDetailsSort*
 __ZN[KRO]9gui_forms17PartRasterRequest*
+__ZN[KRO]9gui_forms17PieSliceSelection*
 __ZN[KRO]9gui_forms17PlotHeatmapSeries*
+__ZN[KRO]9gui_forms17PopupContainerBox*
 __ZN[KRO]9gui_forms17PresentationState*
 __ZN[KRO]9gui_forms17PrimitiveRegistry*
 __ZN[KRO]9gui_forms17PropertyEnumValue*
@@ -9369,6 +9470,7 @@ __ZN[KRO]9gui_forms17TextStoreSnapshot*
 __ZN[KRO]9gui_forms17ThemeBackdropBase*
 __ZN[KRO]9gui_forms17ThemeExportReport*
 __ZN[KRO]9gui_forms17ThemeMotionTokens*
+__ZN[KRO]9gui_forms17ToastNotification*
 __ZN[KRO]9gui_forms17ToolStripItemSpec*
 __ZN[KRO]9gui_forms17TreeListRowSource*
 __ZN[KRO]9gui_forms17TreeListRowSplice*
@@ -9454,6 +9556,7 @@ __ZN[KRO]9gui_forms18PaintLeaseSnapshot*
 __ZN[KRO]9gui_forms18ParagraphGlyphRuns*
 __ZN[KRO]9gui_forms18PartGeometryBuffer*
 __ZN[KRO]9gui_forms18PartRasterInterior*
+__ZN[KRO]9gui_forms18PieSliceActivation*
 __ZN[KRO]9gui_forms18PlotAnnotationItem*
 __ZN[KRO]9gui_forms18PreparedFontSource*
 __ZN[KRO]9gui_forms18PreparedTextLayout*
@@ -9597,6 +9700,7 @@ __ZN[KRO]9gui_forms19ThemeRequestContext*
 __ZN[KRO]9gui_forms19ThemeWindowBackdrop*
 __ZN[KRO]9gui_forms19ToolStripDropTarget*
 __ZN[KRO]9gui_forms19TreeExpansionChange*
+__ZN[KRO]9gui_forms19TreeListCheckChange*
 __ZN[KRO]9gui_forms19TreeSelectionChange*
 __ZN[KRO]9gui_forms19VirtualRowSelection*
 __ZN[KRO]9gui_forms19WindowBackdropGrant*
@@ -9758,6 +9862,7 @@ __ZN[KRO]9gui_forms22ApplicationThemeConfig*
 __ZN[KRO]9gui_forms22BindingNavigatorAddNew*
 __ZN[KRO]9gui_forms22BlockFlowSharedMargins*
 __ZN[KRO]9gui_forms22BundledFontDiagnostics*
+__ZN[KRO]9gui_forms22CheckedComboItemChange*
 __ZN[KRO]9gui_forms22ContentLayoutTransform*
 __ZN[KRO]9gui_forms22ControlValidationEvent*
 __ZN[KRO]9gui_forms22CustomStateDeclaration*
@@ -9879,6 +9984,7 @@ __ZN[KRO]9gui_forms25ControlBindingsCollection*
 __ZN[KRO]9gui_forms25DataGridViewCellsProvided*
 __ZN[KRO]9gui_forms25DataGridViewCellsSnapshot*
 __ZN[KRO]9gui_forms25DataGridViewRowPaintParts*
+__ZN[KRO]9gui_forms25HostDesktopNotificationId*
 __ZN[KRO]9gui_forms25HostOpenFileDialogRequest*
 __ZN[KRO]9gui_forms25HostSaveFileDialogRequest*
 __ZN[KRO]9gui_forms25InvalidationOverlayTarget*
@@ -9925,12 +10031,14 @@ __ZN[KRO]9gui_forms28DataGridViewRowPrePaintEvent*
 __ZN[KRO]9gui_forms28DataGridViewRowsChangedEvent*
 __ZN[KRO]9gui_forms28DataGridViewScrollStatistics*
 __ZN[KRO]9gui_forms28DataGridViewSortCompareEvent*
+__ZN[KRO]9gui_forms28HostDesktopNotificationEvent*
 __ZN[KRO]9gui_forms28NavigationPaneOptionsRequest*
 __ZN[KRO]9gui_forms28VisualPaintOperationSnapshot*
 __ZN[KRO]9gui_forms28WindowChromeRegionValidation*
 __ZN[KRO]9gui_forms29DataGridViewCellValueProvider*
 __ZN[KRO]9gui_forms29DataGridViewCellsTextProvider*
 __ZN[KRO]9gui_forms29DataGridViewRowPostPaintEvent*
+__ZN[KRO]9gui_forms29HostDesktopNotificationResult*
 __ZN[KRO]9gui_forms29PrimitiveParameterDeclaration*
 __ZN[KRO]9gui_forms30AnchoredOverlayPlacementResult*
 __ZN[KRO]9gui_forms30ConnectedControlVisualGeometry*
@@ -9938,6 +10046,7 @@ __ZN[KRO]9gui_forms30DataGridViewColumnChangedEvent*
 __ZN[KRO]9gui_forms30DataGridViewRowOrderModeChange*
 __ZN[KRO]9gui_forms30DataGridViewRowOrderStatistics*
 __ZN[KRO]9gui_forms30DataGridViewRowOrderThresholds*
+__ZN[KRO]9gui_forms30HostDesktopNotificationRequest*
 __ZN[KRO]9gui_forms30MasterDetailPresentationChange*
 __ZN[KRO]9gui_forms30ProgressBarAnimationAppearance*
 __ZN[KRO]9gui_forms30PropertyValueConverterRegistry*
@@ -10131,6 +10240,8 @@ __ZN[KRO]9gui_forms8LinkFlow*
 __ZN[KRO]9gui_forms8ListView*
 __ZN[KRO]9gui_forms8NodeSpec*
 __ZN[KRO]9gui_forms8PageView*
+__ZN[KRO]9gui_forms8PieChart*
+__ZN[KRO]9gui_forms8PieSlice*
 __ZN[KRO]9gui_forms8PlotView*
 __ZN[KRO]9gui_forms8Splitter*
 __ZN[KRO]9gui_forms8StableId*
@@ -10269,6 +10380,7 @@ __ZT[VIST]N9gui_forms10DockNodeId*E
 __ZT[VIST]N9gui_forms10DockSiteId*E
 __ZT[VIST]N9gui_forms10DragLimits*E
 __ZT[VIST]N9gui_forms10DragTarget*E
+__ZT[VIST]N9gui_forms10EditButton*E
 __ZT[VIST]N9gui_forms10EffectCost*E
 __ZT[VIST]N9gui_forms10EmptyState*E
 __ZT[VIST]N9gui_forms10FinishFill*E
@@ -10386,6 +10498,7 @@ __ZT[VIST]N9gui_forms11PartProfile*E
 __ZT[VIST]N9gui_forms11PhysicalKey*E
 __ZT[VIST]N9gui_forms11PlotPalette*E
 __ZT[VIST]N9gui_forms11PngMetadata*E
+__ZT[VIST]N9gui_forms11PopupClosed*E
 __ZT[VIST]N9gui_forms11ProgressBar*E
 __ZT[VIST]N9gui_forms11RadialGauge*E
 __ZT[VIST]N9gui_forms11RadioButton*E
@@ -10517,6 +10630,7 @@ __ZT[VIST]N9gui_forms13BindingFilter*E
 __ZT[VIST]N9gui_forms13BindingSchema*E
 __ZT[VIST]N9gui_forms13BindingSource*E
 __ZT[VIST]N9gui_forms13BlockFlowLine*E
+__ZT[VIST]N9gui_forms13ButtonTextBox*E
 __ZT[VIST]N9gui_forms13CaretSettings*E
 __ZT[VIST]N9gui_forms13CommandTarget*E
 __ZT[VIST]N9gui_forms13ContentRegion*E
@@ -10660,6 +10774,7 @@ __ZT[VIST]N9gui_forms14HostHoverEvent*E
 __ZT[VIST]N9gui_forms14HostScaleEvent*E
 __ZT[VIST]N9gui_forms14HostTrayIconId*E
 __ZT[VIST]N9gui_forms14ImageAtlasSlot*E
+__ZT[VIST]N9gui_forms14InputBoxResult*E
 __ZT[VIST]N9gui_forms14ItemCheckEvent*E
 __ZT[VIST]N9gui_forms14KeyStateChange*E
 __ZT[VIST]N9gui_forms14LineBoxMetrics*E
@@ -10733,6 +10848,7 @@ __ZT[VIST]N9gui_forms15BindingProvider*E
 __ZT[VIST]N9gui_forms15BindingSnapshot*E
 __ZT[VIST]N9gui_forms15BreadcrumbTrail*E
 __ZT[VIST]N9gui_forms15BundledFontFace*E
+__ZT[VIST]N9gui_forms15CheckedComboBox*E
 __ZT[VIST]N9gui_forms15CollapsedMargin*E
 __ZT[VIST]N9gui_forms15CollectionDirty*E
 __ZT[VIST]N9gui_forms15ColourSchemeSet*E
@@ -10755,6 +10871,7 @@ __ZT[VIST]N9gui_forms15DockTransaction*E
 __ZT[VIST]N9gui_forms15DockWindowFrame*E
 __ZT[VIST]N9gui_forms15DocumentMapSpan*E
 __ZT[VIST]N9gui_forms15DragInteraction*E
+__ZT[VIST]N9gui_forms15EditButtonClick*E
 __ZT[VIST]N9gui_forms15EffectSelection*E
 __ZT[VIST]N9gui_forms15EnginePartTable*E
 __ZT[VIST]N9gui_forms15EnginePrimitive*E
@@ -10780,6 +10897,7 @@ __ZT[VIST]N9gui_forms15HostedKeyRecord*E
 __ZT[VIST]N9gui_forms15IconDeclaration*E
 __ZT[VIST]N9gui_forms15ImageListChange*E
 __ZT[VIST]N9gui_forms15ImageLoadResult*E
+__ZT[VIST]N9gui_forms15InputBoxRequest*E
 __ZT[VIST]N9gui_forms15InputTimeSource*E
 __ZT[VIST]N9gui_forms15ItemPositioning*E
 __ZT[VIST]N9gui_forms15ItemSystemIndex*E
@@ -10817,6 +10935,7 @@ __ZT[VIST]N9gui_forms15StableIdLiteral*E
 __ZT[VIST]N9gui_forms15SubSurfaceInput*E
 __ZT[VIST]N9gui_forms15SurfaceMaterial*E
 __ZT[VIST]N9gui_forms15TabControlEvent*E
+__ZT[VIST]N9gui_forms15TaskDialogInput*E
 __ZT[VIST]N9gui_forms15TextDecorations*E
 __ZT[VIST]N9gui_forms15TextMaskMetrics*E
 __ZT[VIST]N9gui_forms15TextMaskRequest*E
@@ -10847,6 +10966,7 @@ __ZT[VIST]N9gui_forms16BindingPredicate*E
 __ZT[VIST]N9gui_forms16BlendHeatMapView*E
 __ZT[VIST]N9gui_forms16BlendStudyPlanes*E
 __ZT[VIST]N9gui_forms16CachedPartRaster*E
+__ZT[VIST]N9gui_forms16CheckedComboItem*E
 __ZT[VIST]N9gui_forms16ColorValueEditor*E
 __ZT[VIST]N9gui_forms16CompositeControl*E
 __ZT[VIST]N9gui_forms16ContainerControl*E
@@ -11031,7 +11151,9 @@ __ZT[VIST]N9gui_forms17NodeLinkConnected*E
 __ZT[VIST]N9gui_forms17ObjectDetailsCell*E
 __ZT[VIST]N9gui_forms17ObjectDetailsSort*E
 __ZT[VIST]N9gui_forms17PartRasterRequest*E
+__ZT[VIST]N9gui_forms17PieSliceSelection*E
 __ZT[VIST]N9gui_forms17PlotHeatmapSeries*E
+__ZT[VIST]N9gui_forms17PopupContainerBox*E
 __ZT[VIST]N9gui_forms17PresentationState*E
 __ZT[VIST]N9gui_forms17PrimitiveRegistry*E
 __ZT[VIST]N9gui_forms17PropertyEnumValue*E
@@ -11062,6 +11184,7 @@ __ZT[VIST]N9gui_forms17TextStoreSnapshot*E
 __ZT[VIST]N9gui_forms17ThemeBackdropBase*E
 __ZT[VIST]N9gui_forms17ThemeExportReport*E
 __ZT[VIST]N9gui_forms17ThemeMotionTokens*E
+__ZT[VIST]N9gui_forms17ToastNotification*E
 __ZT[VIST]N9gui_forms17ToolStripItemSpec*E
 __ZT[VIST]N9gui_forms17TreeListRowSource*E
 __ZT[VIST]N9gui_forms17TreeListRowSplice*E
@@ -11147,6 +11270,7 @@ __ZT[VIST]N9gui_forms18PaintLeaseSnapshot*E
 __ZT[VIST]N9gui_forms18ParagraphGlyphRuns*E
 __ZT[VIST]N9gui_forms18PartGeometryBuffer*E
 __ZT[VIST]N9gui_forms18PartRasterInterior*E
+__ZT[VIST]N9gui_forms18PieSliceActivation*E
 __ZT[VIST]N9gui_forms18PlotAnnotationItem*E
 __ZT[VIST]N9gui_forms18PreparedFontSource*E
 __ZT[VIST]N9gui_forms18PreparedTextLayout*E
@@ -11290,6 +11414,7 @@ __ZT[VIST]N9gui_forms19ThemeRequestContext*E
 __ZT[VIST]N9gui_forms19ThemeWindowBackdrop*E
 __ZT[VIST]N9gui_forms19ToolStripDropTarget*E
 __ZT[VIST]N9gui_forms19TreeExpansionChange*E
+__ZT[VIST]N9gui_forms19TreeListCheckChange*E
 __ZT[VIST]N9gui_forms19TreeSelectionChange*E
 __ZT[VIST]N9gui_forms19VirtualRowSelection*E
 __ZT[VIST]N9gui_forms19WindowBackdropGrant*E
@@ -11451,6 +11576,7 @@ __ZT[VIST]N9gui_forms22ApplicationThemeConfig*E
 __ZT[VIST]N9gui_forms22BindingNavigatorAddNew*E
 __ZT[VIST]N9gui_forms22BlockFlowSharedMargins*E
 __ZT[VIST]N9gui_forms22BundledFontDiagnostics*E
+__ZT[VIST]N9gui_forms22CheckedComboItemChange*E
 __ZT[VIST]N9gui_forms22ContentLayoutTransform*E
 __ZT[VIST]N9gui_forms22ControlValidationEvent*E
 __ZT[VIST]N9gui_forms22CustomStateDeclaration*E
@@ -11572,6 +11698,7 @@ __ZT[VIST]N9gui_forms25ControlBindingsCollection*E
 __ZT[VIST]N9gui_forms25DataGridViewCellsProvided*E
 __ZT[VIST]N9gui_forms25DataGridViewCellsSnapshot*E
 __ZT[VIST]N9gui_forms25DataGridViewRowPaintParts*E
+__ZT[VIST]N9gui_forms25HostDesktopNotificationId*E
 __ZT[VIST]N9gui_forms25HostOpenFileDialogRequest*E
 __ZT[VIST]N9gui_forms25HostSaveFileDialogRequest*E
 __ZT[VIST]N9gui_forms25InvalidationOverlayTarget*E
@@ -11618,12 +11745,14 @@ __ZT[VIST]N9gui_forms28DataGridViewRowPrePaintEvent*E
 __ZT[VIST]N9gui_forms28DataGridViewRowsChangedEvent*E
 __ZT[VIST]N9gui_forms28DataGridViewScrollStatistics*E
 __ZT[VIST]N9gui_forms28DataGridViewSortCompareEvent*E
+__ZT[VIST]N9gui_forms28HostDesktopNotificationEvent*E
 __ZT[VIST]N9gui_forms28NavigationPaneOptionsRequest*E
 __ZT[VIST]N9gui_forms28VisualPaintOperationSnapshot*E
 __ZT[VIST]N9gui_forms28WindowChromeRegionValidation*E
 __ZT[VIST]N9gui_forms29DataGridViewCellValueProvider*E
 __ZT[VIST]N9gui_forms29DataGridViewCellsTextProvider*E
 __ZT[VIST]N9gui_forms29DataGridViewRowPostPaintEvent*E
+__ZT[VIST]N9gui_forms29HostDesktopNotificationResult*E
 __ZT[VIST]N9gui_forms29PrimitiveParameterDeclaration*E
 __ZT[VIST]N9gui_forms30AnchoredOverlayPlacementResult*E
 __ZT[VIST]N9gui_forms30ConnectedControlVisualGeometry*E
@@ -11631,6 +11760,7 @@ __ZT[VIST]N9gui_forms30DataGridViewColumnChangedEvent*E
 __ZT[VIST]N9gui_forms30DataGridViewRowOrderModeChange*E
 __ZT[VIST]N9gui_forms30DataGridViewRowOrderStatistics*E
 __ZT[VIST]N9gui_forms30DataGridViewRowOrderThresholds*E
+__ZT[VIST]N9gui_forms30HostDesktopNotificationRequest*E
 __ZT[VIST]N9gui_forms30MasterDetailPresentationChange*E
 __ZT[VIST]N9gui_forms30ProgressBarAnimationAppearance*E
 __ZT[VIST]N9gui_forms30PropertyValueConverterRegistry*E
@@ -11824,6 +11954,8 @@ __ZT[VIST]N9gui_forms8LinkFlow*E
 __ZT[VIST]N9gui_forms8ListView*E
 __ZT[VIST]N9gui_forms8NodeSpec*E
 __ZT[VIST]N9gui_forms8PageView*E
+__ZT[VIST]N9gui_forms8PieChart*E
+__ZT[VIST]N9gui_forms8PieSlice*E
 __ZT[VIST]N9gui_forms8PlotView*E
 __ZT[VIST]N9gui_forms8Splitter*E
 __ZT[VIST]N9gui_forms8StableId*E
@@ -11962,6 +12094,7 @@ __ZT[hvc]*9gui_forms10DockNodeId*
 __ZT[hvc]*9gui_forms10DockSiteId*
 __ZT[hvc]*9gui_forms10DragLimits*
 __ZT[hvc]*9gui_forms10DragTarget*
+__ZT[hvc]*9gui_forms10EditButton*
 __ZT[hvc]*9gui_forms10EffectCost*
 __ZT[hvc]*9gui_forms10EmptyState*
 __ZT[hvc]*9gui_forms10FinishFill*
@@ -12079,6 +12212,7 @@ __ZT[hvc]*9gui_forms11PartProfile*
 __ZT[hvc]*9gui_forms11PhysicalKey*
 __ZT[hvc]*9gui_forms11PlotPalette*
 __ZT[hvc]*9gui_forms11PngMetadata*
+__ZT[hvc]*9gui_forms11PopupClosed*
 __ZT[hvc]*9gui_forms11ProgressBar*
 __ZT[hvc]*9gui_forms11RadialGauge*
 __ZT[hvc]*9gui_forms11RadioButton*
@@ -12210,6 +12344,7 @@ __ZT[hvc]*9gui_forms13BindingFilter*
 __ZT[hvc]*9gui_forms13BindingSchema*
 __ZT[hvc]*9gui_forms13BindingSource*
 __ZT[hvc]*9gui_forms13BlockFlowLine*
+__ZT[hvc]*9gui_forms13ButtonTextBox*
 __ZT[hvc]*9gui_forms13CaretSettings*
 __ZT[hvc]*9gui_forms13CommandTarget*
 __ZT[hvc]*9gui_forms13ContentRegion*
@@ -12353,6 +12488,7 @@ __ZT[hvc]*9gui_forms14HostHoverEvent*
 __ZT[hvc]*9gui_forms14HostScaleEvent*
 __ZT[hvc]*9gui_forms14HostTrayIconId*
 __ZT[hvc]*9gui_forms14ImageAtlasSlot*
+__ZT[hvc]*9gui_forms14InputBoxResult*
 __ZT[hvc]*9gui_forms14ItemCheckEvent*
 __ZT[hvc]*9gui_forms14KeyStateChange*
 __ZT[hvc]*9gui_forms14LineBoxMetrics*
@@ -12426,6 +12562,7 @@ __ZT[hvc]*9gui_forms15BindingProvider*
 __ZT[hvc]*9gui_forms15BindingSnapshot*
 __ZT[hvc]*9gui_forms15BreadcrumbTrail*
 __ZT[hvc]*9gui_forms15BundledFontFace*
+__ZT[hvc]*9gui_forms15CheckedComboBox*
 __ZT[hvc]*9gui_forms15CollapsedMargin*
 __ZT[hvc]*9gui_forms15CollectionDirty*
 __ZT[hvc]*9gui_forms15ColourSchemeSet*
@@ -12448,6 +12585,7 @@ __ZT[hvc]*9gui_forms15DockTransaction*
 __ZT[hvc]*9gui_forms15DockWindowFrame*
 __ZT[hvc]*9gui_forms15DocumentMapSpan*
 __ZT[hvc]*9gui_forms15DragInteraction*
+__ZT[hvc]*9gui_forms15EditButtonClick*
 __ZT[hvc]*9gui_forms15EffectSelection*
 __ZT[hvc]*9gui_forms15EnginePartTable*
 __ZT[hvc]*9gui_forms15EnginePrimitive*
@@ -12473,6 +12611,7 @@ __ZT[hvc]*9gui_forms15HostedKeyRecord*
 __ZT[hvc]*9gui_forms15IconDeclaration*
 __ZT[hvc]*9gui_forms15ImageListChange*
 __ZT[hvc]*9gui_forms15ImageLoadResult*
+__ZT[hvc]*9gui_forms15InputBoxRequest*
 __ZT[hvc]*9gui_forms15InputTimeSource*
 __ZT[hvc]*9gui_forms15ItemPositioning*
 __ZT[hvc]*9gui_forms15ItemSystemIndex*
@@ -12510,6 +12649,7 @@ __ZT[hvc]*9gui_forms15StableIdLiteral*
 __ZT[hvc]*9gui_forms15SubSurfaceInput*
 __ZT[hvc]*9gui_forms15SurfaceMaterial*
 __ZT[hvc]*9gui_forms15TabControlEvent*
+__ZT[hvc]*9gui_forms15TaskDialogInput*
 __ZT[hvc]*9gui_forms15TextDecorations*
 __ZT[hvc]*9gui_forms15TextMaskMetrics*
 __ZT[hvc]*9gui_forms15TextMaskRequest*
@@ -12540,6 +12680,7 @@ __ZT[hvc]*9gui_forms16BindingPredicate*
 __ZT[hvc]*9gui_forms16BlendHeatMapView*
 __ZT[hvc]*9gui_forms16BlendStudyPlanes*
 __ZT[hvc]*9gui_forms16CachedPartRaster*
+__ZT[hvc]*9gui_forms16CheckedComboItem*
 __ZT[hvc]*9gui_forms16ColorValueEditor*
 __ZT[hvc]*9gui_forms16CompositeControl*
 __ZT[hvc]*9gui_forms16ContainerControl*
@@ -12724,7 +12865,9 @@ __ZT[hvc]*9gui_forms17NodeLinkConnected*
 __ZT[hvc]*9gui_forms17ObjectDetailsCell*
 __ZT[hvc]*9gui_forms17ObjectDetailsSort*
 __ZT[hvc]*9gui_forms17PartRasterRequest*
+__ZT[hvc]*9gui_forms17PieSliceSelection*
 __ZT[hvc]*9gui_forms17PlotHeatmapSeries*
+__ZT[hvc]*9gui_forms17PopupContainerBox*
 __ZT[hvc]*9gui_forms17PresentationState*
 __ZT[hvc]*9gui_forms17PrimitiveRegistry*
 __ZT[hvc]*9gui_forms17PropertyEnumValue*
@@ -12755,6 +12898,7 @@ __ZT[hvc]*9gui_forms17TextStoreSnapshot*
 __ZT[hvc]*9gui_forms17ThemeBackdropBase*
 __ZT[hvc]*9gui_forms17ThemeExportReport*
 __ZT[hvc]*9gui_forms17ThemeMotionTokens*
+__ZT[hvc]*9gui_forms17ToastNotification*
 __ZT[hvc]*9gui_forms17ToolStripItemSpec*
 __ZT[hvc]*9gui_forms17TreeListRowSource*
 __ZT[hvc]*9gui_forms17TreeListRowSplice*
@@ -12840,6 +12984,7 @@ __ZT[hvc]*9gui_forms18PaintLeaseSnapshot*
 __ZT[hvc]*9gui_forms18ParagraphGlyphRuns*
 __ZT[hvc]*9gui_forms18PartGeometryBuffer*
 __ZT[hvc]*9gui_forms18PartRasterInterior*
+__ZT[hvc]*9gui_forms18PieSliceActivation*
 __ZT[hvc]*9gui_forms18PlotAnnotationItem*
 __ZT[hvc]*9gui_forms18PreparedFontSource*
 __ZT[hvc]*9gui_forms18PreparedTextLayout*
@@ -12983,6 +13128,7 @@ __ZT[hvc]*9gui_forms19ThemeRequestContext*
 __ZT[hvc]*9gui_forms19ThemeWindowBackdrop*
 __ZT[hvc]*9gui_forms19ToolStripDropTarget*
 __ZT[hvc]*9gui_forms19TreeExpansionChange*
+__ZT[hvc]*9gui_forms19TreeListCheckChange*
 __ZT[hvc]*9gui_forms19TreeSelectionChange*
 __ZT[hvc]*9gui_forms19VirtualRowSelection*
 __ZT[hvc]*9gui_forms19WindowBackdropGrant*
@@ -13144,6 +13290,7 @@ __ZT[hvc]*9gui_forms22ApplicationThemeConfig*
 __ZT[hvc]*9gui_forms22BindingNavigatorAddNew*
 __ZT[hvc]*9gui_forms22BlockFlowSharedMargins*
 __ZT[hvc]*9gui_forms22BundledFontDiagnostics*
+__ZT[hvc]*9gui_forms22CheckedComboItemChange*
 __ZT[hvc]*9gui_forms22ContentLayoutTransform*
 __ZT[hvc]*9gui_forms22ControlValidationEvent*
 __ZT[hvc]*9gui_forms22CustomStateDeclaration*
@@ -13265,6 +13412,7 @@ __ZT[hvc]*9gui_forms25ControlBindingsCollection*
 __ZT[hvc]*9gui_forms25DataGridViewCellsProvided*
 __ZT[hvc]*9gui_forms25DataGridViewCellsSnapshot*
 __ZT[hvc]*9gui_forms25DataGridViewRowPaintParts*
+__ZT[hvc]*9gui_forms25HostDesktopNotificationId*
 __ZT[hvc]*9gui_forms25HostOpenFileDialogRequest*
 __ZT[hvc]*9gui_forms25HostSaveFileDialogRequest*
 __ZT[hvc]*9gui_forms25InvalidationOverlayTarget*
@@ -13311,12 +13459,14 @@ __ZT[hvc]*9gui_forms28DataGridViewRowPrePaintEvent*
 __ZT[hvc]*9gui_forms28DataGridViewRowsChangedEvent*
 __ZT[hvc]*9gui_forms28DataGridViewScrollStatistics*
 __ZT[hvc]*9gui_forms28DataGridViewSortCompareEvent*
+__ZT[hvc]*9gui_forms28HostDesktopNotificationEvent*
 __ZT[hvc]*9gui_forms28NavigationPaneOptionsRequest*
 __ZT[hvc]*9gui_forms28VisualPaintOperationSnapshot*
 __ZT[hvc]*9gui_forms28WindowChromeRegionValidation*
 __ZT[hvc]*9gui_forms29DataGridViewCellValueProvider*
 __ZT[hvc]*9gui_forms29DataGridViewCellsTextProvider*
 __ZT[hvc]*9gui_forms29DataGridViewRowPostPaintEvent*
+__ZT[hvc]*9gui_forms29HostDesktopNotificationResult*
 __ZT[hvc]*9gui_forms29PrimitiveParameterDeclaration*
 __ZT[hvc]*9gui_forms30AnchoredOverlayPlacementResult*
 __ZT[hvc]*9gui_forms30ConnectedControlVisualGeometry*
@@ -13324,6 +13474,7 @@ __ZT[hvc]*9gui_forms30DataGridViewColumnChangedEvent*
 __ZT[hvc]*9gui_forms30DataGridViewRowOrderModeChange*
 __ZT[hvc]*9gui_forms30DataGridViewRowOrderStatistics*
 __ZT[hvc]*9gui_forms30DataGridViewRowOrderThresholds*
+__ZT[hvc]*9gui_forms30HostDesktopNotificationRequest*
 __ZT[hvc]*9gui_forms30MasterDetailPresentationChange*
 __ZT[hvc]*9gui_forms30ProgressBarAnimationAppearance*
 __ZT[hvc]*9gui_forms30PropertyValueConverterRegistry*
@@ -13517,6 +13668,8 @@ __ZT[hvc]*9gui_forms8LinkFlow*
 __ZT[hvc]*9gui_forms8ListView*
 __ZT[hvc]*9gui_forms8NodeSpec*
 __ZT[hvc]*9gui_forms8PageView*
+__ZT[hvc]*9gui_forms8PieChart*
+__ZT[hvc]*9gui_forms8PieSlice*
 __ZT[hvc]*9gui_forms8PlotView*
 __ZT[hvc]*9gui_forms8Splitter*
 __ZT[hvc]*9gui_forms8StableId*
@@ -13655,6 +13808,7 @@ __ZZN9gui_forms10DockNodeId*
 __ZZN9gui_forms10DockSiteId*
 __ZZN9gui_forms10DragLimits*
 __ZZN9gui_forms10DragTarget*
+__ZZN9gui_forms10EditButton*
 __ZZN9gui_forms10EffectCost*
 __ZZN9gui_forms10EmptyState*
 __ZZN9gui_forms10FinishFill*
@@ -13772,6 +13926,7 @@ __ZZN9gui_forms11PartProfile*
 __ZZN9gui_forms11PhysicalKey*
 __ZZN9gui_forms11PlotPalette*
 __ZZN9gui_forms11PngMetadata*
+__ZZN9gui_forms11PopupClosed*
 __ZZN9gui_forms11ProgressBar*
 __ZZN9gui_forms11RadialGauge*
 __ZZN9gui_forms11RadioButton*
@@ -13903,6 +14058,7 @@ __ZZN9gui_forms13BindingFilter*
 __ZZN9gui_forms13BindingSchema*
 __ZZN9gui_forms13BindingSource*
 __ZZN9gui_forms13BlockFlowLine*
+__ZZN9gui_forms13ButtonTextBox*
 __ZZN9gui_forms13CaretSettings*
 __ZZN9gui_forms13CommandTarget*
 __ZZN9gui_forms13ContentRegion*
@@ -14046,6 +14202,7 @@ __ZZN9gui_forms14HostHoverEvent*
 __ZZN9gui_forms14HostScaleEvent*
 __ZZN9gui_forms14HostTrayIconId*
 __ZZN9gui_forms14ImageAtlasSlot*
+__ZZN9gui_forms14InputBoxResult*
 __ZZN9gui_forms14ItemCheckEvent*
 __ZZN9gui_forms14KeyStateChange*
 __ZZN9gui_forms14LineBoxMetrics*
@@ -14119,6 +14276,7 @@ __ZZN9gui_forms15BindingProvider*
 __ZZN9gui_forms15BindingSnapshot*
 __ZZN9gui_forms15BreadcrumbTrail*
 __ZZN9gui_forms15BundledFontFace*
+__ZZN9gui_forms15CheckedComboBox*
 __ZZN9gui_forms15CollapsedMargin*
 __ZZN9gui_forms15CollectionDirty*
 __ZZN9gui_forms15ColourSchemeSet*
@@ -14141,6 +14299,7 @@ __ZZN9gui_forms15DockTransaction*
 __ZZN9gui_forms15DockWindowFrame*
 __ZZN9gui_forms15DocumentMapSpan*
 __ZZN9gui_forms15DragInteraction*
+__ZZN9gui_forms15EditButtonClick*
 __ZZN9gui_forms15EffectSelection*
 __ZZN9gui_forms15EnginePartTable*
 __ZZN9gui_forms15EnginePrimitive*
@@ -14166,6 +14325,7 @@ __ZZN9gui_forms15HostedKeyRecord*
 __ZZN9gui_forms15IconDeclaration*
 __ZZN9gui_forms15ImageListChange*
 __ZZN9gui_forms15ImageLoadResult*
+__ZZN9gui_forms15InputBoxRequest*
 __ZZN9gui_forms15InputTimeSource*
 __ZZN9gui_forms15ItemPositioning*
 __ZZN9gui_forms15ItemSystemIndex*
@@ -14203,6 +14363,7 @@ __ZZN9gui_forms15StableIdLiteral*
 __ZZN9gui_forms15SubSurfaceInput*
 __ZZN9gui_forms15SurfaceMaterial*
 __ZZN9gui_forms15TabControlEvent*
+__ZZN9gui_forms15TaskDialogInput*
 __ZZN9gui_forms15TextDecorations*
 __ZZN9gui_forms15TextMaskMetrics*
 __ZZN9gui_forms15TextMaskRequest*
@@ -14233,6 +14394,7 @@ __ZZN9gui_forms16BindingPredicate*
 __ZZN9gui_forms16BlendHeatMapView*
 __ZZN9gui_forms16BlendStudyPlanes*
 __ZZN9gui_forms16CachedPartRaster*
+__ZZN9gui_forms16CheckedComboItem*
 __ZZN9gui_forms16ColorValueEditor*
 __ZZN9gui_forms16CompositeControl*
 __ZZN9gui_forms16ContainerControl*
@@ -14417,7 +14579,9 @@ __ZZN9gui_forms17NodeLinkConnected*
 __ZZN9gui_forms17ObjectDetailsCell*
 __ZZN9gui_forms17ObjectDetailsSort*
 __ZZN9gui_forms17PartRasterRequest*
+__ZZN9gui_forms17PieSliceSelection*
 __ZZN9gui_forms17PlotHeatmapSeries*
+__ZZN9gui_forms17PopupContainerBox*
 __ZZN9gui_forms17PresentationState*
 __ZZN9gui_forms17PrimitiveRegistry*
 __ZZN9gui_forms17PropertyEnumValue*
@@ -14448,6 +14612,7 @@ __ZZN9gui_forms17TextStoreSnapshot*
 __ZZN9gui_forms17ThemeBackdropBase*
 __ZZN9gui_forms17ThemeExportReport*
 __ZZN9gui_forms17ThemeMotionTokens*
+__ZZN9gui_forms17ToastNotification*
 __ZZN9gui_forms17ToolStripItemSpec*
 __ZZN9gui_forms17TreeListRowSource*
 __ZZN9gui_forms17TreeListRowSplice*
@@ -14533,6 +14698,7 @@ __ZZN9gui_forms18PaintLeaseSnapshot*
 __ZZN9gui_forms18ParagraphGlyphRuns*
 __ZZN9gui_forms18PartGeometryBuffer*
 __ZZN9gui_forms18PartRasterInterior*
+__ZZN9gui_forms18PieSliceActivation*
 __ZZN9gui_forms18PlotAnnotationItem*
 __ZZN9gui_forms18PreparedFontSource*
 __ZZN9gui_forms18PreparedTextLayout*
@@ -14676,6 +14842,7 @@ __ZZN9gui_forms19ThemeRequestContext*
 __ZZN9gui_forms19ThemeWindowBackdrop*
 __ZZN9gui_forms19ToolStripDropTarget*
 __ZZN9gui_forms19TreeExpansionChange*
+__ZZN9gui_forms19TreeListCheckChange*
 __ZZN9gui_forms19TreeSelectionChange*
 __ZZN9gui_forms19VirtualRowSelection*
 __ZZN9gui_forms19WindowBackdropGrant*
@@ -14837,6 +15004,7 @@ __ZZN9gui_forms22ApplicationThemeConfig*
 __ZZN9gui_forms22BindingNavigatorAddNew*
 __ZZN9gui_forms22BlockFlowSharedMargins*
 __ZZN9gui_forms22BundledFontDiagnostics*
+__ZZN9gui_forms22CheckedComboItemChange*
 __ZZN9gui_forms22ContentLayoutTransform*
 __ZZN9gui_forms22ControlValidationEvent*
 __ZZN9gui_forms22CustomStateDeclaration*
@@ -14958,6 +15126,7 @@ __ZZN9gui_forms25ControlBindingsCollection*
 __ZZN9gui_forms25DataGridViewCellsProvided*
 __ZZN9gui_forms25DataGridViewCellsSnapshot*
 __ZZN9gui_forms25DataGridViewRowPaintParts*
+__ZZN9gui_forms25HostDesktopNotificationId*
 __ZZN9gui_forms25HostOpenFileDialogRequest*
 __ZZN9gui_forms25HostSaveFileDialogRequest*
 __ZZN9gui_forms25InvalidationOverlayTarget*
@@ -15004,12 +15173,14 @@ __ZZN9gui_forms28DataGridViewRowPrePaintEvent*
 __ZZN9gui_forms28DataGridViewRowsChangedEvent*
 __ZZN9gui_forms28DataGridViewScrollStatistics*
 __ZZN9gui_forms28DataGridViewSortCompareEvent*
+__ZZN9gui_forms28HostDesktopNotificationEvent*
 __ZZN9gui_forms28NavigationPaneOptionsRequest*
 __ZZN9gui_forms28VisualPaintOperationSnapshot*
 __ZZN9gui_forms28WindowChromeRegionValidation*
 __ZZN9gui_forms29DataGridViewCellValueProvider*
 __ZZN9gui_forms29DataGridViewCellsTextProvider*
 __ZZN9gui_forms29DataGridViewRowPostPaintEvent*
+__ZZN9gui_forms29HostDesktopNotificationResult*
 __ZZN9gui_forms29PrimitiveParameterDeclaration*
 __ZZN9gui_forms30AnchoredOverlayPlacementResult*
 __ZZN9gui_forms30ConnectedControlVisualGeometry*
@@ -15017,6 +15188,7 @@ __ZZN9gui_forms30DataGridViewColumnChangedEvent*
 __ZZN9gui_forms30DataGridViewRowOrderModeChange*
 __ZZN9gui_forms30DataGridViewRowOrderStatistics*
 __ZZN9gui_forms30DataGridViewRowOrderThresholds*
+__ZZN9gui_forms30HostDesktopNotificationRequest*
 __ZZN9gui_forms30MasterDetailPresentationChange*
 __ZZN9gui_forms30ProgressBarAnimationAppearance*
 __ZZN9gui_forms30PropertyValueConverterRegistry*
@@ -15210,6 +15382,8 @@ __ZZN9gui_forms8LinkFlow*
 __ZZN9gui_forms8ListView*
 __ZZN9gui_forms8NodeSpec*
 __ZZN9gui_forms8PageView*
+__ZZN9gui_forms8PieChart*
+__ZZN9gui_forms8PieSlice*
 __ZZN9gui_forms8PlotView*
 __ZZN9gui_forms8Splitter*
 __ZZN9gui_forms8StableId*
@@ -15348,6 +15522,7 @@ __ZZNK9gui_forms10DockNodeId*
 __ZZNK9gui_forms10DockSiteId*
 __ZZNK9gui_forms10DragLimits*
 __ZZNK9gui_forms10DragTarget*
+__ZZNK9gui_forms10EditButton*
 __ZZNK9gui_forms10EffectCost*
 __ZZNK9gui_forms10EmptyState*
 __ZZNK9gui_forms10FinishFill*
@@ -15465,6 +15640,7 @@ __ZZNK9gui_forms11PartProfile*
 __ZZNK9gui_forms11PhysicalKey*
 __ZZNK9gui_forms11PlotPalette*
 __ZZNK9gui_forms11PngMetadata*
+__ZZNK9gui_forms11PopupClosed*
 __ZZNK9gui_forms11ProgressBar*
 __ZZNK9gui_forms11RadialGauge*
 __ZZNK9gui_forms11RadioButton*
@@ -15596,6 +15772,7 @@ __ZZNK9gui_forms13BindingFilter*
 __ZZNK9gui_forms13BindingSchema*
 __ZZNK9gui_forms13BindingSource*
 __ZZNK9gui_forms13BlockFlowLine*
+__ZZNK9gui_forms13ButtonTextBox*
 __ZZNK9gui_forms13CaretSettings*
 __ZZNK9gui_forms13CommandTarget*
 __ZZNK9gui_forms13ContentRegion*
@@ -15739,6 +15916,7 @@ __ZZNK9gui_forms14HostHoverEvent*
 __ZZNK9gui_forms14HostScaleEvent*
 __ZZNK9gui_forms14HostTrayIconId*
 __ZZNK9gui_forms14ImageAtlasSlot*
+__ZZNK9gui_forms14InputBoxResult*
 __ZZNK9gui_forms14ItemCheckEvent*
 __ZZNK9gui_forms14KeyStateChange*
 __ZZNK9gui_forms14LineBoxMetrics*
@@ -15812,6 +15990,7 @@ __ZZNK9gui_forms15BindingProvider*
 __ZZNK9gui_forms15BindingSnapshot*
 __ZZNK9gui_forms15BreadcrumbTrail*
 __ZZNK9gui_forms15BundledFontFace*
+__ZZNK9gui_forms15CheckedComboBox*
 __ZZNK9gui_forms15CollapsedMargin*
 __ZZNK9gui_forms15CollectionDirty*
 __ZZNK9gui_forms15ColourSchemeSet*
@@ -15834,6 +16013,7 @@ __ZZNK9gui_forms15DockTransaction*
 __ZZNK9gui_forms15DockWindowFrame*
 __ZZNK9gui_forms15DocumentMapSpan*
 __ZZNK9gui_forms15DragInteraction*
+__ZZNK9gui_forms15EditButtonClick*
 __ZZNK9gui_forms15EffectSelection*
 __ZZNK9gui_forms15EnginePartTable*
 __ZZNK9gui_forms15EnginePrimitive*
@@ -15859,6 +16039,7 @@ __ZZNK9gui_forms15HostedKeyRecord*
 __ZZNK9gui_forms15IconDeclaration*
 __ZZNK9gui_forms15ImageListChange*
 __ZZNK9gui_forms15ImageLoadResult*
+__ZZNK9gui_forms15InputBoxRequest*
 __ZZNK9gui_forms15InputTimeSource*
 __ZZNK9gui_forms15ItemPositioning*
 __ZZNK9gui_forms15ItemSystemIndex*
@@ -15896,6 +16077,7 @@ __ZZNK9gui_forms15StableIdLiteral*
 __ZZNK9gui_forms15SubSurfaceInput*
 __ZZNK9gui_forms15SurfaceMaterial*
 __ZZNK9gui_forms15TabControlEvent*
+__ZZNK9gui_forms15TaskDialogInput*
 __ZZNK9gui_forms15TextDecorations*
 __ZZNK9gui_forms15TextMaskMetrics*
 __ZZNK9gui_forms15TextMaskRequest*
@@ -15926,6 +16108,7 @@ __ZZNK9gui_forms16BindingPredicate*
 __ZZNK9gui_forms16BlendHeatMapView*
 __ZZNK9gui_forms16BlendStudyPlanes*
 __ZZNK9gui_forms16CachedPartRaster*
+__ZZNK9gui_forms16CheckedComboItem*
 __ZZNK9gui_forms16ColorValueEditor*
 __ZZNK9gui_forms16CompositeControl*
 __ZZNK9gui_forms16ContainerControl*
@@ -16110,7 +16293,9 @@ __ZZNK9gui_forms17NodeLinkConnected*
 __ZZNK9gui_forms17ObjectDetailsCell*
 __ZZNK9gui_forms17ObjectDetailsSort*
 __ZZNK9gui_forms17PartRasterRequest*
+__ZZNK9gui_forms17PieSliceSelection*
 __ZZNK9gui_forms17PlotHeatmapSeries*
+__ZZNK9gui_forms17PopupContainerBox*
 __ZZNK9gui_forms17PresentationState*
 __ZZNK9gui_forms17PrimitiveRegistry*
 __ZZNK9gui_forms17PropertyEnumValue*
@@ -16141,6 +16326,7 @@ __ZZNK9gui_forms17TextStoreSnapshot*
 __ZZNK9gui_forms17ThemeBackdropBase*
 __ZZNK9gui_forms17ThemeExportReport*
 __ZZNK9gui_forms17ThemeMotionTokens*
+__ZZNK9gui_forms17ToastNotification*
 __ZZNK9gui_forms17ToolStripItemSpec*
 __ZZNK9gui_forms17TreeListRowSource*
 __ZZNK9gui_forms17TreeListRowSplice*
@@ -16226,6 +16412,7 @@ __ZZNK9gui_forms18PaintLeaseSnapshot*
 __ZZNK9gui_forms18ParagraphGlyphRuns*
 __ZZNK9gui_forms18PartGeometryBuffer*
 __ZZNK9gui_forms18PartRasterInterior*
+__ZZNK9gui_forms18PieSliceActivation*
 __ZZNK9gui_forms18PlotAnnotationItem*
 __ZZNK9gui_forms18PreparedFontSource*
 __ZZNK9gui_forms18PreparedTextLayout*
@@ -16369,6 +16556,7 @@ __ZZNK9gui_forms19ThemeRequestContext*
 __ZZNK9gui_forms19ThemeWindowBackdrop*
 __ZZNK9gui_forms19ToolStripDropTarget*
 __ZZNK9gui_forms19TreeExpansionChange*
+__ZZNK9gui_forms19TreeListCheckChange*
 __ZZNK9gui_forms19TreeSelectionChange*
 __ZZNK9gui_forms19VirtualRowSelection*
 __ZZNK9gui_forms19WindowBackdropGrant*
@@ -16530,6 +16718,7 @@ __ZZNK9gui_forms22ApplicationThemeConfig*
 __ZZNK9gui_forms22BindingNavigatorAddNew*
 __ZZNK9gui_forms22BlockFlowSharedMargins*
 __ZZNK9gui_forms22BundledFontDiagnostics*
+__ZZNK9gui_forms22CheckedComboItemChange*
 __ZZNK9gui_forms22ContentLayoutTransform*
 __ZZNK9gui_forms22ControlValidationEvent*
 __ZZNK9gui_forms22CustomStateDeclaration*
@@ -16651,6 +16840,7 @@ __ZZNK9gui_forms25ControlBindingsCollection*
 __ZZNK9gui_forms25DataGridViewCellsProvided*
 __ZZNK9gui_forms25DataGridViewCellsSnapshot*
 __ZZNK9gui_forms25DataGridViewRowPaintParts*
+__ZZNK9gui_forms25HostDesktopNotificationId*
 __ZZNK9gui_forms25HostOpenFileDialogRequest*
 __ZZNK9gui_forms25HostSaveFileDialogRequest*
 __ZZNK9gui_forms25InvalidationOverlayTarget*
@@ -16697,12 +16887,14 @@ __ZZNK9gui_forms28DataGridViewRowPrePaintEvent*
 __ZZNK9gui_forms28DataGridViewRowsChangedEvent*
 __ZZNK9gui_forms28DataGridViewScrollStatistics*
 __ZZNK9gui_forms28DataGridViewSortCompareEvent*
+__ZZNK9gui_forms28HostDesktopNotificationEvent*
 __ZZNK9gui_forms28NavigationPaneOptionsRequest*
 __ZZNK9gui_forms28VisualPaintOperationSnapshot*
 __ZZNK9gui_forms28WindowChromeRegionValidation*
 __ZZNK9gui_forms29DataGridViewCellValueProvider*
 __ZZNK9gui_forms29DataGridViewCellsTextProvider*
 __ZZNK9gui_forms29DataGridViewRowPostPaintEvent*
+__ZZNK9gui_forms29HostDesktopNotificationResult*
 __ZZNK9gui_forms29PrimitiveParameterDeclaration*
 __ZZNK9gui_forms30AnchoredOverlayPlacementResult*
 __ZZNK9gui_forms30ConnectedControlVisualGeometry*
@@ -16710,6 +16902,7 @@ __ZZNK9gui_forms30DataGridViewColumnChangedEvent*
 __ZZNK9gui_forms30DataGridViewRowOrderModeChange*
 __ZZNK9gui_forms30DataGridViewRowOrderStatistics*
 __ZZNK9gui_forms30DataGridViewRowOrderThresholds*
+__ZZNK9gui_forms30HostDesktopNotificationRequest*
 __ZZNK9gui_forms30MasterDetailPresentationChange*
 __ZZNK9gui_forms30ProgressBarAnimationAppearance*
 __ZZNK9gui_forms30PropertyValueConverterRegistry*
@@ -16903,6 +17096,8 @@ __ZZNK9gui_forms8LinkFlow*
 __ZZNK9gui_forms8ListView*
 __ZZNK9gui_forms8NodeSpec*
 __ZZNK9gui_forms8PageView*
+__ZZNK9gui_forms8PieChart*
+__ZZNK9gui_forms8PieSlice*
 __ZZNK9gui_forms8PlotView*
 __ZZNK9gui_forms8Splitter*
 __ZZNK9gui_forms8StableId*

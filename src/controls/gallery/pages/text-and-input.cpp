@@ -1,5 +1,6 @@
 #include "pages.hpp"
 #include "gui_forms/controls/auto_complete.hpp"
+#include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/combo_box_values.hpp"
 #include "gui_forms/controls/command_bar.hpp"
@@ -310,6 +311,7 @@ public:
         build_tokens();
         build_rich_text();
         build_search();
+        build_buttons();
         build_content_editor();
         refresh_state();
     }
@@ -455,6 +457,35 @@ private:
             report += " · frame " + std::string(content_publish_result_name(published));
         }
         (*content_status_).text = report;
+    }
+
+    // The folder field has a browse button and a clear button at its
+    // trailing end; each click reports to the status line, and browse
+    // fills in a folder as a chooser would.
+    void build_buttons() {
+        ButtonTextBox& field = *document_.gallery_text_buttons_field;
+        EditButton browse;
+        browse.stable_id = "browse";
+        browse.kind = EditButtonKind::ellipsis;
+        browse.caption = "Browse";
+        browse.description = "Choose a folder";
+        EditButton clear;
+        clear.stable_id = "clear";
+        clear.kind = EditButtonKind::close;
+        clear.caption = "Clear";
+        field.set_buttons({browse, clear});
+        on(field.button_clicked(), *this, &TextAndInputPage::folder_button_clicked);
+    }
+
+    void folder_button_clicked(const EditButtonClick& click) {
+        ButtonTextBox& field = *document_.gallery_text_buttons_field;
+        if (click.button_id == "browse") {
+            field.text = "Documents/Harbour";
+            (*document_.gallery_text_buttons_status).text = "Browse clicked · the folder is Documents/Harbour";
+            return;
+        }
+        field.text = std::string{};
+        (*document_.gallery_text_buttons_status).text = "Clear clicked · the folder is empty";
     }
 
     void search_requested(const std::string& query) {

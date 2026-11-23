@@ -22,7 +22,8 @@ gui_forms::TaskDialog
    box, as Windows Forms' TaskDialog does. A :cpp:class:`TaskDialogPage <gui_forms::TaskDialogPage>` holds a caption,
    a heading and text, a standard icon or a custom image, standard and custom
    buttons with a default button, radio buttons, a verification check box,
-   expanded information behind an expander, a footnote and a progress bar.
+   expanded information behind an expander, a footnote, a progress bar and a
+   text field (:cpp:class:`TaskDialogInput <gui_forms::TaskDialogInput>`).
    :cpp:func:`show <gui_forms::TaskDialog::show>` lays the dialog over the owner's window; the button that closed it
    arrives through :cpp:func:`closed <gui_forms::TaskDialog::closed>` and :cpp:func:`result <gui_forms::TaskDialog::result>`. Setting another page while the dialog
    is shown navigates to it, for multi-step questions.
@@ -38,7 +39,7 @@ gui_forms::TaskDialog
 
       **stable_id** : ``StableId``
          Identity of the dialog. Its children are named after it:
-         ``<stable_id>.heading``, ``.text``, ``.button.<id>``, ``.radio.<id>``,
+         ``<stable_id>.heading``, ``.text``, ``.input``, ``.button.<id>``, ``.radio.<id>``,
          ``.verification``, ``.expander``, ``.expanded-text``, ``.progress`` and
          ``.footnote``; the layer it sits in while shown is ``<stable_id>.layer``.
 
@@ -86,6 +87,15 @@ gui_forms::TaskDialog
 
       **progress_bar** : ``std::shared_ptr<ProgressBar>``, read-only
          The :cpp:class:`ProgressBar <gui_forms::ProgressBar>`, or null for a page without one.
+
+      **input_box** : ``std::shared_ptr<TextBox>``, read-only
+         The page's text field, a :cpp:class:`TextBox <gui_forms::TextBox>`, or null for a page without
+         ``input``. It takes focus first when the dialog shows; Enter in it clicks
+         the default button. ``show_input_box`` builds the input box on it.
+
+      **input_text** : ``std::string``, read-only
+         The text field's text, or an empty string without one; :cpp:func:`closed <gui_forms::TaskDialog::closed>` carries
+         it as ``input_text``.
 
       **parts** : ``Parts``, read-only
 
@@ -265,6 +275,17 @@ gui_forms::TaskDialog
 
       The :cpp:class:`ProgressBar <gui_forms::ProgressBar>`, or null for a page without one.
 
+   .. cpp:function:: std::shared_ptr<TextBox> input_box() const noexcept
+
+      The page's text field, a :cpp:class:`TextBox <gui_forms::TextBox>`, or null for a page without
+      ``input``. It takes focus first when the dialog shows; Enter in it clicks
+      the default button. ``show_input_box`` builds the input box on it.
+
+   .. cpp:function:: std::string input_text() const
+
+      The text field's text, or an empty string without one; :cpp:func:`closed <gui_forms::TaskDialog::closed>` carries
+      it as ``input_text``.
+
    .. cpp:function:: Parts parts() const
 
 
@@ -359,7 +380,7 @@ gui_forms::TaskDialog
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TaskDialog``. Members declared here and by the counterpart: 19 supported, 0 deferred, 0 excluded, 4 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TaskDialog``. Members declared here and by the counterpart: 21 supported, 0 deferred, 0 excluded, 4 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -393,6 +414,14 @@ Counterpart: ``TaskDialog``. Members declared here and by the counterpart: 19 su
    * - property
      - GUI.Forms-only
      - ``expander_button``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``input_box``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``input_text``
      - supported
    * - property
      - GUI.Forms-only

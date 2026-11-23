@@ -55,7 +55,7 @@ gui_forms::PlotView
          Whether a crosshair follows the pointer over the plot, with its
          coordinates.
 
-      **handles** : ``std::span<const PlotHandle>``
+      **handles** : ``BorrowedSpan<PlotHandle>``
          The handles the user drags across the plot, as :cpp:class:`PlotHandle <gui_forms::PlotHandle>` records:
          points, and vertical or horizontal lines, in the data coordinates of the
          first axes. :cpp:func:`set_handles <gui_forms::PlotView::set_handles>` replaces them, cancelling a running handle
@@ -256,7 +256,7 @@ gui_forms::PlotView
       Whether a crosshair follows the pointer over the plot, with its
       coordinates.
 
-   .. cpp:function:: std::span<const PlotHandle> handles() const& noexcept
+   .. cpp:function:: BorrowedSpan<PlotHandle> handles() const& noexcept
 
       The handles the user drags across the plot, as :cpp:class:`PlotHandle <gui_forms::PlotHandle>` records:
       points, and vertical or horizontal lines, in the data coordinates of the

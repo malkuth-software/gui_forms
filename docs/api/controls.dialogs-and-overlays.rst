@@ -130,6 +130,10 @@ Related types
      - How a FontDialog closed, and the font it holds then.
    * - :cpp:class:`FontDialogShowApplyCapability <gui_forms::FontDialogShowApplyCapability>`
      - Whether the Apply button is shown.
+   * - :cpp:class:`InputBoxRequest <gui_forms::InputBoxRequest>`
+     - What to ask (Visual Basic's InputBox arguments): the prompt above the field, the title in the caption band (none without one), the field's starting text (DefaultResponse), the placeholder its empty field shows, and its maximum length in bytes (0 for no limit).
+   * - :cpp:class:`InputBoxResult <gui_forms::InputBoxResult>`
+     - The answer: accepted when OK closed the box, with the field's text; not accepted, with empty text, for Cancel, Escape or a box its window revoked (InputBox returns an empty string then).
    * - :cpp:class:`MessageBoxClosed <gui_forms::MessageBoxClosed>`
      - A message box that closed: the button the user chose, as Windows Forms' DialogResult (none for a Yes/No box the host closed without a choice).
    * - :cpp:class:`MessageBoxRefused <gui_forms::MessageBoxRefused>`
@@ -198,14 +202,16 @@ Related types
      - Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander.
    * - :cpp:class:`TaskDialogExpander <gui_forms::TaskDialogExpander>`
      - Expanded information, shown below the text while expanded.
-   * - :cpp:class:`TaskDialogPage <gui_forms::TaskDialogPage>`
+   * - :cpp:class:`TaskDialogInput <gui_forms::TaskDialogInput>`
      - One page (Windows Forms' TaskDialogPage).
+   * - :cpp:class:`TaskDialogPage <gui_forms::TaskDialogPage>`
+     - A page without buttons gets an OK button.
    * - :cpp:class:`TaskDialogProgressBar <gui_forms::TaskDialogProgressBar>`
      - A progress bar below the text: a value between the bounds, or a marquee.
    * - :cpp:class:`TaskDialogRadioButton <gui_forms::TaskDialogRadioButton>`
      - One radio button; at most one of a page's radio buttons is checked.
    * - :cpp:class:`TaskDialogResult <gui_forms::TaskDialogResult>`
-     - How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
+     - How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box, the radio buttons and the text field (empty without one) at that moment.
    * - :cpp:class:`TaskDialogVerificationCheckedCapability <gui_forms::TaskDialogVerificationCheckedCapability>`
      - The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page.
    * - :cpp:class:`ThreadExceptionReport <gui_forms::ThreadExceptionReport>`
@@ -839,6 +845,36 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: InputBoxRequest final
+
+   ``#include <gui_forms/controls/input_box.hpp>`` (:src:`source <include/gui_forms/controls/input_box.hpp>`)
+
+   What to ask (Visual Basic's InputBox arguments): the prompt above the field, the title in the caption band (none without one), the field's starting text (DefaultResponse), the placeholder its empty field shows, and its maximum length in bytes (0 for no limit).
+
+   .. cpp:member:: std::string prompt
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: std::string default_response
+
+   .. cpp:member:: std::string placeholder
+
+   .. cpp:member:: std::size_t maximum_length
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: InputBoxResult final
+
+   ``#include <gui_forms/controls/input_box.hpp>`` (:src:`source <include/gui_forms/controls/input_box.hpp>`)
+
+   The answer: accepted when OK closed the box, with the field's text; not accepted, with empty text, for Cancel, Escape or a box its window revoked (InputBox returns an empty string then).
+
+   .. cpp:member:: bool accepted
+
+   .. cpp:member:: std::string text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MessageBoxClosed final
 
    ``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
@@ -1395,6 +1431,8 @@ Related types
 
    .. cpp:member:: PartGeometry text
 
+   .. cpp:member:: PartGeometry input
+
    .. cpp:member:: PartGeometry progress
 
    .. cpp:member:: PartGeometry radio_group
@@ -1515,11 +1553,25 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: TaskDialogInput final
+
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
+
+   One page (Windows Forms' TaskDialogPage). Empty strings leave their part out: no caption row, heading, text, verification check box or footnote. A text field on a page, under its text (the input box's editor): the text it starts with, the placeholder its empty field shows, and its maximum length in bytes (0 for no limit). The field takes focus first and Enter in it clicks the default button.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::string placeholder
+
+   .. cpp:member:: std::size_t maximum_length
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TaskDialogPage final
 
    ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
-   One page (Windows Forms' TaskDialogPage). Empty strings leave their part out: no caption row, heading, text, verification check box or footnote. A page without buttons gets an OK button. ``default_button`` names the button Enter clicks and that takes focus first; empty names the first. With ``allow_cancel``, Escape closes the dialog as its cancel button would.
+   A page without buttons gets an OK button. ``default_button`` names the button Enter clicks and that takes focus first; empty names the first. With ``allow_cancel``, Escape closes the dialog as its cancel button would.
 
    .. cpp:member:: std::string caption
 
@@ -1554,6 +1606,8 @@ Related types
       Default: ``{TaskDialogIcon::none}``.
 
    .. cpp:member:: stxlib::Optional<TaskDialogProgressBar> progress_bar
+
+   .. cpp:member:: stxlib::Optional<TaskDialogInput> input
 
    .. cpp:member:: bool allow_cancel
 
@@ -1599,13 +1653,15 @@ Related types
 
    ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
-   How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
+   How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box, the radio buttons and the text field (empty without one) at that moment.
 
    .. cpp:member:: std::string button_id
 
    .. cpp:member:: bool verification_checked
 
    .. cpp:member:: std::string radio_button_id
+
+   .. cpp:member:: std::string input_text
 
 .. cpp:namespace:: gui_forms
 
@@ -2075,6 +2131,22 @@ Functions, constants and aliases
 .. cpp:function:: std::span<const BundledFontFace> bundled_font_faces() noexcept
 
    The bundled faces a FontDialog offers, in its list order.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/input_box.hpp>`` (:src:`source <include/gui_forms/controls/input_box.hpp>`)
+
+.. cpp:function:: TaskDialogPage input_box_page(const InputBoxRequest& request)
+
+   The TaskDialog page of an input box: the caption, the prompt as its text, a TaskDialogInput, OK (the default) and Cancel, and Escape allowed. Throws std::invalid_argument as TaskDialog::set_page does, when it is set.
+
+.. cpp:function:: InputBoxResult input_box_result(const TaskDialogResult& result)
+
+   The answer a closed input box gave.
+
+.. cpp:function:: std::shared_ptr<TaskDialog> show_input_box(const Control::Ptr& owner, const InputBoxRequest& request, StableId stable_id = StableId("input-box"))
+
+   Makes a TaskDialog named ``stable_id`` with the request's page and shows it over ``owner``'s window. Returns the shown dialog, which its layer keeps until it closes, or null when ``owner`` is not attached to a window. Throws std::invalid_argument for text that is not valid UTF-8 or a default response longer than the maximum length.
 
 .. cpp:namespace:: gui_forms
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/controls/date_time_format_provider.hpp"
@@ -72,18 +73,18 @@ public:
     void add_bolded_date(DateTimeValue date);
     void remove_bolded_date(DateTimeValue date);
     void remove_all_bolded_dates();
-    [[nodiscard]] std::span<const DateTimeValue> annually_bolded_dates() const& noexcept {
-        return std::span<const DateTimeValue>(annually_bolded_.data(), annually_bolded_.size());
+    [[nodiscard]] BorrowedSpan<DateTimeValue> annually_bolded_dates() const& noexcept {
+        return detail::lend_view(annually_bolded_);
     }
-    std::span<const DateTimeValue> annually_bolded_dates() const&& = delete;
+    BorrowedSpan<DateTimeValue> annually_bolded_dates() const&& = delete;
     void set_annually_bolded_dates(std::vector<DateTimeValue> dates);
     void add_annually_bolded_date(DateTimeValue date);
     void remove_annually_bolded_date(DateTimeValue date);
     void remove_all_annually_bolded_dates();
-    [[nodiscard]] std::span<const DateTimeValue> monthly_bolded_dates() const& noexcept {
-        return std::span<const DateTimeValue>(monthly_bolded_.data(), monthly_bolded_.size());
+    [[nodiscard]] BorrowedSpan<DateTimeValue> monthly_bolded_dates() const& noexcept {
+        return detail::lend_view(monthly_bolded_);
     }
-    std::span<const DateTimeValue> monthly_bolded_dates() const&& = delete;
+    BorrowedSpan<DateTimeValue> monthly_bolded_dates() const&& = delete;
     void set_monthly_bolded_dates(std::vector<DateTimeValue> dates);
     void add_monthly_bolded_date(DateTimeValue date);
     void remove_monthly_bolded_date(DateTimeValue date);
@@ -247,8 +248,8 @@ private:
     std::int32_t first_year_{2000};
     std::uint8_t first_month_{1U};
     std::vector<DateTimeValue> bolded_{};
-    std::vector<DateTimeValue> annually_bolded_{};
-    std::vector<DateTimeValue> monthly_bolded_{};
+    detail::LendingVector<DateTimeValue> annually_bolded_{};
+    detail::LendingVector<DateTimeValue> monthly_bolded_{};
     stxlib::Optional<DateTimeValue> hot_date_{};
     Zone hot_zone_{Zone::none};
     Zone pressed_zone_{Zone::none};

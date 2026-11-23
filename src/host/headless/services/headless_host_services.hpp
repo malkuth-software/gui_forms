@@ -42,6 +42,24 @@ public:
     void simulate_tray_icon_event(HostTrayIconEvent event);
     // The choice the next show_tray_menu returns; empty dismisses the menu.
     void queue_tray_menu_choice(std::string chosen_id);
+    // Desktop notifications, kept as requested while they are in the
+    // simulated platform's list (until withdrawn), so tests can read what
+    // an application asked to show. Every show and withdrawal appends a
+    // line to desktop_notification_trace(): "notification show id=<n>
+    // urgency=<low|normal|critical> silent=<0|1> title=<title> text=<text>"
+    // and "notification withdraw id=<n>".
+    [[nodiscard]] const HostDesktopNotificationRequest* desktop_notification(
+        HostDesktopNotificationId notification_id) const noexcept;
+    [[nodiscard]] const std::string& desktop_notification_trace() const& noexcept {
+        return desktop_notification_trace_;
+    }
+    const std::string& desktop_notification_trace() const&& = delete;
+    // Reports what the user did to a notification, as the platform would;
+    // dropped for identities that are not live.
+    void simulate_desktop_notification_event(HostDesktopNotificationEvent event);
+    // The next show fails with backend_failure, as a service that refused
+    // the request would.
+    void fail_next_desktop_notification() noexcept { fail_next_desktop_notification_ = true; }
     // The simulated native window's backdrop: what apply_window_backdrop
     // last applied (opaque until then). Every application, accepted or
     // failed, appends "backdrop=<name> accepted=<0|1>" and a newline to
@@ -121,6 +139,9 @@ protected:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     [[nodiscard]] HostClipboardImageResult read_clipboard_image_impl() override;
     [[nodiscard]] HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+    [[nodiscard]] HostServiceStatus show_desktop_notification_impl(
+        HostDesktopNotificationId notification_id, const HostDesktopNotificationRequest& request) override;
+    void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept override;
 #endif
     [[nodiscard]] HostDialogResult show_dialog_impl(
         const HostDialogRequest& request) override;
@@ -146,6 +167,10 @@ private:
         HostTrayIconId id{};
         HostTrayIconRequest request;
     };
+    struct DesktopNotification final {
+        HostDesktopNotificationId id{};
+        HostDesktopNotificationRequest request;
+    };
     std::vector<HostMonitor> monitors_;
     HostRelativePointerRequest relative_pointer_request_{};
     std::optional<Point> last_pointer_warp_{};
@@ -165,6 +190,10 @@ private:
     std::vector<TrayIcon> tray_icons_;
     std::deque<std::string> tray_menu_choices_;
     std::string tray_trace_;
+    // In the simulated platform's list, oldest first.
+    std::vector<DesktopNotification> desktop_notifications_;
+    std::string desktop_notification_trace_;
+    bool fail_next_desktop_notification_{};
     WindowBackdrop native_backdrop_{WindowBackdrop::opaque};
     std::string backdrop_trace_;
     bool fail_next_backdrop_{};

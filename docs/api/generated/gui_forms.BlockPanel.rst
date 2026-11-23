@@ -84,7 +84,7 @@ gui_forms::BlockPanel
          the panel's top and bottom. It borrows the panel and changes at the
          next arrange.
 
-      **laid_out_children** : ``std::span<const RuntimeId>``, read-only, read-only
+      **laid_out_children** : ``BorrowedSpan<RuntimeId>``, read-only, read-only
          The runtime identities of the children in :cpp:func:`layout_snapshot <gui_forms::BlockPanel::layout_snapshot>`, in the
          same order.
 
@@ -270,7 +270,7 @@ gui_forms::BlockPanel
       the panel's top and bottom. It borrows the panel and changes at the
       next arrange.
 
-   .. cpp:function:: std::span<const RuntimeId> laid_out_children() const& noexcept
+   .. cpp:function:: BorrowedSpan<RuntimeId> laid_out_children() const& noexcept
 
       The runtime identities of the children in :cpp:func:`layout_snapshot <gui_forms::BlockPanel::layout_snapshot>`, in the
       same order.

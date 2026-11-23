@@ -4,13 +4,13 @@
    compiles this document into instruments_form.hpp at build time.
 
    gallery.instruments.document is a declared boundary only: the page moves
-   its children into the shell's page body (a 1000 x 660 design surface),
+   its children into the shell's page body (a 1000 x 960 design surface),
    where each is placed by its bounds in design coordinates. Behaviour stays
    in the page (src/controls/gallery/pages/instruments.cpp): the alarm
-   limits, which are not form properties, and the dial that drives the
-   linked readout and gauge. -->
+   limits, which are not form properties, the dial that drives the
+   linked readout and gauge, and the charts' slices. -->
 <scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.instruments.document"
-    design-size="1000 660">
+    design-size="1000 960">
 
   <label id="gallery.instruments.heading"
       text="INSTRUMENTS"
@@ -96,5 +96,21 @@
         text-wrapping="word"
         vertical-alignment="start"
         bounds="620 60 300 120"/>
+  </scaled-group-box>
+
+  <scaled-group-box id="gallery.instruments.charts"
+      text="PieChart · a pie with its shares outside, a doughnut with them inside; click or use the arrows to select a slice"
+      classes="paper group-caption"
+      design-size="950 280"
+      bounds="24 652 950 280">
+    <pie-chart id="gallery.instruments.pie"
+        accessible-name="Disk usage"
+        label-style="outside"
+        bounds="24 40 440 220"/>
+    <pie-chart id="gallery.instruments.doughnut"
+        accessible-name="Library by genre"
+        doughnut-radius="55"
+        start-angle="90"
+        bounds="486 40 440 220"/>
   </scaled-group-box>
 </scaled-panel>

@@ -47,6 +47,17 @@ HostCapabilities with_tray(HostCapabilities capabilities, Display *display) {
   return capabilities;
 }
 
+// Desktop notifications where the session bus has the freedesktop
+// notification service (asked once per process). A high-integrity build has
+// none (cmake/HighIntegrity.cmake).
+HostCapabilities with_notifications(HostCapabilities capabilities) {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  if (LinuxDesktopNotifications::service_present())
+    capabilities.available = capabilities.available | HostCapability::desktop_notifications;
+#endif
+  return capabilities;
+}
+
 // Relative pointer mode needs the server's XI 2 raw motion: without it
 // (no libXi in the build, or a server without XI 2.0) the report drops
 // relative_pointer and raw_pointer_motion, and the window derives deltas
@@ -107,7 +118,8 @@ unsigned font_cursor_shape(CursorKind cursor) noexcept {
 }
 } // namespace
 Services::Services(NativeWindow &window)
-    : HostServices(with_raw_motion(with_tray(linux_capabilities(), window.runtime.display), window.runtime)),
+    : HostServices(with_notifications(
+          with_raw_motion(with_tray(linux_capabilities(), window.runtime.display), window.runtime))),
       window_(window) {}
 Services::~Services() { shutdown(); }
 bool Services::tray_event(const XEvent &event) {
@@ -133,8 +145,25 @@ void Services::remove_tray_icon_impl(HostTrayIconId icon_id) noexcept {
   if (tray_)
     (*tray_).remove(icon_id);
 }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+HostServiceStatus Services::show_desktop_notification_impl(HostDesktopNotificationId notification_id,
+                                                           const HostDesktopNotificationRequest &request) {
+  if (!notifications_)
+    notifications_ = std::make_unique<LinuxDesktopNotifications>(
+        Delegate<const HostDesktopNotificationEvent &>::bind<Services, &Services::forward_notification_event>(
+            *this));
+  return (*notifications_).show(notification_id, request);
+}
+void Services::withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept {
+  if (notifications_)
+    (*notifications_).withdraw(notification_id);
+}
+#endif
 void Services::shutdown_impl() noexcept {
   tray_.reset();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  notifications_.reset();
+#endif
   for (const CursorEntry& entry : cursors_) XFreeCursor(window_.runtime.display, entry.native);
   cursors_.clear();
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The Gallery's checked-collections page (stage FD, phase FD6.3): two
    CheckedListBoxes (the deliberate two-click policy and CheckOnClick with
-   extended selection), a CommandBar of check-state commands with a status
+   extended selection), a CheckedComboBox of columns, a CommandBar of check-state commands with a status
    line, and a details ListView with check boxes. gui_forms_add_form()
    compiles this document into checked-collections_form.hpp at build time.
 
@@ -9,10 +9,10 @@
    children into the shell's page body, where each is placed by its bounds
    in design coordinates. The page keeps in code the items' check states and
    initial selections, CheckOnClick, the CommandBar's items, the ListView's
-   columns, rows, check boxes and label editing, every event handler and the
+   columns, the CheckedComboBox's items, rows, check boxes and label editing, every event handler and the
    status line's reports. -->
 <scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.checked.document"
-    design-size="1000 900">
+    design-size="1000 1042">
 
   <label id="gallery.checked.heading"
       text="CHECKED COLLECTIONS"
@@ -93,5 +93,24 @@
     <button id="gallery.checked.list-view.mark"
         text="Show insertion mark"
         bounds="686 166 200 30"/>
+  </scaled-group-box>
+
+  <scaled-group-box id="gallery.checked.combo"
+      text="CheckedComboBox · several items chosen in one field"
+      design-size="930 112"
+      bounds="24 910 930 112"
+      classes="paper group-caption">
+    <label id="gallery.checked.combo.caption"
+        text="Columns"
+        classes="muted emphasis"
+        bounds="24 42 130 24"/>
+    <checked-combo-box id="gallery.checked.combo.field"
+        accessible-name="Columns to show"
+        placeholder-text="No columns"
+        bounds="154 40 300 26"/>
+    <label id="gallery.checked.combo.status"
+        text="Open the list and tick the columns to show"
+        classes="positive emphasis"
+        bounds="474 40 420 26"/>
   </scaled-group-box>
 </scaled-panel>

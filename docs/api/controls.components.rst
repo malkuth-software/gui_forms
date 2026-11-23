@@ -21,6 +21,8 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
      - Runs work on a worker thread and reports progress and completion on the UI thread.
    * - :cpp:class:`NotifyIcon <gui_forms::NotifyIcon>`
      - An icon in the desktop's notification area, with clicks, a menu and notification text.
+   * - :cpp:class:`ToastNotification <gui_forms::ToastNotification>`
+     - A desktop notification shown by the platform's own notification service.
    * - :cpp:class:`OpenFileDialog <gui_forms::OpenFileDialog>`
      - The host's dialog for choosing one or more existing files.
    * - :cpp:class:`ImageList <gui_forms::ImageList>`
@@ -48,6 +50,7 @@ Nonvisual components: bindings, providers, image lists, timers and semantic feed
    generated/gui_forms.Timer
    generated/gui_forms.BackgroundWorker
    generated/gui_forms.NotifyIcon
+   generated/gui_forms.ToastNotification
    generated/gui_forms.OpenFileDialog
    generated/gui_forms.ImageList
    generated/gui_forms.ErrorProvider
@@ -163,6 +166,14 @@ Related types
      - Whether the user may choose more than one file (Windows Forms' Multiselect).
    * - :cpp:class:`OpenFileDialogTitleCapability <gui_forms::OpenFileDialogTitleCapability>`
      - The dialog's title; empty gives the host's own.
+   * - :cpp:class:`ToastNotificationCapabilities <gui_forms::ToastNotificationCapabilities>`
+     - Every ToastNotification capability, in the order the declaring class takes them.
+   * - :cpp:class:`ToastNotificationSilentCapability <gui_forms::ToastNotificationSilentCapability>`
+     - Whether the platform is asked not to play its notification sound.
+   * - :cpp:class:`ToastNotificationTitleCapability <gui_forms::ToastNotificationTitleCapability>`
+     - The notification's title, at most 255 bytes of UTF-8 without NUL (std::invalid_argument otherwise); empty shows the text alone.
+   * - :cpp:class:`ToastNotificationUrgencyCapability <gui_forms::ToastNotificationUrgencyCapability>`
+     - How much the notification asks for attention (HostDesktopNotificationUrgency): critical maps to the platform's insistent notification where it has one.
 
 .. cpp:namespace:: gui_forms
 
@@ -1105,6 +1116,80 @@ Related types
    .. cpp:function:: static void assign(OpenFileDialogTitleCapability& capability, std::string incoming)
 
    .. cpp:member:: PropertyCell<std::string, OpenFileDialogTitleCapability<Declaring>> title
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToastNotificationCapabilities : public ToastNotificationTitleCapability<Declaring>, public TextCapability<Declaring>, public ToastNotificationUrgencyCapability<Declaring>, public ToastNotificationSilentCapability<Declaring>
+
+   ``#include <gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp>`` (:src:`source <include/gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp>`)
+
+   Every ToastNotification capability, in the order the declaring class takes them.
+
+
+   .. rubric:: Properties
+
+   .. cpp:member:: std::string title
+
+      The notification's title, at most 255 bytes of UTF-8 without NUL (std::invalid_argument otherwise); empty shows the text alone. Read by the next show. UI thread only (std::logic_error).
+
+   .. cpp:member:: std::string text
+
+      The text the control shows (Text).
+
+   .. cpp:member:: HostDesktopNotificationUrgency urgency
+
+      How much the notification asks for attention (HostDesktopNotificationUrgency): critical maps to the platform's insistent notification where it has one. Throws std::invalid_argument outside the enumeration. Read by the next show. UI thread only (std::logic_error).
+
+   .. cpp:member:: bool silent
+
+      Whether the platform is asked not to play its notification sound. Read by the next show. UI thread only (std::logic_error).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToastNotificationSilentCapability
+
+   ``#include <gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp>`` (:src:`source <include/gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp>`)
+
+   Whether the platform is asked not to play its notification sound. Read by the next show. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToastNotificationSilentCapability& capability, bool incoming)
+
+   .. cpp:member:: PropertyCell<bool, ToastNotificationSilentCapability<Declaring>> silent
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToastNotificationTitleCapability
+
+   ``#include <gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp>`` (:src:`source <include/gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp>`)
+
+   The notification's title, at most 255 bytes of UTF-8 without NUL (std::invalid_argument otherwise); empty shows the text alone. Read by the next show. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToastNotificationTitleCapability& capability, std::string incoming)
+
+   .. cpp:member:: PropertyCell<std::string, ToastNotificationTitleCapability<Declaring>> title
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ToastNotificationUrgencyCapability
+
+   ``#include <gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp>`` (:src:`source <include/gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp>`)
+
+   How much the notification asks for attention (HostDesktopNotificationUrgency): critical maps to the platform's insistent notification where it has one. Throws std::invalid_argument outside the enumeration. Read by the next show. UI thread only (std::logic_error).
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ToastNotificationUrgencyCapability& capability, HostDesktopNotificationUrgency incoming)
+
+   .. cpp:member:: PropertyCell<HostDesktopNotificationUrgency, ToastNotificationUrgencyCapability<Declaring>> urgency
+
+      Default: ``{HostDesktopNotificationUrgency::normal}``.
 
 Enumerations
 ------------

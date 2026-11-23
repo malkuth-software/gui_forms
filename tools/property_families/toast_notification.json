@@ -1,0 +1,119 @@
+{
+  "family": "ToastNotification",
+  "step": "devexpress-takes",
+  "declaring": "ToastNotification",
+  "header": "include/gui_forms/components/toast_notification/toast_notification.hpp",
+  "source": "src/controls/toast_notification/toast_notification.cpp",
+  "capabilities_header": "include/gui_forms/components/toast_notification/toast_notification_capabilities/toast_notification_capabilities.hpp",
+  "shared": [
+    "TextCapability"
+  ],
+  "includes": [
+    "gui_forms/host/types/host_types.hpp",
+    "<string>"
+  ],
+  "mutation_check": "require_ui(\"ToastNotification property mutation\");",
+  "properties": [
+    {
+      "name": "title",
+      "capability": "ToastNotificationTitle",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The notification's title, at most 255 bytes of UTF-8 without NUL (std::invalid_argument otherwise); empty shows the text alone. Read by the next show. UI thread only (std::logic_error).",
+      "getter": "title",
+      "setter": "set_title",
+      "clear": null,
+      "field": "title_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "title",
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (!notification_text_valid(incoming, HostServices::maximum_desktop_notification_title_bytes)) {",
+        "    throw std::invalid_argument(\"ToastNotification title must be UTF-8 without NUL of at most 255 bytes\");",
+        "}"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "text",
+      "capability": "Text",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The notification's text, at most 1023 bytes of UTF-8 without NUL (std::invalid_argument otherwise). show refuses empty text. Read by the next show. UI thread only (std::logic_error).",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": null,
+      "on_changed": false,
+      "localizable": "text",
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (!notification_text_valid(incoming, HostServices::maximum_desktop_notification_text_bytes)) {",
+        "    throw std::invalid_argument(\"ToastNotification text must be UTF-8 without NUL of at most 1023 bytes\");",
+        "}"
+      ],
+      "sample": "std::string{\"Sample\"}"
+    },
+    {
+      "name": "urgency",
+      "capability": "ToastNotificationUrgency",
+      "value": "HostDesktopNotificationUrgency",
+      "initial": "HostDesktopNotificationUrgency::normal",
+      "comment": "How much the notification asks for attention (HostDesktopNotificationUrgency): critical maps to the platform's insistent notification where it has one. Throws std::invalid_argument outside the enumeration. Read by the next show. UI thread only (std::logic_error).",
+      "getter": "urgency",
+      "setter": "set_urgency",
+      "clear": null,
+      "field": "urgency_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null,
+      "prepare": [
+        "if (incoming != HostDesktopNotificationUrgency::low && incoming != HostDesktopNotificationUrgency::normal &&",
+        "    incoming != HostDesktopNotificationUrgency::critical) {",
+        "    throw std::invalid_argument(\"ToastNotification urgency is outside HostDesktopNotificationUrgency\");",
+        "}"
+      ],
+      "sample": "HostDesktopNotificationUrgency::critical"
+    },
+    {
+      "name": "silent",
+      "capability": "ToastNotificationSilent",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether the platform is asked not to play its notification sound. Read by the next show. UI thread only (std::logic_error).",
+      "getter": "silent",
+      "setter": "set_silent",
+      "clear": null,
+      "field": "silent_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": null,
+      "hooks": "generated",
+      "hand": [],
+      "effects": null
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "status",
+      "reason": "the host's answer to the last request; read-only"
+    },
+    {
+      "name": "shown",
+      "reason": "whether the platform still lists the notification as live; read-only"
+    }
+  ]
+}
