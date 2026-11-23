@@ -19,8 +19,6 @@
 # Byte-exact fixtures and corpora: their bytes are the test input or are named
 # by a recorded hash, so git never converts them, on checkout or on commit.
 # A corpus file added with CRLF keeps it.
-fuzz/corpus/** -text
-tools/font_metrics_differential/corpus/** -text
 # The license bytes that tests/fonts/*/PROVENANCE.md hashes.
 tests/fonts/*/OFL.txt -text
 

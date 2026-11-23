@@ -144,7 +144,6 @@ option(GUI_FORMS_ENABLE_WEB_HOST "Build the browser host (Emscripten) with the p
 # ADR-004: the Skia painter, the C drawing API and the Win32 host all draw
 # text with the shared text engine (gui_forms_text_engine), which reads
 # fonts, shapes, measures and draws with STXlib and is always built.
-option(GUI_FORMS_BUILD_FUZZERS "Build libFuzzer entry points" OFF)
 option(GUI_FORMS_WARNINGS_AS_ERRORS "Fail the build on any compiler warning in the library and its programs (tools/ci_build.py turns it on)" OFF)
 # Stage FD5: the program that generates a form document's C++ header; the SDK
 # installs it. A cross build has no host to run it on.
@@ -158,15 +157,6 @@ option(GUI_FORMS_BUILD_FORM_COMPILER "Build and install the form compiler" ${GUI
 # the automation's forms tools (export, validate, apply, revert). Off: a
 # program carries no form document.
 option(GUI_FORMS_FORM_EXPORT "Generated forms register their documents for the automation's forms tools" OFF)
-option(GUI_FORMS_BUILD_BENCHMARKS "Build measurement harnesses" OFF)
-option(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK "Build the renderer-neutral D1 measurement harness" OFF)
-option(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE "Build the private text shaping diagnostic" OFF)
-option(GUI_FORMS_BUILD_LABEL_LAYOUT_PROBE "Build the fixed Label measurement diagnostic" OFF)
-option(GUI_FORMS_BUILD_TEXT_WORKER_PROBE "Build the private text worker lifecycle proof" OFF)
-option(GUI_FORMS_BUILD_TEXT_PAINT_PROBE "Build the private prepared glyph raster proof" OFF)
-option(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK "Build the shared text engine cost benchmark" OFF)
-option(GUI_FORMS_BUILD_PAINT_PROFILE "Build the Gallery paint workload that the Linux profiling job samples" OFF)
-option(GUI_FORMS_BUILD_BLEND_STUDY "Build the Gallery blend and opaque study workload (tools/blend_study.py)" OFF)
 option(GUI_FORMS_BUILD_PREPARED_TEXT "Build the development prepared-text service" OFF)
 option(GUI_FORMS_BUILD_TEXT_MASKS "Build the development logical text-mask service" OFF)
 option(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS "Instrument private text shaping phases" OFF)
@@ -263,7 +253,6 @@ include(cmake/Stx.cmake)
 set(STX_FONTPACK_TEST_FONT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
 set(STX_FONTPACK_INSTALL OFF)
 add_subdirectory(stx_fontpack)
-include(cmake/FuzzTargets.cmake)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
     message(FATAL_ERROR "GUI_FORMS_ENABLE_MACOS_HOST requires Apple AppKit")
@@ -1015,39 +1004,6 @@ endif()
 set_target_properties(gui_forms_text_engine PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
-# Stage F's metrics differential (tools/font_metrics_differential): the
-# bundled engine's measurements of two faces, a GDI oracle on Windows, and
-# the comparison under a mapping's tolerance.
-add_library(gui_forms_font_metrics_differential STATIC
-    tools/font_metrics_differential/differential_inputs.cpp
-    tools/font_metrics_differential/engine_measurement.cpp
-    tools/font_metrics_differential/differential_compare.cpp
-    tools/font_metrics_differential/differential_report.cpp
-    tools/font_metrics_differential/metric_snapshot.cpp
-)
-if(WIN32)
-    target_sources(gui_forms_font_metrics_differential PRIVATE
-        tools/font_metrics_differential/gdi_measurement_windows.cpp)
-    target_link_libraries(gui_forms_font_metrics_differential PRIVATE gdi32)
-else()
-    target_sources(gui_forms_font_metrics_differential PRIVATE
-        tools/font_metrics_differential/gdi_measurement_unavailable.cpp)
-endif()
-target_include_directories(gui_forms_font_metrics_differential
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential)
-target_link_libraries(gui_forms_font_metrics_differential
-    PUBLIC gui_forms_core
-    PRIVATE gui_forms_text_engine stxlib::algorithms)
-add_executable(gui_forms_font_metrics_differential_tool
-    tools/font_metrics_differential/font_metrics_differential_main.cpp)
-# The program's import library (a Windows link writes one beside each
-# executable, named after its output) keeps the target's own name, so that it
-# never overwrites the library of the same output name.
-set_target_properties(gui_forms_font_metrics_differential_tool PROPERTIES
-    OUTPUT_NAME gui_forms_font_metrics_differential
-    ARCHIVE_OUTPUT_NAME gui_forms_font_metrics_differential_tool)
-target_link_libraries(gui_forms_font_metrics_differential_tool PRIVATE
-    gui_forms_font_metrics_differential)
 
 if(GUI_FORMS_BUILD_PREPARED_TEXT)
     target_sources(gui_forms_core PRIVATE
@@ -3207,7 +3163,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
 
         # The Gallery under Application::run, so menus open in Popup
-        # windows (tools/menu_probe.py drives it).
+        # windows (gui_forms_tests tools/menu_probe.py drives it).
         # Application::run is built in (not the shared application
         # library), since the Gallery model links the static controls.
         add_executable(gui_forms_menu_probe_windows
@@ -3451,105 +3407,6 @@ if(GUI_FORMS_BUILD_GALLERY)
     include(demo/correspondence/correspondence.cmake)
 endif()
 
-if(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE)
-    add_executable(gui_forms_text_layout_probe benchmarks/text_layout_probe.cpp)
-    target_link_libraries(gui_forms_text_layout_probe PRIVATE gui_forms_text_engine)
-endif()
-
-if(GUI_FORMS_BUILD_LABEL_LAYOUT_PROBE)
-    add_executable(gui_forms_label_layout_probe benchmarks/label_layout_probe.cpp)
-    target_link_libraries(gui_forms_label_layout_probe PRIVATE gui_forms_controls gui_forms_text_engine)
-endif()
-
-if(GUI_FORMS_BUILD_TEXT_WORKER_PROBE)
-    find_package(Threads REQUIRED)
-    add_executable(gui_forms_text_worker_probe
-        benchmarks/text_worker_probe.cpp
-        src/render/text/worker_probe/worker_probe.cpp)
-    target_include_directories(gui_forms_text_worker_probe PRIVATE src/render/text/worker_probe)
-    target_link_libraries(gui_forms_text_worker_probe PRIVATE gui_forms_text_engine Threads::Threads)
-endif()
-
-if(GUI_FORMS_BUILD_TEXT_PAINT_PROBE)
-    find_package(Threads REQUIRED)
-    add_executable(gui_forms_text_paint_probe
-        benchmarks/text_paint_probe.cpp
-        src/render/text/paint_probe/paint_probe.cpp
-        src/render/text/worker_probe/worker_probe.cpp)
-    target_include_directories(gui_forms_text_paint_probe PRIVATE
-        src/render/text/paint_probe src/render/text/worker_probe)
-    target_link_libraries(gui_forms_text_paint_probe PRIVATE gui_forms_text_engine stxlib::algorithms Threads::Threads)
-endif()
-
-if(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK)
-    add_executable(gui_forms_text_engine_benchmark benchmarks/text_engine_benchmark.cpp)
-    target_link_libraries(gui_forms_text_engine_benchmark PRIVATE gui_forms_text_engine gui_forms_core)
-endif()
-
-if(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK)
-    add_executable(gui_forms_document_view_benchmark benchmarks/document_view_benchmark.cpp)
-    target_link_libraries(gui_forms_document_view_benchmark PRIVATE gui_forms_core)
-endif()
-
-# Phase E, E5: the Gallery painted through the CPU Skia adapter, for
-# .github/workflows/profile-linux.yml to sample (tools/profile_hot_paths.py).
-if(GUI_FORMS_BUILD_PAINT_PROFILE)
-    if(NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
-        message(FATAL_ERROR "The paint profile workload requires Skia and GUI_FORMS_BUILD_GALLERY")
-    endif()
-    add_executable(gui_forms_paint_profile_workload benchmarks/paint_profile_workload.cpp)
-    target_compile_definitions(gui_forms_paint_profile_workload PRIVATE
-        GUI_FORMS_PROFILE_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-    target_link_libraries(gui_forms_paint_profile_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
-endif()
-
-# The blend and opaque study (2026-11-16): the Gallery's blend counters and
-# frame times through the CPU Skia adapter, for tools/blend_study.py.
-if(GUI_FORMS_BUILD_BLEND_STUDY)
-    if(NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
-        message(FATAL_ERROR "The blend study workload requires Skia and GUI_FORMS_BUILD_GALLERY")
-    endif()
-    add_executable(gui_forms_blend_study_workload benchmarks/blend_study_workload.cpp)
-    target_compile_definitions(gui_forms_blend_study_workload PRIVATE
-        GUI_FORMS_BLEND_STUDY_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-    target_link_libraries(gui_forms_blend_study_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
-endif()
-
-# Stage C5: the cost of shadow frames, alone and over a window workload.
-# Built only when asked for.
-add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
-target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
-
-# IMGUI_IMPLOT_STUDY B.7: the plots package's costs (pyramid build, pan and
-# live frames, scatter thinning at a million points). Built only when asked
-# for; run in Release.
-add_executable(gui_forms_plot_performance_probe EXCLUDE_FROM_ALL benchmarks/plot_performance_probe.cpp)
-target_link_libraries(gui_forms_plot_performance_probe PRIVATE gui_forms_plot_primitives)
-
-# Audit addendum batch d: the per-operation cost of a window of several
-# thousand controls (attach, pointer, focus, layout, paint, inherited reads,
-# bulk clear). Built only when asked for; run in Release.
-add_executable(gui_forms_tree_cost_benchmark EXCLUDE_FROM_ALL benchmarks/tree_cost_benchmark.cpp)
-target_link_libraries(gui_forms_tree_cost_benchmark PRIVATE gui_forms_core)
-
-# APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
-# and a generated form window; time and allocations against the committed
-# baseline benchmarks/creation/creation_baseline.txt). Built only when asked
-# for; run in Release on the M4.
-if(GUI_FORMS_BUILD_FORM_COMPILER)
-    add_executable(gui_forms_creation_benchmark EXCLUDE_FROM_ALL benchmarks/creation_benchmark.cpp)
-    target_link_libraries(gui_forms_creation_benchmark PRIVATE gui_forms_controls gui_forms_host_headless)
-    target_include_directories(gui_forms_creation_benchmark PRIVATE src/host/headless)
-    gui_forms_add_form(gui_forms_creation_benchmark benchmarks/creation/creation_form.form
-        CLASS CreationSettingsForm NAMESPACE form_generated)
-endif()
-
-# SK2: the time each host spends presenting a frame, which the native jobs
-# measure (.github/workflows/native-platform.yml). Built only when asked for.
-if(TARGET gui_forms_application)
-    add_executable(gui_forms_present_profile_workload EXCLUDE_FROM_ALL benchmarks/present_profile_workload.cpp)
-    target_link_libraries(gui_forms_present_profile_workload PRIVATE gui_forms_application)
-endif()
 
 # D2: the documentation's control previews, one PNG per stock specimen in the
 # windows-professional theme (tools/preview_capture/preview_capture.cpp), run
@@ -3560,126 +3417,6 @@ if(TARGET gui_forms_application AND GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_preview_capture PRIVATE gui_forms_application)
 endif()
 
-if(GUI_FORMS_BUILD_BENCHMARKS)
-    if(NOT APPLE OR NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
-        message(FATAL_ERROR
-            "The renderer benchmark requires macOS, Skia, and the Gallery model")
-    endif()
-    add_executable(gui_forms_renderer_benchmark
-        benchmarks/renderer_benchmark.cpp
-    )
-    target_compile_definitions(gui_forms_renderer_benchmark PRIVATE
-        GUI_FORMS_BENCH_REGULAR_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf"
-        GUI_FORMS_BENCH_BOLD_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids-Bold.ttf"
-    )
-    target_link_libraries(gui_forms_renderer_benchmark PRIVATE
-        gui_forms_gallery_model
-        gui_forms_skia
-    )
-    add_custom_target(gui_forms_renderer_boundary_audit
-        COMMAND ${CMAKE_COMMAND}
-            -DCORE_LIBRARY=$<TARGET_FILE:gui_forms_core>
-            -DSKIA_ADAPTER=$<TARGET_FILE:gui_forms_skia>
-            -DBENCHMARK_BINARY=$<TARGET_FILE:gui_forms_renderer_benchmark>
-            -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
-            -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia::stx_skia>
-            -DOUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/renderer-boundary-audit.txt
-            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_renderer_boundaries.cmake
-        DEPENDS gui_forms_renderer_benchmark
-        VERBATIM
-    )
-endif()
-
-
-if(GUI_FORMS_BUILD_FUZZERS)
-    # The codec fuzzers compile stx sources, so they need the stx checkout.
-    if(GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
-        message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS needs the stx source (cmake/Stx.cmake fetches it)")
-    endif()
-    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS currently requires Clang libFuzzer")
-    endif()
-    include(CheckCXXSourceCompiles)
-    set(CMAKE_REQUIRED_FLAGS "-fsanitize=fuzzer")
-    check_cxx_source_compiles(
-        "#include <cstddef>\nextern \"C\" int LLVMFuzzerTestOneInput(const unsigned char*, std::size_t) { return 0; }"
-        GUI_FORMS_HAS_LIBFUZZER_RUNTIME
-    )
-    unset(CMAKE_REQUIRED_FLAGS)
-    # The inflate and PNG decode harnesses are stx's (stx_zlib/fuzz, stx_png/fuzz).
-    set(stx_zlib_dir ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib)
-    set(stx_png_dir ${GUI_FORMS_STX_SOURCE_DIR}/stx_png)
-    gui_forms_add_libfuzzer_target(inflate
-        SOURCES ${stx_zlib_dir}/fuzz/inflate_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${stx_zlib_dir}/include
-        STANDALONE_DEFINITION STX_ZLIB_FUZZ_STANDALONE)
-    gui_forms_add_libfuzzer_target(inflate_protocol
-        SOURCES fuzz/inflate_protocol_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${stx_zlib_dir}/include)
-    gui_forms_add_libfuzzer_target(deflate
-        SOURCES fuzz/deflate_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/deflate.cpp
-                ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${stx_zlib_dir}/include)
-    gui_forms_add_libfuzzer_target(png_decode
-        SOURCES ${stx_png_dir}/fuzz/png_decode_fuzz.cpp ${stx_png_dir}/src/decoder.cpp ${stx_png_dir}/src/encoder.cpp
-                ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/deflate.cpp ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${stx_png_dir}/include ${stx_zlib_dir}/include
-        STANDALONE_DEFINITION STX_PNG_FUZZ_STANDALONE)
-    gui_forms_add_libfuzzer_target(png_registry
-        SOURCES fuzz/png_registry_fuzz.cpp src/core/resources/image_registry/image_registry.cpp
-                ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${stx_zlib_dir}/include)
-
-    # The theme sheet tokenizer, parser and value reader (stage T3), from
-    # their own sources.
-    gui_forms_add_libfuzzer_target(theme_sheet
-        SOURCES
-            fuzz/theme_sheet_fuzz.cpp
-            src/core/theme_language/source_text/theme_source_text.cpp
-            src/core/theme_language/diagnostics/theme_diagnostics.cpp
-            src/core/theme_language/number/theme_number.cpp
-            src/core/theme_language/tokenizer/theme_tokenizer.cpp
-            src/core/theme_language/syntax_tree/theme_syntax_tree.cpp
-            src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
-            src/core/theme_language/custom_properties/theme_custom_properties.cpp
-            src/core/theme_language/value/theme_value.cpp
-            src/core/theme_language/media/theme_media_query.cpp
-            src/core/engine/engine_expression/engine_expression.cpp
-            src/core/engine/theme_rules/colour_roles.cpp
-            src/core/anatomy/types/anatomy_types.cpp
-            src/core/schema/types/schema_types.cpp
-            src/core/xml/xml_characters/xml_characters.cpp
-            src/core/xml/types/xml_types.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-    # The layout XML reader (DK decision 43), built from its own sources so
-    # the sanitizers cover exactly the reader and writer.
-    gui_forms_add_libfuzzer_target(xml_reader
-        SOURCES fuzz/xml_reader_fuzz.cpp src/core/xml/types/xml_types.cpp src/core/xml/xml_characters/xml_characters.cpp
-                src/core/xml/xml_reader/xml_reader.cpp src/core/xml/xml_writer/xml_writer.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-    # The theme manifest's JSON reader (stage T3, P10), from its own source.
-    gui_forms_add_libfuzzer_target(json_reader
-        SOURCES fuzz/json_reader_fuzz.cpp src/core/json/json_reader/json_reader.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-    # Whole subsystems, linked rather than rebuilt (audit N115, I3): the
-    # sanitizers reach into the libraries only when the tree is configured
-    # with them (cmake/FuzzTargets.cmake).
-    gui_forms_add_libfuzzer_target(theme_compile SOURCES fuzz/theme_compile_fuzz.cpp LIBRARIES gui_forms_controls)
-    gui_forms_add_libfuzzer_target(theme_manifest SOURCES fuzz/theme_manifest_fuzz.cpp LIBRARIES gui_forms_core)
-    gui_forms_add_libfuzzer_target(form_document SOURCES fuzz/form_document_fuzz.cpp LIBRARIES gui_forms_controls)
-    gui_forms_add_libfuzzer_target(dock_layout SOURCES fuzz/dock_layout_fuzz.cpp LIBRARIES gui_forms_core)
-    gui_forms_add_libfuzzer_target(clipboard_image SOURCES fuzz/clipboard_image_fuzz.cpp LIBRARIES gui_forms_core)
-    gui_forms_add_libfuzzer_target(rtf_import SOURCES fuzz/rtf_import_fuzz.cpp
-        LIBRARIES gui_forms_core stx_rtf2md::stx_rtf2md)
-    if(TARGET stx_vorbis::stx_vorbis_stb)
-        # The standalone driver reads its corpus through STXlib.
-        gui_forms_add_libfuzzer_target(vorbis SOURCES fuzz/vorbis_fuzz.cpp
-            LIBRARIES stx_vorbis::stx_vorbis_stb stxlib::boundary stxlib::state)
-    endif()
-endif()
 
 # Installed consumers need the notices for the code incorporated in the library.
 if(GUI_FORMS_BUILD_AUDIO)
@@ -3823,7 +3560,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 
-
 # Programs that carry the font licences share one output directory, so one
 # fonts/ beside them holds the licences and the attribution
 # (GUI_FORMS_PROGRAM_FONT_NOTICES) for the Gallery and its labs, the
@@ -3915,28 +3651,6 @@ endforeach()
 
 # Every test carries one area label (cmake/TestAreas.cmake, tools/test_areas.json).
 
-# The focus labs (claude/perf-focus-labs, benchmarks/focus_labs): measurement programs,
-# not tests, so no CTest entry. Each checks its rearranged kernels against the library's
-# own for equal output, then times both. composite_lab compiles the compositor's own
-# translation unit; bake_lab links as gui_forms_engine_material_tests does, exec_lab as
-# gui_drawing_skia_tests does. Since the perf fold (cp29) the library carries the
-# rearrangements, so the ratios measure what is left.
-option(GUI_FORMS_BUILD_FOCUS_LABS "Build the benchmarks/focus_labs programs" OFF)
-if(GUI_FORMS_BUILD_FOCUS_LABS)
-    add_executable(focus_composite_lab benchmarks/focus_labs/composite_lab.cpp
-        src/core/text/composite/text_composite.cpp)
-    target_include_directories(focus_composite_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/core/text/composite)
-    target_compile_features(focus_composite_lab PRIVATE cxx_std_20)
-    add_executable(focus_bake_lab benchmarks/focus_labs/bake_lab.cpp)
-    target_link_libraries(focus_bake_lab PRIVATE gui_forms_controls)
-    if(TARGET gui_drawing_skia)
-        add_executable(focus_exec_lab benchmarks/focus_labs/exec_lab.cpp
-            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
-        target_link_libraries(focus_exec_lab PRIVATE gui_drawing_skia gui_forms_core)
-        target_include_directories(focus_exec_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-    endif()
-endif()
 
 # Floating-point contraction. Clang's default fuses a * b + c within an
 # expression where the target has a fused multiply-add, which arm64 always has

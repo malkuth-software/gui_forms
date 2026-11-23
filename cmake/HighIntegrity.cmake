@@ -91,8 +91,6 @@ set(_gf_high_integrity_settings
     "GUI_FORMS_BUILD_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_INSTALL_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD|OFF|BOOL|the demoboard calls entries this configuration removes"
-    "GUI_FORMS_BUILD_FUZZERS|OFF|BOOL|the fuzzers feed outside bytes to the parsers"
-    "GUI_FORMS_BUILD_BENCHMARKS|OFF|BOOL|the measurement harnesses are development programs"
     "STXLIB_MATH_DISPATCH|OFF|BOOL|STXlib's math takes one code path, chosen at build time"
     "GUI_FORMS_LTO|ON|BOOL|link-time optimisation prunes across modules where the toolchain allows")
 if(NOT _gf_high_integrity_sanitized)

@@ -384,31 +384,6 @@ jobs:
       - name: Report the build's phases
         if: always() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
         run: python gui_forms/tools/ninja_phases.py .build/native-${{ inputs.platform }}/gui-forms --title "native-${{ inputs.platform }} build" --out "$GITHUB_STEP_SUMMARY" ${{ inputs.platform == 'windows-x64' && '--samples .ci/windows-resources.tsv' || '' }}
-      # SK2: the time each host spends presenting a frame
-      # (benchmarks/present_profile_workload.cpp), in the configuration the
-      # toolkit step built. Its values are evidence, never a gate; a workload
-      # that cannot run fails the job, because a broken measurement is a defect.
-      - name: Measure present time per frame
-        if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
-        run: |
-          build=.build/native-${{ inputs.platform }}/gui-forms
-          result=.ci/present-${{ inputs.platform }}.json
-          cmake --build "$build" --target gui_forms_present_profile_workload --parallel 4
-          mkdir -p .ci
-          if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" "$build/gui_forms_present_profile_workload" "$result"
-          else
-            "$build/gui_forms_present_profile_workload" "$result"
-          fi
-          cat "$result" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
-        if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
-        with:
-          name: present-${{ inputs.platform }}
-          path: .ci/present-${{ inputs.platform }}.json
-          include-hidden-files: true
-          overwrite: true
-          retention-days: 90
       - name: Prove one compression and PNG implementation in the link map
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
         run: |

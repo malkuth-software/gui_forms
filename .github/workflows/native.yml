@@ -176,7 +176,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_ci_build.py
           python3 -B -m unittest discover -s tools -p test_ci_docs_only.py
           python3 -B -m unittest discover -s tools -p test_ninja_phases.py
-          python3 -B -m unittest discover -s tools -p test_profile_hot_paths.py
+          python3 -B -m unittest discover -s tools -p test_profile_cache.py
           # The shim: the harness's lifetime rules, then GUI.Forms' member-view
           # rule, the termination rule for statics in src/ (exit-releases-nothing) and the
           # tests' stable-ID literal rule.

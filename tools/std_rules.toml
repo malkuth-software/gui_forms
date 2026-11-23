@@ -10,7 +10,7 @@ root = ".."
 profile = "consumer"
 # The two tools that link the library or read its inputs through STXlib
 # (the shield); the rest of tools/ is not checked yet.
-paths = ["src", "include", "examples", "demo", "benchmarks", "fuzz", "lab",
+paths = ["src", "include", "examples", "demo", "lab",
          "tools/preview_capture", "tools/stock_icon_generator"]
 # Native code, where the host-only rules (pthread, wchar_t and the rest)
 # do not apply: the platform hosts. (The tests, with the probes that drive a
@@ -78,6 +78,6 @@ instead = "gui_forms::detail::make_library_shared (gui_forms/allocation/library_
 qualified = ["make_shared"]
 
 [[allow]]
-paths = ["examples/*", "demo/*", "benchmarks/*", "fuzz/*", "lab/*", "tools/preview_capture/*", "tools/stock_icon_generator/*"]
+paths = ["examples/*", "demo/*", "lab/*", "tools/preview_capture/*", "tools/stock_icon_generator/*"]
 rules = ["library-make-shared"]
 reason = "programs that use GUI.Forms keep their own allocator (owner, 2026-11-22)"

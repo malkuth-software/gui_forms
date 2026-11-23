@@ -1994,8 +1994,8 @@ void SkiaRaster::draw_retained_box_shadow(const Rect rect, const double corner_r
     // square-cornered ones: Skia blurs a rectangle as nine patches it keeps
     // itself, whatever the rectangle's size, while a kept coverage mask is
     // as large as the shadow and is applied through a shader at every
-    // pixel (a panned canvas's sheet shadow, benchmarks/
-    // canvas_pan_benchmark.cpp).
+    // pixel (a panned canvas's sheet shadow, gui_forms_tests
+    // benchmarks/canvas_pan_benchmark.cpp).
     const bool square = !(corner_radius + spread > 0.0);
     if (!cache || blur_radius == 0.0 || square || !matrix.isScaleTranslate() ||
         matrix.getScaleX() <= 0.0F || matrix.getScaleY() <= 0.0F) {
@@ -3242,8 +3242,9 @@ void SkiaRaster::draw_image_region_sampled(
 // An opaque tile at full opacity under a hard rectangular clip is then
 // copied row by row (copy_opaque_tile) rather than shaded. Resampling a
 // 128-pixel felt at device scale 2 for every pixel of a 2560 x 1294 canvas
-// cost some 230 ms a frame on the Windows test machine (benchmarks/
-// canvas_pan_benchmark.cpp); the kept tile costs one 256 x 256 resample.
+// cost some 230 ms a frame on the Windows test machine (gui_forms_tests
+// benchmarks/canvas_pan_benchmark.cpp); the kept tile costs one 256 x 256
+// resample.
 // False when the conditions do not hold; the caller draws directly.
 namespace {
 

@@ -1,8 +1,8 @@
 // The Gallery run as an application (Application::run), so that its menus,
 // drop-downs and pickers open in warm Popup windows as a program's do: the
 // single-window Gallery runner has no application run and shows them as
-// overlays. A development probe for tools/menu_probe.py, which drives it
-// with an automation script (--mcp-script, the library's MCP automation)
+// overlays. A development probe for gui_forms_tests tools/menu_probe.py, which
+// drives it with an automation script (--mcp-script, the library's MCP automation)
 // and captures the owner with its Popups composed:
 //
 //   GUI_FORMS_WINDOWS_SCALE=2 gui_forms_menu_probe_windows [page] --mcp-script probe.jsonl

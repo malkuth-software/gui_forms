@@ -3681,7 +3681,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void append_blend_study_log(std::string_view window, std::uint64_t frame, const BlendFrameCounters& counters) noexcept
 
-   The study's log, for programs measured without code of their own (the product procedure of tools/blend_study.py): when the environment variable GUI_FORMS_BLEND_STUDY_LOG names a file, every frame any window counts is appended to it as one JSON line, {"window":<its root's stable id>, "frame":<the window's frame number>,"counters":<blend_frame_counters_json>}. The file is opened on the first counted frame (append mode) and each line is flushed; lines from windows on several threads are serialized. Unset, empty or not openable, nothing is written. Any thread.
+   The study's log, for programs measured without code of their own (the product procedure of gui_forms_tests tools/blend_study.py): when the environment variable GUI_FORMS_BLEND_STUDY_LOG names a file, every frame any window counts is appended to it as one JSON line, {"window":<its root's stable id>, "frame":<the window's frame number>,"counters":<blend_frame_counters_json>}. The file is opened on the first counted frame (append mode) and each line is flushed; lines from windows on several threads are serialized. Unset, empty or not openable, nothing is written. Any thread.
 
 .. cpp:function:: BlendStudyMode blend_study_requested_by_environment() noexcept
 

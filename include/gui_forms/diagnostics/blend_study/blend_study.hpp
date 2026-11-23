@@ -37,7 +37,7 @@
 // pass over the frame's commands, measuring text runs again; and, per draw,
 // one byte read and written per covered device pixel of each plane. That is
 // of the order of the painting itself, so frame timings are taken with the
-// study off (tools/blend_study.py runs each workload both ways).
+// study off (gui_forms_tests tools/blend_study.py runs each workload both ways).
 //
 // Switched at run time: the process switch (set_blend_study_default, read
 // at first from the environment variable GUI_FORMS_DEBUG_BLEND) and a
@@ -113,9 +113,9 @@ GUI_FORMS_API void add_blend_frame(BlendFrameCounters& totals, const BlendFrameC
 [[nodiscard]] GUI_FORMS_API std::string blend_frame_counters_json(const BlendFrameCounters& counters);
 
 // The study's log, for programs measured without code of their own (the
-// product procedure of tools/blend_study.py): when the environment variable
-// GUI_FORMS_BLEND_STUDY_LOG names a file, every frame any window counts is
-// appended to it as one JSON line, {"window":<its root's stable id>,
+// product procedure of gui_forms_tests tools/blend_study.py): when the
+// environment variable GUI_FORMS_BLEND_STUDY_LOG names a file, every frame any
+// window counts is appended to it as one JSON line, {"window":<its root's stable id>,
 // "frame":<the window's frame number>,"counters":<blend_frame_counters_json>}.
 // The file is opened on the first counted frame (append mode) and each line
 // is flushed; lines from windows on several threads are serialized. Unset,
