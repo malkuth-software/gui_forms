@@ -325,8 +325,8 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog expander text must be valid UTF-8");
         }
     }
-    if (page.input.present()) {
-        const TaskDialogInput& input = *page.input.value();
+    if (page.input.has_value()) {
+        const TaskDialogInput& input = *page.input;
         if (!valid_text(input.text) || !valid_text(input.placeholder)) {
             throw std::invalid_argument("TaskDialog input text must be valid UTF-8");
         }
@@ -391,8 +391,8 @@ void TaskDialog::rebuild_children() {
     footnote_font.size = footnote_size;
     if (!page_.heading.empty()) state.heading_ = State::make_paragraph(*this, ".heading", page_.heading, heading_font);
     if (!page_.text.empty()) state.text_ = State::make_paragraph(*this, ".text", page_.text, font_);
-    if (page_.input.present()) {
-        const TaskDialogInput& settings = *page_.input.value();
+    if (page_.input.has_value()) {
+        const TaskDialogInput& settings = *page_.input;
         state.input_ = make_control<TextBox>(StableId(prefix + ".input"), settings.text);
         (*state.input_).placeholder_text = settings.placeholder;
         (*state.input_).maximum_length = settings.maximum_length;
@@ -631,7 +631,7 @@ bool TaskDialog::show(const Control::Ptr& owner) {
     if (shown_ || window == nullptr || parent()) return false;
     Window& host = *window;
     // A page never set has no buttons; setting it gives it the OK button.
-    if (page_.buttons.empty()) set_page(std::move(page_));
+    if (page_.buttons.empty()) set_page(page_);
     const Size client = host.client_size();
     Control::Ptr layer = make_control<TaskDialogLayer>(StableId(std::string(stable_id().value()) + ".layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});

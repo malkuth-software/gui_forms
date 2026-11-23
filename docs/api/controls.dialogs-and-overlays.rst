@@ -1607,7 +1607,9 @@ Related types
 
    .. cpp:member:: stxlib::Optional<TaskDialogProgressBar> progress_bar
 
-   .. cpp:member:: stxlib::Optional<TaskDialogInput> input
+   .. cpp:member:: std::optional<TaskDialogInput> input
+
+      std::optional, as for the expander: stxlib::Optional of a record with strings is move-only, and pages are copied.
 
    .. cpp:member:: bool allow_cancel
 
