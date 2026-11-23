@@ -58,6 +58,10 @@ Types
      - The tracker's counters (AGENTS.md: structured instrumentation).
    * - :cpp:class:`DragValue <gui_forms::DragValue>`
      - A value: clamp(origin_value + scale * travel along ``axis``, minimum, maximum), rounded to ``step`` above minimum when step is positive.
+   * - :cpp:class:`GestureEvent <gui_forms::GestureEvent>`
+     - One gesture event as the host reports it and the window routes it.
+   * - :cpp:class:`GestureEventArgs <gui_forms::GestureEventArgs>`
+     - One gesture event as a control's on_gesture and its gesture subscribers see it: the GestureEvent's fields, the focal point in the control's own coordinates (location) and the window's (window_position).
    * - :cpp:class:`KeyBinding <gui_forms::KeyBinding>`
      - The chords that invoke one command: at most two (Ctrl+F6 and its macOS equivalent, say).
    * - :cpp:class:`KeyBindings <gui_forms::KeyBindings>`
@@ -663,6 +667,84 @@ Types
    .. cpp:member:: double keyboard_step
 
       Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GestureEvent final
+
+   ``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+   One gesture event as the host reports it and the window routes it. position is the focal point in window logical units; scale, rotation_degrees and translation are the change since the previous event of the gesture (header comment). phase (EventPhase) and handled are the route's, as PointerEvent's. timestamp_nanoseconds is FrameClock nanoseconds, as PointerEvent's; zero is stamped at dispatch.
+
+   .. cpp:member:: GestureKind kind
+
+      Default: ``{GestureKind::magnify}``.
+
+   .. cpp:member:: GesturePhase gesture_phase
+
+      Default: ``{GesturePhase::changed}``.
+
+   .. cpp:member:: Point position
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double rotation_degrees
+
+   .. cpp:member:: Point translation
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: EventPhase phase
+
+      Default: ``{EventPhase::target}``.
+
+   .. cpp:member:: bool handled
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GestureEventArgs final
+
+   ``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+   One gesture event as a control's on_gesture and its gesture subscribers see it: the GestureEvent's fields, the focal point in the control's own coordinates (location) and the window's (window_position). A raiser that sets handled ends the route at that control: no further ancestor sees the event (the subscribers still run when the raiser calls its base).
+
+   .. cpp:member:: GestureKind kind
+
+      Default: ``{GestureKind::magnify}``.
+
+   .. cpp:member:: GesturePhase gesture_phase
+
+      Default: ``{GesturePhase::changed}``.
+
+   .. cpp:member:: Point location
+
+   .. cpp:member:: Point window_position
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double rotation_degrees
+
+   .. cpp:member:: Point translation
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: EventPhase phase
+
+      Default: ``{EventPhase::target}``.
+
+   .. cpp:member:: bool handled
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
 
 .. cpp:namespace:: gui_forms
 
@@ -1880,6 +1962,38 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: GestureKind
+
+   ``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+   .. cpp:enumerator:: magnify
+
+   .. cpp:enumerator:: rotate
+
+   .. cpp:enumerator:: smart_magnify
+
+   .. cpp:enumerator:: swipe
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: GesturePhase
+
+   ``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+   .. cpp:enumerator:: began
+
+   .. cpp:enumerator:: changed
+
+   .. cpp:enumerator:: ended
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: momentum
+
+   .. cpp:enumerator:: momentum_ended
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: KeyAction
 
    ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
@@ -2336,6 +2450,22 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double default_drag_scroll_speed
 
    Value: ``1200.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+.. cpp:function:: inline GestureEventArgs gesture_event_arguments(const GestureEvent& event, Point control_origin) noexcept
+
+   The GestureEventArgs ``event`` carries on a control whose absolute bounds start at ``control_origin`` (window coordinates). The caller copies handled back.
+
+.. cpp:function:: inline bool valid_gesture_event(const GestureEvent& event) noexcept
+
+   Whether ``event`` is one a host may report: a known kind and phase, a finite focal point, rotation and translation, and a finite scale above zero. The session refuses any other with invalid_payload.
+
+.. cpp:function:: constexpr bool gesture_phase_final(GesturePhase phase) noexcept
+
+   Whether ``phase`` certainly ends its gesture: the window releases the gesture's latch after it. ended does not, as momentum may follow it; the next began replaces the latch.
 
 .. cpp:namespace:: gui_forms
 

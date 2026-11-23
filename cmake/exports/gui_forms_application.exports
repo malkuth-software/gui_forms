@@ -246,6 +246,7 @@ __ZGVZN9gui_forms12EffectRandom*
 __ZGVZN9gui_forms12FileDialogOk*
 __ZGVZN9gui_forms12FocusScopeId*
 __ZGVZN9gui_forms12FontFamilyId*
+__ZGVZN9gui_forms12GestureEvent*
 __ZGVZN9gui_forms12GlossColours*
 __ZGVZN9gui_forms12GradientStop*
 __ZGVZN9gui_forms12GrayTextMask*
@@ -697,6 +698,7 @@ __ZGVZN9gui_forms16FlattenedContour*
 __ZGVZN9gui_forms16FocusScopeChange*
 __ZGVZN9gui_forms16FontDialogResult*
 __ZGVZN9gui_forms16FontFamilyRecord*
+__ZGVZN9gui_forms16GestureEventArgs*
 __ZGVZN9gui_forms16HelpContentsLine*
 __ZGVZN9gui_forms16HelpContentsNode*
 __ZGVZN9gui_forms16HelpContentsTree*
@@ -1938,6 +1940,7 @@ __ZGVZNK9gui_forms12EffectRandom*
 __ZGVZNK9gui_forms12FileDialogOk*
 __ZGVZNK9gui_forms12FocusScopeId*
 __ZGVZNK9gui_forms12FontFamilyId*
+__ZGVZNK9gui_forms12GestureEvent*
 __ZGVZNK9gui_forms12GlossColours*
 __ZGVZNK9gui_forms12GradientStop*
 __ZGVZNK9gui_forms12GrayTextMask*
@@ -2389,6 +2392,7 @@ __ZGVZNK9gui_forms16FlattenedContour*
 __ZGVZNK9gui_forms16FocusScopeChange*
 __ZGVZNK9gui_forms16FontDialogResult*
 __ZGVZNK9gui_forms16FontFamilyRecord*
+__ZGVZNK9gui_forms16GestureEventArgs*
 __ZGVZNK9gui_forms16HelpContentsLine*
 __ZGVZNK9gui_forms16HelpContentsNode*
 __ZGVZNK9gui_forms16HelpContentsTree*
@@ -3710,6 +3714,7 @@ __ZN9gui_forms12EffectRandom*
 __ZN9gui_forms12FileDialogOk*
 __ZN9gui_forms12FocusScopeId*
 __ZN9gui_forms12FontFamilyId*
+__ZN9gui_forms12GestureEvent*
 __ZN9gui_forms12GlossColours*
 __ZN9gui_forms12GradientStop*
 __ZN9gui_forms12GrayTextMask*
@@ -4343,6 +4348,7 @@ __ZN9gui_forms16FlattenedContour*
 __ZN9gui_forms16FocusScopeChange*
 __ZN9gui_forms16FontDialogResult*
 __ZN9gui_forms16FontFamilyRecord*
+__ZN9gui_forms16GestureEventArgs*
 __ZN9gui_forms16HelpContentsLine*
 __ZN9gui_forms16HelpContentsNode*
 __ZN9gui_forms16HelpContentsTree*
@@ -7048,6 +7054,7 @@ __ZNK[RO]9gui_forms12EffectRandom*
 __ZNK[RO]9gui_forms12FileDialogOk*
 __ZNK[RO]9gui_forms12FocusScopeId*
 __ZNK[RO]9gui_forms12FontFamilyId*
+__ZNK[RO]9gui_forms12GestureEvent*
 __ZNK[RO]9gui_forms12GlossColours*
 __ZNK[RO]9gui_forms12GradientStop*
 __ZNK[RO]9gui_forms12GrayTextMask*
@@ -7499,6 +7506,7 @@ __ZNK[RO]9gui_forms16FlattenedContour*
 __ZNK[RO]9gui_forms16FocusScopeChange*
 __ZNK[RO]9gui_forms16FontDialogResult*
 __ZNK[RO]9gui_forms16FontFamilyRecord*
+__ZNK[RO]9gui_forms16GestureEventArgs*
 __ZNK[RO]9gui_forms16HelpContentsLine*
 __ZNK[RO]9gui_forms16HelpContentsNode*
 __ZNK[RO]9gui_forms16HelpContentsTree*
@@ -8740,6 +8748,7 @@ __ZN[KRO]9gui_forms12EffectRandom*
 __ZN[KRO]9gui_forms12FileDialogOk*
 __ZN[KRO]9gui_forms12FocusScopeId*
 __ZN[KRO]9gui_forms12FontFamilyId*
+__ZN[KRO]9gui_forms12GestureEvent*
 __ZN[KRO]9gui_forms12GlossColours*
 __ZN[KRO]9gui_forms12GradientStop*
 __ZN[KRO]9gui_forms12GrayTextMask*
@@ -9191,6 +9200,7 @@ __ZN[KRO]9gui_forms16FlattenedContour*
 __ZN[KRO]9gui_forms16FocusScopeChange*
 __ZN[KRO]9gui_forms16FontDialogResult*
 __ZN[KRO]9gui_forms16FontFamilyRecord*
+__ZN[KRO]9gui_forms16GestureEventArgs*
 __ZN[KRO]9gui_forms16HelpContentsLine*
 __ZN[KRO]9gui_forms16HelpContentsNode*
 __ZN[KRO]9gui_forms16HelpContentsTree*
@@ -10432,6 +10442,7 @@ __ZT[VIST]N9gui_forms12EffectRandom*E
 __ZT[VIST]N9gui_forms12FileDialogOk*E
 __ZT[VIST]N9gui_forms12FocusScopeId*E
 __ZT[VIST]N9gui_forms12FontFamilyId*E
+__ZT[VIST]N9gui_forms12GestureEvent*E
 __ZT[VIST]N9gui_forms12GlossColours*E
 __ZT[VIST]N9gui_forms12GradientStop*E
 __ZT[VIST]N9gui_forms12GrayTextMask*E
@@ -10883,6 +10894,7 @@ __ZT[VIST]N9gui_forms16FlattenedContour*E
 __ZT[VIST]N9gui_forms16FocusScopeChange*E
 __ZT[VIST]N9gui_forms16FontDialogResult*E
 __ZT[VIST]N9gui_forms16FontFamilyRecord*E
+__ZT[VIST]N9gui_forms16GestureEventArgs*E
 __ZT[VIST]N9gui_forms16HelpContentsLine*E
 __ZT[VIST]N9gui_forms16HelpContentsNode*E
 __ZT[VIST]N9gui_forms16HelpContentsTree*E
@@ -12124,6 +12136,7 @@ __ZT[hvc]*9gui_forms12EffectRandom*
 __ZT[hvc]*9gui_forms12FileDialogOk*
 __ZT[hvc]*9gui_forms12FocusScopeId*
 __ZT[hvc]*9gui_forms12FontFamilyId*
+__ZT[hvc]*9gui_forms12GestureEvent*
 __ZT[hvc]*9gui_forms12GlossColours*
 __ZT[hvc]*9gui_forms12GradientStop*
 __ZT[hvc]*9gui_forms12GrayTextMask*
@@ -12575,6 +12588,7 @@ __ZT[hvc]*9gui_forms16FlattenedContour*
 __ZT[hvc]*9gui_forms16FocusScopeChange*
 __ZT[hvc]*9gui_forms16FontDialogResult*
 __ZT[hvc]*9gui_forms16FontFamilyRecord*
+__ZT[hvc]*9gui_forms16GestureEventArgs*
 __ZT[hvc]*9gui_forms16HelpContentsLine*
 __ZT[hvc]*9gui_forms16HelpContentsNode*
 __ZT[hvc]*9gui_forms16HelpContentsTree*
@@ -13816,6 +13830,7 @@ __ZZN9gui_forms12EffectRandom*
 __ZZN9gui_forms12FileDialogOk*
 __ZZN9gui_forms12FocusScopeId*
 __ZZN9gui_forms12FontFamilyId*
+__ZZN9gui_forms12GestureEvent*
 __ZZN9gui_forms12GlossColours*
 __ZZN9gui_forms12GradientStop*
 __ZZN9gui_forms12GrayTextMask*
@@ -14267,6 +14282,7 @@ __ZZN9gui_forms16FlattenedContour*
 __ZZN9gui_forms16FocusScopeChange*
 __ZZN9gui_forms16FontDialogResult*
 __ZZN9gui_forms16FontFamilyRecord*
+__ZZN9gui_forms16GestureEventArgs*
 __ZZN9gui_forms16HelpContentsLine*
 __ZZN9gui_forms16HelpContentsNode*
 __ZZN9gui_forms16HelpContentsTree*
@@ -15508,6 +15524,7 @@ __ZZNK9gui_forms12EffectRandom*
 __ZZNK9gui_forms12FileDialogOk*
 __ZZNK9gui_forms12FocusScopeId*
 __ZZNK9gui_forms12FontFamilyId*
+__ZZNK9gui_forms12GestureEvent*
 __ZZNK9gui_forms12GlossColours*
 __ZZNK9gui_forms12GradientStop*
 __ZZNK9gui_forms12GrayTextMask*
@@ -15959,6 +15976,7 @@ __ZZNK9gui_forms16FlattenedContour*
 __ZZNK9gui_forms16FocusScopeChange*
 __ZZNK9gui_forms16FontDialogResult*
 __ZZNK9gui_forms16FontFamilyRecord*
+__ZZNK9gui_forms16GestureEventArgs*
 __ZZNK9gui_forms16HelpContentsLine*
 __ZZNK9gui_forms16HelpContentsNode*
 __ZZNK9gui_forms16HelpContentsTree*

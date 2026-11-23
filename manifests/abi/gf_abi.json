@@ -7,7 +7,7 @@
   ],
   "abi": {
     "major": 1,
-    "minor": 6
+    "minor": 7
   },
   "targets": [
     "x86_64-w64-windows-gnu",
@@ -23,7 +23,7 @@
     },
     {
       "name": "GF_ABI_MINOR",
-      "value": 6,
+      "value": 7,
       "type": "uint32"
     },
     {
@@ -18455,7 +18455,7 @@
     {
       "name": "gf_control_hooks",
       "kind": "segment",
-      "size": 352,
+      "size": 360,
       "align": 8,
       "fields": [
         {
@@ -18726,6 +18726,12 @@
           "name": "on_validating",
           "type": "gf_hook_entry",
           "offset": 344,
+          "size": 8
+        },
+        {
+          "name": "on_gesture",
+          "type": "gf_hook_entry",
+          "offset": 352,
           "size": 8
         }
       ]

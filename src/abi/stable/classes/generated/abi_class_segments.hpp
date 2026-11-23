@@ -67,6 +67,7 @@ gf_status GF_CALL base_control_on_paint_background(gf_object self, gf_event* eve
 gf_status GF_CALL base_control_on_preview_key_down(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_control_on_validated(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_control_on_validating(gf_object self, gf_event* event) noexcept;
+gf_status GF_CALL base_control_on_gesture(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_masked_text_box_on_mask_changed(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_picture_box_on_size_mode_changed(gf_object self, gf_event* event) noexcept;
 gf_status GF_CALL base_combo_box_on_drop_down_style_changed(gf_object self, gf_event* event) noexcept;
@@ -587,6 +588,17 @@ protected:
         }
     }
 
+    void on_gesture(GestureEventArgs& arguments) override {
+        const HookKey hook{GF_CLASS_CONTROL, 43U};
+        const gf_hook_entry entry = (*this).class_hook_entry(hook);
+        const bool entered = entry != nullptr &&
+                             (*this).template enter_class_hook_with<true>(
+                                 *this, entry, hook, "gesture", &base_control_on_gesture, arguments);
+        if (!entered) {
+            Base::on_gesture(arguments);
+        }
+    }
+
     // Runs the raiser below this layer for one of Control's hooks; another
     // class's hook goes to the layers further in.
     [[nodiscard]] HookRun run_layer_base(HookKey hook, const HookArguments& arguments) {
@@ -797,6 +809,13 @@ protected:
             ControlValidationEvent made{};
             ControlValidationEvent& used = given != nullptr ? *given : made;
             Base::on_validating(used);
+            break;
+        }
+        case 43U: {
+            GestureEventArgs* given = static_cast<GestureEventArgs*>(arguments.value);
+            GestureEventArgs made{};
+            GestureEventArgs& used = given != nullptr ? *given : made;
+            Base::on_gesture(used);
             break;
         }
         default:

@@ -379,6 +379,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
@@ -486,6 +487,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
@@ -597,6 +599,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
@@ -703,6 +706,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
@@ -816,6 +820,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "invoked", "payload": "CommandItem", "mutable_payload": false}
       ]
@@ -916,6 +921,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "requested", "payload": "WindowCapsuleRequest", "mutable_payload": false}
       ]
     },
@@ -1035,6 +1041,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "selection_changed", "payload": "TextSelection", "mutable_payload": false},
@@ -1148,6 +1155,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "token_added", "payload": "Token", "mutable_payload": false},
         {"name": "token_removed", "payload": "Token", "mutable_payload": false},
         {"name": "selected_token_changed", "payload": "stxlib::Optional<TokenId>", "mutable_payload": false}
@@ -1251,6 +1259,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "search_requested", "payload": "std::string", "mutable_payload": false},
         {"name": "cleared", "payload": "", "mutable_payload": false}
@@ -1365,6 +1374,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "mask_input_rejected", "payload": "MaskInputRejection", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
@@ -1498,6 +1508,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "content_changed", "payload": "", "mutable_payload": false},
@@ -1601,6 +1612,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
     },
@@ -1698,6 +1710,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
     },
@@ -1795,7 +1808,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -1895,7 +1909,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -1998,6 +2013,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "closed", "payload": "", "mutable_payload": false}
       ]
     },
@@ -2096,7 +2112,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -2193,6 +2210,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "action_invoked", "payload": "", "mutable_payload": false}
       ]
     },
@@ -2308,6 +2326,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "image_changed", "payload": "ImageId", "mutable_payload": false}
       ]
@@ -2411,6 +2430,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -2513,7 +2533,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -2606,7 +2627,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -2708,6 +2730,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -2806,7 +2829,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -2910,6 +2934,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "view_changed", "payload": "PlotViewRanges", "mutable_payload": false},
         {"name": "selection_changed", "payload": "PlotQuery", "mutable_payload": false},
         {"name": "point_picked", "payload": "PlotPointPick", "mutable_payload": false},
@@ -3019,6 +3044,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "hovered", "payload": "plots::Plot3DHit", "mutable_payload": false},
         {"name": "picked", "payload": "plots::Plot3DHit", "mutable_payload": false},
         {"name": "camera_changed", "payload": "plots::Plot3DCamera", "mutable_payload": false}
@@ -3120,7 +3146,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -3218,7 +3245,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -3313,7 +3341,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -3439,6 +3468,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false},
         {"name": "selection_changed", "payload": "ListSelectionChange", "mutable_payload": false},
@@ -3570,6 +3600,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false},
         {"name": "selection_changed", "payload": "ListSelectionChange", "mutable_payload": false},
@@ -3697,6 +3728,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false},
         {"name": "drop_down_changed", "payload": "bool", "mutable_payload": false},
@@ -3826,6 +3858,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "selection_changed", "payload": "TreeSelectionChange", "mutable_payload": false},
         {"name": "expansion_changed", "payload": "TreeExpansionChange", "mutable_payload": false},
@@ -3967,6 +4000,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "sort_requested", "payload": "ObjectDetailsSort", "mutable_payload": false},
         {"name": "selection_changed", "payload": "ObjectSelectionChange", "mutable_payload": false},
@@ -4128,6 +4162,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "draw_item_content", "payload": "ItemContentPaint", "mutable_payload": true},
         {"name": "selection_changed", "payload": "ListViewSelectionChange", "mutable_payload": false},
         {"name": "item_activated", "payload": "ListViewItemActivation", "mutable_payload": false},
@@ -4269,6 +4304,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "selection_changed", "payload": "TreeListSelectionChange", "mutable_payload": false},
         {"name": "expansion_changed", "payload": "TreeListExpansionChange", "mutable_payload": false},
         {"name": "item_activated", "payload": "TreeListActivation", "mutable_payload": false},
@@ -4392,6 +4428,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "selection_changed", "payload": "VirtualRowSelection", "mutable_payload": false},
         {"name": "row_activated", "payload": "VirtualRowIndex", "mutable_payload": false},
         {"name": "scrolled", "payload": "VirtualRowScroll", "mutable_payload": false},
@@ -4554,6 +4591,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "draw_item_content", "payload": "ItemContentPaint", "mutable_payload": true},
         {"name": "selection_changed", "payload": "", "mutable_payload": false},
         {"name": "current_cell_changed", "payload": "stxlib::Optional<DataGridViewCellAddress>", "mutable_payload": false},
@@ -4720,6 +4758,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "changed", "payload": "int", "mutable_payload": false},
         {"name": "activated", "payload": "int", "mutable_payload": false}
@@ -4845,6 +4884,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "segment_activated", "payload": "std::string", "mutable_payload": false},
         {"name": "overflow_activated", "payload": "", "mutable_payload": false},
@@ -4958,6 +4998,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
@@ -5068,6 +5109,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
@@ -5176,6 +5218,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "expanded_changed", "payload": "stxlib::Optional<bool>", "mutable_payload": false},
         {"name": "clicked", "payload": "ButtonBase", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
@@ -5275,6 +5318,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -5380,6 +5424,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -5497,6 +5542,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false},
@@ -5624,6 +5670,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "value_changed", "payload": "double", "mutable_payload": false}
       ]
@@ -5742,6 +5789,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false}
       ]
@@ -5845,6 +5893,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "value_changed", "payload": "Color", "mutable_payload": false},
         {"name": "value_committed", "payload": "Color", "mutable_payload": false}
       ]
@@ -5957,6 +6006,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "value_changed", "payload": "Color", "mutable_payload": false},
         {"name": "edit_failed", "payload": "PropertyEditorInputError", "mutable_payload": false}
@@ -6078,6 +6128,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "value_changed", "payload": "PropertyEnumValue", "mutable_payload": false},
         {"name": "drop_down_changed", "payload": "bool", "mutable_payload": false}
@@ -6192,6 +6243,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "selected_object_changed", "payload": "Control::Ptr", "mutable_payload": false},
         {"name": "property_value_changed", "payload": "PropertyGridValueChange", "mutable_payload": false},
@@ -6322,6 +6374,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "value_changed", "payload": "PropertyValueChange", "mutable_payload": false},
         {"name": "value_committed", "payload": "PropertyValueChange", "mutable_payload": false},
@@ -6445,6 +6498,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "value_changed", "payload": "DateTimeValue", "mutable_payload": false},
         {"name": "checked_changed", "payload": "bool", "mutable_payload": false},
@@ -6584,6 +6638,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "date_changed", "payload": "CalendarDateRange", "mutable_payload": false},
         {"name": "date_selected", "payload": "CalendarDateRange", "mutable_payload": false}
       ]
@@ -6696,6 +6751,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
@@ -6810,6 +6866,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
@@ -6926,6 +6983,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
@@ -7038,6 +7096,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "material_changed", "payload": "SurfaceMaterial", "mutable_payload": false}
       ]
@@ -7150,6 +7209,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "activated", "payload": "Card", "mutable_payload": true},
         {"name": "selected_changed", "payload": "bool", "mutable_payload": false}
@@ -7263,6 +7323,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "toggled", "payload": "int, bool", "mutable_payload": false}
       ]
@@ -7373,6 +7434,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -7483,6 +7545,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false},
         {"name": "loaded", "payload": "", "mutable_payload": false}
@@ -7614,6 +7677,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false},
         {"name": "draw_item_content", "payload": "ItemContentPaint", "mutable_payload": true},
@@ -7741,6 +7805,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "draw_item_content", "payload": "ItemContentPaint", "mutable_payload": true},
         {"name": "page_invoked", "payload": "PageInvocation", "mutable_payload": false},
         {"name": "page_close_requested", "payload": "PageCloseRequest", "mutable_payload": true},
@@ -7842,6 +7907,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "content_requested", "payload": "PageContentRequest", "mutable_payload": false}
       ]
     },
@@ -7975,6 +8041,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "options_requested", "payload": "NavigationPaneOptionsRequest", "mutable_payload": false},
         {"name": "state_changed", "payload": "NavigationPaneState", "mutable_payload": false},
         {"name": "overlay_open_changed", "payload": "bool", "mutable_payload": false}
@@ -8117,6 +8184,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "drag_ended", "payload": "DockDragOutcome", "mutable_payload": false},
         {"name": "flyout_changed", "payload": "DockFlyoutChange", "mutable_payload": false}
       ]
@@ -8224,6 +8292,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "chosen", "payload": "DockNavigatorChoice", "mutable_payload": false},
         {"name": "cancelled", "payload": "", "mutable_payload": false}
       ]
@@ -8336,6 +8405,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
@@ -8448,6 +8518,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -8563,6 +8634,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -8676,6 +8748,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -8793,6 +8866,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -8910,6 +8984,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -9020,6 +9095,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -9136,6 +9212,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
@@ -9248,6 +9325,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
@@ -9359,6 +9437,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false},
         {"name": "splitter_changed", "payload": "SplitChangeEvent", "mutable_payload": false},
@@ -9474,6 +9553,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -9568,6 +9648,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "splitter_moving", "payload": "SplitterMoveEvent", "mutable_payload": true},
         {"name": "splitter_moved", "payload": "SplitterMoveEvent", "mutable_payload": false},
         {"name": "drag_started", "payload": "DragInteraction", "mutable_payload": false},
@@ -9680,6 +9761,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false}
       ]
@@ -9789,6 +9871,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "auto_validate_changed", "payload": "AutoValidate", "mutable_payload": false},
         {"name": "presentation_changed", "payload": "MasterDetailPresentationChange", "mutable_payload": false}
@@ -9900,6 +9983,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
@@ -10003,6 +10087,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -10108,6 +10193,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -10213,6 +10299,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -10322,6 +10409,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "item_invoked", "payload": "MenuStripInvocation", "mutable_payload": false},
         {"name": "open_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false},
         {"name": "frame_button_pressed", "payload": "MenuStripFrameButton", "mutable_payload": false}
@@ -10439,6 +10527,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "item_clicked", "payload": "ToolStripItemClick", "mutable_payload": false},
         {"name": "drop_down_item_invoked", "payload": "ToolStripDropDownInvocation", "mutable_payload": false},
         {"name": "item_focus_changed", "payload": "ToolStripItemFocus", "mutable_payload": false}
@@ -10535,6 +10624,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "value_changed", "payload": "FontChoice", "mutable_payload": false}
       ]
     },
@@ -10647,6 +10737,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "value_changed", "payload": "stxlib::Optional<Color>", "mutable_payload": false},
         {"name": "palette_open_changed", "payload": "bool", "mutable_payload": false}
       ]
@@ -10755,6 +10846,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "topic_changed", "payload": "BackstageTopicChange", "mutable_payload": false},
         {"name": "close_requested", "payload": "", "mutable_payload": false}
       ]
@@ -10879,6 +10971,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "selection_changed", "payload": "std::optional<std::string>", "mutable_payload": false},
         {"name": "overlay_open_changed", "payload": "bool", "mutable_payload": false}
       ]
@@ -10993,6 +11086,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "item_clicked", "payload": "ToolStripItemClick", "mutable_payload": false},
         {"name": "drop_down_item_invoked", "payload": "ToolStripDropDownInvocation", "mutable_payload": false},
         {"name": "item_focus_changed", "payload": "ToolStripItemFocus", "mutable_payload": false}
@@ -11112,6 +11206,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "item_clicked", "payload": "ToolStripItemClick", "mutable_payload": false},
         {"name": "drop_down_item_invoked", "payload": "ToolStripDropDownInvocation", "mutable_payload": false},
         {"name": "item_focus_changed", "payload": "ToolStripItemFocus", "mutable_payload": false},
@@ -11208,7 +11303,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -11308,6 +11404,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "strip_moved", "payload": "ToolStripMove", "mutable_payload": false}
       ]
     },
@@ -11423,6 +11520,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "item_clicked", "payload": "ToolStripItemClick", "mutable_payload": false},
         {"name": "drop_down_item_invoked", "payload": "ToolStripDropDownInvocation", "mutable_payload": false},
         {"name": "item_focus_changed", "payload": "ToolStripItemFocus", "mutable_payload": false},
@@ -11579,6 +11677,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "command_clicked", "payload": "RibbonCommandClick", "mutable_payload": false},
         {"name": "drop_down_item_invoked", "payload": "RibbonDropDownInvocation", "mutable_payload": false},
         {"name": "dialog_launcher_clicked", "payload": "RibbonDialogLaunch", "mutable_payload": false},
@@ -11752,6 +11851,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "dismiss_requested", "payload": "OverlayDismissReason", "mutable_payload": false}
       ]
@@ -11866,6 +11966,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "apply", "payload": "FontSpec", "mutable_payload": false},
         {"name": "closed", "payload": "FontDialogResult", "mutable_payload": false}
@@ -11980,6 +12081,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "button_clicked", "payload": "TaskDialogButtonClick", "mutable_payload": true},
         {"name": "closed", "payload": "TaskDialogResult", "mutable_payload": false},
         {"name": "navigated", "payload": "", "mutable_payload": false},
@@ -12091,6 +12193,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false}
       ]
     },
@@ -12191,6 +12294,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -12297,6 +12401,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -12405,6 +12510,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -12510,6 +12616,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "range_changed", "payload": "double, double", "mutable_payload": false},
         {"name": "value_changed", "payload": "double", "mutable_payload": false},
         {"name": "scroll", "payload": "RangeScrollEvent", "mutable_payload": false}
@@ -12609,6 +12716,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "step_clicked", "payload": "std::size_t", "mutable_payload": false},
         {"name": "current_step_changed", "payload": "std::uint32_t", "mutable_payload": false}
       ]
@@ -12711,6 +12819,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "page_changing", "payload": "WizardPageChangingEvent", "mutable_payload": true},
         {"name": "page_changed", "payload": "std::uint32_t", "mutable_payload": false},
         {"name": "finished", "payload": "", "mutable_payload": false},
@@ -12828,6 +12937,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
@@ -12929,6 +13039,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "closed", "payload": "CalloutCloseReason", "mutable_payload": false},
         {"name": "action_clicked", "payload": "", "mutable_payload": false}
       ]
@@ -13025,6 +13136,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "closing", "payload": "ModalLayerClosingEvent", "mutable_payload": true},
         {"name": "closed", "payload": "DialogResult", "mutable_payload": false},
         {"name": "outside_pressed", "payload": "", "mutable_payload": false}
@@ -13127,6 +13239,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "selected_key_changed", "payload": "std::string", "mutable_payload": false},
         {"name": "drop_down_changed", "payload": "bool", "mutable_payload": false}
       ]
@@ -13258,7 +13371,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -13352,7 +13466,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -13458,6 +13573,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "selection_changed", "payload": "NodeCanvasSelection", "mutable_payload": false},
         {"name": "link_connected", "payload": "NodeLinkConnected", "mutable_payload": false},
         {"name": "graph_edited", "payload": "NodeGraphEdited", "mutable_payload": false},
@@ -13563,6 +13679,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "stopped", "payload": "SubSurfaceStopped", "mutable_payload": false},
         {"name": "pairing_missed", "payload": "std::uint64_t", "mutable_payload": false}
       ]
@@ -13660,6 +13777,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "status_changed", "payload": "ContentSurfaceStatus", "mutable_payload": false}
       ]
     },
@@ -13774,6 +13892,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "layout_requested", "payload": "std::uint64_t", "mutable_payload": false},
         {"name": "text_changed", "payload": "std::string", "mutable_payload": false},
@@ -13872,7 +13991,8 @@
         {"name": "key_press", "payload": "KeyPressEventArgs", "mutable_payload": true},
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
-        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false}
+        {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false}
       ]
     },
     {
@@ -14081,6 +14201,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "link_activated", "payload": "HelpLinkActivation", "mutable_payload": true},
         {"name": "close_requested", "payload": "", "mutable_payload": false},
@@ -14177,6 +14298,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "navigated", "payload": "std::string", "mutable_payload": false},
         {"name": "external_link", "payload": "HelpLinkActivation", "mutable_payload": true},
         {"name": "popup_requested", "payload": "HelpLinkActivation", "mutable_payload": true},
@@ -14345,6 +14467,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
@@ -14456,6 +14579,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "selected_index_changed", "payload": "stxlib::Optional<std::size_t>", "mutable_payload": false}
       ]
@@ -14568,6 +14692,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true}
       ]
     },
@@ -14670,6 +14795,7 @@
         {"name": "key_up", "payload": "KeyEventArgs", "mutable_payload": true},
         {"name": "relative_pointer", "payload": "RelativePointerEventArgs", "mutable_payload": true},
         {"name": "relative_pointer_ended", "payload": "RelativePointerEnded", "mutable_payload": false},
+        {"name": "gesture", "payload": "GestureEventArgs", "mutable_payload": false},
         {"name": "open_requested", "payload": "BusinessCardRequest", "mutable_payload": true},
         {"name": "put_away", "payload": "", "mutable_payload": false},
         {"name": "website_requested", "payload": "BusinessCardRequest", "mutable_payload": true}

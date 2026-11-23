@@ -327,6 +327,8 @@ gui_forms::SurfaceRoot
       **hovered_control** : ``Control::Ptr``, read-only
          The control the pointer is over, or null.
 
+      **gesture_input_requested** : ``bool``, read-only
+
       **interaction_snapshot** : ``InteractionSnapshot``, read-only
          A copy of the window's input state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the held
          keys in press order with their press times, the modifiers, the pointer
@@ -630,6 +632,8 @@ gui_forms::SurfaceRoot
         - Delivers a pointer event, as the host does for mouse, pen and touch input, and returns whether a control handled it.
       * - :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`
         - Delivers a key event and returns whether anything handled it: the focused control, an accelerator, a dialog key or Tab traversal.
+      * - :cpp:func:`dispatch_gesture <gui_forms::SurfaceRoot::dispatch_gesture>`
+        - A touchpad gesture (gesture_events.hpp gives the routing): to the captured control, else the control its gesture began over (the latch), else the control under ``event.position``; then its ancestors, until one handles it.
       * - :cpp:func:`dispatch_context_request <gui_forms::SurfaceRoot::dispatch_context_request>`
         - Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`: a pointer request to the control under the position (the captured control while one is), a keyboard request to the focused control, then to each ancestor until one handles it, through ``Control::on_context_menu_requested`` and its ``context_menu_requested`` subscribers.
       * - :cpp:func:`dispatch_host_hover <gui_forms::SurfaceRoot::dispatch_host_hover>`
@@ -680,6 +684,8 @@ gui_forms::SurfaceRoot
         - Host adapters also install a schedule wake seam: a frame request made or moved outside poll_frame_schedule (a Timer started or restarted from posted work or from another window's callback, a paint deadline, motion frames, the engine's idle frames armed while painting) calls it, so that the host polls and re-arms its wake for the new deadline (next_wake).
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
         - Names the :cpp:class:`CommandTarget <gui_forms::CommandTarget>` of one stage of the command routing chain: the active panel, the active document or the main window, or clears it with null.
+      * - :cpp:func:`set_gesture_input <gui_forms::SurfaceRoot::set_gesture_input>`
+        - Whether the window wants touchpad gestures: set here (an explicit opt-in), or by a control in its tree that asked with Control::set_gesture_input.
       * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
         - Installs the clock the input state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed, or null for the steady clock.
       * - :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`
@@ -1127,6 +1133,8 @@ gui_forms::SurfaceRoot
    .. cpp:function:: Control::Ptr hovered_control() const noexcept
 
       The control the pointer is over, or null.
+
+   .. cpp:function:: bool gesture_input_requested() const noexcept
 
    .. cpp:function:: InteractionSnapshot interaction_snapshot() const
 
@@ -1729,6 +1737,10 @@ gui_forms::SurfaceRoot
       Delivers a key event and returns whether anything handled it: the
       focused control, an accelerator, a dialog key or Tab traversal.
 
+   .. cpp:function:: bool dispatch_gesture(GestureEvent event)
+
+      A touchpad gesture (gesture_events.hpp gives the routing): to the captured control, else the control its gesture began over (the latch), else the control under ``event.position``; then its ancestors, until one handles it. Returns whether one did. Nothing else is derived from an unhandled gesture. During a paint, as dispatch_pointer.
+
    .. cpp:function:: bool dispatch_context_request(ContextRequestOrigin origin, Point position)
 
       Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's
@@ -1879,6 +1891,10 @@ gui_forms::SurfaceRoot
       (``Control::set_command_target``), and naming it throws
       ``std::invalid_argument``. ``command_target(stage)`` returns the named
       target while it lives.
+
+   .. cpp:function:: void set_gesture_input(bool requested) noexcept
+
+      Whether the window wants touchpad gestures: set here (an explicit opt-in), or by a control in its tree that asked with Control::set_gesture_input. A host whose gesture source changes other input engages it only while this holds (the Windows host's DirectManipulation, which also takes the two-finger pan); every other window keeps the platform's plain wheel path. Hosts whose gestures add events without changing others (macOS, X11) report them always.
 
    .. cpp:function:: void set_input_time_source(const InputTimeSource* source) noexcept
 

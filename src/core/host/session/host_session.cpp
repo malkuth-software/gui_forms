@@ -168,6 +168,9 @@ bool valid_pointer_report(const HostEventPayload& payload) noexcept {
     if (const HostHoverEvent* hover = std::get_if<HostHoverEvent>(&payload)) {
         return std::isfinite((*hover).position.x) && std::isfinite((*hover).position.y);
     }
+    if (const GestureEvent* gesture = std::get_if<GestureEvent>(&payload)) {
+        return valid_gesture_event(*gesture);
+    }
     if (const HostRelativeMotionEvent* motion = std::get_if<HostRelativeMotionEvent>(&payload)) {
         const bool delta = std::isfinite((*motion).delta.x) && std::isfinite((*motion).delta.y);
         const Point* const at = (*motion).position.value();
@@ -399,6 +402,10 @@ void HostSession::DispatchVisitor::operator()(
         if (payload.timestamp_nanoseconds == 0U) payload.timestamp_nanoseconds = (*event).timestamp_nanoseconds;
         ++(*session).snapshot_.relative_motion_events;
         (*result).handled = (*window).dispatch_relative_motion(payload);
+    } else if constexpr (std::is_same_v<Payload, GestureEvent>) {
+        if (payload.timestamp_nanoseconds == 0U) payload.timestamp_nanoseconds = (*event).timestamp_nanoseconds;
+        ++(*session).snapshot_.gesture_events;
+        (*result).handled = (*window).dispatch_gesture(std::move(payload));
     } else if constexpr (std::is_same_v<Payload, HostWindowStateEvent>) {
         // Full screen first: a band that hides there gives up its
         // reservation before the corners' strips are damaged.
@@ -516,7 +523,8 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
          std::holds_alternative<DragEvent>(event.payload) ||
          std::holds_alternative<HostContextRequestEvent>(event.payload) ||
          std::holds_alternative<HostHoverEvent>(event.payload) ||
-         std::holds_alternative<HostRelativeMotionEvent>(event.payload));
+         std::holds_alternative<HostRelativeMotionEvent>(event.payload) ||
+         std::holds_alternative<GestureEvent>(event.payload));
     if (modal_input) {
         ++snapshot_.modal_input_suppressions;
         observed_.emit(event, result);
