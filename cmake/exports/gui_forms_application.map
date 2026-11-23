@@ -149,6 +149,11 @@
     _ZGVZN9gui_forms10WizardPage*;
     _ZGVZN9gui_forms10WorldPoint*;
     _ZGVZN9gui_forms10XmlElement*;
+    _ZGVZN9gui_forms10automation13ModelToolCall*;
+    _ZGVZN9gui_forms10automation13ModelToolSpec*;
+    _ZGVZN9gui_forms10automation14ModelToolReply*;
+    _ZGVZN9gui_forms10automation16ModelInspectText*;
+    _ZGVZN9gui_forms10automation19ModelInspectRequest*;
     _ZGVZN9gui_forms11AboutDialog*;
     _ZGVZN9gui_forms11AccentIndex*;
     _ZGVZN9gui_forms11AppFontFace*;
@@ -706,7 +711,6 @@
     _ZGVZN9gui_forms16EncodedFontLease*;
     _ZGVZN9gui_forms16EngineExpression*;
     _ZGVZN9gui_forms16EnginePartRecord*;
-    _ZGVZN9gui_forms16EngineSineCosine*;
     _ZGVZN9gui_forms16ExpressionLimits*;
     _ZGVZN9gui_forms16ExpressionResult*;
     _ZGVZN9gui_forms16FlagsValueEditor*;
@@ -714,6 +718,7 @@
     _ZGVZN9gui_forms16FocusScopeChange*;
     _ZGVZN9gui_forms16FontDialogResult*;
     _ZGVZN9gui_forms16FontFamilyRecord*;
+    _ZGVZN9gui_forms16FormDocumentType*;
     _ZGVZN9gui_forms16GestureEventArgs*;
     _ZGVZN9gui_forms16HelpContentsLine*;
     _ZGVZN9gui_forms16HelpContentsNode*;
@@ -826,6 +831,7 @@
     _ZGVZN9gui_forms17FocusScopeOptions*;
     _ZGVZN9gui_forms17FontFallbackMatch*;
     _ZGVZN9gui_forms17FontFamilyStackId*;
+    _ZGVZN9gui_forms17FormDocumentCheck*;
     _ZGVZN9gui_forms17FrameRequestToken*;
     _ZGVZN9gui_forms17GenericFontFamily*;
     _ZGVZN9gui_forms17GridTemplateAreas*;
@@ -948,6 +954,9 @@
     _ZGVZN9gui_forms18FirstFrameShowStep*;
     _ZGVZN9gui_forms18FlexContainerInput*;
     _ZGVZN9gui_forms18FlexContainerStyle*;
+    _ZGVZN9gui_forms18FormDocumentSchema*;
+    _ZGVZN9gui_forms18FormDocumentSource*;
+    _ZGVZN9gui_forms18FormDocumentWindow*;
     _ZGVZN9gui_forms18GridContainerInput*;
     _ZGVZN9gui_forms18GridContainerStyle*;
     _ZGVZN9gui_forms18GuiFormsThemeBuild*;
@@ -1304,6 +1313,7 @@
     _ZGVZN9gui_forms22EffectInstanceCounters*;
     _ZGVZN9gui_forms22ExpressionDependencies*;
     _ZGVZN9gui_forms22FirstFrameShowSnapshot*;
+    _ZGVZN9gui_forms22FormDocumentDiagnostic*;
     _ZGVZN9gui_forms22HelpBookCompileOptions*;
     _ZGVZN9gui_forms22HelpBookSystemSnapshot*;
     _ZGVZN9gui_forms22HelpBookViewerSnapshot*;
@@ -1875,6 +1885,11 @@
     _ZGVZNK9gui_forms10WizardPage*;
     _ZGVZNK9gui_forms10WorldPoint*;
     _ZGVZNK9gui_forms10XmlElement*;
+    _ZGVZNK9gui_forms10automation13ModelToolCall*;
+    _ZGVZNK9gui_forms10automation13ModelToolSpec*;
+    _ZGVZNK9gui_forms10automation14ModelToolReply*;
+    _ZGVZNK9gui_forms10automation16ModelInspectText*;
+    _ZGVZNK9gui_forms10automation19ModelInspectRequest*;
     _ZGVZNK9gui_forms11AboutDialog*;
     _ZGVZNK9gui_forms11AccentIndex*;
     _ZGVZNK9gui_forms11AppFontFace*;
@@ -2432,7 +2447,6 @@
     _ZGVZNK9gui_forms16EncodedFontLease*;
     _ZGVZNK9gui_forms16EngineExpression*;
     _ZGVZNK9gui_forms16EnginePartRecord*;
-    _ZGVZNK9gui_forms16EngineSineCosine*;
     _ZGVZNK9gui_forms16ExpressionLimits*;
     _ZGVZNK9gui_forms16ExpressionResult*;
     _ZGVZNK9gui_forms16FlagsValueEditor*;
@@ -2440,6 +2454,7 @@
     _ZGVZNK9gui_forms16FocusScopeChange*;
     _ZGVZNK9gui_forms16FontDialogResult*;
     _ZGVZNK9gui_forms16FontFamilyRecord*;
+    _ZGVZNK9gui_forms16FormDocumentType*;
     _ZGVZNK9gui_forms16GestureEventArgs*;
     _ZGVZNK9gui_forms16HelpContentsLine*;
     _ZGVZNK9gui_forms16HelpContentsNode*;
@@ -2552,6 +2567,7 @@
     _ZGVZNK9gui_forms17FocusScopeOptions*;
     _ZGVZNK9gui_forms17FontFallbackMatch*;
     _ZGVZNK9gui_forms17FontFamilyStackId*;
+    _ZGVZNK9gui_forms17FormDocumentCheck*;
     _ZGVZNK9gui_forms17FrameRequestToken*;
     _ZGVZNK9gui_forms17GenericFontFamily*;
     _ZGVZNK9gui_forms17GridTemplateAreas*;
@@ -2674,6 +2690,9 @@
     _ZGVZNK9gui_forms18FirstFrameShowStep*;
     _ZGVZNK9gui_forms18FlexContainerInput*;
     _ZGVZNK9gui_forms18FlexContainerStyle*;
+    _ZGVZNK9gui_forms18FormDocumentSchema*;
+    _ZGVZNK9gui_forms18FormDocumentSource*;
+    _ZGVZNK9gui_forms18FormDocumentWindow*;
     _ZGVZNK9gui_forms18GridContainerInput*;
     _ZGVZNK9gui_forms18GridContainerStyle*;
     _ZGVZNK9gui_forms18GuiFormsThemeBuild*;
@@ -3030,6 +3049,7 @@
     _ZGVZNK9gui_forms22EffectInstanceCounters*;
     _ZGVZNK9gui_forms22ExpressionDependencies*;
     _ZGVZNK9gui_forms22FirstFrameShowSnapshot*;
+    _ZGVZNK9gui_forms22FormDocumentDiagnostic*;
     _ZGVZNK9gui_forms22HelpBookCompileOptions*;
     _ZGVZNK9gui_forms22HelpBookSystemSnapshot*;
     _ZGVZNK9gui_forms22HelpBookViewerSnapshot*;
@@ -3657,6 +3677,57 @@
     _ZN9gui_forms10XmlElement*;
     _ZN9gui_forms10admit_fontB*;
     _ZN9gui_forms10admit_fontE*;
+    _ZN9gui_forms10automation13ModelToolCall*;
+    _ZN9gui_forms10automation13ModelToolSpec*;
+    _ZN9gui_forms10automation14ModelToolReply*;
+    _ZN9gui_forms10automation14model_drivableB*;
+    _ZN9gui_forms10automation14model_drivableE*;
+    _ZN9gui_forms10automation16ModelInspectText*;
+    _ZN9gui_forms10automation16set_mcp_identityB*;
+    _ZN9gui_forms10automation16set_mcp_identityE*;
+    _ZN9gui_forms10automation17require_user_stepB*;
+    _ZN9gui_forms10automation17require_user_stepE*;
+    _ZN9gui_forms10automation17user_step_pendingB*;
+    _ZN9gui_forms10automation17user_step_pendingE*;
+    _ZN9gui_forms10automation18action_destructiveB*;
+    _ZN9gui_forms10automation18action_destructiveE*;
+    _ZN9gui_forms10automation18complete_user_stepB*;
+    _ZN9gui_forms10automation18complete_user_stepE*;
+    _ZN9gui_forms10automation18set_model_drivableB*;
+    _ZN9gui_forms10automation18set_model_drivableE*;
+    _ZN9gui_forms10automation18take_mcp_argumentsB*;
+    _ZN9gui_forms10automation18take_mcp_argumentsE*;
+    _ZN9gui_forms10automation18window_destructiveB*;
+    _ZN9gui_forms10automation18window_destructiveE*;
+    _ZN9gui_forms10automation19ModelInspectRequest*;
+    _ZN9gui_forms10automation19register_model_toolB*;
+    _ZN9gui_forms10automation19register_model_toolE*;
+    _ZN9gui_forms10automation20mcp_capability_builtB*;
+    _ZN9gui_forms10automation20mcp_capability_builtE*;
+    _ZN9gui_forms10automation21mcp_identity_overrideB*;
+    _ZN9gui_forms10automation21mcp_identity_overrideE*;
+    _ZN9gui_forms10automation21model_tool_error_nameB*;
+    _ZN9gui_forms10automation21model_tool_error_nameE*;
+    _ZN9gui_forms10automation21unregister_model_toolB*;
+    _ZN9gui_forms10automation21unregister_model_toolE*;
+    _ZN9gui_forms10automation22set_action_destructiveB*;
+    _ZN9gui_forms10automation22set_action_destructiveE*;
+    _ZN9gui_forms10automation22set_window_destructiveB*;
+    _ZN9gui_forms10automation22set_window_destructiveE*;
+    _ZN9gui_forms10automation25command_hidden_from_modelB*;
+    _ZN9gui_forms10automation25command_hidden_from_modelE*;
+    _ZN9gui_forms10automation27clipboard_readable_by_modelB*;
+    _ZN9gui_forms10automation27clipboard_readable_by_modelE*;
+    _ZN9gui_forms10automation28model_tool_registration_nameB*;
+    _ZN9gui_forms10automation28model_tool_registration_nameE*;
+    _ZN9gui_forms10automation29set_command_hidden_from_modelB*;
+    _ZN9gui_forms10automation29set_command_hidden_from_modelE*;
+    _ZN9gui_forms10automation30register_model_inspect_sectionB*;
+    _ZN9gui_forms10automation30register_model_inspect_sectionE*;
+    _ZN9gui_forms10automation31set_clipboard_readable_by_modelB*;
+    _ZN9gui_forms10automation31set_clipboard_readable_by_modelE*;
+    _ZN9gui_forms10automation32unregister_model_inspect_sectionB*;
+    _ZN9gui_forms10automation32unregister_model_inspect_sectionE*;
     _ZN9gui_forms10export_rtfB*;
     _ZN9gui_forms10export_rtfE*;
     _ZN9gui_forms10import_rtfB*;
@@ -3748,6 +3819,8 @@
     _ZN9gui_forms11WovenStripe*;
     _ZN9gui_forms11day_of_weekB*;
     _ZN9gui_forms11day_of_weekE*;
+    _ZN9gui_forms11effect_sineB*;
+    _ZN9gui_forms11effect_sineE*;
     _ZN9gui_forms11find_choiceB*;
     _ZN9gui_forms11find_choiceE*;
     _ZN9gui_forms11is_mnemonicB*;
@@ -3898,8 +3971,6 @@
     _ZN9gui_forms12engine_light25shipped_light_plane_storeE*;
     _ZN9gui_forms12engine_light9LampDrive*;
     _ZN9gui_forms12engine_light9LampGlint*;
-    _ZN9gui_forms12engine_powerB*;
-    _ZN9gui_forms12engine_powerE*;
     _ZN9gui_forms12marker_linesB*;
     _ZN9gui_forms12marker_linesE*;
     _ZN9gui_forms12merge_stripsB*;
@@ -4167,8 +4238,6 @@
     _ZN9gui_forms14dock_drop_editE*;
     _ZN9gui_forms14em_lengths_fitB*;
     _ZN9gui_forms14em_lengths_fitE*;
-    _ZN9gui_forms14engine_tangentB*;
-    _ZN9gui_forms14engine_tangentE*;
     _ZN9gui_forms14familiar_themeB*;
     _ZN9gui_forms14familiar_themeE*;
     _ZN9gui_forms14find_item_partB*;
@@ -4432,7 +4501,6 @@
     _ZN9gui_forms16EncodedFontLease*;
     _ZN9gui_forms16EngineExpression*;
     _ZN9gui_forms16EnginePartRecord*;
-    _ZN9gui_forms16EngineSineCosine*;
     _ZN9gui_forms16ExpressionLimits*;
     _ZN9gui_forms16ExpressionResult*;
     _ZN9gui_forms16FlagsValueEditor*;
@@ -4440,6 +4508,7 @@
     _ZN9gui_forms16FocusScopeChange*;
     _ZN9gui_forms16FontDialogResult*;
     _ZN9gui_forms16FontFamilyRecord*;
+    _ZN9gui_forms16FormDocumentType*;
     _ZN9gui_forms16GestureEventArgs*;
     _ZN9gui_forms16HelpContentsLine*;
     _ZN9gui_forms16HelpContentsNode*;
@@ -4529,8 +4598,6 @@
     _ZN9gui_forms16drag_effect_nameE*;
     _ZN9gui_forms16drag_end_commitsB*;
     _ZN9gui_forms16drag_end_commitsE*;
-    _ZN9gui_forms16engine_logarithmB*;
-    _ZN9gui_forms16engine_logarithmE*;
     _ZN9gui_forms16find_interactionB*;
     _ZN9gui_forms16find_interactionE*;
     _ZN9gui_forms16find_item_systemB*;
@@ -4632,6 +4699,7 @@
     _ZN9gui_forms17FocusScopeOptions*;
     _ZN9gui_forms17FontFallbackMatch*;
     _ZN9gui_forms17FontFamilyStackId*;
+    _ZN9gui_forms17FormDocumentCheck*;
     _ZN9gui_forms17FrameRequestToken*;
     _ZN9gui_forms17GenericFontFamily*;
     _ZN9gui_forms17GridTemplateAreas*;
@@ -4724,8 +4792,6 @@
     _ZN9gui_forms17effect_name_validE*;
     _ZN9gui_forms17encode_hosted_keyB*;
     _ZN9gui_forms17encode_hosted_keyE*;
-    _ZN9gui_forms17engine_hypotenuseB*;
-    _ZN9gui_forms17engine_hypotenuseE*;
     _ZN9gui_forms17engine_input_nameB*;
     _ZN9gui_forms17engine_input_nameE*;
     _ZN9gui_forms17familiar_theme_idB*;
@@ -4846,6 +4912,9 @@
     _ZN9gui_forms18FirstFrameShowStep*;
     _ZN9gui_forms18FlexContainerInput*;
     _ZN9gui_forms18FlexContainerStyle*;
+    _ZN9gui_forms18FormDocumentSchema*;
+    _ZN9gui_forms18FormDocumentSource*;
+    _ZN9gui_forms18FormDocumentWindow*;
     _ZN9gui_forms18GridContainerInput*;
     _ZN9gui_forms18GridContainerStyle*;
     _ZN9gui_forms18GuiFormsThemeBuild*;
@@ -4969,12 +5038,6 @@
     _ZN9gui_forms18encode_hosted_slotE*;
     _ZN9gui_forms18encode_hosted_textB*;
     _ZN9gui_forms18encode_hosted_textE*;
-    _ZN9gui_forms18engine_arctangent2B*;
-    _ZN9gui_forms18engine_arctangent2E*;
-    _ZN9gui_forms18engine_exponentialB*;
-    _ZN9gui_forms18engine_exponentialE*;
-    _ZN9gui_forms18engine_sine_cosineB*;
-    _ZN9gui_forms18engine_sine_cosineE*;
     _ZN9gui_forms18export_user_themesB*;
     _ZN9gui_forms18export_user_themesE*;
     _ZN9gui_forms18find_declared_partB*;
@@ -5168,6 +5231,8 @@
     _ZN9gui_forms19business_card_shownE*;
     _ZN9gui_forms19canvas_texture_fillB*;
     _ZN9gui_forms19canvas_texture_fillE*;
+    _ZN9gui_forms19check_form_documentB*;
+    _ZN9gui_forms19check_form_documentE*;
     _ZN9gui_forms19composite_type_nameB*;
     _ZN9gui_forms19composite_type_nameE*;
     _ZN9gui_forms19current_colours_fitB*;
@@ -5396,6 +5461,8 @@
     _ZN9gui_forms20focus_inside_ellipseE*;
     _ZN9gui_forms20font_family_drawableB*;
     _ZN9gui_forms20font_family_drawableE*;
+    _ZN9gui_forms20form_document_sourceB*;
+    _ZN9gui_forms20form_document_sourceE*;
     _ZN9gui_forms20high_contrast_colourB*;
     _ZN9gui_forms20high_contrast_colourE*;
     _ZN9gui_forms20joined_segment_radiiB*;
@@ -5648,6 +5715,7 @@
     _ZN9gui_forms22EffectInstanceCounters*;
     _ZN9gui_forms22ExpressionDependencies*;
     _ZN9gui_forms22FirstFrameShowSnapshot*;
+    _ZN9gui_forms22FormDocumentDiagnostic*;
     _ZN9gui_forms22HelpBookCompileOptions*;
     _ZN9gui_forms22HelpBookSystemSnapshot*;
     _ZN9gui_forms22HelpBookViewerSnapshot*;
@@ -5753,6 +5821,8 @@
     _ZN9gui_forms22plan_frame_arrangementE*;
     _ZN9gui_forms22present_stock_specimenB*;
     _ZN9gui_forms22present_stock_specimenE*;
+    _ZN9gui_forms22register_form_documentB*;
+    _ZN9gui_forms22register_form_documentE*;
     _ZN9gui_forms22resolve_backdrop_chainB*;
     _ZN9gui_forms22resolve_backdrop_chainE*;
     _ZN9gui_forms22rule_trigger_kind_nameB*;
@@ -6099,6 +6169,8 @@
     _ZN9gui_forms25installed_effect_registryE*;
     _ZN9gui_forms25load_composite_definitionB*;
     _ZN9gui_forms25load_composite_definitionE*;
+    _ZN9gui_forms25load_form_document_windowB*;
+    _ZN9gui_forms25load_form_document_windowE*;
     _ZN9gui_forms25paint_canvas_link_previewB*;
     _ZN9gui_forms25paint_canvas_link_previewE*;
     _ZN9gui_forms25paint_data_grid_view_cellB*;
@@ -6166,8 +6238,6 @@
     _ZN9gui_forms26display_timing_source_nameE*;
     _ZN9gui_forms26end_surface_material_shapeB*;
     _ZN9gui_forms26end_surface_material_shapeE*;
-    _ZN9gui_forms26engine_sine_cosine_degreesB*;
-    _ZN9gui_forms26engine_sine_cosine_degreesE*;
     _ZN9gui_forms26familiar_theme_floor_sheetB*;
     _ZN9gui_forms26familiar_theme_floor_sheetE*;
     _ZN9gui_forms26file_dialog_filter_matchesB*;
@@ -6478,8 +6548,6 @@
     _ZN9gui_forms4host25WindowsApplicationOptions*;
     _ZN9gui_forms4host26HeadlessSplashscreenRecord*;
     _ZN9gui_forms4host27HeadlessSplashscreenSurface*;
-    _ZN9gui_forms4host29accept_automation_environmentB*;
-    _ZN9gui_forms4host29accept_automation_environmentE*;
     _ZN9gui_forms4host33WindowsCompatibilityPaintEndpoint*;
     _ZN9gui_forms4host7run_webB*;
     _ZN9gui_forms4host7run_webE*;
@@ -7107,6 +7175,11 @@
     _ZNK[RO]9gui_forms10WizardPage*;
     _ZNK[RO]9gui_forms10WorldPoint*;
     _ZNK[RO]9gui_forms10XmlElement*;
+    _ZNK[RO]9gui_forms10automation13ModelToolCall*;
+    _ZNK[RO]9gui_forms10automation13ModelToolSpec*;
+    _ZNK[RO]9gui_forms10automation14ModelToolReply*;
+    _ZNK[RO]9gui_forms10automation16ModelInspectText*;
+    _ZNK[RO]9gui_forms10automation19ModelInspectRequest*;
     _ZNK[RO]9gui_forms11AboutDialog*;
     _ZNK[RO]9gui_forms11AccentIndex*;
     _ZNK[RO]9gui_forms11AppFontFace*;
@@ -7664,7 +7737,6 @@
     _ZNK[RO]9gui_forms16EncodedFontLease*;
     _ZNK[RO]9gui_forms16EngineExpression*;
     _ZNK[RO]9gui_forms16EnginePartRecord*;
-    _ZNK[RO]9gui_forms16EngineSineCosine*;
     _ZNK[RO]9gui_forms16ExpressionLimits*;
     _ZNK[RO]9gui_forms16ExpressionResult*;
     _ZNK[RO]9gui_forms16FlagsValueEditor*;
@@ -7672,6 +7744,7 @@
     _ZNK[RO]9gui_forms16FocusScopeChange*;
     _ZNK[RO]9gui_forms16FontDialogResult*;
     _ZNK[RO]9gui_forms16FontFamilyRecord*;
+    _ZNK[RO]9gui_forms16FormDocumentType*;
     _ZNK[RO]9gui_forms16GestureEventArgs*;
     _ZNK[RO]9gui_forms16HelpContentsLine*;
     _ZNK[RO]9gui_forms16HelpContentsNode*;
@@ -7784,6 +7857,7 @@
     _ZNK[RO]9gui_forms17FocusScopeOptions*;
     _ZNK[RO]9gui_forms17FontFallbackMatch*;
     _ZNK[RO]9gui_forms17FontFamilyStackId*;
+    _ZNK[RO]9gui_forms17FormDocumentCheck*;
     _ZNK[RO]9gui_forms17FrameRequestToken*;
     _ZNK[RO]9gui_forms17GenericFontFamily*;
     _ZNK[RO]9gui_forms17GridTemplateAreas*;
@@ -7906,6 +7980,9 @@
     _ZNK[RO]9gui_forms18FirstFrameShowStep*;
     _ZNK[RO]9gui_forms18FlexContainerInput*;
     _ZNK[RO]9gui_forms18FlexContainerStyle*;
+    _ZNK[RO]9gui_forms18FormDocumentSchema*;
+    _ZNK[RO]9gui_forms18FormDocumentSource*;
+    _ZNK[RO]9gui_forms18FormDocumentWindow*;
     _ZNK[RO]9gui_forms18GridContainerInput*;
     _ZNK[RO]9gui_forms18GridContainerStyle*;
     _ZNK[RO]9gui_forms18GuiFormsThemeBuild*;
@@ -8262,6 +8339,7 @@
     _ZNK[RO]9gui_forms22EffectInstanceCounters*;
     _ZNK[RO]9gui_forms22ExpressionDependencies*;
     _ZNK[RO]9gui_forms22FirstFrameShowSnapshot*;
+    _ZNK[RO]9gui_forms22FormDocumentDiagnostic*;
     _ZNK[RO]9gui_forms22HelpBookCompileOptions*;
     _ZNK[RO]9gui_forms22HelpBookSystemSnapshot*;
     _ZNK[RO]9gui_forms22HelpBookViewerSnapshot*;
@@ -8833,6 +8911,11 @@
     _ZN[KRO]9gui_forms10WizardPage*;
     _ZN[KRO]9gui_forms10WorldPoint*;
     _ZN[KRO]9gui_forms10XmlElement*;
+    _ZN[KRO]9gui_forms10automation13ModelToolCall*;
+    _ZN[KRO]9gui_forms10automation13ModelToolSpec*;
+    _ZN[KRO]9gui_forms10automation14ModelToolReply*;
+    _ZN[KRO]9gui_forms10automation16ModelInspectText*;
+    _ZN[KRO]9gui_forms10automation19ModelInspectRequest*;
     _ZN[KRO]9gui_forms11AboutDialog*;
     _ZN[KRO]9gui_forms11AccentIndex*;
     _ZN[KRO]9gui_forms11AppFontFace*;
@@ -9390,7 +9473,6 @@
     _ZN[KRO]9gui_forms16EncodedFontLease*;
     _ZN[KRO]9gui_forms16EngineExpression*;
     _ZN[KRO]9gui_forms16EnginePartRecord*;
-    _ZN[KRO]9gui_forms16EngineSineCosine*;
     _ZN[KRO]9gui_forms16ExpressionLimits*;
     _ZN[KRO]9gui_forms16ExpressionResult*;
     _ZN[KRO]9gui_forms16FlagsValueEditor*;
@@ -9398,6 +9480,7 @@
     _ZN[KRO]9gui_forms16FocusScopeChange*;
     _ZN[KRO]9gui_forms16FontDialogResult*;
     _ZN[KRO]9gui_forms16FontFamilyRecord*;
+    _ZN[KRO]9gui_forms16FormDocumentType*;
     _ZN[KRO]9gui_forms16GestureEventArgs*;
     _ZN[KRO]9gui_forms16HelpContentsLine*;
     _ZN[KRO]9gui_forms16HelpContentsNode*;
@@ -9510,6 +9593,7 @@
     _ZN[KRO]9gui_forms17FocusScopeOptions*;
     _ZN[KRO]9gui_forms17FontFallbackMatch*;
     _ZN[KRO]9gui_forms17FontFamilyStackId*;
+    _ZN[KRO]9gui_forms17FormDocumentCheck*;
     _ZN[KRO]9gui_forms17FrameRequestToken*;
     _ZN[KRO]9gui_forms17GenericFontFamily*;
     _ZN[KRO]9gui_forms17GridTemplateAreas*;
@@ -9632,6 +9716,9 @@
     _ZN[KRO]9gui_forms18FirstFrameShowStep*;
     _ZN[KRO]9gui_forms18FlexContainerInput*;
     _ZN[KRO]9gui_forms18FlexContainerStyle*;
+    _ZN[KRO]9gui_forms18FormDocumentSchema*;
+    _ZN[KRO]9gui_forms18FormDocumentSource*;
+    _ZN[KRO]9gui_forms18FormDocumentWindow*;
     _ZN[KRO]9gui_forms18GridContainerInput*;
     _ZN[KRO]9gui_forms18GridContainerStyle*;
     _ZN[KRO]9gui_forms18GuiFormsThemeBuild*;
@@ -9988,6 +10075,7 @@
     _ZN[KRO]9gui_forms22EffectInstanceCounters*;
     _ZN[KRO]9gui_forms22ExpressionDependencies*;
     _ZN[KRO]9gui_forms22FirstFrameShowSnapshot*;
+    _ZN[KRO]9gui_forms22FormDocumentDiagnostic*;
     _ZN[KRO]9gui_forms22HelpBookCompileOptions*;
     _ZN[KRO]9gui_forms22HelpBookSystemSnapshot*;
     _ZN[KRO]9gui_forms22HelpBookViewerSnapshot*;
@@ -10559,6 +10647,11 @@
     _ZT[VIST]N9gui_forms10WizardPage*E;
     _ZT[VIST]N9gui_forms10WorldPoint*E;
     _ZT[VIST]N9gui_forms10XmlElement*E;
+    _ZT[VIST]N9gui_forms10automation13ModelToolCall*E;
+    _ZT[VIST]N9gui_forms10automation13ModelToolSpec*E;
+    _ZT[VIST]N9gui_forms10automation14ModelToolReply*E;
+    _ZT[VIST]N9gui_forms10automation16ModelInspectText*E;
+    _ZT[VIST]N9gui_forms10automation19ModelInspectRequest*E;
     _ZT[VIST]N9gui_forms11AboutDialog*E;
     _ZT[VIST]N9gui_forms11AccentIndex*E;
     _ZT[VIST]N9gui_forms11AppFontFace*E;
@@ -11116,7 +11209,6 @@
     _ZT[VIST]N9gui_forms16EncodedFontLease*E;
     _ZT[VIST]N9gui_forms16EngineExpression*E;
     _ZT[VIST]N9gui_forms16EnginePartRecord*E;
-    _ZT[VIST]N9gui_forms16EngineSineCosine*E;
     _ZT[VIST]N9gui_forms16ExpressionLimits*E;
     _ZT[VIST]N9gui_forms16ExpressionResult*E;
     _ZT[VIST]N9gui_forms16FlagsValueEditor*E;
@@ -11124,6 +11216,7 @@
     _ZT[VIST]N9gui_forms16FocusScopeChange*E;
     _ZT[VIST]N9gui_forms16FontDialogResult*E;
     _ZT[VIST]N9gui_forms16FontFamilyRecord*E;
+    _ZT[VIST]N9gui_forms16FormDocumentType*E;
     _ZT[VIST]N9gui_forms16GestureEventArgs*E;
     _ZT[VIST]N9gui_forms16HelpContentsLine*E;
     _ZT[VIST]N9gui_forms16HelpContentsNode*E;
@@ -11236,6 +11329,7 @@
     _ZT[VIST]N9gui_forms17FocusScopeOptions*E;
     _ZT[VIST]N9gui_forms17FontFallbackMatch*E;
     _ZT[VIST]N9gui_forms17FontFamilyStackId*E;
+    _ZT[VIST]N9gui_forms17FormDocumentCheck*E;
     _ZT[VIST]N9gui_forms17FrameRequestToken*E;
     _ZT[VIST]N9gui_forms17GenericFontFamily*E;
     _ZT[VIST]N9gui_forms17GridTemplateAreas*E;
@@ -11358,6 +11452,9 @@
     _ZT[VIST]N9gui_forms18FirstFrameShowStep*E;
     _ZT[VIST]N9gui_forms18FlexContainerInput*E;
     _ZT[VIST]N9gui_forms18FlexContainerStyle*E;
+    _ZT[VIST]N9gui_forms18FormDocumentSchema*E;
+    _ZT[VIST]N9gui_forms18FormDocumentSource*E;
+    _ZT[VIST]N9gui_forms18FormDocumentWindow*E;
     _ZT[VIST]N9gui_forms18GridContainerInput*E;
     _ZT[VIST]N9gui_forms18GridContainerStyle*E;
     _ZT[VIST]N9gui_forms18GuiFormsThemeBuild*E;
@@ -11714,6 +11811,7 @@
     _ZT[VIST]N9gui_forms22EffectInstanceCounters*E;
     _ZT[VIST]N9gui_forms22ExpressionDependencies*E;
     _ZT[VIST]N9gui_forms22FirstFrameShowSnapshot*E;
+    _ZT[VIST]N9gui_forms22FormDocumentDiagnostic*E;
     _ZT[VIST]N9gui_forms22HelpBookCompileOptions*E;
     _ZT[VIST]N9gui_forms22HelpBookSystemSnapshot*E;
     _ZT[VIST]N9gui_forms22HelpBookViewerSnapshot*E;
@@ -12285,6 +12383,11 @@
     _ZT[hvc]*9gui_forms10WizardPage*;
     _ZT[hvc]*9gui_forms10WorldPoint*;
     _ZT[hvc]*9gui_forms10XmlElement*;
+    _ZT[hvc]*9gui_forms10automation13ModelToolCall*;
+    _ZT[hvc]*9gui_forms10automation13ModelToolSpec*;
+    _ZT[hvc]*9gui_forms10automation14ModelToolReply*;
+    _ZT[hvc]*9gui_forms10automation16ModelInspectText*;
+    _ZT[hvc]*9gui_forms10automation19ModelInspectRequest*;
     _ZT[hvc]*9gui_forms11AboutDialog*;
     _ZT[hvc]*9gui_forms11AccentIndex*;
     _ZT[hvc]*9gui_forms11AppFontFace*;
@@ -12842,7 +12945,6 @@
     _ZT[hvc]*9gui_forms16EncodedFontLease*;
     _ZT[hvc]*9gui_forms16EngineExpression*;
     _ZT[hvc]*9gui_forms16EnginePartRecord*;
-    _ZT[hvc]*9gui_forms16EngineSineCosine*;
     _ZT[hvc]*9gui_forms16ExpressionLimits*;
     _ZT[hvc]*9gui_forms16ExpressionResult*;
     _ZT[hvc]*9gui_forms16FlagsValueEditor*;
@@ -12850,6 +12952,7 @@
     _ZT[hvc]*9gui_forms16FocusScopeChange*;
     _ZT[hvc]*9gui_forms16FontDialogResult*;
     _ZT[hvc]*9gui_forms16FontFamilyRecord*;
+    _ZT[hvc]*9gui_forms16FormDocumentType*;
     _ZT[hvc]*9gui_forms16GestureEventArgs*;
     _ZT[hvc]*9gui_forms16HelpContentsLine*;
     _ZT[hvc]*9gui_forms16HelpContentsNode*;
@@ -12962,6 +13065,7 @@
     _ZT[hvc]*9gui_forms17FocusScopeOptions*;
     _ZT[hvc]*9gui_forms17FontFallbackMatch*;
     _ZT[hvc]*9gui_forms17FontFamilyStackId*;
+    _ZT[hvc]*9gui_forms17FormDocumentCheck*;
     _ZT[hvc]*9gui_forms17FrameRequestToken*;
     _ZT[hvc]*9gui_forms17GenericFontFamily*;
     _ZT[hvc]*9gui_forms17GridTemplateAreas*;
@@ -13084,6 +13188,9 @@
     _ZT[hvc]*9gui_forms18FirstFrameShowStep*;
     _ZT[hvc]*9gui_forms18FlexContainerInput*;
     _ZT[hvc]*9gui_forms18FlexContainerStyle*;
+    _ZT[hvc]*9gui_forms18FormDocumentSchema*;
+    _ZT[hvc]*9gui_forms18FormDocumentSource*;
+    _ZT[hvc]*9gui_forms18FormDocumentWindow*;
     _ZT[hvc]*9gui_forms18GridContainerInput*;
     _ZT[hvc]*9gui_forms18GridContainerStyle*;
     _ZT[hvc]*9gui_forms18GuiFormsThemeBuild*;
@@ -13440,6 +13547,7 @@
     _ZT[hvc]*9gui_forms22EffectInstanceCounters*;
     _ZT[hvc]*9gui_forms22ExpressionDependencies*;
     _ZT[hvc]*9gui_forms22FirstFrameShowSnapshot*;
+    _ZT[hvc]*9gui_forms22FormDocumentDiagnostic*;
     _ZT[hvc]*9gui_forms22HelpBookCompileOptions*;
     _ZT[hvc]*9gui_forms22HelpBookSystemSnapshot*;
     _ZT[hvc]*9gui_forms22HelpBookViewerSnapshot*;
@@ -14011,6 +14119,11 @@
     _ZZN9gui_forms10WizardPage*;
     _ZZN9gui_forms10WorldPoint*;
     _ZZN9gui_forms10XmlElement*;
+    _ZZN9gui_forms10automation13ModelToolCall*;
+    _ZZN9gui_forms10automation13ModelToolSpec*;
+    _ZZN9gui_forms10automation14ModelToolReply*;
+    _ZZN9gui_forms10automation16ModelInspectText*;
+    _ZZN9gui_forms10automation19ModelInspectRequest*;
     _ZZN9gui_forms11AboutDialog*;
     _ZZN9gui_forms11AccentIndex*;
     _ZZN9gui_forms11AppFontFace*;
@@ -14568,7 +14681,6 @@
     _ZZN9gui_forms16EncodedFontLease*;
     _ZZN9gui_forms16EngineExpression*;
     _ZZN9gui_forms16EnginePartRecord*;
-    _ZZN9gui_forms16EngineSineCosine*;
     _ZZN9gui_forms16ExpressionLimits*;
     _ZZN9gui_forms16ExpressionResult*;
     _ZZN9gui_forms16FlagsValueEditor*;
@@ -14576,6 +14688,7 @@
     _ZZN9gui_forms16FocusScopeChange*;
     _ZZN9gui_forms16FontDialogResult*;
     _ZZN9gui_forms16FontFamilyRecord*;
+    _ZZN9gui_forms16FormDocumentType*;
     _ZZN9gui_forms16GestureEventArgs*;
     _ZZN9gui_forms16HelpContentsLine*;
     _ZZN9gui_forms16HelpContentsNode*;
@@ -14688,6 +14801,7 @@
     _ZZN9gui_forms17FocusScopeOptions*;
     _ZZN9gui_forms17FontFallbackMatch*;
     _ZZN9gui_forms17FontFamilyStackId*;
+    _ZZN9gui_forms17FormDocumentCheck*;
     _ZZN9gui_forms17FrameRequestToken*;
     _ZZN9gui_forms17GenericFontFamily*;
     _ZZN9gui_forms17GridTemplateAreas*;
@@ -14810,6 +14924,9 @@
     _ZZN9gui_forms18FirstFrameShowStep*;
     _ZZN9gui_forms18FlexContainerInput*;
     _ZZN9gui_forms18FlexContainerStyle*;
+    _ZZN9gui_forms18FormDocumentSchema*;
+    _ZZN9gui_forms18FormDocumentSource*;
+    _ZZN9gui_forms18FormDocumentWindow*;
     _ZZN9gui_forms18GridContainerInput*;
     _ZZN9gui_forms18GridContainerStyle*;
     _ZZN9gui_forms18GuiFormsThemeBuild*;
@@ -15166,6 +15283,7 @@
     _ZZN9gui_forms22EffectInstanceCounters*;
     _ZZN9gui_forms22ExpressionDependencies*;
     _ZZN9gui_forms22FirstFrameShowSnapshot*;
+    _ZZN9gui_forms22FormDocumentDiagnostic*;
     _ZZN9gui_forms22HelpBookCompileOptions*;
     _ZZN9gui_forms22HelpBookSystemSnapshot*;
     _ZZN9gui_forms22HelpBookViewerSnapshot*;
@@ -15737,6 +15855,11 @@
     _ZZNK9gui_forms10WizardPage*;
     _ZZNK9gui_forms10WorldPoint*;
     _ZZNK9gui_forms10XmlElement*;
+    _ZZNK9gui_forms10automation13ModelToolCall*;
+    _ZZNK9gui_forms10automation13ModelToolSpec*;
+    _ZZNK9gui_forms10automation14ModelToolReply*;
+    _ZZNK9gui_forms10automation16ModelInspectText*;
+    _ZZNK9gui_forms10automation19ModelInspectRequest*;
     _ZZNK9gui_forms11AboutDialog*;
     _ZZNK9gui_forms11AccentIndex*;
     _ZZNK9gui_forms11AppFontFace*;
@@ -16294,7 +16417,6 @@
     _ZZNK9gui_forms16EncodedFontLease*;
     _ZZNK9gui_forms16EngineExpression*;
     _ZZNK9gui_forms16EnginePartRecord*;
-    _ZZNK9gui_forms16EngineSineCosine*;
     _ZZNK9gui_forms16ExpressionLimits*;
     _ZZNK9gui_forms16ExpressionResult*;
     _ZZNK9gui_forms16FlagsValueEditor*;
@@ -16302,6 +16424,7 @@
     _ZZNK9gui_forms16FocusScopeChange*;
     _ZZNK9gui_forms16FontDialogResult*;
     _ZZNK9gui_forms16FontFamilyRecord*;
+    _ZZNK9gui_forms16FormDocumentType*;
     _ZZNK9gui_forms16GestureEventArgs*;
     _ZZNK9gui_forms16HelpContentsLine*;
     _ZZNK9gui_forms16HelpContentsNode*;
@@ -16414,6 +16537,7 @@
     _ZZNK9gui_forms17FocusScopeOptions*;
     _ZZNK9gui_forms17FontFallbackMatch*;
     _ZZNK9gui_forms17FontFamilyStackId*;
+    _ZZNK9gui_forms17FormDocumentCheck*;
     _ZZNK9gui_forms17FrameRequestToken*;
     _ZZNK9gui_forms17GenericFontFamily*;
     _ZZNK9gui_forms17GridTemplateAreas*;
@@ -16536,6 +16660,9 @@
     _ZZNK9gui_forms18FirstFrameShowStep*;
     _ZZNK9gui_forms18FlexContainerInput*;
     _ZZNK9gui_forms18FlexContainerStyle*;
+    _ZZNK9gui_forms18FormDocumentSchema*;
+    _ZZNK9gui_forms18FormDocumentSource*;
+    _ZZNK9gui_forms18FormDocumentWindow*;
     _ZZNK9gui_forms18GridContainerInput*;
     _ZZNK9gui_forms18GridContainerStyle*;
     _ZZNK9gui_forms18GuiFormsThemeBuild*;
@@ -16892,6 +17019,7 @@
     _ZZNK9gui_forms22EffectInstanceCounters*;
     _ZZNK9gui_forms22ExpressionDependencies*;
     _ZZNK9gui_forms22FirstFrameShowSnapshot*;
+    _ZZNK9gui_forms22FormDocumentDiagnostic*;
     _ZZNK9gui_forms22HelpBookCompileOptions*;
     _ZZNK9gui_forms22HelpBookSystemSnapshot*;
     _ZZNK9gui_forms22HelpBookViewerSnapshot*;

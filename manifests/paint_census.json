@@ -72,8 +72,8 @@
       "calls": 42
     },
     "demo": {
-      "files": 2,
-      "calls": 12
+      "files": 6,
+      "calls": 34
     },
     "effect": {
       "files": 4,
@@ -97,9 +97,25 @@
       "category": "exempt",
       "calls": 1
     },
+    "gallery/pages/dashboard-pieces.cpp": {
+      "category": "demo",
+      "calls": 5
+    },
     "gallery/pages/live-surfaces.cpp": {
       "category": "demo",
       "calls": 2
+    },
+    "gallery/pages/lookups-and-pickers.cpp": {
+      "category": "demo",
+      "calls": 5
+    },
+    "gallery/pages/media-and-motion.cpp": {
+      "category": "demo",
+      "calls": 7
+    },
+    "gallery/pages/navigation-patterns.cpp": {
+      "category": "demo",
+      "calls": 5
     },
     "gallery/pages/page_context.hpp": {
       "category": "demo",

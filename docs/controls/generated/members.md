@@ -8,14 +8,14 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2375 | 3 | 370 | 4134 | 2490 |
+| 2456 | 3 | 370 | 4174 | 2611 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 250 | 0 | 12 | 323 | 228 |
-| `Component` | `Component` | 10 | 0 | 0 | 10 | 11 |
+| `Control` | `Control` | 253 | 0 | 12 | 329 | 237 |
+| `Component` | `Component` | 11 | 0 | 0 | 9 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
 | `DropDownButton` | `ToolStripSplitButton` | 6 | 0 | 0 | 18 | 5 |
@@ -25,12 +25,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TextBox` | `TextBox` | 25 | 0 | 0 | 26 | 31 |
 | `TokenBox` | GUI.Forms-only | 12 | 0 | 0 | 2 | 14 |
 | `SearchField` | GUI.Forms-only | 6 | 0 | 0 | 6 | 12 |
+| `ButtonTextBox` | GUI.Forms-only | 10 | 0 | 0 | 6 | 16 |
 | `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 38 | 7 |
 | `RichTextBox` | `RichTextBox` | 26 | 0 | 2 | 55 | 20 |
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
 | `TextBlock` | GUI.Forms-only | 3 | 0 | 0 | 7 | 10 |
 | `Badge` | GUI.Forms-only | 3 | 0 | 0 | 4 | 7 |
-| `IndicatorLamp` | GUI.Forms-only | 4 | 0 | 0 | 6 | 10 |
+| `IndicatorLamp` | GUI.Forms-only | 6 | 0 | 0 | 7 | 13 |
 | `InfoBanner` | GUI.Forms-only | 3 | 0 | 0 | 5 | 8 |
 | `EmptyState` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
 | `Toast` | GUI.Forms-only | 4 | 0 | 0 | 1 | 5 |
@@ -41,6 +42,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `SweepScope` | GUI.Forms-only | 2 | 0 | 0 | 3 | 5 |
 | `Sparkline` | GUI.Forms-only | 6 | 0 | 0 | 4 | 10 |
 | `PlotView` | GUI.Forms-only | 24 | 0 | 0 | 11 | 35 |
+| `PieChart` | GUI.Forms-only | 10 | 0 | 0 | 6 | 16 |
 | `Plot3DView` | GUI.Forms-only | 14 | 0 | 0 | 11 | 25 |
 | `PlotAxisItem` | GUI.Forms-only | 2 | 0 | 0 | 8 | 10 |
 | `PlotSeriesItem` | GUI.Forms-only | 9 | 0 | 0 | 20 | 29 |
@@ -51,7 +53,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TreeView` | `TreeView` | 13 | 0 | 2 | 73 | 10 |
 | `ObjectView` | `ListView` | 20 | 0 | 2 | 107 | 18 |
 | `ListView` | `ListView` | 49 | 0 | 2 | 101 | 40 |
-| `TreeListView` | GUI.Forms-only | 32 | 0 | 0 | 4 | 36 |
+| `TreeListView` | GUI.Forms-only | 35 | 0 | 0 | 7 | 42 |
 | `VirtualRowsView` | GUI.Forms-only | 46 | 0 | 0 | 2 | 48 |
 | `DataGridView` | `DataGridView` | 163 | 0 | 0 | 306 | 88 |
 | `ChoiceGroup` | GUI.Forms-only | 6 | 0 | 0 | 3 | 9 |
@@ -115,16 +117,16 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ToolStripPanel` | `ToolStripPanel` | 8 | 0 | 1 | 17 | 5 |
 | `ToolStripContainer` | `ToolStripContainer` | 16 | 0 | 0 | 25 | 16 |
 | `BindingNavigator` | `BindingNavigator` | 8 | 0 | 0 | 18 | 8 |
-| `Ribbon` | GUI.Forms-only | 46 | 0 | 0 | 5 | 51 |
+| `Ribbon` | GUI.Forms-only | 49 | 0 | 0 | 5 | 54 |
 | `ContextMenu` | `ContextMenuStrip` | 9 | 0 | 0 | 1 | 5 |
-| `DockWorkspace` | GUI.Forms-only | 56 | 0 | 0 | 14 | 70 |
+| `DockWorkspace` | GUI.Forms-only | 65 | 0 | 0 | 17 | 82 |
 | `Command` | GUI.Forms-only | 15 | 0 | 0 | 4 | 19 |
 | `FontCommand` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
 | `ColorCommand` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
 | `GalleryCommand` | GUI.Forms-only | 11 | 0 | 0 | 1 | 12 |
 | `AnchoredOverlayLayer` | GUI.Forms-only | 3 | 0 | 0 | 1 | 4 |
 | `FontDialog` | `FontDialog` | 16 | 0 | 0 | 19 | 15 |
-| `TaskDialog` | `TaskDialog` | 19 | 0 | 0 | 4 | 19 |
+| `TaskDialog` | `TaskDialog` | 21 | 0 | 0 | 4 | 21 |
 | `ThreadExceptionDialog` | `ThreadExceptionDialog` | 7 | 0 | 0 | 2 | 3 |
 | `SevenSegmentDisplay` | GUI.Forms-only | 3 | 0 | 0 | 4 | 7 |
 | `GaugeBase` | GUI.Forms-only | 4 | 0 | 0 | 5 | 9 |
@@ -137,13 +139,15 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Callout` | GUI.Forms-only | 6 | 0 | 0 | 8 | 14 |
 | `ModalLayer` | GUI.Forms-only | 7 | 0 | 0 | 4 | 11 |
 | `LookupComboBox` | GUI.Forms-only | 9 | 0 | 0 | 7 | 16 |
+| `PopupContainerBox` | GUI.Forms-only | 9 | 0 | 0 | 2 | 11 |
+| `CheckedComboBox` | GUI.Forms-only | 11 | 0 | 0 | 6 | 17 |
 | `AboutDialog` | GUI.Forms-only | 5 | 0 | 0 | 1 | 6 |
 | `FolderBrowserDialog` | `FolderBrowserDialog` | 6 | 0 | 0 | 15 | 3 |
 | `ColorDialog` | `ColorDialog` | 5 | 0 | 0 | 9 | 2 |
 | `ToolTip` | `ToolTip` | 11 | 0 | 0 | 24 | 8 |
 | `RibbonToolTip` | GUI.Forms-only | 15 | 0 | 0 | 0 | 15 |
 | `DrawingSurface` | GUI.Forms-only | 2 | 0 | 0 | 0 | 2 |
-| `RasterCanvas` | GUI.Forms-only | 8 | 0 | 0 | 1 | 9 |
+| `RasterCanvas` | GUI.Forms-only | 8 | 0 | 0 | 2 | 10 |
 | `NodeCanvas` | GUI.Forms-only | 55 | 0 | 0 | 14 | 69 |
 | `LiveSurface` | GUI.Forms-only | 10 | 0 | 0 | 0 | 10 |
 | `SubSurfaceHost` | GUI.Forms-only | 14 | 0 | 0 | 1 | 15 |
@@ -154,6 +158,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Timer` | `Timer` | 7 | 0 | 0 | 2 | 1 |
 | `BackgroundWorker` | `BackgroundWorker` | 10 | 0 | 0 | 6 | 2 |
 | `NotifyIcon` | `NotifyIcon` | 12 | 0 | 0 | 14 | 6 |
+| `ToastNotification` | GUI.Forms-only | 9 | 0 | 0 | 0 | 9 |
 | `OpenFileDialog` | `OpenFileDialog` | 11 | 0 | 0 | 6 | 4 |
 | `SaveFileDialog` | `SaveFileDialog` | 9 | 0 | 0 | 5 | 4 |
 | `ImageList` | `ImageList` | 16 | 0 | 0 | 14 | 19 |
@@ -170,7 +175,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 249 | 0 | 13 | 135 | 257 |
+| `Window` | `Form` | 258 | 0 | 13 | 142 | 273 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -313,5 +318,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 961 |
+| `untested` | 1001 |
 | `w-open` | 5 |

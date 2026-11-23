@@ -256,6 +256,10 @@ gui_forms::CheckedComboBox
 
       *Protected.*
 
+   .. cpp:function:: void on_mouse_up(MouseEventArgs& arguments) override
+
+      *Protected.*
+
    .. cpp:function:: void on_mouse_move(MouseEventArgs& arguments) override
 
       *Protected.*

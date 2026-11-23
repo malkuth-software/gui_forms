@@ -9,7 +9,7 @@ gui_forms::ScaledPanel
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScaledPanel : public Panel
+.. cpp:class:: ScaledPanel : public Panel, public ScaledPanelCapabilities<ScaledPanel>
 
    ``#include <gui_forms/controls/scaled_panel.hpp>`` (:src:`source <include/gui_forms/controls/scaled_panel.hpp>`)
 
@@ -39,6 +39,11 @@ gui_forms::ScaledPanel
          the panel's ``design_size`` (a :cpp:class:`Control <gui_forms::Control>` property). Both must be finite
          and positive, or the constructor throws ``std::invalid_argument``.
 
+   :Properties:
+
+      **aspect** : ``ScaledAspect``
+         How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
+
    :Inherited:
 
       From :cpp:class:`Panel <gui_forms::Panel>`: properties :cpp:member:`border_style <gui_forms::Panel::border_style>`, :cpp:member:`visual_role <gui_forms::Panel::visual_role>`, :cpp:func:`background <gui_forms::Panel::background>`, :cpp:func:`has_background_override <gui_forms::Panel::has_background_override>`, :cpp:func:`style <gui_forms::Panel::style>`, :cpp:func:`has_style_override <gui_forms::Panel::has_style_override>`, :cpp:func:`parts <gui_forms::Panel::parts>`; methods :cpp:func:`clear_background <gui_forms::Panel::clear_background>`, :cpp:func:`clear_style <gui_forms::Panel::clear_style>`, :cpp:func:`panel_property_entries <gui_forms::Panel::panel_property_entries>`.
@@ -57,6 +62,8 @@ gui_forms::ScaledPanel
         - ``add_at(child, design_bounds)`` adds ``child`` to the panel and gives it a rectangle in design coordinates.
       * - :cpp:func:`design_bounds <gui_forms::ScaledPanel::design_bounds>`
         - The design rectangle of ``child``, or no value if it has none.
+      * - :cpp:func:`scaled_panel_property_entries <gui_forms::ScaledPanel::scaled_panel_property_entries>`
+        -  
       * - :cpp:func:`set_design_bounds <gui_forms::ScaledPanel::set_design_bounds>`
         - Moves or resizes an existing child in design coordinates.
 
@@ -121,6 +128,13 @@ gui_forms::ScaledPanel
    .. cpp:function:: explicit ScaledPanel(StableId stable_id, Size initial_design_size = {1.0, 1.0})
 
 
+   .. rubric:: Properties
+
+   .. cpp:member:: ScaledAspect aspect
+
+      How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
+
+
    .. rubric:: Methods
 
    .. cpp:function:: void add_at(Control::Ptr child, Rect design_bounds)
@@ -135,6 +149,8 @@ gui_forms::ScaledPanel
 
       The design rectangle of ``child``, or no value if it has none. The
       rectangles of removed children are discarded at the next layout.
+
+   .. cpp:function:: static const std::array<PropertyEntry, scaled_panel_property_count>& scaled_panel_property_entries() noexcept
 
    .. cpp:function:: void set_design_bounds(const Control& child, Rect design_bounds)
 
@@ -152,11 +168,17 @@ gui_forms::ScaledPanel
 
    .. cpp:function:: stxlib::Optional<double> applied_viewport_scale() const noexcept override
 
-      Its children are stretched from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). Reports the stretch's smaller axis ratio; none while design_size is zero or it has no extent.
+      Its children are mapped from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). :cpp:member:`aspect <gui_forms::ScaledPanel::aspect>` chooses a stretch per axis (the default) or a uniform scale that keeps the design's proportions, aligned by viewport_fit's alignment. Reports the smaller axis ratio; none while design_size is zero or it has no extent.
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t scaled_panel_property_count
+
+      ScaledPanel's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 1 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 2 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -179,6 +201,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
      - GUI.Forms-only
      - ``design_bounds``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``scaled_panel_property_entries``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``set_design_bounds``

@@ -9,7 +9,7 @@ gui_forms::ScaledGroupBox
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: ScaledGroupBox final : public GroupBox
+.. cpp:class:: ScaledGroupBox final : public GroupBox, public ScaledGroupBoxCapabilities<ScaledGroupBox>
 
    ``#include <gui_forms/controls/scaled_group_box.hpp>`` (:src:`source <include/gui_forms/controls/scaled_group_box.hpp>`)
 
@@ -44,6 +44,11 @@ gui_forms::ScaledGroupBox
          throws ``std::invalid_argument``. The default unit square lets you give
          design bounds as fractions of the box.
 
+   :Properties:
+
+      **aspect** : ``ScaledAspect``
+         How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
+
    :Inherited:
 
       From :cpp:class:`GroupBox <gui_forms::GroupBox>`: properties :cpp:member:`text <gui_forms::GroupBox::text>`, :cpp:member:`font <gui_forms::GroupBox::font>`, :cpp:member:`use_mnemonic <gui_forms::GroupBox::use_mnemonic>`, :cpp:func:`parts <gui_forms::GroupBox::parts>`; events :cpp:func:`text_changed <gui_forms::GroupBox::text_changed>`; methods :cpp:func:`group_box_property_entries <gui_forms::GroupBox::group_box_property_entries>`.
@@ -64,6 +69,8 @@ gui_forms::ScaledGroupBox
         - ``add_at(child, design_bounds)`` adds a child and gives it a slot in design coordinates.
       * - :cpp:func:`design_bounds <gui_forms::ScaledGroupBox::design_bounds>`
         - The child's slot in design coordinates, or empty if it has none.
+      * - :cpp:func:`scaled_group_box_property_entries <gui_forms::ScaledGroupBox::scaled_group_box_property_entries>`
+        -  
       * - :cpp:func:`set_design_bounds <gui_forms::ScaledGroupBox::set_design_bounds>`
         - Moves an existing child to a new slot.
 
@@ -116,6 +123,13 @@ gui_forms::ScaledGroupBox
    .. cpp:function:: explicit ScaledGroupBox(StableId stable_id, std::string initial_text = {}, Size initial_design_size = {1.0, 1.0})
 
 
+   .. rubric:: Properties
+
+   .. cpp:member:: ScaledAspect aspect
+
+      How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
+
+
    .. rubric:: Methods
 
    .. cpp:function:: void add_at(Control::Ptr child, Rect design_bounds)
@@ -128,6 +142,8 @@ gui_forms::ScaledGroupBox
    .. cpp:function:: stxlib::Optional<Rect> design_bounds(const Control& child) const
 
       The child's slot in design coordinates, or empty if it has none.
+
+   .. cpp:function:: static const std::array<PropertyEntry, scaled_group_box_property_count>& scaled_group_box_property_entries() noexcept
 
    .. cpp:function:: void set_design_bounds(const Control& child, Rect design_bounds)
 
@@ -147,11 +163,17 @@ gui_forms::ScaledGroupBox
 
    .. cpp:function:: stxlib::Optional<double> applied_viewport_scale() const noexcept override
 
-      Its children are stretched from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). Reports the stretch's smaller axis ratio; none while design_size is zero or it has no extent.
+      Its children are mapped from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). :cpp:member:`aspect <gui_forms::ScaledGroupBox::aspect>` chooses a stretch per axis (the default) or a uniform scale that keeps the design's proportions, aligned by viewport_fit's alignment. Reports the smaller axis ratio; none while design_size is zero or it has no extent.
+
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t scaled_group_box_property_count
+
+      ScaledGroupBox's property table: GroupBox's entries, then its own. Default: ``GroupBox::group_box_property_count + 1U``.
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 1 unclassified; 4 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 2 unclassified; 5 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -174,6 +196,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
      - GUI.Forms-only
      - ``design_bounds``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``scaled_group_box_property_entries``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``set_design_bounds``

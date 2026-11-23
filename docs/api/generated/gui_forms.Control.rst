@@ -84,6 +84,12 @@ gui_forms::Control
          unbounded; a nonzero dimension below :cpp:member:`minimum_size <gui_forms::Control::minimum_size>` throws
          ``std::invalid_argument``.
 
+      **viewport_fit** : ``ViewportFit``
+         What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+
+      **design_size** : ``Size``
+         The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent. Contain and cover scale content of this extent into the viewport. Throws std::invalid_argument unless both sides are finite and either both zero or both positive.
+
       **margin** : ``Insets``, default ``{3, 3, 3, 3}``
          Space that flow and table layout panels leave around the control. The
          base dock and anchor layout ignores it; auto-size measurement and scroll
@@ -256,6 +262,12 @@ gui_forms::Control
       **absolute_bounds** : ``Rect``, read-only
          The arranged bounds in window coordinates. Like :cpp:func:`arranged_bounds <gui_forms::Control::arranged_bounds>`, it
          runs pending layout first when attached and no update scope is open.
+
+      **window_frame** : ``ScaleFrame``, read-only
+         The map from this control's local coordinates into its window's (stage VA, the in-tree scale frame): its position, at the product of every contain or cover scale the window carries out above it (scale 1 in a subtree nothing contains). point_to_window, point_from_window, rectangle_to_window and rectangle_from_window map through it, and so do the pointer's location and the text input caret; a local length is window_frame().scale window units long.
+
+      **content_frame** : ``ScaleFrame``, read-only
+         The frame the window applies to this control's children as the viewport owner carrying out a contain or cover (stage VA): their coordinates into this control's. The identity otherwise. Set by the window's viewport check after each layout flush.
 
       **attached_window** : ``BorrowedPointer<Window>``, read-only
          The window whose tree contains this control, or null.
@@ -433,6 +445,9 @@ gui_forms::Control
 
       **measure_generation** : ``std::uint64_t``, read-only
          Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
+
+      **content_layout_rectangle** : ``Rect``, read-only
+         The rectangle Control::arrange lays the children out in: the child viewport, or, while this control has a design_size and its viewport_fit answers contain or cover (and it neither scrolls its content nor scales it itself), that size at the viewport's origin. A layout container overriding arrange lays out in it too to take part in a designed contain.
 
       **effective_layout_direction** : ``LayoutDirection``, read-only
          layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
@@ -889,6 +904,14 @@ gui_forms::Control
       unbounded; a nonzero dimension below :cpp:member:`minimum_size <gui_forms::Control::minimum_size>` throws
       ``std::invalid_argument``.
 
+   .. cpp:member:: ViewportFit viewport_fit
+
+      What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+
+   .. cpp:member:: Size design_size
+
+      The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent. Contain and cover scale content of this extent into the viewport. Throws std::invalid_argument unless both sides are finite and either both zero or both positive.
+
    .. cpp:member:: Insets margin
 
       Space that flow and table layout panels leave around the control. The
@@ -1101,6 +1124,14 @@ gui_forms::Control
 
       The arranged bounds in window coordinates. Like :cpp:func:`arranged_bounds <gui_forms::Control::arranged_bounds>`, it
       runs pending layout first when attached and no update scope is open.
+
+   .. cpp:function:: ScaleFrame window_frame() const
+
+      The map from this control's local coordinates into its window's (stage VA, the in-tree scale frame): its position, at the product of every contain or cover scale the window carries out above it (scale 1 in a subtree nothing contains). point_to_window, point_from_window, rectangle_to_window and rectangle_from_window map through it, and so do the pointer's location and the text input caret; a local length is window_frame().scale window units long.
+
+   .. cpp:function:: ScaleFrame content_frame() const noexcept
+
+      The frame the window applies to this control's children as the viewport owner carrying out a contain or cover (stage VA): their coordinates into this control's. The identity otherwise. Set by the window's viewport check after each layout flush.
 
    .. cpp:function:: BorrowedPointer<Window> attached_window() const noexcept
 
@@ -1370,6 +1401,10 @@ gui_forms::Control
    .. cpp:function:: std::uint64_t measure_generation() const
 
       Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
+
+   .. cpp:function:: Rect content_layout_rectangle() const noexcept
+
+      The rectangle Control::arrange lays the children out in: the child viewport, or, while this control has a design_size and its viewport_fit answers contain or cover (and it neither scrolls its content nor scales it itself), that size at the viewport's origin. A layout container overriding arrange lays out in it too to take part in a designed contain.
 
    .. cpp:function:: LayoutDirection effective_layout_direction() const noexcept
 
@@ -1891,6 +1926,18 @@ gui_forms::Control
    .. cpp:function:: virtual bool sizes_unrequested_extents_from_content() const noexcept
 
       Whether a requested width or height of 0 means "from content" when this control is placed by its parent's dock and anchor layout without AutoSize (coordinator ruling, cp32 return 1: exhibit gap E12). The parent then measures it once, at the requested width (else the client's), and takes each zero axis from the answer: width first, then the height at that width (the A8 rule), so one layout pass converges. False by default, so a 0 stays 0 for every control that does not say otherwise; Label answers true.
+
+   .. cpp:function:: virtual bool content_scrolls() const noexcept
+
+      The visible-area guarantee (stage VA). Whether this control scrolls its content: its scroll range reaches every part of what overflows its viewport, so it answers an overflow by scrolling whatever its viewport_fit says (OverflowAnswer::scroll). False by default; ScrollableControl answers its auto_scroll, and a control that positions its children in a scrolled space of its own answers true.
+
+   .. cpp:function:: virtual stxlib::Optional<double> applied_viewport_scale() const noexcept
+
+      The scale this control applies to its content itself, as the viewport owner carrying out a contain or cover of its viewport_fit; none while it applies none. None by default: the window carries out every other owner's contain or cover through its content frame (content_frame). A SubSurfaceHost applies its sub-surface's root scale; ScaledPanel and ScaledGroupBox their stretch.
+
+   .. cpp:function:: virtual bool shows_media_content() const noexcept
+
+      Whether this control shows media (an image, a video, a canvas, a game in a sub-surface) rather than controls (stage VA, decision 5): a contain of media is bounded by its viewport_fit's minimum_scale alone; one of controls also by the presentation settings' floor (PresentationSettings::minimum_content_scale). False by default.
 
    .. cpp:function:: virtual void on_paint(Painter& painter, Rect local_damage)
 
@@ -2513,11 +2560,11 @@ gui_forms::Control
 
    .. cpp:member:: constexpr std::size_t control_property_count
 
-      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``41U``.
+      Control's own table (its capabilities' entries); a derived type joins it first (join_property_tables) and returns the joined table. Default: ``42U``.
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 253 supported, 0 deferred, 12 excluded, 323 unclassified; 231 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 253 supported, 0 deferred, 12 excluded, 329 unclassified; 237 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4082,6 +4129,14 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
      - supported
    * - property
      - GUI.Forms-only
+     - ``content_frame``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``content_layout_rectangle``
+     - unclassified (untested)
+   * - property
+     - GUI.Forms-only
      - ``declares_clarity``
      - supported
    * - property
@@ -4308,6 +4363,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
      - GUI.Forms-only
      - ``visual_status``
      - supported
+   * - property
+     - GUI.Forms-only
+     - ``window_frame``
+     - unclassified (untested)
    * - event
      - GUI.Forms-only
      - ``arranged_bounds_changed``
@@ -4376,6 +4435,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
      - GUI.Forms-only
      - ``anatomy_states``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``applied_viewport_scale``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``apply_provider_semantics``
@@ -4451,6 +4514,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
    * - method
      - GUI.Forms-only
      - ``command_dialog_result``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``content_scrolls``
      - unclassified (untested)
    * - method
      - GUI.Forms-only
@@ -4828,6 +4895,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 253 supp
      - GUI.Forms-only
      - ``should_serialize_property``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``shows_media_content``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``size_depends_on_content``

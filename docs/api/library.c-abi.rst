@@ -88,7 +88,6 @@ Types
      - gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source.
    * - :cpp:class:`gf_application_table <gf_application_table>`
      - ic: gf_abi::application: generated from include/gui_forms/c/gf_abi_application.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines.
-     -  
    * - :cpp:class:`gf_automation_inspect_call <gf_automation_inspect_call>`
      -  
    * - :cpp:class:`gf_automation_inspect_section <gf_automation_inspect_section>`
@@ -298,10 +297,9 @@ Types
    * - :cpp:class:`gf_numeric_up_down_hooks <gf_numeric_up_down_hooks>`
      -  
    * - :cpp:class:`gf_objects_table <gf_objects_table>`
-     -  
+     - ic: gf_abi::objects: generated from include/gui_forms/c/gf_abi_objects.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_overflow_record <gf_overflow_record>`
      -  
-     - ic: gf_abi::objects: generated from include/gui_forms/c/gf_abi_objects.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_overlays_table <gf_overlays_table>`
      - ic: gf_abi::overlays: generated from include/gui_forms/c/gf_abi_overlays.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines.
    * - :cpp:class:`gf_owned_window_options <gf_owned_window_options>`
@@ -3091,10 +3089,11 @@ Types
 
    .. cpp:member:: gf_status (*set_content_effect)(gf_object object, const gf_content_effect* effect)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: the effect is smaller than its 1.5 size), unchanged.
+
    .. cpp:member:: gf_status (*set_viewport_fit)(gf_object object, const gf_viewport_fit* fit)
 
    .. cpp:member:: gf_status (*viewport_fit)(gf_object object, gf_viewport_fit* fit)
-      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: the effect is smaller than its 1.5 size), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3947,6 +3946,8 @@ Types
 
    .. cpp:member:: gf_status (*merged_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
+
    .. cpp:member:: gf_status (*set_merge_tool_strip)(gf_object workspace, gf_object strip)
 
    .. cpp:member:: gf_status (*merge_tool_strip)(gf_object workspace, gf_object* strip)
@@ -3962,7 +3963,6 @@ Types
    .. cpp:member:: gf_status (*set_panel_ribbon)(gf_object workspace, gf_utf8_view panel, gf_object ribbon)
 
    .. cpp:member:: gf_status (*merged_ribbon_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
-      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -6603,12 +6603,13 @@ Types
 
    .. cpp:member:: gf_status (*main_menu_strip)(gf_object window_or_root, gf_object* strip)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(strip), else ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: main_menu_strip_strip, then the ic: state refusal. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind ic: (code: the MDI calls take a window or a control in one), unchanged. Returns gf_object, owned by the caller.
+
    .. cpp:member:: gf_status (*overflow_records)(gf_object window_or_root, gf_overflow_record* records, uint64_t capacity, uint64_t* required, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
    .. cpp:member:: gf_status (*unanswered_overflow_count)(gf_object window_or_root, uint64_t* count)
 
    .. cpp:member:: gf_status (*safe_insets)(gf_object window_or_root, gf_logical_insets* insets)
-      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(strip), else ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: main_menu_strip_strip, then the ic: state refusal. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind ic: (code: the MDI calls take a window or a control in one), unchanged. Returns gf_object, owned by the caller.
 
    .. cpp:member:: gf_status (*lifecycle)(gf_object window, gf_window_lifecycle* lifecycle)
 
