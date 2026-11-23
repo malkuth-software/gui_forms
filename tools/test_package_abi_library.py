@@ -41,13 +41,13 @@ class PackageAbiLibraryTests(unittest.TestCase):
         self.assertEqual(abi.library_name("macos-arm64", 1), "libgui_forms_abi.1.dylib")
         self.assertEqual(abi.library_name("linux-x64", 1), "libgui_forms_abi.so.1")
         self.assertEqual(abi.library_name("windows-x64", 1), "gui_forms_abi1.dll")
-        self.assertEqual(abi.archive_name("0.6.0", "linux-arm64"), "gui-forms-abi-0.6.0-linux-arm64.zip")
+        self.assertEqual(abi.archive_name("1.0.0", "linux-arm64"), "gui-forms-abi-1.0.0-linux-arm64.zip")
 
     def test_each_platform_packages_and_checks(self) -> None:
         for platform in abi.PLATFORMS:
             with self.subTest(platform=platform), tempfile.TemporaryDirectory() as folder:
                 fixture: Fixture = Fixture(Path(folder), platform)
-                target: Path = abi.package(fixture.build, platform, "0.6.0", "abc123", fixture.out, fixture.manifest,
+                target: Path = abi.package(fixture.build, platform, "1.0.0", "abc123", fixture.out, fixture.manifest,
                                            fixture.licenses)
                 described: dict[str, object] = abi.check_archive(target)
                 self.assertEqual(described["library"], abi.library_name(platform, 1))
@@ -63,9 +63,9 @@ class PackageAbiLibraryTests(unittest.TestCase):
     def test_packaging_is_reproducible(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             fixture: Fixture = Fixture(Path(folder), "linux-x64")
-            first: bytes = abi.package(fixture.build, "linux-x64", "0.6.0", "r", fixture.out, fixture.manifest,
+            first: bytes = abi.package(fixture.build, "linux-x64", "1.0.0", "r", fixture.out, fixture.manifest,
                                            fixture.licenses).read_bytes()
-            second: bytes = abi.package(fixture.build, "linux-x64", "0.6.0", "r", fixture.out, fixture.manifest,
+            second: bytes = abi.package(fixture.build, "linux-x64", "1.0.0", "r", fixture.out, fixture.manifest,
                                            fixture.licenses).read_bytes()
             self.assertEqual(first, second)
 
@@ -73,13 +73,13 @@ class PackageAbiLibraryTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             fixture: Fixture = Fixture(Path(folder), "linux-x64")
             with self.assertRaises(abi.PackagingError):
-                abi.package(fixture.build, "macos-arm64", "0.6.0", "r", fixture.out, fixture.manifest,
+                abi.package(fixture.build, "macos-arm64", "1.0.0", "r", fixture.out, fixture.manifest,
                                            fixture.licenses)
 
     def test_a_changed_library_fails_the_check(self) -> None:
         with tempfile.TemporaryDirectory() as folder:
             fixture: Fixture = Fixture(Path(folder), "windows-x64")
-            target: Path = abi.package(fixture.build, "windows-x64", "0.6.0", "r", fixture.out, fixture.manifest,
+            target: Path = abi.package(fixture.build, "windows-x64", "1.0.0", "r", fixture.out, fixture.manifest,
                                            fixture.licenses)
             tampered: Path = fixture.out / "tampered" / target.name
             tampered.parent.mkdir()

@@ -6,21 +6,26 @@
 
 ## Focus
 
-Towards **1.0**: the library, its C ABI and its C# bindings, brought to the
-point where 1.0 can be declared; the tools follow it as 1.x releases. 0.5,
+**1.0**: the library, its C ABI and its C# bindings; the tools follow it as
+1.x releases. 0.5,
 the ABI and API seal, was declared done on 2026-11-08 (see the 0.5 notes).
 Everything since builds on the sealed interfaces additively. A change to a
 sealed interface needs a recorded owner decision.
 
-The package version is 0.6 (owner, 2026-11-12): release tags are `v0.6.N`
-and consumers ask for `find_package(GUIForms 0.6 ...)`. The first build
-under it is `v0.6.1541` (checkpoints 29 to 31). Under the 0.2 number the
-series was tagged `v0.2.N`; the stages 0.3 to 0.5 were not tagged
-separately. Those tags are kept.
+The package version is 1.0 (owner, 2026-11-23): release tags are `v1.0.N`
+and consumers ask for `find_package(GUIForms 1.0 ...)`. Under the 0.6
+number (from 2026-11-12) the series was tagged `v0.6.N`, from `v0.6.1541`
+(checkpoints 29 to 31), and under the 0.2 number `v0.2.N`; the stages 0.3
+to 0.5 were not tagged separately. Those tags are kept.
 
 These notes cover pull requests #474 to #486.
 
 ## Breaking changes
+
+- The package version moves from 0.6.0 to 1.0.0. `find_package(GUIForms
+  0.6 ...)` no longer finds it (the version file accepts the same minor
+  version only); ask for 1.0. The shared libraries keep `SOVERSION 0`, and
+  the C ABI keeps its own version (1.7).
 
 - The package version moves from 0.2.0 to 0.6.0. `find_package(GUIForms
   0.2 ...)` no longer finds it (the version file accepts the same minor
