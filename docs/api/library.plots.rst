@@ -2922,7 +2922,7 @@ Functions, constants and aliases
 
 .. cpp:function:: double engine_log10(double value) noexcept
 
-   log10 of ``value`` through engine_logarithm (NaN for ≤ 0 and NaN), and 10 raised to ``exponent`` through engine_exponential. Exact at integer exponents from -22 to 22, where the result is a double exactly.
+   log10 of ``value`` through STXlib's log10 (NaN for ≤ 0 and NaN), and 10 raised to ``exponent`` through STXlib's pow. Exact at integer exponents from -22 to 22, where the result is a double exactly.
 
 .. cpp:function:: double engine_exp10(double exponent) noexcept
 

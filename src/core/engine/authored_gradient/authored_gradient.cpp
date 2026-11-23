@@ -1,6 +1,6 @@
 #include "gui_forms/engine/authored_gradient/authored_gradient.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 
@@ -243,7 +243,7 @@ Color average_colour(std::span<const AuthoredGradientStop> stops) noexcept {
 // 50% line joins the two neighbouring corners.
 double linear_angle(const AuthoredGradient& gradient, Size box) noexcept {
     if (gradient.corner == GradientCorner::none) return gradient.angle_degrees;
-    const double diagonal = engine_arctangent2(box.height, box.width) * radians_to_degrees;
+    const double diagonal = stxlib::math::atan2(box.height, box.width) * radians_to_degrees;
     switch (gradient.corner) {
     case GradientCorner::top_right: return diagonal;
     case GradientCorner::bottom_right: return 180.0 - diagonal;
@@ -276,9 +276,11 @@ bool finite_length(BoxLength length) noexcept {
 void resolve_linear(const AuthoredGradient& gradient, Size box, std::vector<GradientStop>& placed,
                     MaterialFillLayer& layer) {
     const double angle = linear_angle(gradient, box);
-    const EngineSineCosine turned = engine_sine_cosine(angle * degrees_to_radians);
+    double turned_sine = 0.0;
+    double turned_cosine = 0.0;
+    stxlib::math::sincos(angle * degrees_to_radians, turned_sine, turned_cosine);
     // CSS's gradient line: its ends at the corners the angle reaches.
-    const double line = std::abs(box.width * turned.sine) + std::abs(box.height * turned.cosine);
+    const double line = std::abs(box.width * turned_sine) + std::abs(box.height * turned_cosine);
     place_stops(gradient.stops, line, placed);
     std::vector<GradientStop> stops{};
     stops.reserve(maximum_gradient_stops);
@@ -308,7 +310,7 @@ void resolve_linear(const AuthoredGradient& gradient, Size box, std::vector<Grad
         return;
     }
     // The CSS gradient line, from its 0 to its 1, narrowed to the period.
-    const Point direction{turned.sine, -turned.cosine};
+    const Point direction{turned_sine, -turned_cosine};
     const Point line_start{box.width * 0.5 - direction.x * line * 0.5, box.height * 0.5 - direction.y * line * 0.5};
     const Point start{line_start.x + direction.x * first * line, line_start.y + direction.y * first * line};
     const Point end{line_start.x + direction.x * last * line, line_start.y + direction.y * last * line};

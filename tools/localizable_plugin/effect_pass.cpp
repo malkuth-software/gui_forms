@@ -615,8 +615,8 @@ private:
                                     "': it is a standard library or system function, not effect vocabulary");
             } else {
                 error(location, "effect code may not call '" + name + "': " + category +
-                                    (category == "<cmath> (the host's libm)" ? "; maths goes through effect_* "
-                                                                               "vocabulary and engine_math"
+                                    (category == "<cmath> (the host's libm)" ? "; maths goes through the effect_* "
+                                                                               "vocabulary (STXlib's math)"
                                                                              : std::string()));
             }
             return operations;

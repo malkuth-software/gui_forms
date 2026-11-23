@@ -1,5 +1,5 @@
 #include "gui_forms/animation.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -93,12 +93,13 @@ double apply_easing(EasingCurve easing, double progress) noexcept {
         if (value == 0.0 || value == 1.0) {
             return value;
         }
-        // The engine's deterministic power and sine (the same bits on
+        // STXlib's deterministic power and sine (the same bits on
         // every host).
-        const double decay = engine_power(2.0, -10.0 * value);
-        const EngineSineCosine swing = engine_sine_cosine(
-            (value * 10.0 - 0.75) * (2.0 * 3.14159265358979323846 / 3.0));
-        const double eased = decay * swing.sine + 1.0;
+        const double decay = stxlib::math::exp2(-10.0 * value);
+        double swing_sine = 0.0;
+        double swing_cosine = 0.0;
+        stxlib::math::sincos((value * 10.0 - 0.75) * (2.0 * 3.14159265358979323846 / 3.0), swing_sine, swing_cosine);
+        const double eased = decay * swing_sine + 1.0;
         return eased;
     }
     }

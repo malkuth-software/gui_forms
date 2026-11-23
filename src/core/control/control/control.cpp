@@ -1,6 +1,6 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/component/failures/component_failures.hpp"
 
@@ -66,10 +66,10 @@ Dirty fold_subtree_regions(Control& control) noexcept {
 
 [[nodiscard]] Point rotate_owner_decoration_point(
     Point point, Rect box, double degrees) noexcept {
-    // The engine's deterministic sine and cosine, exact at quarter turns.
-    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
-    const double cosine = turn.cosine;
-    const double sine = turn.sine;
+    // STXlib's deterministic sine and cosine, exact at quarter turns.
+    double sine = 0.0;
+    double cosine = 0.0;
+    stxlib::math::sincosd(degrees, sine, cosine);
     const Point center{box.x + box.width * 0.5, box.y + box.height * 0.5};
     const double x = point.x - center.x;
     const double y = point.y - center.y;

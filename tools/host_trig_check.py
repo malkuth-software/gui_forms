@@ -3,16 +3,15 @@
 
 The host libraries' sin, cos, tan, atan2 and hypot differ in their last
 bits between macOS, glibc and the Windows runtime, so a pixel or a
-control point computed with them can differ by machine. GUI.Forms' own
-engine is the reference: src/core, src/controls and src/render call the
-deterministic functions of include/gui_forms/engine/engine_math/
-engine_math.hpp instead (engine_sine_cosine, engine_sine_cosine_degrees,
-engine_tangent, engine_arctangent2, engine_hypotenuse).
+control point computed with them can differ by machine. STXlib's math is
+the reference: src/core, src/controls and src/render call the deterministic
+functions of stxlib/math.hpp instead (stxlib::math::sincos, sincosd, sin,
+cos, tan, atan2 and hypot), which STXlib compiles with its own flags.
 
 A call is the name, optionally qualified by `std::` or `::`, with an
 optional `f` or `l` suffix (the C forms), followed by `(`; a member
-(`.sin(`), another namespace's function (`math::sin(`) and a longer
-identifier (`engine_sine_cosine(`) are not calls. Comments, string and
+(`.sin(`), another namespace's function (`stxlib::math::sin(`) and a
+longer identifier (`sincosd(`) are not calls. Comments, string and
 character literals are skipped.
 
 The allowance (manifests/host_trig_allowance.json) lists files that may
@@ -39,7 +38,7 @@ SOURCE_SUFFIXES: frozenset[str] = frozenset({".c", ".cpp", ".h", ".hpp", ".mm"})
 DESCRIPTION: str = (
     "Files under src/core, src/controls and src/render that may still call the host's sin, cos, tan, "
     "atan2 or hypot (tools/host_trig_check.py), with their counts. Shrink only: new code calls "
-    "include/gui_forms/engine/engine_math/engine_math.hpp."
+    "stxlib/math.hpp (STXlib's math)."
 )
 
 # The name may follow `std::` or a bare `::`; nothing before it may be a
@@ -118,7 +117,7 @@ def problems_of(counts: dict[str, int], allowance: dict[str, int]) -> list[str]:
         allowed: int = allowance.get(name, 0)
         if counts[name] > allowed:
             problems.append(f"{name}: {counts[name]} host trigonometry calls, allowance {allowed}; "
-                            "use engine_math.hpp")
+                            "use stxlib/math.hpp")
     for name in sorted(allowance):
         found: int = counts.get(name, 0)
         if found < allowance[name]:

@@ -4,7 +4,7 @@
 #include "../../types/painter/text_turn.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
@@ -818,8 +818,10 @@ InscribedCircle inscribed_circle(Rect bounds) noexcept {
 // o'clock, with the engine's sine and cosine, so that a dial is the same on
 // every host.
 Point point_at_angle(Point centre, double radius, double angle) noexcept {
-    const EngineSineCosine turned = engine_sine_cosine(angle);
-    const Point result{centre.x + radius * turned.sine, centre.y - radius * turned.cosine};
+    double turned_sine = 0.0;
+    double turned_cosine = 0.0;
+    stxlib::math::sincos(angle, turned_sine, turned_cosine);
+    const Point result{centre.x + radius * turned_sine, centre.y - radius * turned_cosine};
     return result;
 }
 

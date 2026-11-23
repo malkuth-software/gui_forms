@@ -1,6 +1,6 @@
 #include "color_conversion.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -136,7 +136,7 @@ double srgb_decode(double encoded) noexcept {
         return linear;
     }
     const double base = (encoded + 0.055) / 1.055;
-    const double linear = engine_power(base, 2.4);
+    const double linear = stxlib::math::pow(base, 2.4);
     return linear;
 }
 
@@ -201,7 +201,7 @@ bool convert_samples_to_srgb(const ColorEncoding& encoding, unsigned depth,
         const double exponent = 100000.0 / static_cast<double>(*encoding.gamma);
         for (std::size_t index = 0; index < entries; ++index) {
             const double encoded = static_cast<double>(index * step) / 65535.0;
-            work.linear[index] = engine_power(encoded, exponent);
+            work.linear[index] = stxlib::math::pow(encoded, exponent);
         }
     } else {
         for (std::size_t index = 0; index < entries; ++index) {

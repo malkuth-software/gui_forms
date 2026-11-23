@@ -1,5 +1,5 @@
 #include "gui_forms/types.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/prepared_text/types/prepared_text_types.hpp"
 #include "../../theme/theme/material_layers.hpp"
@@ -515,12 +515,12 @@ Rect transformed_paint_bounds(const PaintTransform& transform, const Rect rect) 
 
 PaintTransform paint_rotation_about(const Point centre, const double degrees) noexcept {
     if (!std::isfinite(degrees) || !std::isfinite(centre.x) || !std::isfinite(centre.y)) return PaintTransform{};
-    // The engine's deterministic sine and cosine: the same bits on every
+    // STXlib's deterministic sine and cosine: the same bits on every
     // host, and quarter turns exact, so a turned rectangle keeps whole-pixel
     // edges.
-    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
-    const double cosine = turn.cosine;
-    const double sine = turn.sine;
+    double sine = 0.0;
+    double cosine = 0.0;
+    stxlib::math::sincosd(degrees, sine, cosine);
     PaintTransform rotation{};
     rotation.xx = cosine;
     rotation.xy = sine;

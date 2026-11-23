@@ -227,20 +227,20 @@ XyzD65 oklab_to_xyz_d65(Oklab color) {
 
 Oklch oklab_to_oklch(Oklab color) {
     require_oklab(color);
-    const double chroma = gui_forms::engine_hypotenuse(color.a, color.b);
+    const double chroma = stxlib::math::hypot(color.a, color.b);
     const double hue = chroma <= 1e-15 ? 0.0 : normalized_hue(
-        gui_forms::engine_arctangent2(color.b, color.a) * 180.0 /
+        stxlib::math::atan2(color.b, color.a) * 180.0 /
         3.14159265358979323846);
     return {color.lightness, chroma, hue, color.alpha};
 }
 
 Oklab oklch_to_oklab(Oklch color) {
     require_oklch(color);
-    const gui_forms::EngineSineCosine turn =
-        gui_forms::engine_sine_cosine_degrees(
-            normalized_hue(color.hue_degrees));
-    return {color.lightness, color.chroma * turn.cosine,
-            color.chroma * turn.sine, color.alpha};
+    double turn_sine = 0.0;
+    double turn_cosine = 0.0;
+    stxlib::math::sincosd(normalized_hue(color.hue_degrees), turn_sine, turn_cosine);
+    return {color.lightness, color.chroma * turn_cosine,
+            color.chroma * turn_sine, color.alpha};
 }
 
 SrgbConversion oklch_to_srgb(Oklch color) {

@@ -75,7 +75,7 @@ inline constexpr LampColour lamp_cyan{0.15, 0.85, 1.0};
 
 // A colour given as sRGB, such as a control's lamp colour property, as a
 // lamp's linear colour at unit power: each channel decoded by the sRGB
-// curve (through engine_power, so every host decodes alike). Alpha is
+// curve (through STXlib's pow, so every host decodes alike). Alpha is
 // ignored.
 [[nodiscard]] GUI_FORMS_API LampColour lamp_colour_from_srgb(Color colour) noexcept;
 

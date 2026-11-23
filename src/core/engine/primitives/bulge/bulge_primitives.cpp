@@ -1,7 +1,7 @@
 #include "bulge_primitives.hpp"
 
 #include "../kernel/pixel_kernel.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/engine/part_shape/part_shape.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 
@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <span>
 
-// Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
+// Identical bytes on every host: no fused multiply-add.
 // Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
 // 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
 // "Floating-point contraction").
@@ -62,7 +62,7 @@ double field_value(const FieldBox& box, double x, double y, double exponent) noe
     const double dy = (y - box.centre_y) / box.radius_y;
     const double t = std::sqrt(dx * dx + dy * dy);
     if (t >= 1.0) return 0.0;
-    const double falloff = engine_power(t, exponent);
+    const double falloff = stxlib::math::pow(t, exponent);
     const double value = 1.0 - falloff;
     return value;
 }

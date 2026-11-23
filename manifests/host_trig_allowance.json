@@ -1,4 +1,4 @@
 {
-  "description": "Files under src/core, src/controls and src/render that may still call the host's sin, cos, tan, atan2 or hypot (tools/host_trig_check.py), with their counts. Shrink only: new code calls include/gui_forms/engine/engine_math/engine_math.hpp.",
+  "description": "Files under src/core, src/controls and src/render that may still call the host's sin, cos, tan, atan2 or hypot (tools/host_trig_check.py), with their counts. Shrink only: new code calls stxlib/math.hpp (STXlib's math).",
   "allowance": {}
 }

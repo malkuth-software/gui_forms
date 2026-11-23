@@ -1,5 +1,5 @@
 #include "gui_forms/theme.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/theme/gui_forms_theme/gui_forms_theme.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
@@ -310,10 +310,12 @@ std::pair<Point, Point> resolve_css_linear_gradient(
     } else if (std::abs(angle - 270.0) < epsilon) {
         direction = {-1.0, 0.0};
     } else {
-        // The engine's deterministic sine and cosine (the same bits on
+        // STXlib's deterministic sine and cosine (the same bits on
         // every host).
-        const EngineSineCosine turn = engine_sine_cosine_degrees(angle);
-        direction = {turn.sine, -turn.cosine};
+        double turn_sine = 0.0;
+        double turn_cosine = 0.0;
+        stxlib::math::sincosd(angle, turn_sine, turn_cosine);
+        direction = {turn_sine, -turn_cosine};
     }
     const Point center{bounds.x + bounds.width * 0.5,
                        bounds.y + bounds.height * 0.5};

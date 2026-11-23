@@ -68,8 +68,8 @@ void settle_gamma_chromaticities(ColorEncoding& encoding) noexcept;
 //      binary search over 65535 precomputed thresholds.
 // Rounding rule: nearest 16-bit code, a value exactly on a threshold taking
 // the upper code. Error bound: within one 16-bit code of the exact result
-// (engine_power's 2^-49 relative error moves a value across a threshold only
-// within about 1e-13 of it); the subsequent 8-bit conversion rounds again.
+// (STXlib's pow, within 0.51 ulp, moves a value across a threshold only
+// within about 1e-15 of it); the subsequent 8-bit conversion rounds again.
 // work is reusable scratch (lookup tables) owned by the caller.
 struct ColorWorkspace final {
     // Decoded linear value per possible sample, 256 entries for 8-bit and

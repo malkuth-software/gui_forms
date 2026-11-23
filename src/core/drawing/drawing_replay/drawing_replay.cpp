@@ -1,7 +1,7 @@
 #include "gui_forms/drawing/drawing_replay/drawing_replay.hpp"
 #include "drawing_paint_path.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 
 #include <algorithm>
@@ -534,10 +534,12 @@ struct BrushReplay final {
     if (brush.kind == BrushKind::linear_gradient) {
         // The executor's line: through the bounds' centre at the brush's
         // angle, as long as the bounds' extent along it.
-        // The engine's deterministic sine and cosine, exact at quarter turns.
-        const EngineSineCosine along = engine_sine_cosine_degrees(brush.angle);
-        const double along_x = along.cosine;
-        const double along_y = along.sine;
+        // STXlib's deterministic sine and cosine, exact at quarter turns.
+        double along_sine = 0.0;
+        double along_cosine = 0.0;
+        stxlib::math::sincosd(brush.angle, along_sine, along_cosine);
+        const double along_x = along_cosine;
+        const double along_y = along_sine;
         const double half_length =
             std::abs(along_x) * brush.bounds.width / 2.0 + std::abs(along_y) * brush.bounds.height / 2.0;
         const Point centre{brush.bounds.x + brush.bounds.width / 2.0, brush.bounds.y + brush.bounds.height / 2.0};
@@ -561,7 +563,7 @@ struct BrushReplay final {
     // farthest boundary point.
     double radius = 0.0;
     for (const gui_drawing::PointF point : brush.points) {
-        radius = std::max(radius, engine_hypotenuse(point.x - brush.center.x, point.y - brush.center.y));
+        radius = std::max(radius, stxlib::math::hypot(point.x - brush.center.x, point.y - brush.center.y));
     }
     if (!(radius > 0.0)) {
         painter.fill_rect(area, primary);
@@ -575,9 +577,11 @@ struct BrushReplay final {
 // The point at `degrees` on the ellipse inscribed in `bounds` (clockwise,
 // y down, from +x).
 [[nodiscard]] Point ellipse_point(gui_drawing::RectF bounds, double degrees) noexcept {
-    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
-    const Point result{bounds.x + bounds.width * 0.5 + bounds.width * 0.5 * turn.cosine,
-                       bounds.y + bounds.height * 0.5 + bounds.height * 0.5 * turn.sine};
+    double turn_sine = 0.0;
+    double turn_cosine = 0.0;
+    stxlib::math::sincosd(degrees, turn_sine, turn_cosine);
+    const Point result{bounds.x + bounds.width * 0.5 + bounds.width * 0.5 * turn_cosine,
+                       bounds.y + bounds.height * 0.5 + bounds.height * 0.5 * turn_sine};
     return result;
 }
 

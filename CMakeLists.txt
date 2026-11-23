@@ -592,7 +592,6 @@ add_library(gui_forms_core STATIC
     src/core/theme/part_painting/part_painting.cpp
     src/core/theme/owner_draw/owner_draw.cpp
     src/core/engine/types/engine_types.cpp
-    src/core/engine/engine_math/engine_math.cpp
     src/core/engine/authored_gradient/authored_gradient.cpp
     src/core/engine/engine_expression/engine_expression.cpp
     src/core/engine/primitive_registry/primitive_registry.cpp
@@ -1139,11 +1138,12 @@ target_include_directories(gui_drawing_core PUBLIC
 target_include_directories(gui_drawing_core PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/generated/font_substitution)
 target_compile_features(gui_drawing_core PUBLIC cxx_std_20)
-# Drawing paths take the engine's trigonometry (engine_math, built into
-# gui_forms_core; drawing_support.hpp), so every program that links the
-# drawing core links the core too. gui_forms_core builds no drawing source,
-# so the link is one way.
-target_link_libraries(gui_drawing_core PRIVATE gui_forms_core)
+# Drawing replay paints through the core's Painter (drawing_replay.cpp), so
+# every program that links the drawing core links the core too.
+# gui_forms_core builds no drawing source, so the link is one way. Drawing
+# paths take STXlib's trigonometry (stxlib/math.hpp; drawing_support.hpp),
+# in stxlib::algorithms.
+target_link_libraries(gui_drawing_core PRIVATE gui_forms_core stxlib::algorithms)
 # The public include directory it shares holds headers that include STXlib's
 # (stxlib/optional.hpp), so its users get STXlib's include directory too; the
 # link adds nothing, since gui_forms_core already links stxlib::boundary.
@@ -1237,6 +1237,9 @@ target_include_directories(gui_forms_plot_primitives PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(gui_forms_plot_primitives PUBLIC gui_forms_core)
+# The scales' log10 and powers and the colormaps' sRGB curve are STXlib's
+# (stxlib/math.hpp).
+target_link_libraries(gui_forms_plot_primitives PRIVATE stxlib::algorithms)
 # The 3D scene's private renderer and its CONV surfaces (D5); no stx type is
 # public.
 target_link_libraries(gui_forms_plot_primitives PRIVATE stx_raster3d::stx_raster3d stx_conv::stx_conv)
@@ -2405,6 +2408,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
     target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+    # The timer page's easing calls STXlib's cosine (stxlib/math.hpp).
+    target_link_libraries(gui_forms_gallery_model PRIVATE stxlib::algorithms)
     # The lab and demonstration controls its pages show (audit F9).
     # Installed, the model names GUIForms::Lab (GUI_FORMS_INSTALL_LAB) and
     # GUIForms::DemoControls (installed beside it).
@@ -3831,9 +3836,10 @@ endif()
 # Gradient colours are the same either way: they interpolate in linear light
 # in integers (gui_forms/types/linear_light/linear_light.hpp).
 # A few sources keep contraction off in every build, listed with their reasons
-# after the loop below: engine_math, whose stated error bounds assume unfused
-# operations, and the value paths, whose results are numbers (parsed text,
-# layout lengths, theme values, motion samples), not pixels.
+# after the loop below: the value paths, whose results are numbers (parsed
+# text, layout lengths, theme values, motion samples), not pixels. The
+# transcendental functions are STXlib's (stxlib/math.hpp), compiled unfused
+# under STXlib's own flags whatever this option says.
 # A kernel that wants fusion spells it std::fma, so the choice is visible and
 # gives the same bits everywhere. The stx libraries (stx_zlib, stx_png,
 # stx_conv, stx_rtf2md, stx_vorbis) set -ffp-contract=off on their own targets
@@ -3886,8 +3892,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     endforeach()
     # Contraction off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC
     # says (each source also carries the Clang pragma; GCC reads only the flag):
-    # - engine_math: its stated error bounds (engine_math.hpp) assume each
-    #   operation rounds on its own;
     # - engine_expression and theme_value: theme values and expressions, the
     #   same text giving the same number on every host;
     # - value_text: a ValueBar's typed value, parsed as the expression engine
@@ -3897,7 +3901,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     # - theme_motion_lowering and motion_value: motion parameters and samples,
     #   whose settling decides when an animation ends.
     set_source_files_properties(
-        src/core/engine/engine_math/engine_math.cpp
         src/core/engine/engine_expression/engine_expression.cpp
         src/core/theme_language/value/theme_value.cpp
         src/controls/range_control/value_bar/value_text.cpp

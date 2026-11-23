@@ -1,6 +1,6 @@
 #include "gui_forms/layout/radial_layout/radial_layout.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 
 #include <algorithm>
@@ -42,8 +42,10 @@ double box_start(double anchor, double extent, double lean, double threshold) no
 }
 
 Point on_circle(Point center, double radius, double degrees) noexcept {
-    const EngineSineCosine direction = engine_sine_cosine(degrees * degrees_to_radians);
-    const Point point{center.x + radius * direction.cosine, center.y + radius * direction.sine};
+    double direction_sine = 0.0;
+    double direction_cosine = 0.0;
+    stxlib::math::sincos(degrees * degrees_to_radians, direction_sine, direction_cosine);
+    const Point point{center.x + radius * direction_cosine, center.y + radius * direction_sine};
     return point;
 }
 
@@ -74,13 +76,15 @@ std::size_t place_radial_items(const RadialLayout& layout, std::span<RadialSlot>
     const double height = layout.item_size.height;
     for (std::uint32_t index = 0U; index < layout.count; ++index) {
         const double direction = layout.start_degrees + sweep * static_cast<double>(index);
-        const EngineSineCosine lean = engine_sine_cosine(direction * degrees_to_radians);
-        const Point anchor{layout.center.x + layout.radius * lean.cosine,
-                           layout.center.y + layout.radius * lean.sine};
+        double lean_sine = 0.0;
+        double lean_cosine = 0.0;
+        stxlib::math::sincos(direction * degrees_to_radians, lean_sine, lean_cosine);
+        const Point anchor{layout.center.x + layout.radius * lean_cosine,
+                           layout.center.y + layout.radius * lean_sine};
         RadialSlot slot{};
         slot.anchor = anchor;
-        slot.bounds = Rect{box_start(anchor.x, width, lean.cosine, threshold),
-                           box_start(anchor.y, height, lean.sine, threshold), width, height};
+        slot.bounds = Rect{box_start(anchor.x, width, lean_cosine, threshold),
+                           box_start(anchor.y, height, lean_sine, threshold), width, height};
         slot.direction_degrees = direction;
         slot.sweep_start = direction - sweep * 0.5;
         slot.sweep = sweep;
@@ -94,9 +98,9 @@ RadialPick pick_radial_item(const RadialLayout& layout, Point pointer, double de
     if (!valid_radial_layout(layout) || !finite_point(pointer) || !std::isfinite(dead_zone)) return pick;
     const double dx = pointer.x - layout.center.x;
     const double dy = pointer.y - layout.center.y;
-    const double distance = engine_hypotenuse(dx, dy);
+    const double distance = stxlib::math::hypot(dx, dy);
     if (!(distance > 0.0) || distance <= dead_zone) return pick;
-    const double direction = normalised_degrees(engine_arctangent2(dy, dx) * radians_to_degrees);
+    const double direction = normalised_degrees(stxlib::math::atan2(dy, dx) * radians_to_degrees);
     const double sweep = 360.0 / static_cast<double>(layout.count);
     // From the first sector's start, so sector k spans [k sweep, (k+1) sweep).
     const double relative = normalised_degrees(direction - layout.start_degrees + sweep * 0.5);

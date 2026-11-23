@@ -1,5 +1,5 @@
 #include "card_turn.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <algorithm>
 #include <array>
@@ -38,13 +38,17 @@ struct CardAxes final {
 };
 
 CardAxes axes_of(double yaw, double pitch) noexcept {
-    // The engine's deterministic sine and cosine (the same bits on every host).
-    const EngineSineCosine yaw_turn = engine_sine_cosine(yaw);
-    const EngineSineCosine pitch_turn = engine_sine_cosine(pitch);
-    const double cos_yaw = yaw_turn.cosine;
-    const double sin_yaw = yaw_turn.sine;
-    const double cos_pitch = pitch_turn.cosine;
-    const double sin_pitch = pitch_turn.sine;
+    // STXlib's deterministic sine and cosine (the same bits on every host).
+    double yaw_turn_sine = 0.0;
+    double yaw_turn_cosine = 0.0;
+    stxlib::math::sincos(yaw, yaw_turn_sine, yaw_turn_cosine);
+    double pitch_turn_sine = 0.0;
+    double pitch_turn_cosine = 0.0;
+    stxlib::math::sincos(pitch, pitch_turn_sine, pitch_turn_cosine);
+    const double cos_yaw = yaw_turn_cosine;
+    const double sin_yaw = yaw_turn_sine;
+    const double cos_pitch = pitch_turn_cosine;
+    const double sin_pitch = pitch_turn_sine;
     CardAxes axes{};
     axes.across = Vector3{cos_yaw, sin_yaw * sin_pitch, -sin_yaw * cos_pitch};
     axes.down = Vector3{0.0, cos_pitch, sin_pitch};
@@ -133,8 +137,8 @@ constexpr std::array<double, 2> sub_offsets{0.25, 0.75};
 } // namespace
 
 bool card_front_faces_eye(double yaw, double pitch) noexcept {
-    const double cos_yaw = engine_sine_cosine(yaw).cosine;
-    const double cos_pitch = engine_sine_cosine(pitch).cosine;
+    const double cos_yaw = stxlib::math::cos(yaw);
+    const double cos_pitch = stxlib::math::cos(pitch);
     const bool front = cos_yaw * cos_pitch > 0.0;
     return front;
 }
@@ -143,7 +147,7 @@ bool valid_card_turn_pose(const CardTurnPose& pose) noexcept {
     if (!std::isfinite(pose.yaw) || !std::isfinite(pose.pitch)) return false;
     if (!(std::abs(pose.pitch) < half_pi)) return false;
     if (!pose.card.finite() || !(pose.card.width > 0.0) || !(pose.card.height > 0.0)) return false;
-    const double half_diagonal = 0.5 * engine_hypotenuse(pose.card.width, pose.card.height);
+    const double half_diagonal = 0.5 * stxlib::math::hypot(pose.card.width, pose.card.height);
     const bool far = std::isfinite(pose.eye) && pose.eye > half_diagonal;
     return far;
 }
