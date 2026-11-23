@@ -10,7 +10,7 @@ namespace gui_forms::plots {
 // (which sets the flag first and then waits for readers) either sees this
 // pin and waits for it, or this check sees the flag and backs out.
 bool SeriesLeaseState::pin() noexcept {
-    readers_.fetch_add(1U, std::memory_order_seq_cst);
+    static_cast<void>(readers_.fetch_add(1U, stxlib::MemoryOrder::sequential));
     if (!released_.load(std::memory_order_seq_cst)) return true;
     unpin();
     refused_.fetch_add(1U, std::memory_order_relaxed);
@@ -18,16 +18,16 @@ bool SeriesLeaseState::pin() noexcept {
 }
 
 void SeriesLeaseState::unpin() noexcept {
-    const std::uint32_t before = readers_.fetch_sub(1U, std::memory_order_seq_cst);
+    const std::uint32_t before = readers_.fetch_sub(1U, stxlib::MemoryOrder::sequential);
     if (before == 1U) readers_.notify_all();
 }
 
 void SeriesLeaseState::release() noexcept {
     released_.store(true, std::memory_order_seq_cst);
-    std::uint32_t readers = readers_.load(std::memory_order_seq_cst);
+    std::uint32_t readers = readers_.load(stxlib::MemoryOrder::sequential);
     while (readers != 0U) {
-        readers_.wait(readers, std::memory_order_seq_cst);
-        readers = readers_.load(std::memory_order_seq_cst);
+        static_cast<void>(readers_.wait(readers, stxlib::MemoryOrder::sequential));
+        readers = readers_.load(stxlib::MemoryOrder::sequential);
     }
 }
 

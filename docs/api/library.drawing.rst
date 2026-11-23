@@ -679,7 +679,7 @@ Types
 
    .. cpp:function:: const ContentFrameSink& sink() const noexcept
 
-   .. cpp:function:: std::stop_token stop_token() const noexcept
+   .. cpp:function:: stxlib::StopToken stop_token() const noexcept
 
       Fires when the surface asks the program to stop (terminate, close, leaving the window, the surface's destruction).
 
@@ -748,7 +748,7 @@ Types
 
    .. cpp:function:: bool revoked() const noexcept
 
-   .. cpp:function:: std::stop_token stop_token() const noexcept
+   .. cpp:function:: stxlib::StopToken stop_token() const noexcept
 
       The cooperative stop of the content's operation: fires when the surface asks the content to stop (ContentSurface::terminate, its destruction, a ContentWorker's stop). Content polls it or waits on it; GUI.Forms never stops a thread any other way. An empty sink's token never fires.
 
@@ -2549,7 +2549,7 @@ Types
 
       The display time a frame produced now would be shown for (the frame_time plan would answer), without deciding anything: a producer's motion ticks on it before it knows whether it will paint. ``now`` without display timing or for an empty pacer.
 
-   .. cpp:function:: LivePacingResult wait_for_frame(const std::stop_token& stop)
+   .. cpp:function:: LivePacingResult wait_for_frame(const stxlib::StopToken& stop)
 
       Blocks until plan would answer frame or deadline, or ``stop`` fires; one wait per frame on the surface's condition, never a fixed sleep. While idle it waits only for ``stop`` and arm().
 

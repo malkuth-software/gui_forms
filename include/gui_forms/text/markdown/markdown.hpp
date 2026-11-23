@@ -7,9 +7,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <optional>
-#include <stop_token>
 #include <string>
 #include <string_view>
+#include <stxlib/stop_token.hpp>
 #include <variant>
 #include <vector>
 
@@ -201,7 +201,7 @@ private:
 // the source is read and while its blocks are built.
 [[nodiscard]] GUI_FORMS_API MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document,
                                                  const MarkdownLimits& limits = MarkdownLimits{},
-                                                 std::stop_token cancellation = std::stop_token{});
+                                                 stxlib::StopToken cancellation = stxlib::StopToken{});
 
 // Writes the document's plain text into text, which is replaced: the
 // blocks' span texts joined by line feeds, a line break span as a line

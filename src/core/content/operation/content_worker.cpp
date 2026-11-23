@@ -5,6 +5,7 @@
 #include <stxlib/clocks.hpp>
 #include <stxlib/error.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 
 #include <algorithm>
@@ -249,8 +250,8 @@ std::uint64_t abandoned_content_workers() noexcept {
 
 ContentContext::ContentContext(ContentFrameSink sink) noexcept : sink_(std::move(sink)) {}
 
-std::stop_token ContentContext::stop_token() const noexcept {
-    std::stop_token token = sink_.stop_token();
+stxlib::StopToken ContentContext::stop_token() const noexcept {
+    stxlib::StopToken token = sink_.stop_token();
     return token;
 }
 

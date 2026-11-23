@@ -23,7 +23,7 @@ std::uint64_t DispatchOperation::sequence() const noexcept {
 }
 
 DispatchOperationState DispatchOperation::state() const noexcept {
-    return work_ ? (*work_).state.load(std::memory_order_acquire)
+    return work_ ? (*work_).state.load(stxlib::MemoryOrder::acquire)
                  : DispatchOperationState::invalid;
 }
 
@@ -34,9 +34,9 @@ bool DispatchOperation::pending() const noexcept {
 bool DispatchOperation::cancel() noexcept {
     if (!work_) return false;
     DispatchOperationState expected = DispatchOperationState::pending;
-    const bool cancelled = (*work_).state.compare_exchange_strong(
+    const bool cancelled = (*work_).state.compare_exchange(
         expected, DispatchOperationState::cancelled,
-        std::memory_order_acq_rel, std::memory_order_acquire);
+        stxlib::MemoryOrder::acquire_release, stxlib::MemoryOrder::acquire);
     if (cancelled) (*work_).state.notify_all();
     return cancelled;
 }
@@ -44,7 +44,7 @@ bool DispatchOperation::cancel() noexcept {
 std::exception_ptr DispatchOperation::exception() const noexcept {
     if (!work_) return {};
     // The faulted state publishes the fault (DispatchWork::fault).
-    const DispatchOperationState observed = (*work_).state.load(std::memory_order_acquire);
+    const DispatchOperationState observed = (*work_).state.load(stxlib::MemoryOrder::acquire);
     if (observed != DispatchOperationState::faulted) return {};
     return (*work_).fault;
 }
@@ -54,13 +54,13 @@ DispatchOperationState DispatchOperation::wait_terminal() const {
         throw std::logic_error(
             "GUI.Forms cannot wait for an invalid dispatch operation");
     }
-    DispatchOperationState observed = (*work_).state.load(std::memory_order_acquire);
+    DispatchOperationState observed = (*work_).state.load(stxlib::MemoryOrder::acquire);
     while (!dispatch_terminal(observed)) {
         // Wait on the state itself: completion can occur between the check
         // and sleeping. An unrelated condition variable could lose that wake
         // because publishers did not hold the waiter's completion mutex.
-        (*work_).state.wait(observed, std::memory_order_acquire);
-        observed = (*work_).state.load(std::memory_order_acquire);
+        (*work_).state.wait(observed, stxlib::MemoryOrder::acquire);
+        observed = (*work_).state.load(stxlib::MemoryOrder::acquire);
     }
     return observed;
 }

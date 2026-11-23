@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstring>
 #include <functional>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 #include <utility>
 
@@ -69,7 +70,11 @@ std::shared_ptr<ContentChannel> make_content_channel(ContentPixelSize size, bool
     description.opaque = opaque;
     std::shared_ptr<LiveSurface> surface = LiveSurface::create(description);
     if (!surface) return {};
+    // The stop state is STXlib's allocation: refused as the surface is.
+    stxlib::OperationResult<stxlib::StopSource> stop = stxlib::StopSource::create();
+    if (stop.failed()) return {};
     std::shared_ptr<ContentChannel> channel = std::make_shared<ContentChannel>(std::move(surface));
+    (*channel).stop = static_cast<stxlib::OperationResult<stxlib::StopSource>&&>(stop).take_value();
     // The first publication of any size reshapes the buffers: until then the
     // surface holds no frame, so its placeholder size is not a promise.
     (*channel).published_size = ContentPixelSize{};

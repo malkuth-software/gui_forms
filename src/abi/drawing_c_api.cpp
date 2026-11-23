@@ -15,7 +15,6 @@
 #include <limits>
 #include <memory>
 #include <new>
-#include <mutex>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -176,7 +175,7 @@ struct ObjectRecord final {
     // Drawing facade objects may be handed between framework threads. This
     // lock makes the selected operation order the order in which ABI calls
     // acquire each object. Concurrent access is deliberately serialized.
-    std::recursive_mutex operation_mutex;
+    stxlib::RecursiveMutex operation_mutex;
     // A bitmap's native surface refresh staging (drawing_platform.hpp):
     // empty until its first copying refresh, then kept at its size; used
     // under operation_mutex and destroyed once, with this record.
@@ -220,7 +219,7 @@ public:
     gd_result retain(gd_handle handle) {
         std::shared_ptr<ObjectRecord> record;
         if (!find_record(handle, record)) return stale("retain");
-        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        const stxlib::RecursiveLock operation_lock((*record).operation_mutex);
         if (!still_names(handle, record)) return stale("retain");
         if ((*record).owner_thread != stxlib::current_thread()) {
             (*(*record).object).handoff_to_current_thread();
@@ -243,7 +242,7 @@ public:
         // it.
         std::shared_ptr<ObjectRecord> record;
         if (!find_record(handle, record)) return stale("release");
-        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        const stxlib::RecursiveLock operation_lock((*record).operation_mutex);
         if (!still_names(handle, record)) return stale("release");
         if ((*record).owner_thread != stxlib::current_thread()) {
             (*(*record).object).handoff_to_current_thread();
@@ -277,7 +276,7 @@ public:
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
         }
-        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        const stxlib::RecursiveLock operation_lock((*record).operation_mutex);
         if ((*record).owner_thread != stxlib::current_thread()) {
             return wrong_thread("dispose");
         }
@@ -293,7 +292,7 @@ public:
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
         }
-        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        const stxlib::RecursiveLock operation_lock((*record).operation_mutex);
         if ((*record).owner_thread != stxlib::current_thread()) {
             return wrong_thread("object_state");
         }
@@ -310,7 +309,7 @@ public:
         if (const gd_result result = get(handle, 0U, record, true); result != GD_OK) {
             return result;
         }
-        const std::scoped_lock<std::recursive_mutex> operation_lock((*record).operation_mutex);
+        const stxlib::RecursiveLock operation_lock((*record).operation_mutex);
         *kind = (*record).kind;
         return GD_OK;
     }
@@ -324,7 +323,7 @@ public:
                                          serialized_handoff); result != GD_OK) {
             return result;
         }
-        std::scoped_lock operation_lock((*record).operation_mutex);
+        const stxlib::RecursiveLock operation_lock((*record).operation_mutex);
         if ((*record).owner_thread != stxlib::current_thread()) {
             (*(*record).object).handoff_to_current_thread();
             (*record).owner_thread = stxlib::current_thread();
@@ -350,7 +349,7 @@ public:
                                          serialized_handoff); result != GD_OK) {
             return result;
         }
-        std::scoped_lock operation_lock((*record).operation_mutex);
+        const stxlib::RecursiveLock operation_lock((*record).operation_mutex);
         if ((*record).owner_thread != stxlib::current_thread()) {
             (*(*record).object).handoff_to_current_thread();
             (*record).owner_thread = stxlib::current_thread();
@@ -377,8 +376,9 @@ public:
         if (const gd_result result = get(right_handle, right_kind, right_record, false,
                                          true);
             result != GD_OK) return result;
-        std::scoped_lock operation_lock((*left_record).operation_mutex,
-                                        (*right_record).operation_mutex);
+        const stxlib::MultiLock<stxlib::RecursiveMutex, 2> operation_lock(
+            (*left_record).operation_mutex,
+            (*right_record).operation_mutex);
         if ((*left_record).owner_thread != stxlib::current_thread()) {
             (*(*left_record).object).handoff_to_current_thread();
             (*left_record).owner_thread = stxlib::current_thread();
@@ -425,10 +425,11 @@ public:
                                     brush_record, false, true); result != GD_OK) return result;
         if (const gd_result result = get(format_handle, GD_OBJECT_STRING_FORMAT,
                                     format_record, false, true); result != GD_OK) return result;
-        std::scoped_lock operation_lock((*recorder_record).operation_mutex,
-                                        (*font_record).operation_mutex,
-                                        (*brush_record).operation_mutex,
-                                        (*format_record).operation_mutex);
+        const stxlib::MultiLock<stxlib::RecursiveMutex, 4> operation_lock(
+            (*recorder_record).operation_mutex,
+            (*font_record).operation_mutex,
+            (*brush_record).operation_mutex,
+            (*format_record).operation_mutex);
         const stxlib::ThreadIdentity current_thread = stxlib::current_thread();
         for (ObjectRecord* record : {recorder_record.get(), font_record.get(),
                                      brush_record.get(), format_record.get()}) {
@@ -465,9 +466,10 @@ public:
                                     font_record, false, true); result != GD_OK) return result;
         if (const gd_result result = get(format_handle, GD_OBJECT_STRING_FORMAT,
                                     format_record, false, true); result != GD_OK) return result;
-        std::scoped_lock operation_lock((*recorder_record).operation_mutex,
-                                        (*font_record).operation_mutex,
-                                        (*format_record).operation_mutex);
+        const stxlib::MultiLock<stxlib::RecursiveMutex, 3> operation_lock(
+            (*recorder_record).operation_mutex,
+            (*font_record).operation_mutex,
+            (*format_record).operation_mutex);
         const stxlib::ThreadIdentity current_thread = stxlib::current_thread();
         for (ObjectRecord* record : {recorder_record.get(), font_record.get(), format_record.get()}) {
             if ((*record).owner_thread != current_thread) {
@@ -525,7 +527,7 @@ private:
             if (slot == nullptr) return stale("operation");
             record = (*slot).record;
         }
-        std::scoped_lock operation_lock((*record).operation_mutex);
+        const stxlib::RecursiveLock operation_lock((*record).operation_mutex);
         if (!permit_serialized_handoff &&
             (*record).owner_thread != stxlib::current_thread()) {
             return wrong_thread("operation");

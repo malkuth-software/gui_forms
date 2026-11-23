@@ -23,8 +23,8 @@
 #include <chrono>
 #include <cstdint>
 #include <memory>
-#include <stop_token>
 #include <string>
+#include <stxlib/stop_token.hpp>
 
 namespace gui_forms {
 
@@ -53,7 +53,7 @@ public:
     [[nodiscard]] const ContentFrameSink& sink() const noexcept { return sink_; }
     // Fires when the surface asks the program to stop (terminate, close,
     // leaving the window, the surface's destruction).
-    [[nodiscard]] std::stop_token stop_token() const noexcept;
+    [[nodiscard]] stxlib::StopToken stop_token() const noexcept;
     [[nodiscard]] bool stop_requested() const noexcept;
     // ContentFrameSink::wait_for_request: also returns at once when a stop
     // is requested.

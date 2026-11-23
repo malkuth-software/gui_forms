@@ -24,33 +24,6 @@
 namespace gui_forms::host {
 namespace {
 
-// A held STXlib mutex that may be released and taken again before its scope
-// ends (a hand-over-hand section), and is released at the end if held.
-class ReleasableLock final {
-public:
-    explicit ReleasableLock(stxlib::Mutex& mutex) noexcept : mutex_(mutex) { mutex_.lock(); }
-    ~ReleasableLock() {
-        if (held_) mutex_.unlock();
-    }
-    ReleasableLock(const ReleasableLock&) = delete;
-    ReleasableLock& operator=(const ReleasableLock&) = delete;
-    ReleasableLock(ReleasableLock&&) = delete;
-    ReleasableLock& operator=(ReleasableLock&&) = delete;
-
-    void unlock() noexcept {
-        mutex_.unlock();
-        held_ = false;
-    }
-    void lock() noexcept {
-        mutex_.lock();
-        held_ = true;
-    }
-
-private:
-    stxlib::Mutex& mutex_;
-    bool held_{true};
-};
-
 struct CompatibilityPaintMetrics final {
     std::atomic<std::uint64_t> active{};
     std::atomic<std::uint64_t> requests{};
@@ -427,7 +400,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     // request already taken by the owner's drain, or an endpoint released
     // meanwhile, publishes nothing.
     void publish_requested_frame() noexcept {
-        ReleasableLock lock(state_mutex);
+        stxlib::UniqueLock lock(state_mutex);
         if (released || !publish_requested) return;
         publish_requested = false;
         const std::chrono::steady_clock::time_point started =

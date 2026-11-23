@@ -18,12 +18,13 @@
 #include <cstring>
 #include <filesystem>
 #include <memory>
+#include <new>
 #include <span>
-#include <stop_token>
 #include <string>
 #include <stxlib/files.hpp>
 #include <stxlib/optional.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 #include <stxlib/types.hpp>
 #include <stxlib/view.hpp>
@@ -132,6 +133,11 @@ public:
             trace_.reserve(maximum_trace_entries);
         }
         if (surface_) {
+            // The producer's stop: STXlib's allocation, refused as a thread
+            // that cannot start is.
+            stxlib::OperationResult<stxlib::StopSource> stop = stxlib::StopSource::create();
+            if (stop.failed()) throw std::bad_alloc();
+            stop_ = static_cast<stxlib::OperationResult<stxlib::StopSource>&&>(stop).take_value();
             worker_ = detail::start_library_thread(&WaterfallSurface::producer_main, this, "vsync lab producer");
         }
     }
@@ -525,7 +531,7 @@ private:
     // Idles the pacer until a setter arms it or the producer stops: no
     // periodic wake. The state is read again after idle(), so a setter's
     // arm() that came first is not lost (producer thread).
-    void idle_until_armed(const std::stop_token& stop) noexcept {
+    void idle_until_armed(const stxlib::StopToken& stop) noexcept {
         pacer_.idle();
         if (!nothing_to_render()) {
             pacer_.arm();
@@ -546,7 +552,7 @@ private:
     }
 
     void producer_loop() noexcept {
-        const std::stop_token stop = stop_.get_token();
+        const stxlib::StopToken stop = stop_.token();
         SurfaceSize size;
         size.width = surface_width;
         size.height = surface_height;
@@ -672,7 +678,7 @@ private:
     void stop_worker() noexcept {
         if (worker_.identity().present()) {
             // Wakes the pacer's wait as well.
-            stop_.request_stop();
+            static_cast<void>(stop_.request_stop());
             // Never the producer itself: only the UI thread stops it.
             static_cast<void>(worker_.join());
         }
@@ -715,7 +721,7 @@ private:
     // The producer's start on the steady clock, for aligning the trace.
     std::uint64_t trace_origin_nanoseconds_{};
     stxlib::Thread worker_;
-    std::stop_source stop_{};
+    stxlib::StopSource stop_{};
     std::atomic<std::uint64_t> deadline_wakes_{};
     std::atomic<std::uint64_t> missed_frames_{};
     // The control's size in device pixels (pack_surface_size), 0 before its

@@ -101,9 +101,9 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
     DispatchDrainResult result;
     for (const std::shared_ptr<gui_forms::detail::DispatchWork>& work : turn) {
         DispatchOperationState expected = DispatchOperationState::pending;
-        if (!(*work).state.compare_exchange_strong(
+        if (!(*work).state.compare_exchange(
                 expected, DispatchOperationState::running,
-                std::memory_order_acq_rel, std::memory_order_acquire)) {
+                stxlib::MemoryOrder::acquire_release, stxlib::MemoryOrder::acquire)) {
             if (expected == DispatchOperationState::cancelled) {
                 ++result.cancelled;
                 (*work).callback = {};
@@ -116,7 +116,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
             (!owner || !(*owner).is_alive() || (*owner).surface_root_ != this)) {
             (*work).callback = {};
             (*work).state.store(DispatchOperationState::cancelled,
-                              std::memory_order_release);
+                              stxlib::MemoryOrder::release);
             (*work).state.notify_all();
             ++result.cancelled;
             continue;
@@ -131,7 +131,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
             (*work).callback = {};
             callback();
             (*work).state.store(DispatchOperationState::completed,
-                              std::memory_order_release);
+                              stxlib::MemoryOrder::release);
             (*work).state.notify_all();
             ++result.invoked;
         } catch (...) {
@@ -139,7 +139,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
             (*work).fault = std::current_exception();
             (*work).callback = {};
             (*work).state.store(DispatchOperationState::faulted,
-                              std::memory_order_release);
+                              stxlib::MemoryOrder::release);
             (*work).state.notify_all();
             ++result.faulted;
         }
@@ -157,7 +157,7 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
         for (detail::DispatcherState::Queue::iterator current =
                  (*dispatcher_state_).queue.begin();
              current != (*dispatcher_state_).queue.end();) {
-            if ((*(*current)).state.load(std::memory_order_acquire) ==
+            if ((*(*current)).state.load(stxlib::MemoryOrder::acquire) ==
                 DispatchOperationState::cancelled) {
                 (*(*current)).callback = {};
                 current = (*dispatcher_state_).queue.erase(current);
@@ -208,7 +208,7 @@ void SurfaceRoot::set_dispatch_wake_handler(std::function<void()> wake_handler) 
             for (const std::shared_ptr<detail::DispatchWork>& work :
                  (*dispatcher_state_).queue) {
                 if ((*work).synchronous &&
-                    (*work).state.load(std::memory_order_acquire) ==
+                    (*work).state.load(stxlib::MemoryOrder::acquire) ==
                         DispatchOperationState::pending) {
                     synchronous_waiter = true;
                     break;
@@ -254,9 +254,9 @@ void SurfaceRoot::close_dispatcher() noexcept {
     std::uint64_t cancelled = 0U;
     for (const std::shared_ptr<gui_forms::detail::DispatchWork>& work : pending) {
         DispatchOperationState expected = DispatchOperationState::pending;
-        if ((*work).state.compare_exchange_strong(
+        if ((*work).state.compare_exchange(
                 expected, DispatchOperationState::cancelled,
-                std::memory_order_acq_rel, std::memory_order_acquire)) {
+                stxlib::MemoryOrder::acquire_release, stxlib::MemoryOrder::acquire)) {
             (*work).callback = {};
             (*work).state.notify_all();
             ++cancelled;

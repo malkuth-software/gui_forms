@@ -23,6 +23,7 @@
 #include <limits>
 #include <optional>
 #include <stxlib/files.hpp>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 
 #ifdef GUI_FORMS_AUDIO_VORBIS_STX
@@ -87,7 +88,7 @@ stxlib::Mutex& vorbis_open_mutex() {
 std::atomic<std::uint64_t> clip_bytes{0};
 #ifdef GUI_FORMS_AUDIO_TESTING
 thread_local std::size_t test_arena_bytes = vorbis_arena_bytes;
-thread_local std::stop_source* test_cancel_after_chunk = nullptr;
+thread_local stxlib::StopSource* test_cancel_after_chunk = nullptr;
 thread_local CancellationFlag* test_flag_after_chunk = nullptr;
 thread_local std::uint64_t test_clip_budget = clip_budget;
 #endif
@@ -418,7 +419,7 @@ AudioClipResult AudioClip::load_ogg_impl(const std::filesystem::path& path, cons
             }
             decoded_frames += count;
 #ifdef GUI_FORMS_AUDIO_TESTING
-            if (test_cancel_after_chunk != nullptr) { (*test_cancel_after_chunk).request_stop(); }
+            if (test_cancel_after_chunk != nullptr) { static_cast<void>((*test_cancel_after_chunk).request_stop()); }
             if (test_flag_after_chunk != nullptr) { (*test_flag_after_chunk).request(); }
 #endif
         }
@@ -434,13 +435,13 @@ AudioClipResult AudioClip::load_ogg_impl(const std::filesystem::path& path, cons
 
 namespace {
 struct LegacyAudioCancellation final {
-    const std::stop_token& token;
+    const stxlib::StopToken& token;
     [[nodiscard]] bool requested() const noexcept { return token.stop_requested(); }
 };
 } // namespace
 
 AudioClipResult AudioClip::load_ogg(const std::filesystem::path& path,
-                                  const std::stop_token cancellation) {
+                                  const stxlib::StopToken cancellation) {
     const LegacyAudioCancellation view{cancellation};
     return load_ogg_impl(path, view);
 }
@@ -580,7 +581,7 @@ struct AudioVoiceState final {
 
 #ifdef GUI_FORMS_AUDIO_TESTING
 void audio_test_decode_limits(std::size_t arena_bytes, std::uint64_t budget,
-                              std::stop_source* cancel_after_chunk) {
+                              stxlib::StopSource* cancel_after_chunk) {
     test_arena_bytes = std::min(arena_bytes, vorbis_arena_bytes);
     test_clip_budget = std::min(budget, clip_budget);
     test_cancel_after_chunk = cancel_after_chunk;

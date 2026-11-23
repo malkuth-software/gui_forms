@@ -25,6 +25,7 @@
 #include <signal.h>
 #include <spawn.h>
 #include <stxlib/clocks.hpp>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 #include <sys/mman.h>
 #include <sys/socket.h>
@@ -43,7 +44,6 @@
 #include <limits>
 #include <span>
 #include <stdexcept>
-#include <stop_token>
 #include <string>
 #include <utility>
 #include <vector>
@@ -384,18 +384,13 @@ private:
 };
 
 // Writes one byte to the wake pipe when the surface asks the program to
-// stop, so the worker's poll returns at once.
-class WakeOnStop final {
-public:
-    explicit WakeOnStop(int descriptor) noexcept : descriptor_(descriptor) {}
-    void operator()() const noexcept {
-        const std::byte signal_byte{1};
-        static_cast<void>(write(descriptor_, &signal_byte, 1U));
-    }
-
-private:
-    int descriptor_{-1};
-};
+// stop, so the worker's poll returns at once: a StopCallback's function,
+// whose `context` is the pipe's write descriptor (an int).
+void wake_on_stop(void* const context) noexcept {
+    const int descriptor = *static_cast<const int*>(context);
+    const std::byte signal_byte{1};
+    static_cast<void>(write(descriptor, &signal_byte, 1U));
+}
 
 // The environment the child starts with: the parent's, with the hosted
 // variables set.
@@ -751,7 +746,9 @@ void PosixHostedProgram::run(ContentContext& context) {
         ~InputGuard() { program.disconnect_input(); }
     };
     const InputGuard input_guard{*this};
-    const std::stop_callback<WakeOnStop> wake(context.stop_token(), WakeOnStop(wake_write.get()));
+    // Declared before the callback that borrows it.
+    int wake_descriptor = wake_write.get();
+    const stxlib::StopCallback wake(context.stop_token(), &wake_on_stop, &wake_descriptor);
 
     HostedMessageReader reader(true);
     HostedMessage message{};

@@ -3913,7 +3913,7 @@ Functions, constants and aliases
 
 ``#include <gui_forms/text/markdown/markdown.hpp>`` (:src:`source <include/gui_forms/text/markdown/markdown.hpp>`)
 
-.. cpp:function:: MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document, const MarkdownLimits& limits = MarkdownLimits{}, std::stop_token cancellation = std::stop_token{})
+.. cpp:function:: MarkdownParseResult parse_markdown(std::string_view source, MarkdownDocument& document, const MarkdownLimits& limits = MarkdownLimits{}, stxlib::StopToken cancellation = stxlib::StopToken{})
 
    Parses source into document, which is replaced; on failure document is empty. source is only read and must not change during the call; document keeps no borrow of it. Cancellation is observed once per block, while the source is read and while its blocks are built.
 

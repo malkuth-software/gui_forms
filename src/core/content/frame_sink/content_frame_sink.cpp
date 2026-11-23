@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cstdint>
 #include <stxlib/clocks.hpp>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 #include <utility>
 
@@ -77,9 +78,9 @@ bool ContentFrameSink::revoked() const noexcept {
     return result;
 }
 
-std::stop_token ContentFrameSink::stop_token() const noexcept {
-    if (!channel_) return std::stop_token{};
-    std::stop_token token = (*channel_).stop.get_token();
+stxlib::StopToken ContentFrameSink::stop_token() const noexcept {
+    if (!channel_) return stxlib::StopToken{};
+    stxlib::StopToken token = (*channel_).stop.token();
     return token;
 }
 

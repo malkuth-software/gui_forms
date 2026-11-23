@@ -24,7 +24,7 @@ thread_local RevocableInvokes* thread_revocable_invokes = nullptr;
 // refused post returns.
 DispatchOperation refused_operation(const std::shared_ptr<DispatcherState>& state) {
     std::shared_ptr<DispatchWork> refused = std::make_shared<DispatchWork>();
-    (*refused).state.store(DispatchOperationState::cancelled, std::memory_order_release);
+    (*refused).state.store(DispatchOperationState::cancelled, stxlib::MemoryOrder::release);
     (*refused).dispatcher = state;
     return DispatchOperation(std::move(refused));
 }
@@ -44,9 +44,9 @@ void revoke_invokes(RevocableInvokes& invokes) noexcept {
     // one is cancelled, which wakes its waiter. The owning dispatcher's turn
     // skips it, and its callback goes with the work.
     DispatchOperationState expected = DispatchOperationState::pending;
-    if ((*waiting).state.compare_exchange_strong(expected, DispatchOperationState::cancelled,
-                                                  std::memory_order_acq_rel,
-                                                  std::memory_order_acquire)) {
+    if ((*waiting).state.compare_exchange(expected, DispatchOperationState::cancelled,
+                                                  stxlib::MemoryOrder::acquire_release,
+                                                  stxlib::MemoryOrder::acquire)) {
         (*waiting).state.notify_all();
     }
 }

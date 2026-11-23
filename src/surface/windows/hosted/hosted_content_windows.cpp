@@ -61,6 +61,7 @@
 
 #include "gui_forms/content/hosted/hosted_content.hpp"
 
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 #include <windows.h>
 
@@ -75,7 +76,6 @@
 #include <optional>
 #include <span>
 #include <stdexcept>
-#include <stop_token>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -808,15 +808,12 @@ void spawn_child(const LaunchPlan& plan, std::uint64_t slot_bytes, HANDLE channe
 }
 
 // Sets the stop event when the surface asks the program to stop, so the
-// worker's wait returns at once.
-class WakeOnStop final {
-public:
-    explicit WakeOnStop(HANDLE event) noexcept : event_(event) {}
-    void operator()() const noexcept { static_cast<void>(SetEvent(event_)); }
-
-private:
-    HANDLE event_{};
-};
+// worker's wait returns at once: a StopCallback's function, whose
+// `context` is the event's HANDLE.
+void wake_on_stop(void* const context) noexcept {
+    const HANDLE event = *static_cast<const HANDLE*>(context);
+    static_cast<void>(SetEvent(event));
+}
 
 // The running program, on the content worker's thread.
 class WindowsHostedProgram final : public ContentProgram {
@@ -1049,7 +1046,9 @@ void WindowsHostedProgram::run(ContentContext& context) {
     };
     const InputGuard input_guard{*this};
     ChannelReader reader(parent_end.get(), read_event.get());
-    const std::stop_callback<WakeOnStop> wake(context.stop_token(), WakeOnStop(stop_event.get()));
+    // Declared before the callback that borrows it.
+    HANDLE wake_event = stop_event.get();
+    const stxlib::StopCallback wake(context.stop_token(), &wake_on_stop, &wake_event);
 
     HostedMessageReader messages(true);
     HostedMessage message{};

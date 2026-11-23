@@ -72,9 +72,9 @@ NAMES: tuple[str, ...] = (
     "span",
     # The STXlib shield (2026-11-22): the host's threads and files reach
     # GUI.Forms only through STXlib, so none of these names a public type.
-    # What remains: std::stop_token in the public stop parameters (a
-    # copyable stop token waits on STXlib) and std::filesystem (FilePath,
-    # std::filesystem::path, the public path type until a decision).
+    # What remains: std::filesystem (FilePath, std::filesystem::path, the
+    # public path type until a decision). The stop parameters are STXlib's
+    # StopToken.
     "thread",
     "jthread",
     "mutex",

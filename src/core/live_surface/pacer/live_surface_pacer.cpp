@@ -6,8 +6,8 @@
 
 #include <chrono>
 #include <cstdint>
-#include <stop_token>
 #include <stxlib/clocks.hpp>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 #include <utility>
 
@@ -34,20 +34,16 @@ constexpr FrameInterval fallback_refresh_period =
 // requests the stop (or in the callback's constructor, before the waiter
 // takes the lock); it takes the surface's lock so the wake cannot fall
 // between the waiter's check and its wait.
-class NotifyPacerStop final {
-public:
-    explicit NotifyPacerStop(detail::LiveSurfaceState& state) noexcept : state_(&state) {}
-    void operator()() const noexcept {
-        {
-            const stxlib::ScopedLock lock((*state_).mutex);
-            ++(*state_).wake_sequence;
-        }
-        (*state_).presented.notify_all();
+// A StopCallback's function (stxlib/stop_token.hpp); `context` is the
+// surface's detail::LiveSurfaceState.
+void notify_pacer_stop(void* const context) noexcept {
+    detail::LiveSurfaceState& state = *static_cast<detail::LiveSurfaceState*>(context);
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        ++state.wake_sequence;
     }
-
-private:
-    detail::LiveSurfaceState* state_;
-};
+    state.presented.notify_all();
+}
 
 // What a pacer's wait waits for, read under the surface's lock: a signal
 // since it planned (a report, arm() or the stop), seen as a new
@@ -135,7 +131,7 @@ LivePacingResult LiveSurfacePacer::plan_locked(FrameTime now, std::uint64_t publ
     return result;
 }
 
-LivePacingResult LiveSurfacePacer::wait_for_frame(const std::stop_token& stop) {
+LivePacingResult LiveSurfacePacer::wait_for_frame(const stxlib::StopToken& stop) {
     if (!surface_ || !(*surface_).state_) {
         LivePacingResult result;
         result.outcome = stop.stop_requested() ? LivePacingOutcome::stopped : LivePacingOutcome::frame;
@@ -145,7 +141,7 @@ LivePacingResult LiveSurfacePacer::wait_for_frame(const std::stop_token& stop) {
     detail::LiveSurfaceState& state = *(*surface_).state_;
     // Made before the lock is taken: a token already stopped runs the
     // callback here, and the callback takes the lock.
-    const std::stop_callback<NotifyPacerStop> on_stop(stop, NotifyPacerStop(state));
+    const stxlib::StopCallback on_stop(stop, &notify_pacer_stop, &state);
     stxlib::ScopedLock lock(state.mutex);
     for (;;) {
         if (stop.stop_requested()) {

@@ -6,7 +6,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
-#include <stop_token>
+#include <stxlib/stop_token.hpp>
 
 namespace gui_forms {
 
@@ -68,7 +68,7 @@ public:
     // Blocks until plan would answer frame or deadline, or `stop` fires;
     // one wait per frame on the surface's condition, never a fixed sleep.
     // While idle it waits only for `stop` and arm().
-    [[nodiscard]] LivePacingResult wait_for_frame(const std::stop_token& stop);
+    [[nodiscard]] LivePacingResult wait_for_frame(const stxlib::StopToken& stop);
     // A producer with nothing armed and nothing dirty: plan answers pending
     // with no wake time and wait_for_frame waits for arm() or stop. Any
     // thread may arm(); it wakes a waiting producer.

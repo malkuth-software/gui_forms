@@ -22,7 +22,7 @@
 #include <atomic>
 #include <cstdint>
 #include <memory>
-#include <stop_token>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 
 namespace gui_forms::detail {
@@ -67,8 +67,10 @@ struct ContentChannel final {
     mutable stxlib::ConditionVariable request_changed;
     ContentRequest request{};
     // The cooperative stop of the content's operation (ContentSurface::
-    // terminate, ContentWorker::request_stop): set once, never cleared.
-    std::stop_source stop{};
+    // terminate, ContentWorker::request_stop): set once, never cleared. Made
+    // by make_content_channel (StopSource::create) before the channel is
+    // shared, and never replaced.
+    stxlib::StopSource stop{};
 
     stxlib::Mutex semantics_mutex;
     ContentSemantics semantics{};

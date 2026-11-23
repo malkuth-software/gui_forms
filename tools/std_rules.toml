@@ -28,18 +28,15 @@ allowance = "tools/std_rules_allowance.txt"
 # The STXlib shield (2026-11-22): every route GUI.Forms takes to the host's
 # threads and files passes through STXlib, so the standard thread, lock,
 # wait, stop, file-stream and filesystem-operation vocabulary does not come
-# back. What remains is in the allowance, each with the STXlib addition it
-# waits for (the queue entry gui_forms__shield-threads-files lists them):
-# the C ABI's recursive operation lock (a recursive mutex and a
-# deadlock-avoiding multi-lock), the atomic waits (an atomic wait), the
-# public std::stop_token parameters (a copyable stop token, coming in
-# STXlib claude/threads-additions with the others). std::filesystem::path
+# back. The allowance is empty: the C ABI's recursive operation lock, the
+# atomic waits and the public stop parameters moved onto STXlib's
+# RecursiveMutex, MultiLock, AtomicWord and StopToken. std::filesystem::path
 # itself stays while FilePath is the public path type; the census
 # (tools/std_surface_census.py) counts it.
 [[rules]]
 id = "std-threads"
 what = "the standard thread, lock and wait vocabulary: GUI.Forms' threads and locks are STXlib's"
-instead = "stxlib/threads.hpp (Thread, Mutex, ScopedLock, ConditionVariable, OnceFlag, sleep_for, current_thread, processor_count)"
+instead = "stxlib/threads.hpp (Thread, Mutex, RecursiveMutex, ScopedLock, RecursiveLock, MultiLock, UniqueLock, ConditionVariable, OnceFlag, sleep_for, current_thread, processor_count)"
 qualified = ["thread", "jthread", "mutex", "recursive_mutex", "timed_mutex", "recursive_timed_mutex",
              "shared_mutex", "shared_timed_mutex", "condition_variable", "condition_variable_any",
              "unique_lock", "lock_guard", "scoped_lock", "shared_lock", "this_thread", "future",
@@ -50,13 +47,13 @@ headers = ["thread", "mutex", "shared_mutex", "condition_variable", "future", "s
 [[rules]]
 id = "std-atomic-wait"
 what = "std::atomic's wait and notify: the library's own parking, outside STXlib"
-instead = "a ConditionVariable with a predicate (stxlib/threads.hpp), until STXlib offers an atomic wait"
+instead = "stxlib::AtomicWord (stxlib/atomic_word.hpp): wait, notify_one, notify_all"
 patterns = ['\.\s*wait\s*\([^;()]*,\s*std\s*::\s*memory_order', '\batomic_(?:wait|notify_one|notify_all)\w*\s*\(']
 
 [[rules]]
 id = "std-stop-token"
 what = "std::stop_token, stop_source and stop_callback: the library's stop state, outside STXlib"
-instead = "stxlib::StopSignal (stxlib/threads.hpp) for a thread's own stop"
+instead = "stxlib/stop_token.hpp (StopSource, StopToken, StopCallback), or stxlib::StopSignal for a thread's own stop"
 qualified = ["stop_token", "stop_source", "stop_callback"]
 headers = ["stop_token"]
 
