@@ -36,7 +36,7 @@ inline constexpr std::string_view body_id_prefix = "gallery.body.";
 
 // Form-document pages first (their content is declared in gallery.form), then the
 // pages migrated from the retired Complete Showcase in their former order.
-inline constexpr std::array<GalleryPageSpec, 42> gallery_pages {{
+inline constexpr std::array<GalleryPageSpec, 48> gallery_pages {{
     {"basics", "Basic controls",
      "Form-document group of public TextBox, Button, CheckBox, RadioButton, LinkLabel and Label instances plus a composed UserControl lifecycle card.",
      false, "Information display"},
@@ -164,6 +164,26 @@ inline constexpr std::array<GalleryPageSpec, 42> gallery_pages {{
     {"controls-inspection", "Controls inspection",
      "Every stock control at rest in a fixed labelled grid of states, drawn by the window's theme alone.",
      true, "Diagnostics"},
+    // The DevExpress "demo only" takes (notes: planning/audits/
+    // DEVEXPRESS_OVERKILL_SURVEY_2026-11-22.md), composed from stock parts.
+    {"lookups-and-pickers", "Lookups and pickers",
+     "A zoom slider, a duration box, a date range, grid and tree lookups in popups, and a star rating, composed from stock controls.",
+     false, "Value setting"},
+    {"media-and-motion", "Media and motion",
+     "An image slider, a thumbnail gallery, scene transitions and a carousel on DrawingSurface, moved by Timers and still under reduced motion.",
+     false, "Drawing"},
+    {"navigation-patterns", "Navigation patterns",
+     "An accordion, a drawer, a guided tour, a floating mini toolbar, command search and a radial menu, composed from stock controls.",
+     false, "Menus and commands"},
+    {"dashboard-pieces", "Dashboard pieces",
+     "A widget view, a treemap, a bar gauge and a card view whose cards come from an editable markup template.",
+     false, "Information display"},
+    {"workspaces-and-themes", "Workspaces and themes",
+     "Named docking workspaces, a live-preview theme gallery and a streaming chat panel that points to the chat stress demonstrator.",
+     false, "Layout"},
+    {"ui-templates", "UI templates",
+     "Sign-in, settings, record and dashboard screens written as form documents, ready to copy into an application.",
+     false, "Components"},
 }};
 
 [[nodiscard]] constexpr const GalleryPageSpec* find_gallery_page(std::string_view id) noexcept

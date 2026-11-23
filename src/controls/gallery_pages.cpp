@@ -12,6 +12,7 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/list_view_values.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
@@ -19,11 +20,13 @@
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/rules/rule_set/rule_set.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
 
 #include "gallery.hpp"
+#include "gallery/page_sources.hpp"
 #include "gallery/pages/pages.hpp"
 #include "gallery_page_specs.hpp"
 
@@ -232,6 +235,86 @@ std::shared_ptr<PageContext> retained_page_context(const Window& window) {
     return *retained;
 }
 
+// The page header's Source button: it swaps the page body for a viewer of
+// the files that make the page (page_sources.hpp) and back. The viewer is
+// made on the first click, so a page nobody inspects carries only the
+// button.
+class PageSourceToggle final : public Component {
+public:
+    PageSourceToggle(std::string surface_id, std::string_view page_id, std::shared_ptr<Surface> page,
+                     std::shared_ptr<Surface> body, std::shared_ptr<Button> button, double strip_height)
+        : surface_id_(std::move(surface_id)), page_id_(page_id), page_(std::move(page)), body_(std::move(body)),
+          button_(std::move(button)), strip_height_(strip_height) {}
+
+    // Subscribes the button; call once the toggle is shared.
+    void connect() { on((*button_).clicked(), *this, &PageSourceToggle::on_clicked); }
+
+private:
+    void on_clicked() {
+        if (!viewer_) build_viewer();
+        showing_ = !showing_;
+        (*body_).visible = !showing_;
+        (*viewer_).visible = showing_;
+        (*button_).text = showing_ ? "Back to page" : "Source";
+    }
+
+    void build_viewer() {
+        files_ = page_sources::page_files(page_id_);
+        viewer_ = make_control<Surface>(StableId(surface_id_ + ".source-view"), Size{1000.0, 660.0});
+        static_cast<void>((*viewer_).add_class("shell-canvas"));
+        files_choice_ = make_control<ChoiceGroup>(StableId(surface_id_ + ".source-view.files"));
+        (*files_choice_).accessible_name = "Source file";
+        std::vector<ChoiceItem> items{};
+        for (std::size_t file = 0; file < files_.size(); ++file) {
+            const std::string_view path = (*files_[file]).path;
+            const std::size_t slash = path.rfind('/');
+            ChoiceItem item{};
+            item.id = static_cast<int>(file);
+            item.label = std::string(slash == std::string_view::npos ? path : path.substr(slash + 1U));
+            item.accessible_name = std::string(path);
+            items.push_back(std::move(item));
+        }
+        (*files_choice_).set_items(std::move(items));
+        (*viewer_).add_at(files_choice_, {0.0, 0.0, 1000.0, 28.0});
+        path_ = label(surface_id_ + ".source-view.path", "", 10.0, 400, "muted");
+        (*viewer_).add_at(path_, {0.0, 32.0, 1000.0, 18.0});
+        text_ = make_control<TextBox>(StableId(surface_id_ + ".source-view.text"));
+        (*text_).accessible_name = "Page source";
+        (*text_).multiline = true;
+        (*text_).read_only = true;
+        (*viewer_).add_at(text_, {0.0, 54.0, 1000.0, 600.0});
+        (*viewer_).visible = false;
+        (*page_).add_at(viewer_, {0.0, strip_height_, 1000.0, 660.0});
+        on((*files_choice_).changed(), *this, &PageSourceToggle::show_file);
+        if (files_.empty()) {
+            (*path_).text = "No source is embedded for this page";
+            return;
+        }
+        (*files_choice_).selected_index = 0;
+        show_file(0);
+    }
+
+    void show_file(int index) {
+        if (index < 0 || static_cast<std::size_t>(index) >= files_.size()) return;
+        const page_sources::EmbeddedSource& file = *files_[static_cast<std::size_t>(index)];
+        (*path_).text = std::string(file.path) + " · " + std::to_string(file.size) + " bytes";
+        (*text_).text = page_sources::file_text(file);
+    }
+
+    std::string surface_id_;
+    std::string_view page_id_;
+    std::shared_ptr<Surface> page_;
+    std::shared_ptr<Surface> body_;
+    std::shared_ptr<Button> button_;
+    double strip_height_{};
+    std::vector<const page_sources::EmbeddedSource*> files_{};
+    std::shared_ptr<Surface> viewer_;
+    std::shared_ptr<ChoiceGroup> files_choice_;
+    std::shared_ptr<Label> path_;
+    std::shared_ptr<TextBox> text_;
+    bool showing_{};
+};
+
 } // namespace
 
 void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> compiled) {
@@ -361,7 +444,10 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
                                              15.0, 700, "heading");
         (*title).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 15.0, 700, false});
-        (*page).add_at(title, {0.0, 4.0, 1000.0, 22.0});
+        (*page).add_at(title, {0.0, 4.0, 870.0, 22.0});
+        std::shared_ptr<Button> source = make_control<Button>(StableId(surface_id + ".source"), "Source");
+        (*source).accessible_name = "Show the source of " + std::string(spec.title);
+        (*page).add_at(source, {880.0, 2.0, 120.0, 24.0});
         if (demonstrated.empty()) {
             std::shared_ptr<Label> summary = label(surface_id + ".summary",
                                                    std::string(spec.summary), 10.0, 400, "muted");
@@ -392,6 +478,10 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         const double page_height = strip_height + body_height;
         (*body).design_size = Size{1000.0, body_height};
         (*page).set_design_bounds(*body, {0.0, strip_height, 1000.0, body_height});
+        const std::shared_ptr<PageSourceToggle> source_toggle =
+            std::make_shared<PageSourceToggle>(surface_id, spec.id, page, body, source, strip_height);
+        (*context).components.add(source_toggle);
+        (*source_toggle).connect();
         (*page).design_size = Size{1000.0, page_height};
         (*page).set_bounds({0.0, 0.0, 1000.0, page_height});
         (*viewport).auto_scroll_min_size = {1000.0, page_height};

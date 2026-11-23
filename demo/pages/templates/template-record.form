@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- UI template: a record (detail) screen, for the Gallery's ui-templates
+   page (src/controls/gallery/pages/ui-templates.cpp): one customer's
+   fields with record navigation. The page fills the fields from a small
+   fixture and moves between its records.
+   gui_forms_add_form() compiles it into template-record_form.hpp. -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.templates.record.document"
+    design-size="640 460">
+  <label id="gallery.templates.record.title"
+      text="Customer"
+      classes="heading page-title"
+      bounds="12 4 400 30"/>
+  <label id="gallery.templates.record.position"
+      text=""
+      classes="muted body"
+      bounds="420 10 208 20"/>
+  <scaled-group-box id="gallery.templates.record.details"
+      text="Details"
+      classes="paper group-caption"
+      design-size="616 300"
+      bounds="12 44 616 300">
+    <label id="gallery.templates.record.name.caption"
+        text="Name"
+        classes="ink"
+        bounds="14 36 120 22"/>
+    <text-box id="gallery.templates.record.name"
+        accessible-name="Name"
+        bounds="140 32 460 28"/>
+    <label id="gallery.templates.record.company.caption"
+        text="Company"
+        classes="ink"
+        bounds="14 74 120 22"/>
+    <text-box id="gallery.templates.record.company"
+        accessible-name="Company"
+        bounds="140 70 460 28"/>
+    <label id="gallery.templates.record.email.caption"
+        text="Email"
+        classes="ink"
+        bounds="14 112 120 22"/>
+    <text-box id="gallery.templates.record.email"
+        accessible-name="Email"
+        bounds="140 108 460 28"/>
+    <label id="gallery.templates.record.phone.caption"
+        text="Phone"
+        classes="ink"
+        bounds="14 150 120 22"/>
+    <text-box id="gallery.templates.record.phone"
+        accessible-name="Phone"
+        bounds="140 146 220 28"/>
+    <label id="gallery.templates.record.status.caption"
+        text="Status"
+        classes="ink"
+        bounds="376 150 60 22"/>
+    <combo-box id="gallery.templates.record.status"
+        accessible-name="Status"
+        items="Lead Active Dormant"
+        selected-index="1"
+        bounds="440 146 160 28"/>
+    <label id="gallery.templates.record.since.caption"
+        text="Customer since"
+        classes="ink"
+        bounds="14 188 120 22"/>
+    <date-time-picker id="gallery.templates.record.since"
+        accessible-name="Customer since"
+        bounds="140 184 220 28"/>
+    <check-box id="gallery.templates.record.newsletter"
+        text="Receives the newsletter"
+        bounds="376 186 224 26"/>
+    <label id="gallery.templates.record.notes.caption"
+        text="Notes"
+        classes="ink"
+        bounds="14 226 120 22"/>
+    <text-box id="gallery.templates.record.notes"
+        accessible-name="Notes"
+        bounds="140 222 460 64"/>
+  </scaled-group-box>
+  <button id="gallery.templates.record.previous"
+      text="Previous"
+      bounds="12 360 110 32"/>
+  <button id="gallery.templates.record.next"
+      text="Next"
+      bounds="132 360 110 32"/>
+  <button id="gallery.templates.record.delete"
+      text="Delete"
+      bounds="388 360 110 32"/>
+  <button id="gallery.templates.record.save"
+      text="Save"
+      visual-style="accent"
+      bounds="508 360 120 32"/>
+  <label id="gallery.templates.record.message"
+      text=""
+      classes="muted body"
+      bounds="12 404 616 22"/>
+</scaled-panel>

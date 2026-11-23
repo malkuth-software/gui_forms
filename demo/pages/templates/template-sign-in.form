@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- UI template: a sign-in screen, for the Gallery's ui-templates page
+   (src/controls/gallery/pages/ui-templates.cpp). A starting point to copy
+   into an application's own form: every control here is stock, and the
+   page adds only the check that the fields are filled in.
+   gui_forms_add_form() compiles it into template-sign-in_form.hpp. The password
+   box's masking is set by the page (use_system_password_character). -->
+<scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.templates.sign-in.document"
+    design-size="640 460">
+  <scaled-group-box id="gallery.templates.sign-in.card"
+      text="Sign in"
+      classes="paper group-caption"
+      design-size="340 380"
+      bounds="150 30 340 380">
+    <label id="gallery.templates.sign-in.title"
+        text="Welcome back"
+        classes="heading page-title"
+        bounds="24 34 292 30"/>
+    <label id="gallery.templates.sign-in.subtitle"
+        text="Sign in to continue to your workspace."
+        classes="muted body"
+        bounds="24 66 292 20"/>
+    <label id="gallery.templates.sign-in.email.caption"
+        text="Email"
+        classes="ink"
+        bounds="24 100 292 18"/>
+    <text-box id="gallery.templates.sign-in.email"
+        accessible-name="Email"
+        placeholder-text="name@example.com"
+        bounds="24 120 292 30"/>
+    <label id="gallery.templates.sign-in.password.caption"
+        text="Password"
+        classes="ink"
+        bounds="24 160 292 18"/>
+    <text-box id="gallery.templates.sign-in.password"
+        accessible-name="Password"
+        bounds="24 180 292 30"/>
+    <check-box id="gallery.templates.sign-in.remember"
+        text="Keep me signed in"
+        bounds="24 220 180 26"/>
+    <button id="gallery.templates.sign-in.forgot"
+        text="Forgot password?"
+        bounds="196 220 120 26"/>
+    <button id="gallery.templates.sign-in.submit"
+        text="Sign in"
+        visual-style="accent"
+        bounds="24 260 292 34"/>
+    <label id="gallery.templates.sign-in.message"
+        text=""
+        classes="muted body"
+        bounds="24 300 292 20"/>
+    <label id="gallery.templates.sign-in.create"
+        text="New here? Create an account."
+        classes="muted body"
+        bounds="24 330 292 20"/>
+  </scaled-group-box>
+</scaled-panel>

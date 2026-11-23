@@ -2298,6 +2298,12 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/industrial-surfaces.cpp
         src/controls/gallery/pages/node-graphs.cpp
         src/controls/gallery/pages/composite-controls.cpp
+        src/controls/gallery/pages/lookups-and-pickers.cpp
+        src/controls/gallery/pages/media-and-motion.cpp
+        src/controls/gallery/pages/navigation-patterns.cpp
+        src/controls/gallery/pages/dashboard-pieces.cpp
+        src/controls/gallery/pages/workspaces-and-themes.cpp
+        src/controls/gallery/pages/ui-templates.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -2308,6 +2314,25 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         demo/gallery_instrument.cpp
         demo/gallery_parts.cpp
     )
+    # The page header's Source button (src/controls/gallery/page_sources.hpp):
+    # the page builders, the shared page parts and the page documents,
+    # embedded at build time by cmake/GalleryPageSources.cmake into an
+    # include beside the generated forms; only gallery_pages.cpp reads it.
+    file(GLOB gui_forms_gallery_embedded_sources CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/controls/gallery/pages/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/controls/gallery/pages/demo_parts.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/pages/*.form"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/pages/templates/*.form"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/gallery_form_pages.form")
+    set(gui_forms_gallery_page_sources_include "${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms/gallery_page_sources.inc")
+    add_custom_command(OUTPUT "${gui_forms_gallery_page_sources_include}"
+        COMMAND "${CMAKE_COMMAND}" "-DROOT=${CMAKE_CURRENT_SOURCE_DIR}"
+                "-DOUTPUT=${gui_forms_gallery_page_sources_include}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GalleryPageSources.cmake"
+        DEPENDS ${gui_forms_gallery_embedded_sources} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GalleryPageSources.cmake"
+        COMMENT "Embedding the Gallery page sources for the Source button"
+        VERBATIM)
+    target_sources(gui_forms_gallery_model PRIVATE "${gui_forms_gallery_page_sources_include}")
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/demo>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/controls>
@@ -2473,6 +2498,20 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         COMPOSITES
             "demo/composites/toggle-pill.control,gui_forms::gallery::composites::TogglePill,toggle_pill_control.hpp"
             "demo/composites/card-with-action.control,gui_forms::gallery::composites::CardWithAction,card_with_action_control.hpp")
+    # The ui-templates page's four starting screens, one document class
+    # each, placed on the page whole.
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/templates/template-sign-in.form
+        CLASS TemplateSignInDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ui-templates.cpp)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/templates/template-settings.form
+        CLASS TemplateSettingsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ui-templates.cpp)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/templates/template-record.form
+        CLASS TemplateRecordDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ui-templates.cpp)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/templates/template-dashboard.form
+        CLASS TemplateDashboardDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ui-templates.cpp)
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery CHECK
@@ -2603,6 +2642,20 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_process_control_model PUBLIC
         gui_forms_controls)
 
+    # The data-workbench demonstrator (owner, 2026-11-22; the DevExpress
+    # survey's grid takes): fifty thousand orders on a virtual DataGridView
+    # with a find panel, a column chooser, layouts, summaries and a CRM
+    # dashboard (demo/data_workbench/data_workbench.hpp).
+    add_library(gui_forms_data_workbench_model STATIC
+        demo/data_workbench/data_workbench.cpp
+    )
+    target_include_directories(gui_forms_data_workbench_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo/data_workbench
+    )
+    target_link_libraries(gui_forms_data_workbench_model PUBLIC
+        gui_forms_controls)
+
     add_library(gui_forms_custom_chrome_lab_model STATIC
         demo/custom_chrome_lab.cpp
     )
@@ -2695,6 +2748,25 @@ if(GUI_FORMS_BUILD_GALLERY)
             MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms Process Control"
+        )
+
+        add_executable(gui_forms_data_workbench MACOSX_BUNDLE
+            src/host/macos/data_workbench_main.mm
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_data_workbench PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_data_workbench PRIVATE
+            gui_forms_data_workbench_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_data_workbench PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Data Workbench"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.data-workbench"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Data Workbench"
         )
 
         add_executable(gui_forms_vsync_lab MACOSX_BUNDLE
@@ -2876,6 +2948,19 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_process_control_windows PROPERTIES
             OUTPUT_NAME "GUI.Forms Process Control"
+        )
+
+        add_executable(gui_forms_data_workbench_windows
+            src/host/windows/data_workbench_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_data_workbench_windows PRIVATE
+            gui_forms_data_workbench_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_data_workbench_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Data Workbench"
         )
 
         # The Gallery under Application::run, so menus open in Popup
@@ -3064,6 +3149,19 @@ if(GUI_FORMS_BUILD_GALLERY)
         )
         set_target_properties(gui_forms_process_control_linux PROPERTIES
             OUTPUT_NAME "gui-forms-process-control"
+        )
+
+        add_executable(gui_forms_data_workbench_linux
+            src/host/linux/data_workbench_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_data_workbench_linux PRIVATE
+            gui_forms_data_workbench_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_data_workbench_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-data-workbench"
         )
 
         add_executable(gui_forms_compositor_lab_linux
@@ -3449,6 +3547,7 @@ set(gui_forms_font_sources)
 foreach(gallery_program IN ITEMS
         gui_forms_gallery_windows
         gui_forms_process_control_windows
+        gui_forms_data_workbench_windows
         gui_forms_vsync_lab_windows
         gui_forms_visual_inspector_lab_windows
         gui_forms_layered_material_lab_windows
@@ -3460,6 +3559,7 @@ foreach(gallery_program IN ITEMS
         gui_forms_correspondence_windows
         gui_forms_gallery_linux
         gui_forms_process_control_linux
+        gui_forms_data_workbench_linux
         gui_forms_correspondence_linux)
     if(TARGET ${gallery_program})
         list(APPEND gui_forms_font_programs ${gallery_program})
