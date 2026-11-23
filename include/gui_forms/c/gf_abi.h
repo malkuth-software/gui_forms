@@ -169,6 +169,8 @@ typedef uint32_t gf_table_id;
 #define GF_TABLE_CONTENT 25u
 /* Since 1.5: a list view's columns, items, groups and selection. */
 #define GF_TABLE_LIST_VIEW 26u
+/* Since 1.6: the marks a program sets for the library's MCP automation. */
+#define GF_TABLE_AUTOMATION 27u
 /* Platform extension tables have ids from 0x100. A library has one only on
  * its platform, and reports it as a host capability; elsewhere
  * gf_abi_get_table gives GF_STATUS_NOT_FOUND. */
@@ -6728,6 +6730,220 @@ typedef struct gf_list_view_table {
     // ic: columns.), unchanged.
     gf_status (GF_CALL* sort_items)(gf_object view, uint64_t column, gf_list_view_sort_order order);
 } gf_list_view_table;
+
+/*
+ * GF_TABLE_AUTOMATION (since 1.6): the marks a program sets for the
+ * library's MCP automation (C++ gui_forms/automation/marks/
+ * automation_marks.hpp; notes:planning/studies/MCP_AUTOMATION_STUDY.md).
+ * A program built with the automation serves its windows to a model over
+ * MCP when started with --mcp; these marks say what a model may do there.
+ * A build without the automation (a high-integrity build, or one configured
+ * with GUI_FORMS_MCP off) keeps the marks and serves nothing:
+ * capability_built answers 0. Any thread may set the stable-ID marks; the
+ * window marks are UI thread only.
+ *
+ * A program also declares its own model tools and inspect sections here
+ * (C++ gui_forms/automation/tools/model_tools.hpp, the same registry the
+ * library's own extensions use). A tool is a gf_automation_tool record: its
+ * name, texts, access and flags, and its callbacks with their context,
+ * like a class table's. The safety rules hold for every tool: a
+ * destructive one asks the user's one question of the launch first and is
+ * refused after Don't Allow; an acting one runs on the UI thread and is
+ * refused while a dialog the program did not instrument is open; the
+ * program answers for what its replies contain and must not put a password
+ * field's text in one.
+ *
+ * Actions are numbered as gf_automation_action. Stable IDs and texts are
+ * read during the call and copied.
+ */
+
+/* gf_automation_action: a semantic action a mark names (the C++
+ * SemanticAction's values). */
+typedef uint32_t gf_automation_action;
+#define GF_AUTOMATION_ACTION_FOCUS 0u
+#define GF_AUTOMATION_ACTION_PRESS 1u
+#define GF_AUTOMATION_ACTION_SELECT 2u
+#define GF_AUTOMATION_ACTION_INCREMENT 3u
+#define GF_AUTOMATION_ACTION_DECREMENT 4u
+#define GF_AUTOMATION_ACTION_EXPAND 5u
+#define GF_AUTOMATION_ACTION_COLLAPSE 6u
+#define GF_AUTOMATION_ACTION_SHOW_MENU 7u
+#define GF_AUTOMATION_ACTION_SET_VALUE 8u
+#define GF_AUTOMATION_ACTION_CLOSE 9u
+
+/* gf_automation_tool_access: what a tool may do, as MCP's annotations tell
+ * the client. */
+typedef uint32_t gf_automation_tool_access;
+#define GF_AUTOMATION_TOOL_READ_ONLY 0u
+#define GF_AUTOMATION_TOOL_ACTING 1u
+
+/* gf_automation_tool_flags: a tool's marks. DESTRUCTIVE: every call
+ * changes something the user cannot take back (the launch's question is
+ * asked first). ANY_THREAD: the call runs off the UI thread and touches no
+ * control (read-only tools only). SETTLES: an acting tool's call runs as an
+ * act, posted and waited on until the window is idle, its reply followed by
+ * what changed. */
+typedef uint32_t gf_automation_tool_flags;
+#define GF_AUTOMATION_TOOL_DESTRUCTIVE 0x1u
+#define GF_AUTOMATION_TOOL_ANY_THREAD 0x2u
+#define GF_AUTOMATION_TOOL_SETTLES 0x4u
+
+/* gf_automation_tool_error: the named failure a tool answers (the C++
+ * ModelToolError's values), reaching the model as its name. */
+typedef uint32_t gf_automation_tool_error;
+#define GF_AUTOMATION_TOOL_ERROR_NOT_FOUND 0u
+#define GF_AUTOMATION_TOOL_ERROR_STALE_IDENTITY 1u
+#define GF_AUTOMATION_TOOL_ERROR_AMBIGUOUS 2u
+#define GF_AUTOMATION_TOOL_ERROR_DISABLED 3u
+#define GF_AUTOMATION_TOOL_ERROR_NOT_VISIBLE 4u
+#define GF_AUTOMATION_TOOL_ERROR_UNSUPPORTED_ACTION 5u
+#define GF_AUTOMATION_TOOL_ERROR_DIALOG_OPEN 6u
+#define GF_AUTOMATION_TOOL_ERROR_NEEDS_USER 7u
+#define GF_AUTOMATION_TOOL_ERROR_USER_TOOK_CONTROL 8u
+#define GF_AUTOMATION_TOOL_ERROR_DECLINED 9u
+#define GF_AUTOMATION_TOOL_ERROR_PROTECTED_CONTENT 10u
+#define GF_AUTOMATION_TOOL_ERROR_TIMEOUT 11u
+#define GF_AUTOMATION_TOOL_ERROR_NOT_IN_THIS_BUILD 12u
+#define GF_AUTOMATION_TOOL_ERROR_INVALID_ARGUMENTS 13u
+#define GF_AUTOMATION_TOOL_ERROR_UNKNOWN_TOOL 14u
+#define GF_AUTOMATION_TOOL_ERROR_WINDOW_GONE 15u
+#define GF_AUTOMATION_TOOL_ERROR_CANCELLED 16u
+#define GF_AUTOMATION_TOOL_ERROR_BUSY 17u
+#define GF_AUTOMATION_TOOL_ERROR_INTERNAL 18u
+
+/* One call of a tool, lent to its call callback: the arguments (one JSON
+ * object), who is calling as the client states it, the stable ID of the
+ * window the call names (empty for an ANY_THREAD tool), and reply, the
+ * token the reply slots fill, valid until the callback returns. */
+typedef struct gf_automation_tool_call {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view arguments_json;
+    gf_utf8_view client_name;
+    gf_utf8_view model_name;
+    gf_utf8_view window_id;
+    void* reply;
+} gf_automation_tool_call;
+
+/*
+ * A tool's declaration (since 1.6): name is 1 to 64 bytes of ASCII
+ * letters, digits, '_', '-' and '.', starting with a letter, and not a
+ * built-in tool's or a command's (command.<id>); title may be empty;
+ * description, at most 4096 bytes, tells the model what it does;
+ * input_schema is the arguments' JSON Schema, one object of at most 16384
+ * bytes, or empty for any object. The texts are copied. call is required
+ * and runs on the UI thread of the program's first window (off it for an
+ * ANY_THREAD tool); it fills its reply through reply_text, reply_structured,
+ * reply_image and reply_fail, and a reply left empty succeeds with no text.
+ * release, which may be null, is called once with context when the tool is
+ * unregistered, after its last call returned. reserved is zero.
+ */
+typedef struct gf_automation_tool {
+    uint32_t struct_size;
+    gf_automation_tool_access access;
+    gf_automation_tool_flags flags;
+    uint32_t reserved;
+    gf_utf8_view name;
+    gf_utf8_view title;
+    gf_utf8_view description;
+    gf_utf8_view input_schema;
+    void* context;
+    void (GF_CALL* call)(void* context, const gf_automation_tool_call* call);
+    void (GF_CALL* release)(void* context);
+} gf_automation_tool;
+
+/* One inspect request, lent to a section's inspect callback (UI thread):
+ * the window's stable ID, the stable ID of the node the call named (empty
+ * for none), the call's arguments, and text, the token inspect_append
+ * fills, valid until the callback returns. */
+typedef struct gf_automation_inspect_call {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view window_id;
+    gf_utf8_view node_id;
+    gf_utf8_view arguments_json;
+    void* text;
+} gf_automation_inspect_call;
+
+/* An inspect section's declaration (since 1.6): name follows the tool name
+ * rule and is inspect's `what`; description tells the model what it shows.
+ * inspect is required; release, which may be null, is called once with
+ * context when the section is unregistered. reserved is zero. */
+typedef struct gf_automation_inspect_section {
+    uint32_t struct_size;
+    uint32_t reserved;
+    gf_utf8_view name;
+    gf_utf8_view description;
+    void* context;
+    void (GF_CALL* inspect)(void* context, const gf_automation_inspect_call* call);
+    void (GF_CALL* release)(void* context);
+} gf_automation_inspect_section;
+
+typedef struct gf_automation_table {
+    uint32_t struct_size;
+    uint32_t abi_minor;
+    /* 1 into built when this library serves MCP automation, else 0. */
+    gf_status (GF_CALL* capability_built)(uint32_t* built);
+    /* Whether a model may drive window while it is a dialog (study 9.2): a
+     * dialog refuses the model unless its program instrumented it. window
+     * is a windows.create window; GF_STATUS_WRONG_HANDLE_KIND for another
+     * object. */
+    gf_status (GF_CALL* set_window_drivable)(gf_object window, uint32_t drivable);
+    /* Whether every act in window is destructive: the model's first one
+     * asks the user once for the launch. */
+    gf_status (GF_CALL* set_window_destructive)(gf_object window, uint32_t destructive);
+    /* Whether action on the node stable_id (a control's or a virtual
+     * child's) is destructive. GF_STATUS_INVALID_ARGUMENT for an empty ID,
+     * one past 4096 bytes, or an unknown action. */
+    gf_status (GF_CALL* set_action_destructive)(gf_utf8_view stable_id, gf_automation_action action,
+                                                uint32_t destructive);
+    /* Hides the command stable_id from the model's tool list, or shows it
+     * again. */
+    gf_status (GF_CALL* set_command_hidden)(gf_utf8_view stable_id, uint32_t hidden);
+    /* Marks a step only the user may do on stable_id (a sign-in, a
+     * payment): the model is told what and waits for it (study 9.3). what
+     * is shown to the user; both 1 to 4096 bytes. */
+    gf_status (GF_CALL* require_user_step)(gf_utf8_view stable_id, gf_utf8_view what);
+    /* The user did the step on stable_id; nothing for an ID with none. */
+    gf_status (GF_CALL* complete_user_step)(gf_utf8_view stable_id);
+    /* 1 into pending while a step on stable_id waits for the user. */
+    gf_status (GF_CALL* user_step_pending)(gf_utf8_view stable_id, uint32_t* pending);
+    /* Whether the model may read the clipboard (off by default). */
+    gf_status (GF_CALL* set_clipboard_readable)(uint32_t readable);
+    /* The server identity (app.<vendor>.<product> by default): 3 to 128
+     * bytes of lowercase ASCII letters, digits, '.', '-' and '_', starting
+     * with a letter, with at least one '.'. GF_STATUS_INVALID_ARGUMENT,
+     * keeping the identity, otherwise. */
+    gf_status (GF_CALL* set_identity)(gf_utf8_view identity);
+    /* Declares a tool (see gf_automation_tool); any thread.
+     * GF_STATUS_INVALID_ARGUMENT for a record that breaks its rules (an
+     * acting tool with ANY_THREAD among them), GF_STATUS_INVALID_STATE for a
+     * name taken, GF_STATUS_LIMIT_EXCEEDED past 256 tools. On a refusal
+     * release is not called. */
+    gf_status (GF_CALL* register_tool)(const gf_automation_tool* tool);
+    /* Withdraws the tool name; GF_STATUS_NOT_FOUND when none has it. */
+    gf_status (GF_CALL* unregister_tool)(gf_utf8_view name);
+    /* Appends UTF-8 text to a call's reply (at most 4 MiB in all).
+     * GF_STATUS_INVALID_ARGUMENT for text that is not UTF-8, too much text,
+     * or a reply already failed. */
+    gf_status (GF_CALL* reply_text)(void* reply, gf_utf8_view text);
+    /* Sets the reply's structured content, one JSON object matching the
+     * tool's declared output. */
+    gf_status (GF_CALL* reply_structured)(void* reply, gf_utf8_view json);
+    /* Adds an image, count bytes (at most 16 MiB) of mime_type (empty for
+     * image/png; image/ types only). */
+    gf_status (GF_CALL* reply_image)(void* reply, const uint8_t* bytes, uint64_t count, gf_utf8_view mime_type);
+    /* Fails the call with error, a message and a hint (either may be
+     * empty); what the reply held is dropped and later fills are refused. */
+    gf_status (GF_CALL* reply_fail)(void* reply, gf_automation_tool_error error, gf_utf8_view message,
+                                    gf_utf8_view hint);
+    /* Declares an inspect section (see gf_automation_inspect_section);
+     * statuses as register_tool's, the limit 64 sections. */
+    gf_status (GF_CALL* register_inspect_section)(const gf_automation_inspect_section* section);
+    gf_status (GF_CALL* unregister_inspect_section)(gf_utf8_view name);
+    /* Appends UTF-8 text to an inspect request's answer. */
+    gf_status (GF_CALL* inspect_append)(void* text, gf_utf8_view utf8);
+} gf_automation_table;
 
 /*
  * GF_TABLE_WINDOWS_PAINT_ENDPOINT (Windows only; host capability

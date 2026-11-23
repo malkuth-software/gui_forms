@@ -5,7 +5,7 @@
 Control and component
 =====================
 
-The base classes every control and nonvisual component derives from, with layout, docking, anchoring and validation vocabularies (layout constraints, intrinsic sizes and layout direction among them), and the anatomy each control publishes: named parts, part roles and states, and the interactions each type raises; composite controls, the control types a ``.control`` document defines.
+The base classes every control and nonvisual component derives from, with layout, docking, anchoring and validation vocabularies (layout constraints, intrinsic sizes and layout direction among them), and the anatomy each control publishes: named parts, part roles and states, and the interactions each type raises; composite controls, the control types a ``.control`` document defines; and form documents for tools: the schema, a document's check and a preview window.
 
 .. list-table::
    :class: autosummary longtable
@@ -164,6 +164,16 @@ Related types
      - The font of the control's text (Font).
    * - :cpp:class:`ForeColorCapability <gui_forms::ForeColorCapability>`
      - The own text colour; empty takes the parent's.
+   * - :cpp:class:`FormDocumentCheck <gui_forms::FormDocumentCheck>`
+     - A document's check: whether it compiles, and the diagnostics in the order found.
+   * - :cpp:class:`FormDocumentDiagnostic <gui_forms::FormDocumentDiagnostic>`
+     - One diagnostic, in the form compiler's terms (``main.form:4:7: error: E812 form_generation_refused: ...``).
+   * - :cpp:class:`FormDocumentSchema <gui_forms::FormDocumentSchema>`
+     - The types a document may name.
+   * - :cpp:class:`FormDocumentType <gui_forms::FormDocumentType>`
+     - One type a document may name, borrowed from its schema.
+   * - :cpp:class:`FormDocumentWindow <gui_forms::FormDocumentWindow>`
+     - A document loaded into a window, to look at: the window, the document's title, and the load's check.
    * - :cpp:class:`FractionFactor <gui_forms::FractionFactor>`
      -  
    * - :cpp:class:`GridAvailableExtent <gui_forms::GridAvailableExtent>`
@@ -1866,6 +1876,163 @@ Related types
    .. cpp:function:: static void assign(ForeColorCapability& capability, stxlib::Optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<stxlib::Optional<Color>, ForeColorCapability<Declaring>> fore_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FormDocumentCheck final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   A document's check: whether it compiles, and the diagnostics in the order found. Move-only; an empty check (moved from, or refused for want of memory) does not compile and holds none.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: FormDocumentCheck() noexcept
+
+   .. cpp:function:: FormDocumentCheck(FormDocumentCheck&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool compiled() const noexcept
+
+      The form compiler would accept the document (warnings allowed).
+
+   .. cpp:function:: stxlib::usize count() const noexcept
+
+   .. cpp:function:: stxlib::usize error_count() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: FormDocumentDiagnostic diagnostic(stxlib::usize index) const& noexcept
+
+      The diagnostic at ``index`` (below count()), borrowed from this check.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FormDocumentDiagnostic final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   One diagnostic, in the form compiler's terms (``main.form:4:7: error: E812 form_generation_refused: ...``). The texts are borrowed from the check, the code's label and name from static storage.
+
+   .. cpp:member:: bool error
+
+   .. cpp:member:: stxlib::usize line
+
+      One-based; zero where the diagnostic names no place.
+
+   .. cpp:member:: stxlib::usize column
+
+   .. cpp:member:: stxlib::View<char> code_label
+
+      ``E812``, and the code's name: ``form_generation_refused``.
+
+   .. cpp:member:: stxlib::View<char> code_name
+
+   .. cpp:member:: stxlib::View<char> file
+
+   .. cpp:member:: stxlib::View<char> rule
+
+      The element or rule it concerns, the property (may be empty), and what is wrong.
+
+   .. cpp:member:: stxlib::View<char> property
+
+   .. cpp:member:: stxlib::View<char> detail
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FormDocumentSchema final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   The types a document may name.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: stxlib::usize type_count() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const FormDocumentSchema& registry()
+
+      The registry's: every stock type that can be made alone, in registry order, then the form root. Made on the first call (UI thread) and never destroyed.
+
+   .. cpp:function:: FormDocumentType type(stxlib::usize index) const noexcept
+
+      The type at ``index``, which must be below type_count().
+
+   .. cpp:function:: stxlib::usize find(const char* name, stxlib::usize name_bytes) const noexcept
+
+      The index of the type registered as ``name``, or type_count() for none.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FormDocumentType final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   One type a document may name, borrowed from its schema.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: stxlib::View<char> name() const noexcept
+
+      The registered name: ``check_box`` (a document writes ``check-box``).
+
+   .. cpp:function:: bool holds_children() const noexcept
+
+      Whether objects of the type may hold objects: controls do, other components do not.
+
+   .. cpp:function:: stxlib::View<PropertyDescriptor> properties() const noexcept
+
+      The properties a document may set on the type.
+
+   .. cpp:function:: stxlib::View<PropertyDescriptor> child_properties() const noexcept
+
+      The properties the type provides to its direct children.
+
+   .. cpp:function:: stxlib::usize interaction_count() const noexcept
+
+      The interactions' registered names: ``checked_changed``.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: stxlib::View<char> interaction(stxlib::usize index) const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FormDocumentWindow final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   A document loaded into a window, to look at: the window, the document's title, and the load's check. The window lives as long as this value; the program shows or captures it (OffscreenAttachment) but does not keep it past this value. Move-only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: FormDocumentWindow() noexcept
+
+   .. cpp:function:: FormDocumentWindow(FormDocumentWindow&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Window* window() const& noexcept
+
+      The window, or null when the load was refused (the check says why).
+
+   .. cpp:function:: stxlib::View<char> title() const& noexcept
+
+      The document's title (a Window holds none), for the host.
+
+   .. cpp:function:: const FormDocumentCheck& check() const& noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -4451,6 +4618,18 @@ Functions, constants and aliases
 ``#include <gui_forms/control/static_tree/control_factory/control_factory.hpp>`` (:src:`source <include/gui_forms/control/static_tree/control_factory/control_factory.hpp>`)
 
 .. cpp:function:: Control::Ptr build_static_tree(const StaticNode& node, const ControlFactory& factory)
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+.. cpp:function:: FormDocumentCheck check_form_document(const FormDocumentSchema& schema, const char* file, stxlib::usize file_bytes, const char* document, stxlib::usize document_bytes)
+
+   ``document`` (named ``file`` in the diagnostics) checked against ``schema`` as the form compiler checks it: parsed, its model built, every name, value and binding checked. Nothing is made.
+
+.. cpp:function:: FormDocumentWindow load_form_document_window(const FormDocumentSchema& schema, const char* file, stxlib::usize file_bytes, const char* document, stxlib::usize document_bytes)
+
+   ``document`` loaded against ``schema`` into a window of the current application (or, with none, a window with its own resources), with no model: a document that binds (``<bind>``) is refused, so a preview blanks its bindings first. A document whose root is a control, not a form, is refused too. UI thread.
 
 .. cpp:namespace:: gui_forms
 

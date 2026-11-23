@@ -2,8 +2,6 @@
 
 #include "form_catalog.hpp"
 
-#include "form_compiler_catalog.hpp"
-
 #include "../../src/controls/composite_control/composite_forms.hpp"
 #include "../../src/core/control_language/composite_definition/composite_definition.hpp"
 #include "../../src/core/control_language/control_model/control_model.hpp"
@@ -23,12 +21,7 @@ namespace gui_forms::form_compiler {
 
 form_language::FormSchema registry_form_schema() {
     form_language::FormSchema schema{};
-    schema.types.reserve(form_catalog.size() + 1U);
-    for (const FormCatalogEntry& entry : form_catalog) {
-        // Made only from a definition: never by its id (form_catalog.hpp).
-        if (entry.construction == CatalogConstruction::definition) continue;
-        (*entry.add)(entry, schema);
-    }
+    form_catalog::add_registry_types(schema);
     add_extension_types(schema);
     schema.types.push_back(form_language::form_root_type());
     return schema;

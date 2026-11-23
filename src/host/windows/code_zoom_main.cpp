@@ -23,7 +23,6 @@ int main(int argc, char** argv) {
     options.initial_size = gui_forms::code_zoom::window_size;
     options.minimum_size = gui_forms::code_zoom::minimum_window_size;
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     std::unique_ptr<gui_forms::Window> window = gui_forms::code_zoom::make_code_zoom();
     if (arguments.bench) return gui_forms::code_zoom::run_code_zoom_bench(*program, *window);
     if ((*program).headless) return gui_forms::code_zoom::run_headless_code_zoom(*program, *window);

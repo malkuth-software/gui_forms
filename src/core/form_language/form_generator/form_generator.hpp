@@ -86,6 +86,11 @@ struct FormGeneratorOptions final {
     // The header that declares the model, included by the generated header
     // when not empty (a path as an #include names it).
     std::string model_header{};
+    // The build toggle GUI_FORMS_FORM_EXPORT (MCP G6; --export-document):
+    // the generated code registers the document's text and the members it
+    // binds with register_form_document once its objects are made
+    // (gui_forms/binding/form_document_export).
+    bool export_document{};
 };
 
 enum class FormGenerateOutcome : std::uint8_t {

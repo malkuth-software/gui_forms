@@ -3910,6 +3910,193 @@ private:
     gf_list_view_table table_;
 };
 
+// gf_automation_table, negotiated as GF_TABLE_AUTOMATION.
+class AutomationTable {
+public:
+    AutomationTable() noexcept : table_{} {}
+
+    // Negotiates the table at the header's version into output; a refusal
+    // leaves output serving nothing.
+    [[nodiscard]] static gf_status negotiate(AutomationTable& output) noexcept {
+        gf_automation_table negotiated_table{};
+        const gf_status negotiated = gf_abi_get_table(GF_TABLE_AUTOMATION, GF_ABI_MAJOR, GF_ABI_MINOR,
+                                                      &negotiated_table, sizeof(negotiated_table));
+        if (negotiated != GF_STATUS_OK) {
+            output = AutomationTable{};
+            return negotiated;
+        }
+        output.table_ = negotiated_table;
+        return GF_STATUS_OK;
+    }
+
+    // A table the caller negotiated through gf_abi_get_table.
+    [[nodiscard]] static AutomationTable adopt(const gf_automation_table& adopted_table) noexcept {
+        AutomationTable adopted;
+        adopted.table_ = adopted_table;
+        return adopted;
+    }
+
+    [[nodiscard]] const gf_automation_table& c_table() const noexcept { return table_; }
+
+    [[nodiscard]] gf_status capability_built(uint32_t* built) const noexcept {
+        if (table_.struct_size < 16u || table_.capability_built == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.capability_built(built);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_window_drivable(gf_object window, uint32_t drivable) const noexcept {
+        if (table_.struct_size < 24u || table_.set_window_drivable == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_window_drivable(window, drivable);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_window_destructive(gf_object window, uint32_t destructive) const noexcept {
+        if (table_.struct_size < 32u || table_.set_window_destructive == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_window_destructive(window, destructive);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_action_destructive(gf_utf8_view stable_id, gf_automation_action action,
+                                                   uint32_t destructive) const noexcept {
+        if (table_.struct_size < 40u || table_.set_action_destructive == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_action_destructive(stable_id, action, destructive);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_command_hidden(gf_utf8_view stable_id, uint32_t hidden) const noexcept {
+        if (table_.struct_size < 48u || table_.set_command_hidden == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_command_hidden(stable_id, hidden);
+        return called;
+    }
+
+    [[nodiscard]] gf_status require_user_step(gf_utf8_view stable_id, gf_utf8_view what) const noexcept {
+        if (table_.struct_size < 56u || table_.require_user_step == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.require_user_step(stable_id, what);
+        return called;
+    }
+
+    [[nodiscard]] gf_status complete_user_step(gf_utf8_view stable_id) const noexcept {
+        if (table_.struct_size < 64u || table_.complete_user_step == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.complete_user_step(stable_id);
+        return called;
+    }
+
+    [[nodiscard]] gf_status user_step_pending(gf_utf8_view stable_id, uint32_t* pending) const noexcept {
+        if (table_.struct_size < 72u || table_.user_step_pending == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.user_step_pending(stable_id, pending);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_clipboard_readable(uint32_t readable) const noexcept {
+        if (table_.struct_size < 80u || table_.set_clipboard_readable == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_clipboard_readable(readable);
+        return called;
+    }
+
+    [[nodiscard]] gf_status set_identity(gf_utf8_view identity) const noexcept {
+        if (table_.struct_size < 88u || table_.set_identity == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.set_identity(identity);
+        return called;
+    }
+
+    [[nodiscard]] gf_status register_tool(const gf_automation_tool* tool) const noexcept {
+        if (table_.struct_size < 96u || table_.register_tool == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.register_tool(tool);
+        return called;
+    }
+
+    [[nodiscard]] gf_status unregister_tool(gf_utf8_view name) const noexcept {
+        if (table_.struct_size < 104u || table_.unregister_tool == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.unregister_tool(name);
+        return called;
+    }
+
+    [[nodiscard]] gf_status reply_text(void* reply, gf_utf8_view text) const noexcept {
+        if (table_.struct_size < 112u || table_.reply_text == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.reply_text(reply, text);
+        return called;
+    }
+
+    [[nodiscard]] gf_status reply_structured(void* reply, gf_utf8_view json) const noexcept {
+        if (table_.struct_size < 120u || table_.reply_structured == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.reply_structured(reply, json);
+        return called;
+    }
+
+    [[nodiscard]] gf_status reply_image(void* reply, const uint8_t* bytes, uint64_t count,
+                                        gf_utf8_view mime_type) const noexcept {
+        if (table_.struct_size < 128u || table_.reply_image == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.reply_image(reply, bytes, count, mime_type);
+        return called;
+    }
+
+    [[nodiscard]] gf_status reply_fail(void* reply, gf_automation_tool_error error, gf_utf8_view message,
+                                       gf_utf8_view hint) const noexcept {
+        if (table_.struct_size < 136u || table_.reply_fail == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.reply_fail(reply, error, message, hint);
+        return called;
+    }
+
+    [[nodiscard]] gf_status register_inspect_section(const gf_automation_inspect_section* section) const noexcept {
+        if (table_.struct_size < 144u || table_.register_inspect_section == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.register_inspect_section(section);
+        return called;
+    }
+
+    [[nodiscard]] gf_status unregister_inspect_section(gf_utf8_view name) const noexcept {
+        if (table_.struct_size < 152u || table_.unregister_inspect_section == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.unregister_inspect_section(name);
+        return called;
+    }
+
+    [[nodiscard]] gf_status inspect_append(void* text, gf_utf8_view utf8) const noexcept {
+        if (table_.struct_size < 160u || table_.inspect_append == nullptr) {
+            return GF_STATUS_UNSUPPORTED_VERSION;
+        }
+        const gf_status called = table_.inspect_append(text, utf8);
+        return called;
+    }
+
+private:
+    gf_automation_table table_;
+};
+
 // gf_windows_paint_endpoint_table, negotiated as GF_TABLE_WINDOWS_PAINT_ENDPOINT.
 class WindowsPaintEndpointTable {
 public:

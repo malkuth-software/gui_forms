@@ -20,7 +20,6 @@ int main(int argc, char** argv) {
     options.initial_size = gui_forms::touch_start::window_size;
     options.minimum_size = gui_forms::touch_start::minimum_window_size;
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     std::unique_ptr<gui_forms::Window> window = gui_forms::touch_start::make_touch_start();
     if (!gui_forms::touch_start::apply_touch_start_staging(*program, *window)) return 2;
     if ((*program).headless) return gui_forms::touch_start::run_headless_touch_start(*program, *window);

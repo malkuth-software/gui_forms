@@ -362,23 +362,15 @@ Windows (Win32)
   (`GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY`) reads face files, from the
   directory `GUI_FORMS_FONT_DIR` names or the checkout's `assets/fonts`. If
   the pack does not open, the renderer name says so and no text metrics
-  provider is installed. An opt-in `WM_COPYDATA`
-  automation channel, off unless the host options set `automation_enabled`
-  (the gallery sets it from `--automation`), addresses controls by stable
-  ID; it accepts commands of at most 4096 bytes with the prefix
-  `GUI.Forms.Automation/1`. A program run through the portable
-  `Application::run`, whose options cannot ask for it, turns it on only by
-  opting in: it calls `host::accept_automation_environment()`
-  (`gui_forms/platform/windows_host.hpp`) before running, and then
-  `GUI_FORMS_WINDOWS_AUTOMATION=1` in the process environment turns the
-  channel on in every window. Without that call the variable is ignored, so
-  the environment alone opens no program; a build configured with
-  `GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT=OFF` ignores it even after the
-  call. The menu probe and the application tests opt in; a shipped program
-  does not. Security note: while it is on,
-  any process on the same desktop can drive the window and ask for a capture
-  written to a path it names, so ship with it off. It is a test channel;
-  automation is to move to an MCP integration rather than grow here.
+  provider is installed. Automation is the library's MCP integration, the
+  same on every host: a program launched with `--mcp` serves MCP on its
+  standard input and output (only the process that started it can drive
+  it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
+  A program declares its own model tools and inspect sections beside the
+  built-in ones with `register_model_tool` and
+  `register_model_inspect_section` (`gui_forms/automation/tools/model_tools.hpp`;
+  in C, `GF_TABLE_AUTOMATION`; in C#, `GuiForms.Interop.ModelTools`).
+  The Windows `WM_COPYDATA` channel that came before is retired.
   MSAA publication is implemented through `IAccessible`, and UI Automation
   through providers for `UiaRootObjectId` (AutomationId is the stable ID;
   Invoke, Toggle, Value, RangeValue, ExpandCollapse, SelectionItem and

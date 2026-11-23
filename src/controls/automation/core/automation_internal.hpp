@@ -1,0 +1,123 @@
+#pragma once
+
+// The automation core's private helpers, shared by its sources: arguments,
+// outlines and diffs, resolution, and input building. Pure functions over
+// their inputs: none keeps state or touches a window unless its contract
+// says so.
+
+#include "automation_core.hpp"
+
+#include "../../../core/json/json_reader/json_reader.hpp"
+
+#include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/host/types/host_types.hpp"
+#include "gui_forms/window/interaction/interaction_snapshot.hpp"
+
+#include <cstddef>
+#include <cstdint>
+#include <optional>
+#include <span>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace gui_forms::automation::detail {
+
+using gui_forms::detail::JsonKind;
+using gui_forms::detail::JsonValue;
+
+// ---- arguments (automation_arguments.cpp) -----------------------------------
+
+// The limits a call's arguments are read with: a call is small; a batch of
+// at most maximum_batch_steps steps fits well inside them.
+[[nodiscard]] gui_forms::detail::JsonLimits argument_limits() noexcept;
+// Reads `json` as one object into `object`; an empty text is an empty
+// object. False with `error` naming the fault otherwise.
+[[nodiscard]] bool read_arguments(std::string_view json, JsonValue& object, std::string& error);
+[[nodiscard]] std::optional<std::string> text_member(const JsonValue& object, std::string_view name);
+[[nodiscard]] std::optional<double> number_member(const JsonValue& object, std::string_view name);
+[[nodiscard]] std::optional<bool> boolean_member(const JsonValue& object, std::string_view name);
+// The member if it is present and of `kind`, else null. Borrowed from
+// `object`.
+[[nodiscard]] const JsonValue* kind_member(const JsonValue& object, std::string_view name, JsonKind kind);
+// A number's text as a double; false for text that is not one.
+[[nodiscard]] bool number_value(const JsonValue& value, double& number);
+// Writes `value` as JSON text, appending to `text`. Recurses once per level:
+// a value read with argument_limits() is at most 32 levels deep (the
+// reader refuses deeper), about 200 bytes of stack a level.
+void append_json(const JsonValue& value, std::string& text);
+// Writes `object` without the member named `skip` (a batch step's "tool"),
+// replacing `text`.
+void object_without(const JsonValue& object, std::string_view skip, std::string& text);
+// Appends a JSON string (quoted, escaped) to `text`.
+void append_json_string(std::string_view value, std::string& text);
+
+// ---- outlines and diffs (automation_outline.cpp) ------------------------------
+
+// Flattens `snapshot` in document order (an explicit work list: no
+// recursion), marking the node under the pointer within the hovered and
+// pressed controls (`interaction`). Replaces `nodes`.
+void flatten_snapshot(const SemanticSnapshot& snapshot, const InteractionSnapshot& interaction,
+                      std::vector<FlatNode>& nodes);
+// "[stable.id]", or "[#r412]" for a node without one.
+[[nodiscard]] std::string node_reference(const FlatNode& node);
+// One outline line without indentation: role, quoted name, reference,
+// states, value and range, and bounds when asked.
+void append_node_line(const FlatNode& node, bool with_bounds, std::string& text);
+
+struct OutlineOptions final {
+    // The subtree to show: a node's index, or no_parent for the whole tree.
+    std::size_t root{no_parent};
+    // Shows nodes whose role, name or stable ID contains it (any case), with
+    // their ancestors; empty shows every node.
+    std::string filter{};
+    std::size_t node_limit{400U};
+    bool with_bounds{};
+};
+// Appends the outline of `nodes` (study 7.3) to `text`, indented two spaces
+// a level below the window's line, with what it left out.
+void append_outline(std::span<const FlatNode> nodes, const OutlineOptions& options, std::string& text);
+// Appends what changed from `before` to `after` (study 7.4): changed
+// states and values, added and removed subtrees, and the focus move, each
+// kind bounded by `maximum_entries`. Protected content never shows its
+// value, its focus or a focus move into or out of it (study 9.1). Appends
+// nothing when nothing changed.
+void append_diff(std::span<const FlatNode> before, std::span<const FlatNode> after, std::size_t maximum_entries,
+                 std::string& text);
+
+// How a target resolved.
+enum class Resolution : std::uint8_t {
+    found,
+    not_found,
+    ambiguous,
+};
+struct ResolvedTarget final {
+    Resolution resolution{Resolution::not_found};
+    std::size_t index{no_parent};
+    // For not_found, the closest IDs by name; for ambiguous, the parents
+    // of the matches. Ready to show as a hint.
+    std::string hint{};
+};
+// Finds `target` ("stable.id", or "#r412" for a runtime ID) in `nodes`;
+// `within`, when not empty, names an ancestor that must hold it.
+[[nodiscard]] ResolvedTarget resolve_target(std::span<const FlatNode> nodes, std::string_view target,
+                                            std::string_view within);
+
+// The nodes under `index` (itself included) that are protected content.
+[[nodiscard]] bool subtree_protected(std::span<const FlatNode> nodes, std::size_t index) noexcept;
+
+// ---- input (automation_input.cpp) -----------------------------------------------
+
+// A key with its modifiers, from text such as "Ctrl+Shift+S", "Enter",
+// "Alt+F4" or "Cmd+Z".
+struct KeyChord final {
+    std::uint32_t physical_key{};
+    Modifier modifiers{Modifier::none};
+};
+[[nodiscard]] bool parse_key_chord(std::string_view text, KeyChord& chord);
+// Modifier names ("shift", "ctrl", "alt", "meta"), any case.
+[[nodiscard]] bool parse_modifier(std::string_view text, Modifier& modifier);
+[[nodiscard]] std::optional<SemanticAction> parse_semantic_action(std::string_view name);
+[[nodiscard]] std::uint64_t nanoseconds_of(FrameTime time) noexcept;
+
+} // namespace gui_forms::automation::detail

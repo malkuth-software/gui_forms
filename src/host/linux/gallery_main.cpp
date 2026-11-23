@@ -31,8 +31,6 @@ int main(int argc, char** argv) {
     options.initial_size = gui_forms::gallery::gallery_default_size;
     options.minimum_size = gui_forms::gallery::gallery_minimum_size;
     gui_forms::demo::apply_program_options(*program, options);
-    // --automation is accepted for a uniform CI command line; the X11 host has
-    // no WM_COPYDATA-style automation channel, so the flag has no effect here.
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();
     if (!gui_forms::gallery::apply_gallery_staging(*program, *window)) return 2;
     if ((*program).headless) return gui_forms::gallery::run_headless_gallery_capture(*program, *window);

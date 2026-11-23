@@ -53,15 +53,15 @@ The Gallery, Correspondence, Explore and lab executables share one parser
 (`demo/program_options.hpp`):
 
 ```text
-<program> [--automation] [--capture <path.png>] [--size <W>x<H>] [--scale <factor>]
+<program> [--mcp] [--mcp-script <file.jsonl>] [--capture <path.png>] [--size <W>x<H>] [--scale <factor>]
 ```
 
 - `--capture <path>` sets `capture_path`; `--size WxH` sets `capture_size`
   (positive numbers, e.g. `--size 1280x800`).
-- `--automation` enables the Windows host's `WM_COPYDATA` automation channel
-  (`GUI.Forms.Automation/1 snapshot|capture|close|...`). The macOS and Linux
-  hosts accept and ignore the flag so one CI command line works on every
-  platform.
+- `--mcp`, `--model-directed` and `--mcp-script <file>` are the library's
+  automation arguments (MCP; `gui_forms/automation/marks/automation_marks.hpp`):
+  the parser skips them, and the library reads them from the process's own
+  arguments on every host.
 - `--scale` is recorded as a hint only; hosts take the device scale from the
   display.
 - An unknown argument, a missing value or a malformed value prints usage to

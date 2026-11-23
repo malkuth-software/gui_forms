@@ -275,6 +275,12 @@ function(gui_forms_add_form target document)
     if(FORM_MODEL_HEADER)
         list(APPEND arguments --model-header "${FORM_MODEL_HEADER}")
     endif()
+    # The build toggle (MCP G6): the generated code registers its document
+    # and bound members for the automation's forms tools
+    # (gui_forms/binding/form_document_export).
+    if(GUI_FORMS_FORM_EXPORT)
+        list(APPEND arguments --export-document)
+    endif()
     foreach(type IN LISTS FORM_TYPES)
         list(APPEND arguments --type "${type}")
     endforeach()

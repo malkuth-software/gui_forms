@@ -21,6 +21,11 @@ class GUI_FORMS_API Command final : public Component {
 public:
     Command();
     Command(std::string stable_id, std::string text);
+    // Leaves the process's command directory, through which a model reaches
+    // commands with an identity (MCP automation study, section 7.2).
+    ~Command() override;
+    Command(const Command&) = delete;
+    Command& operator=(const Command&) = delete;
     void clear_checked();
     [[nodiscard]] AcceleratorToken bind_shortcut(Window& window, KeyGesture gesture);
 

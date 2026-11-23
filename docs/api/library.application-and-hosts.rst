@@ -2306,6 +2306,10 @@ Related types
 
       Validates thread/sequence/phase/geometry/payload, suppresses modal input, translates the event into retained operations, contains callback faults at the foreign boundary, publishes observation, and returns exact outcome.
 
+   .. cpp:function:: HostDispatchResult dispatch_model_input(HostEventPayload payload, std::uint64_t timestamp_nanoseconds)
+
+      A model's input (notes:planning/studies/MCP_AUTOMATION_STUDY.md, section 8.1): the automation core builds a pointer, key, text, hover or context request event as a host would and delivers it through this same session, so the model's input and the user's go through one door in the order they arrive. It takes no sequence number (the host's own sequence stays the host's, so no later host event is refused as out of order) and is never held by the user input gate that model.directed and suspend_input install; a modal window over this one suppresses it exactly as it suppresses the user's input. Any other payload is refused as invalid_payload; the other refusals are dispatch's (wrong_thread, after_shutdown, the lifecycle, invalid UTF-8 text, an invalid pointer report). Counted in the snapshot's model_input_events. UI thread.
+
    .. cpp:function:: void shutdown() noexcept
 
       Idempotently revokes dispatcher, frame, pointer, drag, service attachment, and active/occluded state before committing terminal phase.
@@ -2360,6 +2364,12 @@ Related types
    .. cpp:member:: std::uint64_t drag_events
 
    .. cpp:member:: std::uint64_t drag_drops
+
+   .. cpp:member:: std::uint64_t model_input_events
+
+      A model's input delivered through HostSession::dispatch_model_input, and the user's input events held back while a model held the interface (model.directed or suspend_input; MCP automation study, sections 8.2 and 8.3).
+
+   .. cpp:member:: std::uint64_t user_input_held
 
    .. cpp:member:: std::uint32_t modal_depth
 
@@ -3848,8 +3858,6 @@ Related types
 
       Default: ``{true}``.
 
-   .. cpp:member:: bool automation_enabled
-
    .. cpp:member:: bool close_after_launch_for_testing
 
    .. cpp:member:: bool quit_thread_on_close
@@ -3881,8 +3889,6 @@ Related types
       Published on the host UI thread during initialization, like title_ready. The operation asks for a native client size in logical units; see ApplicationWindowHandle::request_client_size. Sizes below minimum_size are invalid_argument; full screen, maximized and minimized windows are unsupported. The new size arrives through the host's resize event.
 
    .. cpp:member:: Point initial_position
-
-   .. cpp:member:: std::function<std::shared_ptr<Control>(std::string_view)> automation_resolve
 
    .. cpp:member:: std::function<void(HostCloseRequest&)> close_request
 
@@ -5089,10 +5095,6 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms::host
 
 ``#include <gui_forms/platform/windows_host.hpp>`` (:src:`source <include/gui_forms/platform/windows_host.hpp>`)
-
-.. cpp:function:: void accept_automation_environment() noexcept
-
-   Development opt-in, Windows only: after this call, a later run_windows_application (and so Application::run) honours GUI_FORMS_WINDOWS_AUTOMATION=1 in the process environment by turning on the automation channel (automation_enabled) in every window. Without the call the variable is ignored, and a build configured without GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT ignores it even after the call. It is for test probes that run through the portable Application API, whose options cannot ask for automation; a shipped program does not call it. Process-wide, callable from any thread, and never withdrawn.
 
 .. cpp:function:: HostCapabilities windows_capabilities()
 

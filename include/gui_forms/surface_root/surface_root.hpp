@@ -1972,6 +1972,10 @@ private:
     // the preview handler for preview_handled, else null.
     void trace_press(const PointerEvent& event, const Control* target, const Control* handled_by,
                      PressOutcome outcome);
+    // Reports a routed event to the automation's route observer
+    // (src/core/host/session/session_directory.hpp), when one is installed.
+    void report_route(bool pointer, std::uint8_t action, std::uint32_t code, Point position,
+                      const Control* target, bool handled) const noexcept;
     // The latched control for a wheel event of an ongoing scroll gesture,
     // releasing the latch at the gesture's end (wheel_latch_); null to route
     // by hit test.

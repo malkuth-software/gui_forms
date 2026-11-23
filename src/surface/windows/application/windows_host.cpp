@@ -71,7 +71,6 @@
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
-#include <deque>
 #include <exception>
 #include <filesystem>
 #include <iomanip>
@@ -125,9 +124,6 @@ bool present_bgra_area(HDC target, const std::byte* pixels, std::size_t row_byte
     return presented;
 }
 
-// Retries automation commands deferred while the UI thread was inside a
-// dispatch or a native size/move loop (WindowsHostState::automation).
-constexpr UINT_PTR automation_retry_timer = 4;
 // Pumps DirectManipulation's update manager while a touchpad gesture or its
 // inertia runs (WindowsHostState::manipulation_status), about a frame apart.
 constexpr UINT_PTR manipulation_timer = 5;
@@ -135,36 +131,6 @@ constexpr UINT manipulation_timer_milliseconds = 8;
 // DM_POINTERHITTEST (winuser.h for Windows 8 and later): a new touchpad or
 // touch contact DirectManipulation may take.
 constexpr UINT pointer_hit_test_message = 0x0250;
-constexpr UINT automation_retry_milliseconds = 10;
-// At most this many automation commands wait per window; more are refused.
-constexpr std::size_t maximum_deferred_automation = 64U;
-
-// How deep the UI thread is in host dispatches into a model, across every
-// window of the thread: an automation command arriving through WM_COPYDATA
-// while one runs (sent by another process, it is delivered whenever the
-// thread waits in a send or a nested pump) would run model code inside
-// model code, menus and popups half opened. Such commands wait until the
-// count is back to zero. A modal loop entered by a dispatch sets the count
-// aside for its length (ModalDispatchDepth): the modal window is meant to
-// take input there.
-thread_local std::uint32_t host_dispatch_depth = 0U;
-
-// Counts one host dispatch for its length.
-struct HostDispatchScope final {
-    HostDispatchScope() noexcept { ++host_dispatch_depth; }
-    ~HostDispatchScope() { --host_dispatch_depth; }
-    HostDispatchScope(const HostDispatchScope&) = delete;
-    HostDispatchScope& operator=(const HostDispatchScope&) = delete;
-};
-
-// Sets the dispatch count aside for a modal loop's length.
-struct ModalDispatchDepth final {
-    std::uint32_t saved{host_dispatch_depth};
-    ModalDispatchDepth() noexcept { host_dispatch_depth = 0U; }
-    ~ModalDispatchDepth() { host_dispatch_depth = saved; }
-    ModalDispatchDepth(const ModalDispatchDepth&) = delete;
-    ModalDispatchDepth& operator=(const ModalDispatchDepth&) = delete;
-};
 constexpr UINT live_surface_period_milliseconds = 16;
 // The live frame clock's cadence when the display's composition timing is
 // unavailable: 60 Hz, in milliseconds per thousand frames.
@@ -218,7 +184,6 @@ void post_modal_live_clock(PVOID context) {
 void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WAIT, TP_WAIT_RESULT) {
     gui_forms::detail::call_failing_fast("windows.modal_live_clock", &post_modal_live_clock, context);
 }
-constexpr std::size_t maximum_automation_command = 4096;
 
 // Whether the variable `name` is "1". A high-integrity build reads no
 // environment variable (cmake/HighIntegrity.cmake): every flag is off.
@@ -231,11 +196,6 @@ bool environment_flag(const char* name) noexcept {
     return value != nullptr && std::strcmp(value, "1") == 0;
 #endif
 }
-
-// Set once by accept_automation_environment and never cleared: the program's
-// own opt-in to the GUI_FORMS_WINDOWS_AUTOMATION hook. Atomic because a
-// program may opt in from a thread other than the one that later runs.
-std::atomic<bool> automation_environment_accepted{false};
 
 bool trace_win32_input() noexcept {
     static const bool enabled =
@@ -2269,7 +2229,6 @@ public:
             leave_live_idle();
             return 0;
         case managed_dispatch_message: {
-            const HostDispatchScope scope;
             static_cast<void>((*model_).drain_posted_work());
             if (options_.dispatch_pending) options_.dispatch_pending();
             collect_damage();
@@ -2297,10 +2256,6 @@ public:
         case WM_TIMER:
             if (wparam == invalidation_overlay_timer) {
                 present_invalidation_overlay();
-                return 0;
-            }
-            if (wparam == automation_retry_timer) {
-                run_deferred_automation();
                 return 0;
             }
             if (wparam == manipulation_timer) {
@@ -2394,7 +2349,6 @@ public:
             }
             break;
         case WM_GETMINMAXINFO: minimum_size(reinterpret_cast<MINMAXINFO*>(lparam)); return 0;
-        case WM_COPYDATA: return automation(reinterpret_cast<const COPYDATASTRUCT*>(lparam));
         case WM_CLOSE: return close();
         case WM_QUERYENDSESSION: return query_end_session();
         case WM_ENDSESSION: return end_session(wparam != FALSE);
@@ -2635,7 +2589,6 @@ private:
         event.sequence = next_sequence_++;
         event.timestamp_nanoseconds = now_nanoseconds();
         event.payload = std::move(payload);
-        const HostDispatchScope scope;
         return session_.dispatch(std::move(event));
     }
 
@@ -4201,371 +4154,6 @@ private:
         return 0;
     }
 
-    LRESULT automation(const COPYDATASTRUCT* data) {
-        if (!options_.automation_enabled || data == nullptr || (*data).lpData == nullptr ||
-            (*data).cbData == 0 || (*data).cbData > maximum_automation_command) return FALSE;
-        const char* bytes = static_cast<const char*>((*data).lpData);
-        std::string command(bytes, bytes + (*data).cbData);
-        while (!command.empty() && command.back() == '\0') command.pop_back();
-        constexpr std::string_view prefix = "GUI.Forms.Automation/1 ";
-        if (!command.starts_with(prefix)) return FALSE;
-        command.erase(0, prefix.size());
-        // A command that feeds the model waits while the thread is inside a
-        // dispatch or a native size/move loop, and runs, in arrival order,
-        // once neither holds: whichever of an input and a command arrives
-        // first, each runs whole before the other starts. It is accepted
-        // (TRUE) when deferred; its own result is printed when it runs.
-        const bool reads_only = command == "snapshot" || command == "capture" ||
-                                command.starts_with("capture ") || command.starts_with("capture-composite ") ||
-                                command == "close";
-        if (!reads_only && (automation_busy() || !deferred_automation_.empty())) {
-            if (deferred_automation_.size() >= maximum_deferred_automation) return FALSE;
-            deferred_automation_.push_back(std::move(command));
-            SetTimer(hwnd_, automation_retry_timer, automation_retry_milliseconds, nullptr);
-            return TRUE;
-        }
-        return automation_command(command);
-    }
-
-    [[nodiscard]] bool automation_busy() const noexcept {
-        const bool busy = host_dispatch_depth != 0U || in_size_move_;
-        return busy;
-    }
-
-    // Runs the deferred automation commands, oldest first, while the thread
-    // is free; the timer stops once none wait.
-    void run_deferred_automation() {
-        while (!deferred_automation_.empty() && !automation_busy() && hwnd_ != nullptr) {
-            const std::string command = std::move(deferred_automation_.front());
-            deferred_automation_.pop_front();
-            static_cast<void>(automation_command(command));
-        }
-        if (deferred_automation_.empty() && hwnd_ != nullptr) KillTimer(hwnd_, automation_retry_timer);
-    }
-
-    // Model code run by a command counts as a dispatch: a command sent
-    // while it runs waits for it.
-    LRESULT automation_command(const std::string& command) {
-        const HostDispatchScope scope;
-        if (command == "snapshot") {
-            const DispatcherSnapshot dispatcher = (*model_).dispatcher_snapshot();
-            std::fprintf(
-                stdout,
-                "{\"automation\":\"snapshot\",\"window\":%s,\"host\":%s,"
-                "\"dispatcher\":{\"posted\":%llu,\"invoked\":%llu,"
-                "\"cancelled\":%llu,\"faulted\":%llu,"
-                "\"synchronous_invocations\":%llu,\"inline_invocations\":%llu,"
-                "\"marshalled_invocations\":%llu,\"pending\":%zu,"
-                "\"maximum_pending\":%zu,\"accepting\":%s}}\n",
-                metrics_json().c_str(), host_json().c_str(),
-                static_cast<unsigned long long>(dispatcher.posted),
-                static_cast<unsigned long long>(dispatcher.invoked),
-                static_cast<unsigned long long>(dispatcher.cancelled),
-                static_cast<unsigned long long>(dispatcher.faulted),
-                static_cast<unsigned long long>(dispatcher.synchronous_invocations),
-                static_cast<unsigned long long>(dispatcher.inline_invocations),
-                static_cast<unsigned long long>(dispatcher.marshalled_invocations),
-                dispatcher.pending, dispatcher.maximum_pending,
-                dispatcher.accepting ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view capture = "capture";
-        if (command == capture || command.starts_with("capture ")) {
-            const std::wstring path = command.size() == capture.size()
-                ? executable_directory() + L"gallery-automation.bmp"
-                : wide_from_utf8(command.substr(capture.size() + 1U));
-            if (path.empty()) return FALSE;
-            const bool saved = raster_.save_bmp(path);
-            std::fprintf(stdout,
-                         "{\"automation\":\"capture\",\"saved\":%s,\"explicit\":%s}\n",
-                         saved ? "true" : "false",
-                         command.size() == capture.size() ? "false" : "true");
-            std::fflush(stdout);
-            return saved ? TRUE : FALSE;
-        }
-        constexpr std::string_view composite = "capture-composite ";
-        if (command.starts_with(composite)) {
-            const std::wstring path = wide_from_utf8(command.substr(composite.size()));
-            if (path.empty()) return FALSE;
-            const bool saved = write_composite_capture(run_, *this, path);
-            return saved ? TRUE : FALSE;
-        }
-        if (command == "close") { PostMessageW(hwnd_, WM_CLOSE, 0, 0); return TRUE; }
-        // The invalidation overlay on, off, or following the program's
-        // switch (tools/contention_fuzz.py toggles it under load).
-        if (command == "overlay on" || command == "overlay off" || command == "overlay default") {
-            stxlib::Optional<bool> enabled{};
-            if (command == "overlay on") enabled.set(true);
-            if (command == "overlay off") enabled.set(false);
-            (*model_).set_invalidation_overlay(enabled);
-            collect_damage();
-            return TRUE;
-        }
-        constexpr std::string_view move_at = "move ";
-        if (command.starts_with(move_at)) {
-            std::istringstream input(command.substr(move_at.size()));
-            std::string id;
-            double local_x{};
-            double local_y{};
-            if (!(input >> id >> local_x >> local_y) || !std::isfinite(local_x) ||
-                !std::isfinite(local_y)) return FALSE;
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) return FALSE;
-            const Rect bounds = (*control).absolute_bounds();
-            const Point point{bounds.x + std::clamp(local_x, 0.0, bounds.width),
-                              bounds.y + std::clamp(local_y, 0.0, bounds.height)};
-            const bool handled = dispatch(PointerEvent{
-                PointerAction::move, PointerButton::none, point, {},
-                Modifier::none, 1}).handled;
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"move\",\"id\":\"%s\",\"handled\":%s}\n",
-                         id.c_str(), handled ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view focus = "focus ";
-        if (command.starts_with(focus)) {
-            const std::string id = command.substr(focus.size());
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input() ||
-                !(*model_).request_focus(control)) return FALSE;
-            std::fprintf(stdout, "{\"automation\":\"focus\",\"id\":\"%s\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view text_input = "text ";
-        if (command.starts_with(text_input)) {
-            const std::string payload = command.substr(text_input.size());
-            const std::size_t separator = payload.find(' ');
-            if (separator == std::string::npos) return FALSE;
-            const std::string id = payload.substr(0, separator);
-            const std::string text = payload.substr(separator + 1U);
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input() ||
-                !(*model_).request_focus(control)) return FALSE;
-            const bool handled = dispatch(TextInputEvent{text}).handled;
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"text\",\"id\":\"%s\",\"bytes\":%zu,\"handled\":%s}\n",
-                         id.c_str(), text.size(), handled ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        // A key to whatever has the keyboard now (an open menu, a lifted
-        // drop-down), without moving the focus: "key-focused <physical>".
-        constexpr std::string_view focused_key = "key-focused ";
-        if (command.starts_with(focused_key)) {
-            std::istringstream input(command.substr(focused_key.size()));
-            std::uint32_t physical{};
-            if (!(input >> physical)) return FALSE;
-            KeyEvent pressed;
-            pressed.action = KeyAction::down;
-            pressed.physical_key = physical;
-            const bool handled_down = dispatch(std::move(pressed)).handled;
-            KeyEvent released;
-            released.action = KeyAction::up;
-            released.physical_key = physical;
-            static_cast<void>(dispatch(std::move(released)));
-            collect_damage();
-            std::fprintf(stdout, "{\"automation\":\"key-focused\",\"physical\":%u,\"handled\":%s}\n", physical,
-                         handled_down ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view key_input = "key ";
-        if (command.starts_with(key_input)) {
-            std::istringstream input(command.substr(key_input.size()));
-            std::string id;
-            std::uint32_t physical{};
-            std::string action;
-            std::uint32_t modifiers{};
-            if (!(input >> id >> physical >> action) ||
-                (action != "down" && action != "up")) return FALSE;
-            if (!(input >> modifiers)) modifiers = 0;
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input() ||
-                !(*model_).request_focus(control)) return FALSE;
-            KeyEvent event;
-            event.action = action == "down" ? KeyAction::down : KeyAction::up;
-            event.physical_key = physical;
-            event.modifiers = static_cast<Modifier>(modifiers);
-            const bool handled = dispatch(std::move(event)).handled;
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"key\",\"id\":\"%s\",\"physical\":%u,\"action\":\"%s\",\"modifiers\":%u,\"handled\":%s}\n",
-                         id.c_str(), physical, action.c_str(), modifiers,
-                         handled ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view activate = "activate ";
-        if (command.starts_with(activate)) {
-            const std::string id = command.substr(activate.size());
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) {
-                std::fprintf(stdout,
-                             "{\"automation\":\"activate\",\"id\":\"%s\",\"accepted\":false,\"reason\":\"%s\"}\n",
-                             id.c_str(), !control ? "not-found" : "ineligible");
-                std::fflush(stdout);
-                return FALSE;
-            }
-            (*control).on_activate();
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"activate\",\"id\":\"%s\",\"stable_id\":\"%s\"}\n",
-                         id.c_str(), (*control).stable_id().value().data());
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view click_at = "click-at ";
-        if (command.starts_with(click_at)) {
-            std::istringstream input(command.substr(click_at.size()));
-            std::string id;
-            double local_x{};
-            double local_y{};
-            if (!(input >> id >> local_x >> local_y) || !std::isfinite(local_x) ||
-                !std::isfinite(local_y)) return FALSE;
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) {
-                std::fprintf(stdout,
-                             "{\"automation\":\"click-at\",\"id\":\"%s\",\"accepted\":false,\"reason\":\"%s\"}\n",
-                             id.c_str(), !control ? "not-found" : "ineligible");
-                std::fflush(stdout);
-                return FALSE;
-            }
-            const Rect bounds = (*control).absolute_bounds();
-            const Point point{bounds.x + std::clamp(local_x, 0.0, bounds.width),
-                              bounds.y + std::clamp(local_y, 0.0, bounds.height)};
-            const bool handled_down = dispatch(PointerEvent{
-                PointerAction::down, PointerButton::primary, point, {},
-                Modifier::none, 1}).handled;
-            const bool handled_up = dispatch(PointerEvent{
-                PointerAction::up, PointerButton::primary, point, {},
-                Modifier::none, 1}).handled;
-            synchronize_capture();
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"click-at\",\"id\":\"%s\",\"local_x\":%.3f,\"local_y\":%.3f,\"handled\":%s}\n",
-                         id.c_str(), local_x, local_y,
-                         (handled_down || handled_up) ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view drag = "drag ";
-        if (command.starts_with(drag)) {
-            std::istringstream input(command.substr(drag.size()));
-            std::string id;
-            double start_x{};
-            double start_y{};
-            double end_x{};
-            double end_y{};
-            unsigned requested_steps{8U};
-            if (!(input >> id >> start_x >> start_y >> end_x >> end_y) ||
-                !std::isfinite(start_x) || !std::isfinite(start_y) ||
-                !std::isfinite(end_x) || !std::isfinite(end_y)) return FALSE;
-            if (!(input >> requested_steps)) requested_steps = 8U;
-            const unsigned steps = std::clamp(requested_steps, 1U, 256U);
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) {
-                std::fprintf(stdout,
-                             "{\"automation\":\"drag\",\"id\":\"%s\",\"accepted\":false,\"reason\":\"%s\"}\n",
-                             id.c_str(), !control ? "not-found" : "ineligible");
-                std::fflush(stdout);
-                return FALSE;
-            }
-            const Rect bounds = (*control).absolute_bounds();
-            const Point start{
-                bounds.x + std::clamp(start_x, 0.0, bounds.width),
-                bounds.y + std::clamp(start_y, 0.0, bounds.height)};
-            const Point end{
-                bounds.x + std::clamp(end_x, 0.0, bounds.width),
-                bounds.y + std::clamp(end_y, 0.0, bounds.height)};
-            bool handled = dispatch(PointerEvent{
-                PointerAction::down, PointerButton::primary, start, {},
-                Modifier::none, 1}).handled;
-            for (unsigned index = 1; index <= steps; ++index) {
-                const double ratio = static_cast<double>(index) /
-                                     static_cast<double>(steps);
-                const Point position{start.x + (end.x - start.x) * ratio,
-                                     start.y + (end.y - start.y) * ratio};
-                handled = dispatch(PointerEvent{
-                    PointerAction::move, PointerButton::primary, position, {},
-                    Modifier::none, 1}).handled || handled;
-            }
-            handled = dispatch(PointerEvent{
-                PointerAction::up, PointerButton::primary, end, {},
-                Modifier::none, 1}).handled || handled;
-            synchronize_capture();
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"drag\",\"id\":\"%s\",\"steps\":%u,\"handled\":%s}\n",
-                         id.c_str(), steps, handled ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view click = "click ";
-        if (command.starts_with(click)) {
-            const std::string id = command.substr(click.size());
-            std::fprintf(stdout, "{\"automation\":\"click-phase\",\"id\":\"%s\",\"phase\":\"request\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) return FALSE;
-            std::fprintf(stdout, "{\"automation\":\"click-phase\",\"id\":\"%s\",\"phase\":\"resolved\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            const Rect bounds = (*control).absolute_bounds();
-            const Point center{bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0};
-            const Control::Ptr hit = (*model_).hit_test(center);
-            std::fprintf(stdout,
-                         "{\"automation\":\"click-target\",\"id\":\"%s\",\"resolved\":\"%s\",\"hit\":\"%s\",\"x\":%.3f,\"y\":%.3f}\n",
-                         id.c_str(), (*control).stable_id().value().data(),
-                         hit ? (*hit).stable_id().value().data() : "", center.x,
-                         center.y);
-            std::fflush(stdout);
-            PointerEvent down{PointerAction::down, PointerButton::primary, center,
-                              {}, Modifier::none, 1};
-            PointerEvent up{PointerAction::up, PointerButton::primary, center,
-                            {}, Modifier::none, 1};
-            const bool handled_down = dispatch(std::move(down)).handled;
-            std::fprintf(stdout, "{\"automation\":\"click-phase\",\"id\":\"%s\",\"phase\":\"down\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            const bool handled_up = dispatch(std::move(up)).handled;
-            std::fprintf(stdout, "{\"automation\":\"click-phase\",\"id\":\"%s\",\"phase\":\"up\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            synchronize_capture();
-            collect_damage();
-            std::fprintf(stdout, "{\"automation\":\"click\",\"id\":\"%s\",\"handled\":%s}\n",
-                         id.c_str(), (handled_down || handled_up) ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        return FALSE;
-    }
-
-    static std::wstring executable_directory() {
-        wchar_t executable[MAX_PATH]{};
-        const DWORD count = GetModuleFileNameW(nullptr, executable, MAX_PATH);
-        if (count == 0 || count >= MAX_PATH) return {};
-        std::wstring directory(executable, count);
-        const std::wstring::size_type slash = directory.find_last_of(L"\\/");
-        directory.resize(slash == std::wstring::npos ? 0 : slash + 1);
-        return directory;
-    }
-
     enum class NativePhase : std::uint8_t {
         creating,
         bound,
@@ -4775,9 +4363,6 @@ private:
     HostWindowId window_id_{};
     // mark_passive_popup: never activated by a click.
     bool passive_popup_{};
-    // Automation commands waiting for the thread to leave a dispatch or a
-    // size/move loop, oldest first (at most maximum_deferred_automation).
-    std::deque<std::string> deferred_automation_{};
     // The client origin on the screen at the last WM_MOVE, for
     // report_moved_to_model.
     std::optional<POINT> last_client_origin_{};
@@ -4856,10 +4441,6 @@ void run_windows_prepared_text_fixture(const std::span<const std::byte> fonts) {
 // accessibility: MSAA and UI Automation publication of the semantic tree,
 // including the TextPattern, verified by the MSAA and UI Automation client
 // tests over the Gallery (stage A).
-void accept_automation_environment() noexcept {
-    automation_environment_accepted.store(true, std::memory_order_release);
-}
-
 HostCapabilities windows_capabilities() {
     HostCapabilities capabilities{HostCapabilities::current_protocol_version,
             "win32-dib",
@@ -5105,19 +4686,6 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     if (primary_count != 1U) return 2;
     run_scale_override() = windows.front().options.scale_override > 0.0 ? windows.front().options.scale_override
                                                                          : development_scale_override();
-    // Development hook (GUI_FORMS_WINDOWS_AUTOMATION=1): a program run
-    // through Application::run, whose portable options cannot ask for it,
-    // answers the automation channel in every window (menu probes). The
-    // variable counts only in a build configured with
-    // GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT, and only in a program that
-    // called accept_automation_environment first, so the environment alone
-    // opens no program (A-gf-host-03-F6).
-#if defined(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
-    const bool accepted = automation_environment_accepted.load(std::memory_order_acquire);
-    if (accepted && environment_flag("GUI_FORMS_WINDOWS_AUTOMATION")) {
-        for (WindowsApplicationWindow& entry : windows) entry.options.automation_enabled = true;
-    }
-#endif
 
     const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     enable_best_dpi_awareness();

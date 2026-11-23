@@ -5,6 +5,8 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
 
+#include <cstdint>
+#include <thread>
 
 namespace gui_forms {
 
@@ -51,6 +53,21 @@ public:
     // ic: text, input settings out of range, a stale compositor report), unchanged.
     [[nodiscard]] HostDispatchResult dispatch(HostEvent event);
     // ic: Admitted in any state; then shutdown.
+    // A model's input (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
+    // section 8.1): the automation core builds a pointer, key, text, hover
+    // or context request event as a host would and delivers it through this
+    // same session, so the model's input and the user's go through one door
+    // in the order they arrive. It takes no sequence number (the host's own
+    // sequence stays the host's, so no later host event is refused as out
+    // of order) and is never held by the user input gate that
+    // model.directed and suspend_input install; a modal window over this
+    // one suppresses it exactly as it suppresses the user's input. Any
+    // other payload is refused as invalid_payload; the other refusals are
+    // dispatch's (wrong_thread, after_shutdown, the lifecycle, invalid
+    // UTF-8 text, an invalid pointer report). Counted in the snapshot's
+    // model_input_events. UI thread.
+    [[nodiscard]] HostDispatchResult dispatch_model_input(HostEventPayload payload,
+                                                          std::uint64_t timestamp_nanoseconds);
     void shutdown() noexcept;
 
     [[nodiscard]] Event<HostCloseRequest&>& closing() noexcept {
@@ -64,6 +81,13 @@ public:
     [[nodiscard]] HostSessionSnapshot snapshot() const;
 
 private:
+    // Where an event came from: the host adapter (the user) or the
+    // automation core (a model).
+    enum class InputOrigin : std::uint8_t { user, model };
+    // The checks after the sequence and lifecycle (geometry, payloads,
+    // modal and user input suppression), then delivery; shared by dispatch
+    // and dispatch_model_input.
+    HostDispatchResult admit(HostEvent& event, InputOrigin origin);
     // Delivers an accepted event; dispatch calls it through the fail-fast
     // boundary.
     void deliver(HostEvent& event, HostDispatchResult& result);

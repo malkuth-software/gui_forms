@@ -5,7 +5,7 @@
 Input and semantics
 ===================
 
-Pointer, keyboard, text and drag event records, the public drag client, and the semantic tree published to accessibility and automation.
+Pointer, keyboard, text and drag event records, the public drag client, the semantic tree published to accessibility and automation, and a program's own model tools.
 
 Types
 -----
@@ -78,6 +78,16 @@ Types
      - Windows Forms' KeyPressEventArgs for committed text input: text is what the input produced (UTF-8; one character for a typed key, several for a committed composition or a paste the host sends as text), key_char its one Unicode scalar value when it holds exactly one, else zero.
    * - :cpp:class:`KeyStateChange <gui_forms::KeyStateChange>`
      - A physical key going down or up, raw: raised once per press and once per release (never for an auto-repeat), before any route can consume the key and whatever control has the focus, so that a game can keep key state without text input or focus in the way.
+   * - :cpp:class:`ModelInspectRequest <gui_forms::automation::ModelInspectRequest>`
+     - One inspect section's request, borrowed for the handler's run: the window, and the node and control a target named (null for none).
+   * - :cpp:class:`ModelInspectText <gui_forms::automation::ModelInspectText>`
+     - The text an inspect section appends to, borrowed for its run.
+   * - :cpp:class:`ModelToolCall <gui_forms::automation::ModelToolCall>`
+     - One call of a tool, borrowed for the handler's run.
+   * - :cpp:class:`ModelToolReply <gui_forms::automation::ModelToolReply>`
+     - The reply a handler fills, borrowed for its run: text, structured content and images, or one failure.
+   * - :cpp:class:`ModelToolSpec <gui_forms::automation::ModelToolSpec>`
+     - A tool's declaration.
    * - :cpp:class:`MouseEventArgs <gui_forms::MouseEventArgs>`
      - One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields.
    * - :cpp:class:`PhysicalKey <gui_forms::PhysicalKey>`
@@ -941,6 +951,140 @@ Types
    .. cpp:member:: bool down
 
    .. cpp:member:: bool released_by_deactivation
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:struct:: ModelInspectRequest final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   One inspect section's request, borrowed for the handler's run: the window, and the node and control a target named (null for none).
+
+   .. cpp:member:: Window* window
+
+   .. cpp:member:: const SemanticNode* node
+
+   .. cpp:member:: Control* control
+
+   .. cpp:member:: const char* arguments_json
+
+   .. cpp:member:: std::size_t arguments_bytes
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:class:: ModelInspectText final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   The text an inspect section appends to, borrowed for its run.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit ModelInspectText(ModelInspectTextState& state) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool append(const char* utf8, std::size_t bytes)
+
+      Appends UTF-8 text; false (appending nothing) for text that is not UTF-8. inspect cuts a section at 64 KiB.
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:struct:: ModelToolCall final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   One call of a tool, borrowed for the handler's run.
+
+   .. cpp:member:: const char* arguments_json
+
+      The arguments: one JSON object, UTF-8, not NUL-terminated.
+
+   .. cpp:member:: std::size_t arguments_bytes
+
+   .. cpp:member:: const char* client_name
+
+      Who is calling, as the client states it (not verified); NUL-terminated and possibly empty.
+
+   .. cpp:member:: const char* model_name
+
+   .. cpp:member:: Window* window
+
+      The window the call names (its "window" argument, else the active one) for a UI tool; null for a ModelToolThread::any tool.
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:class:: ModelToolReply final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   The reply a handler fills, borrowed for its run: text, structured content and images, or one failure. A reply left empty succeeds with no text; after fail, the rest is ignored.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit ModelToolReply(ModelToolReplyState& state) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool text(const char* utf8, std::size_t bytes)
+
+      Appends UTF-8 text; false (appending nothing) for text that is not UTF-8 or would pass 4 MiB.
+
+   .. cpp:function:: bool structured(const char* json, std::size_t bytes)
+
+      Sets the structured content: one JSON object matching the tool's declared output; false for anything else.
+
+   .. cpp:function:: bool image(const unsigned char* bytes, std::size_t count, const char* mime_type)
+
+      Adds an image (PNG unless mime_type names another image type); false for no bytes, more than 16 MiB, or a mime type that is not image/*.
+
+   .. cpp:function:: void fail(ModelToolError error, const char* message, const char* hint)
+
+      Fails the call with error, a message and a hint (each NUL-terminated, may be null).
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:struct:: ModelToolSpec final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   A tool's declaration. The texts are UTF-8, NUL-terminated and copied by register_model_tool.
+
+   .. cpp:member:: const char* name
+
+      1 to 64 bytes of ASCII letters, digits, '_', '-' and '.', starting with a letter; unique among the program's tools and the built-in ones.
+
+   .. cpp:member:: const char* title
+
+      A short title for a client's list; may be null.
+
+   .. cpp:member:: const char* description
+
+      What the tool does, for the model: at most 4096 bytes.
+
+   .. cpp:member:: const char* input_schema
+
+      The arguments' JSON Schema, one object of at most 16384 bytes; null or empty takes any object.
+
+   .. cpp:member:: ModelToolAccess access
+
+      Default: ``{ModelToolAccess::read_only}``.
+
+   .. cpp:member:: bool destructive
+
+      Every call changes something the user cannot take back: the first call of the launch asks the user (study 10).
+
+   .. cpp:member:: ModelToolThread thread
+
+      Must be ui for an acting tool. Default: ``{ModelToolThread::ui}``.
+
+   .. cpp:member:: bool settles
+
+      An acting UI tool that settles runs as an act (posted, then waited on until the window is idle, with a diff in its reply).
 
 .. cpp:namespace:: gui_forms
 
@@ -2048,6 +2192,86 @@ Enumerations
 
    .. cpp:enumerator:: count
 
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:enum-class:: ModelToolAccess
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   .. cpp:enumerator:: read_only
+
+   .. cpp:enumerator:: acting
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:enum-class:: ModelToolError
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   .. cpp:enumerator:: not_found
+
+   .. cpp:enumerator:: stale_identity
+
+   .. cpp:enumerator:: ambiguous
+
+   .. cpp:enumerator:: disabled
+
+   .. cpp:enumerator:: not_visible
+
+   .. cpp:enumerator:: unsupported_action
+
+   .. cpp:enumerator:: dialog_open
+
+   .. cpp:enumerator:: needs_user
+
+   .. cpp:enumerator:: user_took_control
+
+   .. cpp:enumerator:: declined
+
+   .. cpp:enumerator:: protected_content
+
+   .. cpp:enumerator:: timeout
+
+   .. cpp:enumerator:: not_in_this_build
+
+   .. cpp:enumerator:: invalid_arguments
+
+   .. cpp:enumerator:: unknown_tool
+
+   .. cpp:enumerator:: window_gone
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: busy
+
+   .. cpp:enumerator:: internal
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:enum-class:: ModelToolRegistration
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   .. cpp:enumerator:: added
+
+   .. cpp:enumerator:: invalid_name
+
+   .. cpp:enumerator:: duplicate
+
+   .. cpp:enumerator:: full
+
+   .. cpp:enumerator:: invalid_spec
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:enum-class:: ModelToolThread
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   .. cpp:enumerator:: ui
+
+   .. cpp:enumerator:: any
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: Modifier
@@ -2420,6 +2644,94 @@ Enumerations
 
 Functions, constants and aliases
 --------------------------------
+
+.. cpp:namespace:: gui_forms::automation
+
+``#include <gui_forms/automation/marks/automation_marks.hpp>`` (:src:`source <include/gui_forms/automation/marks/automation_marks.hpp>`)
+
+.. cpp:function:: bool mcp_capability_built() noexcept
+
+   Whether this build has the MCP capability (the GUI_FORMS_MCP build option, on by default).
+
+.. cpp:function:: void set_model_drivable(Window& window, bool drivable)
+
+   A dialog (or any window) a model may drive while it is open (study 9.2): the installer's setup dialog is the example. Without the mark a model is refused control while a dialog is open (dialog_open). The mark lasts as long as the window.
+
+.. cpp:function:: bool model_drivable(const Window& window) noexcept
+
+.. cpp:function:: void set_window_destructive(Window& window, bool destructive)
+
+   Every act in ``window`` is destructive: the first one of a launch asks the user once (study 10).
+
+.. cpp:function:: bool window_destructive(const Window& window) noexcept
+
+.. cpp:function:: bool set_action_destructive(const char* stable_id, SemanticAction action, bool destructive)
+
+   ``action`` on the node with stable identity ``stable_id`` (a control's or a virtual child's) is destructive. A Command marks itself with Command::set_destructive. False for an identity that is null, empty or not UTF-8, marking nothing.
+
+.. cpp:function:: bool action_destructive(const char* stable_id, SemanticAction action) noexcept
+
+.. cpp:function:: bool set_command_hidden_from_model(const char* stable_id, bool hidden)
+
+   The command with stable identity ``stable_id`` is not offered to a model as a tool, and invoke_command refuses it as not_found (study 7.2: "A program can hide any of them").
+
+.. cpp:function:: bool command_hidden_from_model(const char* stable_id) noexcept
+
+.. cpp:function:: bool require_user_step(const char* stable_id, const char* what_user_must_do)
+
+   A step inside an instrumented dialog that needs the user (study 9.3): a security approval, an administrator password, a licence. While it is pending, a model acting on the node ``stable_id`` is answered needs_user with ``what_user_must_do``, and the interface shows the step to the user. The program completes it once the user has done it; a model's wait on it then reports it done. False for invalid text, changing nothing.
+
+.. cpp:function:: void complete_user_step(const char* stable_id)
+
+.. cpp:function:: bool user_step_pending(const char* stable_id) noexcept
+
+.. cpp:function:: void set_clipboard_readable_by_model(bool readable) noexcept
+
+   Whether a model may read the clipboard (ruling 24); off by default.
+
+.. cpp:function:: bool clipboard_readable_by_model() noexcept
+
+.. cpp:function:: bool set_mcp_identity(const char* identity)
+
+   The program's MCP identity (study 4.3): app.<vendor>.<appname> by default, made from the program identity's vendor and product (set_program_identity). A program may set its own: 3 to 128 bytes of lowercase ASCII letters, digits, '.', '-' and '_', starting with a letter, with at least one '.'. False, keeping the identity, for anything else.
+
+.. cpp:function:: const char* mcp_identity_override() noexcept
+
+   The identity set, or empty when none was. Static storage, valid until the next set_mcp_identity.
+
+.. cpp:function:: void take_mcp_arguments(int& argc, char** argv) noexcept
+
+   Removes the automation's launch arguments from a program's argv before the program reads it (study 4.2): --mcp, --model-directed and --mcp-script <file>. argv's pointers move down and argc shrinks; argv [argc] stays null. The library reads the process's own arguments, so a program that never calls this still gets MCP; one that parses argv calls it first so the arguments do not reach its parser.
+
+.. cpp:namespace:: gui_forms::automation
+
+``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+.. cpp:function:: const char* model_tool_error_name(ModelToolError error) noexcept
+
+   The code's name as the model sees it ("not_found", "protected", ...). Static storage.
+
+.. cpp:function:: const char* model_tool_registration_name(ModelToolRegistration registration) noexcept
+
+   Static storage.
+
+.. cpp:function:: ModelToolRegistration register_model_tool(const ModelToolSpec& spec, ModelToolHandler handler, void* context)
+
+   Declares a tool. In a build without the automation (high-integrity, or GUI_FORMS_MCP off) the tool is recorded and never served.
+
+.. cpp:function:: bool unregister_model_tool(const char* name)
+
+   Withdraws the tool ``name``; false when none has it.
+
+.. cpp:function:: ModelToolRegistration register_model_inspect_section(const char* name, const char* description, ModelInspectHandler handler, void* context)
+
+   Declares an inspect section ``name`` (inspect's ``what``), described for the model. UI thread handlers only: inspect runs on the UI thread. The texts are NUL-terminated and copied.
+
+.. cpp:function:: bool unregister_model_inspect_section(const char* name)
+
+.. cpp:type:: ModelToolHandler = void (*)(void* context, const ModelToolCall& call, ModelToolReply& reply)
+
+.. cpp:type:: ModelInspectHandler = void (*)(void* context, const ModelInspectRequest& request, ModelInspectText& text)
 
 .. cpp:namespace:: gui_forms
 

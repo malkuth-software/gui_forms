@@ -1889,6 +1889,88 @@ public unsafe struct gf_list_view_table
     public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_sort_order, gf_status> sort_items;
 }
 
+/// <summary>gf_automation_tool_call (extensible, 80 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_tool_call
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view arguments_json;
+    public gf_utf8_view client_name;
+    public gf_utf8_view model_name;
+    public gf_utf8_view window_id;
+    public void* reply;
+}
+
+/// <summary>gf_automation_tool (extensible, 104 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_tool
+{
+    public uint struct_size;
+    public gf_automation_tool_access access;
+    public gf_automation_tool_flags flags;
+    public uint reserved;
+    public gf_utf8_view name;
+    public gf_utf8_view title;
+    public gf_utf8_view description;
+    public gf_utf8_view input_schema;
+    public void* context;
+    public delegate* unmanaged[Cdecl]<void*, gf_automation_tool_call*, void> call;
+    public delegate* unmanaged[Cdecl]<void*, void> release;
+}
+
+/// <summary>gf_automation_inspect_call (extensible, 64 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_inspect_call
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view window_id;
+    public gf_utf8_view node_id;
+    public gf_utf8_view arguments_json;
+    public void* text;
+}
+
+/// <summary>gf_automation_inspect_section (extensible, 64 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_inspect_section
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view name;
+    public gf_utf8_view description;
+    public void* context;
+    public delegate* unmanaged[Cdecl]<void*, gf_automation_inspect_call*, void> inspect;
+    public delegate* unmanaged[Cdecl]<void*, void> release;
+}
+
+/// <summary>gf_automation_table (table, 160 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<uint*, gf_status> capability_built;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> set_window_drivable;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> set_window_destructive;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_automation_action, uint, gf_status> set_action_destructive;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, uint, gf_status> set_command_hidden;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_utf8_view, gf_status> require_user_step;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> complete_user_step;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, uint*, gf_status> user_step_pending;
+    public delegate* unmanaged[Cdecl]<uint, gf_status> set_clipboard_readable;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> set_identity;
+    public delegate* unmanaged[Cdecl]<gf_automation_tool*, gf_status> register_tool;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> unregister_tool;
+    public delegate* unmanaged[Cdecl]<void*, gf_utf8_view, gf_status> reply_text;
+    public delegate* unmanaged[Cdecl]<void*, gf_utf8_view, gf_status> reply_structured;
+    public delegate* unmanaged[Cdecl]<void*, byte*, ulong, gf_utf8_view, gf_status> reply_image;
+    public delegate* unmanaged[Cdecl]<void*, gf_automation_tool_error, gf_utf8_view, gf_utf8_view, gf_status> reply_fail;
+    public delegate* unmanaged[Cdecl]<gf_automation_inspect_section*, gf_status> register_inspect_section;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> unregister_inspect_section;
+    public delegate* unmanaged[Cdecl]<void*, gf_utf8_view, gf_status> inspect_append;
+}
+
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_paint_endpoint_table

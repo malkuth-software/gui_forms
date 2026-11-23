@@ -79,7 +79,8 @@ endif()
 # A boolean compares by truth (ON, 1, TRUE and YES agree); a string by text.
 set(_gf_high_integrity_settings
     "GUI_FORMS_HARDENING|ON|BOOL|the hardening flags are part of the configuration (cmake/Hardening.cmake)"
-    "GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT|OFF|BOOL|the automation channel takes another process's requests"
+    "GUI_FORMS_MCP|OFF|BOOL|the automation serves another process's requests over MCP"
+    "GUI_FORMS_MCP_TEST_CONTROLS|OFF|BOOL|the automation is not built"
     "GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY|OFF|BOOL|faces come from the embedded font pack only"
     "GUI_FORMS_BUILD_AUDIO|OFF|BOOL|the audio service decodes sound files from outside the program"
     "GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT|OFF|BOOL|the loop transport is a development channel"

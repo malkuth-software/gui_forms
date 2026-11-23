@@ -59,7 +59,7 @@ domain. The program:
 | `correspondence_controls.hpp/.cpp` | `CorrespondenceShell`, the retained tree, commands, menus, projection and event handlers. |
 | `correspondence.hpp/.cpp` | `make_correspondence()`: builds the shell, the `Window`, tooltips and the first layout, like `gallery::make_gallery()`. |
 | `correspondence.cmake` | All CMake for the program and its tests; the root `CMakeLists.txt` includes it with one line. |
-| `src/host/{macos,windows,linux}/correspondence_main.*` | Host mains using `demo/program_options.hpp` (`--automation`, `--capture`, `--size`, `--scale`). |
+| `src/host/{macos,windows,linux}/correspondence_main.*` | Host mains using `demo/program_options.hpp` (`--mcp`, `--capture`, `--size`, `--scale`). |
 | `tests/correspondence_tests.cpp` | Model-only tests. |
 | `tests/correspondence_interaction_tests.cpp` | Headless window tests: pointer clicks by stable ID, text input, accelerator, context menu, 600x420 layout. |
 

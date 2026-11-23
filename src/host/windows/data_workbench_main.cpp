@@ -20,7 +20,6 @@ int main(int argc, char** argv) {
     options.initial_size = gui_forms::data_workbench::window_size;
     options.minimum_size = gui_forms::data_workbench::window_size;
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     std::unique_ptr<gui_forms::Window> window = gui_forms::data_workbench::make_data_workbench();
     if (!gui_forms::data_workbench::apply_data_workbench_staging(*program)) return 2;
     if ((*program).headless) return gui_forms::data_workbench::run_headless_data_workbench(*program, *window);

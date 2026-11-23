@@ -19,6 +19,7 @@
 #include "overlay/overlay_attachment.hpp"
 #include "interaction/interaction_state.hpp"
 #include "../theme/theme_compiler/control_inline_style.hpp"
+#include "../host/session/session_directory.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 
@@ -2042,6 +2043,9 @@ bool SurfaceRoot::dispatch_pointer_in_frame(PointerEvent event) {
     bool click_suppressed = false;
     const bool handled = route_pointer(event, pressed_for_release, target, hit, click_suppressed);
     if (window_destroyed(*lifetime, presenting)) return true;
+    if (detail::route_observed()) report_route(true, static_cast<std::uint8_t>(event.action),
+                                               static_cast<std::uint32_t>(event.button), event.position,
+                                               target.get(), handled);
     raise_mouse_events(event, target, pressed_for_release, hit, click_suppressed, sequence_breaks);
     return handled;
 }
@@ -2251,6 +2255,26 @@ void SurfaceRoot::trace_press(const PointerEvent& event, const Control* target, 
                  press_outcome_name(outcome), press_trace_.target_stable_id.c_str(),
                  press_trace_.target_control_id.c_str(), press_trace_.handled_by.c_str(), event.position.x,
                  event.position.y);
+}
+
+void SurfaceRoot::report_route(bool pointer, std::uint8_t action, std::uint32_t code, Point position,
+                               const Control* target, bool handled) const noexcept {
+    try {
+        detail::RouteRecord record{};
+        record.kind = pointer ? detail::RouteKind::pointer : detail::RouteKind::key;
+        record.action = action;
+        record.code = code;
+        record.x = position.x;
+        record.y = position.y;
+        if (target != nullptr) {
+            record.target_stable_id = std::string((*target).stable_id().value());
+            record.target_control_id = std::string((*target).anatomy().control_id);
+        }
+        record.handled = handled;
+        detail::notify_route(*this, record);
+    } catch (...) {
+        // Out of memory: the trace misses one event; the route is unchanged.
+    }
 }
 
 // Scroll latching (WheelPhase): the control a gesture's later events go to.
@@ -2478,7 +2502,13 @@ bool SurfaceRoot::dispatch_key_in_frame(KeyEvent event) {
         return true;
     }
     const bool escape = key_down && event.physical_key == PhysicalKey::escape;
+    const std::uint8_t key_action = static_cast<std::uint8_t>(event.action);
+    const std::uint32_t key_code = event.physical_key;
     const bool handled = route_key(std::move(event));
+    if (detail::route_observed() && !window_destroyed(*lifetime, presenting)) {
+        const Control::Ptr focused = focused_.lock();
+        report_route(false, key_action, key_code, Point{}, focused.get(), handled);
+    }
     // A key_down handler or the focused control's own handling that closed
     // the window leaves tool_tips_ freed (hostile_handlers, destroy_window).
     if (window_destroyed(*lifetime, presenting)) return handled;

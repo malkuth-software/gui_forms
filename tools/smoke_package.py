@@ -3,8 +3,7 @@
 
 Reads packages-<platform>.json written by tools/package_programs.py. For every
 packaged program the archive is extracted to a scratch directory and the
-executable is launched with the program's automation flag and extra smoke
-arguments, with GUI_FORMS_FONT_DIR unset so the bundled fonts are the ones
+executable is launched with the extra smoke arguments, with GUI_FORMS_FONT_DIR unset so the bundled fonts are the ones
 exercised. With --install the installer is also applied on this machine and
 the installed copy is launched the same way (macOS `installer -pkg`, Windows
 `setup.exe /S` then the quiet uninstaller, Linux `apt-get install ./x.deb`).
@@ -39,7 +38,6 @@ from typing import Any
 
 ROOT: Path = Path(__file__).resolve().parents[1]
 PLATFORMS: tuple[str, ...] = ("macos-arm64", "windows-x64", "linux-x64", "linux-arm64")
-PROBE_NAME: str = "gui_forms_windows_probe.exe"
 PASS_LINE: str = "GUI.Forms window smoke passed"
 
 
@@ -116,14 +114,6 @@ class Smoke:
         self.timeout = timeout
         self.dry_run = dry_run
         self.log = log
-
-    def probe(self) -> Path | None:
-        if self.build_dir is None:
-            return None
-        for candidate in (self.build_dir / PROBE_NAME, *sorted(self.build_dir.rglob(PROBE_NAME))):
-            if candidate.is_file():
-                return candidate
-        return None
 
     def launch(self, record: dict[str, Any], executable: Path, source: str) -> LaunchResult:
         """Run the program with --smoke-test the way PlaySuite's smoke does.
@@ -217,7 +207,7 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--platform", choices=PLATFORMS, default=None)
     parser.add_argument("--dist", type=Path, required=True, help="directory holding the artifacts and packages-<platform>.json")
-    parser.add_argument("--build-dir", type=Path, default=None, help="where gui_forms_windows_probe.exe may be found")
+    parser.add_argument("--build-dir", type=Path, default=None, help="the build directory (kept for the command line; unused)")
     parser.add_argument("--install", action="store_true", help="also apply the installer and launch the installed copy")
     parser.add_argument("--timeout", type=float, default=60.0, help="seconds a program may take to present, capture and exit")
     parser.add_argument("--receipt", type=Path, default=None, help="default <dist>/smoke-<platform>.json")

@@ -1,13 +1,12 @@
 """Seeded contention fuzzer for a GUI.Forms Windows program.
 
 Drives one program (the menu probe, which is the Gallery under
-Application::run, or a product such as Plan Paint started with the
-automation channel) from three directions at once, in an order fixed by a
-seed:
+Application::run, or a product such as Plan Paint, started with --mcp) from
+three directions at once, in an order fixed by a seed:
 
-- automation commands through WM_COPYDATA (snapshot, capture, click-at,
-  activate, move, key-focused, overlay on/off), as an agent's probe sends
-  them;
+- automation tool calls over MCP (snapshot, capture, pointer clicks and
+  moves, act press, keyboard keys), as a model sends them (mcp_client.py);
+  the calls other than snapshot are sent without waiting for their replies;
 - injected input, posted to the program's windows (presses and releases at
   points in the main window or in its Popup windows, keys, frame presses on
   every edge and corner released or abandoned mid-flight, activation lost
@@ -58,6 +57,8 @@ import sys
 import time
 from ctypes import wintypes
 
+import mcp_client
+
 WM_NULL = 0x0000
 WM_ACTIVATE = 0x0006
 WM_ACTIVATEAPP = 0x001C
@@ -70,15 +71,15 @@ WM_LBUTTONUP = 0x0202
 WM_NCLBUTTONDOWN = 0x00A1
 WM_NCMOUSEMOVE = 0x00A0
 WM_NCLBUTTONUP = 0x00A2
-WM_COPYDATA = 0x004A
 MK_LBUTTON = 0x0001
 SMTO_ABORTIFHUNG = 0x0002
 GUI_INMOVESIZE = 0x00000002
 GWL_EXSTYLE = -20
 WS_EX_TOPMOST = 0x00000008
 WINDOW_CLASS = 'GUIForms.Window.v1'
-AUTOMATION_TAG = 0x47464131
 # USB HID usages, as key-focused takes them.
+# HID usages the steps name, as the keyboard tool's key names.
+KEY_NAMES = {40: 'Enter', 41: 'Escape', 43: 'Tab', 79: 'Right', 80: 'Left', 81: 'Down', 82: 'Up'}
 KEY_DOWN = 81
 KEY_UP = 82
 KEY_RIGHT = 79
@@ -101,10 +102,6 @@ PROFILES = {
                     'gallery.commands.ribbon.bar'],
     },
 }
-
-
-class COPYDATASTRUCT(ctypes.Structure):
-    _fields_ = [('dwData', ctypes.c_size_t), ('cbData', wintypes.DWORD), ('lpData', ctypes.c_void_p)]
 
 
 class RECT(ctypes.Structure):
@@ -155,10 +152,9 @@ class Program:
         self.profile = profile
         self.answer_ms = answer_ms
         environment = dict(os.environ)
-        environment['GUI_FORMS_WINDOWS_AUTOMATION'] = '1'
         environment['GUI_FORMS_WINDOWS_SCALE'] = scale
-        self.process = subprocess.Popen([executable], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                                        env=environment)
+        self.client = mcp_client.McpClient([executable, '--mcp'], environment, 'gui-forms-contention-fuzz')
+        self.process = self.client.process
         self.main = None
         self.thread = 0
         deadline = time.monotonic() + 30.0
@@ -215,13 +211,34 @@ class Program:
         return sent != 0
 
     def automation(self, command):
-        payload = ('GUI.Forms.Automation/1 ' + command).encode('utf-8')
-        buffer = ctypes.create_string_buffer(payload, len(payload))
-        data = COPYDATASTRUCT(AUTOMATION_TAG, len(payload), ctypes.cast(buffer, ctypes.c_void_p))
-        result = ctypes.c_size_t()
-        sent = user32.SendMessageTimeoutW(self.main, WM_COPYDATA, 0, ctypes.addressof(data), SMTO_ABORTIFHUNG,
-                                          self.answer_ms, ctypes.byref(result))
-        return sent != 0 and result.value != 0
+        """Runs one of the fuzzer's automation commands as an MCP tool call.
+
+        snapshot waits for its reply (it must succeed within answer_ms); the
+        others are sent and not waited for. close closes MCP's input, the
+        program's portable shutdown. True when the call was sent (and, for a
+        snapshot, succeeded)."""
+        words = command.split(' ')
+        name = words[0]
+        if name == 'close':
+            self.client.close()
+            return True
+        if name == 'snapshot':
+            ok, _, _ = self.client.call('snapshot', {'limit': 50}, timeout=max(1.0, self.answer_ms / 1000.0))
+            return ok
+        if name == 'capture-composite':
+            return self.client.call_later('capture', {})
+        if name in ('click-at', 'move'):
+            action = 'click' if name == 'click-at' else 'move'
+            return self.client.call_later('pointer', {'action': action, 'target': words[1],
+                                                      'offset': {'x': int(words[2]), 'y': int(words[3])}})
+        if name == 'activate':
+            return self.client.call_later('act', {'action': 'press', 'target': words[1]})
+        if name == 'key-focused':
+            key = KEY_NAMES.get(int(words[1]))
+            return key is not None and self.client.call_later('keyboard', {'keys': [key]})
+        # 'overlay on|off': the invalidation overlay has no tool; the step is
+        # a no-op.
+        return True
 
     def client_size(self):
         rect = RECT()

@@ -36,6 +36,7 @@
 #include "gui_forms/event.hpp"
 #include "gui_forms/events.hpp"
 #include "gui_forms/feedback.hpp"
+#include "gui_forms/forms.hpp"
 #include "gui_forms/guidance.hpp"
 #include "gui_forms/help.hpp"
 #include "gui_forms/host.hpp"

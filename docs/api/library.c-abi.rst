@@ -16,6 +16,8 @@ Types
 
    * - :cpp:class:`ApplicationTable <gui_forms::abi::ApplicationTable>`
      - gf_application_table, negotiated as GF_TABLE_APPLICATION.
+   * - :cpp:class:`AutomationTable <gui_forms::abi::AutomationTable>`
+     - gf_automation_table, negotiated as GF_TABLE_AUTOMATION.
    * - :cpp:class:`BindingsTable <gui_forms::abi::BindingsTable>`
      - gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
    * - :cpp:class:`ClassesTable <gui_forms::abi::ClassesTable>`
@@ -86,6 +88,17 @@ Types
      - gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source.
    * - :cpp:class:`gf_application_table <gf_application_table>`
      - ic: gf_abi::application: generated from include/gui_forms/c/gf_abi_application.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines.
+     -  
+   * - :cpp:class:`gf_automation_inspect_call <gf_automation_inspect_call>`
+     -  
+   * - :cpp:class:`gf_automation_inspect_section <gf_automation_inspect_section>`
+     -  
+   * - :cpp:class:`gf_automation_table <gf_automation_table>`
+     -  
+   * - :cpp:class:`gf_automation_tool <gf_automation_tool>`
+     -  
+   * - :cpp:class:`gf_automation_tool_call <gf_automation_tool_call>`
+     -  
    * - :cpp:class:`gf_binding_arguments <gf_binding_arguments>`
      -  
    * - :cpp:class:`gf_binding_column <gf_binding_column>`
@@ -502,6 +515,73 @@ Types
    .. cpp:function:: gf_status state(gf_application_state* state) const noexcept
 
    .. cpp:function:: gf_status set_program_identity(const gf_program_identity* identity) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: AutomationTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
+
+   gf_automation_table, negotiated as GF_TABLE_AUTOMATION.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: AutomationTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_automation_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(AutomationTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static AutomationTable adopt(const gf_automation_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status capability_built(uint32_t* built) const noexcept
+
+   .. cpp:function:: gf_status require_user_step(gf_utf8_view stable_id, gf_utf8_view what) const noexcept
+
+   .. cpp:function:: gf_status complete_user_step(gf_utf8_view stable_id) const noexcept
+
+   .. cpp:function:: gf_status user_step_pending(gf_utf8_view stable_id, uint32_t* pending) const noexcept
+
+   .. cpp:function:: gf_status register_tool(const gf_automation_tool* tool) const noexcept
+
+   .. cpp:function:: gf_status unregister_tool(gf_utf8_view name) const noexcept
+
+   .. cpp:function:: gf_status reply_text(void* reply, gf_utf8_view text) const noexcept
+
+   .. cpp:function:: gf_status reply_structured(void* reply, gf_utf8_view json) const noexcept
+
+   .. cpp:function:: gf_status reply_image(void* reply, const uint8_t* bytes, uint64_t count, gf_utf8_view mime_type) const noexcept
+
+   .. cpp:function:: gf_status reply_fail(void* reply, gf_automation_tool_error error, gf_utf8_view message, gf_utf8_view hint) const noexcept
+
+   .. cpp:function:: gf_status register_inspect_section(const gf_automation_inspect_section* section) const noexcept
+
+   .. cpp:function:: gf_status unregister_inspect_section(gf_utf8_view name) const noexcept
+
+   .. cpp:function:: gf_status inspect_append(void* text, gf_utf8_view utf8) const noexcept
+
+   .. cpp:function:: gf_status set_window_drivable(gf_object window, uint32_t drivable) const noexcept
+
+   .. cpp:function:: gf_status set_window_destructive(gf_object window, uint32_t destructive) const noexcept
+
+   .. cpp:function:: gf_status set_action_destructive(gf_utf8_view stable_id, gf_automation_action action, uint32_t destructive) const noexcept
+
+   .. cpp:function:: gf_status set_command_hidden(gf_utf8_view stable_id, uint32_t hidden) const noexcept
+
+   .. cpp:function:: gf_status set_clipboard_readable(uint32_t readable) const noexcept
+
+   .. cpp:function:: gf_status set_identity(gf_utf8_view identity) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1880,6 +1960,149 @@ Types
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_inspect_call
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view window_id
+
+   .. cpp:member:: gf_utf8_view node_id
+
+   .. cpp:member:: gf_utf8_view arguments_json
+
+   .. cpp:member:: void* text
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_inspect_section
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: void (*inspect)(void* context, const gf_automation_inspect_call* call)
+
+   .. cpp:member:: void (*release)(void* context)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view description
+
+   .. cpp:member:: void* context
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_table
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*capability_built)(uint32_t* built)
+
+   .. cpp:member:: gf_status (*set_window_drivable)(gf_object window, uint32_t drivable)
+
+   .. cpp:member:: gf_status (*set_window_destructive)(gf_object window, uint32_t destructive)
+
+   .. cpp:member:: gf_status (*set_action_destructive)(gf_utf8_view stable_id, gf_automation_action action, uint32_t destructive)
+
+   .. cpp:member:: gf_status (*set_command_hidden)(gf_utf8_view stable_id, uint32_t hidden)
+
+   .. cpp:member:: gf_status (*require_user_step)(gf_utf8_view stable_id, gf_utf8_view what)
+
+   .. cpp:member:: gf_status (*complete_user_step)(gf_utf8_view stable_id)
+
+   .. cpp:member:: gf_status (*user_step_pending)(gf_utf8_view stable_id, uint32_t* pending)
+
+   .. cpp:member:: gf_status (*set_clipboard_readable)(uint32_t readable)
+
+   .. cpp:member:: gf_status (*set_identity)(gf_utf8_view identity)
+
+   .. cpp:member:: gf_status (*register_tool)(const gf_automation_tool* tool)
+
+   .. cpp:member:: gf_status (*unregister_tool)(gf_utf8_view name)
+
+   .. cpp:member:: gf_status (*reply_text)(void* reply, gf_utf8_view text)
+
+   .. cpp:member:: gf_status (*reply_structured)(void* reply, gf_utf8_view json)
+
+   .. cpp:member:: gf_status (*reply_image)(void* reply, const uint8_t* bytes, uint64_t count, gf_utf8_view mime_type)
+
+   .. cpp:member:: gf_status (*reply_fail)(void* reply, gf_automation_tool_error error, gf_utf8_view message, gf_utf8_view hint)
+
+   .. cpp:member:: gf_status (*register_inspect_section)(const gf_automation_inspect_section* section)
+
+   .. cpp:member:: gf_status (*unregister_inspect_section)(gf_utf8_view name)
+
+   .. cpp:member:: gf_status (*inspect_append)(void* text, gf_utf8_view utf8)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_tool
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: void (*call)(void* context, const gf_automation_tool_call* call)
+
+   .. cpp:member:: void (*release)(void* context)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_automation_tool_access access
+
+   .. cpp:member:: gf_automation_tool_flags flags
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view title
+
+   .. cpp:member:: gf_utf8_view description
+
+   .. cpp:member:: gf_utf8_view input_schema
+
+   .. cpp:member:: void* context
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_tool_call
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view arguments_json
+
+   .. cpp:member:: gf_utf8_view client_name
+
+   .. cpp:member:: gf_utf8_view model_name
+
+   .. cpp:member:: gf_utf8_view window_id
+
+   .. cpp:member:: void* reply
 
 .. cpp:namespace:: 0
 
