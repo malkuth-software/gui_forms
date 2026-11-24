@@ -42,21 +42,25 @@ ROOT: Path = Path(__file__).resolve().parents[2]
 
 
 def check_windows_sdk_imports(sdk: Path) -> None:
-    """Fail when an installed SDK DLL imports a compiler runtime DLL.
+    """Fail when a DLL or program under `sdk` imports a compiler runtime DLL.
 
     Every Windows binary links libc++ and STXlib's runtime statically
-    (cmake/llvm22-windows-msvc-own.cmake), so a DLL imports Windows system
-    DLLs, ucrtbase.dll and GUI.Forms' own DLLs only; the forbidden names
-    (Microsoft, GCC and LLVM runtimes, the api-ms-win-crt forwarders) are
-    package_programs.py's. Prints each DLL's non-system imports.
+    (cmake/llvm22-windows-msvc-own.cmake), so a DLL or program imports
+    Windows system DLLs, ucrtbase.dll and GUI.Forms' own DLLs only; the
+    forbidden names (Microsoft, GCC and LLVM runtimes, the api-ms-win-crt
+    forwarders) are package_programs.py's. CMake's own probes (CMakeFiles)
+    are not looked at. Prints each image's non-system imports. A program
+    that consumes GUI.Forms points own_runtime.py evidence --dlls at its
+    build tree to check its programs the same way.
     """
     from package_programs import WINDOWS_FORBIDDEN_RUNTIME_DLL, WINDOWS_SYSTEM_DLLS
     objdump: str | None = shutil.which('objdump') or shutil.which('llvm-objdump')
     if objdump is None:
         raise RuntimeError('objdump (or llvm-objdump) is needed to check the installed DLLs')
-    dlls: list[Path] = sorted(sdk.rglob('*.dll'))
+    dlls: list[Path] = sorted(path for pattern in ('*.dll', '*.exe') for path in sdk.rglob(pattern)
+                              if 'CMakeFiles' not in path.relative_to(sdk).parts)
     if not dlls:
-        raise RuntimeError('no DLL under ' + str(sdk))
+        raise RuntimeError('no DLL or program under ' + str(sdk))
     dll: Path
     for dll in dlls:
         listing: str = subprocess.run([objdump, '-p', str(dll)], check=True, capture_output=True,
