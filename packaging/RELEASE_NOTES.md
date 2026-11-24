@@ -589,3 +589,12 @@ Visible-area guarantee (stage VA):
   and full text. The tool reference is generated from a running program
   (`tools/mcp_tool_reference.py`, docs: MCP tools), and CI's docs job
   checks it.
+- **The std census is a change report.** `manifests/std_surface_census.json`
+  is rebaselined to the shipped 1.0 surface. Standard types in public
+  signatures are part of 1.0 (owner, 2026-11-17, restated 2026-11-24): no
+  public signature changes type for the census, and CI reports it without
+  blocking. `tools/std_surface_census.py update --accept-rise` records a
+  rise.
+- Configuring a build directory reached through a symbolic link no longer
+  refuses to rebuild its own stx package (the package's owner and the tree
+  are compared by their real paths).

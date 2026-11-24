@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Count the standard vocabulary at GUI.Forms' C++ surface (D15, stage V0).
 
-D15 (owner, 2026-11-15) replaces std::vector, std::string and the standard
-ownership pointers at the C++ surface with STXlib's owned vocabulary before
-1.0; Q2 adds std::optional, std::string_view and std::span. The migration
-plan (STXlib notes, planning/M2b-owned-vocabulary-migration.md) moves them
-in stages V1 to V6, and V6 ends with every count at zero.
+D15 (owner, 2026-11-15) planned to replace std::vector, std::string and the
+standard ownership pointers at the C++ surface with STXlib's owned
+vocabulary, in stages V1 to V6 (STXlib notes,
+planning/M2b-owned-vocabulary-migration.md). The owner dropped V2 to V6 on
+2026-11-17 and restated it on 2026-11-24: std types in public signatures
+are fine, the STXlib shield keeps GUI.Forms' std on its own side, and no
+public signature changes type. The census stays as a change report: CI runs
+`check` without blocking, and 1.0.3 rebaselined it to the shipped 1.0
+surface.
 
 The STXlib shield (2026-11-22) adds the thread, lock, stop and file names:
 GUI.Forms reaches the host's threads and files only through STXlib
@@ -22,19 +26,18 @@ is not counted; the house style spells types, and V6's check_std_rules
 configuration for the surface checks the same qualified names.
 
 The baseline (manifests/std_surface_census.json) holds each name's
-occurrences and the number of headers naming it. It is a ratchet:
-- `check` fails (exit 1) when any name's occurrences rise above the
-  baseline, and also when one has fallen below it, so the baseline is
-  lowered in the same fold that lowered the count (as check_std_rules'
-  allowance reports a stale line);
-- `update` rewrites the baseline from the tree, and refuses (exit 1) when
-  that would raise a count;
+occurrences and the number of headers naming it:
+- `check` fails (exit 1) when any name's occurrences differ from the
+  baseline, risen or fallen, so a change to the surface's vocabulary is
+  reported in the fold that made it (CI shows it without blocking);
+- `update` rewrites the baseline from the tree. It refuses (exit 1) a rise
+  unless given --accept-rise, which records a reported rise on purpose;
 - `scan [--json PATH]` prints the census.
 
-Header counts are reported, not ratcheted: moving a name between headers
-is not a regression.
+Header counts are reported, not compared: moving a name between headers
+is not a change.
 
-Usage: python3 -I tools/std_surface_census.py check|update|scan
+Usage: python3 -I tools/std_surface_census.py check|update [--accept-rise]|scan
 """
 from __future__ import annotations
 
@@ -167,9 +170,11 @@ def census_json(counts: dict[str, NameCount]) -> dict[str, object]:
         names[name] = {"occurrences": entry.occurrences, "headers": entry.headers}
     document: dict[str, object] = {
         "description": ("Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), "
-                        "tools/std_surface_census.py. D15 and Q2, and the STXlib shield's thread, lock, stop and file names: "
-                        "every count only falls, and V6 ends at zero. "
-                        "Occurrences are ratcheted; headers are reported."),
+                        "tools/std_surface_census.py: a change report, not a goal. Rebaselined to the shipped 1.0 "
+                        "surface in 1.0.3 under the owner's ruling of 2026-11-17, restated 2026-11-24 (D15 V2 to V6 "
+                        "dropped): std types in public signatures are fine; the STXlib shield keeps GUI.Forms' std "
+                        "on its own side, and no public signature changes type for the census. "
+                        "Occurrences are compared; headers are reported."),
         "names": names,
     }
     return document
@@ -226,14 +231,14 @@ def command_check(surface: Path, baseline_path: Path) -> int:
     return 0
 
 
-def command_update(surface: Path, baseline_path: Path) -> int:
+def command_update(surface: Path, baseline_path: Path, accept_rise: bool) -> int:
     counts: dict[str, NameCount] = census(surface)
-    if baseline_path.exists():
+    if baseline_path.exists() and not accept_rise:
         judgement: Judgement = judge(counts, read_baseline(baseline_path))
         if judgement.risen:
             for line in judgement.risen:
                 print(f"risen: {line}")
-            print("std_surface_census: refused, the census only falls", file=sys.stderr)
+            print("std_surface_census: refused, a rise is recorded only with --accept-rise", file=sys.stderr)
             return 1
     text: str = json.dumps(census_json(counts), indent=2) + "\n"
     baseline_path.write_text(text, encoding="utf-8")
@@ -247,11 +252,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--baseline", type=Path, default=DEFAULT_BASELINE)
     parser.add_argument("--surface", type=Path, default=SURFACE)
     parser.add_argument("--json", type=Path, default=None, help="scan: also write the census as JSON")
+    parser.add_argument("--accept-rise", action="store_true", help="update: record risen counts too")
     arguments = parser.parse_args(argv)
     if arguments.command == "check":
         return command_check(arguments.surface, arguments.baseline)
     if arguments.command == "update":
-        return command_update(arguments.surface, arguments.baseline)
+        return command_update(arguments.surface, arguments.baseline, arguments.accept_rise)
     counts: dict[str, NameCount] = census(arguments.surface)
     print_census(counts)
     if arguments.json is not None:
