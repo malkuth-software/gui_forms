@@ -71,7 +71,14 @@ std::string_view form_export_outcome_name(FormExportOutcome outcome) noexcept {
 void FormExportRegistry::prune() noexcept {
     std::size_t kept = 0U;
     for (std::size_t index = 0U; index < records_.size(); ++index) {
-        if (records_[index].root.expired()) continue;
+        // A disposed root ends its registration as an ended one does: the
+        // sources borrow program members that need outlive the form's
+        // controls only until those are disposed (form_loader.hpp), so a
+        // root kept past its disposal by another holder (an inspection, a C
+        // ABI handle) must not load a candidate against members the program
+        // may already have destroyed (state hunt S2).
+        const Control::Ptr held = records_[index].root.lock();
+        if (held == nullptr || !(*held).is_alive()) continue;
         if (kept != index) records_[kept] = std::move(records_[index]);
         kept = kept + 1U;
     }

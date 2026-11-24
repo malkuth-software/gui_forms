@@ -51,7 +51,12 @@ struct HitOrder final {
 
 // Fills `postings` (cleared) with the postings of `word`: its own term, or
 // every term it begins when `prefix`; merged by record, sorted by record.
-// Counts each posting visited against `spent`.
+// Counts each posting visited against `spent`. A section is a public record
+// a caller may fill by hand, and read_help_book's range checks hold only for
+// a section it read: a term whose postings run past the section's, and a
+// posting whose record is not one of the section's, are skipped here
+// rather than read (state hunt S7), so every record index that leaves this
+// function is valid.
 void gather_postings(const HelpBookSection& section, std::string_view word, bool prefix, bool titles_only,
                      std::vector<HelpSearchPosting>& postings, std::size_t& spent) {
     postings.clear();
@@ -61,10 +66,13 @@ void gather_postings(const HelpBookSection& section, std::string_view word, bool
         const bool exact = term.term == word;
         const bool begins = prefix && std::string_view(term.term).substr(0U, word.size()) == word;
         if (!exact && !begins) break;
-        for (std::uint32_t index = 0U; index < term.posting_count; ++index) {
+        const std::uint64_t end = static_cast<std::uint64_t>(term.first_posting) + term.posting_count;
+        const std::uint32_t posting_count = end <= section.postings.size() ? term.posting_count : 0U;
+        for (std::uint32_t index = 0U; index < posting_count; ++index) {
             const HelpSearchPosting& posting = section.postings[term.first_posting + index];
             ++spent;
             if (titles_only && !posting.in_title) continue;
+            if (posting.record >= section.records.size()) continue;
             postings.push_back(posting);
         }
         if (!prefix) break;

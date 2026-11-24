@@ -4,6 +4,7 @@
 #include "gui_forms/component/component/component.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/feedback/types/feedback_types.hpp"
+#include "gui_forms/surface_root/surface_root.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -47,7 +48,10 @@ protected:
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
 
 private:
-    Window* window_{};
+    // The window observed, not owned: a caller (the C ABI among them) may
+    // keep this component past the window, which then refuses emit instead
+    // of reaching a freed window (state hunt S8).
+    WindowRef window_;
     Clock clock_;
     std::vector<SemanticFeedbackRecord> records_;
     std::uint64_t next_sequence_{1U};
