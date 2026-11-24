@@ -117,7 +117,14 @@ def served(exchange: Exchange, timeout: float) -> tuple[bool, str]:
             'clientInfo': {'name': 'gui-forms-check-mcp-launch', 'version': '1'}}, timeout)
         server = ((reply or {}).get('result') or {}).get('serverInfo') or {}
         if not server.get('name'):
-            return False, 'no answer to initialize' if reply is None else 'initialize answered ' + json.dumps(reply)[:200]
+            if reply is not None:
+                return False, 'initialize answered ' + json.dumps(reply)[:200]
+            # Whether the program ended or kept running without answering:
+            # the last lines of standard error do not always say.
+            status: int | None = exchange.process.poll()
+            if status is None:
+                return False, f'no answer to initialize within {timeout:g} s; still running'
+            return False, f'no answer to initialize; exited with status {status}'
         exchange.send({'jsonrpc': '2.0', 'method': 'notifications/initialized'})
         listed = exchange.request(2, 'tools/list', {}, timeout)
         tools = ((listed or {}).get('result') or {}).get('tools') or []
