@@ -88,9 +88,13 @@ void StepIndicator::set_steps(std::vector<std::string> steps) {
     for (const std::string& step : steps) {
         if (!validate_utf8(step).valid()) throw std::invalid_argument("StepIndicator step names must be valid UTF-8");
     }
-    steps_ = std::move(steps);
-    const std::uint32_t last = steps_.empty() ? 0U : static_cast<std::uint32_t>(steps_.size() - 1U);
+    // The current step comes down first, while the old names stand (state
+    // hunt C43): a refused write (a bound value's validation) then leaves
+    // both as they were, where before the list was already shorter than
+    // the current step.
+    const std::uint32_t last = steps.empty() ? 0U : static_cast<std::uint32_t>(steps.size() - 1U);
     if (current_step.read() > last) current_step = last;
+    steps_ = std::move(steps);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -227,6 +231,12 @@ void StepIndicator::on_mouse_down(MouseEventArgs& arguments) {
     Control::on_mouse_down(arguments);
 }
 
+bool StepIndicator::agrees_with_itself() const noexcept {
+    // The current step names one of the steps (or is 0 with none).
+    const std::uint32_t current = current_step.read();
+    return steps_.empty() ? current == 0U : current < steps_.size();
+}
+
 SemanticDescriptor StepIndicator::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::group;
@@ -235,7 +245,7 @@ SemanticDescriptor StepIndicator::semantic_descriptor() const {
     if (!steps_.empty()) {
         const std::size_t current = current_step.read();
         std::string value = "Step " + decimal(current + 1U) + " of " + decimal(steps_.size());
-        if (!steps_[current].empty()) value += ": " + steps_[current];
+        if (current < steps_.size() && !steps_[current].empty()) value += ": " + steps_[current];
         descriptor.value = value;
     }
     descriptor.states |= SemanticState::read_only;
