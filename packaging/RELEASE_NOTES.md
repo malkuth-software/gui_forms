@@ -501,7 +501,7 @@ Visible-area guarantee (stage VA):
 
 ### 1.0.2: STXlib 1.0.1, the library allocator in our programs
 
-- GUI.Forms builds with stx 1.0.1 on STXlib 1.0.1. On Windows, STXlib's
+- GUI.Forms builds with stx 1.0.2 on STXlib 1.0.2. On Windows, STXlib's
   headers now declare the whole API of every system DLL it ships an import
   list for, and the C runtime's POSIX names (`open`, `fileno`, `stat`, ...),
   so third-party C code such as the image codecs compiles on the own

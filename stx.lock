@@ -29,6 +29,11 @@
 # ships a .def for, the C library headers declare the CRT's POSIX names, and
 # operator new and delete are one archive member each), and every package at
 # version 1.0.1.
+#
+# fc5bcfc is stx main after stx PR #11 (stx 1.0.2): STXlib 1.0.2 (5ddef57: a
+# coclass's GUID is CLSID_<name> beside the class declaration, so
+# __uuidof(DirectManipulationManager) names the class again), and every
+# package at version 1.0.2.
 [stx]
 repository = "malkuth-software/stx"
-commit = "14d3f7652b92a33b8b94d3aedd5fdfac1a000c30"
+commit = "fc5bcfc433b8921ca0d28bffb1073085796ff29c"
