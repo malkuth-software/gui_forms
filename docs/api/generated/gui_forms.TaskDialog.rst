@@ -79,6 +79,9 @@ gui_forms::TaskDialog
       **checked_radio_button** : ``std::string``, read-only
          The checked radio button's ID, or an empty string.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the dialog's state agrees with itself (state hunt, 2026-11-23): its page describes exactly the child controls it has, and shown, it is in its presentation's layer or popup root; closed, it has no parent. For tests and diagnostics.
+
       **verification_check_box** : ``std::shared_ptr<CheckBox>``, read-only
          The verification :cpp:class:`CheckBox <gui_forms::CheckBox>`, or null for a page without one.
 
@@ -263,6 +266,10 @@ gui_forms::TaskDialog
 
       The checked radio button's ID, or an empty string.
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the dialog's state agrees with itself (state hunt, 2026-11-23): its page describes exactly the child controls it has, and shown, it is in its presentation's layer or popup root; closed, it has no parent. For tests and diagnostics.
+
    .. cpp:function:: std::shared_ptr<CheckBox> verification_check_box() const noexcept
 
       The verification :cpp:class:`CheckBox <gui_forms::CheckBox>`, or null for a page without one.
@@ -380,7 +387,7 @@ gui_forms::TaskDialog
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TaskDialog``. Members declared here and by the counterpart: 21 supported, 0 deferred, 0 excluded, 4 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TaskDialog``. Members declared here and by the counterpart: 22 supported, 0 deferred, 0 excluded, 4 unclassified; 22 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -407,6 +414,10 @@ Counterpart: ``TaskDialog``. Members declared here and by the counterpart: 21 su
      - ``ShowDialogAsync``
      - none
      - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``checked_radio_button``

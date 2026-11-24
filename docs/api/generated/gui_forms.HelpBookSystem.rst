@@ -69,6 +69,9 @@ gui_forms::HelpBookSystem
       **help_mode_active** : ``bool``, read-only
          Whether What's This mode is on.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the system's popup and help-mode state agree with themselves (state hunt, 2026-11-23): help mode held has its layer and window, and while shown its overlay is in that window; the popup held has its layer. For tests and diagnostics.
+
       **snapshot** : ``HelpBookSystemSnapshot``, read-only
          The system's counters (:cpp:class:`HelpBookSystemSnapshot <gui_forms::HelpBookSystemSnapshot>`): compiles, rejections,
          requests, pages shown, popups, help-mode entries, external links,
@@ -216,6 +219,10 @@ gui_forms::HelpBookSystem
    .. cpp:function:: bool help_mode_active() const noexcept
 
       Whether What's This mode is on.
+
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the system's popup and help-mode state agree with themselves (state hunt, 2026-11-23): help mode held has its layer and window, and while shown its overlay is in that window; the popup held has its layer. For tests and diagnostics.
 
    .. cpp:function:: HelpBookSystemSnapshot snapshot() const noexcept
 
@@ -395,7 +402,7 @@ gui_forms::HelpBookSystem
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Help``. Members declared here and by the counterpart: 34 supported, 0 deferred, 0 excluded, 11 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Help``. Members declared here and by the counterpart: 35 supported, 0 deferred, 0 excluded, 11 unclassified; 43 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -422,6 +429,10 @@ Counterpart: ``Help``. Members declared here and by the counterpart: 34 supporte
      - GUI.Forms-only
      - ``active_viewer``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``bookmarks``

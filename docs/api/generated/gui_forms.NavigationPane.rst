@@ -77,6 +77,9 @@ gui_forms::NavigationPane
       **overlay_open** : ``bool``, read-only
          Whether the collapsed pane's overlay is open.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the overlay state agrees with itself (state hunt, 2026-11-23): held, it has its flyout and, open, its overlay in the window; closed, the content panel is the pane's. For tests and diagnostics.
+
       **configure_menu_open** : ``bool``, read-only
          Whether the configure menu is open.
 
@@ -283,6 +286,10 @@ gui_forms::NavigationPane
 
       Whether the collapsed pane's overlay is open.
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the overlay state agrees with itself (state hunt, 2026-11-23): held, it has its flyout and, open, its overlay in the window; closed, the content panel is the pane's. For tests and diagnostics.
+
    .. cpp:function:: bool configure_menu_open() const noexcept
 
       Whether the configure menu is open.
@@ -445,7 +452,7 @@ gui_forms::NavigationPane
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 2 unclassified; 20 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 19 supported, 0 deferred, 0 excluded, 2 unclassified; 21 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -456,6 +463,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``configure_menu_open``
