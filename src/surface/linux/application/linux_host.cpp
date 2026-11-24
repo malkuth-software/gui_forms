@@ -1344,6 +1344,7 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   if (entry.popup.present())
     mark_transient((*entry.popup.value()));
   utility = entry.tool_window || entry.floating != HostWindowFloating::none;
+  outside_modality = entry.outside_modality;
   if (utility) {
     // Set while unmapped, so the window manager reads them when it first
     // manages the window (EWMH: clients set _NET_WM_STATE directly before

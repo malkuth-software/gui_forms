@@ -93,6 +93,8 @@ struct SurfaceDeskLayerInit final {
     // its window controls into its own content): the edge and grips
     // remain, the title bar and its boxes do not.
     bool title_bar{true};
+    // ApplicationWindow::outside_modality: no modal scope blocks it.
+    bool outside_modality{};
 };
 
 struct SurfaceDeskHit final {
@@ -345,6 +347,7 @@ private:
         bool resizable{true};
         bool minimizable{true};
         bool title_bar{true};
+        bool outside_modality{};
         bool visible{};
         SurfaceWindowState state{SurfaceWindowState::normal};
         // The state a minimised layer returns to (normal, maximised or

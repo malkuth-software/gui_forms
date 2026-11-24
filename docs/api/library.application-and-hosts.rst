@@ -437,6 +437,10 @@ Related types
 
    .. cpp:member:: bool tool_window
 
+   .. cpp:member:: bool outside_modality
+
+      Outside application modality: the window takes the user's input while a modal window or a system alert runs, at any depth, as no other window does. For the automation's take and take-back questions, which must answer whatever modal state a model has opened.
+
    .. cpp:member:: HostWindowFloating floating
 
       A floating window (stage DK decisions 1, 10 and 11): owned by the primary window (owner_id names it; tool_window stays false), no taskbar button, minimized with it, above it only, moved with it and clamped to the work area of the screen it lands on. A floating tool also hides while the application is inactive; a floating document does not. The policy decides when the window is on screen; show and hide on its handle say whether it is wanted. See HostWindowKindTraits. Default: ``{HostWindowFloating::none}``.
@@ -3000,6 +3004,10 @@ Related types
 
    .. cpp:member:: bool tool_window
 
+   .. cpp:member:: bool outside_modality
+
+      See ApplicationWindow::outside_modality.
+
    .. cpp:member:: HostWindowFloating floating
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
@@ -3107,6 +3115,10 @@ Related types
    .. cpp:member:: MacHostOptions options
 
    .. cpp:member:: bool tool_window
+
+   .. cpp:member:: bool outside_modality
+
+      See ApplicationWindow::outside_modality.
 
    .. cpp:member:: HostWindowFloating floating
 
@@ -3327,6 +3339,10 @@ Related types
    .. cpp:member:: SurfaceHostOptions options
 
    .. cpp:member:: bool tool_window
+
+   .. cpp:member:: bool outside_modality
+
+      See ApplicationWindow::outside_modality.
 
    .. cpp:member:: HostWindowFloating floating
 
@@ -3786,6 +3802,10 @@ Related types
    .. cpp:member:: WindowsHostOptions options
 
    .. cpp:member:: bool tool_window
+
+   .. cpp:member:: bool outside_modality
+
+      See ApplicationWindow::outside_modality.
 
    .. cpp:member:: HostWindowFloating floating
 

@@ -207,6 +207,11 @@ struct GUI_FORMS_API ApplicationWindow final {
     std::unique_ptr<Window> model{};
     ApplicationWindowOptions options{};
     bool tool_window{};
+    // Outside application modality: the window takes the user's input while
+    // a modal window or a system alert runs, at any depth, as no other
+    // window does. For the automation's take and take-back questions, which
+    // must answer whatever modal state a model has opened.
+    bool outside_modality{};
     // A floating window (stage DK decisions 1, 10 and 11): owned by the
     // primary window (owner_id names it; tool_window stays false), no
     // taskbar button, minimized with it, above it only, moved with it and

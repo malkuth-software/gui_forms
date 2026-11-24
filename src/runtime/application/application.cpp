@@ -256,6 +256,7 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     entry.stable_id = std::move(source.stable_id);
     entry.owner_id = std::move(source.owner_id);
     entry.tool_window = source.tool_window;
+    entry.outside_modality = source.outside_modality;
     entry.floating = source.floating;
     entry.popup = source.popup;
     entry.model = std::move(source.model);

@@ -67,6 +67,7 @@ HostWindowAdmission SurfaceWindowing::open(SurfaceApplicationWindow entry, bool 
     layer.minimum = entry.options.minimum_size;
     layer.resizable = popup.absent();
     layer.minimizable = popup.absent() && entry.options.minimizable;
+    layer.outside_modality = entry.outside_modality;
     if (!runtime_.desk.add(layer)) {
         retire(id);
         admission.status.error = HostServiceError::too_large;

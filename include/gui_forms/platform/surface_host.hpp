@@ -65,6 +65,8 @@ struct GUI_FORMS_API SurfaceApplicationWindow final {
   std::unique_ptr<Window> model;
   SurfaceHostOptions options;
   bool tool_window{};
+  // See ApplicationWindow::outside_modality.
+  bool outside_modality{};
   // See ApplicationWindow::floating.
   HostWindowFloating floating{HostWindowFloating::none};
   // A popup layer (ApplicationWindow::popup); none for every other kind.

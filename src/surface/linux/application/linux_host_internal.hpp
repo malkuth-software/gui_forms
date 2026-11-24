@@ -571,6 +571,8 @@ public:
   // puts it back (a window manager may place a remapped window anew).
   std::optional<Rect> hidden_content;
   bool modal{};
+  // ApplicationWindow::outside_modality: run_modal never marks it modal.
+  bool outside_modality{};
   // Window's chrome properties the host keeps for restate_wm_state and
   // minimum_size; shown_once is set at the first map (a start position
   // applies only before it).

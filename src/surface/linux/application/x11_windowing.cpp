@@ -370,7 +370,7 @@ HostServiceStatus X11Windowing::run_modal_impl(HostWindowId window) {
   for (std::size_t i = 0; i < runtime_.windows.size(); ++i) {
     const std::shared_ptr<NativeWindow> &candidate = runtime_.windows[i];
     NativeWindow &held = *candidate;
-    if (held.closed || held.modal || !held.window_id.valid())
+    if (held.closed || held.modal || held.outside_modality || !held.window_id.valid())
       continue;
     if (owned_by(held.window_id, window))
       continue;

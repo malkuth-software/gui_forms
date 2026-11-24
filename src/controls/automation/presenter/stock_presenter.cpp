@@ -83,33 +83,47 @@ public:
           text_(std::move(text)), warning_(std::move(warning)) {}
 
     void initialize_control_tree() {
-        const Size size = dialog_size;
         const std::string base(stable_id().value());
-        const std::shared_ptr<Label> heading = make_control<Label>(StableId(base + ".heading"), heading_);
-        (*heading).set_bounds({20.0, 14.0, size.width - 40.0, 24.0});
-        add_child(heading);
-        const double text_height = warning_.empty() ? size.height - 98.0 : size.height - 126.0;
+        heading_label_ = make_control<Label>(StableId(base + ".heading"), heading_);
+        (*heading_label_).text_wrapping = TextWrapping::word;
+        add_child(heading_label_);
         text_label_ = make_control<Label>(StableId(base + ".text"), text_);
         (*text_label_).text_wrapping = TextWrapping::word;
-        (*text_label_).set_bounds({20.0, 42.0, size.width - 40.0, text_height});
         add_child(text_label_);
         if (!warning_.empty()) {
-            const std::shared_ptr<Label> warning = make_control<Label>(StableId(base + ".warning"), warning_);
-            (*warning).text_wrapping = TextWrapping::word;
-            (*warning).set_bounds({20.0, 42.0 + text_height, size.width - 40.0, 26.0});
-            add_child(warning);
+            warning_label_ = make_control<Label>(StableId(base + ".warning"), warning_);
+            (*warning_label_).text_wrapping = TextWrapping::word;
+            add_child(warning_label_);
         }
         const bool take_back = dialog_ == PresenterDialog::take_back;
-        const std::shared_ptr<Button> decline =
-            make_control<Button>(StableId(base + ".decline"), take_back ? "Keep Waiting" : "Don't Allow");
-        (*decline).set_bounds({size.width - 330.0, size.height - 48.0, 140.0, 32.0});
-        on((*decline).clicked(), *this, &PresenterPanel::decline_clicked);
-        add_child(decline);
-        const std::shared_ptr<Button> accept =
-            make_control<Button>(StableId(base + ".accept"), take_back ? "Take Back Control" : "Allow");
-        (*accept).set_bounds({size.width - 180.0, size.height - 48.0, 160.0, 32.0});
-        on((*accept).clicked(), *this, &PresenterPanel::accept_clicked);
-        add_child(accept);
+        decline_ = make_control<Button>(StableId(base + ".decline"), take_back ? "Keep Waiting" : "Don't Allow");
+        on((*decline_).clicked(), *this, &PresenterPanel::decline_clicked);
+        add_child(decline_);
+        accept_ = make_control<Button>(StableId(base + ".accept"), take_back ? "Take Back Control" : "Allow");
+        on((*accept_).clicked(), *this, &PresenterPanel::accept_clicked);
+        add_child(accept_);
+    }
+
+    // The heading and paragraphs stack at their measured heights, a
+    // paragraph's gap apart (round 3: fixed boxes centred each one, leaving
+    // large gaps); the buttons sit at the bottom right.
+    void arrange(Rect final_bounds) override {
+        arrange_self(final_bounds);
+        const double width = final_bounds.width - 2.0 * margin;
+        double top = 14.0;
+        place_paragraph(heading_label_, width, final_bounds.height, top);
+        place_paragraph(text_label_, width, final_bounds.height, top);
+        place_paragraph(warning_label_, width, final_bounds.height, top);
+        set_child_layout(decline_, Rect{final_bounds.width - 330.0, final_bounds.height - 48.0, 140.0, 32.0});
+        set_child_layout(accept_, Rect{final_bounds.width - 180.0, final_bounds.height - 48.0, 160.0, 32.0});
+    }
+
+    // Places `label` at `top` at its measured height; `top` moves below it.
+    void place_paragraph(const std::shared_ptr<Label>& label, double width, double height, double& top) {
+        if (!label) return;
+        const Size wanted = (*label).measure(Size{width, height});
+        set_child_layout(label, Rect{margin, top, width, wanted.height});
+        top += wanted.height + paragraph_gap;
     }
 
     void accept_clicked(ButtonBase&) {
@@ -126,7 +140,13 @@ private:
     std::string heading_{};
     std::string text_{};
     std::string warning_{};
+    static constexpr double margin = 20.0;
+    static constexpr double paragraph_gap = 10.0;
+    std::shared_ptr<Label> heading_label_{};
     std::shared_ptr<Label> text_label_{};
+    std::shared_ptr<Label> warning_label_{};
+    std::shared_ptr<Button> decline_{};
+    std::shared_ptr<Button> accept_{};
 };
 
 // A dialog's closed callback (ApplicationWindowOptions::closed).
@@ -569,6 +589,10 @@ bool StockPresenter::open_dialog(PresenterDialog dialog, const std::string& head
     entry.stable_id = id;
     entry.owner_id = owner_id_;
     entry.tool_window = true;
+    // The take and take-back questions answer whatever modal state the
+    // model opened, at any depth (owner, round 3: Take Back Control did not
+    // respond while the model's Resize dialog was open).
+    entry.outside_modality = true;
     entry.model = std::move(model);
     entry.options.title = dialog_title(dialog);
     entry.options.initial_size = dialog_size;

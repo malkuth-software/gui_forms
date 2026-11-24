@@ -929,7 +929,15 @@ struct CoreAccess final {
     // `reply` set.
     Window* call_window(RunningCall& call, ToolReply& reply) {
         const std::optional<std::string> name = detail::text_member(call.arguments, "window");
-        Window* const window = core.find_window(name.has_value() ? *name : std::string{});
+        Window* window = core.find_window(name.has_value() ? *name : std::string{});
+        if (!name.has_value()) {
+            // A target that is a window's own ID (a modal window's dialog)
+            // names its window (round 3: act close on [editor-dialog-1]
+            // went to the main window and was refused as dialog_open).
+            const std::optional<std::string> target = detail::text_member(call.arguments, "target");
+            Window* const named = target.has_value() ? core.find_window(*target) : nullptr;
+            if (named != nullptr && core.window_stable_id(*named) == *target) window = named;
+        }
         if (window == nullptr) {
             const std::string known = window_list_line(core);
             reply = ToolReply::failure(ToolError::window_gone,
@@ -957,6 +965,7 @@ struct CoreAccess final {
     StepOutcome windows_tool();
     StepOutcome find_tool(RunningCall& call, Window& window);
     StepOutcome reset_tool(RunningCall& call, FrameTime now);
+    StepOutcome reset_wait(RunningCall& call, FrameTime now);
     // After an act: a dialog that it opened is the model's to close, never
     // to submit; the reply says so.
     void note_dialog_opened(RunningCall& call, Window& window, std::span<const FlatNode> after, std::string& text);
@@ -1155,14 +1164,10 @@ StepOutcome CoreAccess::reset_tool(RunningCall& call, FrameTime now) {
                 append_cancel_keys(keys);
                 const std::uint64_t pressed = detail::nanoseconds_of(now);
                 for (const HostEventPayload& key : keys) static_cast<void>(deliver_input(*window, key, pressed));
-                core.flatten_window(*window, nodes);
-                const OpenDialog after = find_open_dialog(core, *window, nodes);
-                const bool closed = !(after.open && after.id == dialog.id);
-                if (closed) {
-                    done += "closed the dialog [" + dialog.id + "] as Cancel\n";
-                } else {
-                    left += "the dialog [" + dialog.id + "] did not close: ask the user to close it\n";
-                }
+                // Checked by reset_wait: a modal window closes once its
+                // nested loop has ended.
+                call.reset_windows.push_back(window_id);
+                call.reset_dialogs.push_back(dialog.id);
             } else {
                 left += "left the dialog [" + dialog.id + "]: the user opened it\n";
             }
@@ -1229,8 +1234,38 @@ StepOutcome CoreAccess::reset_tool(RunningCall& call, FrameTime now) {
                     window_id + "]\n";
         }
     }
-    std::string text = done.empty() ? std::string("ok: nothing needed resetting\n") : "ok: reset\n" + done;
-    text += left;
+    call.reset_done = std::move(done);
+    call.reset_left = std::move(left);
+    call.phase = CallPhase::resetting;
+    call.deadline = now + core.settings().settle_limit;
+    return reset_wait(call, now);
+}
+
+StepOutcome CoreAccess::reset_wait(RunningCall& call, FrameTime now) {
+    for (std::size_t index = call.reset_dialogs.size(); index > 0U; --index) {
+        const std::size_t at = index - 1U;
+        Window* const window = core.find_window(call.reset_windows[at]);
+        bool closed = window == nullptr;
+        if (!closed) {
+            std::vector<FlatNode> nodes{};
+            core.flatten_window(*window, nodes);
+            const OpenDialog after = find_open_dialog(core, *window, nodes);
+            closed = !(after.open && after.id == call.reset_dialogs[at]);
+        }
+        if (!closed) continue;
+        call.reset_done += "closed the dialog [" + call.reset_dialogs[at] + "] as Cancel\n";
+        call.reset_windows.erase(call.reset_windows.begin() + static_cast<std::ptrdiff_t>(at));
+        call.reset_dialogs.erase(call.reset_dialogs.begin() + static_cast<std::ptrdiff_t>(at));
+    }
+    if (!call.reset_dialogs.empty() && now < call.deadline) {
+        return StepOutcome::resume_at(now + core.settings().poll_interval);
+    }
+    for (const std::string& dialog : call.reset_dialogs) {
+        call.reset_left += "the dialog [" + dialog + "] did not close: ask the user to close it\n";
+    }
+    std::string text =
+        call.reset_done.empty() ? std::string("ok: nothing needed resetting\n") : "ok: reset\n" + call.reset_done;
+    text += call.reset_left;
     return StepOutcome::finished(ToolReply::success(std::move(text)));
 }
 
@@ -2393,6 +2428,8 @@ StepOutcome AutomationCore::step_call(RunningCall& call, FrameTime now) {
         return access.wait_step(call, now);
     case CallPhase::batch:
         return access.batch_step(call, now);
+    case CallPhase::resetting:
+        return access.reset_wait(call, now);
     }
     return StepOutcome::finished(ToolReply::failure(ToolError::internal, "the call reached an unknown phase"));
 }

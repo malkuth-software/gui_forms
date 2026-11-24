@@ -25,6 +25,9 @@ enum class CallPhase : std::uint8_t {
     waiting,
     // A batch runs its steps.
     batch,
+    // reset waits for the dialogs it cancelled to close (round 3: a modal
+    // window closes after its nested loop ends, not at the key).
+    resetting,
 };
 
 enum class ActKind : std::uint8_t {
@@ -151,6 +154,12 @@ struct AutomationCore::RunningCall final {
     bool took_control{};
     // The batch's steps' structured transcript (round 2): a JSON array.
     std::string steps_json{};
+    // reset's report so far, and the dialogs it cancelled that were still
+    // open, as window and dialog IDs.
+    std::string reset_done{};
+    std::string reset_left{};
+    std::vector<std::string> reset_windows{};
+    std::vector<std::string> reset_dialogs{};
 };
 
 namespace detail {
