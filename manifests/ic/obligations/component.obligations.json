@@ -4,7 +4,7 @@
   "generated_by": "tools/ic_declarations.py",
   "declaration": {
     "path": "include/gui_forms/component/component/component.ic.toml",
-    "sha256": "63f9c10098c70b2cd40115594cc6481cf080a48c4c9db3517b1590968045e421"
+    "sha256": "592e506ed1ed81307af575332212216194014240c99831efcfec380048e33ab8"
   },
   "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
   "obligations": [

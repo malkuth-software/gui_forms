@@ -15,6 +15,13 @@ namespace gui_forms {
 
 struct PropertyEntry;
 
+namespace detail {
+// The bit-flip regression tests' hook (bit-flip run 7): a friend of the
+// classes whose stored state those tests corrupt, defined only in the test
+// that uses it. The library never defines or calls it.
+struct StateFlipAccess;
+} // namespace detail
+
 // LibraryAllocated (allocation/library_memory): every component and control, and every
 // class derived from it, takes its storage from GUI.Forms' allocator
 // whoever creates it, and its delete releases it there.
@@ -34,13 +41,16 @@ public:
     // ic: Admitted in any state; then disposed. Fails logic_error (verify_dispose_thread refuses the calling thread (a
     // ic: control's or window's own rule)), unchanged.
     void dispose();
-    [[nodiscard]] ComponentState component_state() const noexcept { return state_; }
+    [[nodiscard]] ComponentState component_state() const noexcept { return checked_state(); }
+    // The alive test is one comparison while alive; any other code is
+    // checked (checked_state), so a code that is no state fails fast here.
     [[nodiscard]] bool is_alive() const noexcept {
-        const bool alive = state_ == ComponentState::alive;
-        return alive;
+        if (state_ == ComponentState::alive) return true;
+        static_cast<void>(checked_state());
+        return false;
     }
     [[nodiscard]] bool is_disposed() const noexcept {
-        const bool disposed = state_ == ComponentState::disposed;
+        const bool disposed = checked_state() == ComponentState::disposed;
         return disposed;
     }
 
@@ -82,6 +92,7 @@ protected:
 
 private:
     friend class detail::Revocable;
+    friend struct detail::StateFlipAccess;
     void release_subscription(detail::Revocable& subscription) noexcept;
 
     struct ObservedRevocable final {
@@ -89,6 +100,17 @@ private:
         std::uint64_t order{};
     };
     [[nodiscard]] std::uint64_t acquire_work_order();
+    // The stored code, checked: one that is none of the three states is a
+    // defect (corrupted storage; no call writes it) and fails fast through
+    // fail_lifecycle_code with the component's address and the code.
+    [[nodiscard]] ComponentState checked_state() const noexcept {
+        const ComponentState state = state_;
+        const bool known = state == ComponentState::alive || state == ComponentState::disposing ||
+                           state == ComponentState::disposed;
+        if (!known) fail_lifecycle_code(state);
+        return state;
+    }
+    [[noreturn]] void fail_lifecycle_code(ComponentState code) const noexcept;
     ComponentState state_{ComponentState::alive};
     std::uint64_t next_work_order_{};
     std::vector<ObservedRevocable> owned_revocables_{};

@@ -41,7 +41,7 @@ transfers = [{ what = "the subscription token", from = "caller", to = "component
 
 [[call]]
 name = "component_state"
-declarations = ["[[nodiscard]] ComponentState component_state() const noexcept { return state_; }"]
+declarations = ["[[nodiscard]] ComponentState component_state() const noexcept { return checked_state(); }"]
 kind = "member"
 
 [[obligation]]

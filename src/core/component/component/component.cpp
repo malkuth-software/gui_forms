@@ -2,9 +2,16 @@
 
 #include "gui_forms/binding/property_table/property_table.hpp"
 
+#include "../../failure/fail_fast.hpp"
+
 #include <algorithm>
+#include <array>
+#include <bit>
+#include <charconv>
+#include <cstdint>
 #include <limits>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms {
@@ -30,7 +37,9 @@ Component::~Component() {
 }
 
 void Component::dispose() {
-    if (state_ != ComponentState::alive) {
+    // Disposing and disposed return; a code that is no state fails fast in
+    // checked_state, so an attached control is never skipped silently.
+    if (checked_state() != ComponentState::alive) {
         return;
     }
     verify_dispose_thread();
@@ -67,6 +76,21 @@ void Component::own_revocable(
 }
 
 void Component::verify_dispose_thread() {}
+
+// The defect report for a lifecycle code that is no state: the component's
+// address and the code, so the report says which object's storage changed
+// and to what.
+void Component::fail_lifecycle_code(const ComponentState code) const noexcept {
+    std::array<char, 160> text{};
+    constexpr std::string_view lead = "component lifecycle code is no state (corrupted storage): code 0x";
+    char* cursor = std::copy(lead.begin(), lead.end(), text.data());
+    char* const end = text.data() + text.size();
+    cursor = std::to_chars(cursor, end, static_cast<std::uint32_t>(code), 16).ptr;
+    constexpr std::string_view at = " at 0x";
+    cursor = std::copy(at.begin(), at.end(), cursor);
+    cursor = std::to_chars(cursor, end, std::bit_cast<std::uintptr_t>(static_cast<const void*>(this)), 16).ptr;
+    detail::fail_fast("component.lifecycle", std::string_view(text.data(), static_cast<std::size_t>(cursor - text.data())));
+}
 
 void Component::own_subscription(SubscriptionToken subscription) {
     if (!is_alive() || !subscription.connected()) {
