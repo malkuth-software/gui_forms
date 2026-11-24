@@ -110,7 +110,7 @@ private:
     // Stamps utf8() and style_spans(); every change of text_ or
     // style_spans_ ends the views lent so far. Empty (no storage) in the
     // ordinary build.
-    [[no_unique_address]] detail::BorrowLender text_lender_{};
+    GUI_FORMS_NO_UNIQUE_ADDRESS detail::BorrowLender text_lender_{};
 };
 
 } // namespace gui_forms

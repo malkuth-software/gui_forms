@@ -2317,7 +2317,7 @@ private:
                           ControlStyles::selectable};
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
     // Ends inline_style() views whenever inline_style_ is replaced.
-    [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
+    GUI_FORMS_NO_UNIQUE_ADDRESS detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     // The composite look (look_rules); null for most controls. The serial
