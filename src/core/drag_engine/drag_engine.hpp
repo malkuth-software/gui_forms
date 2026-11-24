@@ -546,8 +546,11 @@ public:
     // client previews a changed selection. A refused plan ends the session
     // rejected. True while the session still drags afterwards; false,
     // changing nothing, unless `client` runs a pointer session that is
-    // dragging, or for a non-finite `moved`. Never called from inside one of
-    // the client's own calls (it would plan within a plan or a preview).
+    // dragging, or for a non-finite `moved`, and false, changing nothing,
+    // from inside one of the client's own calls (it would plan within a
+    // plan, a preview or a chain commit, which then reads the new plan's
+    // landings with the old selection): a client defers it until the call
+    // returns.
     bool replan(const DragClient& client, Point moved);
     // Keyboard sessions of `client` only: the landings of `token` are no
     // longer keyboard stops, so the arrows and Tab step past them (a
@@ -678,6 +681,10 @@ private:
     DragSelection selection_{};
     // Set while end() runs, so that its own capture release is not a loss.
     bool ending_{};
+    // The client calls under way (ClientCall, drag_engine.cpp, one per call
+    // into client_): replan refuses while any is.
+    class ClientCall;
+    std::size_t client_calls_{};
     bool settles_{};
 
     // The plan: operator records (live count operator_count_), the root,
