@@ -20,7 +20,12 @@
 //   the root's local properties. With a target stable ID it replaces that
 //   control's children and properties instead (structural patching; the
 //   candidate's root is then a control with the same stable ID). A
-//   candidate that does not validate or load leaves the window as it was;
+//   candidate that does not validate or load leaves the window as it was,
+//   and so does one the live window refuses while it is put in place (a
+//   stable ID that collides with a control elsewhere in the window, a
+//   property value the control refuses): the old children and properties
+//   are put back and the apply is refused. Should putting them back fail
+//   too, the window is marked patched (export no longer describes it);
 // - **revert** applies the registered document again.
 //
 // Rules (section 18.2): only registry vocabulary and no code (the schema
@@ -52,6 +57,19 @@ namespace gui_forms::form_language {
 // The most windows registered at once.
 inline constexpr std::size_t maximum_exported_windows = 256U;
 
+// How the window stands against its exported document.
+enum class FormExportState : std::uint8_t {
+    // As registered (or reverted).
+    registered,
+    // A whole-window apply replaced it; export returns the applied document.
+    applied,
+    // A targeted apply (or a refused apply that could not be undone)
+    // changed a part of it that the exported document does not carry.
+    patched,
+};
+
+[[nodiscard]] std::string_view form_export_state_name(FormExportState state) noexcept;
+
 enum class FormExportOutcome : std::uint8_t {
     done,
     // The window's root is not registered (or has ended).
@@ -76,8 +94,11 @@ public:
 
     [[nodiscard]] bool registered(const Control& root);
     // Whether an apply replaced the window (or a part of it) since it was
-    // registered or reverted.
+    // registered or reverted: state() is not registered.
     [[nodiscard]] bool replaced(const Control& root);
+    // How the window stands against its document; registered for a root
+    // that is not registered.
+    [[nodiscard]] FormExportState state(const Control& root);
 
     // The document as the program has it, into `document`.
     [[nodiscard]] FormExportOutcome export_document(const Control& root, std::string& document);
@@ -101,7 +122,7 @@ private:
         const FormSources* sources{};
         // What the last apply made that only the load owns (components).
         std::vector<Component::Ptr> applied_objects{};
-        bool replaced{};
+        FormExportState state{FormExportState::registered};
     };
 
     [[nodiscard]] Record* find(const Control& root);
