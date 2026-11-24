@@ -842,6 +842,8 @@ __ZGVZN9gui_forms17ObjectDetailsCell*
 __ZGVZN9gui_forms17ObjectDetailsSort*
 __ZGVZN9gui_forms17PartRasterRequest*
 __ZGVZN9gui_forms17PlotHeatmapSeries*
+__ZGVZN9gui_forms17PresentationLayer*
+__ZGVZN9gui_forms17PresentationPopup*
 __ZGVZN9gui_forms17PresentationState*
 __ZGVZN9gui_forms17PrimitiveRegistry*
 __ZGVZN9gui_forms17PropertyEnumValue*
@@ -907,6 +909,7 @@ __ZGVZN9gui_forms18ControlRoleRecipes*
 __ZGVZN9gui_forms18CursorCapabilities*
 __ZGVZN9gui_forms18DataGridViewColumn*
 __ZGVZN9gui_forms18DesktopDevicePoint*
+__ZGVZN9gui_forms18DialogPresentation*
 __ZGVZN9gui_forms18DirectionRingStyle*
 __ZGVZN9gui_forms18DispatcherSnapshot*
 __ZGVZN9gui_forms18DockAutoHideMemory*
@@ -2530,6 +2533,8 @@ __ZGVZNK9gui_forms17ObjectDetailsCell*
 __ZGVZNK9gui_forms17ObjectDetailsSort*
 __ZGVZNK9gui_forms17PartRasterRequest*
 __ZGVZNK9gui_forms17PlotHeatmapSeries*
+__ZGVZNK9gui_forms17PresentationLayer*
+__ZGVZNK9gui_forms17PresentationPopup*
 __ZGVZNK9gui_forms17PresentationState*
 __ZGVZNK9gui_forms17PrimitiveRegistry*
 __ZGVZNK9gui_forms17PropertyEnumValue*
@@ -2595,6 +2600,7 @@ __ZGVZNK9gui_forms18ControlRoleRecipes*
 __ZGVZNK9gui_forms18CursorCapabilities*
 __ZGVZNK9gui_forms18DataGridViewColumn*
 __ZGVZNK9gui_forms18DesktopDevicePoint*
+__ZGVZNK9gui_forms18DialogPresentation*
 __ZGVZNK9gui_forms18DirectionRingStyle*
 __ZGVZNK9gui_forms18DispatcherSnapshot*
 __ZGVZNK9gui_forms18DockAutoHideMemory*
@@ -4550,6 +4556,8 @@ __ZN9gui_forms17ObjectDetailsCell*
 __ZN9gui_forms17ObjectDetailsSort*
 __ZN9gui_forms17PartRasterRequest*
 __ZN9gui_forms17PlotHeatmapSeries*
+__ZN9gui_forms17PresentationLayer*
+__ZN9gui_forms17PresentationPopup*
 __ZN9gui_forms17PresentationState*
 __ZN9gui_forms17PrimitiveRegistry*
 __ZN9gui_forms17PropertyEnumValue*
@@ -4701,6 +4709,7 @@ __ZN9gui_forms18ControlRoleRecipes*
 __ZN9gui_forms18CursorCapabilities*
 __ZN9gui_forms18DataGridViewColumn*
 __ZN9gui_forms18DesktopDevicePoint*
+__ZN9gui_forms18DialogPresentation*
 __ZN9gui_forms18DirectionRingStyle*
 __ZN9gui_forms18DispatcherSnapshot*
 __ZN9gui_forms18DockAutoHideMemory*
@@ -7620,6 +7629,8 @@ __ZNK[RO]9gui_forms17ObjectDetailsCell*
 __ZNK[RO]9gui_forms17ObjectDetailsSort*
 __ZNK[RO]9gui_forms17PartRasterRequest*
 __ZNK[RO]9gui_forms17PlotHeatmapSeries*
+__ZNK[RO]9gui_forms17PresentationLayer*
+__ZNK[RO]9gui_forms17PresentationPopup*
 __ZNK[RO]9gui_forms17PresentationState*
 __ZNK[RO]9gui_forms17PrimitiveRegistry*
 __ZNK[RO]9gui_forms17PropertyEnumValue*
@@ -7685,6 +7696,7 @@ __ZNK[RO]9gui_forms18ControlRoleRecipes*
 __ZNK[RO]9gui_forms18CursorCapabilities*
 __ZNK[RO]9gui_forms18DataGridViewColumn*
 __ZNK[RO]9gui_forms18DesktopDevicePoint*
+__ZNK[RO]9gui_forms18DialogPresentation*
 __ZNK[RO]9gui_forms18DirectionRingStyle*
 __ZNK[RO]9gui_forms18DispatcherSnapshot*
 __ZNK[RO]9gui_forms18DockAutoHideMemory*
@@ -9308,6 +9320,8 @@ __ZN[KRO]9gui_forms17ObjectDetailsCell*
 __ZN[KRO]9gui_forms17ObjectDetailsSort*
 __ZN[KRO]9gui_forms17PartRasterRequest*
 __ZN[KRO]9gui_forms17PlotHeatmapSeries*
+__ZN[KRO]9gui_forms17PresentationLayer*
+__ZN[KRO]9gui_forms17PresentationPopup*
 __ZN[KRO]9gui_forms17PresentationState*
 __ZN[KRO]9gui_forms17PrimitiveRegistry*
 __ZN[KRO]9gui_forms17PropertyEnumValue*
@@ -9373,6 +9387,7 @@ __ZN[KRO]9gui_forms18ControlRoleRecipes*
 __ZN[KRO]9gui_forms18CursorCapabilities*
 __ZN[KRO]9gui_forms18DataGridViewColumn*
 __ZN[KRO]9gui_forms18DesktopDevicePoint*
+__ZN[KRO]9gui_forms18DialogPresentation*
 __ZN[KRO]9gui_forms18DirectionRingStyle*
 __ZN[KRO]9gui_forms18DispatcherSnapshot*
 __ZN[KRO]9gui_forms18DockAutoHideMemory*
@@ -10996,6 +11011,8 @@ __ZT[VIST]N9gui_forms17ObjectDetailsCell*E
 __ZT[VIST]N9gui_forms17ObjectDetailsSort*E
 __ZT[VIST]N9gui_forms17PartRasterRequest*E
 __ZT[VIST]N9gui_forms17PlotHeatmapSeries*E
+__ZT[VIST]N9gui_forms17PresentationLayer*E
+__ZT[VIST]N9gui_forms17PresentationPopup*E
 __ZT[VIST]N9gui_forms17PresentationState*E
 __ZT[VIST]N9gui_forms17PrimitiveRegistry*E
 __ZT[VIST]N9gui_forms17PropertyEnumValue*E
@@ -11061,6 +11078,7 @@ __ZT[VIST]N9gui_forms18ControlRoleRecipes*E
 __ZT[VIST]N9gui_forms18CursorCapabilities*E
 __ZT[VIST]N9gui_forms18DataGridViewColumn*E
 __ZT[VIST]N9gui_forms18DesktopDevicePoint*E
+__ZT[VIST]N9gui_forms18DialogPresentation*E
 __ZT[VIST]N9gui_forms18DirectionRingStyle*E
 __ZT[VIST]N9gui_forms18DispatcherSnapshot*E
 __ZT[VIST]N9gui_forms18DockAutoHideMemory*E
@@ -12684,6 +12702,8 @@ __ZT[hvc]*9gui_forms17ObjectDetailsCell*
 __ZT[hvc]*9gui_forms17ObjectDetailsSort*
 __ZT[hvc]*9gui_forms17PartRasterRequest*
 __ZT[hvc]*9gui_forms17PlotHeatmapSeries*
+__ZT[hvc]*9gui_forms17PresentationLayer*
+__ZT[hvc]*9gui_forms17PresentationPopup*
 __ZT[hvc]*9gui_forms17PresentationState*
 __ZT[hvc]*9gui_forms17PrimitiveRegistry*
 __ZT[hvc]*9gui_forms17PropertyEnumValue*
@@ -12749,6 +12769,7 @@ __ZT[hvc]*9gui_forms18ControlRoleRecipes*
 __ZT[hvc]*9gui_forms18CursorCapabilities*
 __ZT[hvc]*9gui_forms18DataGridViewColumn*
 __ZT[hvc]*9gui_forms18DesktopDevicePoint*
+__ZT[hvc]*9gui_forms18DialogPresentation*
 __ZT[hvc]*9gui_forms18DirectionRingStyle*
 __ZT[hvc]*9gui_forms18DispatcherSnapshot*
 __ZT[hvc]*9gui_forms18DockAutoHideMemory*
@@ -14372,6 +14393,8 @@ __ZZN9gui_forms17ObjectDetailsCell*
 __ZZN9gui_forms17ObjectDetailsSort*
 __ZZN9gui_forms17PartRasterRequest*
 __ZZN9gui_forms17PlotHeatmapSeries*
+__ZZN9gui_forms17PresentationLayer*
+__ZZN9gui_forms17PresentationPopup*
 __ZZN9gui_forms17PresentationState*
 __ZZN9gui_forms17PrimitiveRegistry*
 __ZZN9gui_forms17PropertyEnumValue*
@@ -14437,6 +14460,7 @@ __ZZN9gui_forms18ControlRoleRecipes*
 __ZZN9gui_forms18CursorCapabilities*
 __ZZN9gui_forms18DataGridViewColumn*
 __ZZN9gui_forms18DesktopDevicePoint*
+__ZZN9gui_forms18DialogPresentation*
 __ZZN9gui_forms18DirectionRingStyle*
 __ZZN9gui_forms18DispatcherSnapshot*
 __ZZN9gui_forms18DockAutoHideMemory*
@@ -16060,6 +16084,8 @@ __ZZNK9gui_forms17ObjectDetailsCell*
 __ZZNK9gui_forms17ObjectDetailsSort*
 __ZZNK9gui_forms17PartRasterRequest*
 __ZZNK9gui_forms17PlotHeatmapSeries*
+__ZZNK9gui_forms17PresentationLayer*
+__ZZNK9gui_forms17PresentationPopup*
 __ZZNK9gui_forms17PresentationState*
 __ZZNK9gui_forms17PrimitiveRegistry*
 __ZZNK9gui_forms17PropertyEnumValue*
@@ -16125,6 +16151,7 @@ __ZZNK9gui_forms18ControlRoleRecipes*
 __ZZNK9gui_forms18CursorCapabilities*
 __ZZNK9gui_forms18DataGridViewColumn*
 __ZZNK9gui_forms18DesktopDevicePoint*
+__ZZNK9gui_forms18DialogPresentation*
 __ZZNK9gui_forms18DirectionRingStyle*
 __ZZNK9gui_forms18DispatcherSnapshot*
 __ZZNK9gui_forms18DockAutoHideMemory*

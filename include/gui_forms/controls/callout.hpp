@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/controls/dialog_presentation.hpp"
 #include "gui_forms/controls/callout_capabilities.hpp"
 
 #include <cstdint>
@@ -68,7 +69,7 @@ public:
     bool show(const Control::Ptr& target);
     // Closes a shown callout as programmatic; false when it is not shown.
     bool close();
-    [[nodiscard]] bool is_shown() const noexcept { return shown_; }
+    [[nodiscard]] bool is_shown() const noexcept { return presentation_.shown(); }
     // The target while shown, else empty.
     [[nodiscard]] Control::Ptr target() const noexcept { return target_.lock(); }
     // The action button while action_text is set, else empty.
@@ -157,12 +158,11 @@ private:
     std::shared_ptr<Button> action_{};
     SubscriptionToken action_token_{};
     Control::WeakPtr target_{};
-    Control::Ptr layer_{};
-    OverlayToken overlay_{};
-    SubscriptionToken overlay_revoked_{};
-    FocusScopeId scope_{};
+    // Closed, or shown as an overlay: the layer in the target's window, its
+    // lease, the revocation subscription and the focus scope live in the
+    // state (never shown natively).
+    DialogPresentation presentation_{};
     Rows rows_{};
-    bool shown_{false};
     bool hot_close_{false};
     bool pressed_close_{false};
     // The beak's side and its centre across the callout (place_beak).

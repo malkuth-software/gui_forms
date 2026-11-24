@@ -844,6 +844,8 @@
     _ZGVZN9gui_forms17ObjectDetailsSort*;
     _ZGVZN9gui_forms17PartRasterRequest*;
     _ZGVZN9gui_forms17PlotHeatmapSeries*;
+    _ZGVZN9gui_forms17PresentationLayer*;
+    _ZGVZN9gui_forms17PresentationPopup*;
     _ZGVZN9gui_forms17PresentationState*;
     _ZGVZN9gui_forms17PrimitiveRegistry*;
     _ZGVZN9gui_forms17PropertyEnumValue*;
@@ -909,6 +911,7 @@
     _ZGVZN9gui_forms18CursorCapabilities*;
     _ZGVZN9gui_forms18DataGridViewColumn*;
     _ZGVZN9gui_forms18DesktopDevicePoint*;
+    _ZGVZN9gui_forms18DialogPresentation*;
     _ZGVZN9gui_forms18DirectionRingStyle*;
     _ZGVZN9gui_forms18DispatcherSnapshot*;
     _ZGVZN9gui_forms18DockAutoHideMemory*;
@@ -2532,6 +2535,8 @@
     _ZGVZNK9gui_forms17ObjectDetailsSort*;
     _ZGVZNK9gui_forms17PartRasterRequest*;
     _ZGVZNK9gui_forms17PlotHeatmapSeries*;
+    _ZGVZNK9gui_forms17PresentationLayer*;
+    _ZGVZNK9gui_forms17PresentationPopup*;
     _ZGVZNK9gui_forms17PresentationState*;
     _ZGVZNK9gui_forms17PrimitiveRegistry*;
     _ZGVZNK9gui_forms17PropertyEnumValue*;
@@ -2597,6 +2602,7 @@
     _ZGVZNK9gui_forms18CursorCapabilities*;
     _ZGVZNK9gui_forms18DataGridViewColumn*;
     _ZGVZNK9gui_forms18DesktopDevicePoint*;
+    _ZGVZNK9gui_forms18DialogPresentation*;
     _ZGVZNK9gui_forms18DirectionRingStyle*;
     _ZGVZNK9gui_forms18DispatcherSnapshot*;
     _ZGVZNK9gui_forms18DockAutoHideMemory*;
@@ -4552,6 +4558,8 @@
     _ZN9gui_forms17ObjectDetailsSort*;
     _ZN9gui_forms17PartRasterRequest*;
     _ZN9gui_forms17PlotHeatmapSeries*;
+    _ZN9gui_forms17PresentationLayer*;
+    _ZN9gui_forms17PresentationPopup*;
     _ZN9gui_forms17PresentationState*;
     _ZN9gui_forms17PrimitiveRegistry*;
     _ZN9gui_forms17PropertyEnumValue*;
@@ -4703,6 +4711,7 @@
     _ZN9gui_forms18CursorCapabilities*;
     _ZN9gui_forms18DataGridViewColumn*;
     _ZN9gui_forms18DesktopDevicePoint*;
+    _ZN9gui_forms18DialogPresentation*;
     _ZN9gui_forms18DirectionRingStyle*;
     _ZN9gui_forms18DispatcherSnapshot*;
     _ZN9gui_forms18DockAutoHideMemory*;
@@ -7622,6 +7631,8 @@
     _ZNK[RO]9gui_forms17ObjectDetailsSort*;
     _ZNK[RO]9gui_forms17PartRasterRequest*;
     _ZNK[RO]9gui_forms17PlotHeatmapSeries*;
+    _ZNK[RO]9gui_forms17PresentationLayer*;
+    _ZNK[RO]9gui_forms17PresentationPopup*;
     _ZNK[RO]9gui_forms17PresentationState*;
     _ZNK[RO]9gui_forms17PrimitiveRegistry*;
     _ZNK[RO]9gui_forms17PropertyEnumValue*;
@@ -7687,6 +7698,7 @@
     _ZNK[RO]9gui_forms18CursorCapabilities*;
     _ZNK[RO]9gui_forms18DataGridViewColumn*;
     _ZNK[RO]9gui_forms18DesktopDevicePoint*;
+    _ZNK[RO]9gui_forms18DialogPresentation*;
     _ZNK[RO]9gui_forms18DirectionRingStyle*;
     _ZNK[RO]9gui_forms18DispatcherSnapshot*;
     _ZNK[RO]9gui_forms18DockAutoHideMemory*;
@@ -9310,6 +9322,8 @@
     _ZN[KRO]9gui_forms17ObjectDetailsSort*;
     _ZN[KRO]9gui_forms17PartRasterRequest*;
     _ZN[KRO]9gui_forms17PlotHeatmapSeries*;
+    _ZN[KRO]9gui_forms17PresentationLayer*;
+    _ZN[KRO]9gui_forms17PresentationPopup*;
     _ZN[KRO]9gui_forms17PresentationState*;
     _ZN[KRO]9gui_forms17PrimitiveRegistry*;
     _ZN[KRO]9gui_forms17PropertyEnumValue*;
@@ -9375,6 +9389,7 @@
     _ZN[KRO]9gui_forms18CursorCapabilities*;
     _ZN[KRO]9gui_forms18DataGridViewColumn*;
     _ZN[KRO]9gui_forms18DesktopDevicePoint*;
+    _ZN[KRO]9gui_forms18DialogPresentation*;
     _ZN[KRO]9gui_forms18DirectionRingStyle*;
     _ZN[KRO]9gui_forms18DispatcherSnapshot*;
     _ZN[KRO]9gui_forms18DockAutoHideMemory*;
@@ -10998,6 +11013,8 @@
     _ZT[VIST]N9gui_forms17ObjectDetailsSort*E;
     _ZT[VIST]N9gui_forms17PartRasterRequest*E;
     _ZT[VIST]N9gui_forms17PlotHeatmapSeries*E;
+    _ZT[VIST]N9gui_forms17PresentationLayer*E;
+    _ZT[VIST]N9gui_forms17PresentationPopup*E;
     _ZT[VIST]N9gui_forms17PresentationState*E;
     _ZT[VIST]N9gui_forms17PrimitiveRegistry*E;
     _ZT[VIST]N9gui_forms17PropertyEnumValue*E;
@@ -11063,6 +11080,7 @@
     _ZT[VIST]N9gui_forms18CursorCapabilities*E;
     _ZT[VIST]N9gui_forms18DataGridViewColumn*E;
     _ZT[VIST]N9gui_forms18DesktopDevicePoint*E;
+    _ZT[VIST]N9gui_forms18DialogPresentation*E;
     _ZT[VIST]N9gui_forms18DirectionRingStyle*E;
     _ZT[VIST]N9gui_forms18DispatcherSnapshot*E;
     _ZT[VIST]N9gui_forms18DockAutoHideMemory*E;
@@ -12686,6 +12704,8 @@
     _ZT[hvc]*9gui_forms17ObjectDetailsSort*;
     _ZT[hvc]*9gui_forms17PartRasterRequest*;
     _ZT[hvc]*9gui_forms17PlotHeatmapSeries*;
+    _ZT[hvc]*9gui_forms17PresentationLayer*;
+    _ZT[hvc]*9gui_forms17PresentationPopup*;
     _ZT[hvc]*9gui_forms17PresentationState*;
     _ZT[hvc]*9gui_forms17PrimitiveRegistry*;
     _ZT[hvc]*9gui_forms17PropertyEnumValue*;
@@ -12751,6 +12771,7 @@
     _ZT[hvc]*9gui_forms18CursorCapabilities*;
     _ZT[hvc]*9gui_forms18DataGridViewColumn*;
     _ZT[hvc]*9gui_forms18DesktopDevicePoint*;
+    _ZT[hvc]*9gui_forms18DialogPresentation*;
     _ZT[hvc]*9gui_forms18DirectionRingStyle*;
     _ZT[hvc]*9gui_forms18DispatcherSnapshot*;
     _ZT[hvc]*9gui_forms18DockAutoHideMemory*;
@@ -14374,6 +14395,8 @@
     _ZZN9gui_forms17ObjectDetailsSort*;
     _ZZN9gui_forms17PartRasterRequest*;
     _ZZN9gui_forms17PlotHeatmapSeries*;
+    _ZZN9gui_forms17PresentationLayer*;
+    _ZZN9gui_forms17PresentationPopup*;
     _ZZN9gui_forms17PresentationState*;
     _ZZN9gui_forms17PrimitiveRegistry*;
     _ZZN9gui_forms17PropertyEnumValue*;
@@ -14439,6 +14462,7 @@
     _ZZN9gui_forms18CursorCapabilities*;
     _ZZN9gui_forms18DataGridViewColumn*;
     _ZZN9gui_forms18DesktopDevicePoint*;
+    _ZZN9gui_forms18DialogPresentation*;
     _ZZN9gui_forms18DirectionRingStyle*;
     _ZZN9gui_forms18DispatcherSnapshot*;
     _ZZN9gui_forms18DockAutoHideMemory*;
@@ -16062,6 +16086,8 @@
     _ZZNK9gui_forms17ObjectDetailsSort*;
     _ZZNK9gui_forms17PartRasterRequest*;
     _ZZNK9gui_forms17PlotHeatmapSeries*;
+    _ZZNK9gui_forms17PresentationLayer*;
+    _ZZNK9gui_forms17PresentationPopup*;
     _ZZNK9gui_forms17PresentationState*;
     _ZZNK9gui_forms17PrimitiveRegistry*;
     _ZZNK9gui_forms17PropertyEnumValue*;
@@ -16127,6 +16153,7 @@
     _ZZNK9gui_forms18CursorCapabilities*;
     _ZZNK9gui_forms18DataGridViewColumn*;
     _ZZNK9gui_forms18DesktopDevicePoint*;
+    _ZZNK9gui_forms18DialogPresentation*;
     _ZZNK9gui_forms18DirectionRingStyle*;
     _ZZNK9gui_forms18DispatcherSnapshot*;
     _ZZNK9gui_forms18DockAutoHideMemory*;

@@ -1,5 +1,6 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "../frame_chrome/frame_chrome.hpp"
+#include "../dialog_presentation/provisional_child.hpp"
 
 #include "gui_forms/controls/progress_bar.hpp"
 #include "gui_forms/delegate.hpp"
@@ -185,10 +186,7 @@ TaskDialog::TaskDialog(StableId stable_id) : Control(std::move(stable_id)) {
 }
 
 TaskDialog::~TaskDialog() {
-    overlay_revoked_.disconnect();
-    native_closed_.disconnect();
-    native_.disconnect();
-    overlay_.disconnect();
+    presentation_.abandon();
 }
 
 // -- page ----------------------------------------------------------------------
@@ -262,7 +260,7 @@ void TaskDialog::set_page(TaskDialogPage page) {
     page_ = std::move(page);
     rebuild_children();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    if (!shown_) return;
+    if (!presentation_.shown()) return;
     // A page shown in place of another: focus moves to its default button.
     Window* const host = attached_window();
     const std::shared_ptr<Button> preferred = button(default_button_id());
@@ -415,7 +413,8 @@ void TaskDialog::write_view(const decltype(expanded)&, bool incoming) {
     if (expanded_text_) set_child_layout_collapsed(expanded_text_, !incoming);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     // The layer centres the dialog again at its new height.
-    if (layer_) (*layer_).invalidate(Dirty::arrange);
+    const Control::Ptr layer = presentation_.layer();
+    if (layer) (*layer).invalidate(Dirty::arrange);
     expanded_changed_.emit(incoming);
 }
 
@@ -466,7 +465,7 @@ bool TaskDialog::click(std::string_view button_id) {
     const Control::Ptr lifetime = weak_from_this().lock();
     button_clicked_.emit(request);
     // A handler may have navigated to another page or closed the dialog.
-    if (!is_alive() || request.keep_open || !shown_) return true;
+    if (!is_alive() || request.keep_open || !presentation_.shown()) return true;
     finish(request.button_id);
     return true;
 }
@@ -493,7 +492,7 @@ void TaskDialog::on_radio(bool) {
 }
 
 void TaskDialog::on_key_preview(KeyEvent& event) {
-    if (!shown_ || event.action != KeyAction::down) return;
+    if (!presentation_.shown() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::escape) {
         const std::string cancel = cancel_button_id();
         if (button_index(cancel).present()) {
@@ -522,43 +521,57 @@ void TaskDialog::on_key_preview(KeyEvent& event) {
 bool TaskDialog::show(const Control::Ptr& owner) {
     require_mutable();
     Window* const window = owner ? (*owner).attached_window() : nullptr;
-    if (shown_ || window == nullptr || parent()) return false;
+    if (presentation_.shown() || window == nullptr || parent()) return false;
     Window& host = *window;
     // A page never set has no buttons; setting it gives it the OK button.
     if (page_.buttons.empty()) set_page(page_);
     const Size client = host.client_size();
+    // `lifetime` holds the dialog across the handlers the steps below run.
+    const Control::Ptr lifetime = shared_from_this();
     Control::Ptr layer = make_control<TaskDialogLayer>(StableId(std::string(stable_id().value()) + ".layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    (*layer).add_child(shared_from_this());
-    overlay_ = host.open_overlay(owner, layer);
-    layer_ = layer;
-    shown_ = true;
-    result_.reset();
-    if (Event<>* revoked = overlay_.closed_event()) {
-        overlay_revoked_ = (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
+    // Until the presentation is installed, every step is undone on an
+    // exception: the guard takes the dialog out of the layer, and the
+    // owner half's lease and subscription end with it.
+    ProvisionalChild in_layer(layer, lifetime);
+    PresentationLayer owner_half{};
+    owner_half.overlay = host.open_overlay(owner, layer);
+    owner_half.layer = layer;
+    if (Event<>* revoked = owner_half.overlay.closed_event()) {
+        owner_half.overlay_closed =
+            (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
     }
+    DialogPresentation shown = surface_ == DialogSurface::native_popup
+        ? present_natively(host, owner, std::move(owner_half))
+        : DialogPresentation::overlay(std::move(owner_half));
+    in_layer.commit();
+    presentation_ = std::move(shown);
+    result_.reset();
     // begin_focus_scope moves the focus, running the previous control's
-    // focus and validation handlers; one may close the dialog, and then the
-    // scope it opened is ended here, since finish found none to end
-    // (A-gf-controls-13-F4). `lifetime` holds the dialog across them.
-    const Control::Ptr lifetime = shared_from_this();
+    // focus and validation handlers; one may close the dialog (and even
+    // show it again), and then the scope this show() opened is ended here,
+    // since finish found none to end (A-gf-controls-13-F4).
+    if (Window* const popup = presentation_.popup_window()) {
+        static_cast<void>((*popup).begin_focus_scope(presentation_.popup_root(), button(default_button_id())));
+    }
+    if (!is_alive() || !presentation_.shown_with(*layer)) return true;
     FocusScopeId started{};
-    if (surface_ == DialogSurface::native_popup && open_native(host, owner)) {
+    if (presentation_.surface() == NativePopupSurface::native) {
         // The empty layer keeps the owner's keys from its controls.
         started = host.begin_focus_scope(layer);
     } else {
         started = host.begin_focus_scope(layer, button(default_button_id()));
     }
-    if (!is_alive() || !shown_) {
+    if (!is_alive() || !presentation_.adopt_scope(*layer, started)) {
         if (started) static_cast<void>(host.end_focus_scope(started));
         return true;
     }
-    scope_ = started;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;
 }
 
-bool TaskDialog::open_native(Window& host, const Control::Ptr& owner) {
+DialogPresentation TaskDialog::present_natively(Window& host, const Control::Ptr& owner,
+                                                PresentationLayer owner_half) {
     // Measured in the layer, as the overlay would be, then centred.
     const Size client = host.client_size();
     const double margin = window_margin * effective_text_scale();
@@ -569,32 +582,34 @@ bool TaskDialog::open_native(Window& host, const Control::Ptr& owner) {
     const Rect bounds{std::floor((client.width - width) * 0.5), std::max(0.0, std::floor((client.height - height) * 0.5)),
                       width, height};
     const Control::Ptr self = shared_from_this();
-    static_cast<void>((*layer_).remove_child(runtime_id()));
-    native_root_ = make_control<Control>(StableId(std::string(stable_id().value()) + ".native"));
+    static_cast<void>((*owner_half.layer).remove_child(runtime_id()));
+    PresentationPopup popup_half{};
+    popup_half.root = make_control<Control>(StableId(std::string(stable_id().value()) + ".native"));
     set_requested_bounds({0.0, 0.0, width, height});
-    (*native_root_).add_child(self);
+    // Taken out of the root again if the popup does not open, or throws.
+    ProvisionalChild in_root(popup_half.root, self);
     NativePopupOptions options{};
     options.focus = HostPopupFocus::takes_focus;
     options.fallback = NativePopupFallback::refuse;
-    native_ = host.open_native_popup(owner, native_root_, bounds, options);
-    if (native_.surface() != NativePopupSurface::native) {
-        static_cast<void>((*native_root_).remove_child(runtime_id()));
-        native_root_.reset();
-        (*layer_).add_child(self);
-        return false;
+    popup_half.popup = host.open_native_popup(owner, popup_half.root, bounds, options);
+    if (popup_half.popup.surface() != NativePopupSurface::native) {
+        in_root.undo();
+        (*owner_half.layer).add_child(self);
+        DialogPresentation fallback = DialogPresentation::overlay(std::move(owner_half));
+        return fallback;
     }
-    if (Event<>* closed = native_.closed_event()) {
-        native_closed_ = (*closed).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
+    if (Event<>* closed = popup_half.popup.closed_event()) {
+        popup_half.popup_closed =
+            (*closed).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
     }
-    Window* const popup = native_.window();
-    if (popup != nullptr) static_cast<void>((*popup).begin_focus_scope(native_root_, button(default_button_id())));
-    return true;
+    in_root.commit();
+    DialogPresentation shown = DialogPresentation::native(std::move(owner_half), std::move(popup_half));
+    return shown;
 }
 
 NativePopupSurface TaskDialog::presented_surface() const noexcept {
-    if (!shown_) return NativePopupSurface::none;
-    if (native_root_) return NativePopupSurface::native;
-    return NativePopupSurface::overlay;
+    const NativePopupSurface result = presentation_.surface();
+    return result;
 }
 
 void TaskDialog::close(std::string_view button_id) {
@@ -608,45 +623,19 @@ void TaskDialog::on_overlay_revoked() {
 }
 
 void TaskDialog::finish(std::string button_id) {
-    if (!shown_) return;
-    shown_ = false;
+    if (!presentation_.shown()) return;
+    // Closed from here on, for every handler the steps below run.
+    DialogPresentation closing = presentation_.take();
     TaskDialogResult outcome{std::move(button_id), page_.verification_checked, checked_radio_button()};
-    // The scope is the owner's window's, where the layer is.
-    Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
-    if (host != nullptr && scope_) static_cast<void>((*host).end_focus_scope(scope_));
-    scope_ = {};
-    overlay_revoked_.disconnect();
-    native_closed_.disconnect();
-    const Control::Ptr layer = layer_;
-    layer_.reset();
-    if (layer) static_cast<void>((*layer).remove_child(runtime_id()));
-    const Control::Ptr native_root = native_root_;
-    native_root_.reset();
-    if (native_root) static_cast<void>((*native_root).remove_child(runtime_id()));
-    native_.disconnect();
-    overlay_.disconnect();
+    closing.dismantle(*this, FocusScopeCloseReason::explicit_close);
     result_ = outcome;
     closed_.emit(outcome);
 }
 
 void TaskDialog::on_dispose() noexcept {
     // A disposed dialog closes without raising closed.
-    shown_ = false;
-    overlay_revoked_.disconnect();
-    native_closed_.disconnect();
-    Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
-    if (scope_ && host != nullptr) {
-        try {
-            static_cast<void>((*host).end_focus_scope(scope_));
-        } catch (...) {
-            // Disposal must not throw; the window ends the scope with the overlay.
-        }
-    }
-    scope_ = {};
-    native_.disconnect();
-    native_root_.reset();
-    overlay_.disconnect();
-    layer_.reset();
+    DialogPresentation closing = presentation_.take();
+    closing.dismantle_on_dispose();
     child_tokens_.clear();
     Control::on_dispose();
 }
@@ -878,7 +867,7 @@ SemanticDescriptor TaskDialog::semantic_descriptor() const {
     // so it blocks the rest of its window (modal).
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::dialog;
-    descriptor.modal = shown_;
+    descriptor.modal = presentation_.shown();
     if (!accessible_name.read().empty()) {
         descriptor.name = accessible_name.read();
     } else if (!page_.caption.empty()) {

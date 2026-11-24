@@ -106,6 +106,8 @@ Related types
      - The chosen color, and before the dialog is shown the one it starts with (Windows Forms' Color; opaque black by default).
    * - :cpp:class:`ColorDialogTitleCapability <gui_forms::ColorDialogTitleCapability>`
      - The dialog's title; empty gives the host's own.
+   * - :cpp:class:`DialogPresentation <gui_forms::DialogPresentation>`
+     - Where a presented control is: closed, shown as an overlay in its owner's window, or shown in a native popup window with its layer still in the owner's window.
    * - :cpp:class:`FileDialogFilterParse <gui_forms::FileDialogFilterParse>`
      - The result of parsing a filter string: the host filters in order, or the first error with no filters.
    * - :cpp:class:`FileDialogOk <gui_forms::FileDialogOk>`
@@ -146,6 +148,10 @@ Related types
      - Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
    * - :cpp:class:`ModalLayerClosingEvent <gui_forms::ModalLayerClosingEvent>`
      - The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
+   * - :cpp:class:`PresentationLayer <gui_forms::PresentationLayer>`
+     - The owner's half of a shown owned dialog or callout (FontDialog, TaskDialog, Callout): the layer in the owner's window that holds the presented control (or, for a native presentation, holds the owner's input while the panel is elsewhere), the overlay lease that keeps the layer in that window, the subscription to the lease's revocation, and the focus scope begun in that window.
+   * - :cpp:class:`PresentationPopup <gui_forms::PresentationPopup>`
+     - The native half of a dialog presented in a native popup window (DialogSurface::native_popup): the root in the popup window that holds the panel, the popup's lease, and the subscription to the popup's closing.
    * - :cpp:class:`ProgramIdentity <gui_forms::ProgramIdentity>`
      - The program's identity, as the business card shows it.
    * - :cpp:class:`RibbonToolTipAutoPopDelayCapability <gui_forms::RibbonToolTipAutoPopDelayCapability>`
@@ -637,6 +643,81 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: DialogPresentation final
+
+   ``#include <gui_forms/controls/dialog_presentation.hpp>`` (:src:`source <include/gui_forms/controls/dialog_presentation.hpp>`)
+
+   Where a presented control is: closed, shown as an overlay in its owner's window, or shown in a native popup window with its layer still in the owner's window. One record holds every lease, subscription and scope a state needs, so a shown state without its layer, or a popup root without its popup token, cannot be represented; every query reads the state. Closing is two steps, so that no handler sees a half-closed control: take() leaves the record closed at once and hands back what it held, and the caller dismantles that (dismantle, or abandon where nothing may run). Handlers that run while it is dismantled (a focus handler, the lease's own closing) find the control closed already. UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: DialogPresentation() noexcept
+
+   .. cpp:function:: DialogPresentation(DialogPresentation&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool shown() const noexcept
+
+      Whether it is shown (as an overlay or natively).
+
+   .. cpp:function:: NativePopupSurface surface() const noexcept
+
+      native, overlay, or none while closed.
+
+   .. cpp:function:: Control::Ptr layer() const noexcept
+
+      The layer in the owner's window; null while closed.
+
+   .. cpp:function:: Window* popup_window() const noexcept
+
+      While shown natively, the popup window's model and the root in it that holds the panel; null otherwise (and the window null once the popup has closed).
+
+   .. cpp:function:: Control::Ptr popup_root() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static DialogPresentation closed() noexcept
+
+      The named states.
+
+   .. cpp:function:: static DialogPresentation overlay(PresentationLayer owner) noexcept
+
+      Shown as an overlay: the control is in the owner half's layer. The layer must be set.
+
+   .. cpp:function:: static DialogPresentation native(PresentationLayer owner, PresentationPopup popup) noexcept
+
+      Shown natively: the control is in the popup half's root, and the owner half's layer stays in the owner's window. Both must be set.
+
+   .. cpp:function:: bool shown_with(const Control& layer) const noexcept
+
+      Whether it is shown with :cpp:func:`layer <gui_forms::DialogPresentation::layer>`, the layer one show() made: false once a handler closed it, even if it was shown again since.
+
+   .. cpp:function:: bool adopt_scope(const Control& layer, FocusScopeId scope) noexcept
+
+      Records the owner's focus scope once begin_focus_scope returns. False, recording nothing, when the presentation is no longer the one shown with :cpp:func:`layer <gui_forms::DialogPresentation::layer>`: a handler run by begin_focus_scope closed it (and may have shown it again with another layer); the caller then ends ``scope`` itself.
+
+   .. cpp:function:: DialogPresentation take() noexcept
+
+      Leaves this record closed and returns what it held.
+
+   .. cpp:function:: void dismantle(Control& presented, FocusScopeCloseReason reason)
+
+      Dismantles a taken record, leaving it closed: unsubscribes from the lease's and the popup's closing, ends the owner's focus scope in the layer's window with ``reason``, takes ``presented`` out of the layer and out of the popup root, closes the popup and then the overlay, and drops the root and the layer. The caller keeps ``presented`` alive across the call (removing it from its layer may drop its last other reference). Nothing happens for a closed record.
+
+   .. cpp:function:: void dismantle_on_dispose() noexcept
+
+      The same for a disposed control: ends the scope where the window accepts it (a refusal is left to the window, which ends the scope with the overlay), leaves ``presented``'s parent links to its disposal, and never throws.
+
+   .. cpp:function:: void abandon() noexcept
+
+      Closes the leases and drops the subscriptions without ending the scope or touching the tree: for a destructor, where there is no one left to tell and the window ends the scope with the overlay.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FileDialogFilterParse final
 
    ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>`` (:src:`source <include/gui_forms/components/file_dialog_types/file_dialog_types.hpp>`)
@@ -986,6 +1067,36 @@ Related types
    .. cpp:member:: bool cancel
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PresentationLayer final
+
+   ``#include <gui_forms/controls/dialog_presentation.hpp>`` (:src:`source <include/gui_forms/controls/dialog_presentation.hpp>`)
+
+   The owner's half of a shown owned dialog or callout (FontDialog, TaskDialog, Callout): the layer in the owner's window that holds the presented control (or, for a native presentation, holds the owner's input while the panel is elsewhere), the overlay lease that keeps the layer in that window, the subscription to the lease's revocation, and the focus scope begun in that window. The scope is empty from the moment the presentation is installed until begin_focus_scope returns (DialogPresentation::adopt_scope), because beginning it runs focus handlers that may close the presentation again.
+
+   .. cpp:member:: Control::Ptr layer
+
+   .. cpp:member:: OverlayToken overlay
+
+   .. cpp:member:: SubscriptionToken overlay_closed
+
+   .. cpp:member:: FocusScopeId scope
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PresentationPopup final
+
+   ``#include <gui_forms/controls/dialog_presentation.hpp>`` (:src:`source <include/gui_forms/controls/dialog_presentation.hpp>`)
+
+   The native half of a dialog presented in a native popup window (DialogSurface::native_popup): the root in the popup window that holds the panel, the popup's lease, and the subscription to the popup's closing. The focus scope inside the popup window ends with that window, so it is not kept.
+
+   .. cpp:member:: Control::Ptr root
+
+   .. cpp:member:: NativePopupToken popup
+
+   .. cpp:member:: SubscriptionToken popup_closed
 
 .. cpp:namespace:: gui_forms
 

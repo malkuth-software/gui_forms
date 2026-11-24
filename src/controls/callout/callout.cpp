@@ -1,4 +1,5 @@
 #include "gui_forms/controls/callout.hpp"
+#include "../dialog_presentation/provisional_child.hpp"
 
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/label.hpp"
@@ -158,8 +159,7 @@ void Callout::initialize_control_tree() {
 
 Callout::~Callout() {
     action_token_.disconnect();
-    overlay_revoked_.disconnect();
-    overlay_.disconnect();
+    presentation_.abandon();
 }
 
 double Callout::card_width(Size available) const noexcept {
@@ -362,13 +362,13 @@ void Callout::on_mouse_up(MouseEventArgs& arguments) {
 
 void Callout::on_key_down(KeyEventArgs& arguments) {
     Control::on_key_down(arguments);
-    if (arguments.handled || arguments.physical_key != PhysicalKey::escape || !shown_) return;
+    if (arguments.handled || arguments.physical_key != PhysicalKey::escape || !presentation_.shown()) return;
     arguments.handled = true;
     finish(CalloutCloseReason::escape_key);
 }
 
 void Callout::on_key_bubble(KeyEvent& event) {
-    if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape || !shown_) return;
+    if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape || !presentation_.shown()) return;
     event.handled = true;
     finish(CalloutCloseReason::escape_key);
 }
@@ -385,7 +385,7 @@ SemanticDescriptor Callout::semantic_descriptor() const {
 }
 
 bool Callout::on_semantic_action(SemanticAction action, std::string_view value) {
-    if (action == SemanticAction::close && shown_) {
+    if (action == SemanticAction::close && presentation_.shown()) {
         finish(CalloutCloseReason::close_button);
         return true;
     }
@@ -428,31 +428,45 @@ Callout::Parts Callout::parts() const {
 bool Callout::show(const Control::Ptr& target) {
     require_mutable();
     Window* const window = target ? (*target).attached_window() : nullptr;
-    if (shown_ || window == nullptr || parent()) return false;
+    if (presentation_.shown() || window == nullptr || parent()) return false;
     Window& host = *window;
     const Size client = host.client_size();
+    // Held across the focus handlers begin_focus_scope runs.
+    const Control::Ptr self = shared_from_this();
     std::shared_ptr<Layer> layer = make_control<Layer>(StableId(std::string(stable_id().value()) + ".layer"), *this);
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
     target_ = target;
-    (*layer).add_child(shared_from_this());
-    overlay_ = host.open_overlay(target, layer);
-    layer_ = layer;
-    shown_ = true;
-    if (Event<>* revoked = overlay_.closed_event()) {
-        overlay_revoked_ = (*revoked).subscribe(*this, Delegate<>::bind<Callout, &Callout::on_overlay_revoked>(*this));
+    // Until the presentation is installed, every step is undone on an
+    // exception: the guard takes the callout out of the layer, and the
+    // lease and subscription end with `owner_half`.
+    ProvisionalChild in_layer(layer, self);
+    PresentationLayer owner_half{};
+    owner_half.overlay = host.open_overlay(target, layer);
+    owner_half.layer = layer;
+    if (Event<>* revoked = owner_half.overlay.closed_event()) {
+        owner_half.overlay_closed =
+            (*revoked).subscribe(*this, Delegate<>::bind<Callout, &Callout::on_overlay_revoked>(*this));
     }
+    in_layer.commit();
+    presentation_ = DialogPresentation::overlay(std::move(owner_half));
     FocusScopeOptions options{};
     options.contain_focus = false;
     options.restore_focus = true;
-    const Control::Ptr preferred = action_ ? Control::Ptr(action_) : shared_from_this();
-    scope_ = host.begin_focus_scope(shared_from_this(), preferred, options);
+    const Control::Ptr preferred = action_ ? Control::Ptr(action_) : self;
+    const FocusScopeId started = host.begin_focus_scope(self, preferred, options);
+    // A focus handler run by begin_focus_scope may have closed the callout
+    // (finish found no scope to end): the scope is ended here.
+    if (!presentation_.adopt_scope(*layer, started)) {
+        if (started) static_cast<void>(host.end_focus_scope(started));
+        return true;
+    }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;
 }
 
 bool Callout::close() {
     require_mutable();
-    if (!shown_) return false;
+    if (!presentation_.shown()) return false;
     finish(CalloutCloseReason::programmatic);
     return true;
 }
@@ -466,53 +480,36 @@ void Callout::on_press_outside() {
 }
 
 void Callout::on_action(ButtonBase&) {
-    if (!shown_) return;
+    if (!presentation_.shown()) return;
     // Held across the handler and finish: see finish.
     const Control::Ptr retained = weak_from_this().lock();
     action_clicked_.emit();
     // The handler may have closed the callout already.
-    if (shown_) finish(CalloutCloseReason::action);
+    if (presentation_.shown()) finish(CalloutCloseReason::action);
 }
 
 void Callout::finish(CalloutCloseReason reason) {
-    if (!shown_) return;
+    if (!presentation_.shown()) return;
     // While shown, the layer may hold the only reference to the callout (a
     // one-shot tip whose program let it go): removing it from the layer
     // would then destroy it mid-function. Held to the end, so the members
     // after the removal and closed's handlers see a live callout
     // (A-gf-controls-01-F7).
     const Control::Ptr retained = weak_from_this().lock();
-    shown_ = false;
+    // Closed from here on, for every handler the steps below run.
+    DialogPresentation closing = presentation_.take();
     hot_close_ = false;
     pressed_close_ = false;
-    Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
-    if (host != nullptr && scope_) static_cast<void>((*host).end_focus_scope(scope_));
-    scope_ = {};
-    overlay_revoked_.disconnect();
-    const Control::Ptr layer = layer_;
-    layer_.reset();
-    if (layer) static_cast<void>((*layer).remove_child(runtime_id()));
-    overlay_.disconnect();
+    closing.dismantle(*this, FocusScopeCloseReason::explicit_close);
     target_.reset();
     closed_.emit(reason);
 }
 
 void Callout::on_dispose() noexcept {
     // A disposed callout closes without raising closed.
-    shown_ = false;
     action_token_.disconnect();
-    overlay_revoked_.disconnect();
-    Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
-    if (scope_ && host != nullptr) {
-        try {
-            static_cast<void>((*host).end_focus_scope(scope_));
-        } catch (...) {
-            // Disposal must not throw; the window ends the scope with the overlay.
-        }
-    }
-    scope_ = {};
-    overlay_.disconnect();
-    layer_.reset();
+    DialogPresentation closing = presentation_.take();
+    closing.dismantle_on_dispose();
     target_.reset();
     Control::on_dispose();
 }

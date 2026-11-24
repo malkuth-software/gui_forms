@@ -246,14 +246,16 @@ Wizard::Placement Wizard::placement(Size size) const {
         y += height + section_gap;
     }
     // The button row from the bottom: Cancel at the trailing edge, then
-    // Next and Back before it.
-    const double row_y = std::max(y, size.height - wizard_padding - button_height);
+    // Next and Back before it. The row is as tall as the tallest button's
+    // text needs (arrange measures them), never shorter than the default.
+    const double row_height = std::max(button_height, cancel_size_.height);
+    const double row_y = std::max(y, size.height - wizard_padding - row_height);
     double right = size.width - wizard_padding;
-    placed.cancel = Rect{right - cancel_size_.width, row_y, cancel_size_.width, button_height};
+    placed.cancel = Rect{right - cancel_size_.width, row_y, cancel_size_.width, row_height};
     right -= cancel_size_.width + cancel_gap;
-    placed.next = Rect{right - next_size_.width, row_y, next_size_.width, button_height};
+    placed.next = Rect{right - next_size_.width, row_y, next_size_.width, row_height};
     right -= next_size_.width + button_gap;
-    placed.back = Rect{right - back_size_.width, row_y, back_size_.width, button_height};
+    placed.back = Rect{right - back_size_.width, row_y, back_size_.width, row_height};
     placed.divider = Rect{0.0, std::max(y, row_y - section_gap - divider_thickness), size.width, divider_thickness};
     placed.page = Rect{wizard_padding, y, inner_width, std::max(0.0, placed.divider.y - section_gap - y)};
     return placed;
@@ -270,13 +272,17 @@ Size Wizard::measure(Size available) {
 void Wizard::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     sync();
-    const Size unbounded{final_bounds.width, button_height};
+    // Measured at their full height, so a larger text scale or font gives
+    // a taller row instead of clipping the labels; all three share it.
+    const Size unbounded{final_bounds.width, final_bounds.height};
     const Size back_wanted = (*back_).measure(unbounded);
     const Size next_wanted = (*next_).measure(unbounded);
     const Size cancel_wanted = (*cancel_).measure(unbounded);
-    back_size_ = Size{std::max(minimum_button_width, std::ceil(back_wanted.width)), button_height};
-    next_size_ = Size{std::max(minimum_button_width, std::ceil(next_wanted.width)), button_height};
-    cancel_size_ = Size{std::max(minimum_button_width, std::ceil(cancel_wanted.width)), button_height};
+    const double row_height = std::max({button_height, std::ceil(back_wanted.height), std::ceil(next_wanted.height),
+                                        std::ceil(cancel_wanted.height)});
+    back_size_ = Size{std::max(minimum_button_width, std::ceil(back_wanted.width)), row_height};
+    next_size_ = Size{std::max(minimum_button_width, std::ceil(next_wanted.width)), row_height};
+    cancel_size_ = Size{std::max(minimum_button_width, std::ceil(cancel_wanted.width)), row_height};
     const Placement placed = placement(Size{final_bounds.width, final_bounds.height});
     if (show_step_indicator.read()) set_child_layout(indicator_, placed.indicator);
     set_child_layout(back_, placed.back);

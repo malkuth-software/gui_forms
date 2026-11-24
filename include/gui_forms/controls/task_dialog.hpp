@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/dialog_presentation.hpp"
 #include "gui_forms/controls/task_dialog_capabilities.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
@@ -165,7 +166,7 @@ public:
     // Where the shown panel went: native while it is in a popup window,
     // else overlay (or none when it is not shown).
     [[nodiscard]] NativePopupSurface presented_surface() const noexcept;
-    [[nodiscard]] bool shown() const noexcept { return shown_; }
+    [[nodiscard]] bool shown() const noexcept { return presentation_.shown(); }
     // Closes the dialog as if `button_id` had been clicked, without raising
     // button_clicked. Does nothing when it is not shown.
     void close(std::string_view button_id);
@@ -275,23 +276,19 @@ private:
     std::shared_ptr<Button> expander_button_{};
     std::shared_ptr<ProgressBar> progress_{};
     std::vector<SubscriptionToken> child_tokens_{};
-    // The modal layer the dialog sits in while shown, and its overlay lease
-    // and focus scope in the owner's window.
-    Control::Ptr layer_{};
-    OverlayToken overlay_{};
-    SubscriptionToken overlay_revoked_{};
-    FocusScopeId scope_{};
-    // The native popup window the panel is in (DialogSurface::native_popup):
-    // its root holds the dialog, so closing detaches the dialog at once
-    // even though the window itself is released later.
     DialogSurface surface_{DialogSurface::overlay};
-    Control::Ptr native_root_{};
-    NativePopupToken native_{};
-    SubscriptionToken native_closed_{};
-    // Moves the shown dialog from the layer into a native popup window;
-    // false (the dialog back in the layer) when the run cannot open one.
-    bool open_native(Window& host, const Control::Ptr& owner);
-    bool shown_{};
+    // Closed, or shown over the owner's window: as an overlay in the modal
+    // layer, or in a native popup window (DialogSurface::native_popup)
+    // whose root holds the dialog, so closing detaches the dialog at once
+    // even though the window itself is released later. The layer, its
+    // overlay lease, the revocation subscriptions and the focus scope in
+    // the owner's window live in the state.
+    DialogPresentation presentation_{};
+    // Moves the dialog, in `owner_half`'s layer, into a native popup window.
+    // Returns the native presentation, or the overlay one (the dialog back
+    // in the layer) when the run cannot open a popup window.
+    [[nodiscard]] DialogPresentation present_natively(Window& host, const Control::Ptr& owner,
+                                                      PresentationLayer owner_half);
     bool synchronizing_{};
     std::optional<TaskDialogResult> result_{};
     FontSpec font_{FontRole::content, 11.0, 400, false};
