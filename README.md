@@ -19,81 +19,229 @@ and [what 1.0 promises](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.h
 
 ## Design
 
-**Consistent by design.** Every window is one retained tree, painted by one
-CPU renderer, its text set by one engine from fonts the program carries. The
-host only shows the finished pixels. Toolkits that hand text to each
-platform's font system, or draw through the graphics driver, give a form
-that wraps differently on another machine; Qt's documentation says its font
-matching and hinting vary by platform
-([QFont](https://doc.qt.io/qt-6/qfont.html)). GUI.Forms' engine gate draws
-every primitive at four scales and three states on each CI host and fails
-if one image differs.
+### Consistent by design
 
-**Fault control.** An expected failure comes back as a value and leaves the
-program as it was; a defect stops the process at once with a record of
-where it began. Every C ABI call, every entry from the operating system and
-every call into program code passes a gate, and controls finish changing
-before they notify, so a handler may clear a list or close the window
-([Reliability](https://gui-forms.readthedocs.io/en/latest/user/reliability.html)).
+Every GUI.Forms window is one retained tree painted consistently across all
+hosts by our own rasterizing and rendering engines. There is little if any
+platform variation.
 
-**Speed.** On an Apple M4, the Code Zoom demonstrator redraws a
-syntax-coloured C++ file at 1280 by 800 every frame while zooming from 0.1x
-to 40x: 1.07 ms a frame at the median, 4.43 ms at the 95th percentile. The
-hot paths were replaced in rounds, each held bit-identical to the code
-before it. A window with nothing to change does no work.
+Conversely, Qt and GTK hand text to each platform's font system, and Qt
+Quick, GTK 4 and Avalonia draw through the graphics driver, so a dialog can
+wrap differently on a customer's screen and a fault can belong to one driver
+alone.
 
-**Integrity.** Each stateful component declares its states, the calls each
-state admits, its refusals, thread rules and transfers beside its header.
-The header's contract lines, the entry checks, the member manifest's
-constraints, fuzz sequences and proof obligations are generated from that
-one declaration, and a deducer discharges the obligations it can.
+What you lay out and test on one machine is what every user sees, and a
+screenshot from any of your users with a GUI.Forms window is a faithful bug
+report.
 
-**Model Context Protocol.** A GUI.Forms program can be driven by a model
-over MCP without added code: the windows and control tree with stable IDs,
-semantic actions, the program's own pointer and keyboard path, waits,
-captures and inspection. Commands appear as tools, and a program adds its
-own from C++, C or C#. Password fields are painted out of captures, dialogs
-refuse the model unless instrumented, and a destructive act asks once per
-launch.
+### Gracefully stateless fault control
 
-**Themes and forms.** A form document says what exists and what it binds; a
-theme in CSS says how it looks. The build turns the form into a typed window
-class.
+An expected failure returns as a value and leaves the program as it was. A
+defect stops the process where it began, and its report carries the frames
+that led there. Nothing carries on half changed.
+
+An exception is allowed to unfold across languages. One raised in native
+code and reaching a C# caller arrives as a `NativeException` whose stack
+trace holds the native frames it came through. Elsewhere an exception that
+meets a native boundary is undefined behaviour: Qt says so of its slots,
+.NET turns one into a crash or a bare `SEHException`, and a C library has no
+way to pass one on at all.
+
+Your program is either right or stopped, its reports name where the fault
+began on both sides of the boundary, and an event handler can clear a list,
+detach its control or close the window without regard for what the control
+was doing.
+
+### Speed
+
+Most code is slow because it keeps asking questions it already knows the
+answers to. Ours stopped asking. Every tight loop and core mechanism was
+stripped until nothing inside it decides anything; it only computes. Then
+the next wave stripped it again. Not one result changed along the way.
+
+STXlib's FFT was built the same way. Where size matters, it beats FFTW.
+
+You will never wait on GUI.Forms. You will forget it is there.
+
+### Trustworthy by design
+
+GUI.Forms is written in one house style: an orthodox, explicitly spelled
+subset of C++20 in which types, ownership, mutation and execution order are
+visible where they are used. Code written that way can be checked, and it
+is. Clang-based tools read it with full type information, applying the style
+semantically and carrying the whole codebase onto STXlib's own vocabulary
+types; further checks hold lifetimes, state machines and storage boundaries
+to the same rules.
+
+The work continues toward formal verification. Every stateful part declares
+its contract once, and its entry checks, its fuzzing and its proof
+obligations are generated from that declaration, with a deducer discharging
+what it can. The allocator's page protocol is proved for any number of
+threads, and STXlib's core routines carry machine-checked proofs. A program
+built in the high-integrity configuration holds only what it uses, and a
+reviewer can show that from the symbols in the finished binary.
+
+Other toolkits ask to be trusted. GUI.Forms is built so that its
+trustworthiness can be checked.
+
+### Model Context Protocol from the first version
+
+In recent years, since general machine intelligence proliferated, operating
+system and application providers have begun to proliferate MCP servers;
+control toolkits, however, mainly predated AI. In GUI.Forms it is part of
+the toolkit, so every program built on it speaks MCP from its first build,
+and needs no code of its own to achieve the minimum in instrumentation,
+accelerating development and use.
+
+Often, in other approaches, a model reaches a desktop program in one of two
+ways: someone writes and maintains an MCP server for that one program, or
+the model reads screenshots and accessibility trees and guesses where to
+click. Both have issues with brittle representation and a fragmented
+approach.
+
+A GUI.Forms program arrives with a coherent MCP stack. The model has
+first-order access to the controls, commands and states the program uses, so
+automation, testing and assistance come with every program and keep working
+as it changes.
+
+### Easy to theme
+
+Unlike Visual Studio's form editor contracts, GUI.Forms form specifications
+are easy to work with and straightforward, using XML with inline control
+trees and bindings, with an accompanying theme language that uses a subset
+of CSS level 3. Designers can restyle a program without touching its code,
+on the fly, and GUI.Forms comes with a handful of classic themes that are
+familiar to most users.
 
 ```xml
-<label id="greeter.status" text="Ready." bounds="24 24 432 32" classes="status"/>
-<button id="greeter.run" text="Run" bounds="24 72 120 36">
-  <bind property="command" to="run"/>
-</button>
+<form xmlns="urn:gui-forms:form:1" id="greeter.window"
+      text="GUI.Forms - first window" client-size="480 140">
+  <panel id="greeter.root">
+    <label id="greeter.status" text="Ready."
+           bounds="24 24 432 32" classes="status"/>
+    <button id="greeter.run" text="Run" bounds="24 72 120 36">
+      <bind property="command" to="run"/>
+    </button>
+  </panel>
+</form>
 ```
 
 ```css
 :root { ink-on-paper: #1d3557 on #ffffff; }
-.status { color: role(ink-on-paper); font-family: content; font-size: 15px; font-weight: 600; }
+
+.status {
+  color: role(ink-on-paper);
+  font-family: content;
+  font-size: 15px;
+  font-weight: 600;
+}
 ```
 
-**Accessible and translatable.** Stock controls publish their role, name,
-state and actions by default, through NSAccessibility, MSAA and UI
-Automation, and ATK/AT-SPI. A compiler plugin finds every string literal
-written to a localizable property, so text set in code reaches the
-translator too.
+### Accessible and translatable
 
-**WinForms compatible, Windows optional.** Control families, Dock and
-Anchor, tab order, mnemonics, validation, `Invoke` and `BindingSource`, over
-controls that own no native handles. Every Forms type is mapped in
-[GUI.Forms for Windows Forms developers](https://gui-forms.readthedocs.io/en/latest/user/for-windows-forms-developers.html).
+Every stock control publishes its role, name, state and actions by default,
+through one semantic tree served to NSAccessibility, UI Automation and
+AT-SPI. A compiler plugin finds every string a program writes to a
+localizable property, in code as well as in forms, and right-to-left layout
+mirrors as Windows Forms' does.
 
-**Dependency-free and compact.** STXlib stands between GUI.Forms and the C
-library, the C++ runtime, threads, files, math and the allocator, and
-behaves the same over glibc, musl, FreeBSD's libc and the Windows UCRT.
-Each program imports only the operating system's libraries; the Gallery
-downloads as 12.6 to 15.7 MB.
+A GUI.Forms based program is accessible and ready to translate without extra
+work; the developer's effort starts only where the defaults are not enough.
 
-**Allocator.** STXlib's allocator, inspired by mimalloc and extended well
-past it, keeps its bookkeeping outside the memory it hands out and checks
-every release in every build. Its page protocol is proved, relative to
-stated premises, for any number of threads.
+### WinForms compatible, Windows optional
 
+The vocabulary and design gently deviate from and supersede the familiar,
+professionally articulated design language that is Windows Forms. It keeps
+the control families, Dock and Anchor, tab order, mnemonics, validation,
+accept and cancel buttons, `Invoke`, `BindingSource`. Every Forms type is
+mapped to its counterpart, and where behaviour differs on purpose the guide
+says so.
+
+Windows Forms developers are at home on the first day, and their programs
+run on macOS and Linux too.
+
+### Dependency-free and adaptable
+
+STXlib, a standard library extending framework and wrapper, is a code
+membrane that stands between GUI.Forms and everything outside it: the host's
+C library, the C++ runtime, threads, files, math and the allocator. It runs
+beside glibc, musl, FreeBSD's libc and the Windows UCRT and behaves the same
+over each; it supplies the atomic helpers a compiler would otherwise take
+from its runtime, and its own math gives the same bits on every processor.
+Fonts, shaping, hinting, PNG and zlib are first-party.
+
+Programs written on GUI.Forms can make use of it or use their own libraries
+without friction. The contribution from GUI.Forms, conversely, is guaranteed
+to run on the machines you intend, and depends only on its own stack, which
+is formulated from best-practice components like Clang.
+
+### Strong ABI support
+
+- **C**: function tables negotiated through one exported function,
+  fixed-width types, a status from every call. Within a major version a
+  table only grows at its end, and an audit rejects any break. A conformance
+  kit runs the ABI's checks in your own tests.
+- **C++20**: the library itself, as static archives through CMake.
+- **C#**: `GuiForms.Interop`, and `GuiForms.Forms` with Windows Forms'
+  protected `On*` hooks as virtuals.
+- **Python**: [PyGUIForms](https://github.com/malkuth-software/pyguiforms),
+  pure Python over the C ABI, CPython 3.10 or later.
+
+### Compact by design
+
+- GUI.Forms links statically, from archives built with every function and
+  datum in a section of its own.
+- The linker keeps only what the program reaches, with link-time
+  optimisation and dead stripping on every platform.
+- The C++ runtime is linked in and pinned, so nothing has to be installed
+  beside the program.
+- A feature the program never calls is not in the binary.
+
+### Allocators and threading, the GUI.Forms way
+
+We considered the speed and reliability of threading and allocator methods
+to be the most important part of any framework that purports to offer
+reliability. We set out to achieve this without leaning on the 21st-century
+crutch that has become "convert everything to Rust". We followed by adapting
+best principles and sourcing the best work we could find. We deviated from
+designs we considered good, but imperfect, to approach perfection and
+excellence. Our motto is *sic semper eximius*.
+
+We took inspiration from only the brightest and greatest engineers, and
+rather than simply copy their work, adapted the lessons from it and put the
+work into proving our results correct, in everything we did.
+
+Our designs eliminate unrequited ceremony, redundant accounting and
+epistemically deficient paradigms. At the same time, we unlock performance
+gains by tight coding, atomic behaviour and principled staging. Our
+allocator is faster than mimalloc. It is also correct. To the best of our
+ability, we developed methodologies to prove its threading model and design
+error-free, directed-graph style. Short of rewriting it in another language,
+we believe we have a high-integrity allocator. Our atomic threader is fast
+and tight, and inherits from the best designs in the world.
+
+Your code may have bugs in it, and bugs that will remain hidden for decades.
+We got tired of the number of bugs hidden in Windows. This is part of our
+motivation for doing it this way: because computers should be allowed to be
+correct. By design, your bugs will not become ours.
+
+### Wholly MIT by design
+
+GUI.Forms 1.0, STXlib and PyGUIForms are MIT licensed. What they carry from
+elsewhere keeps its notice, and every notice is permissive: Skia's BSD
+licence, the FreeType licence for part of the hinter, the fonts' OFL, and
+LLVM's Apache licence for the C++ library. Each is listed in
+[THIRD_PARTY_NOTICES.md](https://github.com/malkuth-software/gui_forms/blob/main/THIRD_PARTY_NOTICES.md).
+
+### Where the designs come from
+
+The programming model is inspired by Windows Forms. The CPU renderer extends
+Skia's. The font reader is inspired by ttf-parser and Skrifa, and the hinter
+extends Skrifa's auto-hinter, itself after FreeType's. The allocator is
+inspired by mimalloc, with TLSF for its free runs. Each has an ancestry in
+the named libraries but does not resemble them, is faster than the
+frameworks it derives from, and by design is less likely to facilitate bugs
+of any kind in use.
 ## Get it
 
 - **Programs:** every release on the
@@ -204,14 +352,6 @@ do is reported at run time and listed in
   room of 746 books, built on the same shell as PlaySuite.
 - In this repository: the Gallery, Explore and Correspondence
   ([`demo/`](demo/), [`file_manager_demoboard/`](file_manager_demoboard/)).
-
-## Where the designs come from
-
-The programming model is inspired by Windows Forms. The CPU renderer
-extends Skia's. The font reader is inspired by ttf-parser and Skrifa, and
-the hinter extends Skrifa's auto-hinter, itself after FreeType's. The
-allocator is inspired by mimalloc, with TLSF for its free runs. Each origin
-is listed with its licence in [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md).
 
 ## Learn more
 
@@ -394,7 +534,5 @@ the [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.h
 
 ## License
 
-GUI.Forms and PyGUIForms are MIT licensed ([LICENSE](LICENSE)). What they
-carry from elsewhere keeps its notice, all permissive, listed in
-[`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md); the bundled fonts carry
-their own in [`assets/fonts/ATTRIBUTION.md`](assets/fonts/ATTRIBUTION.md).
+[MIT](LICENSE). Bundled fonts carry their own notices in
+[`assets/fonts/ATTRIBUTION.md`](assets/fonts/ATTRIBUTION.md).
