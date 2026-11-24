@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2468 | 3 | 370 | 4164 | 2613 |
+| 2469 | 3 | 370 | 4164 | 2614 |
 
 ## GUI.Forms types
 
@@ -107,7 +107,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `HScrollBar` | `HScrollBar` | 1 | 0 | 0 | 0 | 0 |
 | `VScrollBar` | `VScrollBar` | 1 | 0 | 0 | 1 | 0 |
 | `MenuStrip` | `MenuStrip` | 13 | 0 | 0 | 8 | 10 |
-| `ToolStrip` | `ToolStrip` | 16 | 0 | 2 | 75 | 18 |
+| `ToolStrip` | `ToolStrip` | 16 | 0 | 2 | 76 | 19 |
 | `RibbonFontControl` | GUI.Forms-only | 9 | 0 | 0 | 1 | 10 |
 | `RibbonColorPicker` | GUI.Forms-only | 7 | 0 | 0 | 2 | 9 |
 | `BackstageView` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
@@ -134,7 +134,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `RadialGauge` | GUI.Forms-only | 0 | 0 | 0 | 0 | 0 |
 | `Dial` | GUI.Forms-only | 1 | 0 | 0 | 4 | 5 |
 | `StepIndicator` | GUI.Forms-only | 4 | 0 | 0 | 2 | 6 |
-| `Wizard` | GUI.Forms-only | 12 | 0 | 0 | 13 | 25 |
+| `Wizard` | GUI.Forms-only | 13 | 0 | 0 | 12 | 25 |
 | `WizardPage` | GUI.Forms-only | 0 | 0 | 0 | 4 | 4 |
 | `Callout` | GUI.Forms-only | 6 | 0 | 0 | 8 | 14 |
 | `ModalLayer` | GUI.Forms-only | 7 | 0 | 0 | 4 | 11 |
