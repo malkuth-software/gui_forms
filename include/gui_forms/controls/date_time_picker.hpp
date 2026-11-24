@@ -4,7 +4,7 @@
 #include "gui_forms/controls/date_time_format_provider.hpp"
 #include "gui_forms/controls/date_time_picker_values.hpp"
 #include "gui_forms/controls/panel.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/date_time_picker_capabilities.hpp"
@@ -136,7 +136,7 @@ private:
         SubscriptionToken dismiss{};
         SubscriptionToken popup_closed{};
     };
-    PresentationState<DropDownOpening> presentation_{};
+    OverlayPresentation<DropDownOpening> presentation_{};
     // The calendar's Popup while it shows outside the owner's layer (owner,
     // 2026-11-08: pickers are Popups before 0.5); the host closing it
     // closes the calendar.

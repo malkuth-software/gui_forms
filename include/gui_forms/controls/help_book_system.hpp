@@ -7,7 +7,7 @@
 #include "gui_forms/controls/help_book.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/help/help_contents/help_contents.hpp"
 #include "gui_forms/help/help_records/help_records.hpp"
@@ -297,7 +297,7 @@ private:
         std::shared_ptr<HelpBook> book{};
         OverlayToken overlay{};
     };
-    PresentationState<PopupShown> popup_presentation_{};
+    OverlayPresentation<PopupShown> popup_presentation_{};
     // A popup or pick layer closed from inside its own event stays alive
     // here until the next open or the system's end.
     std::shared_ptr<AnchoredOverlayLayer> retired_layer_{};
@@ -310,7 +310,7 @@ private:
         OverlayLease lease{};
         Window* window{};
     };
-    PresentationState<PickShown> pick_presentation_{};
+    OverlayPresentation<PickShown> pick_presentation_{};
     HelpBookSystemSnapshot counters_{};
 
     Event<HelpLinkActivation&> external_link_;

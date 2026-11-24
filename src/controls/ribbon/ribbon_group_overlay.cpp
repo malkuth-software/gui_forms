@@ -47,7 +47,7 @@ void RibbonGroupOverlay::arrange(Rect final_bounds) {
     panel_ = {x, 0.0, size.width, std::min(size.height, final_bounds.height)};
     if (ribbon.selected_tab_.absent() || ribbon.overlay_group_index().absent()) return;
     const std::size_t tab = *ribbon.selected_tab_.value();
-    const std::size_t group = *ribbon.overlay_group_index().value();
+    const std::size_t group = ribbon.overlay_group_position();
     const Ribbon::Layout placed = ribbon.overlay_layout(panel_);
     const std::vector<Ribbon::CommandRecord>& records = ribbon.records_[tab][group];
     for (std::size_t command = 0; command < records.size(); ++command) {

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/controls/combo_box_values.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -190,7 +190,7 @@ private:
         SubscriptionToken dismissal{};
         SubscriptionToken popup_closed{};
     };
-    PresentationState<DropDownOpening> presentation_{};
+    OverlayPresentation<DropDownOpening> presentation_{};
     // The list's record while it is opening or open; null otherwise.
     [[nodiscard]] DropDownOpening* drop_down() noexcept { return presentation_.shown_state(); }
     // The open list's Popup while it shows outside the owner's layer.

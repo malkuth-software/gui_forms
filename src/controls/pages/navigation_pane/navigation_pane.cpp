@@ -1429,7 +1429,7 @@ bool NavigationPane::open_overlay() {
         opening.lease.overlay_closed =
             (*closed).subscribe(*this, Delegate<>::bind<NavigationPane, &NavigationPane::on_overlay_revoked>(*this));
     }
-    presentation_ = PresentationState<OverlayOpening>::opening(std::move(opening));
+    presentation_ = OverlayPresentation<OverlayOpening>::opening(std::move(opening));
     move_host_to_overlay(*flyout);
     OverlayOpening* const shown = presentation_.opening_state();
     if (shown != nullptr) {

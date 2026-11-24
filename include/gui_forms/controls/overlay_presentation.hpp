@@ -12,7 +12,7 @@ namespace gui_forms {
 // The lease of an overlay a control shows: the token that keeps its layer
 // in the window, the subscription to the lease's revocation, and the focus
 // scope begun for it. The scope is empty while the presentation is opening
-// (PresentationState), because beginning it runs focus handlers.
+// (OverlayPresentation), because beginning it runs focus handlers.
 struct GUI_FORMS_API OverlayLease final {
     OverlayToken overlay{};
     SubscriptionToken overlay_closed{};
@@ -35,34 +35,34 @@ struct GUI_FORMS_API OverlayLease final {
 // and the phase cannot be represented. Each control states which phases
 // its public queries report as open. UI thread only.
 template <typename Held>
-class PresentationState final {
+class OverlayPresentation final {
 public:
-    PresentationState() noexcept : state_(Closed{}) {}
-    PresentationState(PresentationState&& other) noexcept : state_(std::move(other.state_)) {
+    OverlayPresentation() noexcept : state_(Closed{}) {}
+    OverlayPresentation(OverlayPresentation&& other) noexcept : state_(std::move(other.state_)) {
         other.state_ = Closed{};
     }
-    PresentationState& operator=(PresentationState&& other) noexcept {
+    OverlayPresentation& operator=(OverlayPresentation&& other) noexcept {
         if (this != &other) {
             state_ = std::move(other.state_);
             other.state_ = Closed{};
         }
         return *this;
     }
-    PresentationState(const PresentationState&) = delete;
-    PresentationState& operator=(const PresentationState&) = delete;
+    OverlayPresentation(const OverlayPresentation&) = delete;
+    OverlayPresentation& operator=(const OverlayPresentation&) = delete;
 
     // The named states.
-    [[nodiscard]] static PresentationState closed() noexcept {
-        PresentationState result{};
+    [[nodiscard]] static OverlayPresentation closed() noexcept {
+        OverlayPresentation result{};
         return result;
     }
-    [[nodiscard]] static PresentationState opening(Held held) noexcept {
-        PresentationState result{};
+    [[nodiscard]] static OverlayPresentation opening(Held held) noexcept {
+        OverlayPresentation result{};
         result.state_ = Opening{std::move(held)};
         return result;
     }
-    [[nodiscard]] static PresentationState open(Held held) noexcept {
-        PresentationState result{};
+    [[nodiscard]] static OverlayPresentation open(Held held) noexcept {
+        OverlayPresentation result{};
         result.state_ = Open{std::move(held)};
         return result;
     }
@@ -169,6 +169,6 @@ struct GUI_FORMS_API AnchoredOpening final {
 };
 
 // The presentation of such a picker.
-using AnchoredPresentation = PresentationState<AnchoredOpening>;
+using AnchoredPresentation = OverlayPresentation<AnchoredOpening>;
 
 } // namespace gui_forms

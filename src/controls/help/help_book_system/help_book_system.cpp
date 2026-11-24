@@ -547,7 +547,7 @@ bool HelpBookSystem::open_popup(HelpPageModel page, const Control::Ptr& anchor) 
     shown.layer = layer;
     shown.book = book;
     // No focus scope: the popup is open as soon as it is shown.
-    popup_presentation_ = PresentationState<PopupShown>::open(std::move(shown));
+    popup_presentation_ = OverlayPresentation<PopupShown>::open(std::move(shown));
     // Now the book can lay text out: size the paper to the page.
     const double content = (*book).layout_for_print(std::max(0.0, options_.popup_width - popup_text_inset));
     placement.preferred_size.height =
@@ -620,7 +620,7 @@ bool HelpBookSystem::enter_help_mode(Window& window) {
     if (!opening.lease.overlay.connected()) return false;
     opening.layer = layer;
     opening.window = &window;
-    pick_presentation_ = PresentationState<PickShown>::opening(std::move(opening));
+    pick_presentation_ = OverlayPresentation<PickShown>::opening(std::move(opening));
     // Beginning the scope runs focus handlers; one may cancel help mode,
     // and then the scope begun here is ended here.
     const FocusScopeId scope = window.begin_focus_scope(layer, layer);

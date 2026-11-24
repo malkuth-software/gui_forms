@@ -561,7 +561,7 @@ void LookupComboBox::open_drop_down() {
             *this, Delegate<>::bind<LookupComboBox, &LookupComboBox::on_overlay_revoked>(*this));
     }
     const std::shared_ptr<List> list = opening.list;
-    presentation_ = PresentationState<DropDownOpening>::open(std::move(opening));
+    presentation_ = OverlayPresentation<DropDownOpening>::open(std::move(opening));
     const std::size_t* const highlighted = highlighted_.value();
     if (highlighted != nullptr) (*list).reveal(*highlighted);
     invalidate(Dirty::paint | Dirty::semantics);

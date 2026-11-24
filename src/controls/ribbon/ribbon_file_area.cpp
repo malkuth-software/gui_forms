@@ -108,7 +108,7 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     }
     opening.owner_moved = (*window).frame_moved().subscribe(
         *this, Delegate<>::bind<Ribbon, &Ribbon::on_application_owner_moved>(*this));
-    application_presentation_ = PresentationState<ApplicationOpening>::opening(std::move(opening));
+    application_presentation_ = OverlayPresentation<ApplicationOpening>::opening(std::move(opening));
     const FocusScopeId scope = (*window).begin_focus_scope(application_overlay_, application_overlay_);
     // The focus move ran the previous control's handlers; one may have
     // closed the menu, or closed and opened it again (which began its own

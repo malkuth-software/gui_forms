@@ -9,7 +9,7 @@
 #include "gui_forms/controls/dock_workspace.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
 #include "gui_forms/controls/page_view.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/docking.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
@@ -1304,7 +1304,7 @@ private:
         std::size_t stack{};
         bool from_flyout{};
     };
-    PresentationState<PositionMenuTarget> menu_presentation_{};
+    OverlayPresentation<PositionMenuTarget> menu_presentation_{};
     // The open menu's stack slot is `index`.
     [[nodiscard]] bool menu_open_on(std::size_t index) const noexcept;
     // The open menu was opened from the flyout.
@@ -1319,7 +1319,7 @@ private:
         SubscriptionToken cancelled{};
         SubscriptionToken window_pointer{};
     };
-    PresentationState<NavigatorOpening> navigator_presentation_{};
+    OverlayPresentation<NavigatorOpening> navigator_presentation_{};
     // The drag: its session, the layer that paints it above the stacks (a
     // child kept last), its motion and the window events that cancel it.
     // stamp_motion_ is the stamp's progress, 0 to 1 over 220 ms
@@ -1364,7 +1364,7 @@ private:
         DockPanelId panel{};
         DockNodeId stack{};
     };
-    PresentationState<FlyoutShown> flyout_presentation_{};
+    OverlayPresentation<FlyoutShown> flyout_presentation_{};
     // The flyout control while one is held; null otherwise or once released.
     [[nodiscard]] Flyout* flyout_ptr() const noexcept;
     [[nodiscard]] Control* flyout_root_ptr() const noexcept;

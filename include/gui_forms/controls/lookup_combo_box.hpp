@@ -3,7 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/controls/lookup_combo_box_capabilities.hpp"
 
@@ -172,7 +172,7 @@ private:
         SubscriptionToken dismissal{};
         SubscriptionToken activation{};
     };
-    PresentationState<DropDownOpening> presentation_{};
+    OverlayPresentation<DropDownOpening> presentation_{};
     bool focused_{false};
     bool hot_{false};
     Event<const std::string&> selected_key_changed_;

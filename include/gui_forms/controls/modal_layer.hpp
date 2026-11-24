@@ -3,7 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/controls/modal_layer_capabilities.hpp"
 #include "gui_forms/animation/animation_timeline/animation_timeline.hpp"
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
@@ -131,7 +131,7 @@ private:
         Control::Ptr content{};
         OverlayLease lease{};
     };
-    PresentationState<Shown> presentation_{};
+    OverlayPresentation<Shown> presentation_{};
     Rect content_bounds_{};
     stxlib::Optional<DialogResult> result_{};
     double scrim_opacity_{1.0};

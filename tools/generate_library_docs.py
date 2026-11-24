@@ -196,7 +196,7 @@ CONTROLS_DIRECTORY: str = "include/gui_forms/controls"
 HEADER_TO_CATEGORY: dict[str, str] = {
     # The presentation state the owned dialogs and the callout share.
     "include/gui_forms/controls/dialog_presentation.hpp": "Dialogs and overlays",
-    "include/gui_forms/controls/presentation_state.hpp": "Dialogs and overlays",
+    "include/gui_forms/controls/overlay_presentation.hpp": "Dialogs and overlays",
     # The node canvas's graph model and link router precede NodeCanvas.
     "include/gui_forms/controls/link_router.hpp": "Drawing",
     "include/gui_forms/controls/node_graph.hpp": "Drawing",

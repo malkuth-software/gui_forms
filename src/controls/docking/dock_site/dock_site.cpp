@@ -2379,7 +2379,7 @@ bool DockSite::show_position_menu(const DockPanelId& panel, MenuOpenMode mode) {
     // A menu already shown closes first (ContextMenu::show would close it
     // and report the close against this target).
     close_position_menu();
-    menu_presentation_ = PresentationState<PositionMenuTarget>::opening(std::move(target));
+    menu_presentation_ = OverlayPresentation<PositionMenuTarget>::opening(std::move(target));
     (*menu_).show(shared_from_this(), anchor, mode);
     // The menu stayed closed (nothing to show, or a focus handler closed
     // it): the target goes.
@@ -2502,13 +2502,13 @@ bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier re
         opening.window_pointer = (*root).pointer_preview_observed().subscribe(
             *this, Delegate<const PointerEvent&>::bind<DockSite, &DockSite::on_window_pointer>(*this));
     }
-    const std::shared_ptr<DockNavigator> shown = opening.navigator;
-    navigator_presentation_ = PresentationState<NavigatorOpening>::opening(std::move(opening));
+    const std::shared_ptr<DockNavigator> navigator_control = opening.navigator;
+    navigator_presentation_ = OverlayPresentation<NavigatorOpening>::opening(std::move(opening));
     FocusScopeOptions options{};
     options.contain_focus = true;
     // Beginning the scope runs focus handlers; one may close the navigator,
     // and then the scope begun here is ended here.
-    const FocusScopeId scope = (*host).begin_focus_scope(shown, shown, options);
+    const FocusScopeId scope = (*host).begin_focus_scope(navigator_control, navigator_control, options);
     if (!navigator_presentation_.settle_open()) {
         if (scope && attached_window() != nullptr) {
             static_cast<void>((*attached_window()).end_focus_scope(scope));
@@ -2516,7 +2516,7 @@ bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier re
         return false;
     }
     (*navigator_presentation_.open_state()).lease.scope = scope;
-    static_cast<void>((*host).request_focus(shown));
+    static_cast<void>((*host).request_focus(navigator_control));
     return true;
 }
 

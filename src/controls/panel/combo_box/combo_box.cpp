@@ -669,7 +669,7 @@ void ComboBox::open_drop_down(std::string_view pattern) {
             *this, detail::WeakMemberCallback<void (ComboBox::*)()>(
                 weak, &ComboBox::on_overlay_revoked));
     }
-    presentation_ = PresentationState<DropDownOpening>::opening(std::move(opening));
+    presentation_ = OverlayPresentation<DropDownOpening>::opening(std::move(opening));
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
     // Beginning the scope moves the focus and runs the field's lost-focus
     // and validation handlers; one may close the list, and then the scope
@@ -714,7 +714,7 @@ void ComboBox::open_field_list(double width, double height) {
     opening.layer = anchored;
     opening.list = field_list;
     // No focus scope: the list is open as soon as it is shown.
-    presentation_ = PresentationState<DropDownOpening>::open(std::move(opening));
+    presentation_ = OverlayPresentation<DropDownOpening>::open(std::move(opening));
     show_rows();
     DropDownOpening* const shown = presentation_.open_state();
     if (shown == nullptr) return;

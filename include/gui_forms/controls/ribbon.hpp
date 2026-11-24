@@ -9,7 +9,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/controls/quick_access_toolbar.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/ribbon_color_picker.hpp"
@@ -1094,6 +1094,8 @@ private:
     // The group the overlay shows while it is held (opening, open, or
     // closing until finish_group_overlay); absent otherwise.
     [[nodiscard]] stxlib::Optional<std::size_t> overlay_group_index() const noexcept;
+    // That group; only while overlay_group_index() is present (0 otherwise).
+    [[nodiscard]] std::size_t overlay_group_position() const noexcept;
     // The two-pane menu is opening or open.
     [[nodiscard]] bool application_overlay_shown() const noexcept { return application_presentation_.is_shown(); }
     // A submenu of the two-pane menu ran its command or a press away
@@ -1214,7 +1216,7 @@ private:
         OverlayLease lease{};
         std::size_t group{};
     };
-    PresentationState<GroupOverlayOpening> group_presentation_{};
+    OverlayPresentation<GroupOverlayOpening> group_presentation_{};
     stxlib::Optional<Stop> overlay_stop_{};
     bool overlay_focused_{};
 
@@ -1225,7 +1227,7 @@ private:
     std::shared_ptr<RibbonGroupOverlay> plane_popup_{};
     std::shared_ptr<AnchoredOverlayLayer> plane_layer_{};
     SubscriptionToken plane_layer_dismissed_{};
-    PresentationState<OverlayLease> plane_presentation_{};
+    OverlayPresentation<OverlayLease> plane_presentation_{};
 
     Event<const RibbonCommandClick&> command_clicked_{};
     Event<const RibbonDropDownInvocation&> drop_down_item_invoked_{};
@@ -1254,7 +1256,7 @@ private:
         SubscriptionToken owner_moved{};
         bool submenu_invoked{};
     };
-    PresentationState<ApplicationOpening> application_presentation_{};
+    OverlayPresentation<ApplicationOpening> application_presentation_{};
     SubscriptionToken backstage_close_{};
     OverlayToken backstage_token_{};
     FocusScopeId backstage_scope_{};

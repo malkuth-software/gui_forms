@@ -206,7 +206,7 @@ bool ModalLayer::show(const Control::Ptr& owner, Control::Ptr content) {
     }
     const Control::Ptr scope_root = shown.content;
     in_layer.commit();
-    presentation_ = PresentationState<Shown>::opening(std::move(shown));
+    presentation_ = OverlayPresentation<Shown>::opening(std::move(shown));
     // Beginning the scope runs focus and validation handlers; one may close
     // the layer, and then the scope begun here is ended here.
     const FocusScopeId started = host.begin_focus_scope(scope_root);

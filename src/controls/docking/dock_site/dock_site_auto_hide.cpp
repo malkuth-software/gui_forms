@@ -632,7 +632,7 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     opening.root = opening.flyout;
     // No focus scope: the flyout is open as soon as it is held, and the
     // view moves into it, which reads the record.
-    flyout_presentation_ = PresentationState<FlyoutShown>::open(std::move(opening));
+    flyout_presentation_ = OverlayPresentation<FlyoutShown>::open(std::move(opening));
     move_view_to_flyout(*slot);
     // The slide starts under the strip; under reduced motion or in an
     // occluded window it is all out at once.

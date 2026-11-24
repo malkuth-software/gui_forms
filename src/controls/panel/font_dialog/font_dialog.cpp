@@ -469,7 +469,7 @@ FontDialog::DialogLayout FontDialog::dialog_layout(double width) const {
                                 std::ceil(size_caption.height)});
         const double list_allowance = list_text_allowance * scale;
         const FontSpec face_font = (*face_list_).text_font((*face_list_).font.read());
-        const std::vector<std::string> faces = (*face_list_).items.read();
+        const BorrowedSpan<std::string> faces = (*face_list_).items.read();
         for (const std::string& face : faces) {
             const TextExtent extent = (*face_list_).measure_text_extent_utf8(face, face_font);
             face_need = std::max(face_need, std::ceil(extent.logical_size.width) + list_allowance);

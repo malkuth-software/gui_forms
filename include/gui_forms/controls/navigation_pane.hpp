@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -380,7 +380,7 @@ private:
         OverlayLease lease{};
         SubscriptionToken window_pointer{};
     };
-    PresentationState<OverlayOpening> presentation_{};
+    OverlayPresentation<OverlayOpening> presentation_{};
     std::unique_ptr<ContextMenu> menu_{};
     SubscriptionToken menu_invoked_{};
     SubscriptionToken menu_changed_{};

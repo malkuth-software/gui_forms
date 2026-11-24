@@ -1,7 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
-#include "gui_forms/controls/presentation_state.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/flags_value_editor_capabilities.hpp"
@@ -120,7 +120,7 @@ private:
         SubscriptionToken dismissal{};
         SubscriptionToken popup_closed{};
     };
-    PresentationState<DropDownOpening> presentation_{};
+    OverlayPresentation<DropDownOpening> presentation_{};
     // The list's Popup while it shows outside the owner's layer (owner,
     // 2026-11-08: drop-downs are Popups before 0.5).
     PopupLift lift_;

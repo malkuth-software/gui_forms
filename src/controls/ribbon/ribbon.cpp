@@ -1066,7 +1066,7 @@ void Ribbon::arrange(Rect final_bounds) {
     advance_layout_revision();
     // An overlay whose group grew back closes; the keyboard's command in it
     // keeps its place in the plane (RIBBON_SCALING_STUDY.md §5.8).
-    if (overlay_group_index().present() && (placed.plane.empty() || !group_collapsed(placed, *overlay_group_index().value()))) {
+    if (overlay_group_index().present() && (placed.plane.empty() || !group_collapsed(placed, overlay_group_position()))) {
         stxlib::Optional<Stop> carried{};
         if (overlay_focused_) carried = overlay_stop_;
         close_group_overlay();
@@ -2216,7 +2216,7 @@ void Ribbon::on_pointer_preview(PointerEvent& event) {
         return;
     }
     if (overlay_group_index().present()) {
-        const bool same = hit.kind == Hit::Kind::group_button && hit.index == *overlay_group_index().value();
+        const bool same = hit.kind == Hit::Kind::group_button && hit.index == overlay_group_position();
         close_group_overlay();
         if (same || hit.kind == Hit::Kind::none) event.handled = true;
         return;
@@ -2292,7 +2292,7 @@ std::vector<Ribbon::Stop> Ribbon::stops() const {
 std::vector<Ribbon::Stop> Ribbon::overlay_stops() const {
     std::vector<Stop> result;
     if (selected_tab_.absent() || overlay_group_index().absent()) return result;
-    const std::size_t group = *overlay_group_index().value();
+    const std::size_t group = overlay_group_position();
     const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
         const RibbonCommandSpec& item = spec.commands[command];
@@ -2704,7 +2704,7 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
     }
     GroupOverlayOpening opening{};
     opening.group = group;
-    group_presentation_ = PresentationState<GroupOverlayOpening>::opening(std::move(opening));
+    group_presentation_ = OverlayPresentation<GroupOverlayOpening>::opening(std::move(opening));
     overlay_stop_.reset();
     const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
     (*group_overlay_).accessible_name = spec.caption;
@@ -2785,6 +2785,11 @@ stxlib::Optional<std::size_t> Ribbon::overlay_group_index() const noexcept {
     const GroupOverlayOpening* const held = group_presentation_.held_state();
     if (held != nullptr) group.set((*held).group);
     return group;
+}
+
+std::size_t Ribbon::overlay_group_position() const noexcept {
+    const GroupOverlayOpening* const held = group_presentation_.held_state();
+    return held != nullptr ? (*held).group : 0U;
 }
 
 // The overlay is gone or going: its hosted controls return to the ribbon and
@@ -2947,7 +2952,7 @@ bool Ribbon::show_plane_popup() {
         plane_layer_dismissed_ = (*plane_layer_).dismiss_requested().subscribe(
             Delegate<OverlayDismissReason>::bind<Ribbon, &Ribbon::on_plane_layer_dismissed>(*this));
     }
-    plane_presentation_ = PresentationState<OverlayLease>::opening(OverlayLease{});
+    plane_presentation_ = OverlayPresentation<OverlayLease>::opening(OverlayLease{});
     hot_ = Hit{};
     const std::size_t tab = *selected_tab_.value();
     (*plane_popup_).accessible_name = parse_mnemonic_text(tabs_[tab].text).display_text;
@@ -3274,7 +3279,7 @@ std::vector<SemanticNode> Ribbon::overlay_semantic_children(Rect panel) const {
     if (selected_tab_.absent() || overlay_group_index().absent() || !group_overlay_) return {};
     const Layout placed = overlay_layout(panel);
     SemanticNode holder{};
-    append_group_node(holder, placed, *overlay_group_index().value(), (*group_overlay_).absolute_bounds());
+    append_group_node(holder, placed, overlay_group_position(), (*group_overlay_).absolute_bounds());
     if (holder.children.empty()) return {};
     std::vector<SemanticNode> nodes = std::move(holder.children[0].children);
     return nodes;

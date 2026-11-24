@@ -343,7 +343,7 @@ void FlagsValueEditor::open_drop_down() {
     // the focus move that asks to open again is served by this open.
     // lifetime keeps the control across the handlers.
     const Control::Ptr lifetime = shared_from_this();
-    presentation_ = PresentationState<DropDownOpening>::opening(std::move(opening));
+    presentation_ = OverlayPresentation<DropDownOpening>::opening(std::move(opening));
     const FocusScopeId scope = (*window()).begin_focus_scope(layer, preferred_focus);
     // Beginning the scope moves focus into the drop-down and runs the
     // field's lost-focus and validation handlers before it returns; one may
