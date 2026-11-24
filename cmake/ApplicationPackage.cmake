@@ -137,6 +137,14 @@ set(GUI_FORMS_PACKAGE_DEFINITIONS "")
 if(WIN32)
     set(GUI_FORMS_PACKAGE_DEFINITIONS "_WIN32_WINNT=0x0A00;WINVER=0x0A00")
 endif()
+# The MCP transport (CMakeLists.txt: gui_forms_application links stxlib::mcp
+# privately when GUI_FORMS_MCP is on): the engine archive calls into it, so the
+# installed interface names the STXlib package's stxlib::mcp before the
+# libraries it links.
+set(GUI_FORMS_PACKAGE_MCP_LIBRARIES "")
+if(GUI_FORMS_MCP AND NOT GUI_FORMS_HIGH_INTEGRITY AND TARGET stxlib::mcp)
+    set(GUI_FORMS_PACKAGE_MCP_LIBRARIES "stxlib::mcp;")
+endif()
 # The prefix, from lib/cmake/GUIForms where the targets file is installed.
 file(RELATIVE_PATH GUI_FORMS_PACKAGE_PREFIX_FROM_CONFIG
      "/prefix/${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms" "/prefix")

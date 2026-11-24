@@ -27,6 +27,6 @@ set_target_properties(GUIForms::Application PROPERTIES
     INTERFACE_COMPILE_FEATURES "cxx_std_20"
     INTERFACE_COMPILE_DEFINITIONS "@GUI_FORMS_PACKAGE_DEFINITIONS@"
     INTERFACE_LINK_OPTIONS "@GUI_FORMS_PACKAGE_WHOLE_ARCHIVE@"
-    INTERFACE_LINK_LIBRARIES "GUIForms::ApplicationDependencies;GUIForms::Threading;GUIForms::Memory;GUIForms::PlotPrimitives;stxlib::boundary;stxlib::state;stxlib::algorithms;stx_zlib::stx_zlib;stx_png::stx_png;stx_conv::stx_conv;stx_raster3d::stx_raster3d;stx_rtf2md::stx_rtf2md;stx_skia::swizzle;Threads::Threads;@GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES@"
+    INTERFACE_LINK_LIBRARIES "GUIForms::ApplicationDependencies;GUIForms::Threading;GUIForms::Memory;GUIForms::PlotPrimitives;@GUI_FORMS_PACKAGE_MCP_LIBRARIES@stxlib::boundary;stxlib::state;stxlib::algorithms;stx_zlib::stx_zlib;stx_png::stx_png;stx_conv::stx_conv;stx_raster3d::stx_raster3d;stx_rtf2md::stx_rtf2md;stx_skia::swizzle;Threads::Threads;@GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES@"
     INTERFACE_LINK_DEPENDS "${_gui_forms_application_prefix}/@CMAKE_INSTALL_LIBDIR@/libgui_forms_application.a")
 unset(_gui_forms_application_prefix)

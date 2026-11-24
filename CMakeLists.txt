@@ -123,8 +123,8 @@ option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
 # The automation and MCP (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
 # rulings 3 and 17): GUI_FORMS_MCP builds the capability, on by default; a
 # launch with --mcp (or GUI_FORMS_MCP=1) or --mcp-script turns it on for that
-# run. The transport needs STXlib's stx_mcp (the stxlib::mcp target); without
-# it --mcp says so and the program runs without MCP. The test controls
+# run. The transport needs STXlib's stx_mcp (the stxlib::mcp target); with
+# GUI_FORMS_MCP on and no such target the configure fails. The test controls
 # (suspend_input) are on in the debug and test presets only. The Windows
 # WM_COPYDATA channel and the X11 --automation flag that came before are
 # retired.
@@ -2309,7 +2309,13 @@ if(GUI_FORMS_MCP)
             target_link_libraries(gui_forms_application PRIVATE stxlib::mcp)
             target_compile_definitions(gui_forms_application PRIVATE GUI_FORMS_MCP_TRANSPORT=1)
         else()
-            message(STATUS "GUI_FORMS_MCP: stxlib::mcp not found; --mcp reports no transport in this build")
+            # MCP on with no transport would configure a program whose --mcp
+            # only reports that it has none (cp37: the stx package exported no
+            # stxlib::mcp, and no build said so). A build that wants no MCP
+            # turns GUI_FORMS_MCP off (high-integrity builds have it off).
+            message(FATAL_ERROR "GUI_FORMS_MCP is on but STXlib's stxlib::mcp target was not found; "
+                                "build stx with stxlib::mcp exported (stx cmake/Stxlib.cmake) or configure "
+                                "with -DGUI_FORMS_MCP=OFF")
         endif()
     endif()
 endif()
