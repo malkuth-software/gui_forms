@@ -300,7 +300,7 @@ BindingValue PropertyValueTraits<PlotAxisDirection>::to_binding(PlotAxisDirectio
     descriptor.enumeration = plot_axis_direction_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -319,7 +319,7 @@ BindingValue PropertyValueTraits<PlotAxisScale>::to_binding(PlotAxisScale value)
     descriptor.enumeration = plot_axis_scale_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

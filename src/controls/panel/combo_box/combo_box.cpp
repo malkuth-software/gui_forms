@@ -1355,7 +1355,7 @@ BindingValue PropertyValueTraits<ComboBoxStyle>::to_binding(ComboBoxStyle value)
     descriptor.enumeration = combo_box_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1374,7 +1374,7 @@ BindingValue PropertyValueTraits<ComboBoxFilter>::to_binding(ComboBoxFilter valu
     descriptor.enumeration = combo_box_filter_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

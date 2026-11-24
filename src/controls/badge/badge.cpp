@@ -272,7 +272,7 @@ BindingValue PropertyValueTraits<BadgeMode>::to_binding(BadgeMode value) {
     descriptor.enumeration = badge_mode_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

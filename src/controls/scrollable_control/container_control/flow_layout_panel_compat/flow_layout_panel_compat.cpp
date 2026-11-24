@@ -597,7 +597,7 @@ BindingValue PropertyValueTraits<FlowDirection>::to_binding(FlowDirection value)
     descriptor.enumeration = flow_direction_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -616,7 +616,7 @@ BindingValue PropertyValueTraits<FlowMainAlignment>::to_binding(FlowMainAlignmen
     descriptor.enumeration = main_alignment_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -635,7 +635,7 @@ BindingValue PropertyValueTraits<FlowCrossAlignment>::to_binding(FlowCrossAlignm
     descriptor.enumeration = cross_alignment_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

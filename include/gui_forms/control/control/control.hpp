@@ -1806,6 +1806,7 @@ protected:
     void advance_layout_revision() noexcept { ++layout_revision_; }
 
 private:
+    friend struct detail::StateFlipAccess;
     // add_child and insert_child: validates, then inserts child at index
     // counted from the top.
     void attach_child(Ptr child, std::size_t index);
@@ -2210,6 +2211,9 @@ private:
     // are not inherited here.
     bool stops_inherited_colours_{};
     [[nodiscard]] const InheritedValues& inherited_values() const noexcept;
+    // property_descriptors' list, gathered (the public call adds the
+    // corrupted-size check around it).
+    [[nodiscard]] std::vector<PropertyDescriptor> collect_property_descriptors() const;
     // The resolved direction (effective_layout_direction), kept eagerly:
     // refresh_resolved_direction updates it for a subtree whenever
     // layout_direction is written or the control's ancestors change, so it

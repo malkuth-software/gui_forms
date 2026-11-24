@@ -6810,6 +6810,8 @@
     _ZN9gui_forms6detail23record_failure_snapshotE*;
     _ZN9gui_forms6detail23thread_failure_snapshotB*;
     _ZN9gui_forms6detail23thread_failure_snapshotE*;
+    _ZN9gui_forms6detail24fail_retained_enumeratorB*;
+    _ZN9gui_forms6detail24fail_retained_enumeratorE*;
     _ZN9gui_forms6detail24set_exception_reflectionB*;
     _ZN9gui_forms6detail24set_exception_reflectionE*;
     _ZN9gui_forms6detail25attach_application_windowB*;

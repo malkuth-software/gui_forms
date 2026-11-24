@@ -27,6 +27,7 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "control_ic_checks.hpp"
+#include "../../failure/fail_fast.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -38,6 +39,7 @@
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <string_view>
 
 namespace gui_forms {
 namespace ic = detail::ic::control;
@@ -212,6 +214,17 @@ std::shared_ptr<const PropertyEnumDescriptor> right_to_left_property_enum_impl()
     return value;
 }
 
+// A container of the control's retained state whose size no write can make
+// (its header corrupted): the defect report, naming what was read.
+[[noreturn]] void fail_impossible_retained_size(std::string_view what) noexcept {
+    std::array<char, 192> text{};
+    constexpr std::string_view lead = "retained container size is impossible (corrupted storage): ";
+    char* cursor = std::copy(lead.begin(), lead.end(), text.data());
+    const std::size_t room = static_cast<std::size_t>(text.data() + text.size() - cursor);
+    cursor = std::copy_n(what.begin(), std::min(room, what.size()), cursor);
+    detail::fail_fast("control.retained_size", std::string_view(text.data(), static_cast<std::size_t>(cursor - text.data())));
+}
+
 BindingValue current_enum_property_value_impl(
     std::shared_ptr<const PropertyEnumDescriptor> enumeration,
     std::int64_t value) {
@@ -219,10 +232,7 @@ BindingValue current_enum_property_value_impl(
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.enumeration = std::move(enumeration);
     const std::optional<BindingValue> normalized = convert_property_value(BindingValue{value}, descriptor);
-    if (!normalized) {
-        throw std::logic_error(
-            "GUI.Forms retained enum state is outside its property schema");
-    }
+    if (!normalized) detail::fail_retained_enumerator(descriptor);
     return *normalized;
 }
 
@@ -2363,7 +2373,21 @@ bool descriptor_name_less(const PropertyDescriptor& left, const PropertyDescript
 
 std::vector<PropertyDescriptor> Control::property_descriptors() const {
     // The registry's descriptors, then the table's that no registration
-    // replaces, in registered-name order (the registry's own order).
+    // replaces, in registered-name order (the registry's own order). The
+    // registry and the descriptors are the library's own retained state:
+    // a length_error while copying them is a size no write can make (a
+    // corrupted container or string header), a defect, so it fails fast
+    // instead of the whole list throwing on every later call (bit-flip
+    // run 7, F2).
+    try {
+        std::vector<PropertyDescriptor> result = collect_property_descriptors();
+        return result;
+    } catch (const std::length_error&) {
+        fail_impossible_retained_size("the property registry");
+    }
+}
+
+std::vector<PropertyDescriptor> Control::collect_property_descriptors() const {
     const std::span<const PropertyEntry> table = property_table();
     std::vector<PropertyDescriptor> result;
     result.reserve(bindable_properties_.size() + table.size());
@@ -2463,8 +2487,16 @@ std::optional<BindingValue> Control::property_value(std::string_view name) const
     if (found == bindable_properties_.end()) {
         const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
         if (entry == nullptr) return std::nullopt;
-        std::optional<BindingValue> table_value = read_property_entry(*this, *entry);
-        return table_value;
+        // A table entry reads the library's own retained state. Its read
+        // throws length_error only for a stored size no write can make (a
+        // container header with a flipped bit): a defect, which fails fast
+        // instead of throwing on every later read (bit-flip run 7, F2).
+        try {
+            std::optional<BindingValue> table_value = read_property_entry(*this, *entry);
+            return table_value;
+        } catch (const std::length_error&) {
+            fail_impossible_retained_size(canonical);
+        }
     }
     if (!(*found).second.descriptor.readable || !(*found).second.get) return std::nullopt;
     const PropertyRegistration::Getter getter = (*found).second.get;

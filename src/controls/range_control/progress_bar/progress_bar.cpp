@@ -1036,7 +1036,7 @@ BindingValue PropertyValueTraits<ProgressBarVisualStyle>::to_binding(ProgressBar
     descriptor.enumeration = progress_bar_visual_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1055,7 +1055,7 @@ BindingValue PropertyValueTraits<EffectInputKind>::to_binding(EffectInputKind va
     descriptor.enumeration = effect_input_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

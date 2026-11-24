@@ -125,9 +125,7 @@ public:
         const std::int64_t value = static_cast<std::int64_t>(((*object_).*method_)());
         const std::optional<BindingValue> normalized =
             convert_property_value(BindingValue{value}, descriptor);
-        if (!normalized) {
-            throw std::logic_error("GUI.Forms retained enumerator is outside its property enumeration");
-        }
+        if (!normalized) detail::fail_retained_enumerator(descriptor);
         return *normalized;
     }
 

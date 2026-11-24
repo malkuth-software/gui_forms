@@ -23,7 +23,7 @@ BindingValue PropertyValueTraits<ChoiceIndicatorStyle>::to_binding(ChoiceIndicat
     descriptor.enumeration = button_base_detail::choice_indicator_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -42,7 +42,7 @@ BindingValue PropertyValueTraits<HorizontalAlignment>::to_binding(HorizontalAlig
     descriptor.enumeration = label_detail::horizontal_alignment_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -61,7 +61,7 @@ BindingValue PropertyValueTraits<ScaledAspect>::to_binding(ScaledAspect value) {
     descriptor.enumeration = scaled_layout_detail::scaled_aspect_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

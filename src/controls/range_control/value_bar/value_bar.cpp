@@ -1078,7 +1078,7 @@ BindingValue PropertyValueTraits<ValueUnit>::to_binding(ValueUnit value) {
     descriptor.enumeration = value_unit_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1097,7 +1097,7 @@ BindingValue PropertyValueTraits<ValueBarStyle>::to_binding(ValueBarStyle value)
     descriptor.enumeration = value_bar_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
