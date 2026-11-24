@@ -67,6 +67,15 @@ constexpr std::array<Slide, 8> slides{{
 
 constexpr std::array<std::string_view, 3> albums{"Coast", "Hills", "Town"};
 
+// An album's group ID: a stable ID segment is lower case ("album.coast").
+std::string album_group(std::string_view album) {
+    std::string group = "album.";
+    for (const char letter : album) {
+        group.push_back(letter >= 'A' && letter <= 'Z' ? static_cast<char>(letter - 'A' + 'a') : letter);
+    }
+    return group;
+}
+
 [[nodiscard]] Color mix(Color from, Color to, double amount) {
     const double kept = 1.0 - amount;
     const Color result = Color::rgba(
@@ -367,7 +376,7 @@ private:
         (*thumbnails_).draw_mode = ItemDrawMode::owner_draw;
         std::vector<ListViewGroup> groups{};
         for (const std::string_view album : albums) {
-            groups.push_back(ListViewGroup{"album." + std::string(album), std::string(album)});
+            groups.push_back(ListViewGroup{album_group(album), std::string(album)});
         }
         (*thumbnails_).set_groups(std::move(groups));
         std::vector<ListViewItem> items{};
@@ -375,7 +384,7 @@ private:
             ListViewItem item{};
             item.stable_id = std::string(slide.id);
             item.text = std::string(slide.caption);
-            item.group = "album." + std::string(slide.album);
+            item.group = album_group(slide.album);
             items.push_back(std::move(item));
         }
         (*thumbnails_).set_items(std::move(items));
