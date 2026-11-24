@@ -1423,23 +1423,6 @@ public:
     }
     [[nodiscard]] bool bundled_fonts_ready() const noexcept { return bundled_fonts_ready_; }
 
-    // What the window last presented, for a composite capture
-    // (capture-composite): premultiplied BGRA8 rows `row_bytes` apart,
-    // borrowed until the next frame; `alpha` false when every pixel is
-    // presented opaque.
-    struct PresentedView final {
-        const std::byte* pixels{};
-        std::size_t row_bytes{};
-        int width{};
-        int height{};
-        bool alpha{};
-    };
-    [[nodiscard]] PresentedView presented_view() const noexcept {
-        const PresentedPixels saved = presented_pixels();
-        const PresentedView view{saved.pixels, saved.row_bytes, saved.width, saved.height, frame_alpha_};
-        return view;
-    }
-
 public:
     // The pixels a capture and the invalidation overlay read: the committed
     // front (transactional), else the painter's last frame.
@@ -1616,11 +1599,6 @@ private:
 
 class WindowsHostState;
 class WindowsApplicationRun;
-// Writes what `owner` and the visible windows it owns show, composed in
-// their desktop places over a checkerboard, as one PNG at `path`, and
-// prints their client rectangles (capture-composite). Defined in
-// windows_application_run.inc; `run` is null outside an application run.
-[[maybe_unused]] bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner, const std::wstring& path);
 // As TitleCallbackState: only the UI thread reads or revokes host. The
 // operation owns no host; it reaches the host only while the window lives.
 struct ClientSizeCallbackState final {
@@ -1954,7 +1932,6 @@ public:
         native_phase_ = NativePhase::closing;
         DestroyWindow(hwnd_);
     }
-    [[nodiscard]] WindowsRaster::PresentedView presented_view() const noexcept { return raster_.presented_view(); }
     // Defined in windows_application_run.inc.
     void report_frame_to_run();
     // Whether the screen point in `lparam` (WM_NCHITTEST) lies in a content
