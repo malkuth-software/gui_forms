@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2498 | 3 | 370 | 4150 | 2629 |
+| 2499 | 3 | 370 | 4149 | 2629 |
 
 ## GUI.Forms types
 
@@ -61,7 +61,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `CheckBox` | `CheckBox` | 4 | 0 | 0 | 14 | 3 |
 | `RadioButton` | `RadioButton` | 4 | 0 | 0 | 12 | 4 |
 | `ToggleSwitch` | GUI.Forms-only | 4 | 0 | 0 | 3 | 7 |
-| `RangeControl` | GUI.Forms-only | 8 | 0 | 0 | 6 | 14 |
+| `RangeControl` | GUI.Forms-only | 9 | 0 | 0 | 5 | 14 |
 | `TrackBar` | `TrackBar` | 12 | 0 | 1 | 29 | 8 |
 | `ValueBar` | GUI.Forms-only | 19 | 0 | 0 | 18 | 37 |
 | `NumericUpDown` | `NumericUpDown` | 9 | 0 | 0 | 17 | 9 |
@@ -318,5 +318,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 977 |
+| `untested` | 976 |
 | `w-open` | 5 |

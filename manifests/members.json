@@ -621,7 +621,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "on_dispose", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "own_revocable", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it", "constraints": "Admitted in alive. In disposing, disposed: returns null, unchanged. Transfers an observation of the revocable work (weak) from caller to component."},
       {"kind": "method", "winforms": null, "gui_forms": "own_subscription", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/owned_event_tests.cpp", "constraints": "Admitted in alive. In disposing, disposed: returns null, unchanged. Transfers the subscription token from caller to component."},
-      {"kind": "method", "winforms": null, "gui_forms": "property_table", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/input_controls_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "property_table", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/flip_persists_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "verify_dispose_thread", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "ButtonBase", "winforms": "ButtonBase", "gui_forms_base": "Control", "winforms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/abi/classes/gf_abi_class_entry_fail_fast.cpp", "members": [
@@ -2623,7 +2623,7 @@
     {"type": "RangeControl", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "maximum", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/scrollable_control_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "minimum", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/scrollable_control_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "normalized_value", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "normalized_value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/flip_persists_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "style", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "range_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/range_controls_tests.cpp"},
@@ -2740,8 +2740,8 @@
       {"kind": "property", "winforms": null, "gui_forms": "scrub", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "scrub_glow", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/value_bar_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "scrub_glow_effect", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "scrub_glow_target", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/value_bar_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "scrubbing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/value_bar_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "scrub_glow_target", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/flip_persists_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "scrubbing", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/flip_persists_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "text_alignment", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "initialize_control_tree", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "numeric_up_down_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
