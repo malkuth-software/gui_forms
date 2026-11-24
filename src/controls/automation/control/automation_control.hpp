@@ -24,6 +24,7 @@
 // (HostSession asks it on that thread).
 
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
+#include "gui_forms/types/geometry/geometry.hpp"
 
 #include <chrono>
 #include <cstdint>
@@ -131,6 +132,10 @@ public:
     virtual void activity(Window& window, AutomationActivity activity) = 0;
     // No call is running any more: the border goes back to its quiet tint.
     virtual void calls_finished() noexcept = 0;
+    // The pointer moved in `window` to `position` (window coordinates), or
+    // left it: the tag line shows while it hovers the top border (study
+    // 11.2).
+    virtual void pointer_moved(Window& window, Point position, bool left) noexcept = 0;
     // The control state changed: model_directed shows the take-back popup,
     // user_control closes it.
     virtual void control_changed(ControlState state, const ClientIdentity& client) = 0;

@@ -8,6 +8,7 @@
 #include "gui_forms/window/band/window_band.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <string>
 #include <utility>
@@ -21,6 +22,10 @@ constexpr double presenter_band_width = 2.0;
 // How long a read's glint runs, and the tag line shows on connect.
 constexpr std::chrono::milliseconds glint_moment{900};
 constexpr std::chrono::milliseconds tag_line_moment{4000};
+// How long the tag line stays after the pointer enters the top border, and
+// how deep the hover zone is at least (study 11.2: it shows on hover).
+constexpr std::chrono::milliseconds tag_line_hover{6000};
+constexpr double tag_line_hover_zone = 4.0;
 // The quiet tint at rest while connected, and the glint: the theme's accent.
 constexpr Color quiet_tint{97U, 133U, 217U, 140U};
 
@@ -174,6 +179,18 @@ void StockPresenter::window_detached(Window& window) noexcept {
     }
 }
 
+namespace {
+
+// The height of `window`'s top border: its band's top edge, or the
+// presenter's band width when the window reserves none there.
+double top_border_height(const Window& window) noexcept {
+    const WindowBandSnapshot band = window.band_snapshot();
+    const double top = band.reserved ? band.edges.top : 0.0;
+    return top > 0.0 ? top : presenter_band_width;
+}
+
+} // namespace
+
 void StockPresenter::show_tag_line(Window& window, std::chrono::milliseconds duration) {
     const Control::Ptr root = window.root();
     if (!root) return;
@@ -181,7 +198,7 @@ void StockPresenter::show_tag_line(Window& window, std::chrono::milliseconds dur
     request.text = client_label(client_);
     request.description = "The model connected to this program";
     const Size client = window.client_size();
-    request.anchor = Rect{0.0, 0.0, client.width, presenter_band_width};
+    request.anchor = Rect{0.0, 0.0, client.width, top_border_height(window)};
     request.duration = stxlib::Optional<std::chrono::milliseconds>::of(duration);
     try {
         static_cast<void>(window.request_tool_tip(root, std::move(request)));
@@ -241,6 +258,26 @@ void StockPresenter::glint_ended(const WindowRef& window) noexcept {
     for (BandWindow& entry : windows_) {
         if (entry.window.get() == window.get() && !entry.steady) rest(entry);
     }
+}
+
+void StockPresenter::pointer_moved(Window& window, Point position, bool left) noexcept {
+    BandWindow* const entry = find_band(window);
+    if (entry == nullptr) return;
+    const Size client = window.client_size();
+    // The hover zone is the top border, widened to a few pixels so a thin
+    // band can be found with the pointer.
+    const double zone = std::max(top_border_height(window), tag_line_hover_zone);
+    const bool over = connected_ && !left && position.y >= 0.0 && position.y < zone && position.x >= 0.0 &&
+                      position.x < client.width;
+    if (over && !(*entry).over_border) {
+        try {
+            show_tag_line(window, tag_line_hover);
+        } catch (...) {
+            // The tool tip could not be shown (out of memory): the next
+            // entry tries again.
+        }
+    }
+    (*entry).over_border = over;
 }
 
 void StockPresenter::calls_finished() noexcept {

@@ -778,6 +778,7 @@ __ZGVZN9gui_forms16SevenSegmentCell*
 __ZGVZN9gui_forms16ShadowFrameScope*
 __ZGVZN9gui_forms16ShadowStackState*
 __ZGVZN9gui_forms16ShapingWorkspace*
+__ZGVZN9gui_forms16ShownPopupWindow*
 __ZGVZN9gui_forms16SourceByteOffset*
 __ZGVZN9gui_forms16SplitChangeEvent*
 __ZGVZN9gui_forms16StockIconVectors*
@@ -2519,6 +2520,7 @@ __ZGVZNK9gui_forms16SevenSegmentCell*
 __ZGVZNK9gui_forms16ShadowFrameScope*
 __ZGVZNK9gui_forms16ShadowStackState*
 __ZGVZNK9gui_forms16ShapingWorkspace*
+__ZGVZNK9gui_forms16ShownPopupWindow*
 __ZGVZNK9gui_forms16SourceByteOffset*
 __ZGVZNK9gui_forms16SplitChangeEvent*
 __ZGVZNK9gui_forms16StockIconVectors*
@@ -4578,6 +4580,7 @@ __ZN9gui_forms16SevenSegmentCell*
 __ZN9gui_forms16ShadowFrameScope*
 __ZN9gui_forms16ShadowStackState*
 __ZN9gui_forms16ShapingWorkspace*
+__ZN9gui_forms16ShownPopupWindow*
 __ZN9gui_forms16SourceByteOffset*
 __ZN9gui_forms16SplitChangeEvent*
 __ZN9gui_forms16StockIconVectors*
@@ -7819,6 +7822,7 @@ __ZNK[RO]9gui_forms16SevenSegmentCell*
 __ZNK[RO]9gui_forms16ShadowFrameScope*
 __ZNK[RO]9gui_forms16ShadowStackState*
 __ZNK[RO]9gui_forms16ShapingWorkspace*
+__ZNK[RO]9gui_forms16ShownPopupWindow*
 __ZNK[RO]9gui_forms16SourceByteOffset*
 __ZNK[RO]9gui_forms16SplitChangeEvent*
 __ZNK[RO]9gui_forms16StockIconVectors*
@@ -9560,6 +9564,7 @@ __ZN[KRO]9gui_forms16SevenSegmentCell*
 __ZN[KRO]9gui_forms16ShadowFrameScope*
 __ZN[KRO]9gui_forms16ShadowStackState*
 __ZN[KRO]9gui_forms16ShapingWorkspace*
+__ZN[KRO]9gui_forms16ShownPopupWindow*
 __ZN[KRO]9gui_forms16SourceByteOffset*
 __ZN[KRO]9gui_forms16SplitChangeEvent*
 __ZN[KRO]9gui_forms16StockIconVectors*
@@ -11301,6 +11306,7 @@ __ZT[VIST]N9gui_forms16SevenSegmentCell*E
 __ZT[VIST]N9gui_forms16ShadowFrameScope*E
 __ZT[VIST]N9gui_forms16ShadowStackState*E
 __ZT[VIST]N9gui_forms16ShapingWorkspace*E
+__ZT[VIST]N9gui_forms16ShownPopupWindow*E
 __ZT[VIST]N9gui_forms16SourceByteOffset*E
 __ZT[VIST]N9gui_forms16SplitChangeEvent*E
 __ZT[VIST]N9gui_forms16StockIconVectors*E
@@ -13042,6 +13048,7 @@ __ZT[hvc]*9gui_forms16SevenSegmentCell*
 __ZT[hvc]*9gui_forms16ShadowFrameScope*
 __ZT[hvc]*9gui_forms16ShadowStackState*
 __ZT[hvc]*9gui_forms16ShapingWorkspace*
+__ZT[hvc]*9gui_forms16ShownPopupWindow*
 __ZT[hvc]*9gui_forms16SourceByteOffset*
 __ZT[hvc]*9gui_forms16SplitChangeEvent*
 __ZT[hvc]*9gui_forms16StockIconVectors*
@@ -14783,6 +14790,7 @@ __ZZN9gui_forms16SevenSegmentCell*
 __ZZN9gui_forms16ShadowFrameScope*
 __ZZN9gui_forms16ShadowStackState*
 __ZZN9gui_forms16ShapingWorkspace*
+__ZZN9gui_forms16ShownPopupWindow*
 __ZZN9gui_forms16SourceByteOffset*
 __ZZN9gui_forms16SplitChangeEvent*
 __ZZN9gui_forms16StockIconVectors*
@@ -16524,6 +16532,7 @@ __ZZNK9gui_forms16SevenSegmentCell*
 __ZZNK9gui_forms16ShadowFrameScope*
 __ZZNK9gui_forms16ShadowStackState*
 __ZZNK9gui_forms16ShapingWorkspace*
+__ZZNK9gui_forms16ShownPopupWindow*
 __ZZNK9gui_forms16SourceByteOffset*
 __ZZNK9gui_forms16SplitChangeEvent*
 __ZZNK9gui_forms16StockIconVectors*

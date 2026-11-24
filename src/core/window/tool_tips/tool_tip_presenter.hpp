@@ -86,6 +86,7 @@ public:
     [[nodiscard]] Control::Ptr target() const noexcept override;
     [[nodiscard]] std::string item_id() const override;
     [[nodiscard]] std::string text() const override;
+    [[nodiscard]] ShownSplash shown_splash() const override;
 
 private:
     // The bubble that shows and the overlay that holds it. Closing it (its

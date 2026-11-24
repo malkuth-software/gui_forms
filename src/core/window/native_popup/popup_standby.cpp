@@ -4,6 +4,7 @@
 #include "popup_standby.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../surface_root/access/surface_application_access.hpp"
+#include "../tool_tips/tool_tip_route.hpp"
 
 #include <optional>
 #include <stdexcept>
@@ -65,6 +66,16 @@ bool PopupStandby::move(const std::size_t slot, const Rect bounds) {
 void PopupStandby::hide(const std::size_t slot) noexcept {
     if (slot >= slots_.size() || !slots_[slot].window) return;
     (*slots_[slot].window).hide();
+}
+
+stxlib::Optional<Rect> PopupStandby::client_bounds(const std::size_t slot) const {
+    stxlib::Optional<Rect> bounds{};
+    if (model(slot) == nullptr) return bounds;
+    const std::optional<Rect> desktop = (*slots_[slot].window).desktop_frame();
+    if (!desktop.has_value()) return bounds;
+    const std::optional<Rect> placed = client_placement(SurfaceApplicationAccess::application_window(owner_), *desktop);
+    if (placed.has_value()) bounds = stxlib::Optional<Rect>::of(*placed);
+    return bounds;
 }
 
 Window* PopupStandby::model(const std::size_t slot) const noexcept {
@@ -138,6 +149,26 @@ Window* Window::popup_window_model(const std::size_t slot) const noexcept {
     if (!popup_standby_) return nullptr;
     Window* const model = (*popup_standby_).model(slot);
     return model;
+}
+
+ShownPopupWindow Window::shown_popup_window(const std::size_t index) const {
+    ShownPopupWindow shown{};
+    if (index < maximum_popup_windows) {
+        if (!popup_standby_) return shown;
+        Window* const model = (*popup_standby_).model(index);
+        const stxlib::Optional<Rect> bounds = (*popup_standby_).client_bounds(index);
+        const Rect* const placed = bounds.value();
+        if (model == nullptr || placed == nullptr) return shown;
+        shown.model = model;
+        shown.bounds = *placed;
+        return shown;
+    }
+    if (index == maximum_popup_windows && tool_tips_) {
+        const detail::ShownSplash splash = (*tool_tips_).shown_splash();
+        shown.model = splash.model;
+        shown.bounds = splash.bounds;
+    }
+    return shown;
 }
 
 void Window::forward_input_to_popup_window(const stxlib::Optional<std::size_t> slot) {

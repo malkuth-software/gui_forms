@@ -77,6 +77,7 @@ public:
     [[nodiscard]] Control::Ptr target() const noexcept override;
     [[nodiscard]] std::string item_id() const override;
     [[nodiscard]] std::string text() const override;
+    [[nodiscard]] ShownSplash shown_splash() const override;
 
     // Focus left through the host: the keyboard request is revoked.
     void focus_left();

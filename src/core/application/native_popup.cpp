@@ -139,6 +139,18 @@ std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState
     return placed;
 }
 
+std::optional<Rect> client_placement(const std::weak_ptr<ApplicationWindowState>& owner, const Rect desktop) {
+    const std::shared_ptr<ApplicationWindowState> state = owner.lock();
+    const std::shared_ptr<ApplicationRunState> run = owner_run(state);
+    if (!run) return std::nullopt;
+    const ApplicationWindowHandle owner_handle = ApplicationHandleAccess::make(state);
+    const HostWindowFrameResult owner_frame = owner_handle.frame();
+    if (!owner_frame.status.accepted()) return std::nullopt;
+    const Rect client = owner_frame.frame.content;
+    const Rect placed{desktop.x - client.x, desktop.y - client.y, desktop.width, desktop.height};
+    return placed;
+}
+
 std::optional<Rect> client_work_area(const std::weak_ptr<ApplicationWindowState>& owner, const Point client_point,
                                     HostMonitorResult& monitors) {
     const std::shared_ptr<ApplicationWindowState> state = owner.lock();

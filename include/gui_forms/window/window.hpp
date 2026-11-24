@@ -15,6 +15,16 @@
 
 namespace gui_forms {
 
+class Window;
+
+// One window a Window shows over itself (Window::shown_popup_window): its
+// model, borrowed for the current UI turn, and where it is in the owner's
+// client coordinates.
+struct GUI_FORMS_API ShownPopupWindow final {
+    Window* model{};
+    Rect bounds{};
+};
+
 // Native popups (gui_forms/window/native_popup/native_popup.hpp).
 class NativePopupToken;
 struct NativePopupOptions;
@@ -241,6 +251,17 @@ public:
     [[nodiscard]] bool move_popup_window(std::size_t slot, Rect bounds);
     void hide_popup_window(std::size_t slot) noexcept;
     [[nodiscard]] Window* popup_window_model(std::size_t slot) const noexcept;
+    // The windows of its own this window shows over itself now, in screen
+    // order: index i below maximum_popup_windows is Popup slot i (a menu's
+    // depths open in turn), and index maximum_popup_windows is its tooltip's
+    // Splash window. Each with where it is, in this window's client
+    // coordinates (logical units; it may lie partly outside the client area,
+    // and the host may have moved it to keep it on its monitor). A null
+    // model for an index that shows nothing or whose frame the host does
+    // not report. For compositing what the user sees (the automation's
+    // capture). UI thread.
+    static constexpr std::size_t shown_popup_window_count = maximum_popup_windows + 1U;
+    [[nodiscard]] ShownPopupWindow shown_popup_window(std::size_t index) const;
     [[nodiscard]] Event<std::size_t>& popup_window_closed();
     // Why the host closed this window (the accepted HostClosedEvent's
     // reason: the user, the program, the session ending, a quit), once it
