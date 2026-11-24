@@ -92,7 +92,8 @@ public:
     PreparedFaceCharge& operator=(const PreparedFaceCharge&) = delete;
     // Recharges this bank to `held` bytes and raises the ledger's peak to
     // `peak` (the typefaces' and the drawing faces' most, together). The
-    // ledger is the bank's own, the same on every call.
+    // ledger is the bank's own, the same on every call; a different one is
+    // charged after the first is refunded.
     void charge(const std::shared_ptr<PreparedLedger>& ledger, std::size_t held, std::size_t peak) noexcept;
     void release() noexcept;
 private:

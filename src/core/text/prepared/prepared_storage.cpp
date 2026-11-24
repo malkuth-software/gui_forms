@@ -378,12 +378,16 @@ PreparedFaceCharge::~PreparedFaceCharge() { release(); }
 void PreparedFaceCharge::charge(const std::shared_ptr<PreparedLedger>& ledger, const std::size_t held,
                                 const std::size_t peak) noexcept {
     if (!ledger) return;
+    // The bytes are charged to the ledger they were taken from: a bank that
+    // is handed another ledger refunds the first before charging the
+    // second, so neither is debited for bytes the other holds.
+    if (ledger_ && ledger_ != ledger) release();
     const stxlib::ScopedLock lock((*ledger).mutex);
     PreparedTextBudgetSnapshot& usage = (*ledger).usage;
     usage.glyph_face_bytes = usage.glyph_face_bytes - bytes_ + held;
     usage.glyph_face_peak_bytes = std::max(usage.glyph_face_peak_bytes, peak);
     bytes_ = held;
-    if (!ledger_) ledger_ = ledger;
+    ledger_ = ledger;
 }
 
 void PreparedFaceCharge::release() noexcept {
