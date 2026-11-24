@@ -3294,6 +3294,11 @@ void Control::written(const decltype(name)&) {
 
 void Control::prepare_write(const decltype(visible)&, bool&) {
     require_mutable();
+    // Every write, an equal one too, makes the inherited values be derived
+    // again: a write of the value the control holds then repairs a cached
+    // copy that disagrees with it (bit-flip run 7, F4), where the equal
+    // write itself stops at the compare.
+    advance_inherited_generation();
 }
 
 void Control::written(const decltype(visible)&) {
@@ -3317,6 +3322,11 @@ void Control::on_visible_changed() {
 
 void Control::prepare_write(const decltype(enabled)&, bool&) {
     require_mutable();
+    // Every write, an equal one too, makes the inherited values be derived
+    // again: a write of the value the control holds then repairs a cached
+    // copy that disagrees with it (bit-flip run 7, F4), where the equal
+    // write itself stops at the compare.
+    advance_inherited_generation();
 }
 
 void Control::written(const decltype(enabled)&) {
@@ -4210,7 +4220,12 @@ CursorKind Control::effective_cursor() const noexcept {
 
 const Control::InheritedValues& Control::inherited_values() const noexcept {
     const std::uint64_t now = current_inherited_generation();
-    if (inherited_.generation == now) return inherited_;
+    // The kept values are a copy, so they are used only while current and
+    // while they claim no more than the control's own facts allow: kept
+    // visible or enabled with the control's own fact false is a stale or
+    // corrupted copy, and the values are derived again (bit-flip run 7, F4).
+    const bool claims_allowed = (!inherited_.visible || visible.read()) && (!inherited_.enabled || enabled.read());
+    if (inherited_.generation == now && claims_allowed) return inherited_;
     InheritedValues computed{};
     computed.theme_override = theme_override_.get();
     computed.back_color = back_color.read();
