@@ -2189,6 +2189,9 @@ std::vector<MenuItemSpec> PageStrip::page_list_items() const {
 
 void PageStrip::on_list_open_changed(bool open) {
     list_open_ = open;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 

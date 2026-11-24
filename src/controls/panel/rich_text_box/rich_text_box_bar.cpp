@@ -329,6 +329,9 @@ void RichTextBox::heading_chosen(const MenuItemInvocation& invocation) {
 
 void RichTextBox::heading_menu_open_changed(bool open) {
     heading_menu_open_ = open;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
