@@ -1290,7 +1290,7 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
     XISetMask(bits.data(), XI_GesturePinchEnd);
     XIEventMask gesture_mask{};
     gesture_mask.deviceid = XIAllMasterDevices;
-    gesture_mask.mask_len = static_cast<int>(bits.size());
+    gesture_mask.mask_len = XIMaskLen(XI_LASTEVENT);
     gesture_mask.mask = bits.data();
     XISelectEvents(runtime.display, xid, &gesture_mask, 1);
   }

@@ -80,7 +80,10 @@ struct RadialState final {
     const double sector_angle = 2.0 * pi / static_cast<double>(radial_items.size());
     double angle = stxlib::math::atan2(offset.x, -offset.y) + sector_angle * 0.5;
     while (angle < 0.0) angle += 2.0 * pi;
-    const int sector = static_cast<int>(angle / sector_angle) % static_cast<int>(radial_items.size());
+    // The items' count as an int, the array's own size.
+    constexpr int radial_count = 6;
+    static_assert(radial_items.size() == static_cast<std::size_t>(radial_count));
+    const int sector = static_cast<int>(angle / sector_angle) % radial_count;
     return sector;
 }
 

@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <limits>
 #include <optional>
 #include <string>
 #include <string_view>
@@ -731,6 +732,9 @@ XdndDragOutcome run_xdnd_drag_from(NativeWindow &window, const HostDragSourceReq
   const Atom selection = runtime.atom("XdndSelection");
   XSetSelectionOwner(runtime.display, selection, window.xid, CurrentTime);
   if (XGetSelectionOwner(runtime.display, selection) != window.xid)
+    return refused;
+  // XChangeProperty counts elements in an int; an offer names a few types.
+  if (types.size() > static_cast<std::size_t>(std::numeric_limits<int>::max()))
     return refused;
   runtime.drag_offer_owner = window.xid;
   runtime.drag_offer = std::move(offer);

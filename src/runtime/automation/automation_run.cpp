@@ -15,6 +15,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <climits>
 #include <cstdio>
 #include <exception>
 #include <utility>
@@ -187,8 +188,10 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         }
         run.sync_tools();
     } catch (const std::exception& failure) {
+        // %.*s takes an int; a longer id is cut at INT_MAX bytes.
+        const std::size_t shown = std::min(stable_id.size(), static_cast<std::size_t>(INT_MAX));
         std::fprintf(stderr, "GUI.Forms: the automation could not join window %.*s: %s\n",
-                     static_cast<int>(stable_id.size()), stable_id.data(), failure.what());
+                     static_cast<int>(shown), stable_id.data(), failure.what());
     }
 }
 

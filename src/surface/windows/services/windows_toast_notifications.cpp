@@ -13,6 +13,7 @@
 #include <winstring.h>
 
 #include <atomic>
+#include <climits>
 #include <cstdint>
 #include <cstring>
 #include <memory>
@@ -188,6 +189,8 @@ private:
 // UTF-8 to UTF-16; the request's text is valid UTF-8 (HostServices checked).
 std::wstring widened(std::string_view text) {
     if (text.empty()) return std::wstring();
+    // MultiByteToWideChar counts in an int; a longer text is not shown.
+    if (text.size() > static_cast<std::size_t>(INT_MAX)) return std::wstring();
     const int length = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
     std::wstring wide(static_cast<std::size_t>(length > 0 ? length : 0), L'\0');
     if (length > 0) {
