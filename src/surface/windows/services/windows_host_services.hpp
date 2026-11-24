@@ -210,6 +210,12 @@ protected:
         return applied;
     }
 
+    // The owner window's DWM border colour (Windows 11), or the system's.
+    HostServiceStatus apply_system_border_colour_impl(stxlib::Optional<Color> colour) override {
+        const HostServiceStatus applied = gui_forms::host::detail::apply_windows_border_colour(owner_, colour);
+        return applied;
+    }
+
     // Window's chrome properties on the owner window. Every property maps:
     // the frame and the boxes are style bits, the state is ShowWindow (held
     // for the next show while the window is hidden), the start position

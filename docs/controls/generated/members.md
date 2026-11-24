@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2499 | 3 | 370 | 4149 | 2629 |
+| 2503 | 3 | 370 | 4149 | 2633 |
 
 ## GUI.Forms types
 
@@ -175,7 +175,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 264 | 0 | 13 | 137 | 274 |
+| `Window` | `Form` | 268 | 0 | 13 | 137 | 278 |
 
 ## Windows Forms types without a GUI.Forms type
 

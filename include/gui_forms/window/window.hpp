@@ -363,6 +363,23 @@ public:
     // The note shown now; empty for none. Valid until the next
     // set_title_note.
     [[nodiscard]] const char* title_note() const noexcept;
+    // Draws the window's content with `saturation` of its colour (the
+    // automation's wash while a model drives the window, MCP round 1;
+    // ThemeDefinition::model_wash_saturation): 1, the default, draws it as
+    // it is and costs nothing; below 1 the root's paint group carries a
+    // saturate colour filter, after the root's own effect (a root effect
+    // with a colour table keeps its own and is not washed). The band, the
+    // window's overlays and its popup windows keep their colour; forced
+    // high contrast draws no wash. Clamped to [0, 1]; a non-finite value
+    // throws std::invalid_argument, changing nothing. The whole window
+    // repaints when it changes. UI thread.
+    void set_content_wash(double saturation);
+    [[nodiscard]] double content_wash() const noexcept;
+    // The platform's own window border in `colour`, or the system's colour
+    // for none (HostServices::apply_system_border_colour: Windows 11 colours
+    // its border, other hosts have none to colour). Applied now when a host
+    // is attached, and again when one attaches. UI thread.
+    void set_system_border_colour(stxlib::Optional<Color> colour);
 
     // -- the multiple document interface (DK decisions 60 to 63;
     // window_document_area.hpp) --
@@ -457,8 +474,8 @@ private:
     void apply_window_chrome(WindowChromeFields fields);
     WindowChromeFields written_chrome_{};
     WindowChromeFields applied_chrome_{};
-    // set_title_note's note, appended to the text in chrome().
-    std::string title_note_{};
+    // set_system_border_colour's colour, applied on each host attachment.
+    stxlib::Optional<Color> system_border_colour_{};
 
     friend class SurfaceRoot;
     friend class HostSession;

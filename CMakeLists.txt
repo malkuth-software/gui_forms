@@ -136,6 +136,12 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
     set(_gf_mcp_test_controls_default ON)
 endif()
 option(GUI_FORMS_MCP_TEST_CONTROLS "Build the automation's test controls (suspend_input)" ${_gf_mcp_test_controls_default})
+# macOS before 26 publishes no window corner radius: the AppKit host may
+# read it through a private getter (-[NSWindow _effectiveCornerRadius],
+# looked up at run time, never linked, never written). A sandboxed or App
+# Store build turns this off; its corners are then reported only from
+# macOS 26's public layout regions, or as unknown (drawn square).
+option(GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS "Read a macOS window's corner radius through AppKit's private getter where no public source reports it" ON)
 option(GUI_FORMS_ENABLE_LINUX_HOST "Build the native X11 host with the private CPU renderer" OFF)
 option(GUI_FORMS_ENABLE_WAYLAND_PRESENT "Build the Wayland wl_shm presentation path (no Wayland host yet)" OFF)
 # The browser host (owner decisions, 2026-11-15): Emscripten only, through
@@ -1962,6 +1968,9 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host/macos
     )
     target_compile_options(gui_forms_host_macos PRIVATE -fobjc-arc)
+    if(GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS AND NOT GUI_FORMS_HIGH_INTEGRITY)
+        target_compile_definitions(gui_forms_host_macos PRIVATE GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS=1)
+    endif()
     target_link_libraries(gui_forms_host_macos
         PUBLIC gui_forms_core gui_forms_skia
         PRIVATE ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}

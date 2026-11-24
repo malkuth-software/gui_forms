@@ -152,6 +152,18 @@ struct FlatNode final {
     std::size_t subtree_size{1U};
     bool hovered{};
     bool pressed{};
+    // Pressing it opens a popup (a menu, a drop-down).
+    bool has_popup{};
+    // A row's place in its whole set, 1-based, and the set's size, when the
+    // node publishes them (0: none); a virtualised list shows a window of
+    // its rows and counts them all.
+    std::size_t position_in_set{};
+    std::size_t set_size{};
+    // It opens a dialog the user answers (MCP round 1): marked with
+    // set_opens_dialog, or a name ending in "..." or the ellipsis; with the
+    // program's dialog-free tool for it, when it has one.
+    bool opens_dialog{};
+    std::string dialog_tool{};
     [[nodiscard]] bool protected_content() const noexcept {
         const bool hidden = has_semantic_state(states, SemanticState::protected_content);
         return hidden;
@@ -256,6 +268,9 @@ private:
     std::vector<AutomationWindow> windows_{};
     std::uint64_t next_window_number_{1U};
     std::vector<std::unique_ptr<RunningCall>> calls_{};
+    // The dialogs a model's act opened, by the ID find_open_dialog gives:
+    // the model may close them (as Cancel), never submit them (MCP round 1).
+    std::vector<std::string> model_dialogs_{};
     std::uint64_t next_call_{1U};
     // A ring of route_trace_capacity events across windows; route_next_ is
     // the slot written next.

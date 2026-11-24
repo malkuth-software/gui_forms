@@ -440,6 +440,9 @@ void HostSession::DispatchVisitor::operator()(
     } else if constexpr (std::is_same_v<Payload, HostSafeInsetsEvent>) {
         // Validated with the geometry above (stage VA).
         (*window).set_safe_insets(payload.insets);
+        // A title bar or toolbar change moves the safe area and may change
+        // the corners (a toolbar window's are rounder on macOS 26).
+        (*window).apply_corner_preference();
     }
 }
 

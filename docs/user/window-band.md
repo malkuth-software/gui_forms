@@ -61,10 +61,19 @@ The engine's limiter is the one the control border uses:
 
 | Host | Corners | Full screen | Native border |
 |---|---|---|---|
-| Windows 11 | shaped and reported: round (8 px) or square on request; square when maximized, snapped or full screen | reported | not yet (contract below) |
+| Windows 11 | shaped and reported: round (8 px) or square on request; square when maximized, snapped or full screen | reported | only for the in-use sign (below) |
 | Windows 10 | square, reported as not complied for `round` | reported | no |
-| macOS | reported only. AppKit has no public API to shape a window's corners or report their radius, so the report is square in full screen and for a borderless window, and unknown otherwise. `round` is never complied; `square` only where the corners are square. | reported | no |
+| macOS | reported only (read, never set). Square in full screen and for a borderless window; otherwise rounded with the radius one of the sources below reads, or unknown when none does. `round` is never complied; `square` only where the corners are square. | reported | no |
 | Linux (X11) | not reported. The window manager or compositor decides, and the band draws square. | reported | no |
+
+The report says where it came from (`WindowCornerReport::source`, named by `window_corner_source_name`):
+
+- `platform`: the platform shapes the window and its state says how (Windows 11's corner preference and window state; a macOS window in full screen or without a frame, which is square).
+- `layout_region`: macOS 26's public layout regions. The content view's safe area with vertical corner adaptation keeps clear of the bottom corners by exactly their radius beyond the plain safe area. Measured on macOS 26.7: 16 px for a plain titled window and 26 px for one with a toolbar.
+- `private_getter`: before macOS 26, AppKit's private `-[NSWindow _effectiveCornerRadius]`, looked up at run time with `respondsToSelector:` and never linked. The build option `GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS` (on by default, and off in a high-integrity build) includes it; turn it off for a sandboxed or App Store build.
+- `unknown`: no source reports the corners. The band draws square.
+
+The macOS host only reads the corners: it never sets the corner mask or subclasses the window's frame view. It reads them again on each window state change (full screen) and each safe-area change (a title bar or toolbar change).
 
 A rounded band is one stroke along the window's outline. It is drawn only when every edge has the same width and there is no texture; otherwise the band draws square strips.
 
@@ -84,7 +93,7 @@ Each takes a window from `windows.create`, or any control in a window. Records a
 
 ## Windows 11: the contract for the native border (hand-back)
 
-The Windows host sets the corner preference only; it does not yet set the border colour. This is the contract its implementation follows:
+The Windows host sets the corner preference, and sets the border colour only for the MCP in-use sign: while a model is connected, `DWMWA_BORDER_COLOR` is the sign's accent, and it is restored to `DWMWA_COLOR_DEFAULT` when the model disconnects (`Window::set_system_border_colour`). Mirroring a band's colour is still to implement. This is the contract its implementation follows:
 
 1. **Corner preference (implemented).**
    - `DWMWA_WINDOW_CORNER_PREFERENCE` (33) is set from the window's preference: `system` gives `DWMWCP_DEFAULT`, `square` gives `DWMWCP_DONOTROUND`, `round` gives `DWMWCP_ROUND`.

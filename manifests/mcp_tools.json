@@ -1,0 +1,607 @@
+[
+ {
+  "name": "windows",
+  "title": "Windows",
+  "description": "Every window: stable ID, title, active, modal, size.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Windows",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "snapshot",
+  "title": "Snapshot",
+  "description": "The control tree as an outline: role, name, [stable ID], states, value, the actions each node takes and what its press opens (needs_user: it opens a dialog the user answers; instead= names a tool that does the same without one). A virtualised list says how many rows it does not show. Narrow it with root and filter; actions false leaves the actions out.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "root": {
+     "type": "string"
+    },
+    "filter": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "bounds": {
+     "type": "boolean"
+    },
+    "actions": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Snapshot",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "find",
+  "title": "Find",
+  "description": "Nodes by role, name (any case, part of it) and state, each with its [stable ID] and parent; cheaper than a snapshot when you know what you look for.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "role": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "state": {
+     "type": "string"
+    },
+    "within": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Find",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "act",
+  "title": "Act",
+  "description": "A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), never submitted. Waits for idle and replies with what changed; terse gives counts.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "action": {
+     "type": "string",
+     "enum": [
+      "press",
+      "select",
+      "expand",
+      "collapse",
+      "focus",
+      "set_value",
+      "increment",
+      "decrement",
+      "show_menu",
+      "close",
+      "scroll_into_view",
+      "invoke_command"
+     ]
+    },
+    "value": {
+     "type": "string"
+    },
+    "terse": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Act",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "reset",
+  "title": "Reset",
+  "description": "Puts the interface back in order: closes the dialogs you opened (as Cancel), popups and menus, tooltips and drags, releases pointer capture and a hold, and stops content that froze; replies with what it reset and what it left (a dialog the user opened).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Reset",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "pointer",
+  "title": "Pointer",
+  "description": "Pointer input through the program's own input path: move, hover, click, double_click, right_click, down, up, drag, wheel; at a target (offset inside it, default its centre) or a window position.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "action": {
+     "type": "string",
+     "enum": [
+      "move",
+      "hover",
+      "click",
+      "double_click",
+      "right_click",
+      "down",
+      "up",
+      "drag",
+      "wheel"
+     ]
+    },
+    "offset": {
+     "type": "object"
+    },
+    "position": {
+     "type": "object"
+    },
+    "path": {
+     "type": "array",
+     "items": {
+      "type": "object"
+     },
+     "maxItems": 256
+    },
+    "button": {
+     "type": "string",
+     "enum": [
+      "primary",
+      "secondary",
+      "middle"
+     ]
+    },
+    "modifiers": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "delta": {
+     "type": "object"
+    },
+    "terse": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Pointer",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "keyboard",
+  "title": "Keyboard",
+  "description": "Key chords (\"Ctrl+S\") and sequences, committed text, and composition, to the focused control or to a target focused first.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "keys": {
+     "type": [
+      "string",
+      "array"
+     ],
+     "items": {
+      "type": "string"
+     }
+    },
+    "text": {
+     "type": "string"
+    },
+    "composition": {
+     "type": "object"
+    },
+    "terse": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Keyboard",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "text",
+  "title": "Text",
+  "description": "A node's whole text: a text control's value, selection and lines (with select, sets the selection, UTF-8 byte offsets); any other node's full name, value and description, such as a label cut in the outline.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "select": {
+     "type": "object",
+     "properties": {
+      "anchor": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "caret": {
+       "type": "integer",
+       "minimum": 0
+      }
+     },
+     "required": [
+      "anchor",
+      "caret"
+     ]
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Text",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "wait",
+  "title": "Wait",
+  "description": "Waits until the next frame, idle, a time (ms), a condition on a node (state, value, exists) or a user step done.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "until": {
+     "type": "string",
+     "enum": [
+      "frame",
+      "idle",
+      "ms",
+      "node",
+      "user_step"
+     ]
+    },
+    "ms": {
+     "type": "number",
+     "minimum": 0
+    },
+    "timeout_ms": {
+     "type": "number",
+     "minimum": 0
+    },
+    "state": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    },
+    "exists": {
+     "type": "boolean"
+    },
+    "step": {
+     "type": "string"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Wait",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "capture",
+  "title": "Capture",
+  "description": "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "mode": {
+     "type": "string",
+     "enum": [
+      "rendered"
+     ]
+    },
+    "scale": {
+     "type": "number"
+    },
+    "margin": {
+     "type": "number"
+    },
+    "include_overlays": {
+     "type": "boolean"
+    },
+    "popups": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Capture",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "inspect",
+  "title": "Inspect",
+  "description": "Beyond accessibility, sections chosen with what: state, layout, paint, metrics, dispatcher, interaction, session, schema, clipboard, summary, layout_reasons, resources, events. With a target, state, layout and schema by default; without, metrics, dispatcher and interaction.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "what": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "enum": [
+       "state",
+       "layout",
+       "paint",
+       "metrics",
+       "dispatcher",
+       "interaction",
+       "session",
+       "schema",
+       "clipboard",
+       "summary",
+       "layout_reasons",
+       "resources",
+       "events"
+      ]
+     }
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Inspect",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "batch",
+  "title": "Batch",
+  "description": "Several steps in one call with one combined reply: each step is {\"tool\": name, ...that tool's arguments} or an expect guard {\"expect\": \"node\"|\"visual\", target, state, value, exists, drawn}; the batch stops at the first failure or unmet expectation. terse gives each act's changes as counts.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "steps": {
+     "type": "array",
+     "minItems": 1,
+     "maxItems": 64,
+     "items": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "a tool step {tool, ...that tool's arguments} or an expect step {expect, window, target, within, state, value, exists, drawn}",
+      "properties": {
+       "tool": {
+        "type": "string"
+       },
+       "expect": {
+        "type": "string",
+        "enum": [
+         "node",
+         "visual"
+        ]
+       },
+       "window": {
+        "type": "string",
+        "description": "a window's stable ID or title; default the active window"
+       },
+       "target": {
+        "type": "string",
+        "description": "a node's stable ID, or #r<n> for a runtime ID"
+       },
+       "within": {
+        "type": "string",
+        "description": "an ancestor's stable ID, when the target's ID repeats"
+       },
+       "state": {
+        "type": "string",
+        "description": "a state the node has, or -state for one it lacks"
+       },
+       "value": {
+        "type": "string"
+       },
+       "exists": {
+        "type": "boolean"
+       },
+       "drawn": {
+        "type": "boolean",
+        "description": "visual: whether the state is drawn"
+       }
+      }
+     }
+    },
+    "stop_on_error": {
+     "type": "boolean"
+    },
+    "terse": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "steps"
+   ],
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Batch",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "control",
+  "title": "Control",
+  "description": "direct_begin and direct_end hold the interface with a take-back popup (launched --model-directed); suspend_input and resume_input in builds with the test controls; status.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "action": {
+     "type": "string",
+     "enum": [
+      "direct_begin",
+      "direct_end",
+      "suspend_input",
+      "resume_input",
+      "status"
+     ]
+    }
+   },
+   "required": [
+    "action"
+   ],
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Control",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ }
+]

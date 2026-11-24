@@ -232,7 +232,7 @@ Related types
    * - :cpp:class:`WindowControlBoxCapability <gui_forms::WindowControlBoxCapability>`
      - Whether the title bar has its window menu and buttons (Form.ControlBox); without it the minimize and maximize boxes go too.
    * - :cpp:class:`WindowCornerReport <gui_forms::WindowCornerReport>`
-     - The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners).
+     -  
    * - :cpp:class:`WindowCornerShapes <gui_forms::WindowCornerShapes>`
      - The corner shapes a host may report (HostCapabilities:: window_corner_shapes): Windows 11 rounds or squares, macOS reports square corners where they are (full screen, a borderless window) and nothing otherwise, X11 reports none.
    * - :cpp:class:`WindowDispatcher <gui_forms::WindowDispatcher>`
@@ -2465,6 +2465,14 @@ Related types
 
       The cycle frames the strips have been damaged for, counted from the window's creation.
 
+   .. cpp:member:: bool moving
+
+      Whether a march or a sweep moves now (not stilled), how far round it is (a fraction of one cycle, in [0, 1)), and the frames it has damaged the strips for, counted from the window's creation.
+
+   .. cpp:member:: double motion_phase
+
+   .. cpp:member:: std::uint64_t motion_frames
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: WindowBandTexture final
@@ -2675,8 +2683,6 @@ Related types
 
    ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
 
-   The host's report of the window's corners, in reply to its preference (HostServices::apply_window_corners). ``radius`` is in logical units, and meaningful only for ``rounded``. ``complied`` is false when the platform could not do as asked (it rounds regardless, or cannot round), so the band follows ``shape``, not the preference.
-
    .. cpp:member:: WindowCornerShape shape
 
       Default: ``{WindowCornerShape::unknown}``.
@@ -2684,6 +2690,12 @@ Related types
    .. cpp:member:: double radius
 
    .. cpp:member:: bool complied
+
+   .. cpp:member:: bool top_square
+
+   .. cpp:member:: WindowCornerSource source
+
+      Default: ``{WindowCornerSource::unknown}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3566,6 +3578,8 @@ Enumerations
 
    .. cpp:enumerator:: cycling
 
+   .. cpp:enumerator:: sweeping
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: WindowBandTextureSource
@@ -3629,6 +3643,20 @@ Enumerations
    .. cpp:enumerator:: square
 
    .. cpp:enumerator:: rounded
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowCornerSource
+
+   ``#include <gui_forms/window/band/window_band.hpp>`` (:src:`source <include/gui_forms/window/band/window_band.hpp>`)
+
+   .. cpp:enumerator:: unknown
+
+   .. cpp:enumerator:: platform
+
+   .. cpp:enumerator:: layout_region
+
+   .. cpp:enumerator:: private_getter
 
 .. cpp:namespace:: gui_forms
 
@@ -4005,9 +4033,19 @@ Functions, constants and aliases
 
 .. cpp:function:: const char* window_corner_shape_name(WindowCornerShape shape) noexcept
 
+.. cpp:function:: const char* window_corner_source_name(WindowCornerSource source) noexcept
+
 .. cpp:var:: constexpr double maximum_band_width
 
    The widest band a window or a theme may ask for, in logical units. Value: ``32.0``.
+
+.. cpp:var:: constexpr double band_glint_fraction
+
+   A sweeping band's glint, as a share of the outline's length, and how far a still sweeping band's tint moves from the rest colour to the lit one. Value: ``0.22``.
+
+.. cpp:var:: constexpr double band_still_tint
+
+   Value: ``0.35``.
 
 .. cpp:var:: constexpr unsigned maximum_band_flash_transitions
 

@@ -471,6 +471,8 @@ ToolReply snapshot_tool(AutomationCore& core, Window& window, const JsonValue& a
     }
     const std::optional<bool> bounds = boolean_member(arguments, "bounds");
     options.with_bounds = bounds.has_value() && *bounds;
+    const std::optional<bool> actions = boolean_member(arguments, "actions");
+    options.with_actions = !actions.has_value() || *actions;
     std::string text{};
     append_window_line(core, window, text);
     append_outline(nodes, options, text);
@@ -490,18 +492,27 @@ ToolReply text_read_tool(AutomationCore& core, Window& window, const JsonValue& 
         return ToolReply::failure(ToolError::protected_content, node_reference(node) + " is a password field",
                                   "its value is never read; type into it with keyboard if told to fill it");
     }
-    if (node.is_virtual) {
-        return ToolReply::failure(ToolError::unsupported_action, node_reference(node) + " publishes no text",
-                                  "text is published on a control's own node");
-    }
     SemanticTextLayout layout{};
-    const SemanticTextResult result = window.semantic_text_layout(RuntimeId{node.runtime_id}, layout);
+    const SemanticTextResult result = node.is_virtual ? SemanticTextResult::no_text
+                                                      : window.semantic_text_layout(RuntimeId{node.runtime_id}, layout);
     if (result == SemanticTextResult::stale_identity) {
         return ToolReply::failure(ToolError::stale_identity, node_reference(node) + " is gone", "take a new snapshot");
     }
     if (result != SemanticTextResult::done) {
-        return ToolReply::failure(ToolError::unsupported_action,
-                                  node_reference(node) + ": " + semantic_text_result_name(result));
+        // Not editable text: the node's whole name, value and description
+        // (MCP round 1: a label cut in the outline, static text).
+        const SemanticSnapshot snapshot = window.semantic_snapshot();
+        const SemanticNode* const source = find_semantic_node(snapshot, node.runtime_id);
+        std::string text = node_reference(node) + " " + semantic_role_name(node.role) + "\nname ";
+        append_json_string(node.name, text);
+        text += "\nvalue ";
+        append_json_string(node.value, text);
+        if (source != nullptr && !(*source).description.empty()) {
+            text += "\ndescription ";
+            append_json_string((*source).description, text);
+        }
+        text += '\n';
+        return ToolReply::success(std::move(text));
     }
     std::string text = node_reference(node) + " value ";
     append_json_string(node.value, text);

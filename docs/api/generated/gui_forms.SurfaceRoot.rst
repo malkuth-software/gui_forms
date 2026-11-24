@@ -211,6 +211,9 @@ gui_forms::SurfaceRoot
       **next_wake** : ``stxlib::Optional<FrameTime>``, read-only
          Returns the earliest eligible frame/timer deadline, respecting occlusion.
 
+      **next_settling_wake** : ``stxlib::Optional<FrameTime>``, read-only
+         next_wake without the ambient effects' wakes (the band's march or sweep): when the window's own work next wants a frame, for a caller waiting for it to settle (the automation's idle).
+
       **occluded** : ``bool``, default ``false``
          Whether the host reports the window as hidden from view. While occluded,
          painting and paint wake-ups are suspended, and motion values jump to
@@ -987,6 +990,10 @@ gui_forms::SurfaceRoot
       Whether painting is pending.
 
    .. cpp:function:: stxlib::Optional<FrameTime> next_wake() const noexcept
+
+   .. cpp:function:: stxlib::Optional<FrameTime> next_settling_wake() const noexcept
+
+      next_wake without the ambient effects' wakes (the band's march or sweep): when the window's own work next wants a frame, for a caller waiting for it to settle (the automation's idle).
 
    .. cpp:function:: bool occluded() const noexcept
 

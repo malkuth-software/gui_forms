@@ -2,6 +2,7 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <CoreVideo/CoreVideo.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#include <objc/message.h>
 
 #include "macos_host.hpp"
 #include "appkit_clipboard_image.hpp"
@@ -21,6 +22,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <exception>
 #include <memory>
 #include <optional>
@@ -201,15 +203,60 @@ void run_file_filter_filter_changed(GuiFormsFileFilterSwitch* object, NSPopUpBut
 
 namespace {
 
-// The corner radius AppKit draws a titled window with, in points, by
-// release: macOS 26 rounds windows more than the releases before it, which
-// all used 10 points. Measured from window captures (alpha at the frame's
-// corners), since AppKit publishes no such value.
-double titled_window_corner_radius() noexcept {
-    const NSOperatingSystemVersion tahoe{26, 0, 0};
-    const bool rounder = [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:tahoe];
-    const double radius = rounder ? 16.0 : 10.0;
-    return radius;
+// A titled window's corner radius, read only (owner, 2026-11-24: never
+// set or override the corner mask, never subclass the theme frame; WebKit
+// and Firefox gave that up for its WindowServer cost on macOS 26), with
+// where it came from. In order:
+// - macOS 26: the content view's layout regions. The safe area with
+//   vertical corner adaptation keeps content out of the bottom corners by
+//   exactly their radius beyond the plain safe area (measured on 26.7: 16
+//   for a plain titled window, 26 with a toolbar, matching the frame);
+// - before that, with GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS:
+//   -[NSWindow _effectiveCornerRadius], looked up with respondsToSelector:
+//   and never linked;
+// - otherwise unknown (the band draws square).
+// A window in full screen is square whatever these say (the layout region
+// still reports the windowed radius there); the caller checks first.
+struct CornerReading final {
+    double radius{};
+    gui_forms::WindowCornerSource source{gui_forms::WindowCornerSource::unknown};
+};
+
+CornerReading titled_window_corner_radius(NSWindow* window) noexcept {
+    CornerReading reading{};
+    NSView* const content = window.contentView;
+    if (@available(macOS 26.0, *)) {
+        if (content != nil) {
+            NSViewLayoutRegion* const adapted =
+                [NSViewLayoutRegion safeAreaLayoutRegionWithCornerAdaptation:NSViewLayoutRegionAdaptivityAxisVertical];
+            NSViewLayoutRegion* const plain =
+                [NSViewLayoutRegion safeAreaLayoutRegionWithCornerAdaptation:NSViewLayoutRegionAdaptivityAxisNone];
+            const CGFloat radius = [content edgeInsetsForLayoutRegion:adapted].bottom -
+                                   [content edgeInsetsForLayoutRegion:plain].bottom;
+            if (radius > 0.0 && std::isfinite(radius)) {
+                reading.radius = static_cast<double>(radius);
+                reading.source = gui_forms::WindowCornerSource::layout_region;
+                return reading;
+            }
+        }
+    }
+#if defined(GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS)
+    const SEL getter = NSSelectorFromString(@"_effectiveCornerRadius");
+    if ([window respondsToSelector:getter]) {
+        NSMethodSignature* const signature = [window methodSignatureForSelector:getter];
+        const char* const returned = signature == nil ? "" : [signature methodReturnType];
+        // Only a getter that returns a CGFloat is read.
+        if (std::strcmp(returned, @encode(CGFloat)) == 0) {
+            CGFloat (*const read)(id, SEL) = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend);
+            const CGFloat radius = read(window, getter);
+            if (radius > 0.0 && std::isfinite(radius)) {
+                reading.radius = static_cast<double>(radius);
+                reading.source = gui_forms::WindowCornerSource::private_getter;
+            }
+        }
+    }
+#endif
+    return reading;
 }
 
 // The logical size of GUI.Forms' message icon (stock_alert_icon_image).
@@ -571,13 +618,22 @@ protected:
         const bool borderless = (mask & NSWindowStyleMaskTitled) == 0;
         if (full_screen || borderless) {
             result.report.shape = gui_forms::WindowCornerShape::square;
+            result.report.source = gui_forms::WindowCornerSource::platform;
             result.report.complied = asked_system || asked_square;
-        } else {
-            result.report.shape = gui_forms::WindowCornerShape::rounded;
-            result.report.radius = titled_window_corner_radius();
-            result.report.top_square = (mask & NSWindowStyleMaskFullSizeContentView) == 0;
-            result.report.complied = asked_system || asked_round;
+            return result;
         }
+        const CornerReading reading = titled_window_corner_radius(window);
+        if (reading.source == gui_forms::WindowCornerSource::unknown) {
+            // No source says how round the window is: unknown, drawn square
+            // (ACTIVE_BORDER_STUDY ruling 4).
+            result.report.complied = asked_system;
+            return result;
+        }
+        result.report.shape = gui_forms::WindowCornerShape::rounded;
+        result.report.radius = reading.radius;
+        result.report.source = reading.source;
+        result.report.top_square = (mask & NSWindowStyleMaskFullSizeContentView) == 0;
+        result.report.complied = asked_system || asked_round;
         return result;
     }
 

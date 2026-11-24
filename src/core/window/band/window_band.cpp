@@ -167,7 +167,7 @@ struct ResolvedBand final {
 };
 
 bool moving_state(WindowBandState state) noexcept {
-    const bool moving = state == WindowBandState::marching || state == WindowBandState::sweeping;
+    const bool moving = state == WindowBandState::sweeping;
     return moving;
 }
 
@@ -253,6 +253,16 @@ bool any_radius(PaintCornerRadii radii) noexcept {
     return any;
 }
 
+// `from` moved `share` of the way to `to`, channel by channel.
+Color mixed_colour(Color from, Color to, double share) noexcept {
+    const double keep = 1.0 - share;
+    const Color colour{static_cast<std::uint8_t>(std::lround(from.red * keep + to.red * share)),
+                       static_cast<std::uint8_t>(std::lround(from.green * keep + to.green * share)),
+                       static_cast<std::uint8_t>(std::lround(from.blue * keep + to.blue * share)),
+                       static_cast<std::uint8_t>(std::lround(from.alpha * keep + to.alpha * share))};
+    return colour;
+}
+
 Color with_alpha_share(Color colour, double share) noexcept {
     const double alpha = std::clamp(static_cast<double>(colour.alpha) * share, 0.0, 255.0);
     Color shaded = colour;
@@ -306,7 +316,7 @@ bool window_band_texture_valid(const WindowBandTexture& texture) noexcept {
 bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexcept {
     const bool known = appearance.state == WindowBandState::rest || appearance.state == WindowBandState::lit ||
                        appearance.state == WindowBandState::flashing || appearance.state == WindowBandState::cycling ||
-                       appearance.state == WindowBandState::marching || appearance.state == WindowBandState::sweeping;
+                       appearance.state == WindowBandState::sweeping;
     bool role = false;
     switch (appearance.lit_role) {
     case WindowBandColourRole::theme:
@@ -343,6 +353,16 @@ const char* window_corner_shape_name(WindowCornerShape shape) noexcept {
     case WindowCornerShape::unknown: return "unknown";
     case WindowCornerShape::square: return "square";
     case WindowCornerShape::rounded: return "rounded";
+    }
+    return "unknown";
+}
+
+const char* window_corner_source_name(WindowCornerSource source) noexcept {
+    switch (source) {
+    case WindowCornerSource::unknown: return "unknown";
+    case WindowCornerSource::platform: return "platform";
+    case WindowCornerSource::layout_region: return "layout_region";
+    case WindowCornerSource::private_getter: return "private_getter";
     }
     return "unknown";
 }
@@ -616,20 +636,16 @@ void SurfaceRoot::paint_band_pattern(detail::RecordingPainter& candidate, PaintP
     StrokeStyle base{};
     base.width = width;
     base.join = StrokeJoin::round;
+    if (!band_.moving) {
+        // Motion stilled (reduced motion, ambient motion off, occluded):
+        // a tint change in place of the glint.
+        base.color = mixed_colour(band_.rest, band_.lit, band_still_tint);
+        if (base.color.alpha != 0U) candidate.stroke_path(outline, base);
+        return;
+    }
     if (band_.rest.alpha != 0U) {
         base.color = band_.rest;
         candidate.stroke_path(outline, base);
-    }
-    if (band_.drawn_state == WindowBandState::marching) {
-        // Dashes as long as their gaps, one period further on each cycle.
-        StrokeStyle dashes = base;
-        dashes.color = band_.lit;
-        dashes.dashes[0] = band_dash_length;
-        dashes.dashes[1] = band_dash_length;
-        dashes.dash_count = 2U;
-        dashes.dash_phase = (1.0 - band_.motion_phase) * 2.0 * band_dash_length;
-        candidate.stroke_path(outline, dashes);
-        return;
     }
     // A glint whose head runs one lap a cycle, fading over three layers
     // behind it: the whole glint faint, its front two thirds stronger, its
@@ -738,8 +754,18 @@ void Window::set_corner_preference(WindowCornerPreference preference) {
     apply_corner_preference();
 }
 
+void Window::set_system_border_colour(stxlib::Optional<Color> colour) {
+    require_root_thread("system border colour");
+    system_border_colour_ = colour;
+    if (host_services_ != nullptr) static_cast<void>((*host_services_).apply_system_border_colour(colour));
+}
+
 void Window::apply_corner_preference() {
     WindowCornerReport report{};
+    // A border colour set before the host attached reaches it now.
+    if (host_services_ != nullptr && system_border_colour_.present()) {
+        static_cast<void>((*host_services_).apply_system_border_colour(system_border_colour_));
+    }
     if (host_services_ != nullptr) {
         const HostWindowCornersResult applied = (*host_services_).apply_window_corners(band_.corner_preference);
         report = applied.report;

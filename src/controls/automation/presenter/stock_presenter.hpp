@@ -5,14 +5,16 @@
 // 19 and 20), drawn by GUI.Forms in its own design language:
 // - the in-use sign (MCP round 1: "connected must look significantly
 //   different from ordinary"): each attached window declares its outer
-//   band (window_band.hpp), wide, in the theme's accent, following the
-//   window's corners as the host reports them; a read or an act moves it
-//   (a march or a sweep) for a moment, and it stands still at rest. The
-//   window's title bar names the model ("<title> — Claude Opus 5.5 is
-//   using this", Window::set_title_note), restored when the model goes.
-//   Reduced motion, high contrast and an occluded window still the motion
-//   (the band's engine limiter). Mockup round: SignVariant chooses among the
-//   candidate looks until the owner picks one;
+//   band (window_band.hpp), 5 px in the theme's accent, following the
+//   window's corners as the host reports them; while a model reads or acts
+//   a white glint sweeps round it, and it is still at rest (owner's pick of
+//   2026-11-24). The window's content is drawn almost grey
+//   (Window::set_content_wash, ThemeDefinition::model_wash_saturation), and
+//   its title bar names the model ("<title> — Claude Opus 5.5 is using
+//   this", Window::set_title_note); both are restored when the model goes.
+//   Reduced motion, ambient motion off and an occluded window turn the
+//   glint into a tint change (the band's engine limiter); forced high
+//   contrast draws no wash;
 // - the tag line: a tooltip on the top border naming the model ("Claude
 //   Opus 5.5 via Claude Code"), shown briefly when a model connects;
 // - the take-back popup of model.directed: a small window owned by the
@@ -36,21 +38,11 @@
 #include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 
-#include <cstdint>
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace gui_forms::automation {
-
-// The candidate looks of the in-use sign (mockups for the owner, MCP round
-// 1): a wide band of marching dashes, a wide band a glint sweeps round, or
-// a wider band that pulses between two shades of the accent.
-enum class SignVariant : std::uint8_t {
-    marching,
-    sweeping,
-    pulsing,
-};
 
 class StockPresenter final : public AutomationPresenter {
 public:
@@ -65,8 +57,6 @@ public:
     // The run's windowing, from the first application window, and that
     // window's stable ID (the popups' owner). Later calls keep the first.
     void set_windowing(const ApplicationWindowHandle& owner, std::string_view owner_id);
-    // The sign's look (mockup round); before the first window attaches.
-    void set_sign_variant(SignVariant variant) noexcept { variant_ = variant; }
     // Appearance review (--mcp-appearance-review, MCP round 1): the windows
     // look as they do without a model, so captures can be compared with the
     // user's view. No band, no title note, no tag line and no user-step
@@ -125,7 +115,6 @@ private:
     std::string owner_id_{};
     ClientIdentity client_{};
     bool connected_{};
-    SignVariant variant_{SignVariant::sweeping};
     bool unsigned_{};
     std::vector<BandWindow> windows_{};
     WindowRef take_back_{};

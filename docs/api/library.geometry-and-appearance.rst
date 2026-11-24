@@ -6999,6 +6999,10 @@ Types
 
       Stock icon variants the theme draws its own way (exhibit gap E10): each replaces the built-in drawing of its icon (a name in stock_icon_names, a style and a size) wherever that variant is shown. Theme::create refuses a replacement without vectors or of an unknown name. Empty by default: every icon keeps the built-in drawing.
 
+   .. cpp:member:: double model_wash_saturation
+
+      How much colour a window keeps while a model drives it (the automation's wash, MCP round 1; Window::set_content_wash): 0 is grey, 1 is no wash. Clamped to [0, 1] where it is used. Default: ``{0.12}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:class:: ThemeEngine final

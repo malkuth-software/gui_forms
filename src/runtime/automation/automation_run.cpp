@@ -154,13 +154,6 @@ AutomationRun::AutomationRun(AutomationLaunch launch)
       core_(control_) {
     presenter_.bind_control(&control_);
     presenter_.set_unsigned(launch_.appearance_review);
-#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
-    // The in-use sign's candidate looks, for the owner's mockups (MCP round
-    // 1); removed once one is chosen.
-    const std::string sign = environment_value("GUI_FORMS_MCP_SIGN");
-    if (sign == "marching") presenter_.set_sign_variant(SignVariant::marching);
-    if (sign == "pulsing") presenter_.set_sign_variant(SignVariant::pulsing);
-#endif
 }
 
 AutomationRun::~AutomationRun() {

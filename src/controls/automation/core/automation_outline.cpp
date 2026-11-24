@@ -1,5 +1,9 @@
 #include "automation_internal.hpp"
 
+#include "../marks/automation_marks_internal.hpp"
+
+#include "gui_forms/window.hpp"
+
 #include <algorithm>
 #include <array>
 #include <charconv>
@@ -48,6 +52,11 @@ FlatNode flat_node_of(const SemanticNode& node, std::size_t depth, std::size_t p
     flat.modal = node.modal;
     flat.bounds = node.bounds;
     flat.actions = node.actions;
+    flat.has_popup = node.has_popup;
+    if (const std::size_t* const position = node.position_in_set.value()) flat.position_in_set = *position;
+    if (const std::size_t* const size = node.set_size.value()) flat.set_size = *size;
+    flat.opens_dialog = (!node.stable_id.empty() && opens_dialog_mark(node.stable_id, flat.dialog_tool)) ||
+                        (!node.has_popup && names_an_opener(node.name));
     flat.depth = depth;
     flat.parent = parent;
     return flat;
@@ -85,7 +94,8 @@ void append_number(double value, std::string& text) {
 }
 
 // Text quoted for an outline line: quotes, backslashes and line breaks
-// escaped, and cut at 200 bytes on a character boundary.
+// escaped, and cut at 200 bytes on a character boundary, saying so (the
+// text tool reads the whole of it).
 void append_quoted(std::string_view value, std::string& text) {
     constexpr std::size_t maximum_quoted_bytes = 200U;
     std::size_t length = value.size();
@@ -114,6 +124,7 @@ void append_quoted(std::string_view value, std::string& text) {
     }
     if (cut) text += "...";
     text += '"';
+    if (cut) text += " (cut at 200 bytes: text reads all " + std::to_string(value.size()) + ")";
 }
 
 // The states an outline line names, without "enabled" and "visible" (the
@@ -149,6 +160,29 @@ void append_states(const FlatNode& node, std::string& text) {
     if (node.modal) text += " modal";
     if (node.hovered) text += " hovered";
     if (node.pressed) text += " pressed";
+    // An opener needs the user (MCP round 1): the dialog it opens is the
+    // user's to answer.
+    if (node.opens_dialog) text += " needs_user";
+}
+
+// The node's actions beyond focus (focusable says that), and what its
+// press opens.
+void append_actions(const FlatNode& node, std::string& text) {
+    std::string listed{};
+    for (const SemanticAction action : node.actions) {
+        if (action == SemanticAction::focus) continue;
+        if (!listed.empty()) listed += ',';
+        listed += semantic_action_name(action);
+    }
+    if (!listed.empty()) text += " actions=" + listed;
+    const bool presses = std::find(node.actions.begin(), node.actions.end(), SemanticAction::press) !=
+                         node.actions.end();
+    if (node.opens_dialog) {
+        text += presses ? " press=opens_dialog" : " opens=dialog";
+        if (!node.dialog_tool.empty()) text += " instead=" + node.dialog_tool;
+    } else if (node.has_popup) {
+        text += presses ? " press=opens_popup" : " opens=popup";
+    }
 }
 
 char lower(char character) noexcept {
@@ -205,14 +239,22 @@ std::size_t focused_node(std::span<const FlatNode> nodes) noexcept {
 // Appends the subtrees of `nodes` whose keys `other` lacks (and whose
 // parents it has), as added or removed lines.
 void append_subtree_changes(std::span<const FlatNode> nodes, const NodeIndex& other, const char* label,
-                            std::size_t maximum_entries, std::string& text) {
+                            std::size_t maximum_entries, bool terse, std::string& text) {
     std::size_t shown = 0U;
     std::size_t more = 0U;
+    std::size_t subtrees = 0U;
+    std::size_t total = 0U;
     std::size_t index = 0U;
     while (index < nodes.size()) {
         const FlatNode& node = nodes[index];
         if (other.find(node_key(node)) != other.end()) {
             ++index;
+            continue;
+        }
+        ++subtrees;
+        total += node.subtree_size;
+        if (terse) {
+            index += node.subtree_size;
             continue;
         }
         if (shown < maximum_entries) {
@@ -227,9 +269,38 @@ void append_subtree_changes(std::span<const FlatNode> nodes, const NodeIndex& ot
         index += node.subtree_size;
     }
     if (more != 0U) text += std::string(label) + "... and " + std::to_string(more) + " more\n";
+    if (terse && subtrees != 0U) {
+        text += std::string(label) + std::to_string(subtrees) + (subtrees == 1U ? " subtree, " : " subtrees, ") +
+                std::to_string(total) + (total == 1U ? " node\n" : " nodes\n");
+    }
 }
 
 } // namespace
+
+void append_node_actions(const FlatNode& node, std::string& text) {
+    append_actions(node, text);
+}
+
+bool contains_any_case(std::string_view haystack, std::string_view needle) noexcept {
+    const bool found = contains_text(haystack, needle);
+    return found;
+}
+
+bool known_role_name(std::string_view name) noexcept {
+    for (std::size_t index = 0U; index < semantic_role_count; ++index) {
+        if (name == semantic_role_name(static_cast<SemanticRole>(index))) return true;
+    }
+    return false;
+}
+
+std::string role_names() {
+    std::string names{};
+    for (std::size_t index = 0U; index < semantic_role_count; ++index) {
+        if (!names.empty()) names += ", ";
+        names += semantic_role_name(static_cast<SemanticRole>(index));
+    }
+    return names;
+}
 
 void flatten_snapshot(const SemanticSnapshot& snapshot, const InteractionSnapshot& interaction,
                       std::vector<FlatNode>& nodes) {
@@ -310,6 +381,34 @@ void append_node_line(const FlatNode& node, bool with_bounds, std::string& text)
     }
 }
 
+namespace {
+
+// After a parent's line: the rows its children show of their whole set,
+// when they are fewer (a virtualised list), and how to reach the rest.
+void append_rows_shown(std::span<const FlatNode> nodes, std::size_t parent, std::string& text) {
+    std::size_t first = 0U;
+    std::size_t last = 0U;
+    std::size_t total = 0U;
+    std::size_t shown = 0U;
+    std::string example{};
+    const std::size_t end = parent + nodes[parent].subtree_size;
+    for (std::size_t index = parent + 1U; index < end; index += nodes[index].subtree_size) {
+        const FlatNode& child = nodes[index];
+        if (child.position_in_set == 0U || child.set_size == 0U) continue;
+        if (first == 0U || child.position_in_set < first) first = child.position_in_set;
+        if (child.position_in_set > last) last = child.position_in_set;
+        total = std::max(total, child.set_size);
+        if (example.empty()) example = node_reference(child);
+        ++shown;
+    }
+    if (shown == 0U || shown >= total) return;
+    text += " rows=" + std::to_string(first) + ".." + std::to_string(last) + "/" + std::to_string(total) + " (" +
+            std::to_string(total - shown) + " more rows not shown: act on a row by its ID, as " + example +
+            " is named, even when it is not shown)";
+}
+
+} // namespace
+
 void append_outline(std::span<const FlatNode> nodes, const OutlineOptions& options, std::string& text) {
     std::size_t first = 0U;
     std::size_t end = nodes.size();
@@ -343,6 +442,8 @@ void append_outline(std::span<const FlatNode> nodes, const OutlineOptions& optio
         const FlatNode& node = nodes[index];
         text.append(2U * (node.depth - base_depth + 1U), ' ');
         append_node_line(node, options.with_bounds, text);
+        if (options.with_actions) append_actions(node, text);
+        append_rows_shown(nodes, index, text);
         text += '\n';
         if (node.stable_id.empty()) ++without_identity;
         ++written;
@@ -357,8 +458,31 @@ void append_outline(std::span<const FlatNode> nodes, const OutlineOptions& optio
     }
 }
 
-void append_diff(std::span<const FlatNode> before, std::span<const FlatNode> after, std::size_t maximum_entries,
+bool names_an_opener(std::string_view name) noexcept {
+    constexpr std::string_view dots = "...";
+    constexpr std::string_view ellipsis = "\xE2\x80\xA6";
+    const bool dotted = name.size() > dots.size() && name.substr(name.size() - dots.size()) == dots;
+    const bool ellipsed = name.size() > ellipsis.size() && name.substr(name.size() - ellipsis.size()) == ellipsis;
+    return dotted || ellipsed;
+}
+
+std::string modal_scope_of(const Window& window) {
+    const Control::Ptr scope = window.active_focus_scope_root();
+    if (!scope || scope == window.root()) return std::string{};
+    // A modal dialog at or above the scope's root (a menu's scope is not
+    // modal, and leaves the tree whole).
+    for (Control::Ptr ancestor = scope; ancestor != nullptr; ancestor = (*ancestor).parent()) {
+        const SemanticDescriptor descriptor = (*ancestor).semantic_descriptor();
+        if (descriptor.role != SemanticRole::dialog || !descriptor.modal) continue;
+        const std::string_view id = (*ancestor).stable_id().value();
+        return id.empty() ? std::string("dialog") : std::string(id);
+    }
+    return std::string{};
+}
+
+void append_diff(std::span<const FlatNode> before, std::span<const FlatNode> after, const DiffOptions& options,
                  std::string& text) {
+    const std::size_t maximum_entries = options.maximum_entries;
     NodeIndex before_index{};
     NodeIndex after_index{};
     index_nodes(before, before_index);
@@ -401,6 +525,10 @@ void append_diff(std::span<const FlatNode> before, std::span<const FlatNode> aft
             }
         }
         if (entry.empty()) continue;
+        if (options.terse) {
+            ++more;
+            continue;
+        }
         if (changed < maximum_entries) {
             if (changed != 0U) changes += ';';
             changes += ' ';
@@ -415,9 +543,26 @@ void append_diff(std::span<const FlatNode> before, std::span<const FlatNode> aft
         text += "changed:" + changes;
         if (more != 0U) text += "; ... and " + std::to_string(more) + " more";
         text += '\n';
+    } else if (options.terse && more != 0U) {
+        text += "changed: " + std::to_string(more) + (more == 1U ? " node\n" : " nodes\n");
     }
-    append_subtree_changes(after, before_index, "added: ", maximum_entries, text);
-    append_subtree_changes(before, after_index, "removed: ", maximum_entries, text);
+    // A modal that opened scopes the tree to itself: what it hides is
+    // obscured, not removed; when it closes, the hidden nodes come back
+    // (MCP round 1).
+    const bool scoped = options.scope_before != options.scope_after;
+    const char* removed_label = "removed: ";
+    const char* added_label = "added: ";
+    if (scoped && !options.scope_after.empty()) {
+        text += "a modal now scopes the tree: [" + options.scope_after +
+                "]; the nodes behind it are obscured, not removed\n";
+        removed_label = "obscured: ";
+    }
+    if (scoped && !options.scope_before.empty()) {
+        text += "the modal [" + options.scope_before + "] no longer scopes the tree\n";
+        added_label = "revealed: ";
+    }
+    append_subtree_changes(after, before_index, added_label, maximum_entries, options.terse, text);
+    append_subtree_changes(before, after_index, removed_label, maximum_entries, options.terse, text);
     const std::size_t focus_before = focused_node(before);
     const std::size_t focus_after = focused_node(after);
     const std::string key_before = focus_before == no_parent ? std::string{} : node_key(before[focus_before]);

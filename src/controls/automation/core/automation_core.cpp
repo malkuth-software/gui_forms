@@ -7,6 +7,8 @@
 
 #include "gui_forms/automation/marks/automation_marks.hpp"
 #include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/controls/content_surface.hpp"
+#include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/host/session/host_session.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
@@ -58,6 +60,31 @@ ToolSpec built_in(const char* name, const char* title, const char* description, 
     return spec;
 }
 
+// The batch's schema: a step is a tool step, whose other members are that
+// tool's arguments (checked against its schema when it runs), or an
+// expect guard with exactly these members.
+std::string batch_schema() {
+    std::string schema =
+        "{\"type\":\"object\",\"properties\":{\"steps\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":64,"
+        // One step schema, since the MCP server takes no anyOf (STXlib's
+        // supported subset): a tool step names tool and carries that tool's
+        // arguments beside it; an expect step names expect and takes only
+        // the members below, which the core checks (expect_member).
+        "\"items\":{\"type\":\"object\",\"minProperties\":1,\"description\":\"a tool step {tool, ...that "
+        "tool's arguments} or an expect step {expect, window, target, within, state, value, exists, drawn}\","
+        "\"properties\":{\"tool\":{\"type\":\"string\"},"
+        "\"expect\":{\"type\":\"string\",\"enum\":[\"node\",\"visual\"]},";
+    schema += window_property;
+    schema += ",";
+    schema += target_properties;
+    schema += ",\"state\":{\"type\":\"string\",\"description\":\"a state the node has, or -state for one it lacks\"},"
+              "\"value\":{\"type\":\"string\"},\"exists\":{\"type\":\"boolean\"},"
+              "\"drawn\":{\"type\":\"boolean\",\"description\":\"visual: whether the state is drawn\"}}}},"
+              "\"stop_on_error\":{\"type\":\"boolean\"},\"terse\":{\"type\":\"boolean\"}},\"required\":[\"steps\"],"
+              "\"additionalProperties\":false}";
+    return schema;
+}
+
 // `sections` (the inspect sections, built-in and the program's) as a JSON
 // enumeration's items, and as a list for a description.
 void section_lists(std::span<const InspectSectionEntry> sections, std::string& items, std::string& names) {
@@ -76,19 +103,40 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
                              ToolAccess::read_only));
     specs.push_back(built_in(
         "snapshot", "Snapshot",
-        "The control tree as an outline: role, name, [stable ID], states, value. Narrow it with root and filter.",
+        "The control tree as an outline: role, name, [stable ID], states, value, the actions each node takes and "
+        "what its press opens (needs_user: it opens a dialog the user answers; instead= names a tool that does the "
+        "same without one). A virtualised list says how many rows it does not show. Narrow it with root and filter; "
+        "actions false leaves the actions out.",
         object_schema("\"root\":{\"type\":\"string\"},\"filter\":{\"type\":\"string\"},"
-                      "\"limit\":{\"type\":\"integer\",\"minimum\":1},\"bounds\":{\"type\":\"boolean\"}"),
+                      "\"limit\":{\"type\":\"integer\",\"minimum\":1},\"bounds\":{\"type\":\"boolean\"},"
+                      "\"actions\":{\"type\":\"boolean\"}"),
+        ToolAccess::read_only));
+    specs.push_back(built_in(
+        "find", "Find",
+        "Nodes by role, name (any case, part of it) and state, each with its [stable ID] and parent; cheaper than a "
+        "snapshot when you know what you look for.",
+        object_schema("\"role\":{\"type\":\"string\"},\"name\":{\"type\":\"string\"},"
+                      "\"state\":{\"type\":\"string\"},\"within\":{\"type\":\"string\"},"
+                      "\"limit\":{\"type\":\"integer\",\"minimum\":1}"),
         ToolAccess::read_only));
     specs.push_back(built_in(
         "act", "Act",
         "A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, "
-        "show_menu, close) or invoke_command on a command's stable ID. Waits for idle and replies with what changed.",
+        "show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list "
+        "does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), "
+        "never submitted. Waits for idle and replies with what changed; terse gives counts.",
         object_schema(targets +
                       ",\"action\":{\"type\":\"string\",\"enum\":[\"press\",\"select\",\"expand\",\"collapse\","
                       "\"focus\",\"set_value\",\"increment\",\"decrement\",\"show_menu\",\"close\","
-                      "\"invoke_command\"]},\"value\":{\"type\":\"string\"}"),
+                      "\"scroll_into_view\",\"invoke_command\"]},\"value\":{\"type\":\"string\"},"
+                      "\"terse\":{\"type\":\"boolean\"}"),
         ToolAccess::acting));
+    specs.push_back(built_in(
+        "reset", "Reset",
+        "Puts the interface back in order: closes the dialogs you opened (as Cancel), popups and menus, tooltips "
+        "and drags, releases pointer capture and a hold, and stops content that froze; replies with what it reset "
+        "and what it left (a dialog the user opened).",
+        object_schema(std::string_view{}), ToolAccess::acting));
     specs.push_back(built_in(
         "pointer", "Pointer",
         "Pointer input through the program's own input path: move, hover, click, double_click, right_click, down, "
@@ -100,7 +148,7 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
                       "\"path\":{\"type\":\"array\",\"items\":{\"type\":\"object\"},\"maxItems\":256},"
                       "\"button\":{\"type\":\"string\",\"enum\":[\"primary\",\"secondary\",\"middle\"]},"
                       "\"modifiers\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}},"
-                      "\"delta\":{\"type\":\"object\"}"),
+                      "\"delta\":{\"type\":\"object\"},\"terse\":{\"type\":\"boolean\"}"),
         ToolAccess::acting));
     specs.push_back(built_in(
         "keyboard", "Keyboard",
@@ -108,11 +156,13 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "target focused first.",
         object_schema(targets +
                       ",\"keys\":{\"type\":[\"string\",\"array\"],\"items\":{\"type\":\"string\"}},"
-                      "\"text\":{\"type\":\"string\"},\"composition\":{\"type\":\"object\"}"),
+                      "\"text\":{\"type\":\"string\"},\"composition\":{\"type\":\"object\"},"
+                      "\"terse\":{\"type\":\"boolean\"}"),
         ToolAccess::acting));
     specs.push_back(built_in(
         "text", "Text",
-        "A text control's value, selection and lines; with select, sets the selection (UTF-8 byte offsets).",
+        "A node's whole text: a text control's value, selection and lines (with select, sets the selection, UTF-8 "
+        "byte offsets); any other node's full name, value and description, such as a label cut in the outline.",
         object_schema(targets + ",\"select\":{\"type\":\"object\",\"properties\":{\"anchor\":{\"type\":\"integer\","
                                 "\"minimum\":0},\"caret\":{\"type\":\"integer\",\"minimum\":0}},"
                                 "\"required\":[\"anchor\",\"caret\"]}"),
@@ -151,12 +201,10 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         ToolAccess::read_only));
     specs.push_back(built_in(
         "batch", "Batch",
-        "Several steps in one call, each {\"tool\": name, ...arguments} or {\"expect\": \"node\"|\"visual\", ...}, "
-        "with one combined reply; stops at the first failure.",
-        "{\"type\":\"object\",\"properties\":{\"steps\":{\"type\":\"array\",\"items\":{\"type\":\"object\"},"
-        "\"minItems\":1,\"maxItems\":64},\"stop_on_error\":{\"type\":\"boolean\"}},\"required\":[\"steps\"],"
-        "\"additionalProperties\":false}",
-        ToolAccess::acting));
+        "Several steps in one call with one combined reply: each step is {\"tool\": name, ...that tool's arguments} "
+        "or an expect guard {\"expect\": \"node\"|\"visual\", target, state, value, exists, drawn}; the batch stops at "
+        "the first failure or unmet expectation. terse gives each act's changes as counts.",
+        batch_schema(), ToolAccess::acting));
     specs.push_back(built_in(
         "control", "Control",
         "direct_begin and direct_end hold the interface with a take-back popup (launched --model-directed); "
@@ -170,7 +218,8 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
 bool built_in_name(std::string_view name) noexcept {
     const bool known = name == "windows" || name == "snapshot" || name == "act" || name == "pointer" ||
                        name == "keyboard" || name == "text" || name == "wait" || name == "capture" ||
-                       name == "inspect" || name == "batch" || name == "control";
+                       name == "inspect" || name == "batch" || name == "control" || name == "find" ||
+                       name == "reset";
     return known;
 }
 
@@ -303,6 +352,18 @@ bool deliver_input(Window& window, HostEventPayload payload, std::uint64_t times
     return false;
 }
 
+// Escape pressed and released: how a user cancels a dialog, and how a model
+// closes one it opened (it never submits one).
+void append_cancel_keys(std::vector<HostEventPayload>& events) {
+    KeyEvent down{};
+    down.action = KeyAction::down;
+    down.physical_key = PhysicalKey::escape;
+    events.push_back(down);
+    KeyEvent up = down;
+    up.action = KeyAction::up;
+    events.push_back(up);
+}
+
 // Performs a prepared act on the UI thread, at its own dispatcher turn.
 // Returns whether the window took it; `detail` says why not.
 bool perform_act(Window& window, const PreparedAct& act, const ClientIdentity& client, ActOutcome& outcome) {
@@ -348,6 +409,20 @@ bool perform_act(Window& window, const PreparedAct& act, const ClientIdentity& c
         if (result != SemanticTextResult::done) {
             outcome.detail = std::string("the selection was refused: ") + semantic_text_result_name(result);
             return false;
+        }
+        return true;
+    }
+    case ActKind::reveal: {
+        const Control::Ptr target = window.find(act.command_id);
+        if (!target) {
+            outcome.detail = "the control is gone";
+            return false;
+        }
+        // Every scrolling ancestor brings it into view, the nearest first,
+        // so a list inside a scrolled page is reached as well.
+        for (Control::Ptr ancestor = (*target).parent(); ancestor != nullptr; ancestor = (*ancestor).parent()) {
+            ScrollableControl* const scroller = dynamic_cast<ScrollableControl*>(ancestor.get());
+            if (scroller != nullptr) (*scroller).scroll_control_into_view(target);
         }
         return true;
     }
@@ -701,6 +776,46 @@ void AutomationCore::fill_tool_specs(std::vector<ToolSpec>& specs) {
     }
 }
 
+// The input schema of the tool named `tool`, into `schema`: a built-in
+// tool's, a program tool's or a command's; false for no such tool.
+bool tool_schema(std::string_view tool, std::string& schema) {
+    if (built_in_name(tool)) {
+        std::vector<InspectSectionEntry> sections{};
+        AutomationCore::tools().fill_inspect_sections(sections);
+        std::vector<ToolSpec> specs{};
+        append_built_in_specs(specs, sections);
+        for (const ToolSpec& spec : specs) {
+            if (spec.name != tool) continue;
+            schema = spec.input_schema;
+            return true;
+        }
+        return false;
+    }
+    if (tool.compare(0U, command_tool_prefix.size(), command_tool_prefix) == 0 && find_command_tool(tool) != nullptr) {
+        schema = object_schema(std::string_view{});
+        return true;
+    }
+    ToolEntry entry{};
+    if (!AutomationCore::tools().find(tool, entry)) return false;
+    schema = entry.spec.input_schema;
+    return true;
+}
+
+// The members an expect step takes.
+bool expect_member(std::string_view name, bool visual) noexcept {
+    const bool member = name == "expect" || name == "window" || name == "target" || name == "within" ||
+                        name == "state" || name == "value" || name == "exists" || (visual && name == "drawn");
+    return member;
+}
+
+// Whether `target` names a row of the list `list` by the list's own
+// numbering ("<list>.<part>..."): the longest such list wins.
+bool names_a_row_of(std::string_view target, std::string_view list) noexcept {
+    const bool row = !list.empty() && target.size() > list.size() + 1U && target.substr(0U, list.size()) == list &&
+                     target[list.size()] == '.';
+    return row;
+}
+
 // ---- running calls ---------------------------------------------------------------------------
 
 struct CoreAccess final {
@@ -733,6 +848,13 @@ struct CoreAccess final {
     StepOutcome prepare_batch(RunningCall& call, FrameTime now);
     StepOutcome control_tool(RunningCall& call, FrameTime now);
     StepOutcome windows_tool();
+    StepOutcome find_tool(RunningCall& call, Window& window);
+    StepOutcome reset_tool(RunningCall& call, FrameTime now);
+    // After an act: a dialog that it opened is the model's to close, never
+    // to submit; the reply says so.
+    void note_dialog_opened(RunningCall& call, Window& window, std::span<const FlatNode> after, std::string& text);
+    // Whether `dialog` is open and the model's own (one its act opened).
+    [[nodiscard]] bool model_dialog(const OpenDialog& dialog) const;
     StepOutcome registry_tool(RunningCall& call, const ToolEntry& entry, std::string_view arguments_json,
                               FrameTime now);
 
@@ -769,15 +891,232 @@ StepOutcome CoreAccess::windows_tool() {
     return StepOutcome::finished(ToolReply::success(std::move(text)));
 }
 
+void CoreAccess::note_dialog_opened(RunningCall& call, Window& window, std::span<const FlatNode> after,
+                                    std::string& text) {
+    const OpenDialog dialog = find_open_dialog(core, window, after);
+    if (!dialog.open || dialog.id == call.dialog_before) return;
+    if (dialog.drivable) {
+        text += "a dialog opened: [" + dialog.id + "]; the program lets a model answer it\n";
+        return;
+    }
+    if (dialog.id == "native") {
+        text += "a system dialog opened: it needs the user, and no tool can close it; ask the user to answer it\n";
+    } else {
+        std::vector<std::string>& opened = core.model_dialogs_;
+        if (std::find(opened.begin(), opened.end(), dialog.id) == opened.end()) opened.push_back(dialog.id);
+        text += "a dialog opened: [" + dialog.id +
+                "]; it needs the user: ask them to answer it, or close it as Cancel (act close on [" + dialog.id +
+                "], or reset); a model never submits a dialog\n";
+    }
+    if (!call.act.dialog_tool.empty()) {
+        text += "next time, the tool " + call.act.dialog_tool + " does this with arguments and no dialog\n";
+    }
+}
+
+StepOutcome CoreAccess::find_tool(RunningCall& call, Window& window) {
+    std::vector<FlatNode> nodes{};
+    core.flatten_window(window, nodes);
+    const std::optional<std::string> role = detail::text_member(call.arguments, "role");
+    const std::optional<std::string> name = detail::text_member(call.arguments, "name");
+    const std::optional<std::string> state = detail::text_member(call.arguments, "state");
+    const std::optional<std::string> within = detail::text_member(call.arguments, "within");
+    if (!role.has_value() && !name.has_value() && !state.has_value()) {
+        return StepOutcome::finished(
+            ToolReply::failure(ToolError::invalid_arguments, "find names a role, a name or a state"));
+    }
+    if (role.has_value() && !detail::known_role_name(*role)) {
+        return StepOutcome::finished(ToolReply::failure(ToolError::invalid_arguments, "no role " + *role,
+                                                        "roles: " + detail::role_names()));
+    }
+    std::size_t first = 0U;
+    std::size_t end = nodes.size();
+    if (within.has_value()) {
+        const detail::ResolvedTarget scope = detail::resolve_target(nodes, *within, std::string_view{});
+        if (scope.resolution != detail::Resolution::found) {
+            return StepOutcome::finished(ToolReply::failure(ToolError::not_found, "no single node [" + *within + "]",
+                                                            scope.hint));
+        }
+        first = scope.index;
+        end = scope.index + nodes[scope.index].subtree_size;
+    }
+    const std::optional<double> limit = detail::number_member(call.arguments, "limit");
+    std::size_t maximum = core.settings().default_node_limit;
+    if (limit.has_value() && *limit >= 1.0) {
+        maximum = std::min(static_cast<std::size_t>(*limit), core.settings().maximum_node_limit);
+    }
+    std::string text{};
+    std::size_t found = 0U;
+    for (std::size_t index = first; index < end; ++index) {
+        const FlatNode& node = nodes[index];
+        if (role.has_value() && *role != semantic_role_name(node.role)) continue;
+        if (name.has_value() && !detail::contains_any_case(node.name, *name)) continue;
+        if (state.has_value()) {
+            NodeCondition condition{};
+            condition.state = *state;
+            condition.target = node.stable_id.empty() ? "#r" + std::to_string(node.runtime_id) : node.stable_id;
+            std::string observed{};
+            std::vector<FlatNode> single(1U, node);
+            single[0].parent = no_parent;
+            if (!detail::condition_holds(single, condition, observed)) continue;
+        }
+        ++found;
+        if (found > maximum) continue;
+        detail::append_node_line(node, false, text);
+        detail::append_node_actions(node, text);
+        text += node.parent == no_parent ? std::string(" in the window") : " in " + detail::node_reference(nodes[node.parent]);
+        text += '\n';
+    }
+    if (found == 0U) {
+        return StepOutcome::finished(ToolReply::success("no node matches; a snapshot shows the whole tree"));
+    }
+    if (found > maximum) {
+        text += "... " + std::to_string(found - maximum) + " more matches not shown (limit " + std::to_string(maximum) +
+                ")\n";
+    }
+    return StepOutcome::finished(ToolReply::success(std::move(text)));
+}
+
+namespace {
+
+// The controls of `control`'s subtree that are content surfaces whose
+// content froze (stale), into `stale`. An explicit work list: no recursion.
+void fill_stale_surfaces(const Control::Ptr& control, std::vector<std::shared_ptr<ContentSurface>>& stale) {
+    std::vector<Control::Ptr> work{control};
+    while (!work.empty()) {
+        const Control::Ptr current = work.back();
+        work.pop_back();
+        if (!current) continue;
+        std::shared_ptr<ContentSurface> surface = std::dynamic_pointer_cast<ContentSurface>(current);
+        if (surface && (*surface).status() == ContentSurfaceStatus::stale) stale.push_back(std::move(surface));
+        for (std::size_t index = 0U; index < (*current).child_count(); ++index) work.push_back((*current).child_at(index));
+    }
+}
+
+} // namespace
+
+StepOutcome CoreAccess::reset_tool(RunningCall& call, FrameTime now) {
+    std::vector<Window*> windows{};
+    const std::optional<std::string> named = detail::text_member(call.arguments, "window");
+    if (named.has_value()) {
+        ToolReply refusal{};
+        Window* const window = call_window(call, refusal);
+        if (window == nullptr) return StepOutcome::finished(std::move(refusal));
+        windows.push_back(window);
+    } else {
+        core.fill_windows(windows);
+    }
+    std::string done{};
+    std::string left{};
+    AutomationControl& control = core.control();
+    if (control.state() != ControlState::user_control) {
+        control.end_hold();
+        done += "the hold on the user's input ended\n";
+    }
+    for (Window* const window : windows) {
+        const std::string window_id = core.window_stable_id(*window);
+        std::vector<FlatNode> nodes{};
+        core.flatten_window(*window, nodes);
+        // Dialogs: the model's own close as Cancel; the user's stay.
+        const OpenDialog dialog = find_open_dialog(core, *window, nodes);
+        if (dialog.open && dialog.window == window && !dialog.drivable) {
+            if (model_dialog(dialog)) {
+                // Escape, as the user cancels; closed when the dialog is gone.
+                std::vector<HostEventPayload> keys{};
+                append_cancel_keys(keys);
+                const std::uint64_t pressed = detail::nanoseconds_of(now);
+                for (const HostEventPayload& key : keys) static_cast<void>(deliver_input(*window, key, pressed));
+                core.flatten_window(*window, nodes);
+                const OpenDialog after = find_open_dialog(core, *window, nodes);
+                const bool closed = !(after.open && after.id == dialog.id);
+                if (closed) {
+                    done += "closed the dialog [" + dialog.id + "] as Cancel\n";
+                } else {
+                    left += "the dialog [" + dialog.id + "] did not close: ask the user to close it\n";
+                }
+            } else {
+                left += "left the dialog [" + dialog.id + "]: the user opened it\n";
+            }
+        } else if (dialog.open && dialog.id == "native" && window == windows.front()) {
+            left += "a system dialog is open: only the user can answer it\n";
+        }
+        // Popups and menus: what is expanded and opens a popup collapses,
+        // the innermost first; whatever popup window is left closes as when
+        // the window moves.
+        core.flatten_window(*window, nodes);
+        std::size_t collapsed = 0U;
+        for (std::size_t index = nodes.size(); index > 0U; --index) {
+            const FlatNode& node = nodes[index - 1U];
+            if (!node.has_popup || !has_semantic_state(node.states, SemanticState::expanded)) continue;
+            if (std::find(node.actions.begin(), node.actions.end(), SemanticAction::collapse) == node.actions.end()) {
+                continue;
+            }
+            const bool performed = (*window).perform_semantic_action(
+                RuntimeId{node.control_runtime_id}, node.is_virtual ? node.stable_id : std::string{},
+                SemanticAction::collapse);
+            if (performed) ++collapsed;
+        }
+        std::size_t popups = 0U;
+        for (std::size_t index = 0U; index < Window::maximum_popup_windows; ++index) {
+            if ((*window).shown_popup_window(index).model != nullptr) ++popups;
+        }
+        if (popups != 0U) (*window).report_frame_moved();
+        if (collapsed + popups != 0U) {
+            done += "closed " + std::to_string(collapsed + popups) + " popups and menus in [" + window_id + "]\n";
+        }
+        if ((*window).tool_tip_visible()) {
+            (*window).hide_tool_tip();
+            done += "hid the tooltip in [" + window_id + "]\n";
+        }
+        // Input left held: buttons up, capture released, a drag cancelled.
+        const InteractionSnapshot interaction = (*window).interaction_snapshot();
+        const std::uint64_t time = detail::nanoseconds_of(now);
+        if (interaction.primary_down) {
+            static_cast<void>(deliver_input(*window,
+                                            pointer_event(PointerAction::up, PointerButton::primary,
+                                                          interaction.pointer_position, Modifier::none, time, 1U),
+                                            time));
+            done += "released the held primary button in [" + window_id + "]\n";
+        }
+        if (interaction.secondary_down) {
+            static_cast<void>(deliver_input(*window,
+                                            pointer_event(PointerAction::up, PointerButton::secondary,
+                                                          interaction.pointer_position, Modifier::none, time, 1U),
+                                            time));
+            done += "released the held secondary button in [" + window_id + "]\n";
+        }
+        if ((*window).captured_control()) {
+            (*window).release_pointer();
+            done += "released pointer capture in [" + window_id + "]\n";
+        }
+        (*window).cancel_drag();
+        // Content that froze stops; its program may start it again.
+        std::vector<std::shared_ptr<ContentSurface>> stale{};
+        fill_stale_surfaces((*window).root(), stale);
+        for (const std::shared_ptr<ContentSurface>& surface : stale) {
+            (*surface).terminate();
+            const std::string_view id = (*surface).stable_id().value();
+            done += "stopped frozen content [" + (id.empty() ? std::string("content") : std::string(id)) + "] in [" +
+                    window_id + "]\n";
+        }
+    }
+    std::string text = done.empty() ? std::string("ok: nothing needed resetting\n") : "ok: reset\n" + done;
+    text += left;
+    return StepOutcome::finished(ToolReply::success(std::move(text)));
+}
+
 bool CoreAccess::resolve_for_act(RunningCall& call, Window& window, std::vector<FlatNode>& nodes, bool required,
                                  std::size_t& index, ToolReply& reply) {
     core.flatten_window(window, nodes);
     index = no_parent;
     const OpenDialog dialog = find_open_dialog(core, window, nodes);
     if (dialog.open && (!dialog.drivable || (dialog.window != nullptr && dialog.window != &window))) {
-        reply = ToolReply::failure(ToolError::dialog_open, "a dialog is open: [" + dialog.id + "]",
-                                   dialog.drivable ? "act in the dialog's window [" + dialog.id + "]"
-                                                   : "read it with snapshot and ask the user to answer it");
+        std::string hint = dialog.drivable ? "act in the dialog's window [" + dialog.id + "]"
+                                           : "read it with snapshot and ask the user to answer it";
+        if (!dialog.drivable && model_dialog(dialog)) {
+            hint = "you opened it: close it as Cancel (act close on [" + dialog.id +
+                   "], or reset); a model never submits a dialog";
+        }
+        reply = ToolReply::failure(ToolError::dialog_open, "a dialog is open: [" + dialog.id + "]", hint);
         return false;
     }
     const std::optional<std::string> target = detail::text_member(call.arguments, "target");
@@ -793,8 +1132,26 @@ bool CoreAccess::resolve_for_act(RunningCall& call, Window& window, std::vector<
         return false;
     }
     if (resolved.resolution == detail::Resolution::not_found) {
-        reply = ToolReply::failure(ToolError::not_found, "no node [" + *target + "]", resolved.hint);
-        return false;
+        // A row a virtualised list does not show: reached through the list
+        // that numbers it (MCP round 1), when the act is one a row takes.
+        const std::optional<std::string> action = detail::text_member(call.arguments, "action");
+        const bool row_action = call.tool == "act" && action.has_value() &&
+                                (*action == "press" || *action == "select" || *action == "focus" ||
+                                 *action == "expand" || *action == "collapse");
+        std::size_t owner = no_parent;
+        for (std::size_t candidate = 0U; row_action && candidate < nodes.size(); ++candidate) {
+            const FlatNode& list = nodes[candidate];
+            const bool named = within.has_value() ? list.stable_id == *within : names_a_row_of(*target, list.stable_id);
+            if (!named || list.is_virtual) continue;
+            if (owner == no_parent || list.stable_id.size() > nodes[owner].stable_id.size()) owner = candidate;
+        }
+        if (owner == no_parent) {
+            reply = ToolReply::failure(ToolError::not_found, "no node [" + *target + "]", resolved.hint);
+            return false;
+        }
+        call.offscreen = true;
+        index = owner;
+        return true;
     }
     index = resolved.index;
     const FlatNode& node = nodes[index];
@@ -817,12 +1174,20 @@ bool CoreAccess::resolve_for_act(RunningCall& call, Window& window, std::vector<
         reply = ToolReply::failure(ToolError::disabled, detail::node_reference(node) + " is disabled");
         return false;
     }
-    if (!has_semantic_state(node.states, SemanticState::visible)) {
+    const std::optional<std::string> action = detail::text_member(call.arguments, "action");
+    const bool revealing = call.tool == "act" && action.has_value() && *action == "scroll_into_view";
+    if (!revealing && !has_semantic_state(node.states, SemanticState::visible)) {
         reply = ToolReply::failure(ToolError::not_visible, detail::node_reference(node) + " is not visible",
-                                   "scroll it into view or open its parent first");
+                                   "act scroll_into_view on it, or open its parent first");
         return false;
     }
     return true;
+}
+
+bool CoreAccess::model_dialog(const OpenDialog& dialog) const {
+    const std::vector<std::string>& opened = core.model_dialogs_;
+    const bool own = dialog.open && std::find(opened.begin(), opened.end(), dialog.id) != opened.end();
+    return own;
 }
 
 StepOutcome CoreAccess::prepare_act(RunningCall& call, Window& window, FrameTime now) {
@@ -840,18 +1205,70 @@ StepOutcome CoreAccess::prepare_act(RunningCall& call, Window& window, FrameTime
         }
         return prepare_command(call, window, *command, now);
     }
+    // Closing a dialog the model's own act opened, as Cancel (MCP round 1):
+    // the dialog's node may lie above the tree its scope shows.
+    if (*action_name == "close") {
+        const std::optional<std::string> target = detail::text_member(call.arguments, "target");
+        std::vector<FlatNode> nodes{};
+        core.flatten_window(window, nodes);
+        const OpenDialog dialog = find_open_dialog(core, window, nodes);
+        const Control::Ptr dialog_control =
+            target.has_value() && dialog.window == &window && *target == dialog.id ? window.find(dialog.id) : nullptr;
+        if (dialog_control && !dialog.drivable && model_dialog(dialog)) {
+            // Escape, as the user cancels: the dialog's own node lies
+            // outside its focus scope, where no semantic action reaches.
+            PreparedAct& act = call.act;
+            act.kind = ActKind::input;
+            append_cancel_keys(act.events);
+            act.summary = "close [" + dialog.id + "] (as Cancel: the dialog you opened)";
+            call.before = std::move(nodes);
+            return post_act(call, now);
+        }
+    }
+    if (*action_name == "scroll_into_view") {
+        std::vector<FlatNode> nodes{};
+        std::size_t index = no_parent;
+        ToolReply refusal{};
+        if (!resolve_for_act(call, window, nodes, true, index, refusal)) return StepOutcome::finished(std::move(refusal));
+        const FlatNode& node = nodes[index];
+        if (call.offscreen || node.is_virtual || node.stable_id.empty() || !window.find(node.stable_id)) {
+            return StepOutcome::finished(ToolReply::failure(
+                ToolError::unsupported_action, detail::node_reference(node) + " is not a control with a stable ID",
+                "a row comes into view when it is selected or focused by its ID"));
+        }
+        PreparedAct& act = call.act;
+        act.kind = ActKind::reveal;
+        act.command_id = node.stable_id;
+        act.summary = "scroll_into_view " + detail::node_reference(node);
+        call.before = std::move(nodes);
+        return post_act(call, now);
+    }
     const std::optional<SemanticAction> action = detail::parse_semantic_action(*action_name);
     if (!action.has_value()) {
         return StepOutcome::finished(
             ToolReply::failure(ToolError::invalid_arguments, "no action " + *action_name,
                                "press, select, expand, collapse, focus, set_value, increment, decrement, show_menu, "
-                               "close, invoke_command"));
+                               "close, scroll_into_view, invoke_command"));
     }
     std::vector<FlatNode> nodes{};
     std::size_t index = no_parent;
     ToolReply refusal{};
     if (!resolve_for_act(call, window, nodes, true, index, refusal)) return StepOutcome::finished(std::move(refusal));
     const FlatNode& node = nodes[index];
+    if (call.offscreen) {
+        // The row by its ID, through the list that numbers it; the list
+        // says whether it has such a row.
+        const std::string row = *detail::text_member(call.arguments, "target");
+        PreparedAct& act = call.act;
+        act.kind = ActKind::semantic;
+        act.control_runtime_id = node.control_runtime_id;
+        act.virtual_child = row;
+        act.action = *action;
+        act.destructive = window_destructive(window) || detail::action_destructive_mark(row, *action);
+        act.summary = *action_name + " [" + row + "] (a row " + detail::node_reference(node) + " does not show)";
+        call.before = std::move(nodes);
+        return consent_then_post(call, now);
+    }
     if (std::find(node.actions.begin(), node.actions.end(), *action) == node.actions.end()) {
         std::string actions{};
         for (const SemanticAction offered : node.actions) {
@@ -871,6 +1288,7 @@ StepOutcome CoreAccess::prepare_act(RunningCall& call, Window& window, FrameTime
     if (value.has_value()) act.value = *value;
     act.protected_target = node.protected_content();
     act.destructive = window_destructive(window) || detail::action_destructive_mark(node.stable_id, *action);
+    act.dialog_tool = node.dialog_tool;
     act.summary = *action_name + " " + detail::node_reference(node) + " (semantic action)";
     call.before = std::move(nodes);
     return consent_then_post(call, now);
@@ -894,6 +1312,7 @@ StepOutcome CoreAccess::prepare_command(RunningCall& call, Window& window, Comma
     act.kind = ActKind::command;
     act.command_id = command.stable_id();
     act.destructive = state.destructive || window_destructive(window);
+    static_cast<void>(detail::opens_dialog_mark(command.stable_id(), act.dialog_tool));
     act.summary = "invoke_command [" + command.stable_id() + "]";
     call.before = std::move(nodes);
     return consent_then_post(call, now);
@@ -1152,6 +1571,9 @@ StepOutcome CoreAccess::post_act(RunningCall& call, FrameTime now) {
     Window* const window = call.window.get();
     if (window == nullptr) return StepOutcome::finished(ToolReply::failure(ToolError::window_gone, "the window closed"));
     call.paint_passes_before = detail::paint_passes_of(*window);
+    const OpenDialog dialog = find_open_dialog(core, *window, call.before);
+    call.dialog_before = dialog.open ? dialog.id : std::string{};
+    call.scope_before = detail::modal_scope_of(*window);
     std::vector<Window*> windows{};
     core.fill_windows(windows);
     call.windows_before.clear();
@@ -1209,7 +1631,13 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
     if (window != nullptr) {
         std::vector<FlatNode> after{};
         core.flatten_window(*window, after);
-        detail::append_diff(call.before, after, core.settings().maximum_diff_entries, text);
+        detail::DiffOptions diff{};
+        diff.maximum_entries = core.settings().maximum_diff_entries;
+        diff.terse = call.terse;
+        diff.scope_before = call.scope_before;
+        diff.scope_after = detail::modal_scope_of(*window);
+        detail::append_diff(call.before, after, diff, text);
+        note_dialog_opened(call, *window, after, text);
     } else {
         text += "the window closed\n";
     }
@@ -1460,7 +1888,21 @@ StepOutcome CoreAccess::first_step(RunningCall& call, FrameTime now) {
     const std::string& tool = call.tool;
     std::string arguments_json{};
     detail::object_without(call.arguments, std::string_view{}, arguments_json);
+    // Unknown members are refused, not ignored (MCP round 1).
+    std::string schema{};
+    if (tool_schema(tool, schema)) {
+        std::string known{};
+        const std::string unknown = detail::unknown_members(call.arguments, schema, known);
+        if (!unknown.empty()) {
+            return StepOutcome::finished(ToolReply::failure(ToolError::invalid_arguments, tool + " takes no " + unknown,
+                                                            known.empty() ? std::string("it takes no arguments")
+                                                                          : "its arguments: " + known));
+        }
+    }
+    const std::optional<bool> terse = detail::boolean_member(call.arguments, "terse");
+    if (terse.has_value()) call.terse = *terse;
     if (tool == "windows") return windows_tool();
+    if (tool == "reset") return reset_tool(call, now);
     if (tool == "control") return control_tool(call, now);
     if (tool == "batch") return prepare_batch(call, now);
     if (built_in_name(tool)) {
@@ -1473,6 +1915,10 @@ StepOutcome CoreAccess::first_step(RunningCall& call, FrameTime now) {
             if (presenter != nullptr) (*presenter).activity(*window, AutomationActivity::reading);
         }
         if (tool == "snapshot") return StepOutcome::finished(detail::snapshot_tool(core, *window, call.arguments));
+        if (tool == "find") {
+            if (presenter != nullptr) (*presenter).activity(*window, AutomationActivity::reading);
+            return find_tool(call, *window);
+        }
         if (tool == "capture") return StepOutcome::finished(detail::capture_tool(core, *window, call.arguments));
         if (tool == "inspect") {
             return StepOutcome::finished(detail::inspect_tool(core, *window, call.arguments, arguments_json));
@@ -1537,6 +1983,21 @@ StepOutcome CoreAccess::prepare_batch(RunningCall& call, FrameTime now) {
         call.step_tools.push_back(tool.has_value() ? *tool : *expect);
         call.step_arguments.push_back(std::move(arguments));
         call.step_expects.push_back(expect.has_value());
+    }
+    for (std::size_t index = 0U; index < call.step_tools.size(); ++index) {
+        if (!call.step_expects[index]) continue;
+        // An expect step takes exactly its members.
+        JsonValue arguments{};
+        std::string error{};
+        static_cast<void>(detail::read_arguments(call.step_arguments[index], arguments, error));
+        const bool visual = call.step_tools[index] == "visual";
+        for (const std::string& name : arguments.names) {
+            if (expect_member(name, visual)) continue;
+            return StepOutcome::finished(ToolReply::failure(
+                ToolError::invalid_arguments, "step " + std::to_string(index + 1U) + ": an expect takes no " + name,
+                visual ? "expect visual takes target, within, window, state, drawn, value, exists"
+                       : "expect node takes target, within, window, state, value, exists"));
+        }
     }
     const std::optional<bool> stop = detail::boolean_member(call.arguments, "stop_on_error");
     call.stop_on_error = !stop.has_value() || *stop;
@@ -1640,6 +2101,7 @@ StepOutcome CoreAccess::batch_step(RunningCall& call, FrameTime now) {
         (*step).id = call.id;
         (*step).tool = call.step_tools[index];
         (*step).chain = call.chain;
+        (*step).terse = call.terse;
         std::string error{};
         if (!detail::read_arguments(call.step_arguments[index], (*step).arguments, error)) {
             call.transcript += "step " + number + " failed: " + error + "\n";

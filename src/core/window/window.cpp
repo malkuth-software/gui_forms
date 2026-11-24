@@ -1,3 +1,4 @@
+#include "model_sign/model_sign_state.hpp"
 #include "native_popup/popup_standby.hpp"
 #include "gui_forms/diagnostics/shadow_frames/shadow_frames.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
@@ -5978,26 +5979,69 @@ double SurfaceRoot::own_effect_reach(const Control& control) noexcept {
 }
 
 std::shared_ptr<const PaintGroupEffect> SurfaceRoot::painted_content_effect(Control& control) {
-    const std::shared_ptr<const PaintGroupEffect>& shown = control.shown_content_effect();
-    if (!shown || !presentation_settings_.high_contrast || !(*shown).colour_filter) return shown;
-    if (control.contrast_effect_source_ != shown) {
-        // Under forced high contrast the colour stages are suppressed; the
-        // blur and masks keep their reach and shape.
-        std::shared_ptr<const PaintGroupEffect> suppressed{};
-        if ((*shown).blur > 0.0 || !(*shown).masks.empty()) {
-            PaintGroupEffect copy{};
-            copy.blur = (*shown).blur;
-            copy.masks = (*shown).masks;
-            suppressed = gui_forms::detail::make_library_shared<const PaintGroupEffect>(std::move(copy));
+    std::shared_ptr<const PaintGroupEffect> painted = control.shown_content_effect();
+    if (painted && presentation_settings_.high_contrast && (*painted).colour_filter) {
+        if (control.contrast_effect_source_ != painted) {
+            // Under forced high contrast the colour stages are suppressed;
+            // the blur and masks keep their reach and shape.
+            std::shared_ptr<const PaintGroupEffect> suppressed{};
+            if ((*painted).blur > 0.0 || !(*painted).masks.empty()) {
+                PaintGroupEffect copy{};
+                copy.blur = (*painted).blur;
+                copy.masks = (*painted).masks;
+                suppressed = gui_forms::detail::make_library_shared<const PaintGroupEffect>(std::move(copy));
+            }
+            control.contrast_content_effect_ = std::move(suppressed);
+            control.contrast_effect_source_ = painted;
         }
-        control.contrast_content_effect_ = std::move(suppressed);
-        control.contrast_effect_source_ = shown;
+        painted = control.contrast_content_effect_;
     }
-    return control.contrast_content_effect_;
+    return painted;
+}
+
+bool SurfaceRoot::begin_content_wash(Painter& candidate, const Rect bounds) {
+    if (content_wash_ >= 1.0 || presentation_settings_.high_contrast || bounds.empty()) return false;
+    if (backdrop_grant_.granted != WindowBackdrop::opaque) return false;
+    detail::ModelSignState& sign = model_sign_state();
+    if (!sign.wash_effect) {
+        PaintGroupEffect wash{};
+        wash.colour_filter = MaterialColourMatrix::saturate(content_wash_);
+        sign.wash_effect = gui_forms::detail::make_library_shared<const PaintGroupEffect>(std::move(wash));
+    }
+    PaintGroup group{};
+    group.bounds = bounds;
+    group.isolated = true;
+    group.effect = sign.wash_effect;
+    candidate.begin_group(group);
+    return true;
+}
+
+detail::ModelSignState& SurfaceRoot::model_sign_state() {
+    if (!model_sign_) {
+        stxlib::OperationResult<stxlib::Unique<detail::ModelSignState>> made =
+            stxlib::Unique<detail::ModelSignState>::make();
+        if (made.failed()) throw std::bad_alloc();
+        model_sign_ = std::move(made).take_value();
+    }
+    return *model_sign_;
 }
 
 bool SurfaceRoot::eligible(const Control::Ptr& control) const noexcept {
     return control && (*control).surface_root_ == this && (*control).eligible_for_input();
+}
+
+void Window::set_content_wash(double saturation) {
+    require_root_thread("content wash");
+    if (!std::isfinite(saturation)) throw std::invalid_argument("GUI.Forms content wash must be finite");
+    const double clamped = std::clamp(saturation, 0.0, 1.0);
+    if (clamped == content_wash_) return;
+    content_wash_ = clamped;
+    if (model_sign_) (*model_sign_).wash_effect.reset();
+    add_damage_all_planes({0.0, 0.0, client_size_.width, client_size_.height});
+}
+
+double Window::content_wash() const noexcept {
+    return content_wash_;
 }
 
 stxlib::Optional<HostCloseReason> Window::host_close_reason() const noexcept {

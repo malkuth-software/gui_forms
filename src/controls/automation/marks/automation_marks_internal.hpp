@@ -16,5 +16,8 @@ namespace gui_forms::automation::detail {
 [[nodiscard]] bool pending_user_step(std::string_view stable_id, std::string& what);
 [[nodiscard]] bool action_destructive_mark(std::string_view stable_id, SemanticAction action);
 [[nodiscard]] bool command_hidden_mark(std::string_view stable_id);
+// Whether `stable_id` is marked as opening a dialog; its dialog-free tool,
+// or empty, into `tool`.
+[[nodiscard]] bool opens_dialog_mark(std::string_view stable_id, std::string& tool);
 
 } // namespace gui_forms::automation::detail

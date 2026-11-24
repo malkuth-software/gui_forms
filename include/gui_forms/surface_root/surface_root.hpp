@@ -54,6 +54,7 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 #include <stxlib/vector.hpp>
 #include <stxlib/view.hpp>
 
@@ -80,6 +81,7 @@ namespace detail {
 // tools/layout_probe/surface_root_layout_probe.py: reads the members'
 // offsets as two libraries compile them.
 struct SurfaceRootLayoutProbe;
+struct ModelSignState;
 struct LiveSurfaceIdleWake;
 class OverlayAttachment;
 class AcceleratorAttachment;
@@ -2747,6 +2749,15 @@ private:
     // neither is null. The copy is kept on the control while the shown
     // effect is the same.
     [[nodiscard]] std::shared_ptr<const PaintGroupEffect> painted_content_effect(Control& control);
+    // Begins the content wash's group over `bounds` (Window::set_content_wash):
+    // the application's planes are drawn inside it, the overlays and the
+    // band after it. False, beginning nothing, without a wash, in high
+    // contrast, or for a window that starts each frame clear (a non-opaque
+    // backdrop, whose cleared pixels a source-over group would not clear).
+    [[nodiscard]] bool begin_content_wash(Painter& candidate, Rect bounds);
+    // The in-use sign's state, made on first use (out of memory throws
+    // std::bad_alloc).
+    [[nodiscard]] detail::ModelSignState& model_sign_state();
     [[nodiscard]] bool eligible(const Control::Ptr& control) const noexcept;
     [[nodiscard]] bool move_focus_after(const Control::Ptr& origin);
     void set_focus_cue_visible(bool visible);
@@ -2775,6 +2786,11 @@ private:
     // The window outer band (Window::declare_band; gui_forms/window/band/
     // window_band.hpp). Only a Window declares one, so a sub-surface's
     // stays undeclared and reserves nothing.
+    // The content wash (Window::set_content_wash): 1 for none.
+    double content_wash_{1.0};
+    // The in-use sign's title note and composed wash; empty until a model
+    // first signs the window (src/core/window/model_sign/).
+    stxlib::Unique<detail::ModelSignState> model_sign_{};
     struct BandRecord final {
         bool declared{};
         WindowBandOptions options{};

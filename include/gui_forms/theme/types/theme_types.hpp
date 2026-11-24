@@ -625,6 +625,10 @@ struct GUI_FORMS_API ThemeDefinition final {
     // Theme::create refuses a replacement without vectors or of an unknown
     // name. Empty by default: every icon keeps the built-in drawing.
     std::vector<StockIconReplacement> stock_icons{};
+    // How much colour a window keeps while a model drives it (the
+    // automation's wash, MCP round 1; Window::set_content_wash): 0 is grey,
+    // 1 is no wash. Clamped to [0, 1] where it is used.
+    double model_wash_saturation{0.12};
     friend bool operator==(const ThemeDefinition& left,
                            const ThemeDefinition& right) noexcept(noexcept(
         left.id == right.id && left.compatibility == right.compatibility &&
@@ -638,7 +642,8 @@ struct GUI_FORMS_API ThemeDefinition final {
                left.rules == right.rules && left.rule_set == right.rule_set &&
                left.window_backdrop == right.window_backdrop &&
                left.dark_variant == right.dark_variant && left.colour_schemes == right.colour_schemes &&
-               left.stock_icons == right.stock_icons;
+               left.stock_icons == right.stock_icons &&
+               left.model_wash_saturation == right.model_wash_saturation;
     }
 };
 

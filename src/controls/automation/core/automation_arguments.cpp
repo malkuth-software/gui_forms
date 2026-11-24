@@ -80,6 +80,32 @@ const JsonValue* kind_member(const JsonValue& object, std::string_view name, Jso
     return member;
 }
 
+std::string unknown_members(const JsonValue& arguments, std::string_view schema, std::string& known) {
+    known.clear();
+    if (arguments.kind != JsonKind::object) return std::string{};
+    gui_forms::detail::JsonReadResult read = gui_forms::detail::read_json(schema, argument_limits());
+    if (!read || read.root.kind != JsonKind::object) return std::string{};
+    // Only a schema that admits no other member is enforced.
+    const JsonValue* const additional = kind_member(read.root, "additionalProperties", JsonKind::boolean);
+    if (additional == nullptr || (*additional).boolean) return std::string{};
+    const JsonValue* const properties = kind_member(read.root, "properties", JsonKind::object);
+    std::string unknown{};
+    for (const std::string& name : arguments.names) {
+        const bool named = properties != nullptr && (*properties).find(name) != nullptr;
+        if (named) continue;
+        if (!unknown.empty()) unknown += ", ";
+        unknown += name;
+    }
+    if (unknown.empty()) return unknown;
+    if (properties != nullptr) {
+        for (const std::string& name : (*properties).names) {
+            if (!known.empty()) known += ", ";
+            known += name;
+        }
+    }
+    return unknown;
+}
+
 void append_json_string(std::string_view value, std::string& text) {
     std::ostringstream stream;
     gui_forms::detail::prepare_json_stream(stream);

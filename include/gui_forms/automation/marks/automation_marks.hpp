@@ -66,6 +66,17 @@ GUI_FORMS_API bool require_user_step(const char* stable_id, const char* what_use
 GUI_FORMS_API void complete_user_step(const char* stable_id);
 [[nodiscard]] GUI_FORMS_API bool user_step_pending(const char* stable_id) noexcept;
 
+// The node or command with stable identity `stable_id` opens a dialog the
+// user answers (MCP round 1): the snapshot marks it needs_user and its
+// press opens_dialog, and names `dialog_free_tool` when the program has a
+// tool that does the same with arguments and no dialog (null or empty for
+// none). A node or command whose name ends in "..." or the ellipsis counts
+// as one without a mark. `opens` false removes the mark. False, changing
+// nothing, for an identity or tool name that is null (the identity),
+// empty (the identity), longer than 4096 bytes or not UTF-8.
+GUI_FORMS_API bool set_opens_dialog(const char* stable_id, bool opens, const char* dialog_free_tool);
+[[nodiscard]] GUI_FORMS_API bool opens_dialog(const char* stable_id) noexcept;
+
 // Whether a model may read the clipboard (ruling 24); off by default.
 GUI_FORMS_API void set_clipboard_readable_by_model(bool readable) noexcept;
 [[nodiscard]] GUI_FORMS_API bool clipboard_readable_by_model() noexcept;

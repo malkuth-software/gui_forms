@@ -34,6 +34,11 @@ struct UserStep final {
     std::string what{};
 };
 
+struct DialogOpener final {
+    std::string stable_id{};
+    std::string tool{};
+};
+
 // One table for the process. Marks are set and read on the UI thread; the
 // mutex keeps a program with several UI threads safe, and nothing is called
 // while it is held.
@@ -43,6 +48,7 @@ struct MarkTable final {
     std::vector<ActionMark> destructive_actions{};
     std::vector<std::string> hidden_commands{};
     std::vector<UserStep> user_steps{};
+    std::vector<DialogOpener> dialog_openers{};
     std::string identity{};
 };
 
@@ -220,6 +226,37 @@ bool user_step_pending(const char* stable_id) noexcept {
     return false;
 }
 
+bool set_opens_dialog(const char* stable_id, bool opens, const char* dialog_free_tool) {
+    std::string_view identity{};
+    if (!read_text(stable_id, identity)) return false;
+    std::string_view tool{};
+    if (dialog_free_tool != nullptr && *dialog_free_tool != '\0' && !read_text(dialog_free_tool, tool)) return false;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (std::size_t index = 0U; index < table.dialog_openers.size(); ++index) {
+        if (table.dialog_openers[index].stable_id != identity) continue;
+        if (opens) {
+            table.dialog_openers[index].tool = std::string(tool);
+        } else {
+            table.dialog_openers.erase(table.dialog_openers.begin() + static_cast<std::ptrdiff_t>(index));
+        }
+        return true;
+    }
+    if (opens) table.dialog_openers.push_back(DialogOpener{std::string(identity), std::string(tool)});
+    return true;
+}
+
+bool opens_dialog(const char* stable_id) noexcept {
+    std::string_view identity{};
+    if (!read_text(stable_id, identity)) return false;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (const DialogOpener& opener : table.dialog_openers) {
+        if (opener.stable_id == identity) return true;
+    }
+    return false;
+}
+
 void set_clipboard_readable_by_model(bool readable) noexcept {
     clipboard_readable.store(readable, std::memory_order_release);
 }
@@ -280,6 +317,17 @@ void take_mcp_arguments(int& argc, char** argv) noexcept {
 }
 
 namespace detail {
+
+bool opens_dialog_mark(std::string_view stable_id, std::string& tool) {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (const DialogOpener& opener : table.dialog_openers) {
+        if (opener.stable_id != stable_id) continue;
+        tool = opener.tool;
+        return true;
+    }
+    return false;
+}
 
 bool pending_user_step(std::string_view stable_id, std::string& what) {
     MarkTable& table = marks();

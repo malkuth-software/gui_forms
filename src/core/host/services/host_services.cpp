@@ -350,6 +350,20 @@ HostWindowCornersResult HostServices::apply_window_corners_impl(WindowCornerPref
     return refused;
 }
 
+HostServiceStatus HostServices::apply_system_border_colour(stxlib::Optional<Color> colour) {
+    if (stxlib::current_thread() != ui_thread_) return reject(HostServiceError::wrong_thread);
+    if (snapshot_.shutdown) return reject(HostServiceError::after_shutdown);
+    const HostServiceStatus status = apply_system_border_colour_impl(colour);
+    return status;
+}
+
+HostServiceStatus HostServices::apply_system_border_colour_impl(stxlib::Optional<Color> colour) {
+    static_cast<void>(colour);
+    HostServiceStatus refused{};
+    refused.error = HostServiceError::unsupported;
+    return refused;
+}
+
 HostWindowChromeResult HostServices::apply_window_chrome(const WindowChrome& chrome, WindowChromeFields fields) {
     HostWindowChromeResult result{};
     if (stxlib::current_thread() != ui_thread_) {

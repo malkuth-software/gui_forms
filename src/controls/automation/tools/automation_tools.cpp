@@ -139,7 +139,8 @@ std::string_view view_of(const char* text) noexcept {
 // program's commands (command.<id>).
 bool reserved_tool_name(std::string_view name) noexcept {
     constexpr std::string_view built_in[] = {"windows", "snapshot", "act",     "pointer", "keyboard", "text",
-                                             "wait",    "capture",  "inspect", "batch",   "control"};
+                                             "wait",    "capture",  "inspect", "batch",   "control",
+                                             "find",    "reset"};
     for (const std::string_view reserved : built_in) {
         if (name == reserved) return true;
     }

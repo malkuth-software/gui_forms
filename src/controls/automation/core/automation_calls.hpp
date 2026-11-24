@@ -30,6 +30,7 @@ enum class ActKind : std::uint8_t {
     input,
     selection,
     registry,
+    reveal,
 };
 
 // An act prepared and checked, performed at a later dispatcher turn so that
@@ -56,6 +57,10 @@ struct PreparedAct final {
     ToolEntry entry{};
     std::string arguments_json{};
     bool destructive{};
+    // The target opens a dialog: the program's dialog-free tool for it, or
+    // empty, named when the dialog opens.
+    std::string dialog_tool{};
+    // reveal: scroll the control into view in every scrolling ancestor.
     // The target is a password field: the reply says only "ok" (study 9.1).
     bool protected_target{};
 };
@@ -109,6 +114,15 @@ struct AutomationCore::RunningCall final {
     PreparedAct act{};
     std::shared_ptr<ActOutcome> outcome{};
     std::vector<FlatNode> before{};
+    // The open dialog and the modal scope before the act (empty: none),
+    // to tell what the act opened.
+    std::string dialog_before{};
+    std::string scope_before{};
+    // The reply gives the act's changes as counts.
+    bool terse{};
+    // act names a row its list does not show: resolve_for_act gave the
+    // list's node, and the act goes to the row by its ID through the list.
+    bool offscreen{};
     std::vector<std::string> windows_before{};
     std::uint64_t paint_passes_before{};
     WaitSpec wait{};

@@ -236,6 +236,16 @@ void apply_windows_popup_frame(HWND window) noexcept {
     static_cast<void>(functions.set_attribute(window, DWMWA_BORDER_COLOR, &border, sizeof(border)));
 }
 
+HostServiceStatus apply_windows_border_colour(HWND window, stxlib::Optional<Color> colour) noexcept {
+    const DwmFunctions& functions = dwm();
+    if (window == nullptr || functions.set_attribute == nullptr) return {HostServiceError::backend_failure};
+    COLORREF border = DWMWA_COLOR_DEFAULT;
+    if (const Color* const chosen = colour.value()) border = RGB((*chosen).red, (*chosen).green, (*chosen).blue);
+    const HRESULT set = functions.set_attribute(window, DWMWA_BORDER_COLOR, &border, sizeof(border));
+    if (FAILED(set)) return {HostServiceError::unsupported};
+    return {};
+}
+
 HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreference preference) noexcept {
     HostWindowCornersResult result{};
     const DwmFunctions& functions = dwm();
@@ -246,6 +256,8 @@ HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreferenc
     DWM_WINDOW_CORNER_PREFERENCE value = DWMWCP_DEFAULT;
     if (preference == WindowCornerPreference::square) value = DWMWCP_DONOTROUND;
     if (preference == WindowCornerPreference::round) value = DWMWCP_ROUND;
+    // DWM shapes the window and the window state says which shape it has.
+    result.report.source = WindowCornerSource::platform;
     const HRESULT set = functions.set_attribute(window, DWMWA_WINDOW_CORNER_PREFERENCE, &value, sizeof(value));
     if (FAILED(set)) {
         // Before Windows 11 the attribute is refused: windows are square,

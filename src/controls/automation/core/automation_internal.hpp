@@ -49,6 +49,11 @@ void append_json(const JsonValue& value, std::string& text);
 // Writes `object` without the member named `skip` (a batch step's "tool"),
 // replacing `text`.
 void object_without(const JsonValue& object, std::string_view skip, std::string& text);
+// The members of `arguments` that the object schema `schema` does not name,
+// as "a, b", with the members it names into `known`; empty when every
+// member is named or the schema admits others (MCP round 1: unknown keys
+// were silently ignored).
+[[nodiscard]] std::string unknown_members(const JsonValue& arguments, std::string_view schema, std::string& known);
 // Appends a JSON string (quoted, escaped) to `text`.
 void append_json_string(std::string_view value, std::string& text);
 
@@ -73,7 +78,17 @@ struct OutlineOptions final {
     std::string filter{};
     std::size_t node_limit{400U};
     bool with_bounds{};
+    // Each node's actions beyond focus, and what pressing it opens.
+    bool with_actions{true};
 };
+// The node's actions beyond focus and what its press opens, as an outline
+// line ends (" actions=press press=opens_dialog").
+void append_node_actions(const FlatNode& node, std::string& text);
+// Whether `haystack` contains `needle`, ASCII letters in any case.
+[[nodiscard]] bool contains_any_case(std::string_view haystack, std::string_view needle) noexcept;
+// Whether `name` is a semantic role's name, and every role's name.
+[[nodiscard]] bool known_role_name(std::string_view name) noexcept;
+[[nodiscard]] std::string role_names();
 // Appends the outline of `nodes` (study 7.3) to `text`, indented two spaces
 // a level below the window's line, with what it left out.
 void append_outline(std::span<const FlatNode> nodes, const OutlineOptions& options, std::string& text);
@@ -82,8 +97,24 @@ void append_outline(std::span<const FlatNode> nodes, const OutlineOptions& optio
 // kind bounded by `maximum_entries`. Protected content never shows its
 // value, its focus or a focus move into or out of it (study 9.1). Appends
 // nothing when nothing changed.
-void append_diff(std::span<const FlatNode> before, std::span<const FlatNode> after, std::size_t maximum_entries,
+struct DiffOptions final {
+    std::size_t maximum_entries{40U};
+    // Counts in place of lists: changed nodes, added and removed subtrees.
+    bool terse{};
+    // The modal scope's root before and after (modal_scope_of), empty for
+    // none: nodes a modal hides are obscured, not removed, and come back
+    // when it closes.
+    std::string scope_before{};
+    std::string scope_after{};
+};
+void append_diff(std::span<const FlatNode> before, std::span<const FlatNode> after, const DiffOptions& options,
                  std::string& text);
+// The stable ID of the control a modal scope (a dialog's focus scope) roots
+// the window's semantic tree at, or empty while no modal scopes it.
+[[nodiscard]] std::string modal_scope_of(const Window& window);
+// Whether `name` ends in "..." or the ellipsis character (a command that
+// asks for more, by convention).
+[[nodiscard]] bool names_an_opener(std::string_view name) noexcept;
 
 // How a target resolved.
 enum class Resolution : std::uint8_t {

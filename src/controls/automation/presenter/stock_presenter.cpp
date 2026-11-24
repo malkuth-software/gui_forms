@@ -17,43 +17,22 @@
 namespace gui_forms::automation {
 namespace {
 
-// The band the presenter declares on a window that has none, by look: wide
-// enough to read as "a model is using this" from across the room (MCP round
-// 1), not the study's thin effect.
-double sign_band_width(SignVariant variant) noexcept {
-    switch (variant) {
-    case SignVariant::marching: return 6.0;
-    case SignVariant::sweeping: return 5.0;
-    case SignVariant::pulsing: return 8.0;
-    }
-    return 5.0;
-}
+// The band the presenter declares on a window that has none: wide enough
+// to read as "a model is using this" from across the room (MCP round 1),
+// not the study's thin effect.
+constexpr double sign_band_width = 5.0;
 // How long the band moves after a read, and after the last call of a run of
 // acts ends (a sweep's lap and more); and how long the tag line shows on
 // connect.
 constexpr std::chrono::milliseconds glint_moment{1800};
 constexpr std::chrono::milliseconds tag_line_moment{4000};
-// The motion's speed: a sweep's laps, a march's dash periods, a pulse's
-// cycles a second (the band's limiter allows at most 1).
+// The glint's laps a second (the band's limiter allows at most 1).
 constexpr double sweep_frequency = 0.6;
-constexpr double march_frequency = 1.0;
-constexpr double pulse_frequency = 0.8;
 // How long the tag line stays after the pointer enters the top border, and
 // how deep the hover zone is at least (study 11.2: it shows on hover).
 constexpr std::chrono::milliseconds tag_line_hover{6000};
 constexpr double tag_line_hover_zone = 4.0;
 constexpr Color white{255U, 255U, 255U, 255U};
-constexpr Color black{0U, 0U, 0U, 255U};
-
-// `from` moved `share` of the way to `to`, channel by channel.
-Color mixed(Color from, Color to, double share) noexcept {
-    const double keep = 1.0 - share;
-    const Color colour{static_cast<std::uint8_t>(std::lround(from.red * keep + to.red * share)),
-                       static_cast<std::uint8_t>(std::lround(from.green * keep + to.green * share)),
-                       static_cast<std::uint8_t>(std::lround(from.blue * keep + to.blue * share)),
-                       static_cast<std::uint8_t>(std::lround(from.alpha * keep + to.alpha * share))};
-    return colour;
-}
 
 // The model as the title note names it: its own name when the client gives
 // one, else the client's, else "A model".
@@ -188,7 +167,7 @@ void StockPresenter::window_attached(Window& window) {
     const bool band_reserved = content.width < client.width || content.height < client.height;
     if (!band_reserved) {
         WindowBandOptions options{};
-        options.width = sign_band_width(variant_);
+        options.width = sign_band_width;
         window.declare_band(options);
     }
     BandWindow entry{};
@@ -206,34 +185,27 @@ WindowBandAppearance StockPresenter::sign_appearance(const Window& window, bool 
     if (!connected_) return appearance;
     const Control::Ptr root = window.root();
     const Color accent = root ? (*root).effective_theme().basic_style().accent : Color{38U, 114U, 185U, 255U};
-    switch (variant_) {
-    case SignVariant::marching:
-        // Light dashes over the accent, still at rest, marching in motion.
-        appearance.state = WindowBandState::marching;
-        appearance.rest_colour = stxlib::Optional<Color>::of(accent);
-        appearance.lit_colour = stxlib::Optional<Color>::of(mixed(accent, white, 0.6));
-        appearance.frequency = moving ? march_frequency : 0.0;
-        break;
-    case SignVariant::sweeping:
-        // The accent, solid; in motion a white glint runs round it.
-        appearance.state = moving ? WindowBandState::sweeping : WindowBandState::rest;
-        appearance.rest_colour = stxlib::Optional<Color>::of(accent);
-        appearance.lit_colour = stxlib::Optional<Color>::of(white);
-        appearance.frequency = sweep_frequency;
-        break;
-    case SignVariant::pulsing:
-        // The accent, solid; in motion it pulses to a deeper shade and back.
-        appearance.state = moving ? WindowBandState::cycling : WindowBandState::rest;
-        appearance.rest_colour = stxlib::Optional<Color>::of(moving ? mixed(accent, black, 0.45) : accent);
-        appearance.lit_colour = stxlib::Optional<Color>::of(accent);
-        appearance.frequency = pulse_frequency;
-        break;
-    }
+    // The accent, solid; in motion a white glint runs round it (the band
+    // turns the glint into a tint change where motion is stilled).
+    appearance.state = moving ? WindowBandState::sweeping : WindowBandState::rest;
+    appearance.rest_colour = stxlib::Optional<Color>::of(accent);
+    appearance.lit_colour = stxlib::Optional<Color>::of(white);
+    appearance.frequency = sweep_frequency;
     return appearance;
 }
 
 void StockPresenter::show_title_note(Window& window, bool shown) noexcept {
     try {
+        // The wash goes with the note: the window's content, mostly grey,
+        // says a model drives it away from the border too.
+        double saturation = 1.0;
+        const Control::Ptr root = window.root();
+        if (shown && root) saturation = (*root).effective_theme().definition().model_wash_saturation;
+        window.set_content_wash(shown ? saturation : 1.0);
+        // Windows 11's own border joins the sign in the accent.
+        stxlib::Optional<Color> border{};
+        if (shown && root) border = stxlib::Optional<Color>::of((*root).effective_theme().basic_style().accent);
+        window.set_system_border_colour(border);
         if (!shown) {
             window.set_title_note(nullptr);
             return;
