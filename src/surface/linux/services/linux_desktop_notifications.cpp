@@ -105,8 +105,8 @@ void answer_action_invoked(GDBusConnection*, const gchar*, const gchar*, const g
     if (impl != nullptr) (*impl).action_invoked(parameters);
 }
 
-void action_invoked(GDBusConnection* unnamed_0, const gchar* unnamed_1, const gchar* unnamed_2,
-                    const gchar* unnamed_3, const gchar* unnamed_4, GVariant* parameters, gpointer data) {
+void action_invoked_signal(GDBusConnection* unnamed_0, const gchar* unnamed_1, const gchar* unnamed_2,
+                           const gchar* unnamed_3, const gchar* unnamed_4, GVariant* parameters, gpointer data) {
     gui_forms::detail::call_failing_fast("linux.notifications.action_invoked", &answer_action_invoked, unnamed_0,
                                          unnamed_1, unnamed_2, unnamed_3, unnamed_4, parameters, data);
 }
@@ -117,8 +117,8 @@ void answer_notification_closed(GDBusConnection*, const gchar*, const gchar*, co
     if (impl != nullptr) (*impl).closed(parameters);
 }
 
-void notification_closed(GDBusConnection* unnamed_0, const gchar* unnamed_1, const gchar* unnamed_2,
-                         const gchar* unnamed_3, const gchar* unnamed_4, GVariant* parameters, gpointer data) {
+void notification_closed_signal(GDBusConnection* unnamed_0, const gchar* unnamed_1, const gchar* unnamed_2,
+                                const gchar* unnamed_3, const gchar* unnamed_4, GVariant* parameters, gpointer data) {
     gui_forms::detail::call_failing_fast("linux.notifications.notification_closed", &answer_notification_closed,
                                          unnamed_0, unnamed_1, unnamed_2, unnamed_3, unnamed_4, parameters, data);
 }
@@ -234,11 +234,11 @@ bool LinuxDesktopNotifications::Impl::connect() {
     SignalContext* const action_context = new SignalContext{anchor};
     action_subscription = g_dbus_connection_signal_subscribe(
         connection, service_name, service_interface, "ActionInvoked", service_path, nullptr,
-        G_DBUS_SIGNAL_FLAGS_NONE, action_invoked, action_context, free_signal_context);
+        G_DBUS_SIGNAL_FLAGS_NONE, action_invoked_signal, action_context, free_signal_context);
     SignalContext* const closed_context = new SignalContext{anchor};
     closed_subscription = g_dbus_connection_signal_subscribe(
         connection, service_name, service_interface, "NotificationClosed", service_path, nullptr,
-        G_DBUS_SIGNAL_FLAGS_NONE, notification_closed, closed_context, free_signal_context);
+        G_DBUS_SIGNAL_FLAGS_NONE, notification_closed_signal, closed_context, free_signal_context);
     return true;
 }
 
