@@ -269,7 +269,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     // it changed. Every writer checks the lease against the DIB here before
     // it writes a byte, so a disagreement refuses a publish instead of
     // overrunning the lease (state hunt S4). Caller holds state_mutex.
-    [[nodiscard]] bool lease_matches(const LiveSurfaceWriteLease& lease) const noexcept {
+    [[nodiscard]] bool lease_matches(LiveSurfaceWriteLease& lease) const noexcept {
         const std::size_t pixel_count = static_cast<std::size_t>(width) * height;
         return lease.pixels().size() == pixel_count * 4U;
     }
