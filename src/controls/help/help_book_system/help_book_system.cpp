@@ -618,12 +618,29 @@ bool HelpBookSystem::enter_help_mode(Window& window) {
     PickShown opening{};
     opening.lease.overlay = window.open_overlay(root, layer);
     if (!opening.lease.overlay.connected()) return false;
+    // The window may take the layer back itself (its root hidden, the
+    // window closing): help mode then ends without touching the window
+    // again (state hunt S6: the scope and the raw window pointer outlived
+    // the overlay, and the next cancel ended a scope on a window that may
+    // be gone).
+    if (Event<>* const closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed =
+            (*closed).subscribe(Delegate<>::bind<HelpBookSystem, &HelpBookSystem::on_pick_revoked>(*this));
+    }
     opening.layer = layer;
     opening.window = &window;
     pick_presentation_ = OverlayPresentation<PickShown>::opening(std::move(opening));
     // Beginning the scope runs focus handlers; one may cancel help mode,
-    // and then the scope begun here is ended here.
-    const FocusScopeId scope = window.begin_focus_scope(layer, layer);
+    // and then the scope begun here is ended here. A refused scope (a
+    // containing scope, the nesting limit) ends help mode before the
+    // refusal leaves.
+    FocusScopeId scope{};
+    try {
+        scope = window.begin_focus_scope(layer, layer);
+    } catch (...) {
+        cancel_help_mode();
+        throw;
+    }
     if (!pick_presentation_.settle_open()) {
         if (scope) static_cast<void>(window.end_focus_scope(scope));
         return false;
@@ -639,12 +656,41 @@ void HelpBookSystem::cancel_help_mode() noexcept {
     if (!pick_presentation_.begin_closing()) return;
     PickShown& closing = *pick_presentation_.closing_state();
     if (closing.window != nullptr && closing.lease.scope) {
-        static_cast<void>((*closing.window).end_focus_scope(closing.lease.scope));
+        try {
+            static_cast<void>((*closing.window).end_focus_scope(closing.lease.scope));
+        } catch (...) {
+        }
     }
     closing.lease.scope = FocusScopeId{};
+    closing.lease.overlay_closed.disconnect();
     closing.lease.overlay.disconnect();
     if (closing.layer) retired_pick_ = std::move(closing.layer);
     pick_presentation_.finish_closing();
+}
+
+// The window took the pick layer back: its scope went with the overlay, and
+// the window is not touched again (it may be closing).
+void HelpBookSystem::on_pick_revoked() {
+    if (!pick_presentation_.begin_closing()) return;
+    PickShown& closing = *pick_presentation_.closing_state();
+    closing.lease.scope = FocusScopeId{};
+    closing.window = nullptr;
+    closing.lease.overlay_closed.disconnect();
+    if (closing.layer) retired_pick_ = std::move(closing.layer);
+    pick_presentation_.finish_closing();
+}
+
+bool HelpBookSystem::agrees_with_itself() const noexcept {
+    // Help mode held: a layer, a window, and while shown its overlay is in
+    // that window. The popup held: a layer and a book.
+    const PickShown* const pick = pick_presentation_.held_state();
+    if (pick != nullptr) {
+        if (!(*pick).layer || (*pick).window == nullptr) return false;
+        if (pick_presentation_.is_shown() && !(*pick).lease.overlay.connected()) return false;
+    }
+    const PopupShown* const popup = popup_presentation_.held_state();
+    if (popup != nullptr && !(*popup).layer) return false;
+    return true;
 }
 
 bool HelpBookSystem::help_mode_active() const noexcept {

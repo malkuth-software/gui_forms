@@ -2403,6 +2403,9 @@ void DockSite::on_menu_open_changed(bool open) {
     } else {
         menu_presentation_.finish_closing();
     }
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -2508,7 +2511,15 @@ bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier re
     options.contain_focus = true;
     // Beginning the scope runs focus handlers; one may close the navigator,
     // and then the scope begun here is ended here.
-    const FocusScopeId scope = (*host).begin_focus_scope(navigator_control, navigator_control, options);
+    // A refused scope (state hunt, scanner list A: a containing scope, the
+    // nesting limit) closes the navigator again before the refusal leaves.
+    FocusScopeId scope{};
+    try {
+        scope = (*host).begin_focus_scope(navigator_control, navigator_control, options);
+    } catch (...) {
+        close_navigator();
+        throw;
+    }
     if (!navigator_presentation_.settle_open()) {
         if (scope && attached_window() != nullptr) {
             static_cast<void>((*attached_window()).end_focus_scope(scope));
@@ -2540,6 +2551,25 @@ void DockSite::close_navigator() noexcept {
     closing.cancelled.disconnect();
     closing.lease.overlay.disconnect();
     navigator_presentation_.finish_closing();
+}
+
+bool DockSite::agrees_with_itself() const noexcept {
+    // The navigator held has its control, and while open its overlay is in
+    // the window.
+    const NavigatorOpening* const navigator = navigator_presentation_.held_state();
+    if (navigator != nullptr) {
+        if (!(*navigator).navigator) return false;
+        if (navigator_presentation_.is_open() && !(*navigator).lease.overlay.connected()) return false;
+    }
+    // The flyout held has its control and root.
+    const FlyoutShown* const flyout = flyout_presentation_.held_state();
+    if (flyout != nullptr && (!(*flyout).flyout || !(*flyout).root)) return false;
+    // The position menu: open here exactly while the menu says it is open
+    // (opening and closing are the moments between).
+    const bool menu_shown = menu_ && (*menu_).is_open();
+    if (menu_presentation_.is_open() && !menu_shown) return false;
+    if (menu_presentation_.is_closed() && menu_shown) return false;
+    return true;
 }
 
 void DockSite::on_navigator_revoked() {

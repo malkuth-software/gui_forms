@@ -202,8 +202,17 @@ bool ColorValueEditor::open_picker() {
     }
     presentation_ = AnchoredPresentation::opening(std::move(opening));
     // Beginning the scope runs focus and validation handlers; one may close
-    // the picker, and then the scope begun here is ended here.
-    const FocusScopeId started = (*window).begin_focus_scope(layer_, picker_);
+    // the picker, and then the scope begun here is ended here. A refused
+    // scope (state hunt N3: a containing scope, the nesting limit) closes
+    // the picker again before the refusal leaves, so a failed open leaves
+    // nothing shown.
+    FocusScopeId started{};
+    try {
+        started = (*window).begin_focus_scope(layer_, picker_);
+    } catch (...) {
+        close_picker();
+        throw;
+    }
     if (!presentation_.settle_open()) {
         Window* const still = attached_window();
         if (started && still != nullptr) static_cast<void>((*still).end_focus_scope(started));

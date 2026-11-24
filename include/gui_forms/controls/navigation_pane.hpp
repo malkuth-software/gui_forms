@@ -120,6 +120,10 @@ public:
     // the pane is collapsed and attached to a window.
     // Open once its focus scope has begun, until a close begins.
     [[nodiscard]] bool overlay_open() const noexcept { return presentation_.is_open(); }
+    // Whether the overlay state agrees with itself (state hunt, 2026-11-23):
+    // held, it has its flyout and, open, its overlay in the window; closed,
+    // the content panel is the pane's. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     bool open_overlay();
     void close_overlay() noexcept;
     // The configure menu. Opening is refused (false) while collapsed or
@@ -339,6 +343,7 @@ private:
     void continue_grip_drag(Point local);
     void refresh_content();
     void move_host_to_overlay(Flyout& flyout);
+    [[nodiscard]] FocusScopeId enter_overlay(Window& window, const std::shared_ptr<Flyout>& flyout);
     void move_host_to_pane(Flyout& flyout);
     void release_overlay(FocusScopeCloseReason reason) noexcept;
     void notify_state();

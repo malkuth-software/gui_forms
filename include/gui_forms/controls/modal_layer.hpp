@@ -75,6 +75,10 @@ public:
     [[nodiscard]] double scrim_opacity() const noexcept { return scrim_opacity_; }
     // The content while shown, else empty.
     [[nodiscard]] Control::Ptr content() const noexcept;
+    // Whether the layer's state agrees with itself (state hunt, 2026-11-23):
+    // closed, it has no child and no fade; shown, its content is its only
+    // child and its overlay is in the window. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // The result of the last closing, or none before the first.
     [[nodiscard]] stxlib::Optional<DialogResult> result() const noexcept { return result_; }
 
@@ -113,6 +117,7 @@ protected:
 private:
     [[nodiscard]] Rect content_slot() const noexcept;
     void finish(DialogResult result);
+    void abandon_opening() noexcept;
     void on_overlay_revoked();
     // The fade timer's target. Observes the layer.
     struct ScrimFadeTick final {

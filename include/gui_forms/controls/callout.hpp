@@ -72,6 +72,10 @@ public:
     [[nodiscard]] bool is_shown() const noexcept { return presentation_.shown(); }
     // The target while shown, else empty.
     [[nodiscard]] Control::Ptr target() const noexcept { return target_.lock(); }
+    // Whether the callout's state agrees with itself (state hunt,
+    // 2026-11-23): shown, it is in its presentation's layer; closed, it has
+    // no parent, no target and nothing pressed. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // The action button while action_text is set, else empty.
     [[nodiscard]] std::shared_ptr<Button> action_button() const noexcept { return action_; }
 
@@ -143,6 +147,7 @@ private:
     [[nodiscard]] double card_width(Size available) const noexcept;
     void sync_children();
     void finish(CalloutCloseReason reason);
+    void abandon_show() noexcept;
     void on_action(ButtonBase& button);
     void on_overlay_revoked();
     // Called by the layer for a press outside the card.

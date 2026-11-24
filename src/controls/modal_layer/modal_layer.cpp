@@ -208,8 +208,18 @@ bool ModalLayer::show(const Control::Ptr& owner, Control::Ptr content) {
     in_layer.commit();
     presentation_ = OverlayPresentation<Shown>::opening(std::move(shown));
     // Beginning the scope runs focus and validation handlers; one may close
-    // the layer, and then the scope begun here is ended here.
-    const FocusScopeId started = host.begin_focus_scope(scope_root);
+    // the layer, and then the scope begun here is ended here. A refused
+    // scope (state hunt C20: content with nothing to focus, a containing
+    // scope, the nesting limit) takes the layer down again before the
+    // refusal leaves: the content returns to the caller and nothing is
+    // shown or reported.
+    FocusScopeId started{};
+    try {
+        started = host.begin_focus_scope(scope_root);
+    } catch (...) {
+        abandon_opening();
+        throw;
+    }
     if (!presentation_.settle_open()) {
         if (started) static_cast<void>(host.end_focus_scope(started));
         return true;
@@ -280,7 +290,14 @@ void ModalLayer::finish(DialogResult result) {
     Shown& closing = *presentation_.closing_state();
     complete_scrim_fade();
     Window* const host = attached_window();
-    if (host != nullptr && closing.lease.scope) static_cast<void>((*host).end_focus_scope(closing.lease.scope));
+    // A refused end (state hunt C20) must not leave the layer closing with
+    // its overlay up: the window ends the scope with the overlay.
+    if (host != nullptr && closing.lease.scope) {
+        try {
+            static_cast<void>((*host).end_focus_scope(closing.lease.scope));
+        } catch (...) {
+        }
+    }
     closing.lease.scope = {};
     closing.lease.overlay_closed.disconnect();
     const Control::Ptr content = std::move(closing.content);
@@ -291,6 +308,34 @@ void ModalLayer::finish(DialogResult result) {
     presentation_.finish_closing();
     result_.set(result);
     closed_.emit(result);
+}
+
+// An opening whose scope was refused: the content leaves the layer and the
+// overlay closes, with nothing raised (no show was reported either).
+void ModalLayer::abandon_opening() noexcept {
+    if (!presentation_.begin_closing()) return;
+    Shown& closing = *presentation_.closing_state();
+    closing.lease.overlay_closed.disconnect();
+    const Control::Ptr content = std::move(closing.content);
+    if (content) {
+        try {
+            static_cast<void>(remove_child((*content).runtime_id()));
+        } catch (...) {
+        }
+    }
+    closing.lease.overlay.disconnect();
+    presentation_.finish_closing();
+}
+
+bool ModalLayer::agrees_with_itself() const noexcept {
+    // Closed: no content child and no fade. Shown: the content is the
+    // layer's child and the lease's overlay is in the window; open, its
+    // scope is begun (unless the window had none to give).
+    const Shown* const held = presentation_.held_state();
+    if (held == nullptr) return children().empty() && !scrim_fade_frames_.started();
+    if (!(*held).content || (*(*held).content).parent().get() != this) return presentation_.is_closing();
+    if (!presentation_.is_closing() && !(*held).lease.overlay.connected()) return false;
+    return true;
 }
 
 void ModalLayer::on_dispose() noexcept {

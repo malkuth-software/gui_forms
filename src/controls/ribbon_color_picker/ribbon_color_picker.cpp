@@ -650,6 +650,30 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
             (*closed).subscribe(*this, Delegate<>::bind<RibbonColorPicker, &RibbonColorPicker::on_overlay_revoked>(*this));
     }
     presentation_ = AnchoredPresentation::opening(std::move(opening));
+    // From here until the scope is begun, a refusal (state hunt N3: the
+    // lift, a containing scope, the nesting limit) takes the palette down
+    // again before it leaves: a failed open leaves nothing shown.
+    FocusScopeId started{};
+    try {
+        started = begin_palette_scope(*window, placement);
+    } catch (...) {
+        abandon_opening();
+        throw;
+    }
+    if (!is_alive() || !presentation_.settle_open()) {
+        if (started) static_cast<void>((*window).end_focus_scope(started));
+        return false;
+    }
+    (*presentation_.open_state()).lease.scope = started;
+    invalidate(Dirty::paint | Dirty::semantics);
+    palette_open_changed_.emit(true);
+    return true;
+}
+
+// Lifts the palette into the picker Popup when the run has one, then
+// begins the palette's focus scope. Runs focus handlers.
+FocusScopeId RibbonColorPicker::begin_palette_scope(Window& host, const AnchoredOverlayPlacement& placement) {
+    Window* const window = &host;
     // In a Popup the palette may reach past the owner onto the desktop; the
     // emptied layer stays in the owner and holds the focus scope.
     const Rect anchor = absolute_bounds();
@@ -672,14 +696,28 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     // handlers; one that closed the palette found no scope to end, so this
     // one is ended here and nothing reports an opening (A-gf-controls-12-F4).
     const FocusScopeId started = (*window).begin_focus_scope(layer_, preferred_focus);
-    if (!is_alive() || !presentation_.settle_open()) {
-        if (started) static_cast<void>((*window).end_focus_scope(started));
-        return false;
-    }
-    (*presentation_.open_state()).lease.scope = started;
-    invalidate(Dirty::paint | Dirty::semantics);
-    palette_open_changed_.emit(true);
-    return true;
+    return started;
+}
+
+bool RibbonColorPicker::agrees_with_itself() const noexcept {
+    // Open, its overlay is in the window; closed, nothing is lifted.
+    const AnchoredOpening* const open = presentation_.open_state();
+    if (open != nullptr) return (*open).lease.overlay.connected();
+    return !presentation_.is_closed() || !lift_.lifted();
+}
+
+// An opening whose lift or scope was refused: its record is dismantled
+// with nothing reported (no opening was reported either).
+void RibbonColorPicker::abandon_opening() noexcept {
+    if (!presentation_.begin_closing()) return;
+    AnchoredOpening& closing = *presentation_.closing_state();
+    closing.popup_closed.disconnect();
+    lift_.release();
+    closing.lease.overlay_closed.disconnect();
+    closing.lease.overlay.disconnect();
+    presentation_.finish_closing();
+    hot_entry_.reset();
+    palette_focused_ = false;
 }
 
 void RibbonColorPicker::close_palette() noexcept {

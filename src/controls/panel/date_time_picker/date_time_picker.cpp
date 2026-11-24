@@ -455,7 +455,16 @@ void DateTimePicker::open_drop_down() {
     // lifetime keeps the control across the handlers.
     const Control::Ptr lifetime = shared_from_this();
     presentation_ = OverlayPresentation<DropDownOpening>::opening(std::move(opening));
-    const FocusScopeId scope = (*window()).begin_focus_scope(layer, preferred_focus);
+    // A refused scope (state hunt, scanner list A: a containing scope, the
+    // nesting limit) closes the drop-down again before the refusal leaves;
+    // one closed while opening publishes nothing.
+    FocusScopeId scope{};
+    try {
+        scope = (*window()).begin_focus_scope(layer, preferred_focus);
+    } catch (...) {
+        close_drop_down();
+        throw;
+    }
     // Beginning the scope moves focus into the drop-down and runs the
     // field's lost-focus and validation handlers before it returns; one may
     // close the drop-down (or close it and open another). The scope is kept
@@ -483,8 +492,13 @@ void DateTimePicker::close_drop_down() {
     closing.dismiss.disconnect();
     closing.popup_closed.disconnect();
     lift_.release();
+    // A refused end must not leave the drop-down closing for good: the
+    // window ends the scope with the overlay.
     if (window() != nullptr && closing.lease.scope) {
-        static_cast<void>((*window()).end_focus_scope(closing.lease.scope));
+        try {
+            static_cast<void>((*window()).end_focus_scope(closing.lease.scope));
+        } catch (...) {
+        }
     }
     closing.lease.scope = {};
     closing.lease.overlay.disconnect();
@@ -505,8 +519,11 @@ void DateTimePicker::on_overlay_revoked() {
     closing.popup_closed.disconnect();
     lift_.release();
     if (window() != nullptr && closing.lease.scope) {
-        static_cast<void>((*window()).end_focus_scope(
-            closing.lease.scope, FocusScopeCloseReason::owner_unavailable));
+        try {
+            static_cast<void>((*window()).end_focus_scope(
+                closing.lease.scope, FocusScopeCloseReason::owner_unavailable));
+        } catch (...) {
+        }
     }
     closing.lease.scope = {};
     presentation_.finish_closing();

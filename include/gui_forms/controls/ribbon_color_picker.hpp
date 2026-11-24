@@ -66,6 +66,10 @@ public:
     bool open_palette(MenuOpenMode mode = MenuOpenMode::keyboard);
     void close_palette() noexcept;
     [[nodiscard]] bool palette_open() const noexcept { return presentation_.is_shown(); }
+    // Whether the palette state agrees with itself (state hunt, 2026-11-23):
+    // open, its overlay is in the window; closed, nothing is lifted into a
+    // Popup. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // The palette's content control (its parts are in its local
     // coordinates), null before the first opening.
     [[nodiscard]] Control::Ptr palette_overlay() const noexcept;
@@ -178,6 +182,8 @@ private:
     bool palette_semantic_action(std::string_view stable_id, SemanticAction action);
     void on_layer_dismissed(OverlayDismissReason reason);
     void on_overlay_revoked();
+    [[nodiscard]] FocusScopeId begin_palette_scope(Window& host, const AnchoredOverlayPlacement& placement);
+    void abandon_opening() noexcept;
     // The host closed a Popup window: the picker's closes the palette.
     void on_popup_window_closed(std::size_t slot);
 

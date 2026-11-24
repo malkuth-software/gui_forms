@@ -492,6 +492,9 @@ public:
     bool open_navigator(DockNavigatorList list, int direction, Modifier release);
     void close_navigator() noexcept;
     [[nodiscard]] bool navigator_open() const noexcept { return navigator_presentation_.is_open(); }
+    // Whether the site's navigator, flyout and position-menu state agree
+    // with themselves (state hunt, 2026-11-23). For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // The open navigator, or null.
     [[nodiscard]] std::shared_ptr<DockNavigator> navigator() const noexcept;
 
