@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2495 | 3 | 370 | 4150 | 2626 |
+| 2498 | 3 | 370 | 4150 | 2629 |
 
 ## GUI.Forms types
 
@@ -49,7 +49,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `PlotAnnotationItem` | GUI.Forms-only | 0 | 0 | 0 | 4 | 4 |
 | `ListBox` | `ListBox` | 14 | 0 | 1 | 48 | 14 |
 | `CheckedListBox` | `CheckedListBox` | 12 | 0 | 0 | 18 | 6 |
-| `ComboBox` | `ComboBox` | 11 | 0 | 1 | 54 | 9 |
+| `ComboBox` | `ComboBox` | 12 | 0 | 1 | 54 | 10 |
 | `TreeView` | `TreeView` | 13 | 0 | 2 | 73 | 10 |
 | `ObjectView` | `ListView` | 20 | 0 | 2 | 107 | 18 |
 | `ListView` | `ListView` | 49 | 0 | 2 | 101 | 40 |
@@ -68,10 +68,10 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `DomainUpDown` | `DomainUpDown` | 3 | 0 | 0 | 13 | 5 |
 | `ColorPicker` | GUI.Forms-only | 5 | 0 | 0 | 4 | 9 |
 | `ColorValueEditor` | GUI.Forms-only | 7 | 0 | 0 | 3 | 10 |
-| `FlagsValueEditor` | GUI.Forms-only | 2 | 0 | 0 | 5 | 7 |
+| `FlagsValueEditor` | GUI.Forms-only | 3 | 0 | 0 | 5 | 8 |
 | `PropertyGrid` | `PropertyGrid` | 19 | 0 | 2 | 72 | 19 |
 | `PropertyList` | GUI.Forms-only | 17 | 0 | 0 | 5 | 22 |
-| `DateTimePicker` | `DateTimePicker` | 8 | 0 | 1 | 47 | 7 |
+| `DateTimePicker` | `DateTimePicker` | 9 | 0 | 1 | 47 | 8 |
 | `MonthCalendar` | `MonthCalendar` | 21 | 0 | 1 | 45 | 9 |
 | `Panel` | `Panel` | 8 | 0 | 0 | 8 | 7 |
 | `GroupBox` | `GroupBox` | 4 | 0 | 0 | 21 | 1 |
