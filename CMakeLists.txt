@@ -3778,3 +3778,23 @@ endif()
 
 # The test cache's description, after the last target (cmake/TestCache.cmake).
 gui_forms_describe_test_cache()
+
+# The demonstrators: every program that runs its window through a desktop host
+# library directly (host::run_macos, run_windows, run_linux). tools/ci_build.py
+# starts each with --mcp and expects it to serve MCP (tools/check_mcp_launch.py),
+# reading their paths from demonstrators.txt in the build tree. Until 1.0.1 none
+# did, and no check noticed.
+if(GUI_FORMS_MCP AND NOT GUI_FORMS_HIGH_INTEGRITY AND TARGET gui_forms_automation)
+    get_property(_gf_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    set(_gf_demonstrators "")
+    foreach(_gf_target IN LISTS _gf_targets)
+        get_target_property(_gf_type ${_gf_target} TYPE)
+        get_target_property(_gf_excluded ${_gf_target} EXCLUDE_FROM_ALL)
+        get_target_property(_gf_links ${_gf_target} LINK_LIBRARIES)
+        if(_gf_type STREQUAL "EXECUTABLE" AND NOT _gf_excluded
+           AND _gf_links MATCHES "(^|;)gui_forms_host_(macos|linux|windows)(;|$)")
+            string(APPEND _gf_demonstrators "$<TARGET_FILE:${_gf_target}>\n")
+        endif()
+    endforeach()
+    file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/demonstrators.txt" CONTENT "${_gf_demonstrators}")
+endif()

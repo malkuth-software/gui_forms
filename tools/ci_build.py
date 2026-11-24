@@ -302,6 +302,13 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
             *toolchain_options(ROOT / 'gui_forms'))
         run('cmake', '--build', examples, '--parallel', jobs)
         run('ctest', '--test-dir', examples, '--output-on-failure')
+        # Every demonstrator serves --mcp (tools/check_mcp_launch.py; CMake
+        # lists them in demonstrators.txt when the automation is built).
+        demonstrators: Path = toolkit / 'demonstrators.txt'
+        if demonstrators.is_file():
+            programs: list[str] = [line for line in demonstrators.read_text(encoding='utf-8').splitlines() if line]
+            if programs:
+                run(sys.executable, '-B', ROOT / 'gui_forms/tools/check_mcp_launch.py', *programs)
     if install_only or test_cache is None:
         return
     run(sys.executable, '-B', ROOT / 'gui_forms/tools/test_cache.py', 'pack', '--build-dir', toolkit,
