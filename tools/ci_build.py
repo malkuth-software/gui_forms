@@ -200,6 +200,16 @@ def build_logged(toolkit: Path, sanitize: bool, *arguments: str) -> None:
         '--build-dir', toolkit)
 
 
+def check_allocator_probes(toolkit: Path, host: str) -> None:
+    """Runs the proof that gui_forms_use_library_allocator binds
+    (tools/allocator_probe/allocator_probe.cpp): the opted-in probe's
+    operator new must be STXlib's allocator (left out under a sanitizer), the
+    control's the toolchain's. Either failing fails the build."""
+    suffix: str = '.exe' if host == 'windows' else ''
+    for name in ('gui_forms_allocator_probe', 'gui_forms_allocator_probe_control'):
+        run(toolkit / (name + suffix))
+
+
 def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
                   sanitize: bool = False, debug_info: str = 'lines', install_only: bool = False,
                   test_cache: Path | None = None, platform_label: str = '') -> None:
@@ -285,6 +295,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     report_stx_package(toolkit, os.environ.get('GUI_FORMS_STX_PACKAGE_RESTORED', '') == 'true')
     build_logged(toolkit, sanitize, '--parallel', str(jobs))
     write_build_record(toolkit, BUILT_EVERYTHING, 'the whole tree')
+    check_allocator_probes(toolkit, host)
     os.environ['GUI_FORMS_FONT_DIR'] = str(ROOT / 'gui_forms/assets/fonts')
     if not sanitize:
         # Windows: the installed DLLs and programs drop their COFF symbol
@@ -312,7 +323,10 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         if demonstrators.is_file():
             programs: list[str] = [line for line in demonstrators.read_text(encoding='utf-8').splitlines() if line]
             if programs:
-                run(sys.executable, '-B', ROOT / 'gui_forms/tools/check_mcp_launch.py', *programs)
+                # Each one opts into the library allocator (CMakeLists.txt), and
+                # the check fails a program whose opt-in is not live.
+                run(sys.executable, '-B', ROOT / 'gui_forms/tools/check_mcp_launch.py',
+                    '--require-library-allocator', *programs)
     if install_only or test_cache is None:
         return
     run(sys.executable, '-B', ROOT / 'gui_forms/tools/test_cache.py', 'pack', '--build-dir', toolkit,

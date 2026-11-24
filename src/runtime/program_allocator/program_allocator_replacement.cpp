@@ -87,6 +87,21 @@
 #define GUI_FORMS_REPLACE_OPERATOR_NEW 1
 #endif
 
+namespace {
+
+// Reports whether this program's operator new is STXlib's
+// (gui_forms::detail::program_allocator), so a test or a startup check can
+// tell an opted-in program from one that is not, and a sanitizer build's
+// left-out replacement from a live one.
+[[maybe_unused]] const bool program_allocator_noted = [] {
+    gui_forms::detail::note_program_allocator(GUI_FORMS_REPLACE_OPERATOR_NEW
+                                                  ? gui_forms::detail::ProgramAllocator::replaced
+                                                  : gui_forms::detail::ProgramAllocator::left_out);
+    return true;
+}();
+
+} // namespace
+
 #if GUI_FORMS_REPLACE_OPERATOR_NEW
 
 namespace {

@@ -3483,6 +3483,18 @@ function(gui_forms_use_library_allocator target)
     target_link_libraries(${target} PRIVATE GUIForms::Memory stxlib::boundary stxlib::state)
 endfunction()
 install(FILES "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}" DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/program_allocator)
+# The proof that the opt-in binds (tools/allocator_probe/allocator_probe.cpp):
+# one program that opts in and one that does not, which tools/ci_build.py
+# runs on every desktop host.
+if(NOT EMSCRIPTEN)
+    foreach(_gf_probe IN ITEMS gui_forms_allocator_probe gui_forms_allocator_probe_control)
+        add_executable(${_gf_probe} tools/allocator_probe/allocator_probe.cpp)
+        target_link_libraries(${_gf_probe} PRIVATE GUIForms::Memory stxlib::boundary stxlib::state)
+    endforeach()
+    target_compile_definitions(gui_forms_allocator_probe PRIVATE GUI_FORMS_PROBE_OPTED_IN=1)
+    target_compile_definitions(gui_forms_allocator_probe_control PRIVATE GUI_FORMS_PROBE_OPTED_IN=0)
+    gui_forms_use_library_allocator(gui_forms_allocator_probe)
+endif()
 
 # The text masks join the Application library's archives
 # (GUI_FORMS_APPLICATION_ARCHIVES) before the package reads them, so the

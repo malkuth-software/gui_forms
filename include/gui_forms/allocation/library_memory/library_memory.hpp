@@ -119,6 +119,17 @@ GUI_FORMS_API void set_library_allocation_observer(LibraryAllocationObserver obs
 [[nodiscard]] GUI_FORMS_API std::uint64_t library_allocations_granted() noexcept;
 [[nodiscard]] GUI_FORMS_API std::uint64_t library_blocks_released() noexcept;
 
+// The whole-program allocator (gui_forms_use_library_allocator): what the
+// program's replacement of operator new and delete
+// (program_allocator_replacement.cpp) reported at static initialization.
+// not_linked: the program did not opt in; left_out: it opted in, and the
+// replacement left itself out (a sanitizer build, or
+// GUI_FORMS_HOST_OPERATOR_NEW); replaced: operator new and delete are
+// STXlib's allocator. Read it after static initialization (from main on).
+enum class ProgramAllocator : unsigned char { not_linked = 0, left_out = 1, replaced = 2 };
+GUI_FORMS_API void note_program_allocator(ProgramAllocator state) noexcept;
+[[nodiscard]] GUI_FORMS_API ProgramAllocator program_allocator() noexcept;
+
 // Marks the module's teardown (above); never undone. Called by the C ABI
 // library's DllMain at DLL_PROCESS_DETACH, and by tests.
 GUI_FORMS_API void begin_library_teardown() noexcept;

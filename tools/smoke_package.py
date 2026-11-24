@@ -181,7 +181,10 @@ class Smoke:
             self.log(f"    would check: {executable} --mcp")
             return LaunchResult(record["id"], source, str(executable), arguments, True, True, 0, False, None, 0.0, "dry run")
         started = time.monotonic()
-        passed, detail = check_mcp_launch.check(executable, self.timeout, clean_environment(self.platform))
+        # Every packaged program opts into the library allocator
+        # (CMakeLists.txt); the check fails one whose opt-in is not live.
+        passed, detail = check_mcp_launch.check(executable, self.timeout, clean_environment(self.platform),
+                                                require_library_allocator=True)
         return LaunchResult(record["id"], source, str(executable), arguments, passed, passed, None, False, None,
                             round(time.monotonic() - started, 2), detail)
 

@@ -511,6 +511,20 @@ Visible-area guarantee (stage VA):
   their C++ allocations on STXlib's allocator
   (`gui_forms_use_library_allocator`). Sanitizer builds keep the
   toolchain's `operator new`.
+- The opt-in is proved, not assumed. `gui_forms_allocator_probe` opts in
+  and checks that the blocks `operator new`, `new[]`, the aligned form and
+  `std::allocator` return are STXlib's: STXlib's release refuses a block that
+  is not its own. Under a sanitizer it checks that the replacement left
+  itself out. `gui_forms_allocator_probe_control` does not opt in and checks
+  that `operator new` is the toolchain's. CI runs both on every desktop host,
+  the Windows own runtime and the sanitizer builds included.
+- `gui_forms::detail::program_allocator()` reports what a program's
+  replacement said at startup: not linked, left out, or replaced. With
+  `GUI_FORMS_REQUIRE_LIBRARY_ALLOCATOR=1`, a program whose `operator new` is
+  not STXlib's exits with status 70 before its window opens.
+  `tools/check_mcp_launch.py --require-library-allocator` sets it, so the
+  demonstrator check and the package smoke fail a program whose opt-in is
+  not live.
 - The test cache's loader no longer overrides a consumer's own cache
   entries (the own-runtime and libc++ prefixes) with the values recorded on
   the machine that built the cache.
