@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2480 | 3 | 370 | 4154 | 2615 |
+| 2483 | 3 | 370 | 4151 | 2615 |
 
 ## GUI.Forms types
 
@@ -63,7 +63,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ToggleSwitch` | GUI.Forms-only | 4 | 0 | 0 | 3 | 7 |
 | `RangeControl` | GUI.Forms-only | 8 | 0 | 0 | 6 | 14 |
 | `TrackBar` | `TrackBar` | 12 | 0 | 1 | 29 | 8 |
-| `ValueBar` | GUI.Forms-only | 18 | 0 | 0 | 19 | 37 |
+| `ValueBar` | GUI.Forms-only | 19 | 0 | 0 | 18 | 37 |
 | `NumericUpDown` | `NumericUpDown` | 9 | 0 | 0 | 17 | 9 |
 | `DomainUpDown` | `DomainUpDown` | 3 | 0 | 0 | 13 | 5 |
 | `ColorPicker` | GUI.Forms-only | 5 | 0 | 0 | 4 | 9 |
@@ -97,11 +97,11 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ResponsiveTrackPanel` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
 | `FormLayout` | GUI.Forms-only | 6 | 0 | 0 | 5 | 11 |
 | `ScaledPanel` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
-| `SplitContainer` | `SplitContainer` | 12 | 0 | 0 | 37 | 14 |
+| `SplitContainer` | `SplitContainer` | 13 | 0 | 0 | 36 | 14 |
 | `SplitterPanel` | `SplitterPanel` | 4 | 0 | 0 | 19 | 0 |
 | `Splitter` | `Splitter` | 9 | 0 | 0 | 19 | 5 |
 | `CommandOverflowPanel` | GUI.Forms-only | 2 | 0 | 0 | 4 | 6 |
-| `MasterDetailView` | GUI.Forms-only | 10 | 0 | 0 | 2 | 12 |
+| `MasterDetailView` | GUI.Forms-only | 11 | 0 | 0 | 1 | 12 |
 | `ScrollableControl` | `ScrollableControl` | 16 | 0 | 0 | 20 | 17 |
 | `ScrollBar` | `ScrollBar` | 12 | 0 | 0 | 24 | 6 |
 | `HScrollBar` | `HScrollBar` | 1 | 0 | 0 | 0 | 0 |
@@ -318,5 +318,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 981 |
+| `untested` | 978 |
 | `w-open` | 5 |

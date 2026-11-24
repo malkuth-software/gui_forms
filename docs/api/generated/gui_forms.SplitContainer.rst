@@ -574,7 +574,7 @@ gui_forms::SplitContainer
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``SplitContainer``. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 37 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``SplitContainer``. Members declared here and by the counterpart: 13 supported, 0 deferred, 0 excluded, 36 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -728,7 +728,7 @@ Counterpart: ``SplitContainer``. Members declared here and by the counterpart: 1
    * - property
      - GUI.Forms-only
      - ``first_collapse_origin``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``first_collapsed``
