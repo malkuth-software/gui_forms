@@ -148,6 +148,9 @@ private:
     void sync_children();
     void finish(CalloutCloseReason reason);
     void abandon_show() noexcept;
+    // Closes with owner_unavailable when shown and the target is gone;
+    // returns whether it closed.
+    bool close_if_target_lost();
     void on_action(ButtonBase& button);
     void on_overlay_revoked();
     // Called by the layer for a press outside the card.
