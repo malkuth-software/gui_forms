@@ -15,6 +15,7 @@
 #include <stxlib/text_view.hpp>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <climits>
 #include <cstdio>
@@ -330,6 +331,9 @@ void AutomationRun::sync_tools() {
 
 namespace {
 
+// The AutomationRunScope objects open now (AutomationRunScope).
+constinit std::atomic<int> open_scopes{0};
+
 // The CI smokes' startup check (tools/check_mcp_launch.py
 // --require-library-allocator): with GUI_FORMS_REQUIRE_LIBRARY_ALLOCATOR=1,
 // a program whose operator new is not STXlib's allocator
@@ -350,6 +354,9 @@ void require_library_allocator_if_asked() {
 } // namespace
 
 AutomationRunScope::AutomationRunScope() {
+    // Scopes open and close on the UI thread, outermost last.
+    if (open_scopes.fetch_add(1) != 0) return;
+    outermost_ = true;
     require_library_allocator_if_asked();
     const AutomationLaunch launch = read_automation_launch();
     if (!launch.requested()) return;
@@ -362,6 +369,13 @@ AutomationRunScope::AutomationRunScope() {
     }
 }
 
-AutomationRunScope::~AutomationRunScope() = default;
+AutomationRunScope::~AutomationRunScope() {
+    run_.reset();
+    open_scopes.fetch_sub(1);
+}
+
+bool AutomationRunScope::outermost() const noexcept {
+    return outermost_;
+}
 
 } // namespace gui_forms::automation

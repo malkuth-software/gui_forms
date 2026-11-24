@@ -66,8 +66,11 @@ struct AutomationLaunch final {
 class AutomationRun;
 
 // Application::run's scope, and the host entries': starts the run when the
-// launch asks for one and ends it when the run's windowing has ended. Not
-// copyable.
+// launch asks for one and ends it when the run's windowing has ended. A scope
+// opened while another is open does nothing: the host's application entry
+// opens one for a program that calls it directly (Explore), and under
+// Application::run or a single-window entry the outer scope has already
+// started the run and joins the windows. Not copyable.
 class AutomationRunScope final {
 public:
     AutomationRunScope();
@@ -75,8 +78,13 @@ public:
     AutomationRunScope(const AutomationRunScope&) = delete;
     AutomationRunScope& operator=(const AutomationRunScope&) = delete;
 
+    // Whether this is the outermost scope, the one that started the run (if
+    // the launch asked for one); its entry joins the windows.
+    [[nodiscard]] bool outermost() const noexcept;
+
 private:
     std::unique_ptr<AutomationRun> run_{};
+    bool outermost_{};
 };
 
 } // namespace gui_forms::automation

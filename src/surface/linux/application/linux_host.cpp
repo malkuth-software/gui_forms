@@ -47,6 +47,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <fcntl.h>
+#include <deque>
 #include <filesystem>
 #include <iostream>
 #include <limits>
@@ -3047,6 +3048,22 @@ HostCapabilities linux_capabilities() {
 }
 int run_linux_application(std::vector<LinuxApplicationWindow> windows,
                           LinuxApplicationOptions application) {
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // A program that calls this entry itself (Explore) gets the automation as
+  // Application::run starts it, each window joining under its stable id once
+  // its host is ready. Under Application::run or the single-window entry the
+  // outer scope has already started it, and this one does nothing.
+  const gui_forms::automation::AutomationRunScope automation{};
+  std::deque<gui_forms::detail::DirectRunWindow> direct_windows;
+  if (automation.outermost()) {
+    for (LinuxApplicationWindow &entry : windows) {
+      if (!entry.model) continue;
+      direct_windows.emplace_back();
+      entry.options.host_ready = direct_windows.back().wrap(*entry.model, entry.stable_id,
+                                                            std::move(entry.options.host_ready));
+    }
+  }
+#endif
   const std::shared_ptr<linux_detail::RunOpenState> open_state =
       gui_forms::detail::make_library_shared<linux_detail::RunOpenState>();
   try {

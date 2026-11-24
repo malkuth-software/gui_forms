@@ -75,6 +75,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <deque>
 #include <exception>
 #include <filesystem>
 #include <iomanip>
@@ -4660,6 +4661,22 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
 int run_windows_application(std::vector<WindowsApplicationWindow> windows,
                             WindowsApplicationOptions application) {
     if (windows.empty() || windows.size() > HostWindowing::maximum_windows) return 2;
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A program that calls this entry itself (Explore) gets the automation as
+    // Application::run starts it, each window joining under its stable id once
+    // its host is ready. Under Application::run or the single-window entry the
+    // outer scope has already started it, and this one does nothing.
+    const gui_forms::automation::AutomationRunScope automation{};
+    std::deque<gui_forms::detail::DirectRunWindow> direct_windows;
+    if (automation.outermost()) {
+        for (WindowsApplicationWindow &entry : windows) {
+            if (!entry.model) continue;
+            direct_windows.emplace_back();
+            entry.options.host_ready = direct_windows.back().wrap(*entry.model, entry.stable_id,
+                                                                  std::move(entry.options.host_ready));
+        }
+    }
+#endif
     // The run holds the bundled font set, so windows opened and closed during it share one
     // copy of each face.
     const std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts =

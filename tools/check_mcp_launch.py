@@ -27,6 +27,7 @@ from pathlib import Path
 import subprocess
 import sys
 import threading
+import time
 
 PROTOCOL_VERSION: str = '2025-06-18'
 
@@ -126,8 +127,19 @@ def served(exchange: Exchange, timeout: float) -> tuple[bool, str]:
                 return False, f'no answer to initialize within {timeout:g} s; still running'
             return False, f'no answer to initialize; exited with status {status}'
         exchange.send({'jsonrpc': '2.0', 'method': 'notifications/initialized'})
-        listed = exchange.request(2, 'tools/list', {}, timeout)
-        tools = ((listed or {}).get('result') or {}).get('tools') or []
+        # The window's tools appear when it joins the automation, once its
+        # host is ready, which can come after the answer to initialize: the
+        # list is asked again until it has tools or the time is up.
+        tools: list = []
+        identity: int = 2
+        deadline: float = time.monotonic() + timeout
+        while True:
+            listed = exchange.request(identity, 'tools/list', {}, max(deadline - time.monotonic(), 0.1))
+            tools = ((listed or {}).get('result') or {}).get('tools') or []
+            identity += 1
+            if tools or listed is None or time.monotonic() >= deadline:
+                break
+            time.sleep(0.25)
         if not tools:
             return False, f'server {server["name"]} listed no tools'
         detail = f'server {server["name"]}, {len(tools)} tools'
