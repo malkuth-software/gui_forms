@@ -260,7 +260,8 @@ of any kind in use.
 ## Build it
 
 Prerequisites are CMake 3.25+, Ninja, LLVM 22.1 and Python 3.12+ (on
-Windows, the MSYS2 CLANG64 environment).
+Windows, LLVM 22's clang and lld; `tools/own_runtime.py` builds the C and
+C++ runtime).
 [Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
 covers each platform's preparation. Then:
 
@@ -332,7 +333,7 @@ engine, never both.
 | Platform | Host | Notes |
 |---|---|---|
 | macOS 14+ | AppKit | Apple silicon (arm64) |
-| Windows 10+ | Win32 | x64; built with LLVM 22 under MSYS2 CLANG64 |
+| Windows 10+ | Win32 | x64 (x86_64-pc-windows-msvc); LLVM 22 with STXlib's own runtime, no MinGW |
 | Linux | X11 | x64 and arm64; also runs under XWayland. Enable with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` |
 
 Only 64-bit targets are supported. There is no Wayland-native host; Wayland

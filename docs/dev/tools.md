@@ -411,8 +411,22 @@ with the change that needs it.
 `tools/windows_toolchain.py`
 : Packs, fetches and restores the exact MSYS2 CLANG64 tree recorded in
   `tools/windows_toolchain.json`, whose `clang.exe` is the compiler the cache
-  manifests record. Requires Python 3.14.
+  manifests record. Only its LLVM binaries (clang, lld, the LLVM tools),
+  CMake, Ninja and shell are used: no header or library of the tree.
+  Requires Python 3.14.
   `python tools/windows_toolchain.py restore`
+
+`tools/own_runtime.py`
+: Builds the Windows own runtime that `cmake/llvm22-windows-msvc.cmake` with
+  `GUI_FORMS_MSVC_RUNTIME=OWN` links. It fetches STXlib at the commit stx
+  pins and the LLVM 22.1.8 source (sha256-pinned), then builds static libc++
+  (`_LIBCPP_NO_VCRUNTIME`) with STXlib's `tools/windows_libcxx/build_libcxx.sh`
+  and STXlib's `src/hosted/windows/own_runtime` project. A stamp skips a
+  build whose inputs match; on macOS it cross builds. `evidence` proves a
+  built tree used only that runtime: its `#include` search list, its link
+  maps and its DLLs' imports.
+  `python tools/own_runtime.py build --out .ci/own-runtime --github-env`;
+  `python tools/own_runtime.py evidence --build <tree> --dlls <tree>`
 
 `tools/mcp_client.py`
 : A small MCP client over a program's standard input and output: it starts a

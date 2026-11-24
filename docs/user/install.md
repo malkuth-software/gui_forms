@@ -11,7 +11,7 @@ every option, the tests and the demonstration programs.
 | Platform | Minimum | Host | Notes |
 |---|---|---|---|
 | macOS | 14.0, Apple silicon (arm64) only | AppKit | Default build on a Mac |
-| Windows | 10 (x64) | Win32 | Native build in MSYS2 CLANG64 |
+| Windows | 10 (x64) | Win32 | x86_64-pc-windows-msvc with STXlib's own runtime (no MinGW, Visual C++ tools or Windows SDK) |
 | Linux | Ubuntu 24.04 CI targets (x64, arm64) | X11 | Opt-in; needs X11 and ATK development packages |
 
 Intel Macs are not supported. Wayland sessions need XWayland for the X11
@@ -69,9 +69,21 @@ Linux (Ubuntu 24.04)
   compiler-rt there.
 
 Windows
-: Install MSYS2 and, in the CLANG64 environment, the packages listed in
-  the template harness's `harness/windows_toolchain.json` (clang 22.1.8, lld, cmake, ninja, ccache,
-  winpthreads). Build from the CLANG64 shell.
+: GUI.Forms builds for x86_64-pc-windows-msvc on STXlib's own runtime
+  (`cmake/llvm22-windows-msvc.cmake` with `GUI_FORMS_MSVC_RUNTIME=OWN`):
+  every header and library is STXlib's (its C library and Windows API
+  headers, its startup and C++ runtime, import libraries made from its
+  export lists) or libc++ 22.1.8 built against them, and the one system C
+  library is `ucrtbase.dll`. No MinGW, Visual C++ tools or Windows SDK
+  folder is searched. Only LLVM 22.1.8's binaries are needed: clang, lld
+  and the LLVM tools, with CMake, Ninja and Python. CI takes them from the
+  MSYS2 CLANG64 package the template harness pins
+  (`harness/windows_toolchain.json`) and uses nothing else from it.
+  Build the runtime once with
+  `python tools/own_runtime.py build --out <dir>`, which fetches STXlib at
+  the commit stx pins and the LLVM source (sha256-pinned), and prints the
+  three settings the toolchain reads (`GUI_FORMS_OWN_RUNTIME_SOURCE`,
+  `GUI_FORMS_OWN_RUNTIME_PREFIX`, `GUI_FORMS_LIBCXX_PREFIX`).
 
 On every platform export the compiler explicitly:
 
@@ -110,11 +122,15 @@ cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DGUI_FORMS_ENABLE_LINUX_HOST=ON
 ```
 
-Windows (in MSYS2 CLANG64):
+Windows (`<dir>` is `tools/own_runtime.py build`'s `--out`):
 
 ```sh
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release \
-    -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake \
+    -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22-windows-msvc.cmake \
+    -DGUI_FORMS_MSVC_RUNTIME=OWN \
+    -DGUI_FORMS_OWN_RUNTIME_SOURCE=<dir>/stxlib \
+    -DGUI_FORMS_OWN_RUNTIME_PREFIX=<dir>/own-runtime \
+    -DGUI_FORMS_LIBCXX_PREFIX=<dir>/libcxx \
     -DCMAKE_INSTALL_PREFIX="$PWD/sdk" \
     -DGUI_FORMS_ENABLE_WINDOWS_HOST=ON
 ```

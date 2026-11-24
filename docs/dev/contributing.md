@@ -96,9 +96,9 @@ python3 -B tools/ci_build.py --sanitize --test-cache <dir>
 
 It builds `.build/native-<host>-<arch>/gui-forms-sanitize` with CI's flags,
 with borrowed views checked (`GUI_FORMS_CHECKED_BORROWS`), and packs the
-sanitize test cache into `<dir>`. AddressSanitizer and
-UndefinedBehaviorSanitizer run everywhere; LeakSanitizer runs on Linux and
-macOS, since the Windows MinGW runtime has none. The tests then run against
+sanitize test cache into `<dir>`. AddressSanitizer, UndefinedBehaviorSanitizer
+and LeakSanitizer run on Linux and macOS; Windows builds no sanitized tree
+([Building from source](../building/index.md#sanitized-test-runs)). The tests then run against
 that cache from a gui_forms_tests checkout, and any report fails them:
 
 ```sh
