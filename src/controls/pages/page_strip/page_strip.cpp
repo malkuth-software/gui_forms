@@ -119,7 +119,9 @@ void PageStrip::release_page_set() noexcept {
     widths_frozen_ = false;
     frozen_widths_.clear();
     ++settings_revision_;
-    invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    // Called from noexcept teardown too (the view's destructor, after the
+    // strip may have been disposed): a disposed strip has nothing to redraw.
+    if (is_alive()) invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 // -- settings ------------------------------------------------------------------
