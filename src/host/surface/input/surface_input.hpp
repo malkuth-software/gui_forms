@@ -128,8 +128,18 @@ public:
     // state stuck (A-gf-host-02-F14); the queue stays bounded.
     static constexpr std::size_t maximum_control_records = 4U * maximum_records;
 
+    // Whether records of `kind` carry a level of the host's state rather
+    // than an event: presented, focus, visibility, activation, resize,
+    // safe_insets and close. Only the latest of each matters, and losing it
+    // leaves the manager's copy stuck (composing paused, a window open), so
+    // they are never refused (hunt r48 C38).
+    [[nodiscard]] static bool carries_level(SurfaceInputKind kind) noexcept;
+
     // Appends `record` and wakes the manager's thread. Returns false, keeping
-    // nothing, when the queue is full for its kind.
+    // nothing, when the queue is full for its kind. A level record
+    // (carries_level) is always kept: when the queue is full, the oldest
+    // queued record of its kind is removed first, and when there is none it
+    // is appended past the bound (at most one per level kind, seven in all).
     bool post(SurfaceInputRecord record);
     // Wakes the manager's thread without a record (a model's wake handler).
     void wake() noexcept;
