@@ -69,6 +69,9 @@ gui_forms::FlagsValueEditor
 
       **states** : ``States``, read-only
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the drop-down's state agrees with itself (state hunt): open, its overlay is in the window with its list; closed, nothing is lifted into a Popup.
+
    :Events:
 
       **value_changed** : ``Event<const PropertyEnumValue&>``
@@ -237,6 +240,10 @@ gui_forms::FlagsValueEditor
 
    .. cpp:function:: States states() const
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the drop-down's state agrees with itself (state hunt): open, its overlay is in the window with its list; closed, nothing is lifted into a Popup.
+
 
    .. rubric:: Events
 
@@ -303,7 +310,7 @@ gui_forms::FlagsValueEditor
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 2 supported, 0 deferred, 0 excluded, 5 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 3 supported, 0 deferred, 0 excluded, 5 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -314,6 +321,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 2 su
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``checked_flags``

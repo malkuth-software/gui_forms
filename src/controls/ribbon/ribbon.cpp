@@ -444,31 +444,6 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
     return prepared;
 }
 
-// Takes the hosted controls out of the current records, leaving those
-// records without them: ribbon-made controls with their records, keyed by
-// their command's ID and kind; the application's controls by identity.
-Ribbon::HostedCarryOver Ribbon::take_hosted_controls() {
-    HostedCarryOver carried;
-    for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        // A panel tab's control is the application's, kept by identity.
-        const Control::Ptr& panel = tabs_[tab].panel;
-        if (panel && (*panel).parent().get() == this) carried.authored.push_back(panel);
-        for (std::size_t group = 0; group < tabs_[tab].groups.size(); ++group) {
-            for (std::size_t command = 0; command < tabs_[tab].groups[group].commands.size(); ++command) {
-                CommandRecord& record = records_[tab][group][command];
-                if (!record.hosted) continue;
-                const RibbonCommandSpec& spec = tabs_[tab].groups[group].commands[command];
-                if (authored_kind(spec.kind)) {
-                    carried.authored.push_back(std::move(record.hosted));
-                    continue;
-                }
-                carried.made.emplace_back(hosted_key(spec), std::move(record));
-            }
-        }
-    }
-    return carried;
-}
-
 // The new sets' states: availability and last accent carried over by set ID,
 // and each set's range of tabs from `tab_set_of`.
 std::vector<Ribbon::TabSetState> Ribbon::carried_set_states(
@@ -490,58 +465,64 @@ std::vector<Ribbon::TabSetState> Ribbon::carried_set_states(
     return states;
 }
 
-// Makes one record per command of tabs_: its hosted control, carried over
-// (a ribbon-made one by ID and kind, the application's by identity) or made
-// and added, configured from its command; and a watch on its Command. Takes
-// what it reuses out of `carried`.
-void Ribbon::rebuild_records(HostedCarryOver& carried) {
-    records_.clear();
-    advance_layout_revision();
-    records_.resize(tabs_.size());
-    advance_layout_revision();
+// A ribbon-made control of the current records that `spec` can take over:
+// same command ID and kind, not taken by an earlier command of the draft.
+Control::Ptr Ribbon::reusable_made_control(const RibbonCommandSpec& spec,
+                                           const std::vector<const Control*>& taken) const {
+    const std::string key = hosted_key(spec);
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        const Control::Ptr& panel = tabs_[tab].panel;
-        if (panel) {
-            for (Control::Ptr& old : carried.authored) {
-                if (old.get() != panel.get()) continue;
-                old.reset();
-                break;
-            }
-            if ((*panel).parent().get() != this) add_child(panel);
-        }
-        records_[tab].resize(tabs_[tab].groups.size());
         for (std::size_t group = 0; group < tabs_[tab].groups.size(); ++group) {
             const std::vector<RibbonCommandSpec>& commands = tabs_[tab].groups[group].commands;
-            records_[tab][group].resize(commands.size());
+            for (std::size_t command = 0; command < commands.size(); ++command) {
+                if (!hosted(commands[command].kind) || hosted_key(commands[command]) != key) continue;
+                const CommandRecord* const record = record_at(tab, group, command);
+                if (record == nullptr || !(*record).hosted) continue;
+                const Control* const control = (*record).hosted.get();
+                if (std::find(taken.begin(), taken.end(), control) != taken.end()) continue;
+                return (*record).hosted;
+            }
+        }
+    }
+    return {};
+}
+
+// Drafts one record per command of `tabs` into `draft`, leaving the ribbon's
+// tabs and records as they are: a panel or hosted control that is not yet a
+// child is added (and listed in draft.added), a ribbon-made control is
+// reused or made and configured, and each Command is watched for the next
+// definition. Throws what add_child, a hosted control or a subscription
+// throws; the caller then abandons the draft. A reused control's
+// configuration (a combo box's choices, a check box's text) is not undone.
+void Ribbon::draft_records(const std::vector<RibbonTabSpec>& tabs, TabsDraft& draft) {
+    const std::uint64_t next = definition_ + 1U;
+    std::vector<const Control*> taken{};
+    draft.records.resize(tabs.size());
+    for (std::size_t tab = 0; tab < tabs.size(); ++tab) {
+        if (tabs[tab].panel) adopt_drafted(tabs[tab].panel, draft);
+        draft.records[tab].resize(tabs[tab].groups.size());
+        for (std::size_t group = 0; group < tabs[tab].groups.size(); ++group) {
+            const std::vector<RibbonCommandSpec>& commands = tabs[tab].groups[group].commands;
+            draft.records[tab][group].resize(commands.size());
             for (std::size_t command = 0; command < commands.size(); ++command) {
                 const RibbonCommandSpec& spec = commands[command];
-                CommandRecord& record = records_[tab][group][command];
+                CommandRecord& record = draft.records[tab][group][command];
                 if (authored_kind(spec.kind)) {
-                    const Control::Ptr own = authored_control(spec);
-                    for (Control::Ptr& old : carried.authored) {
-                        if (old.get() != own.get()) continue;
-                        record.hosted = std::move(old);
-                        break;
-                    }
-                    if (!record.hosted) {
-                        record.hosted = own;
-                        if ((*own).parent().get() != this) add_child(record.hosted);
-                    }
+                    record.hosted = authored_control(spec);
+                    adopt_drafted(record.hosted, draft);
                 } else if (hosted(spec.kind)) {
-                    const std::string key = hosted_key(spec);
-                    for (std::pair<std::string, CommandRecord>& old : carried.made) {
-                        if (old.first != key || !old.second.hosted) continue;
-                        record.hosted = std::move(old.second.hosted);
-                        break;
+                    record.hosted = reusable_made_control(spec, taken);
+                    if (record.hosted) {
+                        configure_hosted(spec, *record.hosted);
+                    } else {
+                        Control::Ptr made = make_hosted(spec);
+                        configure_hosted(spec, *made);
+                        record.hosted = made;
+                        adopt_drafted(record.hosted, draft);
                     }
-                    if (!record.hosted) {
-                        record.hosted = make_hosted(spec);
-                        add_child(record.hosted);
-                    }
-                    configure_hosted(spec, *record.hosted);
+                    taken.push_back(record.hosted.get());
                 }
                 if (spec.command) {
-                    const CommandWatch watch{this, tab, group, command};
+                    const CommandWatch watch{this, tab, group, command, next};
                     record.watch = (*spec.command).state_changed().subscribe(*this, watch);
                     record.text = (*spec.command).state().text;
                     record.visible = (*spec.command).state().visible;
@@ -551,96 +532,107 @@ void Ribbon::rebuild_records(HostedCarryOver& carried) {
     }
 }
 
-// Removes the hosted controls no new command took.
-void Ribbon::release_carried(const HostedCarryOver& carried) {
-    for (const std::pair<std::string, CommandRecord>& old : carried.made) {
-        if (old.second.hosted) static_cast<void>(remove_child((*old.second.hosted).runtime_id()));
-    }
-    for (const Control::Ptr& old : carried.authored) {
-        if (old && (*old).parent().get() == this) static_cast<void>(remove_child((*old).runtime_id()));
-    }
+// Makes `control` a child for the draft unless it is one, listing it in
+// draft.added so a refusal removes it again.
+void Ribbon::adopt_drafted(const Control::Ptr& control, TabsDraft& draft) {
+    if ((*control).parent().get() == this) return;
+    add_child(control);
+    draft.added.push_back(control);
 }
 
-// A commit that failed part way (add_child refused a hosted control for a
-// reason prepare_tabs cannot see, such as a lifecycle notification under
-// way): the ribbon is left with no tabs rather than with tabs_, records_,
-// layouts_ and scaling_ of different shapes, which every layout, paint and
-// hit test indexes together (A-gf-controls-11-F1). The hosted controls the
-// partial records and the carry-over hold are taken out where the tree
-// allows; a removal that is refused leaves that control a child with no
-// record, which nothing reaches. Never throws.
-void Ribbon::abandon_definition(HostedCarryOver& carried) noexcept {
-    std::vector<Control::Ptr> held{};
-    try {
-        for (const RibbonTabSpec& tab : tabs_) {
-            if (tab.panel) held.push_back(tab.panel);
-        }
-        for (std::vector<std::vector<CommandRecord>>& tab : records_) {
-            for (std::vector<CommandRecord>& group : tab) {
-                for (CommandRecord& record : group) {
-                    if (record.hosted) held.push_back(std::move(record.hosted));
-                }
-            }
-        }
-    } catch (...) {
-    }
-    records_.clear();
-    tabs_.clear();
-    tab_sets_.clear();
-    set_states_.clear();
-    tab_set_of_.clear();
-    layouts_.clear();
-    scaling_.clear();
-    selected_tab_.reset();
-    last_core_tab_.reset();
-    first_group_ = 0U;
-    hot_ = Hit{};
-    pressed_command_.reset();
-    pressed_launcher_.reset();
-    pressed_group_.reset();
-    pressed_tab_.reset();
-    held_tab_.reset();
-    pressed_scroll_ = Hit::Kind::none;
-    stop_.reset();
-    ++content_generation_;
-    advance_layout_revision();
-    for (const Control::Ptr& control : held) {
+// A draft set_tabs refused: its watches go with its records, and the
+// children it added are removed where the tree allows (a refused removal
+// leaves that control a child with no record, which nothing reaches). The
+// ribbon's tabs and records were not touched. Never throws.
+void Ribbon::abandon_draft(TabsDraft& draft) noexcept {
+    draft.records.clear();
+    for (std::size_t index = draft.added.size(); index > 0U; --index) {
+        const Control::Ptr& control = draft.added[index - 1U];
         try {
             if ((*control).parent().get() == this) static_cast<void>(remove_child((*control).runtime_id()));
         } catch (...) {
         }
     }
+    draft.added.clear();
+}
+
+// Removes the panels and hosted controls of the replaced definition that the
+// new one did not take. A refused removal leaves that control a child with
+// no record, which nothing reaches. Never throws.
+void Ribbon::release_retired(const std::vector<RibbonTabSpec>& retired_tabs,
+                             const std::vector<std::vector<std::vector<CommandRecord>>>& retired_records) noexcept {
+    std::vector<const Control*> kept{};
+    std::vector<Control::Ptr> retired{};
     try {
-        release_carried(carried);
+        for (const RibbonTabSpec& tab : tabs_) {
+            if (tab.panel) kept.push_back(tab.panel.get());
+        }
+        for (const std::vector<std::vector<CommandRecord>>& tab : records_) {
+            for (const std::vector<CommandRecord>& group : tab) {
+                for (const CommandRecord& record : group) {
+                    if (record.hosted) kept.push_back(record.hosted.get());
+                }
+            }
+        }
+        for (const RibbonTabSpec& tab : retired_tabs) {
+            if (tab.panel) retired.push_back(tab.panel);
+        }
+        for (const std::vector<std::vector<CommandRecord>>& tab : retired_records) {
+            for (const std::vector<CommandRecord>& group : tab) {
+                for (const CommandRecord& record : group) {
+                    if (record.hosted) retired.push_back(record.hosted);
+                }
+            }
+        }
     } catch (...) {
     }
-    try {
-        invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    } catch (...) {
+    for (const Control::Ptr& control : retired) {
+        if (std::find(kept.begin(), kept.end(), control.get()) != kept.end()) continue;
+        try {
+            if ((*control).parent().get() == this) static_cast<void>(remove_child((*control).runtime_id()));
+        } catch (...) {
+        }
     }
 }
 
 // Validates and prepares everything first (prepare_tabs), so that a refusal
-// leaves the ribbon as it was; then closes the overlays, carries the hosted
-// controls and the sets' states over, commits, and restores the selection.
+// leaves the ribbon as it was; then closes the overlays, drafts the new
+// records (adding what the new tabs need), and only then swaps the new
+// definition in whole (state hunt C40, C41). A draft the window refuses is
+// abandoned and the ribbon keeps its tabs, records, selection and indices.
 void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets) {
     require_mutable();
     if (merge_ && !merging_) throw std::logic_error("Ribbon holds a merge: revert it before replacing the tabs");
     PreparedTabs prepared = prepare_tabs(tabs, sets);
+    std::vector<TabSetState> states = carried_set_states(sets, prepared.tab_set_of);
     close_menus();
     close_group_overlay();
     close_plane_popup();
-    // Lives to the end: its records keep their Command watches until then.
-    HostedCarryOver carried = take_hosted_controls();
+    TabsDraft draft;
+    try {
+        draft_records(tabs, draft);
+    } catch (...) {
+        abandon_draft(draft);
+        throw;
+    }
+    // Nothing below refuses: the new definition goes in whole.
     std::string selected_id;
-    if (selected_tab_.present()) selected_id = tabs_[*selected_tab_.value()].stable_id;
-    std::vector<TabSetState> states = carried_set_states(sets, prepared.tab_set_of);
-    // Indices into the old tabs go before the new tabs are written (state
-    // hunt C40, C41): code the rebuild runs that reaches the ribbon finds no
-    // selected tab and nothing pressed, instead of old indices into new
-    // tabs. The selection is found again below.
+    if (selected_tab_.present() && *selected_tab_.value() < tabs_.size()) {
+        selected_id = tabs_[*selected_tab_.value()].stable_id;
+    }
+    std::vector<RibbonTabSpec> retired_tabs = std::exchange(tabs_, std::move(tabs));
+    std::vector<std::vector<std::vector<CommandRecord>>> retired_records =
+        std::exchange(records_, std::move(draft.records));
+    ++definition_;
+    tab_sets_ = std::move(sets);
+    set_states_ = std::move(states);
+    tab_set_of_ = std::move(prepared.tab_set_of);
+    layouts_ = std::move(prepared.layouts);
+    scaling_.assign(tabs_.size(), TabScaling{});
     selected_tab_.reset();
     last_core_tab_.reset();
+    first_group_ = 0U;
+    hot_ = Hit{};
     pressed_command_.reset();
     pressed_launcher_.reset();
     pressed_group_.reset();
@@ -648,44 +640,19 @@ void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetS
     held_tab_.reset();
     pressed_scroll_ = Hit::Kind::none;
     stop_.reset();
-    try {
-        tabs_ = std::move(tabs);
-        advance_layout_revision();
-        tab_sets_ = std::move(sets);
-        set_states_ = std::move(states);
-        advance_layout_revision();
-        tab_set_of_ = std::move(prepared.tab_set_of);
-        advance_layout_revision();
-        layouts_ = std::move(prepared.layouts);
-        advance_layout_revision();
-        rebuild_records(carried);
-    } catch (...) {
-        abandon_definition(carried);
-        throw;
-    }
-    release_carried(carried);
+    ++content_generation_;
+    advance_layout_revision();
+    // The replaced records' watches go with them, after the controls the new
+    // definition did not take are let go.
+    release_retired(retired_tabs, retired_records);
+    retired_records.clear();
     refresh_accents();
-    selected_tab_.reset();
-    last_core_tab_.reset();
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (tabs_[tab].stable_id == selected_id && selectable(tab)) selected_tab_.set(tab);
-        advance_layout_revision();
     }
     if (selected_tab_.absent()) selected_tab_ = fallback_tab();
-    advance_layout_revision();
     if (selected_tab_.present() && tab_set_of_[*selected_tab_.value()].absent()) last_core_tab_ = selected_tab_;
-    scaling_.assign(tabs_.size(), TabScaling{});
     advance_layout_revision();
-    ++content_generation_;
-    first_group_ = 0U;
-    advance_layout_revision();
-    hot_ = Hit{};
-    pressed_command_.reset();
-    pressed_launcher_.reset();
-    pressed_group_.reset();
-    held_tab_.reset();
-    pressed_scroll_ = Hit::Kind::none;
-    stop_.reset();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -936,7 +903,8 @@ bool Ribbon::command_checked(const RibbonCommandSpec& command) const {
 }
 
 void Ribbon::CommandWatch::operator()(const CommandState&) const {
-    if (ribbon != nullptr && (*ribbon).is_alive()) (*ribbon).command_state_changed(tab, group, command);
+    if (ribbon == nullptr || !(*ribbon).is_alive() || definition != (*ribbon).definition_) return;
+    (*ribbon).command_state_changed(tab, group, command);
 }
 
 // A Command's state changed. Text and visibility change the layout (and the

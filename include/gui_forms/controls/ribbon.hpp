@@ -823,11 +823,15 @@ private:
     };
     // A named callback: a Command's state changed. `tab`, `group` and
     // `command` locate the record.
+    // A Command's watch, for the definition (definition_) it was made for:
+    // a watch of a definition set_tabs is still drafting, or of one it
+    // replaced, does nothing.
     struct CommandWatch final {
         Ribbon* ribbon{};
         std::size_t tab{};
         std::size_t group{};
         std::size_t command{};
+        std::uint64_t definition{};
         void operator()(const CommandState&) const;
     };
 
@@ -976,22 +980,26 @@ private:
         std::vector<stxlib::Optional<std::size_t>> tab_set_of;
         std::vector<std::vector<std::vector<RibbonGroupLayout>>> layouts;
     };
-    // The hosted controls taken out of the records set_tabs replaces:
-    // ribbon-made controls with their records (and Command watches), keyed
-    // "<command ID>/<kind>", and the application's controls (galleries, font
-    // controls, colour pickers), matched by identity.
-    struct HostedCarryOver final {
-        std::vector<std::pair<std::string, CommandRecord>> made;
-        std::vector<Control::Ptr> authored;
+    // The records set_tabs drafts for the new tabs before it changes the
+    // ribbon (state hunt C40): each command's hosted control, reused from the
+    // current records (a ribbon-made one by command ID and kind, the
+    // application's by identity) or made, and its Command watch for the next
+    // definition; and the children the draft added, which a refusal removes.
+    struct TabsDraft final {
+        std::vector<std::vector<std::vector<CommandRecord>>> records;
+        std::vector<Control::Ptr> added;
     };
     [[nodiscard]] PreparedTabs prepare_tabs(const std::vector<RibbonTabSpec>& tabs,
                                             const std::vector<RibbonTabSetSpec>& sets) const;
-    [[nodiscard]] HostedCarryOver take_hosted_controls();
     [[nodiscard]] std::vector<TabSetState> carried_set_states(
         const std::vector<RibbonTabSetSpec>& sets, const std::vector<stxlib::Optional<std::size_t>>& tab_set_of) const;
-    void rebuild_records(HostedCarryOver& carried);
-    void release_carried(const HostedCarryOver& carried);
-    void abandon_definition(HostedCarryOver& carried) noexcept;
+    void draft_records(const std::vector<RibbonTabSpec>& tabs, TabsDraft& draft);
+    [[nodiscard]] Control::Ptr reusable_made_control(const RibbonCommandSpec& spec,
+                                                     const std::vector<const Control*>& taken) const;
+    void adopt_drafted(const Control::Ptr& control, TabsDraft& draft);
+    void abandon_draft(TabsDraft& draft) noexcept;
+    void release_retired(const std::vector<RibbonTabSpec>& retired_tabs,
+                         const std::vector<std::vector<std::vector<CommandRecord>>>& retired_records) noexcept;
 
     // A realized item located: a tab, a group or a command of the selected
     // tab, or nothing past the end.
@@ -1240,6 +1248,9 @@ private:
     // Scaling. The caches are derived state, emptied when scaling_key_ no
     // longer matches; scaling_ has one entry per tab.
     std::uint64_t content_generation_{1U};
+    // The tab definition's generation, advanced by each set_tabs that
+    // commits; Command watches carry the one they were made for.
+    std::uint64_t definition_{0U};
     mutable ScalingKey scaling_key_{};
     mutable std::vector<TabScaling> scaling_{};
     mutable RowMetrics row_metrics_{};
