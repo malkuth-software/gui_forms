@@ -240,6 +240,26 @@ OpenDialog find_open_dialog(AutomationCore& core, Window& window, std::span<cons
         dialog.window = &window;
         return dialog;
     }
+    // While a modal layer's focus scope holds the window, the semantic
+    // snapshot is rooted at the scope's content, below the dialog node: the
+    // dialog is found among the ancestors of the first control the outline
+    // names.
+    for (const FlatNode& node : nodes) {
+        if (node.stable_id.empty()) continue;
+        const Control::Ptr named = window.find(node.stable_id);
+        if (named == nullptr) break;
+        for (Control::Ptr ancestor = (*named).parent(); ancestor != nullptr; ancestor = (*ancestor).parent()) {
+            const SemanticDescriptor descriptor = (*ancestor).semantic_descriptor();
+            if (descriptor.role != SemanticRole::dialog || !descriptor.modal || !descriptor.exposed) continue;
+            dialog.open = true;
+            const std::string_view id = (*ancestor).stable_id().value();
+            dialog.id = id.empty() ? std::string("dialog") : std::string(id);
+            dialog.drivable = model_drivable(window);
+            dialog.window = &window;
+            return dialog;
+        }
+        break;
+    }
     return dialog;
 }
 
