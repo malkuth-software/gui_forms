@@ -93,11 +93,14 @@ if(GUI_FORMS_LIBCXX_PREFIX)
     endif()
     # libc++ first, then the C search order above. The archives are named on
     # the link by path, so libc++'s automatic library directive is off.
+    # -nostdinc (in the C flags) already drops the C++ directories too; a
+    # -nostdinc++ beside it is reported unused, an error under
+    # GUI_FORMS_WARNINGS_AS_ERRORS.
     set(CMAKE_CXX_FLAGS_INIT
-        "-nostdinc++ -isystem \"${GUI_FORMS_LIBCXX_PREFIX}/include/c++/v1\" ${_gf_own_c_includes} -D_LIBCPP_NO_AUTO_LINK")
+        "-isystem \"${GUI_FORMS_LIBCXX_PREFIX}/include/c++/v1\" ${_gf_own_c_includes} -D_LIBCPP_NO_AUTO_LINK")
 else()
     # The bootstrap that builds libc++ names libc++'s own headers itself.
-    set(CMAKE_CXX_FLAGS_INIT "-nostdinc++ ${_gf_own_c_includes}")
+    set(CMAKE_CXX_FLAGS_INIT "${_gf_own_c_includes}")
 endif()
 # Resource scripts: CMake preprocesses them with clang and compiles them with
 # llvm-rc, passing the same flags to both, so the headers are given as -I.
