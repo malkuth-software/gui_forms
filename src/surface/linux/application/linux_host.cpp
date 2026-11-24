@@ -2,6 +2,10 @@
 // STXlib's Status (now OperationStatus, which no X11 macro names); kept.
 #include "../../../core/failure/fail_fast.hpp"
 #include "linux_host_internal.hpp"
+#include "../../../core/application/application_state.hpp"
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../../../runtime/automation/automation_run.hpp"
+#endif
 #include "../../../host/offscreen_font_lookup.hpp"
 #if defined(GUI_FORMS_PREPARED_TEXT)
 #include "../../../core/text/prepared/prepared_storage.hpp"
@@ -3121,6 +3125,16 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
 }
 int run_linux(std::unique_ptr<gui_forms::Window> window,
               LinuxHostOptions options) {
+  if (!window) return 2;
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // The automation (--mcp, --mcp-script) as Application::run starts it; it
+  // ends after the window's model and the window's state below.
+  const gui_forms::automation::AutomationRunScope automation{};
+#endif
+  // The window joins the automation once the host is ready
+  // (gui_forms::detail::DirectRunWindow); nothing happens without one.
+  gui_forms::detail::DirectRunWindow direct_window{};
+  options.host_ready = direct_window.wrap(*window, "main", std::move(options.host_ready));
   std::vector<LinuxApplicationWindow> windows;
   LinuxApplicationWindow entry;
   entry.stable_id = "main";

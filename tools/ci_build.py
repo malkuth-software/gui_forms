@@ -296,6 +296,9 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         examples: Path = build / 'installed-reference-examples'
         run('cmake', '-S', ROOT / 'gui_forms/examples/reference', '-B', examples,
             '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', f'-DCMAKE_PREFIX_PATH={sdk}',
+            # This interpreter runs the windowed examples' MCP check
+            # (tools/check_mcp_launch.py), so the check never skips quietly.
+            f'-DPython3_EXECUTABLE={sys.executable}',
             *toolchain_options(ROOT / 'gui_forms'))
         run('cmake', '--build', examples, '--parallel', jobs)
         run('ctest', '--test-dir', examples, '--output-on-failure')

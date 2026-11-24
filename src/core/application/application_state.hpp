@@ -125,4 +125,32 @@ void unregister_run_window(ApplicationWindowState& state) noexcept;
 // after_shutdown. Its stable id, identity and run stay, so
 // unregister_run_window still finds it.
 void revoke_window_state(ApplicationWindowState& state) noexcept;
+
+// The window of a host's single-window entry (host::run_macos, run_windows,
+// run_linux), which runs no Application::run: it joins the automation as an
+// application window does (session_directory.hpp, the window-ready hook), so
+// a program that calls its host directly serves --mcp and --mcp-script too.
+// Its state is outside any run and not attached to the model, which opens
+// its popups as it did before; its handle offers request_close (the
+// automation's close at the end of its input) and reports the rest
+// unsupported. Made, used and destroyed on the host's UI thread; destroyed
+// after the run loop ends, which revokes the state.
+class DirectRunWindow final {
+public:
+    using HostReady = std::function<void(std::function<void()> wake, std::function<void()> request_close,
+                                         std::function<HostDialogResult(const HostDialogRequest&)> show_dialog,
+                                         std::function<HostClipboardTextResult()> read_clipboard_text,
+                                         std::function<HostServiceStatus(std::string_view)> write_clipboard_text)>;
+    DirectRunWindow();
+    ~DirectRunWindow();
+    DirectRunWindow(const DirectRunWindow&) = delete;
+    DirectRunWindow& operator=(const DirectRunWindow&) = delete;
+    // The host's host_ready option with the join after it: `inner` (empty
+    // for none) runs first, then the window joins under `stable_id` with
+    // the host's request_close.
+    [[nodiscard]] HostReady wrap(SurfaceRoot& model, std::string stable_id, HostReady inner);
+
+private:
+    std::shared_ptr<ApplicationWindowState> state_{};
+};
 } // namespace gui_forms::detail

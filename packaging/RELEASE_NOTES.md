@@ -480,3 +480,21 @@ Visible-area guarantee (stage VA):
   `overflow_records`, `unanswered_overflow_count` and `safe_insets`, and the
   controls table's `set_viewport_fit` and `viewport_fit`, and
   `GF_HOST_CAPABILITY_SAFE_INSETS`.
+
+### 1.0.1: MCP in every program
+
+- A program that calls its host's single-window entry (`host::run_macos`,
+  `run_windows`, `run_linux`) serves `--mcp` and `--mcp-script` as one run by
+  `Application::run` does; its window joins the automation as `main`. Until
+  now every demonstrator, the Gallery among them, ignored both on every host
+  without a word. The automation's run and transport moved from the
+  Application library into their own archive (`gui_forms_automation`), which
+  the Application library links whole and each desktop host links.
+- CI checks this on every platform: the package smoke launches each packaged
+  program with `--mcp` and expects answers to initialize and `tools/list`,
+  then an exit once its input closes (`tools/check_mcp_launch.py`), and the
+  installed reference examples run the same check on `collection_gallery`.
+- `collection_gallery` (installed reference example) started with a theme
+  error, because its sheet named a colour role outside the theme language's
+  vocabulary. It now uses `ink-on-paper`.
+- The installed package's config sets `GUIForms_MCP`.

@@ -181,6 +181,10 @@ if(GUIForms_CHECKED_BORROWS)
     unset(_gui_forms_borrow_target)
 endif()
 
+# Whether the producer's programs serve MCP with --mcp and --mcp-script
+# (GUI_FORMS_MCP; off in a high-integrity build).
+set(GUIForms_MCP @GUI_FORMS_MCP@)
+
 # Whether the producer was built in the high-integrity configuration
 # (GUI_FORMS_HIGH_INTEGRITY, cmake/HighIntegrity.cmake), and with which
 # allowances. Its public headers declare fewer entries in that mode, so a

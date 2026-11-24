@@ -165,6 +165,16 @@ if(TARGET GUIForms::Application)
                      MODEL reference::GalleryModel MODEL_HEADER collection_gallery_model.hpp)
     gui_forms_add_theme(collection_gallery themes/collection_gallery FUNCTION collection_gallery_theme
                         NAMESPACE reference FORMS forms/collection_gallery.form)
+    # The window serves MCP with --mcp (tools/check_mcp_launch.py): it answers
+    # initialize and tools/list and exits once its input closes. Needs a
+    # window server, as the demonstrators' package smoke does.
+    set(_reference_mcp_check "${CMAKE_CURRENT_SOURCE_DIR}/../../tools/check_mcp_launch.py")
+    if(GUIForms_MCP AND NOT GUIForms_HIGH_INTEGRITY AND EXISTS "${_reference_mcp_check}")
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        add_test(NAME collection_gallery_mcp
+                 COMMAND Python3::Interpreter "${_reference_mcp_check}" $<TARGET_FILE:collection_gallery>)
+        set_tests_properties(collection_gallery_mcp PROPERTIES TIMEOUT 180)
+    endif()
 endif()
 
 if(TARGET GUIForms::Audio)

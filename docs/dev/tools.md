@@ -435,6 +435,14 @@ with the change that needs it.
   contention fuzzer drives programs with it. A program can also run a script
   of the same calls by itself: `--mcp-script <file.jsonl>`.
 
+`tools/check_mcp_launch.py`
+: Starts each program it is given with `--mcp` and checks that it answers
+  initialize and `tools/list`, then exits once its input closes. One line per
+  program; exit status 1 when any fails. `tools/smoke_package.py` runs it on
+  every packaged program, and `examples/reference` on `collection_gallery`.
+  It needs a window server (`xvfb-run` on Linux CI).
+  `python3 tools/check_mcp_launch.py "<build>/GUI.Forms Gallery.app/Contents/MacOS/GUI.Forms Gallery"`
+
 `tools/run_windows_wine_smoke.sh`, `tools/run_windows_gallery_text_smoke.sh`, `tools/run_windows_gallery_services_smoke.sh`
 : Run a Windows build of the gallery under Wine with an automation script and assert
   on the structured log; see [Windows builds and Wine](../building/index.md#windows-builds-and-wine).

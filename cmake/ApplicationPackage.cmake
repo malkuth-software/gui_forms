@@ -137,7 +137,7 @@ set(GUI_FORMS_PACKAGE_DEFINITIONS "")
 if(WIN32)
     set(GUI_FORMS_PACKAGE_DEFINITIONS "_WIN32_WINNT=0x0A00;WINVER=0x0A00")
 endif()
-# The MCP transport (CMakeLists.txt: gui_forms_application links stxlib::mcp
+# The MCP transport (CMakeLists.txt: gui_forms_automation links stxlib::mcp
 # privately when GUI_FORMS_MCP is on): the engine archive calls into it, so the
 # installed interface names the STXlib package's stxlib::mcp before the
 # libraries it links.

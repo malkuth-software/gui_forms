@@ -1,9 +1,11 @@
 #pragma once
 
 // The automation's run (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
-// sections 4 and 13; stage G2): what Application::run starts when the
-// program was launched with --mcp (or GUI_FORMS_MCP=1) or --mcp-script, on
-// every desktop host alike.
+// sections 4 and 13; stage G2): what Application::run, and each desktop
+// host's single-window entry (host::run_macos, run_windows, run_linux), starts
+// when the program was launched with --mcp (or GUI_FORMS_MCP=1) or
+// --mcp-script, on every desktop host alike. The entries' window joins
+// through detail::DirectRunWindow (core/application/application_state.hpp).
 //
 // - The launch is read from the process's own arguments and environment
 //   (read_automation_launch), so a program needs no code for MCP; a program
@@ -33,7 +35,7 @@
 // without MCP. The whole run is absent when GUI_FORMS_MCP is off.
 //
 // Thread: constructed and destroyed on the thread that runs
-// Application::run; the transport's tasks reach it only through the members
+// Application::run or the host entry; the transport's tasks reach it only through the members
 // documented as any-thread.
 
 #include <memory>
@@ -63,8 +65,9 @@ struct AutomationLaunch final {
 
 class AutomationRun;
 
-// Application::run's scope: starts the run when the launch asks for one and
-// ends it when the run's windowing has ended. Not copyable.
+// Application::run's scope, and the host entries': starts the run when the
+// launch asks for one and ends it when the run's windowing has ended. Not
+// copyable.
 class AutomationRunScope final {
 public:
     AutomationRunScope();
