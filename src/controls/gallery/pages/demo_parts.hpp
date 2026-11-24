@@ -70,7 +70,12 @@ public:
         // The preferred focus only when it can take it now (attached, shown,
         // enabled and focusable); otherwise the scope chooses its first stop.
         const bool focus_ready = focus_ && (*focus_).eligible_for_input() && (*focus_).focusable.read();
-        scope_ = (*window).begin_focus_scope(layer_, focus_ready ? focus_ : Control::Ptr{});
+        // Not contained: the anchor outside the popup takes its press, so a
+        // second click on it closes the popup (a contained scope refused the
+        // anchor's focus and swallowed the press).
+        FocusScopeOptions options;
+        options.contain_focus = false;
+        scope_ = (*window).begin_focus_scope(layer_, focus_ready ? focus_ : Control::Ptr{}, options);
         (*anchor_).expanded_state = stxlib::Optional<bool>::of(true);
         if (Event<>* closed = token_.closed_event()) {
             on(*closed, *this, &PopupPanel::on_overlay_closed);
