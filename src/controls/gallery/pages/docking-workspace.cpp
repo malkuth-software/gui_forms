@@ -115,7 +115,9 @@ private:
         std::shared_ptr<Panel> content = make_control<Panel>(StableId("gallery.docking.content." + creation.panel.value));
         std::shared_ptr<Label> copy =
             label("gallery.docking.copy." + creation.panel.value, title, 11.0, 400, "ink");
-        (*copy).set_requested_bounds({8.0, 8.0, 160.0, 22.0});
+        // As wide as the field, so the copy fits the narrowest pane (118 at
+        // the page's first size) and the panel has nothing to contain.
+        (*copy).set_requested_bounds({8.0, 8.0, 100.0, 22.0});
         (*content).add_child(copy);
         std::shared_ptr<TextBox> field = make_control<TextBox>(StableId("gallery.docking.field." + creation.panel.value));
         (*field).accessible_name = title;
