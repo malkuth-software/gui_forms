@@ -280,7 +280,13 @@ bool ValueBar::begin_edit() {
     (*editor_).text = opened_text_;
     (*editor_).visible = true;
     set_child_layout(editor_, content_bounds());
-    if (window() != nullptr) static_cast<void>((*window()).request_focus(editor_));
+    if (window() != nullptr) {
+        // The focus move runs focus handlers, which may drop the bar (the
+        // breaker's O2r): nothing more is done to it then.
+        const Control::Ptr lifetime = shared_from_this();
+        static_cast<void>((*window()).request_focus(editor_));
+        if (!is_alive() || !editing_) return false;
+    }
     (*editor_).select_all();
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
@@ -326,7 +332,13 @@ void ValueBar::close_editor(bool restore_focus) {
     // from code while the focus is elsewhere leaves it there.
     Window* const host = window();
     if (restore_focus && host != nullptr && editor_ && (*host).focused_control() == editor_) {
+        // The focus move runs focus handlers, which may drop the bar.
+        const Control::Ptr lifetime = shared_from_this();
         static_cast<void>((*host).request_focus(shared_from_this()));
+        if (!is_alive()) {
+            closing_ = false;
+            return;
+        }
     }
     if (editor_) (*editor_).visible = false;
     closing_ = false;
@@ -343,9 +355,22 @@ Size ValueBar::measure(Size available) {
     return measured;
 }
 
+// The editor is shown exactly while an edit is open: editing_ is the
+// record, with the open text and the defect beside it. The editor is handed
+// out (editor()) and addressable by stable ID, so a direct write of its
+// visible property is put back here on every arrange (state hunt O10). The
+// write may move focus and run the editor's validating handler, which
+// commits or closes the edit and may drop the bar.
 void ValueBar::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
-    if (editor_) set_child_layout(editor_, content_bounds());
+    if (!editor_) return;
+    if ((*editor_).visible.read() != editing_) {
+        const Control::Ptr lifetime = shared_from_this();
+        const std::shared_ptr<TextBox> editor = editor_;
+        (*editor).visible = editing_;
+        if (!is_alive()) return;
+    }
+    set_child_layout(editor_, content_bounds());
 }
 
 Rect ValueBar::track_bounds() const noexcept {

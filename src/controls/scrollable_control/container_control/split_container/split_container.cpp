@@ -440,8 +440,30 @@ Size SplitContainer::measure(Size available) {
                      requested.height > 0.0 ? requested.height : available.height)};
 }
 
+// A panel's visibility is the collapse state's to say (Panel1Collapsed and
+// Panel2Collapsed in Windows Forms): the flags are the record, and a panel
+// is shown exactly when its side is not collapsed. The panels are handed out
+// (first_panel(), second_panel()) and addressable by stable ID, so a direct
+// write of their visible property (the property table, a form file, the C
+// ABI) is put back here on every arrange, never compared with a cached copy
+// (state hunt O10). A visibility write runs handlers, which may drop the
+// container: false when it is gone.
+bool SplitContainer::reassert_panel_visibility() {
+    if ((*first_panel_).visible.read() == first_collapsed_) {
+        (*first_panel_).visible = !first_collapsed_;
+        if (!is_alive()) return false;
+    }
+    if ((*second_panel_).visible.read() == second_collapsed_) {
+        (*second_panel_).visible = !second_collapsed_;
+        if (!is_alive()) return false;
+    }
+    return true;
+}
+
 void SplitContainer::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
+    const Control::Ptr lifetime = shared_from_this();
+    if (!reassert_panel_visibility()) return;
     const double total = axis_extent(final_bounds);
     const double visible_width = effective_splitter_width();
     reconcile_automatic_collapse(total);

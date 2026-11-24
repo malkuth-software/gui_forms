@@ -67,9 +67,10 @@ public:
     [[nodiscard]] MasterDetailLayout effective_master_detail_layout() const noexcept;
     void set_master_detail_layout(MasterDetailLayout layout);
     void reset_master_detail_layout_to_theme();
-    [[nodiscard]] MasterDetailDisplayMode effective_display_mode() const noexcept {
-        return effective_display_mode_;
-    }
+    // The presentation in use, read from the split's collapsed panels: the
+    // split is the one record of it, kept to the wanted mode by every
+    // arrange (state hunt O10).
+    [[nodiscard]] MasterDetailDisplayMode effective_display_mode() const noexcept;
     void show_master();
     void show_detail();
 
@@ -98,8 +99,6 @@ private:
     Control::Ptr detail_;
     MasterDetailLayout layout_;
     Event<const MasterDetailPresentationChange&> presentation_changed_;
-    MasterDetailDisplayMode effective_display_mode_{
-        MasterDetailDisplayMode::side_by_side};
     bool initialized_{};
     bool uses_theme_layout_{true};
     // property_codemod begin MasterDetailView (tools/property_families/master_detail_view.json; generated, do not edit)

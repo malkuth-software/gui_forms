@@ -102,8 +102,12 @@ Control::Ptr MasterDetailView::replace_role(
     }
     Control::Ptr previous = slot;
     if (replacement) {
-        (*replacement).dock = DockStyle::fill;
+        // Commit last: the panel takes the control first, since that is what
+        // can still refuse (a control that contains this view would close a
+        // cycle); the dock it is given changes only once it is in place, so
+        // a refusal leaves the control as the caller had it (state hunt N5).
         (*panel).add_child(replacement);
+        (*replacement).dock = DockStyle::fill;
     }
     if (slot) previous = (*panel).remove_child((*slot).runtime_id());
     slot = std::move(replacement);
@@ -186,16 +190,32 @@ MasterDetailDisplayMode MasterDetailView::resolve_display_mode(
                                    : MasterDetailDisplayMode::master_only;
 }
 
+MasterDetailDisplayMode MasterDetailView::effective_display_mode() const noexcept {
+    if ((*split_).second_collapsed()) return MasterDetailDisplayMode::master_only;
+    if ((*split_).first_collapsed()) return MasterDetailDisplayMode::detail_only;
+    return MasterDetailDisplayMode::side_by_side;
+}
+
+// Called by every arrange, with no cached mode to compare: the split is
+// handed out (split_container()) and its panels are addressable by stable
+// ID, so its collapse may have been changed directly since the last arrange,
+// and the wanted mode is put back each time (state hunt O10, C24). Compared
+// with what the split says now, it writes only what differs. The split's
+// collapse moves focus and raises splitter_changed, whose handlers may drop
+// this view (arrange keeps it alive across them): what is published is read
+// after them.
 void MasterDetailView::apply_display_mode(MasterDetailDisplayMode mode,
                                           bool automatic) {
-    if (effective_display_mode_ == mode) return;
-    const MasterDetailDisplayMode previous = effective_display_mode_;
+    const MasterDetailDisplayMode previous = effective_display_mode();
+    if (previous == mode) return;
     const SplitCollapseOrigin origin = automatic
         ? SplitCollapseOrigin::automatic_accommodation : SplitCollapseOrigin::programmatic;
     if (!collapse_for_mode(*split_, mode, origin)) return;
-    effective_display_mode_ = mode;
+    if (!is_alive()) return;
+    const MasterDetailDisplayMode current = effective_display_mode();
+    if (current == previous) return;
     publish_change(presentation_changed_,
-                   MasterDetailPresentationChange{previous, mode, automatic});
+                   MasterDetailPresentationChange{previous, current, automatic});
 }
 
 Size MasterDetailView::measure(Size available) {
@@ -243,9 +263,11 @@ void MasterDetailView::arrange(Rect final_bounds) {
     initialize_control_tree();
     configure_split();
     arrange_self(final_bounds);
+    const Control::Ptr lifetime = shared_from_this();
     apply_display_mode(resolve_display_mode(
                            {final_bounds.width, final_bounds.height}),
                        display_mode.read() == MasterDetailDisplayMode::automatic);
+    if (!is_alive()) return;
     set_child_layout(split_,
                      {0.0, 0.0, final_bounds.width, final_bounds.height});
 }
@@ -255,10 +277,10 @@ SemanticDescriptor MasterDetailView::semantic_descriptor() const {
     descriptor.role = SemanticRole::group;
     descriptor.name = accessible_name.read();
     descriptor.description = accessible_description.read();
-    descriptor.value = effective_display_mode_ ==
-            MasterDetailDisplayMode::side_by_side
+    const MasterDetailDisplayMode presented = effective_display_mode();
+    descriptor.value = presented == MasterDetailDisplayMode::side_by_side
         ? "side-by-side"
-        : effective_display_mode_ == MasterDetailDisplayMode::master_only
+        : presented == MasterDetailDisplayMode::master_only
             ? "master"
             : "detail";
     descriptor.exposed = !descriptor.name.empty() ||

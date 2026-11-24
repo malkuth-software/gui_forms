@@ -137,6 +137,7 @@ private:
     [[nodiscard]] bool collapse_target_is_collapsed() const noexcept;
     [[nodiscard]] SplitCollapseOrigin collapse_target_origin() const noexcept;
     void toggle_collapse_target(SplitCollapseOrigin origin);
+    [[nodiscard]] bool reassert_panel_visibility();
     void reconcile_automatic_collapse(double total_extent);
     void set_distance(double distance, SplitChangeReason reason);
     void cancel_splitter_interaction(bool restore_distance) noexcept;
