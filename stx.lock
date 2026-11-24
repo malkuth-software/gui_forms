@@ -10,17 +10,11 @@
 # commit with -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir>, and
 # -DGUI_FORMS_STX_PREFIX=<dir> links a package built elsewhere.
 #
-# 7db7b4f is stx claude/stx-cp33: 6bc7dc5 (pushed with checkpoint 32, STXlib
-# e549318, state layout 12), then coder D's claude/audit-stx-1 68bdfa2 (the
-# Vorbis recovery's leading discard, the raster3d triangle budget, and the
-# RTF reader's and Markdown parser's bounded work), then audit-stx-3 897f130
-# (14 stx Lows; LineStream::begin returns a result), then stxlib.lock at
-# STXlib main 03a7630 (the 2026-11-15 audit: 40 findings fixed, layout 12),
-# then the integrator's stx_raster3d compile fix for audit-stx-3's views_overlap,
-# then audit-stx-5 7db7b4f (the ISA workload reader bounded before multiplying).
-# Not on GitHub until the owner pushes claude/stx-cp33 (a fast-forward of
-# 6bc7dc5); push it before this commit, or build with
-# -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<that checkout>.
+# bdb3dc1 is stx main after checkpoint cp37 (stx PR #6): STXlib 6f6df28
+# (checkpoints stx5 and stx6: the final CONV, the FFT speed work,
+# stxlib::syntax, sincosd, the threading additions, stx_mcp, and the
+# outline-atomics helpers inside the installed libraries) and stx_skia's
+# zero-stride installPixels check without the reference build.
 [stx]
 repository = "malkuth-software/stx"
-commit = "0fc2a32b393b0d6fca8f69026a2a84adc3ed5012"
+commit = "bdb3dc162963edea6c6ee65f5e149fea2eec95eb"
