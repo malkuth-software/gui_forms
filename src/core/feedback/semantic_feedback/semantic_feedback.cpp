@@ -7,10 +7,24 @@
 #include <chrono>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace gui_forms {
 namespace {
+
+// The feedback's window while it lives; std::logic_error naming
+// `operation` once it is gone.
+Window& living_window(const WindowRef& window, const char* operation) {
+    Window* const living = window.get();
+    if (living == nullptr) {
+        std::string message = "semantic feedback ";
+        message += operation;
+        message += " after Window shutdown";
+        throw std::logic_error(message);
+    }
+    return *living;
+}
 
 std::uint64_t steady_nanoseconds() noexcept {
     return static_cast<std::uint64_t>(
@@ -21,7 +35,7 @@ std::uint64_t steady_nanoseconds() noexcept {
 } // namespace
 
 SemanticFeedback::SemanticFeedback(Window& window, Clock clock)
-    : window_(&window), clock_(std::move(clock)) {
+    : window_(window.window_ref()), clock_(std::move(clock)) {
     if (!clock_) clock_ = steady_nanoseconds;
 }
 
@@ -44,10 +58,9 @@ HostSoundCue SemanticFeedback::cue_for(SemanticFeedbackKind kind) noexcept {
 }
 
 SemanticFeedbackRecord SemanticFeedback::emit(SemanticFeedbackKind kind) {
-    if (!is_alive() || window_ == nullptr) {
-        throw std::logic_error("disposed semantic feedback cannot emit");
-    }
-    (*window_).verify_access("semantic feedback emission");
+    if (!is_alive()) throw std::logic_error("disposed semantic feedback cannot emit");
+    Window& window = living_window(window_, "emission");
+    window.verify_access("semantic feedback emission");
     std::uint64_t timestamp = clock_();
     if (timestamp <= last_timestamp_) timestamp = last_timestamp_ + 1U;
     last_timestamp_ = timestamp;
@@ -57,8 +70,8 @@ SemanticFeedbackRecord SemanticFeedback::emit(SemanticFeedbackKind kind) {
     record.kind = kind;
     record.cue = cue_for(kind);
     record.timestamp_nanoseconds = timestamp;
-    record.sound_enabled = (*window_).presentation_settings().sound_enabled;
-    if (HostServices* services = (*window_).host_services()) {
+    record.sound_enabled = window.presentation_settings().sound_enabled;
+    if (HostServices* services = window.host_services()) {
         const HostServiceStatus status = (*services).play_sound_cue(
             {record.cue, record.sound_enabled ? 1.0 : 0.0, timestamp});
         record.host_accepted = status.accepted();
@@ -79,7 +92,7 @@ SemanticFeedbackRecord SemanticFeedback::emit(SemanticFeedbackKind kind) {
 
 void SemanticFeedback::set_maximum_records(std::size_t maximum) {
     if (!is_alive()) throw std::logic_error("disposed semantic feedback cannot mutate");
-    if (window_ != nullptr) (*window_).verify_access("feedback history mutation");
+    living_window(window_, "history mutation").verify_access("feedback history mutation");
     if (maximum == 0U || maximum > 65'536U) {
         throw std::invalid_argument(
             "semantic feedback history must contain 1 through 65536 records");
@@ -93,7 +106,7 @@ void SemanticFeedback::set_maximum_records(std::size_t maximum) {
 
 void SemanticFeedback::clear() {
     if (!is_alive()) throw std::logic_error("disposed semantic feedback cannot mutate");
-    if (window_ != nullptr) (*window_).verify_access("feedback history clear");
+    living_window(window_, "history clear").verify_access("feedback history clear");
     records_.clear();
     dropped_record_count_ = 0U;
 }
