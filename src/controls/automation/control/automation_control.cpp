@@ -109,7 +109,7 @@ void AutomationControl::user_took_back() {
 void AutomationControl::disconnect() noexcept {
     if (state_ != ControlState::user_control) release(ControlRelease::disconnected);
     if (gate_installed_) {
-        gui_forms::detail::install_user_input_gate(nullptr, nullptr);
+        gui_forms::detail::remove_user_input_gate(this);
         gate_installed_ = false;
     }
     // A question still asked is answered Don't Allow by the disconnect: no
@@ -217,7 +217,7 @@ void AutomationControl::release(ControlRelease reason) noexcept {
     state_ = ControlState::user_control;
     holder_ = ChainId{};
     if (gate_installed_) {
-        gui_forms::detail::install_user_input_gate(nullptr, nullptr);
+        gui_forms::detail::remove_user_input_gate(this);
         gate_installed_ = false;
     }
     if (presenter_ != nullptr && previous == ControlState::model_directed) {

@@ -92,6 +92,12 @@ void install_user_input_gate(UserInputGate gate, void* context) noexcept {
     table.gate = InputGateEntry{gate, gate == nullptr ? nullptr : context};
 }
 
+void remove_user_input_gate(void* context) noexcept {
+    SessionDirectory& table = directory();
+    const stxlib::ScopedLock lock(table.mutex);
+    if (table.gate.gate != nullptr && table.gate.context == context) table.gate = InputGateEntry{};
+}
+
 bool user_input_held(const SurfaceRoot& window) noexcept {
     SessionDirectory& table = directory();
     InputGateEntry gate{};

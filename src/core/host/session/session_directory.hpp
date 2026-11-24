@@ -55,6 +55,10 @@ using UserInputGate = bool (*)(void* context, const SurfaceRoot& window) noexcep
 // until it removes the gate; once this returns no call through the old gate
 // is under way on this thread. UI thread of the automation's windows.
 void install_user_input_gate(UserInputGate gate, void* context) noexcept;
+// Removes the gate only when it was installed with `context`: an owner
+// removing its own gate does not remove one another owner installed over
+// it since (hunt r76 C45). Same thread rule as install_user_input_gate.
+void remove_user_input_gate(void* context) noexcept;
 [[nodiscard]] bool user_input_held(const SurfaceRoot& window) noexcept;
 
 // The window-ready hook: the automation joins each application window as it
