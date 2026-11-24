@@ -73,6 +73,22 @@ gf_status enter_system(gf_object object, SlotIdentity slot, std::shared_ptr<Help
     return GF_STATUS_OK;
 }
 
+// The help book system an object names, alive: the calls its declarations
+// refuse once it is disposing or disposed (attach, detach, show_popup,
+// resolve, enter_help_mode) refuse here, whatever the C++ call would do.
+gf_status enter_alive_system(gf_object object, SlotIdentity slot, std::shared_ptr<HelpBookSystem>& system) {
+    std::shared_ptr<HelpBookSystem> entered_system;
+    const gf_status entered = enter_system(object, slot, entered_system);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (!(*entered_system).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, slot, "the help book system has been disposed");
+    }
+    system = std::move(entered_system);
+    return GF_STATUS_OK;
+}
+
 // The window a window object holds while it is alive.
 gf_status find_window(gf_object object, SlotIdentity slot, Window*& window) {
     Component::Ptr component;
@@ -112,7 +128,7 @@ gf_status find_control(gf_object object, SlotIdentity slot, Control::Ptr& contro
 
 gf_status help_attach_body(gf_object system, gf_object window) {
     std::shared_ptr<HelpBookSystem> help;
-    const gf_status entered = enter_system(system, attach_slot, help);
+    const gf_status entered = enter_alive_system(system, attach_slot, help);
     if (entered != GF_STATUS_OK) {
         return entered;
     }
@@ -131,7 +147,7 @@ gf_status GF_CALL help_attach(gf_object system, gf_object window) noexcept {
 
 gf_status help_detach_body(gf_object system, gf_object window) {
     std::shared_ptr<HelpBookSystem> help;
-    const gf_status entered = enter_system(system, detach_slot, help);
+    const gf_status entered = enter_alive_system(system, detach_slot, help);
     if (entered != GF_STATUS_OK) {
         return entered;
     }
@@ -238,7 +254,7 @@ gf_status help_show_popup_body(gf_object system, gf_utf8_view stable_id, gf_obje
         return read;
     }
     std::shared_ptr<HelpBookSystem> help;
-    const gf_status entered = enter_system(system, show_popup_slot, help);
+    const gf_status entered = enter_alive_system(system, show_popup_slot, help);
     if (entered != GF_STATUS_OK) {
         return entered;
     }
@@ -263,7 +279,7 @@ gf_status help_resolve_body(gf_object system, gf_object control, char* buffer, s
         return fail(GF_STATUS_INVALID_ARGUMENT, resolve_slot, "resolve needs a home output");
     }
     std::shared_ptr<HelpBookSystem> help;
-    const gf_status entered = enter_system(system, resolve_slot, help);
+    const gf_status entered = enter_alive_system(system, resolve_slot, help);
     if (entered != GF_STATUS_OK) {
         return entered;
     }
@@ -291,7 +307,7 @@ gf_status help_enter_help_mode_body(gf_object system, gf_object window, std::uin
         return fail(GF_STATUS_INVALID_ARGUMENT, enter_help_mode_slot, "enter_help_mode needs an entered output");
     }
     std::shared_ptr<HelpBookSystem> help;
-    const gf_status entered = enter_system(system, enter_help_mode_slot, help);
+    const gf_status entered = enter_alive_system(system, enter_help_mode_slot, help);
     if (entered != GF_STATUS_OK) {
         return entered;
     }
