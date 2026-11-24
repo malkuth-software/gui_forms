@@ -16,6 +16,13 @@
 # stxlib::syntax, sincosd, the threading additions, stx_mcp, and the
 # outline-atomics helpers inside the installed libraries) and stx_skia's
 # zero-stride installPixels check without the reference build.
+#
+# 1ad1317 is stx main after stx PR #9 (stx 1.0.0; owner, 2026-11-24: stx and
+# STXlib share GUI.Forms' numbering from 1.0): STXlib 1.0.0 (e501fa0: the
+# regenerated Windows API headers, float.h and PROPERTYKEY_DEFINED for the
+# own-runtime target, the allocation-tag table freed at module end),
+# stx_vorbis's AVX2 synthesis chosen by stxlib::simd's level (no compiler-rt
+# on x86_64-pc-windows-msvc), and every package at version 1.0.0.
 [stx]
 repository = "malkuth-software/stx"
-commit = "075dad4d9b71908429eb38e66c9df13a8dd3c93e"
+commit = "1ad1317eeb28ca5db548f9e2a86082995258d8e2"
