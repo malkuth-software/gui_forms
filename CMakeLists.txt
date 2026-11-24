@@ -3470,7 +3470,10 @@ endif()
 # or plugin would replace operator new for the process that loads it. The
 # installed package defines the same function (cmake/GUIFormsConfig.cmake.in)
 # over the installed copy of the source. The replacement uses the teardown
-# reserve of GUIForms::Memory, which the function links.
+# reserve of GUIForms::Memory, which the function links. The function names
+# the source from its own file's directory, not from this directory's
+# variables: a consumer that adds GUI.Forms with add_subdirectory calls it
+# from a directory where they are not set (tools/subdirectory_consumer).
 set(GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE
     "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/program_allocator/program_allocator_replacement.cpp")
 function(gui_forms_use_library_allocator target)
@@ -3479,7 +3482,8 @@ function(gui_forms_use_library_allocator target)
         message(FATAL_ERROR "gui_forms_use_library_allocator: ${target} is a ${_gf_type}; only a program may "
                             "replace operator new")
     endif()
-    target_sources(${target} PRIVATE "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}")
+    target_sources(${target} PRIVATE
+                   "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/src/runtime/program_allocator/program_allocator_replacement.cpp")
     target_link_libraries(${target} PRIVATE GUIForms::Memory stxlib::boundary stxlib::state)
 endfunction()
 install(FILES "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}" DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/program_allocator)

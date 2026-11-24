@@ -222,10 +222,11 @@ endif()
 # when the plugin is not built.
 function(gui_forms_compile_with_localizable_plugin target)
     cmake_parse_arguments(PARSE_ARGV 1 _gf "" "" "SOURCES")
-    if(NOT GUI_FORMS_LOCALIZABLE_PLUGIN_PATH)
+    get_property(_gf_plugin_path GLOBAL PROPERTY GUI_FORMS_LOCALIZABLE_PLUGIN_PATH)
+    if(NOT _gf_plugin_path)
         return()
     endif()
-    set(_gf_prefix "${GUI_FORMS_CLANG_DRIVER_PREFIX}")
+    get_property(_gf_prefix GLOBAL PROPERTY GUI_FORMS_CLANG_DRIVER_PREFIX)
     # Ninja runs every compile in the top build directory, where the plugin
     # takes a relative root from (it resolves it against the compiler's
     # working directory). ccache rewrites absolute paths below CCACHE_BASEDIR
@@ -247,7 +248,7 @@ function(gui_forms_compile_with_localizable_plugin target)
         endif()
     endif()
     set(_gf_flags
-        "${_gf_prefix}-fplugin=${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}"
+        "${_gf_prefix}-fplugin=${_gf_plugin_path}"
         "${_gf_prefix}-fplugin-arg-gui_forms_localizable-root=${_gf_root}")
     if(NOT GUI_FORMS_EFFECT_VERIFY)
         list(APPEND _gf_flags "${_gf_prefix}-fplugin-arg-gui_forms_localizable-effects=off")
@@ -262,7 +263,7 @@ function(gui_forms_compile_with_localizable_plugin target)
     endif()
     # The compiler loads the plugin: a new plugin recompiles the sources.
     set_property(SOURCE ${_gf_sources} TARGET_DIRECTORY ${target} APPEND PROPERTY
-                 OBJECT_DEPENDS "${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}")
+                 OBJECT_DEPENDS "${_gf_plugin_path}")
 endfunction()
 
 # Whether effect programs are verified in this build: the effect pass is on
@@ -272,6 +273,13 @@ if(GUI_FORMS_EFFECT_VERIFY AND GUI_FORMS_LOCALIZABLE_PLUGIN_PATH)
 else()
     set(GUI_FORMS_EFFECTS_VERIFIED FALSE)
 endif()
+# The functions here read the plugin and the verification from global
+# properties, not from this directory's variables: a consumer that adds
+# GUI.Forms with add_subdirectory calls them from a directory where those
+# are not set.
+set_property(GLOBAL PROPERTY GUI_FORMS_LOCALIZABLE_PLUGIN_PATH "${GUI_FORMS_LOCALIZABLE_PLUGIN_PATH}")
+set_property(GLOBAL PROPERTY GUI_FORMS_CLANG_DRIVER_PREFIX "${GUI_FORMS_CLANG_DRIVER_PREFIX}")
+set_property(GLOBAL PROPERTY GUI_FORMS_EFFECTS_VERIFIED "${GUI_FORMS_EFFECTS_VERIFIED}")
 
 # Compiles `SOURCES` of `target`, the files that register effect programs,
 # with the plugin's effect pass, which fails the compile on any effect that
@@ -289,7 +297,8 @@ function(gui_forms_verify_effects target)
                             "Use the Visual Studio generator's ClangCL toolset (-T ClangCL) or set "
                             "CMAKE_CXX_COMPILER to clang-cl (docs/user/effect-verification.md).")
     endif()
-    if(GUI_FORMS_EFFECTS_VERIFIED)
+    get_property(_gf_verified GLOBAL PROPERTY GUI_FORMS_EFFECTS_VERIFIED)
+    if(_gf_verified)
         gui_forms_compile_with_localizable_plugin(${target} SOURCES ${_gf_SOURCES})
         return()
     endif()

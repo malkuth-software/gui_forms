@@ -301,6 +301,13 @@ foreach(_gui_stx_found stxlib stx_zlib stx_png stx_conv stx_raster3d stx_rtf2md 
         endif()
     endif()
 endforeach()
+# The packages' imported targets are global: a consumer that adds GUI.Forms
+# with add_subdirectory names stxlib::boundary and stxlib::state from its own
+# directory (gui_forms_use_library_allocator links them into its program), and
+# an imported target is otherwise visible only here and below
+# (tools/subdirectory_consumer).
+set(_gui_stx_targets_global "${CMAKE_FIND_PACKAGE_TARGETS_GLOBAL}")
+set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL ON)
 # STXlib, which stx builds at its stxlib.lock commit and installs beside its
 # packages: stx_conv's SIMD level and the controls' row height index.
 find_package(stxlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
@@ -325,3 +332,4 @@ if(_gui_stx_with_vorbis)
     find_package(stx_vorbis CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")
 endif()
 find_package(stx_skia CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")
+set(CMAKE_FIND_PACKAGE_TARGETS_GLOBAL "${_gui_stx_targets_global}")
