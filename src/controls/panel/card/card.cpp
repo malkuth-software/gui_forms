@@ -53,7 +53,16 @@ Control::Ptr Card::replace_section(Control::Ptr& slot,
     }
     Control::Ptr previous = slot;
     if (replacement) add_child(replacement);
-    if (slot) previous = remove_child((*slot).runtime_id());
+    // A refused removal (a lifecycle hook that throws) takes the replacement
+    // out again, so it is never a child that no section holds.
+    if (slot) {
+        try {
+            previous = remove_child((*slot).runtime_id());
+        } catch (...) {
+            if (replacement) static_cast<void>(remove_child((*replacement).runtime_id()));
+            throw;
+        }
+    }
     slot = std::move(replacement);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint |
                Dirty::hit_test | Dirty::semantics);

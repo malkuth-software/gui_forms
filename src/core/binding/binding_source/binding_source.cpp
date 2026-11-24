@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <exception>
 #include <functional>
 #include <stdexcept>
 #include <stxlib/threads.hpp>
@@ -260,7 +261,18 @@ void BindingSource::bind_provider(std::shared_ptr<BindingProvider> provider) {
     row_cache_.clear();
     cache_capacity_ = std::clamp(row_cache_values / std::max<std::size_t>(schema_.size(), 1U), std::size_t{16},
                                  row_cache_rows);
-    (*provider_).attach(BindingProviderLink(state));
+    try {
+        (*provider_).attach(BindingProviderLink(state));
+    } catch (...) {
+        // A provider that refuses its link is not bound: the link is
+        // revoked without a detach (the provider never took it) and the
+        // source holds no provider until its caller binds another.
+        (*state).revoked.store(true);
+        (*state).source = nullptr;
+        link_.reset();
+        provider_.reset();
+        throw;
+    }
     provider_count_ = read_row_count();
 }
 
@@ -274,7 +286,17 @@ void BindingSource::set_provider(std::shared_ptr<BindingProvider> provider) {
     editing_ = false;
     edit_values_.clear();
     edit_stable_id_.clear();
-    bind_provider(std::move(provider));
+    // A provider whose attach throws is replaced by an empty table, and the
+    // rest of the replacement runs for it (view, position, events) before
+    // the exception goes on: the source never keeps the old provider's
+    // view, count or position against a provider it does not hold.
+    std::exception_ptr refused{};
+    try {
+        bind_provider(std::move(provider));
+    } catch (...) {
+        refused = std::current_exception();
+        bind_provider(gui_forms::detail::make_library_shared<BindingTable>());
+    }
     // A sort or filter whose columns the new schema lacks is dropped.
     bool columns_present = true;
     for (const BindingSortKey& key : sort_) {
@@ -306,6 +328,7 @@ void BindingSource::set_provider(std::shared_ptr<BindingProvider> provider) {
         current_changed_.emit();
         current_item_changed_.emit();
     }
+    if (refused) std::rethrow_exception(refused);
 }
 
 std::shared_ptr<BindingTable> BindingSource::table() const noexcept {

@@ -198,7 +198,16 @@ void AutomationControl::enter(ControlState state, ChainId chain, FrameTime now) 
         gate_installed_ = true;
     }
     if (presenter_ != nullptr && state == ControlState::model_directed) {
-        (*presenter_).control_changed(state_, client_);
+        // The take-back popup is the user's way out of the hold: a presenter
+        // that cannot show it gives the input back before the failure goes
+        // on (release's own call is guarded the same way), so the hold never
+        // stands without its popup.
+        try {
+            (*presenter_).control_changed(state_, client_);
+        } catch (...) {
+            release(ControlRelease::presenter_failed);
+            throw;
+        }
     }
 }
 
