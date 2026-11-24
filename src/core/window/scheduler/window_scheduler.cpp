@@ -26,9 +26,19 @@ bool SurfaceRoot::needs_frame() const noexcept {
 }
 
 stxlib::Optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
+    const stxlib::Optional<FrameTime> wake = earliest_wake(false);
+    return wake;
+}
+
+stxlib::Optional<FrameTime> SurfaceRoot::next_settling_wake() const noexcept {
+    const stxlib::Optional<FrameTime> wake = earliest_wake(true);
+    return wake;
+}
+
+stxlib::Optional<FrameTime> SurfaceRoot::earliest_wake(bool settling) const noexcept {
     stxlib::Optional<FrameTime> result;
     for (const std::shared_ptr<gui_forms::detail::ScheduledFrameRequest>& request : frame_requests_) {
-        if (!(*request).connected()) {
+        if (!(*request).connected() || (settling && (*request).ambient)) {
             continue;
         }
         if ((*request).kind == detail::FrameRequestKind::ui_timer) {

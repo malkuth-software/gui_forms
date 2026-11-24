@@ -352,6 +352,17 @@ public:
     // (the icon decoded to premultiplied BGRA8, empty when none or when the
     // image could not be decoded).
     [[nodiscard]] WindowChrome chrome() const;
+    // A note the host shows after the window's text in its title bar: the
+    // automation's in-use sign (" — Claude Opus 5.5 is using this")
+    // while a model is connected. It is not part of `text`, so a program
+    // that reads or writes its title never sees it, and clearing it shows
+    // the text alone again. NUL-terminated UTF-8 (null clears it), at most
+    // 1024 bytes, read during the call; std::invalid_argument for anything
+    // else, changing nothing. UI thread.
+    void set_title_note(const char* note);
+    // The note shown now; empty for none. Valid until the next
+    // set_title_note.
+    [[nodiscard]] const char* title_note() const noexcept;
 
     // -- the multiple document interface (DK decisions 60 to 63;
     // window_document_area.hpp) --
@@ -446,6 +457,8 @@ private:
     void apply_window_chrome(WindowChromeFields fields);
     WindowChromeFields written_chrome_{};
     WindowChromeFields applied_chrome_{};
+    // set_title_note's note, appended to the text in chrome().
+    std::string title_note_{};
 
     friend class SurfaceRoot;
     friend class HostSession;

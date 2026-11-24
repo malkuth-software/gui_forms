@@ -3151,6 +3151,7 @@ int run_linux(std::unique_ptr<gui_forms::Window> window,
   // The window joins the automation once the host is ready
   // (gui_forms::detail::DirectRunWindow); nothing happens without one.
   gui_forms::detail::DirectRunWindow direct_window{};
+  gui_forms::detail::adopt_opening_title(*window, options.title);
   options.host_ready = direct_window.wrap(*window, "main", std::move(options.host_ready));
   std::vector<LinuxApplicationWindow> windows;
   LinuxApplicationWindow entry;

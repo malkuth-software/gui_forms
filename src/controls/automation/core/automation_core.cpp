@@ -58,7 +58,18 @@ ToolSpec built_in(const char* name, const char* title, const char* description, 
     return spec;
 }
 
-void append_built_in_specs(std::vector<ToolSpec>& specs) {
+// `sections` (the inspect sections, built-in and the program's) as a JSON
+// enumeration's items, and as a list for a description.
+void section_lists(std::span<const InspectSectionEntry> sections, std::string& items, std::string& names) {
+    for (const InspectSectionEntry& section : sections) {
+        if (!items.empty()) items += ',';
+        detail::append_json_string(section.name, items);
+        if (!names.empty()) names += ", ";
+        names += section.name;
+    }
+}
+
+void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const InspectSectionEntry> sections) {
     const std::string targets = target_properties;
     specs.push_back(built_in("windows", "Windows", "Every window: stable ID, title, active, modal, size.",
                              "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}",
@@ -118,17 +129,25 @@ void append_built_in_specs(std::vector<ToolSpec>& specs) {
         ToolAccess::read_only));
     specs.push_back(built_in(
         "capture", "Capture",
-        "A window or control as a PNG, drawn fresh from the current state (rendered); a window's open popup "
-        "windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out.",
-        object_schema(targets + ",\"mode\":{\"type\":\"string\",\"enum\":[\"rendered\",\"presented\"]},"
+        "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, "
+        "drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are "
+        "painted out.",
+        object_schema(targets + ",\"mode\":{\"type\":\"string\",\"enum\":[\"rendered\"]},"
                                 "\"scale\":{\"type\":\"number\"},\"margin\":{\"type\":\"number\"},"
                                 "\"include_overlays\":{\"type\":\"boolean\"},\"popups\":{\"type\":\"boolean\"}"),
         ToolAccess::read_only));
+    std::string section_items{};
+    std::string section_names{};
+    section_lists(sections, section_items, section_names);
+    // The sections are named, the program's own among them (MCP round 1:
+    // the description named a section that did not exist).
+    const std::string inspect_description =
+        "Beyond accessibility, sections chosen with what: " + section_names +
+        ". With a target, state, layout and schema by default; without, metrics, dispatcher and interaction.";
     specs.push_back(built_in(
-        "inspect", "Inspect",
-        "Beyond accessibility: a control's visual state, layout, paint operations and schema, or the window's "
-        "metrics, dispatcher, interaction and session; choose sections with what.",
-        object_schema(targets + ",\"what\":{\"type\":\"array\",\"items\":{\"type\":\"string\"}}"),
+        "inspect", "Inspect", inspect_description.c_str(),
+        object_schema(targets + ",\"what\":{\"type\":\"array\",\"items\":{\"type\":\"string\",\"enum\":[" +
+                      section_items + "]}}"),
         ToolAccess::read_only));
     specs.push_back(built_in(
         "batch", "Batch",
@@ -651,7 +670,9 @@ std::uint64_t AutomationCore::tool_generation() const {
 
 void AutomationCore::fill_tool_specs(std::vector<ToolSpec>& specs) {
     specs.clear();
-    append_built_in_specs(specs);
+    std::vector<InspectSectionEntry> sections{};
+    tools().fill_inspect_sections(sections);
+    append_built_in_specs(specs, sections);
     std::vector<ToolSpec> registered{};
     tools().fill_specs(registered);
     for (ToolSpec& spec : registered) specs.push_back(std::move(spec));
@@ -1345,6 +1366,29 @@ StepOutcome CoreAccess::control_tool(RunningCall& call, FrameTime now) {
     if (control.state() != ControlState::user_control) {
         text += call.chain.value != 0U ? " until this batch completes"
                                        : " until direct_end, the user takes it back, or 30 s without a call";
+    }
+    // The rest of the status (MCP round 1: status said only the state):
+    // who is connected, what the launch and build allow, and the answer to
+    // the destructive-act question.
+    text += "\nclient: " + client_label(control.client());
+    text += control.model_directed_allowed() ? "\ndirect_begin: available"
+                                             : "\ndirect_begin: unavailable (not launched with --model-directed)";
+    text += test_controls_built() ? "\nsuspend_input: available"
+                                  : "\nsuspend_input: unavailable (debug and test builds only)";
+    text += "\ndestructive acts: ";
+    switch (control.consent()) {
+    case ConsentState::unasked:
+        text += "not asked yet (the first one asks the user)";
+        break;
+    case ConsentState::asking:
+        text += "the user is being asked";
+        break;
+    case ConsentState::allowed:
+        text += "allowed by the user until the program closes";
+        break;
+    case ConsentState::declined:
+        text += "declined by the user until the program closes";
+        break;
     }
     return StepOutcome::finished(ToolReply::success(std::move(text)));
 }

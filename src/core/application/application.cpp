@@ -245,6 +245,11 @@ struct DirectRunReady final {
 };
 } // namespace
 
+void adopt_opening_title(Window& window, std::string_view title) {
+    if (title.empty() || !window.text.read().empty()) return;
+    window.text = std::string(title);
+}
+
 DirectRunWindow::DirectRunWindow()
     : state_(gui_forms::detail::make_library_shared<ApplicationWindowState>()) {}
 

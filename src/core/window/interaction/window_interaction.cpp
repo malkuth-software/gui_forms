@@ -41,6 +41,13 @@ FrameRequestToken SurfaceRoot::request_one_shot_wake(FrameTime deadline, std::fu
     return FrameRequestToken(request);
 }
 
+FrameRequestToken SurfaceRoot::request_ambient_wake(FrameTime deadline, std::function<void(FrameTime)> callback) {
+    FrameRequestToken token = request_one_shot_wake(deadline, std::move(callback));
+    // The request is the newest in the schedule when one was made.
+    if (token.connected() && !frame_requests_.empty()) (*frame_requests_.back()).ambient = true;
+    return token;
+}
+
 detail::InteractionState& SurfaceRoot::interaction_state() {
     if (!interaction_) interaction_ = std::make_unique<detail::InteractionState>();
     return *interaction_;

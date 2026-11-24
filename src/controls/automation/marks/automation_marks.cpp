@@ -261,7 +261,7 @@ void take_mcp_arguments(int& argc, char** argv) noexcept {
     while (read < argc) {
         const char* const argument = argv[read];
         const std::string_view text = argument == nullptr ? std::string_view{} : std::string_view(argument);
-        if (text == "--mcp" || text == "--model-directed") {
+        if (text == "--mcp" || text == "--model-directed" || text == "--mcp-appearance-review") {
             ++read;
             continue;
         }

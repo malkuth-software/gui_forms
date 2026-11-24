@@ -81,8 +81,8 @@ GUI_FORMS_API bool set_mcp_identity(const char* identity);
 [[nodiscard]] GUI_FORMS_API const char* mcp_identity_override() noexcept;
 
 // Removes the automation's launch arguments from a program's argv before
-// the program reads it (study 4.2): --mcp, --model-directed and
-// --mcp-script <file>. argv's pointers move down and argc shrinks; argv
+// the program reads it (study 4.2): --mcp, --model-directed,
+// --mcp-appearance-review and --mcp-script <file>. argv's pointers move down and argc shrinks; argv
 // [argc] stays null. The library reads the process's own arguments, so a
 // program that never calls this still gets MCP; one that parses argv calls
 // it first so the arguments do not reach its parser.

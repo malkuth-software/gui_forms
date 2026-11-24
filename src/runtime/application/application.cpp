@@ -258,6 +258,7 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     entry.floating = source.floating;
     entry.popup = source.popup;
     entry.model = std::move(source.model);
+    detail::adopt_opening_title(*entry.model, (*bridge).options.title);
     // One key map for the application's windows, floating ones included
     // (owner decision DK-44).
     (*entry.model).set_key_bindings((*run).key_bindings);

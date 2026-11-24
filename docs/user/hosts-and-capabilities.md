@@ -366,6 +366,12 @@ Windows (Win32)
   same on every host: a program launched with `--mcp` serves MCP on its
   standard input and output (only the process that started it can drive
   it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
+  While a model is connected, each window shows that it is in use: a wide
+  moving band on its border and the model's name in its title. A debug or
+  test build also takes `--mcp-appearance-review`, which serves MCP with no
+  such sign, so the windows look exactly as they do to a user without a
+  model (for reviewing the interface's appearance from captures); a release
+  build refuses it, says so on standard error and serves no MCP.
   This holds for a program run by `Application::run` and for one that calls
   its host's single-window entry (`host::run_macos`, `run_windows`,
   `run_linux`) directly; that window joins as `main`.

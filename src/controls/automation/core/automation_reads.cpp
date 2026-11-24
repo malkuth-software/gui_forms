@@ -90,8 +90,15 @@ void state_section(void* context, const InspectRequest& request, std::string& te
         return;
     }
     const VisualControlStateSnapshot& state = (*record).state;
+    // The snapshot's node may take focus through a part the control hides
+    // (a search field's inner editor): said so, so the two reads agree
+    // (MCP round 1).
+    const bool node_focusable = has_semantic_state((*request.node).states, SemanticState::focusable);
+    std::string focusable = yes_no(state.focusable || node_focusable);
+    if (node_focusable && !state.focusable) focusable += " (through an inner part; the control itself is not)";
+    if (!node_focusable && state.focusable) focusable += " (the control; its node does not take focus)";
     text += "visible " + std::string(yes_no(state.effectively_visible)) + ", enabled " +
-            yes_no(state.effectively_enabled) + ", focusable " + yes_no(state.focusable) + ", hovered " +
+            yes_no(state.effectively_enabled) + ", focusable " + focusable + ", hovered " +
             yes_no(state.hovered) + ", pressed " + yes_no(state.pressed) + ", captured " +
             yes_no(state.pointer_captured) + ", status " + visual_status_name(state.visual_status) + "\n";
     text += "theme " + (*record).theme_id + ((*record).theme_override ? " (overridden)" : "") + ", plane " +
@@ -139,6 +146,12 @@ void paint_section(void* context, const InspectRequest& request, std::string& te
     const VisualControlInspection* const record = find_record(snapshot, (*request.control).runtime_id().value);
     if (record == nullptr) {
         text += "no paint record for the node's control\n";
+        return;
+    }
+    if (!(*record).display_chunk.present()) {
+        // No recording at all is not "0 operations" (MCP round 1).
+        text += "no paint recorded for this control: it draws nothing of its own (its look may come from its "
+                "children or its parent), or it has not been painted yet\n";
         return;
     }
     text += std::to_string((*record).total_display_operations) + " paint operations" +
@@ -399,7 +412,8 @@ bool window_idle(Window& window, FrameTime now, std::chrono::milliseconds horizo
         busy = "a frame is wanted (layout, paint or animation)";
         return false;
     }
-    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    // The band's motion (the in-use sign itself) never holds idle.
+    const stxlib::Optional<FrameTime> wake = window.next_settling_wake();
     if (const FrameTime* const due = wake.value()) {
         if (*due < now + horizon) {
             const std::int64_t milliseconds =
@@ -419,7 +433,13 @@ std::uint64_t paint_passes_of(const Window& window) {
 void append_window_line(AutomationCore& core, Window& window, std::string& text) {
     const Size size = window.client_size();
     text += "window ";
-    append_json_string(window.text.read(), text);
+    const std::string title = window.text.read();
+    if (title.empty()) {
+        // An empty title reads as one, not as a missing value (MCP round 1).
+        text += "(untitled)";
+    } else {
+        append_json_string(title, text);
+    }
     text += " [" + core.window_stable_id(window) + "]";
     if (window.active()) text += " active";
     text += " " + number_text(size.width) + "x" + number_text(size.height) + "\n";

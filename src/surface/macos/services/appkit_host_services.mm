@@ -201,6 +201,17 @@ void run_file_filter_filter_changed(GuiFormsFileFilterSwitch* object, NSPopUpBut
 
 namespace {
 
+// The corner radius AppKit draws a titled window with, in points, by
+// release: macOS 26 rounds windows more than the releases before it, which
+// all used 10 points. Measured from window captures (alpha at the frame's
+// corners), since AppKit publishes no such value.
+double titled_window_corner_radius() noexcept {
+    const NSOperatingSystemVersion tahoe{26, 0, 0};
+    const bool rounder = [[NSProcessInfo processInfo] isOperatingSystemAtLeastVersion:tahoe];
+    const double radius = rounder ? 16.0 : 10.0;
+    return radius;
+}
+
 // The logical size of GUI.Forms' message icon (stock_alert_icon_image).
 constexpr CGFloat alert_icon_points = 32.0;
 
@@ -534,16 +545,15 @@ protected:
         return applied;
     }
 
-    // The window's corners, reported and never shaped (the active border
-    // study, section 3): AppKit has no public API to round or square a
-    // window, and none that reports the radius it uses. What is known is
-    // reported: a full-screen window and a borderless one have square
-    // corners. A titled window's are rounded by a radius that differs by
-    // release and style, so they are reported unknown and the band draws
-    // square inside them. `complied` says whether the window is as asked:
-    // `system` always, `square` where the corners are square, `round` never
-    // (a rounded titled window is not known to be rounded by a radius the
-    // band could follow).
+    // Corners: AppKit has no public corner API and never reshapes a window,
+    // so only what the window is can be reported. A full-screen window and a
+    // borderless one have square corners. A titled window is rounded by the
+    // radius its release draws (titled_window_corner_radius), and its
+    // client area's top corners meet the title bar, so they stay square
+    // (WindowCornerReport::top_square); a window whose content runs under a
+    // transparent title bar is rounded at all four. `complied` says whether
+    // the window is as asked: `system` always, `square` where the corners
+    // are square, `round` where they are rounded.
     gui_forms::HostWindowCornersResult apply_window_corners_impl(
         gui_forms::WindowCornerPreference preference) override {
         gui_forms::HostWindowCornersResult result{};
@@ -551,6 +561,7 @@ protected:
         NSWindow* const window = view == nil ? nil : view.window;
         const bool asked_system = preference == gui_forms::WindowCornerPreference::system;
         const bool asked_square = preference == gui_forms::WindowCornerPreference::square;
+        const bool asked_round = preference == gui_forms::WindowCornerPreference::round;
         if (window == nil) {
             result.report.complied = asked_system;
             return result;
@@ -562,8 +573,10 @@ protected:
             result.report.shape = gui_forms::WindowCornerShape::square;
             result.report.complied = asked_system || asked_square;
         } else {
-            result.report.shape = gui_forms::WindowCornerShape::unknown;
-            result.report.complied = asked_system;
+            result.report.shape = gui_forms::WindowCornerShape::rounded;
+            result.report.radius = titled_window_corner_radius();
+            result.report.top_square = (mask & NSWindowStyleMaskFullSizeContentView) == 0;
+            result.report.complied = asked_system || asked_round;
         }
         return result;
     }

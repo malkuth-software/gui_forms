@@ -6,6 +6,7 @@
 #include "gui_forms/surface_root/requests/surface_requests.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/band/window_band.hpp"
+#include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
@@ -16,18 +17,51 @@
 namespace gui_forms::automation {
 namespace {
 
-// The band the presenter declares on a window that has none: thin, as the
-// study's "thin effect" (window_band.hpp); the theme may widen it.
-constexpr double presenter_band_width = 2.0;
-// How long a read's glint runs, and the tag line shows on connect.
-constexpr std::chrono::milliseconds glint_moment{900};
+// The band the presenter declares on a window that has none, by look: wide
+// enough to read as "a model is using this" from across the room (MCP round
+// 1), not the study's thin effect.
+double sign_band_width(SignVariant variant) noexcept {
+    switch (variant) {
+    case SignVariant::marching: return 6.0;
+    case SignVariant::sweeping: return 5.0;
+    case SignVariant::pulsing: return 8.0;
+    }
+    return 5.0;
+}
+// How long the band moves after a read, and after the last call of a run of
+// acts ends (a sweep's lap and more); and how long the tag line shows on
+// connect.
+constexpr std::chrono::milliseconds glint_moment{1800};
 constexpr std::chrono::milliseconds tag_line_moment{4000};
+// The motion's speed: a sweep's laps, a march's dash periods, a pulse's
+// cycles a second (the band's limiter allows at most 1).
+constexpr double sweep_frequency = 0.6;
+constexpr double march_frequency = 1.0;
+constexpr double pulse_frequency = 0.8;
 // How long the tag line stays after the pointer enters the top border, and
 // how deep the hover zone is at least (study 11.2: it shows on hover).
 constexpr std::chrono::milliseconds tag_line_hover{6000};
 constexpr double tag_line_hover_zone = 4.0;
-// The quiet tint at rest while connected, and the glint: the theme's accent.
-constexpr Color quiet_tint{97U, 133U, 217U, 140U};
+constexpr Color white{255U, 255U, 255U, 255U};
+constexpr Color black{0U, 0U, 0U, 255U};
+
+// `from` moved `share` of the way to `to`, channel by channel.
+Color mixed(Color from, Color to, double share) noexcept {
+    const double keep = 1.0 - share;
+    const Color colour{static_cast<std::uint8_t>(std::lround(from.red * keep + to.red * share)),
+                       static_cast<std::uint8_t>(std::lround(from.green * keep + to.green * share)),
+                       static_cast<std::uint8_t>(std::lround(from.blue * keep + to.blue * share)),
+                       static_cast<std::uint8_t>(std::lround(from.alpha * keep + to.alpha * share))};
+    return colour;
+}
+
+// The model as the title note names it: its own name when the client gives
+// one, else the client's, else "A model".
+std::string model_label(const ClientIdentity& client) {
+    if (!client.model_name.empty()) return client.model_name;
+    if (!client.client_name.empty()) return client.client_name;
+    return std::string("A model");
+}
 
 constexpr Size take_back_size{360.0, 120.0};
 constexpr Size question_size{460.0, 190.0};
@@ -113,14 +147,6 @@ struct GlintEnd final {
     void operator()(FrameTime) const noexcept { (*presenter).glint_ended(window); }
 };
 
-WindowBandAppearance band_appearance(WindowBandState state) {
-    WindowBandAppearance appearance{};
-    appearance.state = state;
-    appearance.rest_colour = stxlib::Optional<Color>::of(quiet_tint);
-    appearance.lit_role = WindowBandColourRole::accent;
-    return appearance;
-}
-
 } // namespace
 
 StockPresenter::StockPresenter() : self_(gui_forms::detail::make_library_shared<StockPresenter*>(this)) {}
@@ -152,7 +178,9 @@ StockPresenter::BandWindow* StockPresenter::find_band(const Window& window) noex
 }
 
 void StockPresenter::window_attached(Window& window) {
-    if (find_band(window) != nullptr) return;
+    // Unsigned: the window is never entered, so no band, note or tag line
+    // reaches it.
+    if (unsigned_ || find_band(window) != nullptr) return;
     const Size client = window.client_size();
     const Rect content = window.content_rect();
     // A window that reserves a band of its own keeps it; the presenter only
@@ -160,20 +188,69 @@ void StockPresenter::window_attached(Window& window) {
     const bool band_reserved = content.width < client.width || content.height < client.height;
     if (!band_reserved) {
         WindowBandOptions options{};
-        options.width = presenter_band_width;
+        options.width = sign_band_width(variant_);
         window.declare_band(options);
     }
     BandWindow entry{};
     entry.window = window.window_ref();
     windows_.push_back(std::move(entry));
-    window.set_band_appearance(band_appearance(WindowBandState::rest));
-    if (connected_) show_tag_line(window, tag_line_moment);
+    window.set_band_appearance(sign_appearance(window, false));
+    if (!connected_) return;
+    show_title_note(window, true);
+    show_tag_line(window, tag_line_moment);
+}
+
+WindowBandAppearance StockPresenter::sign_appearance(const Window& window, bool moving) const {
+    WindowBandAppearance appearance{};
+    // No model: the band reserves its width and draws nothing.
+    if (!connected_) return appearance;
+    const Control::Ptr root = window.root();
+    const Color accent = root ? (*root).effective_theme().basic_style().accent : Color{38U, 114U, 185U, 255U};
+    switch (variant_) {
+    case SignVariant::marching:
+        // Light dashes over the accent, still at rest, marching in motion.
+        appearance.state = WindowBandState::marching;
+        appearance.rest_colour = stxlib::Optional<Color>::of(accent);
+        appearance.lit_colour = stxlib::Optional<Color>::of(mixed(accent, white, 0.6));
+        appearance.frequency = moving ? march_frequency : 0.0;
+        break;
+    case SignVariant::sweeping:
+        // The accent, solid; in motion a white glint runs round it.
+        appearance.state = moving ? WindowBandState::sweeping : WindowBandState::rest;
+        appearance.rest_colour = stxlib::Optional<Color>::of(accent);
+        appearance.lit_colour = stxlib::Optional<Color>::of(white);
+        appearance.frequency = sweep_frequency;
+        break;
+    case SignVariant::pulsing:
+        // The accent, solid; in motion it pulses to a deeper shade and back.
+        appearance.state = moving ? WindowBandState::cycling : WindowBandState::rest;
+        appearance.rest_colour = stxlib::Optional<Color>::of(moving ? mixed(accent, black, 0.45) : accent);
+        appearance.lit_colour = stxlib::Optional<Color>::of(accent);
+        appearance.frequency = pulse_frequency;
+        break;
+    }
+    return appearance;
+}
+
+void StockPresenter::show_title_note(Window& window, bool shown) noexcept {
+    try {
+        if (!shown) {
+            window.set_title_note(nullptr);
+            return;
+        }
+        const std::string note = " \u2014 " + model_label(client_) + " is using this";
+        window.set_title_note(note.c_str());
+    } catch (...) {
+        // A name that is not valid title text, or no memory: the band still
+        // shows the model is connected.
+    }
 }
 
 void StockPresenter::window_detached(Window& window) noexcept {
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
         if (windows_[index].window.get() != &window) continue;
         windows_[index].glint_end.disconnect();
+        show_title_note(window, false);
         windows_.erase(windows_.begin() + static_cast<std::ptrdiff_t>(index));
         return;
     }
@@ -186,7 +263,7 @@ namespace {
 double top_border_height(const Window& window) noexcept {
     const WindowBandSnapshot band = window.band_snapshot();
     const double top = band.reserved ? band.edges.top : 0.0;
-    return top > 0.0 ? top : presenter_band_width;
+    return top > 0.0 ? top : tag_line_hover_zone;
 }
 
 } // namespace
@@ -213,7 +290,8 @@ void StockPresenter::client_changed(const ClientIdentity& client) {
     for (BandWindow& entry : windows_) {
         Window* const window = entry.window.get();
         if (window == nullptr) continue;
-        (*window).set_band_appearance(band_appearance(WindowBandState::rest));
+        (*window).set_band_appearance(sign_appearance(*window, entry.steady));
+        show_title_note(*window, true);
         if ((*window).active()) show_tag_line(*window, tag_line_moment);
     }
 }
@@ -224,8 +302,10 @@ void StockPresenter::activity(Window& window, AutomationActivity activity) {
     (*entry).glint_end.disconnect();
     switch (activity) {
     case AutomationActivity::reading: {
+        // A read moves the band for a moment; while acts run it moves
+        // already.
         if ((*entry).steady) return;
-        window.set_band_appearance(band_appearance(WindowBandState::cycling));
+        window.set_band_appearance(sign_appearance(window, true));
         const Control::Ptr root = window.root();
         if (root) {
             (*entry).glint_end = window.schedule_ui_timer(*root, glint_moment, FrameClock::now() + glint_moment,
@@ -235,8 +315,11 @@ void StockPresenter::activity(Window& window, AutomationActivity activity) {
     }
     case AutomationActivity::acting:
     case AutomationActivity::waiting:
+        // The band moves until the calls finish and a moment after: its
+        // motion is ambient, so the act still reaches idle
+        // (SurfaceRoot::next_settling_wake).
         (*entry).steady = true;
-        window.set_band_appearance(band_appearance(WindowBandState::lit));
+        window.set_band_appearance(sign_appearance(window, true));
         return;
     }
     rest(*entry);
@@ -248,7 +331,7 @@ void StockPresenter::rest(BandWindow& entry) noexcept {
     Window* const window = entry.window.get();
     if (window == nullptr) return;
     try {
-        (*window).set_band_appearance(band_appearance(WindowBandState::rest));
+        (*window).set_band_appearance(sign_appearance(*window, false));
     } catch (...) {
         // The band refused (a window closing): nothing is left to show.
     }
@@ -281,8 +364,24 @@ void StockPresenter::pointer_moved(Window& window, Point position, bool left) no
 }
 
 void StockPresenter::calls_finished() noexcept {
+    // The motion runs on a moment after the last call, so a quick act still
+    // shows it; a new call before then keeps it moving.
     for (BandWindow& entry : windows_) {
-        if (entry.steady) rest(entry);
+        if (!entry.steady) continue;
+        entry.steady = false;
+        Window* const window = entry.window.get();
+        const Control::Ptr root = window == nullptr ? Control::Ptr{} : (*window).root();
+        if (!root) {
+            rest(entry);
+            continue;
+        }
+        try {
+            entry.glint_end.disconnect();
+            entry.glint_end = (*window).schedule_ui_timer(*root, glint_moment, FrameClock::now() + glint_moment,
+                                                          GlintEnd{this, (*window).window_ref()});
+        } catch (...) {
+            rest(entry);
+        }
     }
 }
 
@@ -313,7 +412,7 @@ void StockPresenter::ask_consent(const ClientIdentity& client) {
 
 void StockPresenter::user_step_needed(Window& window, const SemanticNode& node, std::string_view what) {
     const Control::Ptr root = window.root();
-    if (!root) return;
+    if (unsigned_ || !root) return;
     ToolTipRequest request{};
     request.text = std::string(what);
     request.description = client_label(client_) + " is waiting for you";
@@ -331,16 +430,11 @@ void StockPresenter::disconnected() noexcept {
     close_popup(false);
     close_popup(true);
     for (BandWindow& entry : windows_) {
+        // rest() reads connected_, now false: the plain band.
         rest(entry);
         Window* const window = entry.window.get();
         if (window == nullptr) continue;
-        try {
-            WindowBandAppearance appearance = band_appearance(WindowBandState::rest);
-            appearance.rest_colour = stxlib::Optional<Color>{};
-            (*window).set_band_appearance(appearance);
-        } catch (...) {
-            // A window closing: nothing is left to show.
-        }
+        show_title_note(*window, false);
     }
 }
 

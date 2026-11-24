@@ -21,6 +21,7 @@
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/window/backdrop/backdrop_chain.hpp"
 #include "gui_forms/window/band/window_band.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/layout/diagnostics/layout_diagnostics.hpp"
 #include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
@@ -1071,6 +1072,10 @@ public:
     [[nodiscard]] bool request_content_scroll(Control& owner, Rect local_area, Point offset);
     [[nodiscard]] bool needs_frame() const noexcept;
     [[nodiscard]] stxlib::Optional<FrameTime> next_wake() const noexcept;
+    // next_wake without the ambient effects' wakes (the band's march or
+    // sweep): when the window's own work next wants a frame, for a caller
+    // waiting for it to settle (the automation's idle).
+    [[nodiscard]] stxlib::Optional<FrameTime> next_settling_wake() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
                                                    FrameTime deadline);
     [[nodiscard]] FrameRequestToken schedule_ui_timer(
@@ -1927,6 +1932,9 @@ private:
     // MetricsSnapshot::internal_wakes_refused; it does not throw.
     [[nodiscard]] FrameRequestToken request_one_shot_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
+    // request_one_shot_wake for an ambient effect (ScheduledFrameRequest::
+    // ambient): next_settling_wake leaves it out.
+    [[nodiscard]] FrameRequestToken request_ambient_wake(FrameTime deadline, std::function<void(FrameTime)> callback);
     // The input state, made on first use (a window that sees no input
     // allocates none).
     detail::InteractionState& interaction_state();
@@ -2790,8 +2798,20 @@ private:
         bool cycling{};
         FrameTime cycle_start{};
         std::uint64_t cycle_frames{};
-        // The limited frequency of the running flash or cycle (cycles a
-        // second); 0 when neither runs.
+        // Whether a march or a sweep moves now, when it started, how far
+        // round it is (a fraction of a cycle) and the frames it has damaged
+        // the strips for.
+        bool moving{};
+        // What the strips draw: rest or lit (plain), or marching or
+        // sweeping (the pattern along the outline), resolved by
+        // refresh_band (high contrast, a texture or differing edges draw
+        // plain).
+        WindowBandState drawn_state{WindowBandState::rest};
+        FrameTime motion_start{};
+        double motion_phase{};
+        std::uint64_t motion_frames{};
+        // The limited frequency of the running flash, cycle, march or
+        // sweep (cycles a second); 0 when none runs.
         double frequency{};
         // Whether the strips draw appearance.texture (declared, reserved
         // and not high contrast).
@@ -3429,6 +3449,11 @@ private:
     // Draws the band over every plane, clipped to each painted rectangle
     // (paint_rectangles' last step).
     void paint_band(detail::RecordingPainter& candidate, std::span<const Rect> painted);
+    // Draws a march's or a sweep's pattern along `outline` (the band's
+    // centre line), `width` wide, inside paint_band's clip.
+    void paint_band_pattern(detail::RecordingPainter& candidate, PaintPathView outline, double width);
+    // next_wake's search, leaving out ambient wakes when `settling`.
+    [[nodiscard]] stxlib::Optional<FrameTime> earliest_wake(bool settling) const noexcept;
     // The motion wake: a flash changes phase, or a cycle moves a frame;
     // the strips are damaged, and the next wake is armed while the motion
     // still runs.

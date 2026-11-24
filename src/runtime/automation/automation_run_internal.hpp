@@ -89,6 +89,11 @@ private:
     // afterwards closes as it joins (a client that closes the input before
     // the first window is ready would otherwise leave the program running).
     bool closing_{false};
+    // Under mutex_: the client last seen, kept for a window that joins
+    // later (MCP round 1: a client names itself in initialize, usually
+    // before the first window is ready, and the sign never showed).
+    bool client_seen_{false};
+    ClientIdentity client_{};
     std::atomic<bool> ended_{false};
     // The UI thread's: the windows' handles, for the portable shutdown.
     std::vector<ApplicationWindowHandle> handles_{};

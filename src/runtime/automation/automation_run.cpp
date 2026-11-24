@@ -115,6 +115,7 @@ AutomationLaunch read_automation_launch() {
             const std::string_view argument(bytes.data(), static_cast<std::size_t>(bytes.count()));
             if (argument == "--mcp") launch.mcp = true;
             if (argument == "--model-directed") launch.model_directed = true;
+            if (argument == "--mcp-appearance-review") launch.appearance_review = true;
             if (argument == "--mcp-script" && index + 1 < host.count()) {
                 const stxlib::View<char> path = host.argument(index + 1).bytes();
                 launch.script_path.assign(path.data(), static_cast<std::size_t>(path.count()));
@@ -125,6 +126,13 @@ AutomationLaunch read_automation_launch() {
     if (environment_value("GUI_FORMS_MCP") == "1") launch.mcp = true;
 #endif
     return launch;
+}
+
+const char* automation_launch_refusal(const AutomationLaunch& launch, bool test_controls) noexcept {
+    if (launch.appearance_review && !test_controls) {
+        return "--mcp-appearance-review is not available in this build (debug and test builds only)";
+    }
+    return nullptr;
 }
 
 std::string automation_identity() {
@@ -145,6 +153,14 @@ AutomationRun::AutomationRun(AutomationLaunch launch)
     : launch_(std::move(launch)), control_(ControlSettings{launch_.model_directed}, &presenter_),
       core_(control_) {
     presenter_.bind_control(&control_);
+    presenter_.set_unsigned(launch_.appearance_review);
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The in-use sign's candidate looks, for the owner's mockups (MCP round
+    // 1); removed once one is chosen.
+    const std::string sign = environment_value("GUI_FORMS_MCP_SIGN");
+    if (sign == "marching") presenter_.set_sign_variant(SignVariant::marching);
+    if (sign == "pulsing") presenter_.set_sign_variant(SignVariant::pulsing);
+#endif
 }
 
 AutomationRun::~AutomationRun() {
@@ -162,7 +178,12 @@ AutomationRun::~AutomationRun() {
 
 void AutomationRun::start() {
     gui_forms::detail::install_window_ready_hook(&AutomationRun::window_ready, this);
-    if (launch_.mcp) {
+    const char* const refusal = automation_launch_refusal(launch_, test_controls_built());
+    if (refusal != nullptr) {
+        // Refused outright: a review launch never falls back to a signed
+        // one, nor a release build to an unsigned one.
+        std::fprintf(stderr, "GUI.Forms: %s\n", refusal);
+    } else if (launch_.mcp || launch_.appearance_review) {
         std::string error{};
         transport_ = McpTransport::start(*this, automation_identity(), error);
         if (!transport_) std::fprintf(stderr, "GUI.Forms: --mcp is not available: %s\n", error.c_str());
@@ -186,11 +207,18 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         run.presenter_.set_windowing(handle, stable_id);
         run.handles_.push_back(handle);
         bool closing = false;
+        bool client_seen = false;
+        ClientIdentity client{};
         {
             const stxlib::ScopedLock lock(run.mutex_);
             run.dispatchers_.push_back((*model).dispatcher());
             closing = run.closing_;
+            client_seen = run.client_seen_;
+            client = run.client_;
         }
+        // A client seen before this window joined (set_client ignores the
+        // same client posted again).
+        if (client_seen) run.core_.set_client(client);
         run.sync_tools();
         // The input closed before this window joined, so no close reached
         // it: it closes at the UI thread's next turn, once it is running.
@@ -288,6 +316,13 @@ ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json
 }
 
 void AutomationRun::post_client(const ClientIdentity& client) {
+    {
+        // Kept before the dispatcher is looked up: a window that joins
+        // between the two takes the client as it joins (window_ready).
+        const stxlib::ScopedLock lock(mutex_);
+        client_seen_ = true;
+        client_ = client;
+    }
     const WindowDispatcher dispatcher = home_dispatcher();
     if (!dispatcher.window_alive()) return;
     static_cast<void>(dispatcher.begin_invoke(ClientWork{this, client}));

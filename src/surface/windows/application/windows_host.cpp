@@ -4556,6 +4556,7 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     // The window joins the automation once the host is ready
     // (gui_forms::detail::DirectRunWindow); nothing happens without one.
     gui_forms::detail::DirectRunWindow direct_window{};
+    gui_forms::detail::adopt_opening_title(*model, options.title);
     options.host_ready = direct_window.wrap(*model, "main", std::move(options.host_ready));
     WindowsHostState state(std::move(model), options);
     const DWORD style = options.popup_window ? (WS_POPUP | WS_BORDER) :

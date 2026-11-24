@@ -3,7 +3,7 @@
 // Shared command-line contract for the GUI.Forms demonstration programs
 // (Gallery, Correspondence and the labs) on every host:
 //
-//   --mcp, --model-directed, --mcp-script <file>
+//   --mcp, --model-directed, --mcp-appearance-review, --mcp-script <file>
 //                       The library's automation (MCP) arguments: accepted and
 //                       left to the library, which reads the process's own
 //                       arguments (gui_forms/automation/marks/automation_marks.hpp).
@@ -185,7 +185,7 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
     for (std::size_t index = 0U; index < argument_count; ++index) {
         const std::string_view argument = arguments[index];
         // The automation's arguments are the library's (automation_marks.hpp).
-        if (argument == "--mcp" || argument == "--model-directed") continue;
+        if (argument == "--mcp" || argument == "--model-directed" || argument == "--mcp-appearance-review") continue;
         if (argument == "--mcp-script") {
             ++index;
             continue;

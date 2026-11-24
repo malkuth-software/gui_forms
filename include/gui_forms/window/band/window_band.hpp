@@ -95,12 +95,29 @@ inline constexpr double maximum_band_width = 32.0;
 // `cycling` blends between the rest and lit colours along a cosine,
 // starting lit, repainting the strips at band_cycling_frames_per_second,
 // and rests lit under the same conditions.
+// `marching` and `sweeping` move along the band's outline (the automation's
+// in-use sign, MCP round 1): the band draws its rest colour, and over it
+// `marching` runs dashes of the lit colour (band_dash_length on, as much
+// off) one dash period a cycle, while `sweeping` runs a glint of the lit
+// colour (band_glint_fraction of the outline, fading behind) one lap a
+// cycle. Both repaint at band_cycling_frames_per_second and stand still
+// where they are under reduced motion, with ambient motion off, or while
+// the window is occluded. A pixel changes at most twice a cycle, so the
+// flash limiter's frequency bounds them too. They need one width on every
+// edge and no texture; a band without either draws its lit colour.
 enum class WindowBandState : std::uint8_t {
     rest,
     lit,
     flashing,
     cycling,
+    marching,
+    sweeping,
 };
+
+// A marching band's dash and gap, and a sweeping band's glint, as a share
+// of the outline's length.
+inline constexpr double band_dash_length = 10.0;
+inline constexpr double band_glint_fraction = 0.22;
 
 // The flash limiter (study section 5, WCAG 2.3.1): at most this many
 // luminance transitions a second, whatever the theme or the application
@@ -217,13 +234,19 @@ enum class WindowCornerShape : std::uint8_t {
 // meaningful only for `rounded`. `complied` is false when the platform
 // could not do as asked (it rounds regardless, or cannot round), so the
 // band follows `shape`, not the preference.
+// `top_square` says that the client area's top corners meet a title bar
+// the host draws (a titled window on macOS), so they stay square however
+// the window's frame is rounded; the band then rounds its bottom corners
+// only.
 struct GUI_FORMS_API WindowCornerReport final {
     WindowCornerShape shape{WindowCornerShape::unknown};
     double radius{};
     bool complied{};
+    bool top_square{};
 
     friend bool operator==(const WindowCornerReport& left, const WindowCornerReport& right) noexcept {
-        return left.shape == right.shape && left.radius == right.radius && left.complied == right.complied;
+        return left.shape == right.shape && left.radius == right.radius && left.complied == right.complied &&
+               left.top_square == right.top_square;
     }
 };
 
@@ -273,6 +296,12 @@ struct GUI_FORMS_API WindowBandSnapshot final {
     // The cycle frames the strips have been damaged for, counted from the
     // window's creation.
     std::uint64_t cycle_frames{};
+    // Whether a march or a sweep moves now (not stilled), how far round it
+    // is (a fraction of one cycle, in [0, 1)), and the frames it has
+    // damaged the strips for, counted from the window's creation.
+    bool moving{};
+    double motion_phase{};
+    std::uint64_t motion_frames{};
 };
 
 // What a window's shaping can rely on (Window::shaping_report; the owner's

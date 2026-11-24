@@ -48,10 +48,20 @@ struct AutomationLaunch final {
     bool mcp{};
     // --model-directed: direct_begin is allowed (study 8.3).
     bool model_directed{};
+    // --mcp-appearance-review: --mcp with no in-use sign (MCP round 1), so
+    // the windows look as they do to a user without a model. Debug and test
+    // builds only (GUI_FORMS_MCP_TEST_CONTROLS, as suspend_input); another
+    // build refuses the launch's MCP and says so on standard error.
+    bool appearance_review{};
     // --mcp-script <file>; empty for none.
     std::string script_path{};
-    [[nodiscard]] bool requested() const noexcept { return mcp || !script_path.empty(); }
+    [[nodiscard]] bool requested() const noexcept { return mcp || appearance_review || !script_path.empty(); }
 };
+
+// Why `launch` cannot run as asked in a build that does or does not have
+// the test controls (`test_controls`), or null when it can: appearance
+// review needs them. Static text.
+[[nodiscard]] const char* automation_launch_refusal(const AutomationLaunch& launch, bool test_controls) noexcept;
 
 // The launch as the process was started. Empty in a build without
 // GUI_FORMS_MCP, and in a high-integrity build (which reads no environment

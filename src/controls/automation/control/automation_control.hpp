@@ -185,6 +185,8 @@ public:
     [[nodiscard]] ControlState state() const noexcept { return state_; }
     [[nodiscard]] AutomationPresenter* presenter() const noexcept { return presenter_; }
     [[nodiscard]] const ClientIdentity& client() const noexcept { return client_; }
+    // Whether direct_begin is allowed (--model-directed or model.directed).
+    [[nodiscard]] bool model_directed_allowed() const noexcept { return settings_.model_directed_allowed; }
     // Records who is calling; tells the presenter when it changed.
     void set_client(const ClientIdentity& client);
 
