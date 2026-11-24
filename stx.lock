@@ -10,11 +10,12 @@
 # commit with -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_STX=<dir>, and
 # -DGUI_FORMS_STX_PREFIX=<dir> links a package built elsewhere.
 #
-# bdb3dc1 is stx main after checkpoint cp37 (stx PR #6): STXlib 6f6df28
+# 075dad4 is stx main after stx PR #7, which installs stxlib::mcp (the
+# transport GUI.Forms' --mcp links), on stx PR #6's STXlib 6f6df28
 # (checkpoints stx5 and stx6: the final CONV, the FFT speed work,
 # stxlib::syntax, sincosd, the threading additions, stx_mcp, and the
 # outline-atomics helpers inside the installed libraries) and stx_skia's
 # zero-stride installPixels check without the reference build.
 [stx]
 repository = "malkuth-software/stx"
-commit = "bdb3dc162963edea6c6ee65f5e149fea2eec95eb"
+commit = "075dad4d9b71908429eb38e66c9df13a8dd3c93e"
