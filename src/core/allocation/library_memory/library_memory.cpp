@@ -20,6 +20,11 @@ namespace {
 // once per allocation.
 constinit std::atomic<LibraryAllocationObserver> allocation_observer{nullptr};
 
+// What the program's replacement of operator new reported (the header's
+// ProgramAllocator); constant-initialized, so a static initializer of any
+// translation unit may set it.
+constinit std::atomic<ProgramAllocator> program_allocator_state{ProgramAllocator::not_linked};
+
 // The calling thread's counts: trivially destructible, written and read
 // only by their own thread.
 constinit thread_local std::uint64_t thread_granted = 0U;
@@ -153,6 +158,15 @@ std::uint64_t library_allocations_granted() noexcept {
 
 std::uint64_t library_blocks_released() noexcept {
     return thread_released;
+}
+
+void note_program_allocator(const ProgramAllocator state) noexcept {
+    program_allocator_state.store(state, std::memory_order_release);
+}
+
+ProgramAllocator program_allocator() noexcept {
+    const ProgramAllocator state = program_allocator_state.load(std::memory_order_acquire);
+    return state;
 }
 
 } // namespace gui_forms::detail

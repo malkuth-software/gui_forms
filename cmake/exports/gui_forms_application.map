@@ -6757,6 +6757,8 @@
     _ZN9gui_forms6detail16well_formed_textE*;
     _ZN9gui_forms6detail17ControlHelpFields*;
     _ZN9gui_forms6detail17FailureStatistics*;
+    _ZN9gui_forms6detail17program_allocatorB*;
+    _ZN9gui_forms6detail17program_allocatorE*;
     _ZN9gui_forms6detail17teardown_allocateB*;
     _ZN9gui_forms6detail17teardown_allocateE*;
     _ZN9gui_forms6detail17toggle_rule_valueB*;
@@ -6802,6 +6804,8 @@
     _ZN9gui_forms6detail22encode_clipboard_imageE*;
     _ZN9gui_forms6detail22library_teardown_begunB*;
     _ZN9gui_forms6detail22library_teardown_begunE*;
+    _ZN9gui_forms6detail22note_program_allocatorB*;
+    _ZN9gui_forms6detail22note_program_allocatorE*;
     _ZN9gui_forms6detail23library_blocks_releasedB*;
     _ZN9gui_forms6detail23library_blocks_releasedE*;
     _ZN9gui_forms6detail23mark_parked_frames_lostB*;

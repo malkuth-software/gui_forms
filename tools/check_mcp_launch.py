@@ -21,6 +21,7 @@ CI they run under xvfb-run.
 from __future__ import annotations
 
 import argparse
+import os
 import json
 from pathlib import Path
 import subprocess
@@ -87,13 +88,21 @@ class Exchange:
             return None
 
 
-def check(program: Path, timeout: float, environment: dict[str, str] | None = None) -> tuple[bool, str]:
+def check(program: Path, timeout: float, environment: dict[str, str] | None = None,
+          require_library_allocator: bool = False) -> tuple[bool, str]:
     """(passed, detail) for one program; a failure ends with its last lines of standard error.
 
     `environment` is the program's whole environment (None inherits this one's).
+    With `require_library_allocator`, the program also runs with
+    GUI_FORMS_REQUIRE_LIBRARY_ALLOCATOR=1, so one whose operator new is not
+    STXlib's allocator (gui_forms_use_library_allocator) exits at startup and
+    fails the check.
     """
     if not program.is_file():
         return False, 'no such program'
+    if require_library_allocator:
+        environment = dict(os.environ if environment is None else environment)
+        environment['GUI_FORMS_REQUIRE_LIBRARY_ALLOCATOR'] = '1'
     exchange = Exchange(program, environment)
     passed, detail = served(exchange, timeout)
     if not passed and exchange.errors:
@@ -127,10 +136,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument('programs', nargs='+', type=Path)
     parser.add_argument('--timeout', type=float, default=60.0,
                         help='seconds for each answer and for the exit (default 60)')
+    parser.add_argument('--require-library-allocator', action='store_true',
+                        help="also require each program's operator new to be STXlib's allocator "
+                             '(gui_forms_use_library_allocator)')
     arguments = parser.parse_args(argv)
     failed = 0
     for program in arguments.programs:
-        passed, detail = check(program.resolve(), arguments.timeout)
+        passed, detail = check(program.resolve(), arguments.timeout,
+                               require_library_allocator=arguments.require_library_allocator)
         print(f'{"ok" if passed else "FAIL"}: {program.name}: {detail}')
         failed += 0 if passed else 1
     if failed:

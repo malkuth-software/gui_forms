@@ -6,7 +6,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "GUI.Forms supports Apple silicon arm64 only")
     endif()
 endif()
-project(GUIForms VERSION 1.0.1 LANGUAGES C CXX)
+project(GUIForms VERSION 1.0.2 LANGUAGES C CXX)
 
 # The browser target's compiler is the pinned emsdk's clang
 # (cmake/emscripten.cmake checks the release); every other target is LLVM 22.1.
@@ -3483,6 +3483,18 @@ function(gui_forms_use_library_allocator target)
     target_link_libraries(${target} PRIVATE GUIForms::Memory stxlib::boundary stxlib::state)
 endfunction()
 install(FILES "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}" DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/program_allocator)
+# The proof that the opt-in binds (tools/allocator_probe/allocator_probe.cpp):
+# one program that opts in and one that does not, which tools/ci_build.py
+# runs on every desktop host.
+if(NOT EMSCRIPTEN)
+    foreach(_gf_probe IN ITEMS gui_forms_allocator_probe gui_forms_allocator_probe_control)
+        add_executable(${_gf_probe} tools/allocator_probe/allocator_probe.cpp)
+        target_link_libraries(${_gf_probe} PRIVATE GUIForms::Memory stxlib::boundary stxlib::state)
+    endforeach()
+    target_compile_definitions(gui_forms_allocator_probe PRIVATE GUI_FORMS_PROBE_OPTED_IN=1)
+    target_compile_definitions(gui_forms_allocator_probe_control PRIVATE GUI_FORMS_PROBE_OPTED_IN=0)
+    gui_forms_use_library_allocator(gui_forms_allocator_probe)
+endif()
 
 # The text masks join the Application library's archives
 # (GUI_FORMS_APPLICATION_ARCHIVES) before the package reads them, so the
@@ -3551,13 +3563,15 @@ if(GUI_FORMS_ENABLE_SKIA)
 endif()
 
 
-# Windows: the installed DLLs embed the LLVM runtimes, winpthreads and the
-# MinGW-w64 CRT (add_link_options(-static) above). Their licences come from
-# the toolchain prefix, the directory above the compiler's bin (the CLANG64
-# tree); the LLVM exception does not require them for embedded runtime code,
-# and they are installed anyway. The own-runtime MSVC target embeds libc++,
-# whose licence tools/own_runtime.py copies into GUI_FORMS_LIBCXX_PREFIX,
-# and STXlib's runtime, whose notices the stx package installs.
+# Windows: the own-runtime MSVC target, the one GUI.Forms ships, embeds
+# libc++, whose licence tools/own_runtime.py copies into
+# GUI_FORMS_LIBCXX_PREFIX, and STXlib's runtime, whose notices the stx
+# package installs (THIRD_PARTY_NOTICES.md). A MinGW-w64 build, which is not
+# packaged, embeds the LLVM runtimes, winpthreads and the MinGW-w64 CRT
+# (add_link_options(-static) above); their licences come from the toolchain
+# prefix, the directory above the compiler's bin (the CLANG64 tree). The LLVM
+# exception does not require them for embedded runtime code, and they are
+# installed anyway.
 if(GUI_FORMS_MSVC_RUNTIME STREQUAL "OWN" AND EXISTS "${GUI_FORMS_LIBCXX_PREFIX}/LICENSE.TXT")
     install(FILES "${GUI_FORMS_LIBCXX_PREFIX}/LICENSE.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms
             RENAME libc++-LICENSE.txt)
@@ -3778,6 +3792,20 @@ endif()
 
 # The test cache's description, after the last target (cmake/TestCache.cmake).
 gui_forms_describe_test_cache()
+
+# GUI.Forms' own demo and demonstrator programs (every executable that runs
+# its window through a desktop host library, the Gallery included) put their
+# C++ allocations on STXlib's allocator (owner, 2026-11-24). Under a
+# sanitizer the replacement leaves itself out, so the toolchain's operator new
+# stays (program_allocator_replacement.cpp).
+get_property(_gf_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+foreach(_gf_target IN LISTS _gf_targets)
+    get_target_property(_gf_type ${_gf_target} TYPE)
+    get_target_property(_gf_links ${_gf_target} LINK_LIBRARIES)
+    if(_gf_type STREQUAL "EXECUTABLE" AND _gf_links MATCHES "(^|;)gui_forms_host_(macos|linux|windows)(;|$)")
+        gui_forms_use_library_allocator(${_gf_target})
+    endif()
+endforeach()
 
 # The demonstrators: every program that runs its window through a desktop host
 # library directly (host::run_macos, run_windows, run_linux). tools/ci_build.py

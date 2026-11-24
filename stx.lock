@@ -23,6 +23,17 @@
 # own-runtime target, the allocation-tag table freed at module end),
 # stx_vorbis's AVX2 synthesis chosen by stxlib::simd's level (no compiler-rt
 # on x86_64-pc-windows-msvc), and every package at version 1.0.0.
+#
+# 14d3f76 is stx main after stx PR #10 (stx 1.0.1): STXlib 1.0.1 (dd17aae:
+# the Windows API headers cover the whole API of every system DLL STXlib
+# ships a .def for, the C library headers declare the CRT's POSIX names, and
+# operator new and delete are one archive member each), and every package at
+# version 1.0.1.
+#
+# fc5bcfc is stx main after stx PR #11 (stx 1.0.2): STXlib 1.0.2 (5ddef57: a
+# coclass's GUID is CLSID_<name> beside the class declaration, so
+# __uuidof(DirectManipulationManager) names the class again), and every
+# package at version 1.0.2.
 [stx]
 repository = "malkuth-software/stx"
-commit = "1ad1317eeb28ca5db548f9e2a86082995258d8e2"
+commit = "fc5bcfc433b8921ca0d28bffb1073085796ff29c"

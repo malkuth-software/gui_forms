@@ -2,6 +2,7 @@
 
 #include "../../core/host/session/session_directory.hpp"
 
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/automation/marks/automation_marks.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/window.hpp"
@@ -17,6 +18,7 @@
 #include <chrono>
 #include <climits>
 #include <cstdio>
+#include <cstdlib>
 #include <exception>
 #include <utility>
 #include <stxlib/threads.hpp>
@@ -326,7 +328,29 @@ void AutomationRun::sync_tools() {
 
 // ---- the scope ---------------------------------------------------------------------
 
+namespace {
+
+// The CI smokes' startup check (tools/check_mcp_launch.py
+// --require-library-allocator): with GUI_FORMS_REQUIRE_LIBRARY_ALLOCATOR=1,
+// a program whose operator new is not STXlib's allocator
+// (gui_forms_use_library_allocator, gui_forms::detail::program_allocator)
+// says so and exits with status 70 before its window opens.
+void require_library_allocator_if_asked() {
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    if (environment_value("GUI_FORMS_REQUIRE_LIBRARY_ALLOCATOR") != "1") return;
+    if (gui_forms::detail::program_allocator() == gui_forms::detail::ProgramAllocator::replaced) return;
+    std::fputs("GUI.Forms: GUI_FORMS_REQUIRE_LIBRARY_ALLOCATOR=1, but this program's operator new is not STXlib's "
+               "allocator (gui_forms_use_library_allocator)\n",
+               stderr);
+    std::fflush(stderr);
+    std::_Exit(70);
+#endif
+}
+
+} // namespace
+
 AutomationRunScope::AutomationRunScope() {
+    require_library_allocator_if_asked();
     const AutomationLaunch launch = read_automation_launch();
     if (!launch.requested()) return;
     try {

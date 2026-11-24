@@ -94,10 +94,6 @@ engine; threads, locks, files and math come from STXlib; promised
 floating-point results are compared bit for bit across hosts and processor
 tiers.
 
-% Threads, locks, files and math moving onto STXlib are gui_forms branches claude/shield-threads-files
-% and claude/shield-math, landing in checkpoint 37. Until then GUI.Forms uses the pinned C++ library
-% for threads and locks, and engine_math for its math.
-
 ### What the shield does not cover
 
 Two routes do not pass through STXlib, and the figure shows both.
@@ -108,11 +104,24 @@ Two routes do not pass through STXlib, and the figure shows both.
   and {src}`tools/check_native_boundaries.py` keeps that true for every
   native entry point.
 - **The C++ standard library** still provides GUI.Forms' containers and
-  strings, its general heap (through the host's `malloc`) and
-  `std::filesystem::path` for file names. It is the pinned copy, so its
-  behaviour does not depend on the machine, but its allocations do not get
-  the allocator's checks described on the memory page. Moving the rest
-  inward is continuing work.
+  strings. It is the pinned copy, so its behaviour does not depend on the
+  machine. Where its allocations end up depends on the route:
+  - The C ABI library replaces operator new with STXlib's allocator inside
+    its own module, so its containers and strings get the allocator's
+    checks described on the memory page. On macOS it does so only when the
+    C++ runtime is linked statically, since otherwise the replacement would
+    apply to the whole process.
+  - GUI.Forms' own types always come from STXlib's allocator.
+  - A program that links GUI.Forms statically keeps its own operator new
+    unless it opts in with `gui_forms_use_library_allocator`. GUI.Forms'
+    own programs opt in.
+  - A sanitizer build keeps the toolchain's operator new, so the sanitizer
+    sees every allocation.
+  - The `malloc` family, which C code such as the image codecs uses, is
+    never replaced.
+
+  `std::filesystem::path` still names files. Moving that inward is
+  continuing work.
 
 ## The pages
 

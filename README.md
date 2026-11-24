@@ -227,10 +227,10 @@ correct. By design, your bugs will not become ours.
 
 ### Wholly MIT by design
 
-GUI.Forms 1.0, STXlib and PyGUIForms are MIT licensed. What they carry from
-elsewhere keeps its notice, and every notice is permissive: Skia's BSD
-licence, the FreeType licence for part of the hinter, the fonts' OFL, and
-LLVM's Apache licence for the C++ library. Each is listed in
+GUI.Forms 1.0, STXlib and PyGUIForms are MIT licensed. Parts of the renderer
+and the glyph hinter extend designs from Skia and FreeType, so their notices
+stay with that code: Skia's BSD licence and the FreeType licence. The fonts
+keep their OFL and the C++ library its LLVM Apache licence. All are listed in
 [THIRD_PARTY_NOTICES.md](https://github.com/malkuth-software/gui_forms/blob/main/THIRD_PARTY_NOTICES.md).
 
 ### Where the designs come from
