@@ -11,8 +11,14 @@ installed SDK. Fonts carry their licences beside them in `fonts/`.
 This list was audited from the build on 2026-10-21: the link lines of the
 packaged programs, `packaging/licenses.json`, the CMake install rules, the
 fonts' `ATTRIBUTION.md`, the Unicode data provenance and the provenance
-records of the vendored sources. `tools/package_programs.py` checks every
-program package against it (see the end of this file).
+records of the vendored sources. The Windows rows were checked again on
+2026-11-24, after the switch to STXlib's own runtime, from the link commands
+`tools/own_runtime.py evidence` reads: every Windows link names libc++
+22.1.8 (`libc++.lib`, `libc++experimental.lib`), STXlib's startup and C++
+runtime, STXlib's import libraries and GUID data (`ucrtbase.lib`,
+`kernel32.lib`, `uuid.lib` and the others) and GUI.Forms' and stx's own
+archives, and nothing else. `tools/package_programs.py` checks every
+program package against this file (see the end of this file).
 
 ## Components
 
@@ -36,11 +42,8 @@ program package against it (see the end of this file).
 | Unicode Character Database (grapheme tables) | Unicode 17.0.0 | Unicode License v3 | all | `licenses/Unicode.txt` | `Unicode-LICENSE.txt` |
 | Skia (in stx_skia) | `chrome/m152`, `2a9b593b`, pruned and converted in stx's `stx_skia/` | BSD-3-Clause | all | `licenses/Skia.txt` | `Skia-LICENSE.txt` |
 | stx_skia (the CPU renderer derived from Skia) | in the stx repository, at `stx.lock`'s commit | MIT; Skia's BSD-3-Clause notices are retained | all | `licenses/stx_skia.txt` | `stx_skia-LICENSE.txt` |
-| LLVM libc++ and libc++abi | 22.1.8 | Apache-2.0 WITH LLVM-exception | macOS (bundled dylibs), Linux and Windows (statically linked) | Windows `licenses/LLVM/libc++-LICENSE.TXT`; macOS and Linux `licenses/LLVM/libcxx-LICENSE.TXT` and `licenses/LLVM/libcxxabi-LICENSE.TXT` | `libc++-LICENSE.txt` (Windows); `libcxx-LICENSE.txt` and `libcxxabi-LICENSE.txt` (Linux) |
-| LLVM libunwind | 22.1.8 | Apache-2.0 WITH LLVM-exception | macOS (bundled dylib), Linux and Windows (statically linked) | `licenses/LLVM/libunwind-LICENSE.TXT` | `libunwind-LICENSE.txt` (Windows and Linux) |
-| LLVM compiler-rt builtins | 22.1.8 | Apache-2.0 WITH LLVM-exception | Windows (statically linked) | `licenses/LLVM/compiler-rt-LICENSE.TXT` | `compiler-rt-LICENSE.txt` |
-| MinGW-w64 winpthreads | 14.0.0 (CLANG64 `r426.g4564ee4b5`) | MIT and BSD-3-Clause (its COPYING) | Windows (statically linked) | `licenses/winpthreads-COPYING.txt` | `winpthreads-COPYING.txt` |
-| MinGW-w64 runtime (CRT startup, libmingwex, libuuid GUID data) | 14.0.0 (CLANG64 `r426.g4564ee4b5`) | the MinGW-w64 runtime licence (its COPYING; see the note below) | Windows (statically linked) | `licenses/mingw-w64-runtime-COPYING.txt` | `mingw-w64-runtime-COPYING.txt` |
+| LLVM libc++ and libc++abi | 22.1.8 | Apache-2.0 WITH LLVM-exception | macOS (bundled dylibs), Linux (statically linked) and Windows (libc++ only, statically linked; STXlib's runtime takes libc++abi's place) | `licenses/LLVM/libcxx-LICENSE.TXT`; macOS and Linux also `licenses/LLVM/libcxxabi-LICENSE.TXT` | `libc++-LICENSE.txt` (Windows); `libcxx-LICENSE.txt` and `libcxxabi-LICENSE.txt` (Linux) |
+| LLVM libunwind | 22.1.8 | Apache-2.0 WITH LLVM-exception | macOS (bundled dylib) and Linux (statically linked); Windows unwinds with the system's table-based exception handling | `licenses/LLVM/libunwind-LICENSE.TXT` | `libunwind-LICENSE.txt` (Linux) |
 | miniaudio | `f40cf03f` | MIT No Attribution (its alternative 2) | SDK only (`GUIForms::Audio`) | not in a program | `miniaudio-LICENSE.txt` |
 | stx_vorbis (the owner's Vorbis decoder) | in this repository | MIT | SDK only (`GUIForms::Audio`) | not in a program | `stx_vorbis-LICENSE.txt` |
 | BFFT (the owner's transform library, inside stx_vorbis) | falseywinchnet/bfft `0f75ca79` | MIT | SDK only (`GUIForms::Audio`) | not in a program | `bfft-LICENSE.txt` |
@@ -61,29 +64,18 @@ Font provenance (commits and byte hashes) is in `fonts/ATTRIBUTION.md`.
 - System libraries a program loads from the operating system and that
   GUI.Forms does not distribute: on Linux, the C and C++ runtimes, X11 and
   the ATK/AT-SPI bridge (LGPL 2.1 or later, dynamically linked); on macOS,
-  the system frameworks; on Windows, the system DLLs.
-
-## Note on the MinGW-w64 runtime licence
-
-The MinGW-w64 runtime's COPYING also reproduces the LGPL 2.1 notice of
-header and IDL files imported from Wine. The Windows build was checked on
-2026-10-21 for what of those files reaches a binary:
-
-- Ten such headers are included by GUI.Forms objects (`uiautomation.h`,
-  `uiautomationclient.h`, `uiautomationcore.h`, `uiautomationcoreapi.h`,
-  `msxml.h`, `wincodec.h`, `dcommon.h`, `dxgiformat.h`, `exdisp.h` and
-  `objectarray.h`, the last six generated from Wine IDL files), by 91
-  objects, found from the build's header dependencies (`ninja -t deps`).
-  `wincodec.h` was the Windows host's WIC PNG decoder, which Z-stage I2
-  removed the same day; it is no longer included, so the list now has nine.
-- No function from them is compiled into an object: every code symbol the
-  91 objects define (`llvm-nm --defined-only`) is GUI.Forms', HarfBuzz's,
-  FreeType's, the C++ runtime's or a test's. Besides code, the objects hold
-  the compiler's type-information records for the COM interfaces those
-  headers declare, and references to interface identifiers.
-- The interface identifiers (16-byte GUID constants) come from MinGW-w64's
-  `libuuid.a` (`uuid.o`, under the runtime licence above), whose values those
-  headers declare. The Windows Gallery links 1,821 of them.
+  the system frameworks; on Windows, the system DLLs, the C runtime
+  `ucrtbase.dll` among them.
+- STXlib's Windows C library headers, Windows API headers, startup, C++
+  runtime and import libraries, which the Windows binaries are built and
+  linked with, are STXlib's own code under its MIT licence (the STXlib row);
+  its Windows API headers are generated from the windows-rs metadata
+  (MIT OR Apache-2.0, MIT taken), whose notice STXlib's source carries
+  (`src/hosted/windows/api/NOTICE`). No compiler-rt
+  builtin is linked: the build needs none on x86_64.
+- The MinGW-w64 build (CLANG64), which links winpthreads and the MinGW-w64
+  runtime, is no longer packaged or released; GUI.Forms 1.0 ships the
+  own-runtime build only.
 
 ## The packaging check
 
