@@ -200,6 +200,10 @@ public:
     // Whether the library holds an object or a run: an application is made
     // only before either (application.create).
     [[nodiscard]] bool holds_objects() noexcept;
+    // No object, subscription, posted or deferred call, or running window:
+    // nothing the registry holds would call back (the module's end deletes
+    // an idle registry, abi_registry.cpp).
+    [[nodiscard]] bool idle_at_module_end() noexcept;
 
     // The control behind a live identity (GF_STATUS_INVALID_ARGUMENT for
     // zero, GF_STATUS_STALE_HANDLE for an ended one or one whose sub-surface
@@ -382,8 +386,9 @@ private:
     std::function<void()> run_wake_{};
 };
 
-// The library's one registry. It is created on first use and never
-// destroyed, so no callback is released by a static destructor at exit.
+// The library's one registry. It is created on first use; the module's end
+// (unload or process end) deletes it only when it is idle, so no callback is
+// released by a static destructor at exit.
 [[nodiscard]] HandleRegistry& registry() noexcept;
 
 // The exception policy of every slot gate (abi_registry.cpp), STXlib's

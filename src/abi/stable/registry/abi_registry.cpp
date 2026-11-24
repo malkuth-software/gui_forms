@@ -16,6 +16,7 @@
 
 #include <algorithm>
 #include <array>
+#include <atomic>
 #include <cstring>
 #include <limits>
 #include <new>
@@ -329,6 +330,13 @@ void HandleRegistry::unbind_if_idle() {
 void HandleRegistry::hold_binding() noexcept {
     const stxlib::ScopedLock lock(mutex_);
     binding_held_ = true;
+}
+
+bool HandleRegistry::idle_at_module_end() noexcept {
+    const stxlib::ScopedLock lock(mutex_);
+    const bool idle = live_objects_ == 0U && live_subscriptions_ == 0U && posted_.empty() && deferred_.empty() &&
+                      !running_ && !run_wake_;
+    return idle;
 }
 
 bool HandleRegistry::holds_objects() noexcept {
@@ -1039,10 +1047,42 @@ gf_status HandleRegistry::current_run(SlotIdentity slot, gf_object& root, Applic
 // ---------------------------------------------------------------------------
 // Shared helpers.
 
+namespace {
+
+// The registry, made on first use. A racing first use makes one more and
+// deletes it (making one has no effect beyond its storage).
+std::atomic<HandleRegistry*> registry_instance{nullptr};
+
+// The module's end (its unload, or the process's end): an idle registry, one
+// holding no object, subscription, posted call or running window and so no
+// callback, is deleted, so unloading the library leaves nothing of it behind
+// (gui_forms_abi_module_unload under LeakSanitizer). A registry still holding
+// any of them is left alive, as before, so no callback is released by a
+// static destructor at exit. A use after this makes a new registry.
+struct RegistryEnd final {
+    RegistryEnd() noexcept = default;
+    RegistryEnd(const RegistryEnd&) = delete;
+    RegistryEnd& operator=(const RegistryEnd&) = delete;
+    ~RegistryEnd() {
+        HandleRegistry* const found = registry_instance.load(std::memory_order_acquire);
+        if (found == nullptr || !(*found).idle_at_module_end()) return;
+        HandleRegistry* expected = found;
+        if (registry_instance.compare_exchange_strong(expected, nullptr, std::memory_order_acq_rel)) delete found;
+    }
+};
+
+RegistryEnd registry_end;
+
+} // namespace
+
 HandleRegistry& registry() noexcept {
-    // Never destroyed: see abi_registry.hpp.
-    static HandleRegistry* const instance = new HandleRegistry();
-    return *instance;
+    HandleRegistry* const found = registry_instance.load(std::memory_order_acquire);
+    if (found != nullptr) return *found;
+    HandleRegistry* const made = new HandleRegistry();
+    HandleRegistry* expected = nullptr;
+    if (registry_instance.compare_exchange_strong(expected, made, std::memory_order_acq_rel)) return *made;
+    delete made;
+    return *expected;
 }
 
 namespace {
