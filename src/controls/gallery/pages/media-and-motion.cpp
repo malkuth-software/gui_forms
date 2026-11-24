@@ -513,6 +513,9 @@ private:
             return;
         }
         carousel_frame_ = 1;
+        // The view names its target at once, as the slider's caption does;
+        // the turn lands on later ticks.
+        show_carousel();
         (*timer_).start();
     }
 
