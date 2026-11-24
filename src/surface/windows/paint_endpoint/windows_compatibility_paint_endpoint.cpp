@@ -263,15 +263,26 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         return description;
     }
 
+    // The size is held twice: by the DIB (width, height) and by the live
+    // surface's description, which its owner hands out (live_surface()), so
+    // a caller can reconfigure it directly, and a failed configure can leave
+    // it changed. Every writer checks the lease against the DIB here before
+    // it writes a byte, so a disagreement refuses a publish instead of
+    // overrunning the lease (state hunt S4). Caller holds state_mutex.
+    [[nodiscard]] bool lease_matches(const LiveSurfaceWriteLease& lease) const noexcept {
+        const std::size_t pixel_count = static_cast<std::size_t>(width) * height;
+        return lease.pixels().size() == pixel_count * 4U;
+    }
+
     // Copies the DIB into a write lease of the same size, forcing alpha to
     // 255 in the same pass: conventional GDI drawing does not preserve the
     // alpha byte. Caller holds state_mutex (the DIB is coherent) and
     // surface_publish_mutex (the lease is the only writer). False when the
     // lease's size is not the DIB's.
     bool copy_opaque(LiveSurfaceWriteLease& lease) const noexcept {
+        if (!lease_matches(lease)) return false;
         std::span<std::byte> destination = lease.pixels();
         const std::size_t pixel_count = static_cast<std::size_t>(width) * height;
-        if (destination.size() != pixel_count * 4U) return false;
         std::uint32_t* target = reinterpret_cast<std::uint32_t*>(destination.data());
         const std::uint32_t* source = pixels;
         for (std::size_t index = 0; index < pixel_count; ++index) {
@@ -299,8 +310,17 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         return true;
     }
 
-    bool create_backing(std::uint32_t requested_width,
-                        std::uint32_t requested_height) noexcept {
+    // A device-independent bitmap made but not yet selected into the memory
+    // device context: configure adopts it only once the surface has taken
+    // the same size, so a refusal on either side changes nothing.
+    struct PreparedBacking final {
+        HBITMAP bitmap{};
+        std::uint32_t* pixels{};
+    };
+
+    bool prepare_backing(std::uint32_t requested_width,
+                         std::uint32_t requested_height,
+                         PreparedBacking& prepared) noexcept {
         if (memory_dc == nullptr) memory_dc = CreateCompatibleDC(nullptr);
         if (memory_dc == nullptr) return false;
         BITMAPINFO info{};
@@ -313,22 +333,56 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         void* next_pixels{};
         HBITMAP next_bitmap = CreateDIBSection(
             memory_dc, &info, DIB_RGB_COLORS, &next_pixels, nullptr, 0);
-        if (next_bitmap == nullptr || next_pixels == nullptr) return false;
-        HGDIOBJ replaced = SelectObject(memory_dc, next_bitmap);
+        if (next_bitmap == nullptr || next_pixels == nullptr) {
+            if (next_bitmap != nullptr) DeleteObject(next_bitmap);
+            return false;
+        }
+        std::memset(next_pixels, 0,
+                    static_cast<std::size_t>(requested_width) *
+                        requested_height * 4U);
+        prepared.bitmap = next_bitmap;
+        prepared.pixels = static_cast<std::uint32_t*>(next_pixels);
+        return true;
+    }
+
+    // Selects a prepared bitmap and frees the one it replaces. On failure the
+    // prepared bitmap is freed and the old one stays selected.
+    bool adopt_backing(PreparedBacking& prepared) noexcept {
+        HGDIOBJ replaced = SelectObject(memory_dc, prepared.bitmap);
         if (replaced == nullptr || replaced == HGDI_ERROR) {
-            DeleteObject(next_bitmap);
+            DeleteObject(prepared.bitmap);
+            prepared = PreparedBacking{};
             return false;
         }
         if (bitmap != nullptr) DeleteObject(bitmap);
         else stock_bitmap = replaced;
-        bitmap = next_bitmap;
-        pixels = static_cast<std::uint32_t*>(next_pixels);
-        std::memset(pixels, 0,
-                    static_cast<std::size_t>(requested_width) *
-                        requested_height * 4U);
+        bitmap = prepared.bitmap;
+        pixels = prepared.pixels;
+        prepared = PreparedBacking{};
         return true;
     }
 
+    bool create_backing(std::uint32_t requested_width,
+                        std::uint32_t requested_height) noexcept {
+        PreparedBacking prepared;
+        if (!prepare_backing(requested_width, requested_height, prepared)) return false;
+        return adopt_backing(prepared);
+    }
+
+    // LiveSurface::reconfigure allocates its buffers and may throw; here a
+    // refusal of either kind is the same false.
+    bool reconfigure_surface(std::uint32_t surface_width,
+                             std::uint32_t surface_height) noexcept {
+        try {
+            return (*surface).reconfigure(opaque_description(surface_width, surface_height));
+        } catch (...) {
+            return false;
+        }
+    }
+
+    // Commit last: the new bitmap is made first, then the surface takes the
+    // new size, then the bitmap is selected and the size recorded. Each step
+    // that can refuse runs before anything it would leave behind.
     bool configure(std::uint32_t requested_width,
                    std::uint32_t requested_height) noexcept {
         if (GetCurrentThreadId() != owner_thread) return false;
@@ -338,12 +392,18 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         if (released || compatibility_handle == 0U) return false;
         if (width == next_width && height == next_height) return true;
         const stxlib::ScopedLock publish_lock(surface_publish_mutex);
-        if (!(*surface).reconfigure(opaque_description(next_width, next_height))) return false;
-        if (!create_backing(next_width, next_height)) {
+        PreparedBacking prepared;
+        if (!prepare_backing(next_width, next_height, prepared)) return false;
+        if (!reconfigure_surface(next_width, next_height)) {
+            DeleteObject(prepared.bitmap);
+            return false;
+        }
+        if (!adopt_backing(prepared)) {
             // The DIB stays at the old size, so the surface goes back to it:
             // otherwise every later publish is refused for the mismatch
-            // (A-gf-host-03-F10).
-            static_cast<void>((*surface).reconfigure(opaque_description(width, height)));
+            // (A-gf-host-03-F10). Should that fail too, the writers'
+            // lease_matches check refuses each publish (S4).
+            static_cast<void>(reconfigure_surface(width, height));
             return false;
         }
         width = next_width;
@@ -516,6 +576,9 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         const stxlib::ScopedLock publish_lock(surface_publish_mutex);
         LiveSurfaceWriteLease lease = (*surface).try_acquire_write(false);
         if (!lease) return false;
+        // The lease is the surface's size, which its owner can change behind
+        // the DIB (S4): checked before the first byte is written.
+        if (!lease_matches(lease)) return false;
         const std::size_t packed_row = static_cast<std::size_t>(width) * 4U;
         for (std::uint32_t row = 0; row < height; ++row) {
             std::memcpy(reinterpret_cast<std::byte*>(pixels) + row * packed_row,
