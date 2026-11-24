@@ -246,7 +246,7 @@ RibbonColorPicker::Parts RibbonColorPicker::own_parts() const {
         face.insert(AnatomyState::disabled);
         arrow.insert(AnatomyState::disabled);
     }
-    if (palette_open_) arrow.insert(AnatomyState::open);
+    if (presentation_.is_shown()) arrow.insert(AnatomyState::open);
     Parts record;
     record.region = PartGeometry::from_bounds(client_rectangle());
     record.face = PartGeometry::from_bounds(placed.face);
@@ -488,7 +488,7 @@ void RibbonColorPicker::on_mouse_down(MouseEventArgs& arguments) {
         const Zone zone = zone_at(arguments.location);
         arguments.handled = zone != Zone::none;
         if (zone == Zone::arrow) {
-            if (palette_open_) {
+            if (presentation_.is_shown()) {
                 close_palette();
             } else {
                 static_cast<void>(open_palette(MenuOpenMode::pointer));
@@ -537,7 +537,7 @@ void RibbonColorPicker::on_focus_changed(bool focused) {
 }
 
 void RibbonColorPicker::palette_pointer(PointerEvent& event) {
-    if (!palette_open_ || !palette_overlay_) return;
+    if (!presentation_.is_shown() || !palette_overlay_) return;
     const Rect absolute = (*palette_overlay_).absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
     const std::vector<Cell> all = cells();
@@ -564,7 +564,7 @@ void RibbonColorPicker::palette_pointer(PointerEvent& event) {
 // row above or below), Enter and Space commit, Home and End go to the first
 // and last; Escape reaches the layer, which closes the palette.
 void RibbonColorPicker::palette_key(KeyEvent& event) {
-    if (event.action != KeyAction::down || !palette_open_) return;
+    if (event.action != KeyAction::down || !presentation_.is_shown()) return;
     // Automatic is always an entry, so `all` is never empty. The keyboard's
     // entry can lie past the end when the recent colours shrank while the
     // palette was open; it then counts as the last entry.
@@ -613,7 +613,7 @@ void RibbonColorPicker::palette_key(KeyEvent& event) {
 bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     require_mutable();
     Window* const window = attached_window();
-    if (palette_open_ || window == nullptr || !enabled_to_use()) return false;
+    if (!presentation_.is_closed() || window == nullptr || !enabled_to_use()) return false;
     const Control::Ptr self = shared_from_this();
     AnchoredOverlayPlacement placement;
     placement.horizontal_alignment = OverlayHorizontalAlignment::start;
@@ -643,12 +643,13 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
         focus_entry_.set(current.value_or(0U));
     }
     (*layer_).set_content(palette_overlay_);
-    overlay_ = (*window).open_overlay(self, layer_);
-    palette_open_ = true;
-    if (Event<>* closed = overlay_.closed_event()) {
-        overlay_revoked_ =
+    AnchoredOpening opening{};
+    opening.lease.overlay = (*window).open_overlay(self, layer_);
+    if (Event<>* closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed =
             (*closed).subscribe(*this, Delegate<>::bind<RibbonColorPicker, &RibbonColorPicker::on_overlay_revoked>(*this));
     }
+    presentation_ = AnchoredPresentation::opening(std::move(opening));
     // In a Popup the palette may reach past the owner onto the desktop; the
     // emptied layer stays in the owner and holds the focus scope.
     const Rect anchor = absolute_bounds();
@@ -661,8 +662,9 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
         if (!lifted) (*layer_).set_content(palette_overlay_);
     }
     (*layer_).focusable = lifted;
-    if (lifted) {
-        lift_closed_ = (*window).popup_window_closed().subscribe(
+    AnchoredOpening* const lifting = presentation_.opening_state();
+    if (lifted && lifting != nullptr) {
+        (*lifting).popup_closed = (*window).popup_window_closed().subscribe(
             Delegate<std::size_t>::bind<RibbonColorPicker, &RibbonColorPicker::on_popup_window_closed>(*this));
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer_) : Control::Ptr(palette_overlay_);
@@ -670,31 +672,34 @@ bool RibbonColorPicker::open_palette(MenuOpenMode mode) {
     // handlers; one that closed the palette found no scope to end, so this
     // one is ended here and nothing reports an opening (A-gf-controls-12-F4).
     const FocusScopeId started = (*window).begin_focus_scope(layer_, preferred_focus);
-    if (!is_alive() || !palette_open_) {
+    if (!is_alive() || !presentation_.settle_open()) {
         if (started) static_cast<void>((*window).end_focus_scope(started));
         return false;
     }
-    scope_ = started;
+    (*presentation_.open_state()).lease.scope = started;
     invalidate(Dirty::paint | Dirty::semantics);
     palette_open_changed_.emit(true);
     return true;
 }
 
 void RibbonColorPicker::close_palette() noexcept {
-    if (!palette_open_) return;
-    palette_open_ = false;
-    lift_closed_.disconnect();
+    // Closing from here on: a handler the steps run can neither close nor
+    // open the palette again until it is closed.
+    if (!presentation_.begin_closing()) return;
+    AnchoredOpening& closing = *presentation_.closing_state();
+    closing.popup_closed.disconnect();
     lift_.release();
     Window* const window = attached_window();
-    if (window != nullptr && scope_) {
+    if (window != nullptr && closing.lease.scope) {
         try {
-            static_cast<void>((*window).end_focus_scope(scope_));
+            static_cast<void>((*window).end_focus_scope(closing.lease.scope));
         } catch (...) {
         }
     }
-    scope_ = {};
-    overlay_revoked_.disconnect();
-    overlay_.disconnect();
+    closing.lease.scope = {};
+    closing.lease.overlay_closed.disconnect();
+    closing.lease.overlay.disconnect();
+    presentation_.finish_closing();
     hot_entry_.reset();
     palette_focused_ = false;
     if (!is_alive()) return;
@@ -710,12 +715,11 @@ void RibbonColorPicker::on_layer_dismissed(OverlayDismissReason) {
 }
 
 void RibbonColorPicker::on_overlay_revoked() {
-    if (!palette_open_) return;
-    palette_open_ = false;
-    lift_closed_.disconnect();
+    // The window closed the overlay: the lease and scope are gone with it.
+    if (!presentation_.begin_closing()) return;
+    (*presentation_.closing_state()).popup_closed.disconnect();
     lift_.release();
-    scope_ = {};
-    overlay_revoked_.disconnect();
+    presentation_.finish_closing();
     hot_entry_.reset();
     palette_focused_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
@@ -733,7 +737,7 @@ Control::Ptr RibbonColorPicker::palette_overlay() const noexcept {
 
 std::vector<RibbonColorPicker::PaletteEntry> RibbonColorPicker::realized_entries() const {
     std::vector<PaletteEntry> records;
-    if (!palette_open_) return records;
+    if (!presentation_.is_shown()) return records;
     const std::vector<Cell> all = cells();
     const std::string prefix(stable_id().value());
     records.reserve(all.size());
@@ -763,7 +767,7 @@ SemanticDescriptor RibbonColorPicker::semantic_descriptor() const {
     descriptor.value = shown.present() ? color_name(*shown.value()) : std::string("Automatic");
     descriptor.description = accessible_description.read();
     descriptor.has_popup = true;
-    if (palette_open_) descriptor.states |= SemanticState::expanded;
+    if (presentation_.is_shown()) descriptor.states |= SemanticState::expanded;
     descriptor.actions = {SemanticAction::focus, SemanticAction::press, SemanticAction::show_menu,
                           SemanticAction::expand, SemanticAction::collapse};
     descriptor.exposed = true;
@@ -791,7 +795,7 @@ bool RibbonColorPicker::on_semantic_action(SemanticAction action, std::string_vi
 
 std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
     std::vector<SemanticNode> nodes;
-    if (!palette_open_ || !palette_overlay_) return nodes;
+    if (!presentation_.is_shown() || !palette_overlay_) return nodes;
     const std::vector<Cell> all = cells();
     const Rect absolute = (*palette_overlay_).absolute_bounds();
     const stxlib::Optional<std::size_t> current = current_entry(all);
@@ -816,7 +820,7 @@ std::vector<SemanticNode> RibbonColorPicker::palette_semantic_children() const {
 }
 
 bool RibbonColorPicker::palette_semantic_action(std::string_view id, SemanticAction action) {
-    if (action != SemanticAction::press || !palette_open_) return false;
+    if (action != SemanticAction::press || !presentation_.is_shown()) return false;
     const std::vector<Cell> all = cells();
     const std::string prefix = std::string(stable_id().value()) + ".entry.";
     for (std::size_t entry = 0; entry < all.size(); ++entry) {
@@ -901,7 +905,7 @@ const ControlAnatomy& RibbonColorPicker::anatomy() const noexcept {
 
 AnatomyStateSet RibbonColorPicker::anatomy_states() const {
     AnatomyStateSet states = base_anatomy_states();
-    if (palette_open_) states.insert(AnatomyState::open);
+    if (presentation_.is_shown()) states.insert(AnatomyState::open);
     return states;
 }
 

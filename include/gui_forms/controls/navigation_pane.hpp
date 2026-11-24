@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/controls/presentation_state.hpp"
 #include "gui_forms/commands.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -117,7 +118,8 @@ public:
 
     // The collapsed pane's content overlay. Opening is refused (false) unless
     // the pane is collapsed and attached to a window.
-    [[nodiscard]] bool overlay_open() const noexcept { return overlay_open_; }
+    // Open once its focus scope has begun, until a close begins.
+    [[nodiscard]] bool overlay_open() const noexcept { return presentation_.is_open(); }
     bool open_overlay();
     void close_overlay() noexcept;
     // The configure menu. Opening is refused (false) while collapsed or
@@ -336,10 +338,9 @@ private:
     void begin_grip_drag(Point local);
     void continue_grip_drag(Point local);
     void refresh_content();
-    void move_host_to_overlay();
-    void move_host_to_pane();
+    void move_host_to_overlay(Flyout& flyout);
+    void move_host_to_pane(Flyout& flyout);
     void release_overlay(FocusScopeCloseReason reason) noexcept;
-    void finish_overlay_close() noexcept;
     void notify_state();
     void on_selected_page_changed(const PageSelectionChange& change);
     void on_pages_changed(const PageSetChange& change);
@@ -370,15 +371,16 @@ private:
     // The content panel, a child of the pane or (while the overlay is open) of
     // the overlay; it holds the selected page's control.
     std::shared_ptr<ContentHost> host_{};
-    // The overlay's root while it is open, its window lease and the window
-    // whose root the pane watches for outside presses.
-    std::shared_ptr<Flyout> flyout_{};
-    OverlayToken overlay_token_{};
-    FocusScopeId overlay_scope_{};
-    bool overlay_open_{};
-    bool overlay_closing_{};
-    SubscriptionToken overlay_revoked_{};
-    SubscriptionToken window_pointer_{};
+    // One opening of the overlay: its root, its window lease (with the
+    // revocation subscription and the focus scope) and the subscription to
+    // the window root's pointer previews, through which the pane watches
+    // for outside presses.
+    struct OverlayOpening final {
+        std::shared_ptr<Flyout> flyout{};
+        OverlayLease lease{};
+        SubscriptionToken window_pointer{};
+    };
+    PresentationState<OverlayOpening> presentation_{};
     std::unique_ptr<ContextMenu> menu_{};
     SubscriptionToken menu_invoked_{};
     SubscriptionToken menu_changed_{};

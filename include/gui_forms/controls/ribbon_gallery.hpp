@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/controls/presentation_state.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
 #include "gui_forms/control.hpp"
@@ -116,7 +117,7 @@ public:
     bool open_overlay(const Control::Ptr& anchor);
     // Cancels any preview, then closes the overlay and returns focus.
     void close_overlay();
-    [[nodiscard]] bool overlay_open() const noexcept { return overlay_open_; }
+    [[nodiscard]] bool overlay_open() const noexcept { return presentation_.is_shown(); }
     // In-ribbon form: opens the full gallery (the more button). Returns false
     // for the drop-down form or when it cannot open.
     bool show_more();
@@ -324,21 +325,19 @@ private:
     FrameRequestToken dwell_timer_{};
 
     // Overlay state of a drop-down gallery: the layer it sits in while open
-    // (owned by the gallery; the layer holds the gallery as its content only
-    // while open), its overlay lease and focus scope.
+    // (owned by the gallery and kept; the layer holds the gallery as its
+    // content only while open), and the presentation, which holds the
+    // overlay lease, its revocation subscription, the focus scope and the
+    // lifted Popup's closing subscription while open.
     std::shared_ptr<AnchoredOverlayLayer> layer_{};
-    OverlayToken overlay_{};
-    FocusScopeId scope_{};
     SubscriptionToken layer_dismissed_{};
-    SubscriptionToken overlay_revoked_{};
+    AnchoredPresentation presentation_{};
     // A drop-down gallery's picker Popup while it shows outside the owner's
     // layer (owner, 2026-11-08: drop-downs are Popups before 0.5). The
     // Popup's frame holds the gallery then, so release_lift on every close
     // and on disposal breaks that hold; the emptied layer stays in the owner
     // and keeps the focus scope.
     PopupLift lift_;
-    SubscriptionToken lift_closed_{};
-    bool overlay_open_{};
     // The full gallery an in-ribbon gallery's more button opens.
     std::shared_ptr<RibbonGallery> more_gallery_{};
     SubscriptionToken more_open_changed_{};
