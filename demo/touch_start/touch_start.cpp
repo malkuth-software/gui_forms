@@ -301,23 +301,42 @@ stxlib::Optional<std::size_t> neighbour_tile(const TileLayout& layout, std::size
                                              TileDirection direction) noexcept {
     stxlib::Optional<std::size_t> best{};
     if (from >= layout.tiles.size()) return best;
-    const Point origin = centre_of(layout.tiles[from].bounds);
+    // A neighbour lies wholly past the tile's edge in the direction (a
+    // small tile beside a large one is not "above" it because its centre
+    // is higher); the nearest edge, then the closest centre across, wins.
+    const Rect start = layout.tiles[from].bounds;
+    const Point origin = centre_of(start);
+    constexpr double slack = 0.5;
     double best_score = std::numeric_limits<double>::infinity();
     for (std::size_t index = 0U; index < layout.tiles.size(); ++index) {
         if (index == from) continue;
-        const Point centre = centre_of(layout.tiles[index].bounds);
-        const double dx = centre.x - origin.x;
-        const double dy = centre.y - origin.y;
+        const Rect other = layout.tiles[index].bounds;
+        const Point centre = centre_of(other);
         double along = 0.0;
         double across = 0.0;
         switch (direction) {
-        case TileDirection::left: along = -dx; across = std::abs(dy); break;
-        case TileDirection::right: along = dx; across = std::abs(dy); break;
-        case TileDirection::up: along = -dy; across = std::abs(dx); break;
-        case TileDirection::down: along = dy; across = std::abs(dx); break;
+        case TileDirection::left:
+            if (other.x + other.width > start.x + slack) continue;
+            along = start.x - (other.x + other.width);
+            across = std::abs(centre.y - origin.y);
+            break;
+        case TileDirection::right:
+            if (other.x < start.x + start.width - slack) continue;
+            along = other.x - (start.x + start.width);
+            across = std::abs(centre.y - origin.y);
+            break;
+        case TileDirection::up:
+            if (other.y + other.height > start.y + slack) continue;
+            along = start.y - (other.y + other.height);
+            across = std::abs(centre.x - origin.x);
+            break;
+        case TileDirection::down:
+            if (other.y < start.y + start.height - slack) continue;
+            along = other.y - (start.y + start.height);
+            across = std::abs(centre.x - origin.x);
+            break;
         default: continue;
         }
-        if (along < 1.0) continue;
         const double score = along + 2.0 * across;
         if (score < best_score) {
             best_score = score;
