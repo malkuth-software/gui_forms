@@ -19,7 +19,7 @@
 namespace gui_forms {
 
 bool Ribbon::file_area_open() const noexcept {
-    const bool result = application_open_ || application_overlay_open_ || backstage_open_;
+    const bool result = application_open_ || application_overlay_shown() || backstage_open_;
     return result;
 }
 
@@ -78,10 +78,12 @@ Control::Ptr Ribbon::application_menu_overlay() const noexcept {
 bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     Window* const window = attached_window();
     if (window == nullptr) return false;
-    if (application_overlay_open_) return true;
+    // Opening, open or closing: the one menu there is serves.
+    if (!application_presentation_.is_closed()) return application_presentation_.is_shown();
     close_menus();
     close_group_overlay();
     close_plane_popup();
+    if (!application_presentation_.is_closed()) return false;
     const Control::Ptr self = shared_from_this();
     if (!application_overlay_) {
         application_overlay_ =
@@ -98,25 +100,26 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     (*application_overlay_).set_origin({file.x, file.y + file.height});
     (*application_overlay_).reset(keyboard);
     sync_overlay_themes();
-    application_overlay_token_ = (*window).open_overlay(self, application_overlay_);
-    application_overlay_open_ = true;
-    if (Event<>* closed = application_overlay_token_.closed_event()) {
-        application_overlay_revoked_ =
+    ApplicationOpening opening{};
+    opening.lease.overlay = (*window).open_overlay(self, application_overlay_);
+    if (Event<>* closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed =
             (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_application_overlay_revoked>(*this));
     }
-    application_owner_moved_ = (*window).frame_moved().subscribe(
+    opening.owner_moved = (*window).frame_moved().subscribe(
         *this, Delegate<>::bind<Ribbon, &Ribbon::on_application_owner_moved>(*this));
+    application_presentation_ = PresentationState<ApplicationOpening>::opening(std::move(opening));
     const FocusScopeId scope = (*window).begin_focus_scope(application_overlay_, application_overlay_);
     // The focus move ran the previous control's handlers; one may have
     // closed the menu, or closed and opened it again (which began its own
     // scope and lift). The scope is kept, and the panel lifted, only for
     // this call's menu still open (A-gf-controls-11-F2).
     if (!is_alive()) return false;
-    if (!application_overlay_open_ || application_scope_) {
+    if (!application_presentation_.settle_open()) {
         end_abandoned_scope(scope);
-        return application_overlay_open_;
+        return application_presentation_.is_shown();
     }
-    application_scope_ = scope;
+    (*application_presentation_.open_state()).lease.scope = scope;
     Window* const lift_window = attached_window();
     if (lift_window == nullptr) return true;
     // Where the run has Popup windows the panel shows in the picker Popup
@@ -172,7 +175,7 @@ std::uint64_t Ribbon::application_submenu_pointer_moves() const noexcept {
 // that a press away from both, the File tab's included, closes every menu,
 // and still closes the submenu (false).
 bool Ribbon::on_menu_outside_pointer(const PointerEvent& event) {
-    if (event.phase != EventPhase::target || !application_open_ || !application_overlay_open_) return false;
+    if (event.phase != EventPhase::target || !application_open_ || !application_overlay_shown()) return false;
     const bool press = event.action == PointerAction::down && event.button != PointerButton::none;
     const bool release = event.action == PointerAction::up && event.button != PointerButton::none;
     if (!application_lift_.lifted() && application_overlay_) {
@@ -187,8 +190,13 @@ bool Ribbon::on_menu_outside_pointer(const PointerEvent& event) {
         if (press && event.button == PointerButton::primary && menu.forwarded_press(local)) return true;
         if (release && event.button == PointerButton::primary && menu.forwarded_release(local)) return true;
     }
-    if (press) application_submenu_invoked_ = true;
+    if (press) mark_application_submenu_invoked();
     return false;
+}
+
+void Ribbon::mark_application_submenu_invoked() noexcept {
+    ApplicationOpening* const shown = application_presentation_.shown_state();
+    if (shown != nullptr) (*shown).submenu_invoked = true;
 }
 
 bool Ribbon::open_application_submenu(const MenuItemSpec& item, const Control& panel, Rect row, bool keyboard) {
@@ -215,25 +223,28 @@ void Ribbon::close_application_submenus() noexcept {
     }
 }
 
+// The menu reads as closed from the first step; a close or open asked by a
+// handler the steps run is refused until it is closed.
 void Ribbon::close_application_overlay() noexcept {
-    if (!application_overlay_open_) return;
-    application_overlay_open_ = false;
+    if (!application_presentation_.begin_closing()) return;
     // Its submenus first, deepest first (the menu closes its own chain),
     // then the panel: no submenu outlives the menu that opened it.
     close_application_submenus();
     application_lift_.release();
-    application_submenu_invoked_ = false;
+    ApplicationOpening& closing = *application_presentation_.closing_state();
+    closing.submenu_invoked = false;
     Window* const window = attached_window();
-    if (window != nullptr && application_scope_) {
+    if (window != nullptr && closing.lease.scope) {
         try {
-            static_cast<void>((*window).end_focus_scope(application_scope_));
+            static_cast<void>((*window).end_focus_scope(closing.lease.scope));
         } catch (...) {
         }
     }
-    application_scope_ = {};
-    application_overlay_revoked_.disconnect();
-    application_owner_moved_.disconnect();
-    application_overlay_token_.disconnect();
+    closing.lease.scope = {};
+    closing.lease.overlay_closed.disconnect();
+    closing.owner_moved.disconnect();
+    closing.lease.overlay.disconnect();
+    application_presentation_.finish_closing();
     if (!is_alive()) return;
     try {
         invalidate(Dirty::semantics);
@@ -243,14 +254,15 @@ void Ribbon::close_application_overlay() noexcept {
 }
 
 void Ribbon::on_application_overlay_revoked() {
-    if (!application_overlay_open_) return;
-    application_overlay_open_ = false;
+    if (!application_presentation_.begin_closing()) return;
     close_application_submenus();
     application_lift_.release();
-    application_submenu_invoked_ = false;
-    application_scope_ = {};
-    application_overlay_revoked_.disconnect();
-    application_owner_moved_.disconnect();
+    ApplicationOpening& closing = *application_presentation_.closing_state();
+    closing.submenu_invoked = false;
+    closing.lease.scope = {};
+    closing.lease.overlay_closed.disconnect();
+    closing.owner_moved.disconnect();
+    application_presentation_.finish_closing();
     invalidate(Dirty::semantics);
     repaint_part(Hit::Kind::application, 0U, {});
 }

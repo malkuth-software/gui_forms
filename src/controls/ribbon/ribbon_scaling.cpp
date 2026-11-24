@@ -862,10 +862,10 @@ Ribbon::Layout Ribbon::layout_for(Rect client) const {
 Ribbon::Layout Ribbon::overlay_layout(Rect panel) const {
     Layout placed;
     placed.overlay = true;
-    if (selected_tab_.absent() || overlay_group_.absent()) return placed;
+    if (selected_tab_.absent() || overlay_group_index().absent()) return placed;
     reset_layout_groups(placed);
     const std::size_t tab = *selected_tab_.value();
-    const std::size_t group = *overlay_group_.value();
+    const std::size_t group = *overlay_group_index().value();
     const TabScaling& scaling = tab_scaling(tab);
     placed.plane = panel;
     placed.groups_area = panel;
@@ -881,9 +881,9 @@ Ribbon::Layout Ribbon::overlay_layout(Rect panel) const {
 }
 
 Size Ribbon::overlay_panel_size() const {
-    if (selected_tab_.absent() || overlay_group_.absent()) return {};
+    if (selected_tab_.absent() || overlay_group_index().absent()) return {};
     const std::size_t tab = *selected_tab_.value();
-    const std::size_t group = *overlay_group_.value();
+    const std::size_t group = *overlay_group_index().value();
     const TabScaling& scaling = tab_scaling(tab);
     const std::size_t columns = scaling.galleries[group].present() ? scaling.gallery_metrics[group].maximum : 0U;
     const double width =
