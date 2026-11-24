@@ -395,7 +395,7 @@ gui_forms::HelpBookSystem
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Help``. Members declared here and by the counterpart: 33 supported, 0 deferred, 0 excluded, 12 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Help``. Members declared here and by the counterpart: 34 supported, 0 deferred, 0 excluded, 11 unclassified; 42 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -477,7 +477,7 @@ Counterpart: ``Help``. Members declared here and by the counterpart: 33 supporte
    * - method
      - GUI.Forms-only
      - ``cancel_help_mode``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``catalog``

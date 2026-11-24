@@ -228,7 +228,7 @@ gui_forms::ModalLayer
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 4 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 3 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -246,7 +246,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
    * - property
      - GUI.Forms-only
      - ``content``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``is_shown``

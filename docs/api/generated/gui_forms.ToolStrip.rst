@@ -466,7 +466,7 @@ gui_forms::ToolStrip
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 16 supported, 0 deferred, 2 excluded, 76 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 17 supported, 0 deferred, 2 excluded, 75 unclassified; 19 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -836,7 +836,7 @@ Counterpart: ``ToolStrip``. Members declared here and by the counterpart: 16 sup
    * - method
      - GUI.Forms-only
      - ``set_item_width``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``show_drop_down``

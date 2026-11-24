@@ -935,7 +935,7 @@ gui_forms::DockSite
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 51 supported, 0 deferred, 0 excluded, 7 unclassified; 58 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 52 supported, 0 deferred, 0 excluded, 6 unclassified; 58 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -1105,7 +1105,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 51 s
    * - method
      - GUI.Forms-only
      - ``close_navigator``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``close_position_menu``

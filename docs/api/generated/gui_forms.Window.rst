@@ -220,6 +220,8 @@ gui_forms::Window
         -  
       * - :cpp:func:`popup_window_model <gui_forms::Window::popup_window_model>`
         -  
+      * - :cpp:func:`shown_popup_window <gui_forms::Window::shown_popup_window>`
+        -  
       * - :cpp:func:`forward_input_to_popup_window <gui_forms::Window::forward_input_to_popup_window>`
         - While ``slot`` is set, every key and text event this window receives is offered first to ``popup_window_model(*slot)``, and routed here only when that leaves it unhandled; none ends the forwarding.
       * - :cpp:func:`popup_work_area <gui_forms::Window::popup_work_area>`
@@ -636,6 +638,8 @@ gui_forms::Window
 
    .. cpp:function:: Window* popup_window_model(std::size_t slot) const noexcept
 
+   .. cpp:function:: ShownPopupWindow shown_popup_window(std::size_t index) const
+
    .. cpp:function:: void forward_input_to_popup_window(stxlib::Optional<std::size_t> slot)
 
       While ``slot`` is set, every key and text event this window receives is offered first to ``popup_window_model(*slot)``, and routed here only when that leaves it unhandled; none ends the forwarding. The control whose Popup has the keyboard sets it (PopupLift does) and clears it when the Popup hides. std::out_of_range for a slot out of range. UI thread.
@@ -692,13 +696,17 @@ gui_forms::Window
 
       Warm Popup windows (owner, 2026-11-08: APP_WINDOW_RULES_DESIGN Part S; menus are Popups). Slot ``slot`` (below maximum_popup_windows; a menu uses its depth) is one passive popup-kind host window, opened hidden on the slot's first show and kept, hidden between shows, for this window's life. show_popup_window shows ``content`` (a live detached root) as its whole client at ``bounds`` (this window's client coordinates, kept inside the monitor's work area), replacing content already shown there; move_popup_window moves it; hide_popup_window hides it and takes the content out. A Popup never takes the focus: keys reach this window, and the control that opened the popup forwards them to popup_window_model(slot), the model while the slot shows (else null). False when the run cannot (no run, a host without popup windows, a host refusal): the caller opens an overlay instead. popup_window_closed() is raised with the slot when the host closes a slot that shows. std::out_of_range for a slot out of range. UI thread. Default: ``8U``.
 
+   .. cpp:member:: constexpr std::size_t shown_popup_window_count
+
+      The windows of its own this window shows over itself now, in screen order: index i below maximum_popup_windows is Popup slot i (a menu's depths open in turn), and index maximum_popup_windows is its tooltip's Splash window. Each with where it is, in this window's client coordinates (logical units; it may lie partly outside the client area, and the host may have moved it to keep it on its monitor). A null model for an index that shows nothing or whose frame the host does not report. For compositing what the user sees (the automation's capture). UI thread. Default: ``maximum_popup_windows + 1U``.
+
    .. cpp:member:: constexpr std::size_t picker_popup_window_slot
 
       The slot drop-downs and pickers lift their lists and panels into (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the slots below it, one per depth. Default: ``maximum_popup_windows - 1U``.
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Form``. Members declared here and by the counterpart: 264 supported, 0 deferred, 13 excluded, 136 unclassified; 273 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Form``. Members declared here and by the counterpart: 264 supported, 0 deferred, 13 excluded, 137 unclassified; 274 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -2285,6 +2293,10 @@ Counterpart: ``Form``. Members declared here and by the counterpart: 264 support
      - GUI.Forms-only
      - ``show_tool_tip``
      - supported
+   * - method
+     - GUI.Forms-only
+     - ``shown_popup_window``
+     - unclassified (untested)
    * - method
      - GUI.Forms-only
      - ``shutdown_dispatcher``

@@ -278,7 +278,7 @@ gui_forms::RibbonColorPicker
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 2 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 0 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -312,7 +312,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
    * - event
      - GUI.Forms-only
      - ``palette_open_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``value_changed``
@@ -324,4 +324,4 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
    * - method
      - GUI.Forms-only
      - ``open_palette``
-     - unclassified (untested)
+     - supported

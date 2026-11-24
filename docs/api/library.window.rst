@@ -187,6 +187,8 @@ Related types
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
      - The calling thread's stack beside its frames.
+   * - :cpp:class:`ShownPopupWindow <gui_forms::ShownPopupWindow>`
+     - One window a Window shows over itself (Window::shown_popup_window): its model, borrowed for the current UI turn, and where it is in the owner's client coordinates.
    * - :cpp:class:`SpecimenStateResult <gui_forms::SpecimenStateResult>`
      -  
    * - :cpp:class:`SurfaceRequestAnswer <gui_forms::SurfaceRequestAnswer>`
@@ -2147,6 +2149,18 @@ Related types
    .. cpp:member:: std::uint64_t dropped
 
       Default: ``0U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ShownPopupWindow final
+
+   ``#include <gui_forms/window/window.hpp>`` (:src:`source <include/gui_forms/window/window.hpp>`)
+
+   One window a Window shows over itself (Window::shown_popup_window): its model, borrowed for the current UI turn, and where it is in the owner's client coordinates.
+
+   .. cpp:member:: Window* model
+
+   .. cpp:member:: Rect bounds
 
 .. cpp:namespace:: gui_forms
 
