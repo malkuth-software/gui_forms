@@ -118,9 +118,9 @@ void Card::written(const decltype(interactive)&) {
     focusable = interactive.read();
     if (!interactive.read()) {
         hovered_ = false;
-        pressed_ = false;
+        pointer_pressed_ = false;
         focused_ = false;
-        keyboard_key_ = 0U;
+        pressed_key_.reset();
     }
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -209,7 +209,7 @@ void Card::arrange(Rect final_bounds) {
 }
 
 ControlVisualContext Card::current_context() const noexcept {
-    return visual_context({.hovered = hovered_, .pressed = pressed_, .selected = selected.read(), .focused = focused_});
+    return visual_context({.hovered = hovered_, .pressed = pressed_visual(), .selected = selected.read(), .focused = focused_});
 }
 
 void Card::on_paint(Painter& painter, Rect local_damage) {
@@ -223,7 +223,7 @@ void Card::on_paint(Painter& painter, Rect local_damage) {
     // pressed and selected as the card is.
     AnatomyStateSet states{};
     if (hovered_) states.insert(AnatomyState::hot);
-    if (pressed_) states.insert(AnatomyState::pressed);
+    if (pressed_visual()) states.insert(AnatomyState::pressed);
     if (selected.read()) states.insert(AnatomyState::selected);
     PartPaint face;
     face.family = ControlVisualRole::card;
@@ -278,7 +278,7 @@ void Card::on_mouse_leave() {
 // not see them, as before the raisers.
 void Card::on_mouse_down(MouseEventArgs& arguments) {
     if (interactive.read() && arguments.button == PointerButton::primary) {
-        pressed_ = true;
+        pointer_pressed_ = true;
         invalidate(Dirty::paint);
         arguments.handled = true;
     }
@@ -287,7 +287,7 @@ void Card::on_mouse_down(MouseEventArgs& arguments) {
 
 void Card::on_mouse_up(MouseEventArgs& arguments) {
     if (interactive.read() && arguments.button == PointerButton::primary) {
-        pressed_ = false;
+        pointer_pressed_ = false;
         invalidate(Dirty::paint);
         arguments.handled = true;
     }
@@ -299,20 +299,19 @@ void Card::on_key_down(KeyEventArgs& arguments) {
     if (arguments.handled || !interactive.read()) return;
     const bool activation = arguments.physical_key == PhysicalKey::space ||
                             arguments.physical_key == PhysicalKey::enter;
-    if (!activation || arguments.repeat || pressed_) return;
-    keyboard_key_ = arguments.physical_key;
-    pressed_ = true;
+    if (!activation || arguments.repeat || pressed_key_.present()) return;
+    pressed_key_.set(arguments.physical_key);
     invalidate(Dirty::paint);
     arguments.handled = true;
 }
 
-// keyboard_key_ holds Space or Enter while pressed.
+// pressed_key_ holds Space or Enter while that key is down; only its own
+// release activates (the button's press and release do not touch it).
 void Card::on_key_up(KeyEventArgs& arguments) {
     Panel::on_key_up(arguments);
     if (arguments.handled || arguments.released_by_deactivation || !interactive.read()) return;
-    if (!pressed_ || keyboard_key_ != arguments.physical_key) return;
-    keyboard_key_ = 0U;
-    pressed_ = false;
+    if (pressed_key_ != stxlib::Optional<std::uint32_t>::of(arguments.physical_key)) return;
+    pressed_key_.reset();
     invalidate(Dirty::paint);
     arguments.handled = true;
     on_activate();
@@ -321,8 +320,8 @@ void Card::on_key_up(KeyEventArgs& arguments) {
 void Card::on_focus_changed(bool focused) {
     focused_ = focused;
     if (!focused_) {
-        pressed_ = false;
-        keyboard_key_ = 0U;
+        pointer_pressed_ = false;
+        pressed_key_.reset();
     }
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -400,7 +399,7 @@ void Card::publish_part_geometry(std::span<PartGeometry> geometry) const {
 
 AnatomyStateSet Card::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
-    if (pressed_) {
+    if (pressed_visual()) {
         states.erase(AnatomyState::normal);
         states.insert(AnatomyState::pressed);
     }

@@ -283,9 +283,7 @@ void BindingSource::set_provider(std::shared_ptr<BindingProvider> provider) {
     }
     const std::ptrdiff_t old_position = position_;
     const std::string old_current = current_stable_id();
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
+    edit_.reset();
     // A provider whose attach throws is replaced by an empty table, and the
     // rest of the replacement runs for it (view, position, events) before
     // the exception goes on: the source never keeps the old provider's
@@ -728,24 +726,21 @@ bool BindingSource::begin_edit() {
         return false;
     }
     const std::string identity = stable_id(row);
-    if (editing_ && edit_stable_id_ == identity) {
+    if (edit_.present() && (*edit_.value()).stable_id == identity) {
         return true;
     }
     const CachedRow& entry = cached_row(row);
-    edit_values_ = entry.values;
-    edit_stable_id_ = identity;
-    editing_ = true;
+    EditRecord opened{identity, entry.values};
+    edit_.set(std::move(opened));
     return true;
 }
 
 void BindingSource::cancel_edit() {
     require_access("BindingSource edit cancellation");
-    if (!editing_) return;
-    const std::vector<BindingValue> saved = std::move(edit_values_);
-    const std::string identity = edit_stable_id_;
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
+    if (edit_.absent()) return;
+    const EditRecord closed = edit_.take();
+    const std::vector<BindingValue>& saved = closed.values;
+    const std::string& identity = closed.stable_id;
     stxlib::Optional<std::size_t> row;
     if (position_ >= 0 && stable_id(static_cast<std::size_t>(position_)) == identity) {
         row.set(static_cast<std::size_t>(position_));
@@ -777,9 +772,7 @@ void BindingSource::cancel_edit() {
 
 void BindingSource::end_edit() {
     require_access("BindingSource edit completion");
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
+    edit_.reset();
 }
 
 // ---------------------------------------------------------------------------
@@ -912,10 +905,8 @@ bool BindingSource::remove_at(std::size_t index) {
     if (!result.accepted()) {
         return false;
     }
-    if (editing_ && edit_stable_id_ == removed_identity) {
-        editing_ = false;
-        edit_values_.clear();
-        edit_stable_id_.clear();
+    if (edit_.present() && (*edit_.value()).stable_id == removed_identity) {
+        edit_.reset();
     }
     apply_notification(BindingNotification{BindingNotificationKind::removed, provider, 1U, 0U});
     return true;
@@ -931,9 +922,7 @@ void BindingSource::clear() {
     if (!allow_remove_) {
         throw std::logic_error("GUI.Forms BindingSource removals are disabled");
     }
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
+    edit_.reset();
     const std::shared_ptr<BindingTable> built_in = table();
     if (built_in) {
         // The table reports its reset through the link.
@@ -1188,10 +1177,8 @@ void BindingSource::reset_view_state(bool metadata_changed) {
     if (view_mode_ == BindingViewMode::index || schema_changed) {
         rebuild_view();
     }
-    if (editing_ && find_stable_id(edit_stable_id_).absent()) {
-        editing_ = false;
-        edit_values_.clear();
-        edit_stable_id_.clear();
+    if (edit_.present() && find_stable_id((*edit_.value()).stable_id).absent()) {
+        edit_.reset();
     }
     bump_generation();
     // The current row is kept when the row at its position has its ID, or,
@@ -1550,7 +1537,7 @@ BindingSourceSnapshot BindingSource::snapshot() const {
     result.position_changes = position_changes_;
     result.suspended_mutations = suspended_mutations_;
     result.binding_suspended = suspended_;
-    result.editing = editing_;
+    result.editing = edit_.present();
     result.raise_list_changed_events = raise_list_changed_events_;
     return result;
 }
@@ -1606,9 +1593,7 @@ void BindingSource::on_dispose() noexcept {
     filter_ = BindingFilter{};
     row_cache_.clear();
     provider_count_ = 0U;
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
+    edit_.reset();
     suspended_ = false;
     pending_reset_ = false;
     // The currency manager stays for the source's whole life (A-gf-core-01-F5):
