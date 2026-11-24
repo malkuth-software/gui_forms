@@ -154,16 +154,20 @@ HostServiceStatus NotifyIcon::synchronize(bool content_changed) {
         const HostServiceStatus updated = (*services).update_tray_icon(icon_id_, request());
         return updated;
     }
+    // The token, not this component's disposal, owns the connection: it
+    // stays connected until forget_icon, so a disposing icon can still tell
+    // that its services hold it. Disconnection also reports that the
+    // services' event (and the services) are gone. Subscribed before the
+    // icon is added and kept only once it is: a subscription that throws
+    // leaves no icon in the tray that shown() would deny, and an event
+    // before the identity is stored names no icon of this component.
+    SubscriptionToken events = (*services).tray_icon_events().subscribe(
+        Delegate<const HostTrayIconEvent&>::bind<NotifyIcon, &NotifyIcon::on_tray_event>(*this));
     const HostTrayIconResult added = (*services).add_tray_icon(request());
     if (!added.status.accepted()) return added.status;
     services_ = services;
     icon_id_ = added.icon_id;
-    // The token, not this component's disposal, owns the connection: it
-    // stays connected until forget_icon, so a disposing icon can still tell
-    // that its services hold it. Disconnection also reports that the
-    // services' event (and the services) are gone.
-    tray_events_ = (*services).tray_icon_events().subscribe(
-        Delegate<const HostTrayIconEvent&>::bind<NotifyIcon, &NotifyIcon::on_tray_event>(*this));
+    tray_events_ = std::move(events);
     return added.status;
 }
 

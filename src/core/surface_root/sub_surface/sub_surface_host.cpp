@@ -960,29 +960,40 @@ void SubSurfaceHost::configure_region() {
         }
         thread_ = std::make_unique<SubSurfaceThread>(std::move(content_), surface, (*start_resources).theme_ptr(),
                                                      std::move(text_measure), std::move(layered_user_theme));
-        surface_ = std::move(surface);
-        key_return_ = gui_forms::detail::make_library_shared<KeyReturn>(*this);
-        (*thread_).set_key_return((*window).dispatcher(), key_return_);
-        request_target_ = gui_forms::detail::make_library_shared<RequestTarget>(*this);
-        alert_relay_ = gui_forms::detail::make_library_shared<AlertRelay>(*this);
-        (*thread_).set_request_target((*window).dispatcher(), request_target_);
-        pointer_left_sequence_ = 0U;
-        focus_left_sequence_ = 0U;
-        if (publishes_semantics_) {
-            semantics_notice_ = gui_forms::detail::make_library_shared<SemanticsNotice>(*this);
-            (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
+        // From here the start is all or nothing: a helper that fails to be
+        // made or handed over (an allocation, a dispatcher refused by a
+        // set_* call) stops the thread again, so started() never answers
+        // true for a sub-surface without its key return, request target,
+        // alert relay and end listener, which a later configure_region
+        // would never add (it starts only while thread_ is null).
+        try {
+            surface_ = std::move(surface);
+            key_return_ = gui_forms::detail::make_library_shared<KeyReturn>(*this);
+            (*thread_).set_key_return((*window).dispatcher(), key_return_);
+            request_target_ = gui_forms::detail::make_library_shared<RequestTarget>(*this);
+            alert_relay_ = gui_forms::detail::make_library_shared<AlertRelay>(*this);
+            (*thread_).set_request_target((*window).dispatcher(), request_target_);
+            pointer_left_sequence_ = 0U;
+            focus_left_sequence_ = 0U;
+            if (publishes_semantics_) {
+                semantics_notice_ = gui_forms::detail::make_library_shared<SemanticsNotice>(*this);
+                (*thread_).set_semantics_listener((*window).dispatcher(), semantics_notice_);
+            }
+            notice_dispatcher_ = (*window).dispatcher();
+            end_noticed_ = false;
+            (*thread_).set_end_listener(notice_dispatcher_, notices_);
+            // A content that failed before the listener was set posted nothing;
+            // a failure after it posts its own notice, and the second of two
+            // finds end_noticed_ set.
+            if ((*thread_).state() == SubSurfaceState::failed) {
+                static_cast<void>(notice_dispatcher_.begin_invoke(PostedEnd(notices_)));
+            }
+            keyboard_inside_ = false;
+            update_keyboard_focus(SubSurfaceFocusEntry::restore);
+        } catch (...) {
+            stop_thread();
+            throw;
         }
-        notice_dispatcher_ = (*window).dispatcher();
-        end_noticed_ = false;
-        (*thread_).set_end_listener(notice_dispatcher_, notices_);
-        // A content that failed before the listener was set posted nothing;
-        // a failure after it posts its own notice, and the second of two
-        // finds end_noticed_ set.
-        if ((*thread_).state() == SubSurfaceState::failed) {
-            static_cast<void>(notice_dispatcher_.begin_invoke(PostedEnd(notices_)));
-        }
-        keyboard_inside_ = false;
-        update_keyboard_focus(SubSurfaceFocusEntry::restore);
     }
     ++content_epoch_;
     SubSurfaceConfiguration configuration;

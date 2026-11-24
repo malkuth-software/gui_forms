@@ -83,6 +83,8 @@ enum class ControlRelease : std::uint8_t {
     ceiling,
     // The client went away (the pipe closed), or the automation stopped.
     disconnected,
+    // The presenter could not show the take-back popup as the hold began.
+    presenter_failed,
 };
 
 // The per-launch answer about destructive acts (study 10).

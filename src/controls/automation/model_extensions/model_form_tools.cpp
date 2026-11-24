@@ -140,11 +140,16 @@ ToolReply forms_export_tool(void* context, const ModelToolCall& call) {
     if (!forms_target(call, arguments, target, failure)) return failure;
     std::string document{};
     static_cast<void>(form_language::process_form_exports().export_document(*target.root, document));
-    const bool replaced = form_language::process_form_exports().replaced(*target.root);
+    const form_language::FormExportState state = form_language::process_form_exports().state(*target.root);
+    const bool replaced = state != form_language::FormExportState::registered;
+    // patched: a targeted apply changed a part the document does not carry,
+    // so applying this document again would drop it (hunt r06 C10).
+    const bool patched = state == form_language::FormExportState::patched;
     ToolSuccess success{};
     success.text = document;
     success.structured_json = "{\"document\":" + json_string(document) +
-                              ",\"replaced\":" + (replaced ? "true" : "false") + "}";
+                              ",\"replaced\":" + (replaced ? "true" : "false") +
+                              ",\"patched\":" + (patched ? "true" : "false") + "}";
     return ToolReply::success(std::move(success));
 }
 

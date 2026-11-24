@@ -204,11 +204,18 @@ void ListBox::prepare_write(const decltype(selection_mode)&, ListSelectionMode&)
     require_mutable();
 }
 
-// Narrowing to one item keeps the active (or first) selected row; dropping
-// the others raises selection_changed before the repaint request.
+// Narrowing to one item keeps the active row when it is selected, else the
+// first selected row: the active row can be one a toggle just unselected,
+// and narrowing never selects a row that was not (it used to keep the
+// active row whatever it was). Dropping the others raises
+// selection_changed before the repaint request.
 void ListBox::written(const decltype(selection_mode)&) {
     if (selection_mode.read() == ListSelectionMode::one && selected_.size() > 1U) {
-        const std::size_t retained = active_index_.value_or(selected_.front());
+        std::size_t retained = selected_.front();
+        if (active_index_.present() &&
+            std::find(selected_.cbegin(), selected_.cend(), *active_index_.value()) != selected_.cend()) {
+            retained = *active_index_.value();
+        }
         apply_selection({retained}, stxlib::Optional<std::size_t>::of(retained));
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -280,6 +287,9 @@ void ListBox::write_view(const decltype(top_index)&, std::size_t incoming) {
     }
     if (top_index_ == incoming) return;
     top_index_ = incoming;
+    // The hot item is the one under the pointer, which the scroll moved
+    // away: it is found again at the next pointer move.
+    hovered_index_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -298,8 +308,11 @@ void ListBox::ensure_visible(std::size_t index) {
         return;
     }
     const std::size_t visible = visible_row_count();
+    const std::size_t previous_top = top_index_;
     if (index < top_index_) top_index_ = index;
     else if (index >= top_index_ + visible) top_index_ = index - visible + 1U;
+    // A scroll moves the items under the pointer (write_view's rule).
+    if (top_index_ != previous_top) hovered_index_.reset();
 }
 
 void ListBox::arrange(Rect final_bounds) {
@@ -509,6 +522,9 @@ void ListBox::list_pointer(MouseEventArgs& arguments) {
                 static_cast<std::ptrdiff_t>(top_index_) + direction * 3,
                 0, static_cast<std::ptrdiff_t>(items.read().size() - 1U));
             top_index = static_cast<std::size_t>(next);
+            // The pointer is where the wheel turned: the item now under it
+            // is hot.
+            if (is_alive()) hovered_index_ = index_at(arguments.window_position);
             arguments.handled = true;
         }
         return;

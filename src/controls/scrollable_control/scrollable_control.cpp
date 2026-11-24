@@ -169,8 +169,18 @@ void ScrollableControl::set_vscroll(bool visible) {
     vertical_scroll_.set_visible(visible);
 }
 
+// The bits that name another member's state are read from it, so they
+// never disagree with it (hscroll() changed at once by set_hscroll, while the
+// stored bit followed only at the next arrange): auto scrolling is the
+// auto_scroll cell, a bar's visibility its axis's. The others are kept here.
 bool ScrollableControl::get_scroll_state(std::uint32_t bit) const noexcept {
-    return (scroll_state_ & bit) != 0U;
+    std::uint32_t state = scroll_state_ & ~(scroll_state_auto_scrolling | scroll_state_hscroll_visible |
+                                            scroll_state_vscroll_visible);
+    if (auto_scroll.read()) state |= scroll_state_auto_scrolling;
+    if (hscroll()) state |= scroll_state_hscroll_visible;
+    if (vscroll()) state |= scroll_state_vscroll_visible;
+    const bool set = (state & bit) != 0U;
+    return set;
 }
 
 void ScrollableControl::set_scroll_state(std::uint32_t bit, bool value) {
@@ -875,21 +885,28 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
         event.handled = true;
         return true;
     }
+    // A thumb drag or a held part starts with the capture and only if it
+    // was taken: a refused capture, or capture handlers that drop the
+    // control, leave no press standing for the next move to notice.
+    event.handled = true;
+    const Control::Ptr lifetime = shared_from_this();
     if (part == ScrollPart::horizontal_thumb ||
         part == ScrollPart::vertical_thumb) {
         // The thumb is direct manipulation: it takes the axis from a
         // smooth scroll where the position stands.
         stop_glide(orientation);
+        set_pointer_capture(true);
+        if (!is_alive() || !has_pointer_capture()) return true;
         dragging_orientation_.set(orientation);
         dragging_pointer_id_ = event.pointer_id == 0U ? 1U : event.pointer_id;
         dragging_origin_ = local;
         dragging_start_value_ = axis.value_;
-        set_pointer_capture(true);
     } else {
+        set_pointer_capture(true);
+        if (!is_alive() || !has_pointer_capture()) return true;
         pressed_part_ = part;
         pressed_pointer_id_ = event.pointer_id == 0U ? 1U : event.pointer_id;
         repeat_pointer_ = local;
-        set_pointer_capture(true);
         static_cast<void>(step_part(part));
         begin_repeat();
     }

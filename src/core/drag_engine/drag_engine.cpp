@@ -147,6 +147,25 @@ std::string_view trace_event_name(DragTraceEvent event) noexcept {
 
 } // namespace
 
+// One call into the client: counted while it runs, so replan can refuse a
+// plan made inside it. The window (and this engine with it) can end during
+// the call; the count is then left alone, which `watch` tells.
+class DragEngine::ClientCall final {
+public:
+    ClientCall(DragEngine& engine, const RootWatch& watch) noexcept : engine_(engine), watch_(watch) {
+        ++engine_.client_calls_;
+    }
+    ~ClientCall() {
+        if (!watch_.gone()) --engine_.client_calls_;
+    }
+    ClientCall(const ClientCall&) = delete;
+    ClientCall& operator=(const ClientCall&) = delete;
+
+private:
+    DragEngine& engine_;
+    const RootWatch& watch_;
+};
+
 // -- vocabulary -------------------------------------------------------------------
 
 void DragAnnouncement::assign(std::string_view text) noexcept {
@@ -1064,7 +1083,11 @@ void DragEngine::compact_refused() {
         bool removed = false;
         for (std::size_t read = original.first; read < end_index; ++read) {
             const DragLanding landing = landings_[read];
-            const bool accepted = (*client_).accepts_drag_candidate(landing);
+            bool accepted = false;
+            {
+                const ClientCall call(*this, watch);
+                accepted = (*client_).accepts_drag_candidate(landing);
+            }
             if (watch.gone() || !still(serial)) return;
             if (!accepted) {
                 ++statistics_.refused_candidates;
@@ -1176,7 +1199,11 @@ bool DragEngine::plan() {
     declared.mode = mode_;
     declared.epoch = epoch_;
     DragPlanBuilder builder(*this);
-    DragPlanRefusal refusal = (*client_).plan_drag(builder, declared);
+    DragPlanRefusal refusal{};
+    {
+        const ClientCall call(*this, watch);
+        refusal = (*client_).plan_drag(builder, declared);
+    }
     if (watch.gone() || !still(serial)) return false;
     ++statistics_.plans;
     if (refusal == DragPlanRefusal::none) refusal = builder.refusal();
@@ -1226,7 +1253,10 @@ void DragEngine::announce(const DragFrame& frame) {
     if (!client_alive()) return;
     const DragAnnouncement before = announcement_;
     const RootWatch watch(*root_);
-    (*client_).announce_drag(frame, announcement_);
+    {
+        const ClientCall call(*this, watch);
+        (*client_).announce_drag(frame, announcement_);
+    }
     if (watch.gone() || announcement_.view() == before.view()) return;
     const Control::Ptr root = (*root_).root();
     if (root) (*root).invalidate(Dirty::semantics);
@@ -1265,7 +1295,10 @@ void DragEngine::select(const DragSelection& selection, DragTraceEvent event) {
     const std::uint64_t serial = serial_;
     const DragFrame frame = frame_now();
     const RootWatch watch(*root_);
-    if (client_alive()) (*client_).preview_drag(frame);
+    if (client_alive()) {
+        const ClientCall call(*this, watch);
+        (*client_).preview_drag(frame);
+    }
     if (watch.gone() || !still(serial)) return;
     if (changed) announce(frame);
     if (!target_changed || watch.gone() || !still(serial)) return;
@@ -1297,7 +1330,10 @@ void DragEngine::drag_to(Point pointer, Modifier modifiers, DragTraceEvent event
     ++statistics_.chains;
     record(DragTraceEvent::chain);
     const RootWatch watch(*root_);
-    if (client_alive()) (*client_).commit_drag_chain(outcome);
+    if (client_alive()) {
+        const ClientCall call(*this, watch);
+        (*client_).commit_drag_chain(outcome);
+    }
     if (watch.gone() || !still(serial)) return;
     const Point centre = centre_of(source_);
     const Point grab{press_.x - centre.x, press_.y - centre.y};
@@ -1583,7 +1619,10 @@ void DragEngine::end(DragEnd ending) {
     if (alive) {
         DragEnd reported = ending;
         if (commits) {
-            (*client_).rewrite_drag_outcome(outcome);
+            {
+                const ClientCall call(*this, watch);
+                (*client_).rewrite_drag_outcome(outcome);
+            }
             if (watch.gone()) return;
             // A rewrite keeps a committing end or turns it into rejected (the
             // candidate went away); any other end it writes is rejected too.
@@ -1598,7 +1637,10 @@ void DragEngine::end(DragEnd ending) {
             reported = outcome.end;
         }
         const bool reported_commits = reported == DragEnd::dropped || reported == DragEnd::free;
-        if (serial == serial_) (*client_).end_drag(outcome);
+        if (serial == serial_) {
+            const ClientCall call(*this, watch);
+            (*client_).end_drag(outcome);
+        }
         if (watch.gone()) return;
         if (serial == serial_ && client_alive()) {
             DragFrame frame = frame_now();
@@ -1627,6 +1669,7 @@ void DragEngine::cancel(DragEnd ending) {
 
 bool DragEngine::replan(const DragClient& client, Point moved) {
     if (phase_ != DragPhase::dragging || mode_ != DragInputMode::pointer || client_ != &client) return false;
+    if (client_calls_ != 0U) return false;
     if (!finite_point(moved)) return false;
     const std::size_t landings_capacity = landings_.capacity();
     const std::size_t flags_capacity = reachable_.capacity();

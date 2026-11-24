@@ -19,15 +19,41 @@ double finite_or_zero(double value) noexcept {
 
 } // namespace
 
+bool SurfaceInputQueue::carries_level(SurfaceInputKind kind) noexcept {
+    switch (kind) {
+    case SurfaceInputKind::presented:
+    case SurfaceInputKind::focus:
+    case SurfaceInputKind::visibility:
+    case SurfaceInputKind::activation:
+    case SurfaceInputKind::resize:
+    case SurfaceInputKind::safe_insets:
+    case SurfaceInputKind::close:
+        return true;
+    default:
+        return false;
+    }
+}
+
 bool SurfaceInputQueue::post(SurfaceInputRecord record) {
     const bool motion = record.kind == SurfaceInputKind::wheel ||
                         (record.kind == SurfaceInputKind::pointer && record.action == SurfacePointerAction::move);
     const std::size_t limit = motion ? maximum_records : maximum_control_records;
+    const bool level = carries_level(record.kind);
     {
         const stxlib::ScopedLock guard(mutex_);
         if (records_.size() >= limit) {
-            ++dropped_;
-            return false;
+            if (!level) {
+                ++dropped_;
+                return false;
+            }
+            // The newer level supersedes the oldest queued one of its kind;
+            // with none queued, it goes past the bound (one per kind).
+            std::deque<SurfaceInputRecord>::iterator older = records_.begin();
+            while (older != records_.end() && (*older).kind != record.kind) ++older;
+            if (older != records_.end()) {
+                records_.erase(older);
+                ++dropped_;
+            }
         }
         records_.push_back(std::move(record));
     }

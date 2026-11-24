@@ -6,6 +6,9 @@
 #include "gui_forms/binding/value/binding_value.hpp"
 
 #include <algorithm>
+#include <exception>
+#include <string>
+#include <vector>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -29,21 +32,74 @@ namespace {
     return Control::Ptr();
 }
 
+// A writable property of the control being replaced, as it was: its local
+// value, or none when it was not locally set (put back by a reset).
+struct PropertySnapshot final {
+    std::string name{};
+    std::optional<BindingValue> local{};
+};
+
+// What transplant replaces on `into`, taken before it changes anything.
+struct ControlSnapshot final {
+    std::vector<Control::Ptr> children{};
+    std::vector<PropertySnapshot> properties{};
+};
+
+[[nodiscard]] ControlSnapshot snapshot_of(const Control& into) {
+    ControlSnapshot taken{};
+    for (const Control::Ptr& child : into.children()) taken.children.push_back(child);
+    for (const PropertyDescriptor& descriptor : into.property_descriptors()) {
+        if (!descriptor.writable) continue;
+        PropertySnapshot property{};
+        property.name = descriptor.name;
+        if (into.should_serialize_property(descriptor.name)) property.local = into.property_value(descriptor.name);
+        taken.properties.push_back(std::move(property));
+    }
+    return taken;
+}
+
+// Puts `into` back as `snapshot` holds it; false when the window refused
+// that too.
+[[nodiscard]] bool restore(Control& into, const ControlSnapshot& snapshot) noexcept {
+    try {
+        into.clear_children();
+        for (const Control::Ptr& child : snapshot.children) into.add_child(child);
+        for (const PropertySnapshot& property : snapshot.properties) {
+            if (property.local) {
+                into.set_property_value(property.name, *property.local);
+            } else {
+                static_cast<void>(into.reset_property(property.name));
+            }
+        }
+        return true;
+    } catch (...) {
+        return false;
+    }
+}
+
 // Moves `from`'s children into `into` (whose own are removed first) and
 // copies `from`'s locally set properties onto `into`. Called only after
-// the candidate loaded: the window then changes in one pass.
-void transplant(Control& into, Control& from) {
-    into.clear_children();
+// the candidate loaded. A step the window refuses throws; `into` is then
+// put back from a snapshot taken first, and the exception goes on with
+// `restored` saying whether that worked (hunt r06 C10).
+void transplant(Control& into, Control& from, bool& restored) {
+    const ControlSnapshot before = snapshot_of(into);
     std::vector<Control::Ptr> moved{};
     for (const Control::Ptr& child : from.children()) moved.push_back(child);
-    for (const Control::Ptr& child : moved) {
-        Control::Ptr taken = from.remove_child((*child).runtime_id());
-        into.add_child(std::move(taken));
-    }
-    for (const PropertyDescriptor& descriptor : from.property_descriptors()) {
-        if (!descriptor.writable || !from.should_serialize_property(descriptor.name)) continue;
-        const std::optional<BindingValue> value = from.property_value(descriptor.name);
-        if (value) into.set_property_value(descriptor.name, *value);
+    try {
+        into.clear_children();
+        for (const Control::Ptr& child : moved) {
+            Control::Ptr taken = from.remove_child((*child).runtime_id());
+            into.add_child(std::move(taken));
+        }
+        for (const PropertyDescriptor& descriptor : from.property_descriptors()) {
+            if (!descriptor.writable || !from.should_serialize_property(descriptor.name)) continue;
+            const std::optional<BindingValue> value = from.property_value(descriptor.name);
+            if (value) into.set_property_value(descriptor.name, *value);
+        }
+    } catch (...) {
+        restored = restore(into, before);
+        throw;
     }
 }
 
@@ -57,6 +113,15 @@ void report(theme_language::ThemeDiagnosticList& diagnostics, std::string_view f
 }
 
 } // namespace
+
+std::string_view form_export_state_name(FormExportState state) noexcept {
+    switch (state) {
+    case FormExportState::registered: return "registered";
+    case FormExportState::applied: return "applied";
+    case FormExportState::patched: return "patched";
+    }
+    return "unknown";
+}
 
 std::string_view form_export_outcome_name(FormExportOutcome outcome) noexcept {
     switch (outcome) {
@@ -127,9 +192,14 @@ bool FormExportRegistry::registered(const Control& root) {
 }
 
 bool FormExportRegistry::replaced(const Control& root) {
-    const Record* const record = find(root);
-    const bool changed = record != nullptr && (*record).replaced;
+    const bool changed = state(root) != FormExportState::registered;
     return changed;
+}
+
+FormExportState FormExportRegistry::state(const Control& root) {
+    const Record* const record = find(root);
+    if (record == nullptr) return FormExportState::registered;
+    return (*record).state;
 }
 
 FormExportOutcome FormExportRegistry::export_document(const Control& root, std::string& document) {
@@ -199,10 +269,31 @@ FormExportOutcome FormExportRegistry::apply(const Control& root, const FormSchem
                    "`, not `" + std::string((*into).stable_id().value()) + "`, whose place it would take");
         return FormExportOutcome::refused;
     }
-    transplant(*into, *loaded.root);
-    (*record).applied_objects = std::move(loaded.objects);
-    (*record).replaced = (*record).registered_document != candidate || !target.empty();
-    if (target.empty()) (*record).current_document = std::string(candidate);
+    bool restored = true;
+    try {
+        transplant(*into, *loaded.root, restored);
+    } catch (const std::exception& error) {
+        // A handler run by the window may have ended it; the record is found
+        // again (find prunes).
+        Record* const refused = find(root);
+        if (!restored && refused != nullptr) (*refused).state = FormExportState::patched;
+        report(diagnostics, file,
+               std::string(restored ? "the window refused the candidate and is as it was: "
+                                    : "the window refused the candidate and could not be put back: ") +
+                   error.what());
+        return FormExportOutcome::refused;
+    }
+    // Found again: the transplant ran the window's handlers.
+    Record* const applied = find(root);
+    if (applied == nullptr) return FormExportOutcome::not_registered;
+    (*applied).applied_objects = std::move(loaded.objects);
+    if (!target.empty()) {
+        (*applied).state = FormExportState::patched;
+    } else {
+        (*applied).current_document = std::string(candidate);
+        (*applied).state = (*applied).registered_document == candidate ? FormExportState::registered
+                                                                       : FormExportState::applied;
+    }
     return FormExportOutcome::done;
 }
 
@@ -215,7 +306,7 @@ FormExportOutcome FormExportRegistry::revert(const Control& root, const FormSche
     const FormExportOutcome outcome = apply(root, schema, file, original, std::string_view(), diagnostics);
     // Found again: apply prunes.
     Record* const reverted = find(root);
-    if (outcome == FormExportOutcome::done && reverted != nullptr) (*reverted).replaced = false;
+    if (outcome == FormExportOutcome::done && reverted != nullptr) (*reverted).state = FormExportState::registered;
     return outcome;
 }
 

@@ -380,6 +380,27 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         }
     }
 
+    // state_mutex for one call, except on the thread inside a write
+    // (begin_write to end_write), which already holds it: locking it again
+    // there would hang (hunt r16 C19).
+    class StateLock final {
+    public:
+        explicit StateLock(const Implementation& owner) noexcept
+            : owner_(owner),
+              held_(owner.write_thread.load(std::memory_order_acquire) != GetCurrentThreadId()) {
+            if (held_) owner_.state_mutex.lock();
+        }
+        ~StateLock() {
+            if (held_) owner_.state_mutex.unlock();
+        }
+        StateLock(const StateLock&) = delete;
+        StateLock& operator=(const StateLock&) = delete;
+
+    private:
+        const Implementation& owner_;
+        bool held_;
+    };
+
     // Commit last: the new bitmap is made first, then the surface takes the
     // new size, then the bitmap is selected and the size recorded. Each step
     // that can refuse runs before anything it would leave behind.
@@ -388,7 +409,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
         if (GetCurrentThreadId() != owner_thread) return false;
         const unsigned int next_width = std::max<std::uint32_t>(1U, requested_width);
         const unsigned int next_height = std::max<std::uint32_t>(1U, requested_height);
-        const stxlib::ScopedLock lock(state_mutex);
+        const StateLock lock(*this);
         if (released || compatibility_handle == 0U) return false;
         if (width == next_width && height == next_height) return true;
         const stxlib::ScopedLock publish_lock(surface_publish_mutex);
@@ -497,7 +518,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     }
 
     bool drain() noexcept {
-        const stxlib::ScopedLock lock(state_mutex);
+        const StateLock lock(*this);
         if (released) return false;
         publish_requested = false;
         const bool result = publish_locked();
@@ -570,7 +591,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
             // direct C++ caller's row size (A-gf-host-03-F9).
             return false;
         }
-        const stxlib::ScopedLock lock(state_mutex);
+        const StateLock lock(*this);
         if (released || pixels == nullptr || submitted_width != width ||
             submitted_height != height) return false;
         const stxlib::ScopedLock publish_lock(surface_publish_mutex);
@@ -606,7 +627,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     }
 
     std::string snapshot() const {
-        const stxlib::ScopedLock lock(state_mutex);
+        const StateLock lock(*this);
         const char* state = released || compatibility_handle == 0U
             ? "retired" : "live";
         std::ostringstream result;
@@ -627,8 +648,16 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
     }
 
     void release() noexcept {
+        // Released inside a write on this thread: the write is closed as
+        // abandoned first, so the publisher (which may wait for state_mutex)
+        // can leave, and the later end_write returns false (hunt r16 C19).
+        if (write_thread.load(std::memory_order_acquire) == GetCurrentThreadId()) {
+            ++abandoned_writes;
+            write_thread.store(0U, std::memory_order_release);
+            state_mutex.unlock();
+        }
         {
-            const stxlib::ScopedLock lock(state_mutex);
+            const StateLock lock(*this);
             if (released) return;
             released = true;
             compatibility_handle = 0U;
@@ -640,7 +669,7 @@ struct WindowsCompatibilityPaintEndpoint::Implementation final {
             CompatibilityPublisher::instance().unregister_endpoint();
             publisher_registered = false;
         }
-        const stxlib::ScopedLock lock(state_mutex);
+        const StateLock lock(*this);
         if (metrics_registered) {
             metrics_registered = false;
             compatibility_paint_metrics.active.fetch_sub(
@@ -709,27 +738,27 @@ WindowsCompatibilityPaintEndpoint::acquire(
 
 std::uintptr_t WindowsCompatibilityPaintEndpoint::compatibility_handle() const noexcept {
     if (!implementation_) return 0;
-    const stxlib::ScopedLock lock((*implementation_).state_mutex);
+    const Implementation::StateLock lock(*implementation_);
     return (*implementation_).compatibility_handle;
 }
 
 std::uintptr_t WindowsCompatibilityPaintEndpoint::device_context() const noexcept {
     if (!implementation_) return 0;
-    const stxlib::ScopedLock lock((*implementation_).state_mutex);
+    const Implementation::StateLock lock(*implementation_);
     return reinterpret_cast<std::uintptr_t>((*implementation_).memory_dc);
 }
 
 std::shared_ptr<LiveSurface>
 WindowsCompatibilityPaintEndpoint::live_surface() const noexcept {
     if (!implementation_) return {};
-    const stxlib::ScopedLock lock((*implementation_).state_mutex);
+    const Implementation::StateLock lock(*implementation_);
     return (*implementation_).surface;
 }
 
 bool WindowsCompatibilityPaintEndpoint::publish_device_context(
     std::uintptr_t device_context) noexcept {
     if (!implementation_ || device_context == 0U) return false;
-    const stxlib::ScopedLock lock((*implementation_).state_mutex);
+    const Implementation::StateLock lock(*implementation_);
     if (device_context !=
         reinterpret_cast<std::uintptr_t>((*implementation_).memory_dc)) {
         return false;
@@ -780,7 +809,7 @@ bool WindowsCompatibilityPaintEndpoint::submit_bgra32_premultiplied(
 
 void WindowsCompatibilityPaintEndpoint::touch(bool explicit_boundary) noexcept {
     if (implementation_) {
-        const stxlib::ScopedLock lock((*implementation_).state_mutex);
+        const Implementation::StateLock lock(*implementation_);
         static_cast<void>(
             (*implementation_).request_publish_locked(explicit_boundary));
     }

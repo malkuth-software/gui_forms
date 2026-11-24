@@ -304,9 +304,15 @@ private:
     // Made with the source and kept until it is destroyed, disposal included,
     // since currency_manager() hands out references to it.
     std::unique_ptr<CurrencyManager> currency_manager_;
-    std::vector<BindingValue> edit_values_;
-    bool editing_{};
-    std::string edit_stable_id_;
+    // The open edit (begin_edit): the edited row's stable ID and its values
+    // as the edit began, which cancel_edit writes back. One record, so an
+    // edit's flag, row and saved values cannot disagree; none while no edit
+    // is open.
+    struct EditRecord final {
+        std::string stable_id;
+        std::vector<BindingValue> values;
+    };
+    stxlib::Optional<EditRecord> edit_{};
     std::string data_member_;
     std::ptrdiff_t position_{-1};
     // The current row's stable ID as last placed and announced: what a

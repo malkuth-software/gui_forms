@@ -109,7 +109,7 @@ void AutomationControl::user_took_back() {
 void AutomationControl::disconnect() noexcept {
     if (state_ != ControlState::user_control) release(ControlRelease::disconnected);
     if (gate_installed_) {
-        gui_forms::detail::install_user_input_gate(nullptr, nullptr);
+        gui_forms::detail::remove_user_input_gate(this);
         gate_installed_ = false;
     }
     // A question still asked is answered Don't Allow by the disconnect: no
@@ -200,7 +200,16 @@ void AutomationControl::enter(ControlState state, ChainId chain, FrameTime now) 
         gate_installed_ = true;
     }
     if (presenter_ != nullptr && state == ControlState::model_directed) {
-        (*presenter_).control_changed(state_, client_);
+        // The take-back popup is the user's way out of the hold: a presenter
+        // that cannot show it gives the input back before the failure goes
+        // on (release's own call is guarded the same way), so the hold never
+        // stands without its popup.
+        try {
+            (*presenter_).control_changed(state_, client_);
+        } catch (...) {
+            release(ControlRelease::presenter_failed);
+            throw;
+        }
     }
 }
 
@@ -210,7 +219,7 @@ void AutomationControl::release(ControlRelease reason) noexcept {
     state_ = ControlState::user_control;
     holder_ = ChainId{};
     if (gate_installed_) {
-        gui_forms::detail::install_user_input_gate(nullptr, nullptr);
+        gui_forms::detail::remove_user_input_gate(this);
         gate_installed_ = false;
     }
     if (presenter_ != nullptr && previous == ControlState::model_directed) {

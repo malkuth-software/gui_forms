@@ -839,6 +839,13 @@ void WindowsAccessibility::detach() noexcept {
     source.model.reset();
     source.hwnd = nullptr;
     source.release_trees();
+    // What was observed and announced for this window goes with it, so a
+    // later attach starts as a first one does.
+    source.observed = false;
+    source.automation_observed = false;
+    source.generation = 0U;
+    source.focus = 0U;
+    source.announced_ids.clear();
 }
 
 LRESULT WindowsAccessibility::object(WPARAM parameter) noexcept {

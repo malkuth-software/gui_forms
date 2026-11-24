@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <span>
 #include <string_view>
+#include <stxlib/optional.hpp>
 
 namespace gui_forms {
 
@@ -31,7 +32,7 @@ public:
     [[nodiscard]] CardLayout effective_card_layout() const noexcept;
     void reset_card_layout_to_theme();
     [[nodiscard]] bool hovered_visual() const noexcept { return hovered_; }
-    [[nodiscard]] bool pressed_visual() const noexcept { return pressed_; }
+    [[nodiscard]] bool pressed_visual() const noexcept { return pointer_pressed_ || pressed_key_.present(); }
     [[nodiscard]] bool focused_visual() const noexcept { return focused_; }
     [[nodiscard]] Event<Card&>& activated() noexcept { return activated_; }
     [[nodiscard]] Event<bool>& selected_changed() noexcept {
@@ -85,9 +86,13 @@ private:
     CardLayout layout_;
     Event<Card&> activated_;
     Event<bool> selected_changed_;
-    std::uint32_t keyboard_key_{};
+    // Two presses that compose (ButtonBase's form): the primary button held
+    // on the card, and the activation key (Space or Enter) held while the
+    // card has focus, present only while it is down. A key's release
+    // activates only the press that key began.
+    stxlib::Optional<std::uint32_t> pressed_key_{};
     bool hovered_{};
-    bool pressed_{};
+    bool pointer_pressed_{};
     bool focused_{};
     bool uses_theme_layout_{true};
     // property_codemod begin Card (tools/property_families/card.json; generated, do not edit)

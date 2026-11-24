@@ -15,6 +15,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <exception>
 #include <functional>
 #include <stdexcept>
 #include <stxlib/threads.hpp>
@@ -260,7 +261,18 @@ void BindingSource::bind_provider(std::shared_ptr<BindingProvider> provider) {
     row_cache_.clear();
     cache_capacity_ = std::clamp(row_cache_values / std::max<std::size_t>(schema_.size(), 1U), std::size_t{16},
                                  row_cache_rows);
-    (*provider_).attach(BindingProviderLink(state));
+    try {
+        (*provider_).attach(BindingProviderLink(state));
+    } catch (...) {
+        // A provider that refuses its link is not bound: the link is
+        // revoked without a detach (the provider never took it) and the
+        // source holds no provider until its caller binds another.
+        (*state).revoked.store(true);
+        (*state).source = nullptr;
+        link_.reset();
+        provider_.reset();
+        throw;
+    }
     provider_count_ = read_row_count();
 }
 
@@ -271,10 +283,18 @@ void BindingSource::set_provider(std::shared_ptr<BindingProvider> provider) {
     }
     const std::ptrdiff_t old_position = position_;
     const std::string old_current = current_stable_id();
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
-    bind_provider(std::move(provider));
+    edit_.reset();
+    // A provider whose attach throws is replaced by an empty table, and the
+    // rest of the replacement runs for it (view, position, events) before
+    // the exception goes on: the source never keeps the old provider's
+    // view, count or position against a provider it does not hold.
+    std::exception_ptr refused{};
+    try {
+        bind_provider(std::move(provider));
+    } catch (...) {
+        refused = std::current_exception();
+        bind_provider(gui_forms::detail::make_library_shared<BindingTable>());
+    }
     // A sort or filter whose columns the new schema lacks is dropped.
     bool columns_present = true;
     for (const BindingSortKey& key : sort_) {
@@ -306,6 +326,7 @@ void BindingSource::set_provider(std::shared_ptr<BindingProvider> provider) {
         current_changed_.emit();
         current_item_changed_.emit();
     }
+    if (refused) std::rethrow_exception(refused);
 }
 
 std::shared_ptr<BindingTable> BindingSource::table() const noexcept {
@@ -705,24 +726,21 @@ bool BindingSource::begin_edit() {
         return false;
     }
     const std::string identity = stable_id(row);
-    if (editing_ && edit_stable_id_ == identity) {
+    if (edit_.present() && (*edit_.value()).stable_id == identity) {
         return true;
     }
     const CachedRow& entry = cached_row(row);
-    edit_values_ = entry.values;
-    edit_stable_id_ = identity;
-    editing_ = true;
+    EditRecord opened{identity, entry.values};
+    edit_.set(std::move(opened));
     return true;
 }
 
 void BindingSource::cancel_edit() {
     require_access("BindingSource edit cancellation");
-    if (!editing_) return;
-    const std::vector<BindingValue> saved = std::move(edit_values_);
-    const std::string identity = edit_stable_id_;
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
+    if (edit_.absent()) return;
+    const EditRecord closed = edit_.take();
+    const std::vector<BindingValue>& saved = closed.values;
+    const std::string& identity = closed.stable_id;
     stxlib::Optional<std::size_t> row;
     if (position_ >= 0 && stable_id(static_cast<std::size_t>(position_)) == identity) {
         row.set(static_cast<std::size_t>(position_));
@@ -754,9 +772,7 @@ void BindingSource::cancel_edit() {
 
 void BindingSource::end_edit() {
     require_access("BindingSource edit completion");
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
+    edit_.reset();
 }
 
 // ---------------------------------------------------------------------------
@@ -873,11 +889,9 @@ bool BindingSource::remove_at(std::size_t index) {
         throw std::logic_error("GUI.Forms BindingSource provider does not remove rows");
     }
     const std::size_t provider = provider_row(index);
-    if (editing_ && stable_id(index) == edit_stable_id_) {
-        editing_ = false;
-        edit_values_.clear();
-        edit_stable_id_.clear();
-    }
+    // The row's edit ends only once the provider removed it: a refused
+    // removal leaves the row, its edited values and the edit to cancel.
+    const std::string removed_identity = stable_id(index);
     BindingWriteResult result;
     {
         const ProviderCallScope scope(provider_depth_);
@@ -890,6 +904,9 @@ bool BindingSource::remove_at(std::size_t index) {
     }
     if (!result.accepted()) {
         return false;
+    }
+    if (edit_.present() && (*edit_.value()).stable_id == removed_identity) {
+        edit_.reset();
     }
     apply_notification(BindingNotification{BindingNotificationKind::removed, provider, 1U, 0U});
     return true;
@@ -905,9 +922,7 @@ void BindingSource::clear() {
     if (!allow_remove_) {
         throw std::logic_error("GUI.Forms BindingSource removals are disabled");
     }
-    editing_ = false;
-    edit_values_.clear();
-    edit_stable_id_.clear();
+    edit_.reset();
     const std::shared_ptr<BindingTable> built_in = table();
     if (built_in) {
         // The table reports its reset through the link.
@@ -1020,11 +1035,15 @@ void BindingSource::remove_filter() {
     set_filter(BindingFilter{});
 }
 
+// view_mode_ is index exactly while view_ holds an index: the mode is
+// written with each exit's view, so a throw while the index is built
+// (an allocation) leaves no index and a mode that says so.
 void BindingSource::rebuild_view() {
+    const bool was_delegated = view_mode_ == BindingViewMode::provider_view;
     view_.reset();
+    view_mode_ = BindingViewMode::provider_order;
     const bool sorting = !sort_.empty();
     const bool filtering = !filter_.empty();
-    const bool was_delegated = view_mode_ == BindingViewMode::provider_view;
     bool sort_delegated = false;
     bool filter_delegated = false;
     {
@@ -1050,9 +1069,9 @@ void BindingSource::rebuild_view() {
     provider_count_ = read_row_count();
     const bool own_sort = sorting && !sort_delegated;
     const bool own_filter = filtering && !filter_delegated;
+    view_mode_ = (sort_delegated || filter_delegated) ? BindingViewMode::provider_view
+                                                      : BindingViewMode::provider_order;
     if (!own_sort && !own_filter) {
-        view_mode_ = (sort_delegated || filter_delegated) ? BindingViewMode::provider_view
-                                                          : BindingViewMode::provider_order;
         return;
     }
     std::vector<detail::BindingViewKey> keys;
@@ -1158,10 +1177,8 @@ void BindingSource::reset_view_state(bool metadata_changed) {
     if (view_mode_ == BindingViewMode::index || schema_changed) {
         rebuild_view();
     }
-    if (editing_ && find_stable_id(edit_stable_id_).absent()) {
-        editing_ = false;
-        edit_values_.clear();
-        edit_stable_id_.clear();
+    if (edit_.present() && find_stable_id((*edit_.value()).stable_id).absent()) {
+        edit_.reset();
     }
     bump_generation();
     // The current row is kept when the row at its position has its ID, or,
@@ -1520,7 +1537,7 @@ BindingSourceSnapshot BindingSource::snapshot() const {
     result.position_changes = position_changes_;
     result.suspended_mutations = suspended_mutations_;
     result.binding_suspended = suspended_;
-    result.editing = editing_;
+    result.editing = edit_.present();
     result.raise_list_changed_events = raise_list_changed_events_;
     return result;
 }
@@ -1567,11 +1584,18 @@ void BindingSource::on_dispose() noexcept {
     // The provider is let go: its link is revoked, then it is detached.
     revoke_link();
     provider_.reset();
+    // Everything bind_provider, rebuild_view and begin_edit set goes, so a
+    // disposed source answers as an empty one in provider order with no
+    // edit (it kept reporting an index view and the edited row's ID).
     view_.reset();
+    view_mode_ = BindingViewMode::provider_order;
+    sort_.clear();
+    filter_ = BindingFilter{};
     row_cache_.clear();
     provider_count_ = 0U;
-    editing_ = false;
-    edit_values_.clear();
+    edit_.reset();
+    suspended_ = false;
+    pending_reset_ = false;
     // The currency manager stays for the source's whole life (A-gf-core-01-F5):
     // currency_manager() hands out a reference, and the manager only forwards
     // to this source, whose members answer a disposed source as they would.

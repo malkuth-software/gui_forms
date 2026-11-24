@@ -587,6 +587,9 @@ Size FlexPanel::solve(const SolveRequest& request, FlexLayoutWorkspace& workspac
         inputs_.resize(children_.size());
         static_cast<void>(resolve_flex_main_sizes(container, inputs_, workspace));
         children_.clear();
+        // The arranged workspace was cleared by the solver: its IDs go with
+        // it, so layout_snapshot() and laid_out_children() stay parallel.
+        if (request.assign) arranged_ids_.clear();
         return {};
     }
     resolve_item_inputs(request);
