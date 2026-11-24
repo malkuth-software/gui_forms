@@ -182,11 +182,16 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         if (!run.core_.attach_window(*model, std::string(stable_id))) return;
         run.presenter_.set_windowing(handle, stable_id);
         run.handles_.push_back(handle);
+        bool closing = false;
         {
             const stxlib::ScopedLock lock(run.mutex_);
             run.dispatchers_.push_back((*model).dispatcher());
+            closing = run.closing_;
         }
         run.sync_tools();
+        // The input closed before this window joined, so no close reached
+        // it: it closes at the UI thread's next turn, once it is running.
+        if (closing) static_cast<void>((*model).dispatcher().begin_invoke(CloseAllWork{&run}));
     } catch (const std::exception& failure) {
         // %.*s takes an int; a longer id is cut at INT_MAX bytes.
         const std::size_t shown = std::min(stable_id.size(), static_cast<std::size_t>(INT_MAX));
@@ -286,6 +291,12 @@ void AutomationRun::post_client(const ClientIdentity& client) {
 }
 
 void AutomationRun::post_close_all() {
+    {
+        // Before the dispatcher is looked up: a window that joins between the
+        // two sees the flag and closes itself (window_ready).
+        const stxlib::ScopedLock lock(mutex_);
+        closing_ = true;
+    }
     const WindowDispatcher dispatcher = home_dispatcher();
     if (!dispatcher.window_alive()) return;
     static_cast<void>(dispatcher.begin_invoke(CloseAllWork{this}));

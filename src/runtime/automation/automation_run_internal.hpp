@@ -85,6 +85,10 @@ private:
 
     mutable stxlib::Mutex mutex_{};
     std::vector<WindowDispatcher> dispatchers_{};
+    // Under mutex_: the portable shutdown was asked for. A window that joins
+    // afterwards closes as it joins (a client that closes the input before
+    // the first window is ready would otherwise leave the program running).
+    bool closing_{false};
     std::atomic<bool> ended_{false};
     // The UI thread's: the windows' handles, for the portable shutdown.
     std::vector<ApplicationWindowHandle> handles_{};
