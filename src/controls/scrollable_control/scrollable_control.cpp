@@ -169,8 +169,18 @@ void ScrollableControl::set_vscroll(bool visible) {
     vertical_scroll_.set_visible(visible);
 }
 
+// The bits that name another member's state are read from it, so they
+// never disagree with it (hscroll() changed at once by set_hscroll, while the
+// stored bit followed only at the next arrange): auto scrolling is the
+// auto_scroll cell, a bar's visibility its axis's. The others are kept here.
 bool ScrollableControl::get_scroll_state(std::uint32_t bit) const noexcept {
-    return (scroll_state_ & bit) != 0U;
+    std::uint32_t state = scroll_state_ & ~(scroll_state_auto_scrolling | scroll_state_hscroll_visible |
+                                            scroll_state_vscroll_visible);
+    if (auto_scroll.read()) state |= scroll_state_auto_scrolling;
+    if (hscroll()) state |= scroll_state_hscroll_visible;
+    if (vscroll()) state |= scroll_state_vscroll_visible;
+    const bool set = (state & bit) != 0U;
+    return set;
 }
 
 void ScrollableControl::set_scroll_state(std::uint32_t bit, bool value) {
