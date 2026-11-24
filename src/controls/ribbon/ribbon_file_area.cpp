@@ -109,7 +109,15 @@ bool Ribbon::show_application_overlay(MenuOpenMode mode) {
     opening.owner_moved = (*window).frame_moved().subscribe(
         *this, Delegate<>::bind<Ribbon, &Ribbon::on_application_owner_moved>(*this));
     application_presentation_ = OverlayPresentation<ApplicationOpening>::opening(std::move(opening));
-    const FocusScopeId scope = (*window).begin_focus_scope(application_overlay_, application_overlay_);
+    // A refused scope (a containing scope, the nesting limit) closes the
+    // menu again before the refusal leaves.
+    FocusScopeId scope{};
+    try {
+        scope = (*window).begin_focus_scope(application_overlay_, application_overlay_);
+    } catch (...) {
+        close_application_overlay();
+        throw;
+    }
     // The focus move ran the previous control's handlers; one may have
     // closed the menu, or closed and opened it again (which began its own
     // scope and lift). The scope is kept, and the panel lifted, only for
@@ -320,7 +328,19 @@ bool Ribbon::show_backstage() {
         backstage_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_backstage_revoked>(*this));
     }
     const Control::Ptr self = shared_from_this();
-    const FocusScopeId scope = (*window).begin_focus_scope(backstage.read(), backstage.read());
+    // A refused scope takes Backstage down again before the refusal
+    // leaves, with nothing raised (no opening was raised either).
+    FocusScopeId scope{};
+    try {
+        scope = (*window).begin_focus_scope(backstage.read(), backstage.read());
+    } catch (...) {
+        if (backstage_open_ && !backstage_scope_) {
+            backstage_open_ = false;
+            backstage_revoked_.disconnect();
+            backstage_token_.disconnect();
+        }
+        throw;
+    }
     // The focus move ran the previous control's handlers; one may have
     // closed Backstage (raising backstage_open_changed(false)), or closed
     // and opened it again (which began its own scope and raised true).
