@@ -443,6 +443,7 @@ void RibbonGallery::on_focus_changed(bool focused) {
 
 bool RibbonGallery::navigate(std::uint32_t key) {
     if (order_.empty()) return false;
+    if (!lines_agree()) rebuild_lines();
     const std::size_t current = focused_.value_or(0U);
     const std::size_t last = order_.size() - 1U;
     std::size_t target = current;
@@ -752,8 +753,10 @@ void RibbonGallery::abandon_opening() noexcept {
 }
 
 bool RibbonGallery::agrees_with_itself() const noexcept {
-    // Open, its overlay is in the window. Closed, it is neither its layer's
-    // content nor lifted into a Popup.
+    // Its lines lay out its display order. Open, its overlay is in the
+    // window. Closed, it is neither its layer's content nor lifted into a
+    // Popup.
+    if (!lines_agree()) return false;
     const AnchoredOpening* const open = presentation_.open_state();
     if (open != nullptr) return (*open).lease.overlay.connected();
     if (!presentation_.is_closed()) return true;

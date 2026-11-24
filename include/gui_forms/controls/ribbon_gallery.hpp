@@ -104,7 +104,9 @@ public:
     // The first line shown: an item row, or in the drop-down form also a
     // category caption.
     [[nodiscard]] std::size_t first_visible_line() const noexcept { return first_line_; }
-    [[nodiscard]] std::size_t line_count() const noexcept { return lines_.size(); }
+    // Derived from the items, columns and form, not read from the laid-out
+    // lines (state hunt: the lines are a cache).
+    [[nodiscard]] std::size_t line_count() const noexcept;
     void scroll_to_line(std::size_t line);
     [[nodiscard]] bool can_scroll_up() const noexcept { return first_line_ > 0U; }
     [[nodiscard]] bool can_scroll_down() const noexcept;
@@ -253,6 +255,13 @@ private:
 
     [[nodiscard]] std::size_t active_columns() const noexcept;
     void rebuild_lines();
+    // How many lines the display order lays out in: rebuild_lines' count,
+    // computed without the lines.
+    [[nodiscard]] std::size_t derived_line_count() const noexcept;
+    // Whether lines_ (a cache of the order, columns and form) still lays out
+    // the display order: its count, each line's first position and size,
+    // and the first line shown.
+    [[nodiscard]] bool lines_agree() const noexcept;
     void model_changed();
     [[nodiscard]] Geometry geometry() const;
     [[nodiscard]] std::size_t visible_line_end(const Geometry& layout) const noexcept;

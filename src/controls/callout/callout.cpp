@@ -84,6 +84,11 @@ public:
 
     void arrange(Rect final_bounds) override {
         arrange_self(final_bounds);
+        // A target gone while shown closes the callout (owner_unavailable)
+        // instead of placing it against an empty anchor. The layer is held
+        // across the close, which takes it out of the window.
+        const Control::Ptr held = shared_from_this();
+        if (callout_.close_if_target_lost()) return;
         const std::vector<Control::Ptr> children = snapshot_layout_children();
         const Control::Ptr target = callout_.target();
         Rect anchor{};
@@ -541,7 +546,13 @@ bool Callout::agrees_with_itself() const noexcept {
     // parent, no target, nothing pressed.
     if (!presentation_.shown()) return !parent() && target_.expired() && !pressed_close_;
     const Control::Ptr layer = presentation_.layer();
-    return layer && parent() == layer;
+    return layer && parent() == layer && !target_.expired();
+}
+
+bool Callout::close_if_target_lost() {
+    if (!presentation_.shown() || !target_.expired()) return false;
+    finish(CalloutCloseReason::owner_unavailable);
+    return true;
 }
 
 void Callout::on_dispose() noexcept {

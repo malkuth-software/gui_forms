@@ -102,6 +102,43 @@ void RibbonGallery::rebuild_lines() {
     if (first_line_ >= lines_.size()) first_line_ = lines_.empty() ? 0U : lines_.size() - 1U;
 }
 
+std::size_t RibbonGallery::derived_line_count() const noexcept {
+    const std::size_t columns = active_columns();
+    const bool grouped = form_ == RibbonGalleryForm::drop_down && !categories_.empty();
+    std::size_t count = 0U;
+    std::size_t position = 0U;
+    while (position < order_.size()) {
+        const std::string& name = items_[order_[position]].category;
+        std::size_t group_end = position;
+        while (group_end < order_.size() && (!grouped || items_[order_[group_end]].category == name)) ++group_end;
+        if (grouped && !name.empty()) ++count;
+        count += (group_end - position + columns - 1U) / columns;
+        position = group_end;
+    }
+    return count;
+}
+
+std::size_t RibbonGallery::line_count() const noexcept {
+    return derived_line_count();
+}
+
+bool RibbonGallery::lines_agree() const noexcept {
+    if (lines_.size() != derived_line_count()) return false;
+    const std::size_t columns = active_columns();
+    std::size_t next = 0U;
+    for (const Line& line : lines_) {
+        if (line.first != next) return false;
+        if (line.kind == LineKind::caption) {
+            if (line.category >= categories_.size()) return false;
+            continue;
+        }
+        if (line.count == 0U || line.count > columns) return false;
+        next += line.count;
+    }
+    if (next != order_.size()) return false;
+    return lines_.empty() ? first_line_ == 0U : first_line_ < lines_.size();
+}
+
 namespace {
 
 // Orders a display position before the first line that starts after it. A
@@ -398,6 +435,9 @@ RibbonGallery::Realized RibbonGallery::realized(const Geometry& layout) const {
 // -- paint ---------------------------------------------------------------------
 
 void RibbonGallery::on_paint(Painter& painter, Rect) {
+    // The lines are a cache: one that no longer lays out the order is laid
+    // out again before anything is read from it.
+    if (!lines_agree()) rebuild_lines();
     const Geometry layout = geometry();
     const Parts parts = gallery_parts(layout);
     PartPaint part;
