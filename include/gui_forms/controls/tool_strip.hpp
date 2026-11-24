@@ -162,6 +162,11 @@ public:
     // std::out_of_range for an unknown ID and std::invalid_argument for
     // invalid UTF-8.
     void set_item_text(std::string_view item_id, std::string text);
+    // Replaces a hosted item's width in logical units (0 for the default),
+    // which the strip scales by the text scale as it does the width the
+    // item was given. Throws std::out_of_range for an unknown ID and
+    // std::invalid_argument for a width that set_items would refuse.
+    void set_item_width(std::string_view item_id, double width);
     // The checked state the strip shows for an item: its command's when it
     // has one. Throws std::out_of_range for an unknown ID.
     [[nodiscard]] bool item_checked(std::string_view item_id) const;

@@ -1340,6 +1340,7 @@ add_library(gui_forms_controls STATIC
     src/controls/instruments/gauge_base/radial_gauge/radial_gauge.cpp
     src/controls/instruments/seven_segment_display/seven_segment_display.cpp
     src/controls/lookup_combo_box/lookup_combo_box.cpp
+    src/controls/dialog_presentation/dialog_presentation.cpp
     src/controls/modal_layer/modal_layer.cpp
     src/controls/step_indicator/step_indicator.cpp
     src/controls/wizard/wizard.cpp

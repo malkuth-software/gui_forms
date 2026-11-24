@@ -305,7 +305,7 @@ bool DockSite::begin_drag(const DockSubject& subject, DockNodeId source_stack, b
     drag_ = std::move(session);
     // The subject leaves an open flyout with it (the stack stays auto-hidden
     // in the model until a drop).
-    if (flyout_panel_) close_flyout(DockFlyoutCause::programmatic);
+    if (flyout_panel()) close_flyout(DockFlyoutCause::programmatic);
     // The page leaves its view, or the whole stack the layout, at the next
     // layout pass.
     focusable = true;

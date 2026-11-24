@@ -282,6 +282,7 @@
     _ZGVZN9gui_forms12MotionPolicy*;
     _ZGVZN9gui_forms12NodeProperty*;
     _ZGVZN9gui_forms12NumberFormat*;
+    _ZGVZN9gui_forms12OverlayLease*;
     _ZGVZN9gui_forms12OverlayToken*;
     _ZGVZN9gui_forms12PagePosition*;
     _ZGVZN9gui_forms12PageSetBatch*;
@@ -554,6 +555,7 @@
     _ZGVZN9gui_forms14XmlWriteResult*;
     _ZGVZN9gui_forms15AllocationScope*;
     _ZGVZN9gui_forms15AnatomyStateSet*;
+    _ZGVZN9gui_forms15AnchoredOpening*;
     _ZGVZN9gui_forms15AnimationSample*;
     _ZGVZN9gui_forms15AvailableExtent*;
     _ZGVZN9gui_forms15BackplaneRegion*;
@@ -872,6 +874,8 @@
     _ZGVZN9gui_forms17PieSliceSelection*;
     _ZGVZN9gui_forms17PlotHeatmapSeries*;
     _ZGVZN9gui_forms17PopupContainerBox*;
+    _ZGVZN9gui_forms17PresentationLayer*;
+    _ZGVZN9gui_forms17PresentationPopup*;
     _ZGVZN9gui_forms17PresentationState*;
     _ZGVZN9gui_forms17PrimitiveRegistry*;
     _ZGVZN9gui_forms17PropertyEnumValue*;
@@ -939,6 +943,7 @@
     _ZGVZN9gui_forms18CursorCapabilities*;
     _ZGVZN9gui_forms18DataGridViewColumn*;
     _ZGVZN9gui_forms18DesktopDevicePoint*;
+    _ZGVZN9gui_forms18DialogPresentation*;
     _ZGVZN9gui_forms18DirectionRingStyle*;
     _ZGVZN9gui_forms18DispatcherSnapshot*;
     _ZGVZN9gui_forms18DockAutoHideMemory*;
@@ -2018,6 +2023,7 @@
     _ZGVZNK9gui_forms12MotionPolicy*;
     _ZGVZNK9gui_forms12NodeProperty*;
     _ZGVZNK9gui_forms12NumberFormat*;
+    _ZGVZNK9gui_forms12OverlayLease*;
     _ZGVZNK9gui_forms12OverlayToken*;
     _ZGVZNK9gui_forms12PagePosition*;
     _ZGVZNK9gui_forms12PageSetBatch*;
@@ -2290,6 +2296,7 @@
     _ZGVZNK9gui_forms14XmlWriteResult*;
     _ZGVZNK9gui_forms15AllocationScope*;
     _ZGVZNK9gui_forms15AnatomyStateSet*;
+    _ZGVZNK9gui_forms15AnchoredOpening*;
     _ZGVZNK9gui_forms15AnimationSample*;
     _ZGVZNK9gui_forms15AvailableExtent*;
     _ZGVZNK9gui_forms15BackplaneRegion*;
@@ -2608,6 +2615,8 @@
     _ZGVZNK9gui_forms17PieSliceSelection*;
     _ZGVZNK9gui_forms17PlotHeatmapSeries*;
     _ZGVZNK9gui_forms17PopupContainerBox*;
+    _ZGVZNK9gui_forms17PresentationLayer*;
+    _ZGVZNK9gui_forms17PresentationPopup*;
     _ZGVZNK9gui_forms17PresentationState*;
     _ZGVZNK9gui_forms17PrimitiveRegistry*;
     _ZGVZNK9gui_forms17PropertyEnumValue*;
@@ -2675,6 +2684,7 @@
     _ZGVZNK9gui_forms18CursorCapabilities*;
     _ZGVZNK9gui_forms18DataGridViewColumn*;
     _ZGVZNK9gui_forms18DesktopDevicePoint*;
+    _ZGVZNK9gui_forms18DialogPresentation*;
     _ZGVZNK9gui_forms18DirectionRingStyle*;
     _ZGVZNK9gui_forms18DispatcherSnapshot*;
     _ZGVZNK9gui_forms18DockAutoHideMemory*;
@@ -3882,6 +3892,7 @@
     _ZN9gui_forms12MotionPolicy*;
     _ZN9gui_forms12NodeProperty*;
     _ZN9gui_forms12NumberFormat*;
+    _ZN9gui_forms12OverlayLease*;
     _ZN9gui_forms12OverlayToken*;
     _ZN9gui_forms12PagePosition*;
     _ZN9gui_forms12PageSetBatch*;
@@ -4290,6 +4301,7 @@
     _ZN9gui_forms14xml_error_nameE*;
     _ZN9gui_forms15AllocationScope*;
     _ZN9gui_forms15AnatomyStateSet*;
+    _ZN9gui_forms15AnchoredOpening*;
     _ZN9gui_forms15AnimationSample*;
     _ZN9gui_forms15AvailableExtent*;
     _ZN9gui_forms15BackplaneRegion*;
@@ -4740,6 +4752,8 @@
     _ZN9gui_forms17PieSliceSelection*;
     _ZN9gui_forms17PlotHeatmapSeries*;
     _ZN9gui_forms17PopupContainerBox*;
+    _ZN9gui_forms17PresentationLayer*;
+    _ZN9gui_forms17PresentationPopup*;
     _ZN9gui_forms17PresentationState*;
     _ZN9gui_forms17PrimitiveRegistry*;
     _ZN9gui_forms17PropertyEnumValue*;
@@ -4897,6 +4911,7 @@
     _ZN9gui_forms18CursorCapabilities*;
     _ZN9gui_forms18DataGridViewColumn*;
     _ZN9gui_forms18DesktopDevicePoint*;
+    _ZN9gui_forms18DialogPresentation*;
     _ZN9gui_forms18DirectionRingStyle*;
     _ZN9gui_forms18DispatcherSnapshot*;
     _ZN9gui_forms18DockAutoHideMemory*;
@@ -7308,6 +7323,7 @@
     _ZNK[RO]9gui_forms12MotionPolicy*;
     _ZNK[RO]9gui_forms12NodeProperty*;
     _ZNK[RO]9gui_forms12NumberFormat*;
+    _ZNK[RO]9gui_forms12OverlayLease*;
     _ZNK[RO]9gui_forms12OverlayToken*;
     _ZNK[RO]9gui_forms12PagePosition*;
     _ZNK[RO]9gui_forms12PageSetBatch*;
@@ -7580,6 +7596,7 @@
     _ZNK[RO]9gui_forms14XmlWriteResult*;
     _ZNK[RO]9gui_forms15AllocationScope*;
     _ZNK[RO]9gui_forms15AnatomyStateSet*;
+    _ZNK[RO]9gui_forms15AnchoredOpening*;
     _ZNK[RO]9gui_forms15AnimationSample*;
     _ZNK[RO]9gui_forms15AvailableExtent*;
     _ZNK[RO]9gui_forms15BackplaneRegion*;
@@ -7898,6 +7915,8 @@
     _ZNK[RO]9gui_forms17PieSliceSelection*;
     _ZNK[RO]9gui_forms17PlotHeatmapSeries*;
     _ZNK[RO]9gui_forms17PopupContainerBox*;
+    _ZNK[RO]9gui_forms17PresentationLayer*;
+    _ZNK[RO]9gui_forms17PresentationPopup*;
     _ZNK[RO]9gui_forms17PresentationState*;
     _ZNK[RO]9gui_forms17PrimitiveRegistry*;
     _ZNK[RO]9gui_forms17PropertyEnumValue*;
@@ -7965,6 +7984,7 @@
     _ZNK[RO]9gui_forms18CursorCapabilities*;
     _ZNK[RO]9gui_forms18DataGridViewColumn*;
     _ZNK[RO]9gui_forms18DesktopDevicePoint*;
+    _ZNK[RO]9gui_forms18DialogPresentation*;
     _ZNK[RO]9gui_forms18DirectionRingStyle*;
     _ZNK[RO]9gui_forms18DispatcherSnapshot*;
     _ZNK[RO]9gui_forms18DockAutoHideMemory*;
@@ -9044,6 +9064,7 @@
     _ZN[KRO]9gui_forms12MotionPolicy*;
     _ZN[KRO]9gui_forms12NodeProperty*;
     _ZN[KRO]9gui_forms12NumberFormat*;
+    _ZN[KRO]9gui_forms12OverlayLease*;
     _ZN[KRO]9gui_forms12OverlayToken*;
     _ZN[KRO]9gui_forms12PagePosition*;
     _ZN[KRO]9gui_forms12PageSetBatch*;
@@ -9316,6 +9337,7 @@
     _ZN[KRO]9gui_forms14XmlWriteResult*;
     _ZN[KRO]9gui_forms15AllocationScope*;
     _ZN[KRO]9gui_forms15AnatomyStateSet*;
+    _ZN[KRO]9gui_forms15AnchoredOpening*;
     _ZN[KRO]9gui_forms15AnimationSample*;
     _ZN[KRO]9gui_forms15AvailableExtent*;
     _ZN[KRO]9gui_forms15BackplaneRegion*;
@@ -9634,6 +9656,8 @@
     _ZN[KRO]9gui_forms17PieSliceSelection*;
     _ZN[KRO]9gui_forms17PlotHeatmapSeries*;
     _ZN[KRO]9gui_forms17PopupContainerBox*;
+    _ZN[KRO]9gui_forms17PresentationLayer*;
+    _ZN[KRO]9gui_forms17PresentationPopup*;
     _ZN[KRO]9gui_forms17PresentationState*;
     _ZN[KRO]9gui_forms17PrimitiveRegistry*;
     _ZN[KRO]9gui_forms17PropertyEnumValue*;
@@ -9701,6 +9725,7 @@
     _ZN[KRO]9gui_forms18CursorCapabilities*;
     _ZN[KRO]9gui_forms18DataGridViewColumn*;
     _ZN[KRO]9gui_forms18DesktopDevicePoint*;
+    _ZN[KRO]9gui_forms18DialogPresentation*;
     _ZN[KRO]9gui_forms18DirectionRingStyle*;
     _ZN[KRO]9gui_forms18DispatcherSnapshot*;
     _ZN[KRO]9gui_forms18DockAutoHideMemory*;
@@ -10780,6 +10805,7 @@
     _ZT[VIST]N9gui_forms12MotionPolicy*E;
     _ZT[VIST]N9gui_forms12NodeProperty*E;
     _ZT[VIST]N9gui_forms12NumberFormat*E;
+    _ZT[VIST]N9gui_forms12OverlayLease*E;
     _ZT[VIST]N9gui_forms12OverlayToken*E;
     _ZT[VIST]N9gui_forms12PagePosition*E;
     _ZT[VIST]N9gui_forms12PageSetBatch*E;
@@ -11052,6 +11078,7 @@
     _ZT[VIST]N9gui_forms14XmlWriteResult*E;
     _ZT[VIST]N9gui_forms15AllocationScope*E;
     _ZT[VIST]N9gui_forms15AnatomyStateSet*E;
+    _ZT[VIST]N9gui_forms15AnchoredOpening*E;
     _ZT[VIST]N9gui_forms15AnimationSample*E;
     _ZT[VIST]N9gui_forms15AvailableExtent*E;
     _ZT[VIST]N9gui_forms15BackplaneRegion*E;
@@ -11370,6 +11397,8 @@
     _ZT[VIST]N9gui_forms17PieSliceSelection*E;
     _ZT[VIST]N9gui_forms17PlotHeatmapSeries*E;
     _ZT[VIST]N9gui_forms17PopupContainerBox*E;
+    _ZT[VIST]N9gui_forms17PresentationLayer*E;
+    _ZT[VIST]N9gui_forms17PresentationPopup*E;
     _ZT[VIST]N9gui_forms17PresentationState*E;
     _ZT[VIST]N9gui_forms17PrimitiveRegistry*E;
     _ZT[VIST]N9gui_forms17PropertyEnumValue*E;
@@ -11437,6 +11466,7 @@
     _ZT[VIST]N9gui_forms18CursorCapabilities*E;
     _ZT[VIST]N9gui_forms18DataGridViewColumn*E;
     _ZT[VIST]N9gui_forms18DesktopDevicePoint*E;
+    _ZT[VIST]N9gui_forms18DialogPresentation*E;
     _ZT[VIST]N9gui_forms18DirectionRingStyle*E;
     _ZT[VIST]N9gui_forms18DispatcherSnapshot*E;
     _ZT[VIST]N9gui_forms18DockAutoHideMemory*E;
@@ -12516,6 +12546,7 @@
     _ZT[hvc]*9gui_forms12MotionPolicy*;
     _ZT[hvc]*9gui_forms12NodeProperty*;
     _ZT[hvc]*9gui_forms12NumberFormat*;
+    _ZT[hvc]*9gui_forms12OverlayLease*;
     _ZT[hvc]*9gui_forms12OverlayToken*;
     _ZT[hvc]*9gui_forms12PagePosition*;
     _ZT[hvc]*9gui_forms12PageSetBatch*;
@@ -12788,6 +12819,7 @@
     _ZT[hvc]*9gui_forms14XmlWriteResult*;
     _ZT[hvc]*9gui_forms15AllocationScope*;
     _ZT[hvc]*9gui_forms15AnatomyStateSet*;
+    _ZT[hvc]*9gui_forms15AnchoredOpening*;
     _ZT[hvc]*9gui_forms15AnimationSample*;
     _ZT[hvc]*9gui_forms15AvailableExtent*;
     _ZT[hvc]*9gui_forms15BackplaneRegion*;
@@ -13106,6 +13138,8 @@
     _ZT[hvc]*9gui_forms17PieSliceSelection*;
     _ZT[hvc]*9gui_forms17PlotHeatmapSeries*;
     _ZT[hvc]*9gui_forms17PopupContainerBox*;
+    _ZT[hvc]*9gui_forms17PresentationLayer*;
+    _ZT[hvc]*9gui_forms17PresentationPopup*;
     _ZT[hvc]*9gui_forms17PresentationState*;
     _ZT[hvc]*9gui_forms17PrimitiveRegistry*;
     _ZT[hvc]*9gui_forms17PropertyEnumValue*;
@@ -13173,6 +13207,7 @@
     _ZT[hvc]*9gui_forms18CursorCapabilities*;
     _ZT[hvc]*9gui_forms18DataGridViewColumn*;
     _ZT[hvc]*9gui_forms18DesktopDevicePoint*;
+    _ZT[hvc]*9gui_forms18DialogPresentation*;
     _ZT[hvc]*9gui_forms18DirectionRingStyle*;
     _ZT[hvc]*9gui_forms18DispatcherSnapshot*;
     _ZT[hvc]*9gui_forms18DockAutoHideMemory*;
@@ -14252,6 +14287,7 @@
     _ZZN9gui_forms12MotionPolicy*;
     _ZZN9gui_forms12NodeProperty*;
     _ZZN9gui_forms12NumberFormat*;
+    _ZZN9gui_forms12OverlayLease*;
     _ZZN9gui_forms12OverlayToken*;
     _ZZN9gui_forms12PagePosition*;
     _ZZN9gui_forms12PageSetBatch*;
@@ -14524,6 +14560,7 @@
     _ZZN9gui_forms14XmlWriteResult*;
     _ZZN9gui_forms15AllocationScope*;
     _ZZN9gui_forms15AnatomyStateSet*;
+    _ZZN9gui_forms15AnchoredOpening*;
     _ZZN9gui_forms15AnimationSample*;
     _ZZN9gui_forms15AvailableExtent*;
     _ZZN9gui_forms15BackplaneRegion*;
@@ -14842,6 +14879,8 @@
     _ZZN9gui_forms17PieSliceSelection*;
     _ZZN9gui_forms17PlotHeatmapSeries*;
     _ZZN9gui_forms17PopupContainerBox*;
+    _ZZN9gui_forms17PresentationLayer*;
+    _ZZN9gui_forms17PresentationPopup*;
     _ZZN9gui_forms17PresentationState*;
     _ZZN9gui_forms17PrimitiveRegistry*;
     _ZZN9gui_forms17PropertyEnumValue*;
@@ -14909,6 +14948,7 @@
     _ZZN9gui_forms18CursorCapabilities*;
     _ZZN9gui_forms18DataGridViewColumn*;
     _ZZN9gui_forms18DesktopDevicePoint*;
+    _ZZN9gui_forms18DialogPresentation*;
     _ZZN9gui_forms18DirectionRingStyle*;
     _ZZN9gui_forms18DispatcherSnapshot*;
     _ZZN9gui_forms18DockAutoHideMemory*;
@@ -15988,6 +16028,7 @@
     _ZZNK9gui_forms12MotionPolicy*;
     _ZZNK9gui_forms12NodeProperty*;
     _ZZNK9gui_forms12NumberFormat*;
+    _ZZNK9gui_forms12OverlayLease*;
     _ZZNK9gui_forms12OverlayToken*;
     _ZZNK9gui_forms12PagePosition*;
     _ZZNK9gui_forms12PageSetBatch*;
@@ -16260,6 +16301,7 @@
     _ZZNK9gui_forms14XmlWriteResult*;
     _ZZNK9gui_forms15AllocationScope*;
     _ZZNK9gui_forms15AnatomyStateSet*;
+    _ZZNK9gui_forms15AnchoredOpening*;
     _ZZNK9gui_forms15AnimationSample*;
     _ZZNK9gui_forms15AvailableExtent*;
     _ZZNK9gui_forms15BackplaneRegion*;
@@ -16578,6 +16620,8 @@
     _ZZNK9gui_forms17PieSliceSelection*;
     _ZZNK9gui_forms17PlotHeatmapSeries*;
     _ZZNK9gui_forms17PopupContainerBox*;
+    _ZZNK9gui_forms17PresentationLayer*;
+    _ZZNK9gui_forms17PresentationPopup*;
     _ZZNK9gui_forms17PresentationState*;
     _ZZNK9gui_forms17PrimitiveRegistry*;
     _ZZNK9gui_forms17PropertyEnumValue*;
@@ -16645,6 +16689,7 @@
     _ZZNK9gui_forms18CursorCapabilities*;
     _ZZNK9gui_forms18DataGridViewColumn*;
     _ZZNK9gui_forms18DesktopDevicePoint*;
+    _ZZNK9gui_forms18DialogPresentation*;
     _ZZNK9gui_forms18DirectionRingStyle*;
     _ZZNK9gui_forms18DispatcherSnapshot*;
     _ZZNK9gui_forms18DockAutoHideMemory*;

@@ -7,6 +7,7 @@
 #include "gui_forms/controls/help_book.hpp"
 #include "gui_forms/controls/help_book_viewer.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/help/help_contents/help_contents.hpp"
 #include "gui_forms/help/help_records/help_records.hpp"
@@ -212,7 +213,7 @@ public:
     bool show_card(const Control::Ptr& anchor);
     void close_popup() noexcept;
     [[nodiscard]] bool popup_open() const noexcept;
-    [[nodiscard]] std::shared_ptr<HelpBook> popup_book() const noexcept { return popup_book_; }
+    [[nodiscard]] std::shared_ptr<HelpBook> popup_book() const noexcept;
 
     bool enter_help_mode(Window& window);
     void cancel_help_mode() noexcept;
@@ -288,18 +289,28 @@ private:
     std::vector<std::string> bookmarks_{};
     std::shared_ptr<HelpBookViewer> embedded_viewer_{};
     HelpBookWindow window_;
-    std::shared_ptr<AnchoredOverlayLayer> popup_layer_{};
-    std::shared_ptr<HelpBook> popup_book_{};
-    OverlayToken popup_token_{};
+    // The paper popup while shown: its layer, its book and the overlay
+    // token (no focus scope; the window may revoke the token, and then
+    // popup_open reads false until the popup is closed or replaced).
+    struct PopupShown final {
+        std::shared_ptr<AnchoredOverlayLayer> layer{};
+        std::shared_ptr<HelpBook> book{};
+        OverlayToken overlay{};
+    };
+    OverlayPresentation<PopupShown> popup_presentation_{};
     // A popup or pick layer closed from inside its own event stays alive
     // here until the next open or the system's end.
     std::shared_ptr<AnchoredOverlayLayer> retired_layer_{};
     std::shared_ptr<HelpBook> retired_book_{};
     std::shared_ptr<detail::HelpPickLayer> retired_pick_{};
-    std::shared_ptr<detail::HelpPickLayer> pick_layer_{};
-    OverlayToken pick_token_{};
-    FocusScopeId pick_scope_{};
-    Window* pick_window_{};
+    // What's This help mode while active: the pick layer, its lease (the
+    // scope begun while opening) and the window it covers.
+    struct PickShown final {
+        std::shared_ptr<detail::HelpPickLayer> layer{};
+        OverlayLease lease{};
+        Window* window{};
+    };
+    OverlayPresentation<PickShown> pick_presentation_{};
     HelpBookSystemSnapshot counters_{};
 
     Event<HelpLinkActivation&> external_link_;

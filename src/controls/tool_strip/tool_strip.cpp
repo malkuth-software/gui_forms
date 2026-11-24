@@ -337,6 +337,20 @@ void ToolStrip::set_item_text(std::string_view item_id, std::string text) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
+void ToolStrip::set_item_width(std::string_view item_id, double width) {
+    require_mutable();
+    const stxlib::Optional<std::size_t> found_index = index_of(item_id);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr) throw std::out_of_range("ToolStrip has no item with this ID");
+    if (!std::isfinite(width) || width < 0.0 || width > maximum_hosted_width) {
+        throw std::invalid_argument("ToolStrip hosted item widths must be finite, non-negative and at most 1024");
+    }
+    if (items_[*index].width == width) return;
+    items_[*index].width = width;
+    advance_layout_revision();
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
 bool ToolStrip::item_checked(std::string_view item_id) const {
     const stxlib::Optional<std::size_t> found_index = index_of(item_id);
     const std::size_t* const index = found_index.value();

@@ -1,5 +1,6 @@
 #include "gui_forms/controls/step_indicator.hpp"
 
+#include "../panel/details_columns.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -12,6 +13,7 @@
 #include <locale>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace gui_forms {
@@ -19,8 +21,10 @@ namespace ic = detail::ic::step_indicator;
 namespace {
 
 // Geometry in logical units: a chip's side, the gap between a chip and its
-// connector, a connector's thickness, the gap above a name, and the natural
-// width of one step.
+// connector, a connector's thickness, the gap above a name, and the least
+// natural width of one step (a step is as wide as its widest name needs,
+// with a caption gap either side; a name wider than its column is
+// shortened with an ellipsis).
 constexpr double chip_side = 24.0;
 constexpr double connector_gap = 6.0;
 constexpr double connector_thickness = 2.0;
@@ -147,7 +151,12 @@ Size StepIndicator::measure(Size available) {
     const Rect requested = requested_bounds();
     const Size caption_size = measure_text_extent_utf8("Ag", caption_font()).logical_size;
     const double natural_height = chip_side + caption_gap + std::ceil(caption_size.height);
-    const double natural_width = natural_step_width * static_cast<double>(std::max<std::size_t>(1U, steps_.size()));
+    const FontSpec captions = caption_font();
+    double step_width = natural_step_width;
+    for (const std::string& name : steps_) {
+        step_width = std::max(step_width, measure_text_extent_utf8(name, captions).logical_size.width + caption_gap * 2.0);
+    }
+    const double natural_width = step_width * static_cast<double>(std::max<std::size_t>(1U, steps_.size()));
     const double width = requested.width > 0.0 ? requested.width : natural_width;
     const double height = requested.height > 0.0 ? requested.height : natural_height;
     const Size measured{std::min(available.width, width), std::min(available.height, height)};
@@ -161,6 +170,8 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
     const std::size_t current = current_step.read();
     const FontSpec numbers = number_font();
     const FontSpec captions = caption_font();
+    // One buffer for the names a narrow column shortens.
+    std::string shown_name;
     for (std::size_t index = 0U; index < placed.size(); ++index) {
         const StepPlacement& step = placed[index];
         const bool complete = index < current;
@@ -197,7 +208,8 @@ void StepIndicator::on_paint(Painter& painter, Rect) {
         }
         PartPaint caption{.role = PartRole::caption, .bounds = step.caption, .states = states,
                           .family = ControlVisualRole::panel};
-        caption.text = lend_paint_text(steps_[index]);
+        details_detail::elide_to_width(painter, steps_[index], captions, step.caption.width, shown_name);
+        caption.text = lend_paint_text(shown_name);
         caption.font = captions;
         caption.alignment = PartTextAlignment::center;
         caption.tone = index == current ? PartTextTone::ordinary : PartTextTone::secondary;

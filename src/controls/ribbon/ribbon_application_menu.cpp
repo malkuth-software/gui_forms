@@ -14,10 +14,12 @@
 namespace gui_forms {
 namespace {
 
-// Panel geometry in logical units at text scale 1: a 190-unit command pane
-// of 26-unit rows (7-unit separators) beside a 250-unit recent pane of a
-// 24-unit caption over 22-unit rows, inside a 4-unit margin. Command labels
-// start 28 units in, where a menu row's icon column ends.
+// Panel geometry in logical units at text scale 1: a command pane of at
+// least 190 units of 26-unit rows (7-unit separators) beside a recent pane
+// of at least 250 units of a 24-unit caption over 22-unit rows, inside a
+// 4-unit margin; each pane widens to its widest label. Command labels start
+// 28 units in, where a menu row's icon column ends; a label keeps a 12-unit
+// gap to the pane's end, 24 units beside a submenu chevron.
 constexpr double panel_margin = 4.0;
 constexpr double commands_width = 190.0;
 constexpr double recent_width = 250.0;
@@ -28,6 +30,8 @@ constexpr double recent_row = 22.0;
 constexpr double label_left = 28.0;
 constexpr double recent_label_left = 8.0;
 constexpr std::size_t numbered_recent = 9U;
+constexpr double label_trailing = 12.0;
+constexpr double chevron_trailing = 24.0;
 
 } // namespace
 
@@ -62,7 +66,8 @@ Size RibbonApplicationMenu::panel_size() const {
     }
     const double recent_height =
         caption_row * scale + static_cast<double>(ribbon.recent_items_.size()) * recent_row * scale;
-    const double width = (commands_width + recent_width) * scale + inner * 2.0;
+    const PaneWidths panes = pane_widths();
+    const double width = panes.commands + panes.recent + inner * 2.0;
     const double height = std::max(commands_height, recent_height) + inner * 2.0;
     const Size size{width, height};
     return size;
@@ -134,8 +139,9 @@ RibbonApplicationMenu::Layout RibbonApplicationMenu::layout() const {
         y = std::max(0.0, std::min(origin_.y, client.height - height));
     }
     placed.panel = {x, y, width, height};
-    placed.commands = {x + inner, y + inner, commands_width * scale, height - inner * 2.0};
-    placed.recent = {x + inner + commands_width * scale, y + inner, recent_width * scale, height - inner * 2.0};
+    const PaneWidths panes = pane_widths();
+    placed.commands = {x + inner, y + inner, panes.commands, height - inner * 2.0};
+    placed.recent = {x + inner + panes.commands, y + inner, panes.recent, height - inner * 2.0};
     placed.caption = {placed.recent.x + recent_label_left * scale, placed.recent.y,
                       placed.recent.width - recent_label_left * scale, caption_row * scale};
     double row_y = placed.commands.y;
@@ -151,6 +157,32 @@ RibbonApplicationMenu::Layout RibbonApplicationMenu::layout() const {
         row_y += recent_row * scale;
     }
     return placed;
+}
+
+RibbonApplicationMenu::PaneWidths RibbonApplicationMenu::pane_widths() const {
+    PaneWidths panes{};
+    if (!ribbon_alive()) return panes;
+    const Ribbon& ribbon = *ribbon_;
+    const double scale = effective_text_scale();
+    const FontSpec font = effective_font(ribbon.font.read());
+    panes.commands = commands_width * scale;
+    for (std::size_t index = 0; index < ribbon.application_menu_.size(); ++index) {
+        const MenuItemSpec& item = ribbon.application_menu_[index];
+        if (item.kind == MenuItemKind::separator) continue;
+        const Row row{{}, false, index, false};
+        const double trailing = (item.kind == MenuItemKind::submenu ? chevron_trailing : label_trailing) * scale;
+        const double label = measure_text_extent_utf8(row_text(row), font).logical_size.width;
+        panes.commands = std::max(panes.commands, label_left * scale + label + trailing);
+    }
+    const double recent_room = (recent_label_left + label_trailing) * scale;
+    panes.recent = std::max(recent_width * scale,
+        recent_room + measure_text_extent_utf8(ribbon.recent_caption.read(), font).logical_size.width);
+    for (std::size_t index = 0; index < ribbon.recent_items_.size(); ++index) {
+        const Row row{{}, true, index, false};
+        const double label = measure_text_extent_utf8(row_text(row), font).logical_size.width;
+        panes.recent = std::max(panes.recent, recent_room + label);
+    }
+    return panes;
 }
 
 bool RibbonApplicationMenu::row_enabled(const Row& row) const {

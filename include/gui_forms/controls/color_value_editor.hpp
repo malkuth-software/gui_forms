@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/controls/color_picker.hpp"
@@ -46,7 +47,7 @@ public:
     // already or the editor is not in a window or not enabled.
     bool open_picker();
     void close_picker() noexcept;
-    [[nodiscard]] bool picker_open() const noexcept { return picker_open_; }
+    [[nodiscard]] bool picker_open() const noexcept { return presentation_.is_shown(); }
     // The picker, made on first opening (null before).
     [[nodiscard]] std::shared_ptr<ColorPicker> picker() const noexcept { return picker_; }
     [[nodiscard]] static std::string format_value(Color colour);
@@ -106,16 +107,14 @@ private:
     bool synchronizing_{};
     Event<Color> value_changed_;
     Event<const PropertyEditorInputError&> edit_failed_;
-    // The drop-down: its picker and layer (made on first opening), the
-    // overlay lease and focus scope while open.
+    // The drop-down: its picker and layer (made on first opening and kept),
+    // and the presentation, which holds the overlay lease, its revocation
+    // subscription and the focus scope while open.
     std::shared_ptr<ColorPicker> picker_{};
     std::shared_ptr<AnchoredOverlayLayer> layer_{};
-    OverlayToken overlay_{};
-    FocusScopeId scope_{};
     SubscriptionToken picker_changed_{};
     SubscriptionToken layer_dismissed_{};
-    SubscriptionToken overlay_revoked_{};
-    bool picker_open_{};
+    AnchoredPresentation presentation_{};
     // property_codemod begin ColorValueEditor (tools/property_families/color_value_editor.json; generated, do not edit)
 private:
     friend struct ColorValueEditorValueCapability<ColorValueEditor>;

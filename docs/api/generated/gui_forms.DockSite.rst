@@ -657,7 +657,7 @@ gui_forms::DockSite
 
       Whether a flyout is open.
 
-   .. cpp:function:: const std::optional<DockPanelId>& flyout_panel() const noexcept
+   .. cpp:function:: std::optional<DockPanelId> flyout_panel() const noexcept
 
       The panel the open flyout shows.
 

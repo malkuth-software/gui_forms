@@ -67,7 +67,7 @@ void DateTimePicker::written(const decltype(maximum)&) {
 // drop_down_changed), then clamps value into the range through its cell
 // (raising value_changed).
 void DateTimePicker::apply_range() {
-    if (dropped_down_) close_drop_down();
+    if (presentation_.is_open()) close_drop_down();
     invalidate(Dirty::paint | Dirty::semantics);
     const DateTimeValue clamped = std::clamp(value.read(), minimum.read(), maximum.read());
     if (clamped != value.read()) value = clamped;
@@ -95,7 +95,7 @@ void DateTimePicker::prepare_write(const decltype(format_provider)&, DateTimeFor
 void DateTimePicker::written(const decltype(format_provider)&) {
     // A program's own provider replaces the locale's.
     follows_host_locale_ = false;
-    if (dropped_down_) close_drop_down();
+    if (presentation_.is_open()) close_drop_down();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
@@ -105,17 +105,17 @@ void DateTimePicker::prepare_write(const decltype(show_up_down)&, bool&) {
 
 // The arrows replace the calendar, so an open one closes.
 void DateTimePicker::written(const decltype(show_up_down)&) {
-    if (show_up_down.read() && dropped_down_) close_drop_down();
+    if (show_up_down.read() && presentation_.is_open()) close_drop_down();
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 bool DateTimePicker::read_view(const decltype(dropped_down)&) const {
-    return dropped_down_;
+    return presentation_.is_open();
 }
 
 void DateTimePicker::write_view(const decltype(dropped_down)&, bool incoming) {
     require_mutable();
-    if (incoming == dropped_down_) return;
+    if (incoming == presentation_.is_open()) return;
     if (incoming) open_drop_down(); else close_drop_down();
 }
 
@@ -165,7 +165,7 @@ void DateTimePicker::follow_host_locale() {
     require_mutable();
     if (follows_host_locale_) return;
     follows_host_locale_ = true;
-    if (dropped_down_) close_drop_down();
+    if (presentation_.is_open()) close_drop_down();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
 }
 
@@ -262,10 +262,10 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
         paint_part(painter, *this, divider);
         // The arrow flips and moves when the calendar is open, as the combo
         // box's does.
-        const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
-        const double square_top = dropped_down_ ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
+        const double center_y = bounds.height * 0.5 + (presentation_.is_open() ? 2.0 : -1.0);
+        const double square_top = presentation_.is_open() ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
         mark.states = button.states;
-        mark.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
+        mark.mark = presentation_.is_open() ? PartMark::arrow_up : PartMark::arrow_down;
         mark.bounds = {mark_left, square_top, 8.0, 8.0};
         mark.bounds = directed_rect(mark.bounds, bounds, direction);
         paint_part(painter, *this, mark);
@@ -307,7 +307,7 @@ void DateTimePicker::on_paint(Painter& painter, Rect damage) {
     content.bounds = directed_rect(content.bounds, bounds, direction);
     content.measured_text.set(measured);
     paint_part(painter, *this, content);
-    if (focused_ || dropped_down_) {
+    if (focused_ || presentation_.is_open()) {
         PartPaint ring;
         ring.family = ControlVisualRole::editor;
         ring.role = PartRole::focus;
@@ -349,7 +349,7 @@ void DateTimePicker::on_activate() {
     } else if (show_up_down.read() && part == HitPart::arrow_down) {
         step_days(-1);
     } else if (!show_up_down.read()) {
-        dropped_down = !dropped_down_;
+        dropped_down = !presentation_.is_open();
     }
 }
 
@@ -359,7 +359,7 @@ void DateTimePicker::on_key_down(KeyEventArgs& arguments) {
     if ((arguments.physical_key == PhysicalKey::f4 ||
          (arguments.physical_key == PhysicalKey::down &&
           includes(arguments.modifiers, Modifier::alt))) && !show_up_down.read()) {
-        dropped_down = !dropped_down_;
+        dropped_down = !presentation_.is_open();
         arguments.handled = true;
     } else if (arguments.physical_key == PhysicalKey::up ||
                arguments.physical_key == PhysicalKey::right) {
@@ -387,20 +387,10 @@ void DateTimePicker::step_days(int days) {
     value = std::clamp(candidate, minimum.read(), maximum.read());
 }
 
-namespace {
-// Clears an open-in-progress flag when it goes, also when the call that set
-// it throws.
-struct ClearOpeningOnExit final {
-    bool* flag{};
-    explicit ClearOpeningOnExit(bool* cleared) noexcept : flag(cleared) {}
-    ClearOpeningOnExit(const ClearOpeningOnExit&) = delete;
-    ClearOpeningOnExit& operator=(const ClearOpeningOnExit&) = delete;
-    ~ClearOpeningOnExit() { *flag = false; }
-};
-} // namespace
-
 void DateTimePicker::open_drop_down() {
-    if (dropped_down_ || opening_drop_down_ || show_up_down.read() || !attached() || window() == nullptr) return;
+    // Opening, open or closing: the one presentation there is serves (a
+    // second layer would repeat this one's stable IDs).
+    if (!presentation_.is_closed() || show_up_down.read() || !attached() || window() == nullptr) return;
     const Control::Ptr owner = shared_from_this();
     const Size client = (*window()).client_size();
     const Rect picker = absolute_bounds();
@@ -424,108 +414,102 @@ void DateTimePicker::open_drop_down() {
         StableId(prefix + ".overlay.calendar"), value.read(), minimum.read(), maximum.read(),
         effective_format_provider());
     (*calendar).set_requested_bounds({x, y, width, height});
-    OverlayToken token = (*window()).open_overlay(owner, layer);
+    DropDownOpening opening{};
+    opening.lease.overlay = (*window()).open_overlay(owner, layer);
     const stxlib::Optional<Rect> face =
         drop_down_popup_face(*window(), picker, Size{width, height}, requested_x);
     const bool lifted = face.present() && lift_.lift(*window(), calendar, (*face.value()));
     if (lifted) (*layer).focusable = true;
     else (*layer).add_child(calendar);
 
-    overlay_layer_ = layer;
-    overlay_calendar_ = calendar;
-    overlay_token_ = std::move(token);
+    opening.layer = layer;
+    opening.calendar = calendar;
     const std::weak_ptr<DateTimePicker> weak =
         std::static_pointer_cast<DateTimePicker>(shared_from_this());
-    overlay_commit_ = (*calendar).committed().subscribe(
+    opening.commit = (*calendar).committed().subscribe(
         *this,
         detail::WeakMemberCallback<void (DateTimePicker::*)(DateTimeValue)>(
             weak, &DateTimePicker::commit_overlay_value));
-    overlay_cancel_ = (*calendar).cancelled().subscribe(
+    opening.cancel = (*calendar).cancelled().subscribe(
         *this,
         detail::WeakMemberCallback<void (DateTimePicker::*)()>(
             weak, &DateTimePicker::close_drop_down));
-    overlay_dismiss_ = (*layer).dismissed().subscribe(
+    opening.dismiss = (*layer).dismissed().subscribe(
         *this,
         detail::WeakMemberCallback<void (DateTimePicker::*)()>(
             weak, &DateTimePicker::close_drop_down));
-    if (Event<>* closed = overlay_token_.closed_event()) {
-        overlay_revocation_ = (*closed).subscribe(
+    if (Event<>* closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed = (*closed).subscribe(
             *this,
             detail::WeakMemberCallback<void (DateTimePicker::*)()>(
                 weak, &DateTimePicker::on_overlay_revoked));
     }
     if (lifted) {
-        lift_closed_ = (*window()).popup_window_closed().subscribe(
+        opening.popup_closed = (*window()).popup_window_closed().subscribe(
             *this, detail::WeakMemberCallback<void (DateTimePicker::*)(std::size_t)>(
                 weak, &DateTimePicker::on_popup_window_closed));
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(calendar);
+    // The open is opening until the scope has begun: a handler reached from
+    // the focus move that asks to open again is served by this open.
+    // lifetime keeps the control across the handlers.
     const Control::Ptr lifetime = shared_from_this();
-    // An open is in progress until the scope has begun: a handler reached
-    // from the focus move that asks to open again is served by this open
-    // (a second layer would repeat this one's stable IDs). Cleared on every
-    // way out; lifetime keeps the control while the guard writes it.
-    opening_drop_down_ = true;
-    const ClearOpeningOnExit opening{&opening_drop_down_};
-    const std::uint64_t scope = (*window()).begin_focus_scope(layer, preferred_focus).value;
+    presentation_ = OverlayPresentation<DropDownOpening>::opening(std::move(opening));
+    const FocusScopeId scope = (*window()).begin_focus_scope(layer, preferred_focus);
     // Beginning the scope moves focus into the drop-down and runs the
     // field's lost-focus and validation handlers before it returns; one may
     // close the drop-down (or close it and open another). The scope is kept
-    // only for this call's layer still open; otherwise it is ended and the
-    // control stays closed, having published nothing (A-gf-controls-08-F3).
+    // only for this call's opening still in progress; otherwise it is ended
+    // and the control stays as the handlers left it, this open having
+    // published nothing (A-gf-controls-08-F3).
     if (!is_alive()) return;
-    if (overlay_layer_ != layer || overlay_scope_ != 0U) {
-        if (window() != nullptr && scope != 0U) {
-            static_cast<void>((*window()).end_focus_scope(FocusScopeId{scope}));
-        }
+    if (!presentation_.settle_open()) {
+        if (window() != nullptr && scope) static_cast<void>((*window()).end_focus_scope(scope));
         return;
     }
-    overlay_scope_ = scope;
-    dropped_down_ = true;
+    (*presentation_.open_state()).lease.scope = scope;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
 }
 
 void DateTimePicker::close_drop_down() {
-    if (!dropped_down_ && !overlay_layer_) return;
-    closing_overlay_ = true;
-    overlay_commit_.disconnect();
-    overlay_cancel_.disconnect();
-    overlay_dismiss_.disconnect();
-    lift_closed_.disconnect();
+    // Opening or open becomes closing: a handler the steps run can neither
+    // close nor open the calendar again until it is closed.
+    const bool changed = presentation_.is_open();
+    if (!presentation_.begin_closing()) return;
+    DropDownOpening& closing = *presentation_.closing_state();
+    closing.commit.disconnect();
+    closing.cancel.disconnect();
+    closing.dismiss.disconnect();
+    closing.popup_closed.disconnect();
     lift_.release();
-    if (window() != nullptr && overlay_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
+    if (window() != nullptr && closing.lease.scope) {
+        static_cast<void>((*window()).end_focus_scope(closing.lease.scope));
     }
-    overlay_scope_ = 0U;
-    overlay_token_.disconnect();
-    overlay_revocation_.disconnect();
-    overlay_calendar_.reset();
-    overlay_layer_.reset();
-    const bool changed = dropped_down_;
-    dropped_down_ = false;
-    closing_overlay_ = false;
+    closing.lease.scope = {};
+    closing.lease.overlay.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    presentation_.finish_closing();
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
 
 void DateTimePicker::on_overlay_revoked() {
-    if (closing_overlay_) return;
-    overlay_commit_.disconnect();
-    overlay_cancel_.disconnect();
-    overlay_dismiss_.disconnect();
-    overlay_revocation_.disconnect();
-    lift_closed_.disconnect();
+    const bool changed = presentation_.is_open();
+    if (!presentation_.begin_closing()) return;
+    DropDownOpening& closing = *presentation_.closing_state();
+    closing.commit.disconnect();
+    closing.cancel.disconnect();
+    closing.dismiss.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    closing.popup_closed.disconnect();
     lift_.release();
-    if (window() != nullptr && overlay_scope_ != 0U) {
+    if (window() != nullptr && closing.lease.scope) {
         static_cast<void>((*window()).end_focus_scope(
-            FocusScopeId{overlay_scope_}, FocusScopeCloseReason::owner_unavailable));
+            closing.lease.scope, FocusScopeCloseReason::owner_unavailable));
     }
-    overlay_scope_ = 0U;
-    overlay_calendar_.reset();
-    overlay_layer_.reset();
-    const bool changed = dropped_down_;
-    dropped_down_ = false;
+    closing.lease.scope = {};
+    presentation_.finish_closing();
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
@@ -548,14 +532,14 @@ SemanticDescriptor DateTimePicker::semantic_descriptor() const {
     descriptor.value = formatted_value();
     if (show_check_box.read()) descriptor.states |= SemanticState::checkable;
     if (show_check_box.read() && checked.read()) descriptor.states |= SemanticState::checked;
-    if (dropped_down_) descriptor.states |= SemanticState::expanded;
+    if (presentation_.is_open()) descriptor.states |= SemanticState::expanded;
     descriptor.actions = {SemanticAction::focus, SemanticAction::increment,
                           SemanticAction::decrement, SemanticAction::set_value};
     if (show_check_box.read()) {
         descriptor.actions.push_back(SemanticAction::press);
     }
     if (!show_up_down.read()) {
-        descriptor.actions.push_back(dropped_down_ ? SemanticAction::collapse
+        descriptor.actions.push_back(presentation_.is_open() ? SemanticAction::collapse
                                                    : SemanticAction::expand);
     }
     descriptor.exposed = true;
@@ -581,11 +565,11 @@ bool DateTimePicker::on_semantic_action(SemanticAction action,
     }
     if (action == SemanticAction::expand && !show_up_down.read()) {
         dropped_down = true;
-        return dropped_down_;
+        return presentation_.is_open();
     }
     if (action == SemanticAction::collapse && !show_up_down.read()) {
         dropped_down = false;
-        return !dropped_down_;
+        return !presentation_.is_open();
     }
     if (action == SemanticAction::set_value) {
         DateTimeValue parsed = value.read();
@@ -712,7 +696,7 @@ void DateTimePicker::publish_part_geometry(std::span<PartGeometry> geometry) con
         }
     } else {
         // The chevron's two one-unit strokes span 8 x 4 about its centre.
-        const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
+        const double center_y = bounds.height * 0.5 + (presentation_.is_open() ? 2.0 : -1.0);
         const Rect chevron{center_x - 4.5, center_y - 2.5, 9.0, 5.0};
         record.drop_down = PartGeometry::from_bounds(directed_rect(button, bounds, direction));
         record.disclosure = PartGeometry::from_bounds(directed_rect(chevron, bounds, direction));
@@ -741,7 +725,7 @@ void DateTimePicker::publish_part_geometry(std::span<PartGeometry> geometry) con
 
 AnatomyStateSet DateTimePicker::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
-    if (dropped_down_) {
+    if (presentation_.is_open()) {
         states.insert(AnatomyState::open);
     } else {
         states.insert(AnatomyState::closed);

@@ -15,6 +15,8 @@ inline constexpr double property_editor_height = 34.0;
 inline constexpr double property_validation_height = 18.0;
 inline constexpr double property_padding = 8.0;
 inline constexpr double property_gap = 7.0;
+// The most of a list's width the name column widens to for its names.
+inline constexpr double label_share = 0.45;
 
 inline void require_property_text(std::string_view value, const char* field) {
     if (!validate_utf8(value).valid()) {

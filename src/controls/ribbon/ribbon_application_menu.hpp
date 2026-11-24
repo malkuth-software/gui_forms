@@ -150,6 +150,14 @@ private:
     void open_submenu(std::size_t row, bool keyboard);
     [[nodiscard]] bool row_enabled(const Row& row) const;
     [[nodiscard]] std::string row_text(const Row& row) const;
+    // The panes' widths: each its logical width at least, and as wide as its
+    // widest label needs (the command pane's with its submenu chevron, the
+    // recent pane's with the caption), so no label is cut.
+    struct PaneWidths final {
+        double commands{};
+        double recent{};
+    };
+    [[nodiscard]] PaneWidths pane_widths() const;
     [[nodiscard]] std::optional<std::size_t> row_at(const Layout& placed, Point local) const;
     void activate(const Row& row);
     void move(bool forward);

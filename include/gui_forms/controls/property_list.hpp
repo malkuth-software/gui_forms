@@ -63,6 +63,9 @@ public:
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
+    // The names shortened with an ellipsis, each with its full name as its
+    // tooltip (as Windows Forms' PropertyGrid shows it).
+    [[nodiscard]] std::vector<SemanticNode> tool_tip_items() const override;
     bool on_semantic_child_action(std::string_view stable_id,
                                   SemanticAction action,
                                   std::string_view value) override;

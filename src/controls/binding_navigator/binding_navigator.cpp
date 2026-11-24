@@ -6,6 +6,7 @@
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
+#include <algorithm>
 #include <array>
 #include <charconv>
 #include <cstddef>
@@ -20,7 +21,11 @@ namespace {
 
 constexpr std::string_view position_item = "position";
 constexpr std::string_view count_item = "count";
+// The position box's width in logical units (the strip scales it by the
+// text scale): 50 at least, and wide enough for the count's digits beside
+// the box's 14 units of inner margin.
 constexpr double position_width = 50.0;
+constexpr double position_margin = 14.0;
 
 std::shared_ptr<Command> make_action(std::string_view navigator_id, std::string_view action,
                                      std::string text) {
@@ -153,6 +158,12 @@ void BindingNavigator::refresh() {
     const BorrowedSpan<ToolStripItemSpec> shown = items();
     if (has_item(shown, count_item)) set_item_text(count_item, "of " + std::to_string(count));
     if (has_text_box(shown, position_item)) {
+        // As many digits as the count has, in the strip's text font, at
+        // the scale the strip lays the box out in.
+        const std::string widest(std::to_string(std::max<std::size_t>(count, 1U)).size(), '0');
+        const double scale = effective_text_scale();
+        const double digits = measure_text_extent_utf8(widest, text_font(font.read())).logical_size.width;
+        set_item_width(position_item, std::max(position_width, digits / scale + position_margin));
         const std::shared_ptr<TextBox> box = text_box(position_item);
         // The box shows the one-based position, or 0 with no current record.
         std::string shown_position("0");

@@ -1,4 +1,5 @@
 #include "gui_forms/controls/modal_layer.hpp"
+#include "../dialog_presentation/provisional_child.hpp"
 
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/window.hpp"
@@ -52,8 +53,19 @@ ModalLayer::ModalLayer(StableId stable_id) : Control(std::move(stable_id)) {
 }
 
 ModalLayer::~ModalLayer() {
-    overlay_revoked_.disconnect();
-    overlay_.disconnect();
+    // Released without raising closed: there is no one left to tell.
+    Shown* const shown = presentation_.shown_state();
+    if (shown != nullptr) {
+        (*shown).lease.overlay_closed.disconnect();
+        (*shown).lease.overlay.disconnect();
+    }
+    presentation_.finish_closing();
+}
+
+Control::Ptr ModalLayer::content() const noexcept {
+    const Shown* const shown = presentation_.shown_state();
+    if (shown == nullptr) return Control::Ptr{};
+    return (*shown).content;
 }
 
 Size ModalLayer::measure(Size available) {
@@ -63,16 +75,17 @@ Size ModalLayer::measure(Size available) {
 void ModalLayer::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     content_bounds_ = Rect{};
-    if (!content_ || !is_current_layout_child(content_)) return;
+    const Control::Ptr content_shown = content();
+    if (!content_shown || !is_current_layout_child(content_shown)) return;
     const double margin = window_margin * effective_text_scale();
     const Size available{std::max(0.0, final_bounds.width - margin * 2.0),
                          std::max(0.0, final_bounds.height - margin * 2.0)};
-    const Size wanted = (*content_).measure(available);
+    const Size wanted = (*content_shown).measure(available);
     const double width = std::min(wanted.width, available.width);
     const double height = std::min(wanted.height, available.height);
     content_bounds_ = Rect{std::floor((final_bounds.width - width) * 0.5),
                            std::floor((final_bounds.height - height) * 0.5), width, height};
-    set_child_layout(content_, content_bounds_);
+    set_child_layout(content_shown, content_bounds_);
 }
 
 Rect ModalLayer::content_slot() const noexcept {
@@ -108,7 +121,7 @@ void ModalLayer::on_mouse_down(MouseEventArgs& arguments) {
     const ScaleFrame origin_frame = window_frame();
     const Point local = frame_to_inner(origin_frame, arguments.window_position);
     const bool button = arguments.button == PointerButton::primary || arguments.button == PointerButton::secondary;
-    const bool beside = shown_ && button && !content_bounds_.contains(local);
+    const bool beside = presentation_.is_shown() && button && !content_bounds_.contains(local);
     arguments.handled = true;
     Control::on_mouse_down(arguments);
     // Last: a handler may close the layer.
@@ -127,7 +140,7 @@ void ModalLayer::on_mouse_wheel(MouseEventArgs& arguments) {
 
 void ModalLayer::on_key_bubble(KeyEvent& event) {
     if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape) return;
-    if (!shown_ || !close_on_escape.read()) return;
+    if (!presentation_.is_shown() || !close_on_escape.read()) return;
     event.handled = true;
     static_cast<void>(close(DialogResult::cancel));
 }
@@ -139,12 +152,12 @@ SemanticDescriptor ModalLayer::semantic_descriptor() const {
     descriptor.description = accessible_description.read();
     descriptor.modal = true;
     if (close_on_escape.read()) descriptor.actions = {SemanticAction::close};
-    descriptor.exposed = shown_;
+    descriptor.exposed = presentation_.is_shown();
     return descriptor;
 }
 
 bool ModalLayer::on_semantic_action(SemanticAction action, std::string_view value) {
-    if (action == SemanticAction::close && shown_ && close_on_escape.read()) {
+    if (action == SemanticAction::close && presentation_.is_shown() && close_on_escape.read()) {
         const bool closed = close(DialogResult::cancel);
         return closed;
     }
@@ -175,19 +188,33 @@ ModalLayer::Parts ModalLayer::parts() const {
 bool ModalLayer::show(const Control::Ptr& owner, Control::Ptr content) {
     require_mutable();
     Window* const window = owner ? (*owner).attached_window() : nullptr;
-    if (shown_ || window == nullptr || parent() || !content || (*content).parent()) return false;
+    if (!presentation_.is_closed() || window == nullptr || parent() || !content || (*content).parent()) return false;
     Window& host = *window;
     const Size client = host.client_size();
+    // Held across the focus handlers begin_focus_scope runs.
+    const Control::Ptr self = shared_from_this();
     set_requested_bounds({0.0, 0.0, client.width, client.height});
-    content_ = std::move(content);
-    add_child(content_);
-    overlay_ = host.open_overlay(owner, shared_from_this());
-    shown_ = true;
-    if (Event<>* revoked = overlay_.closed_event()) {
-        overlay_revoked_ =
+    // Until the presentation is installed, a step that throws takes the
+    // content out again, and the lease ends with `shown`.
+    ProvisionalChild in_layer(self, content);
+    Shown shown{};
+    shown.content = std::move(content);
+    shown.lease.overlay = host.open_overlay(owner, self);
+    if (Event<>* revoked = shown.lease.overlay.closed_event()) {
+        shown.lease.overlay_closed =
             (*revoked).subscribe(*this, Delegate<>::bind<ModalLayer, &ModalLayer::on_overlay_revoked>(*this));
     }
-    scope_ = host.begin_focus_scope(content_);
+    const Control::Ptr scope_root = shown.content;
+    in_layer.commit();
+    presentation_ = OverlayPresentation<Shown>::opening(std::move(shown));
+    // Beginning the scope runs focus and validation handlers; one may close
+    // the layer, and then the scope begun here is ended here.
+    const FocusScopeId started = host.begin_focus_scope(scope_root);
+    if (!presentation_.settle_open()) {
+        if (started) static_cast<void>(host.end_focus_scope(started));
+        return true;
+    }
+    (*presentation_.open_state()).lease.scope = started;
     // The scrim fades in, unless motion is suppressed.
     scrim_opacity_ = 1.0;
     if (!host.motion_clock().suppressed()) {
@@ -197,8 +224,8 @@ bool ModalLayer::show(const Control::Ptr& owner, Control::Ptr content) {
         scrim_fade_.set_specification(specification);
         scrim_fade_.start(FrameClock::now());
         scrim_opacity_ = 0.0;
-        const std::shared_ptr<ModalLayer> self = std::static_pointer_cast<ModalLayer>(shared_from_this());
-        scrim_fade_frames_.start_every_frame(*this, ScrimFadeTick{self});
+        const std::shared_ptr<ModalLayer> layer = std::static_pointer_cast<ModalLayer>(self);
+        scrim_fade_frames_.start_every_frame(*this, ScrimFadeTick{layer});
     }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;
@@ -232,11 +259,11 @@ void ModalLayer::complete_scrim_fade() noexcept {
 
 bool ModalLayer::close(DialogResult result) {
     require_mutable();
-    if (!shown_) return false;
+    if (!presentation_.is_shown()) return false;
     ModalLayerClosingEvent request{result, false};
     closing_.emit(request);
     // A handler may have closed the layer itself.
-    if (!shown_) return true;
+    if (!presentation_.is_shown()) return true;
     if (request.cancel) return false;
     finish(result);
     return true;
@@ -247,39 +274,44 @@ void ModalLayer::on_overlay_revoked() {
 }
 
 void ModalLayer::finish(DialogResult result) {
-    if (!shown_) return;
-    shown_ = false;
+    // Closing from here on: a handler the steps run can neither close nor
+    // show the layer again until it is closed.
+    if (!presentation_.begin_closing()) return;
+    Shown& closing = *presentation_.closing_state();
     complete_scrim_fade();
     Window* const host = attached_window();
-    if (host != nullptr && scope_) static_cast<void>((*host).end_focus_scope(scope_));
-    scope_ = {};
-    overlay_revoked_.disconnect();
-    const Control::Ptr content = content_;
-    content_.reset();
+    if (host != nullptr && closing.lease.scope) static_cast<void>((*host).end_focus_scope(closing.lease.scope));
+    closing.lease.scope = {};
+    closing.lease.overlay_closed.disconnect();
+    const Control::Ptr content = std::move(closing.content);
     content_bounds_ = Rect{};
     if (content) static_cast<void>(remove_child((*content).runtime_id()));
     // Closing the overlay detaches the layer; the caller keeps it.
-    overlay_.disconnect();
+    closing.lease.overlay.disconnect();
+    presentation_.finish_closing();
     result_.set(result);
     closed_.emit(result);
 }
 
 void ModalLayer::on_dispose() noexcept {
     // A disposed layer closes without raising closing or closed.
-    shown_ = false;
     complete_scrim_fade();
-    overlay_revoked_.disconnect();
-    Window* const host = attached_window();
-    if (scope_ && host != nullptr) {
-        try {
-            static_cast<void>((*host).end_focus_scope(scope_));
-        } catch (...) {
-            // Disposal must not throw; the window ends the scope with the overlay.
+    if (presentation_.begin_closing()) {
+        Shown& closing = *presentation_.closing_state();
+        closing.lease.overlay_closed.disconnect();
+        Window* const host = attached_window();
+        if (closing.lease.scope && host != nullptr) {
+            try {
+                static_cast<void>((*host).end_focus_scope(closing.lease.scope));
+            } catch (...) {
+                // Disposal must not throw; the window ends the scope with the overlay.
+            }
         }
+        closing.lease.scope = {};
+        closing.content.reset();
+        closing.lease.overlay.disconnect();
     }
-    scope_ = {};
-    content_.reset();
-    overlay_.disconnect();
+    presentation_.finish_closing();
     Control::on_dispose();
 }
 

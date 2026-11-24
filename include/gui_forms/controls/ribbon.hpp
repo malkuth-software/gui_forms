@@ -9,6 +9,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/controls/quick_access_toolbar.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/ribbon_color_picker.hpp"
@@ -507,7 +508,7 @@ public:
     // without a selected tab, a window, or while disabled.
     bool show_plane_popup();
     void close_plane_popup() noexcept;
-    [[nodiscard]] bool plane_popup_open() const noexcept { return plane_popup_open_; }
+    [[nodiscard]] bool plane_popup_open() const noexcept { return plane_presentation_.held_state() != nullptr; }
     // The popup's content control while open (for tests and inspection).
     [[nodiscard]] Control::Ptr plane_popup() const noexcept;
     [[nodiscard]] const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const& noexcept {
@@ -1125,6 +1126,16 @@ private:
     // ribbon, in record order.
     void move_hosted_to_ribbon(const Control::Ptr& source) noexcept;
     void finish_group_overlay() noexcept;
+    // The group the overlay shows while it is held (opening, open, or
+    // closing until finish_group_overlay); absent otherwise.
+    [[nodiscard]] stxlib::Optional<std::size_t> overlay_group_index() const noexcept;
+    // That group; only while overlay_group_index() is present (0 otherwise).
+    [[nodiscard]] std::size_t overlay_group_position() const noexcept;
+    // The two-pane menu is opening or open.
+    [[nodiscard]] bool application_overlay_shown() const noexcept { return application_presentation_.is_shown(); }
+    // A submenu of the two-pane menu ran its command or a press away
+    // dismissed it; nothing while the two-pane menu is not shown.
+    void mark_application_submenu_invoked() noexcept;
     // Ends `scope`, begun for an overlay that a focus handler closed (or
     // closed and opened again) while the scope began: beginning a scope
     // moves focus and runs the previous control's handlers before it
@@ -1240,23 +1251,26 @@ private:
     // the keyboard's stop in it.
     std::shared_ptr<RibbonGroupOverlay> group_overlay_{};
     std::shared_ptr<AnchoredOverlayLayer> group_layer_{};
-    OverlayToken group_overlay_token_{};
-    FocusScopeId group_scope_{};
     SubscriptionToken group_layer_dismissed_{};
-    SubscriptionToken group_overlay_revoked_{};
-    stxlib::Optional<std::size_t> overlay_group_{};
+    // One opening of the group overlay: its lease (the scope begun while
+    // opening) and the group it shows. The keyboard's stop and focus in it
+    // are interaction state, cleared when it finishes.
+    struct GroupOverlayOpening final {
+        OverlayLease lease{};
+        std::size_t group{};
+    };
+    OverlayPresentation<GroupOverlayOpening> group_presentation_{};
     stxlib::Optional<Stop> overlay_stop_{};
     bool overlay_focused_{};
 
     // The minimized ribbon's popup: its content control and layer (made on
-    // first use), the overlay lease and focus scope while open.
+    // first use), and the lease of one opening (the scope begun while
+    // opening). plane_popup_open reports it held, also while closing until
+    // finish_plane_popup.
     std::shared_ptr<RibbonGroupOverlay> plane_popup_{};
     std::shared_ptr<AnchoredOverlayLayer> plane_layer_{};
-    OverlayToken plane_popup_token_{};
-    FocusScopeId plane_scope_{};
     SubscriptionToken plane_layer_dismissed_{};
-    SubscriptionToken plane_popup_revoked_{};
-    bool plane_popup_open_{};
+    OverlayPresentation<OverlayLease> plane_presentation_{};
 
     Event<const RibbonCommandClick&> command_clicked_{};
     Event<const RibbonDropDownInvocation&> drop_down_item_invoked_{};
@@ -1276,16 +1290,16 @@ private:
     std::shared_ptr<RibbonApplicationMenu> application_panel_{};
     PopupLift application_lift_{};
     Rect application_face_{};
-    // A submenu item of the two-pane menu ran its command, or a press away
-    // from the submenu dismissed it: the menu closes once the ribbon's
-    // menu has.
-    bool application_submenu_invoked_{};
-    OverlayToken application_overlay_token_{};
-    FocusScopeId application_scope_{};
-    SubscriptionToken application_overlay_revoked_{};
-    // The owner window's frame_moved while the application menu shows.
-    SubscriptionToken application_owner_moved_{};
-    bool application_overlay_open_{};
+    // One opening of the two-pane menu: its lease (the scope begun while
+    // opening), the owner window's frame_moved while it shows, and whether
+    // a submenu item ran its command or a press away from the submenu
+    // dismissed it (the menu then closes once the ribbon's menu has).
+    struct ApplicationOpening final {
+        OverlayLease lease{};
+        SubscriptionToken owner_moved{};
+        bool submenu_invoked{};
+    };
+    OverlayPresentation<ApplicationOpening> application_presentation_{};
     SubscriptionToken backstage_close_{};
     OverlayToken backstage_token_{};
     FocusScopeId backstage_scope_{};

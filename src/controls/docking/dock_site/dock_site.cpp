@@ -135,16 +135,18 @@ DockSite::~DockSite() {
     capture_token_.disconnect();
     active_token_.disconnect();
     focus_token_.disconnect();
-    window_pointer_.disconnect();
     root_pointer_.disconnect();
-    navigator_revoked_.disconnect();
-    navigator_token_.disconnect();
+    // The navigator's record ends its subscriptions before its token.
+    navigator_presentation_.finish_closing();
     hover_timer_.disconnect();
     leave_timer_.disconnect();
     stale_timer_.disconnect();
-    flyout_revoked_.disconnect();
-    release_flyout_control();
-    flyout_token_.disconnect();
+    if (FlyoutShown* const held = flyout_presentation_.held_state()) {
+        (*held).lease.overlay_closed.disconnect();
+        release_flyout_control();
+        (*held).lease.overlay.disconnect();
+    }
+    flyout_presentation_.finish_closing();
     release_side_strips();
     if (menu_) (*menu_).close();
     activation_token_.disconnect();
@@ -566,24 +568,24 @@ void DockSite::on_layout_changed(const DockLayoutChange&) {
     // The flyout stays only while its panel is still in the same stack and
     // that stack is still auto-hidden or docked (a collapsed stack's flyout
     // is checked again by the next layout pass).
-    if (flyout_panel_ && workspace_ != nullptr) {
-        const DockPanelLocation location = (*workspace_).layout().locate(*flyout_panel_);
-        const StackSlot* const slot = slot_for(flyout_stack_);
+    if (flyout_panel() && workspace_ != nullptr) {
+        const DockPanelLocation location = (*workspace_).layout().locate(*flyout_panel());
+        const StackSlot* const slot = slot_for(flyout_stack_id());
         const bool was_auto_hidden = slot != nullptr && (*slot).auto_hidden;
         const bool still_auto_hidden = location.placement == DockPlacementKind::auto_hidden && was_auto_hidden;
         const bool still_collapsed = location.placement == DockPlacementKind::docked && !was_auto_hidden;
-        const bool kept = location.stack == flyout_stack_ && (still_auto_hidden || still_collapsed);
+        const bool kept = location.stack == flyout_stack_id() && (still_auto_hidden || still_collapsed);
         if (!kept) close_flyout(DockFlyoutCause::layout);
     }
     realize();
-    if (flyout_panel_) {
-        StackSlot* const slot = slot_for(flyout_stack_);
+    if (flyout_panel()) {
+        StackSlot* const slot = slot_for(flyout_stack_id());
         if (slot != nullptr && (*slot).in_flyout) {
             syncing_ = true;
-            static_cast<void>((*(*slot).view).pages().select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
+            static_cast<void>((*(*slot).view).pages().select(PageId{(*flyout_panel()).value}, PageSelectionCause::programmatic));
             syncing_ = false;
-            (*slot).title = (*workspace_).panel_title(*flyout_panel_);
-            supply_content(flyout_stack_);
+            (*slot).title = (*workspace_).panel_title(*flyout_panel());
+            supply_content(flyout_stack_id());
             place_flyout();
         }
     }
@@ -682,7 +684,7 @@ void DockSite::on_focus_moved(const FocusedControlChange&) {
         if (focused && entry.strip && (*entry.strip).runtime_id() == (*focused).runtime_id()) on_side_strip = true;
     }
     if (focused && !in_flyout && !on_side_strip) focus_outside_ = focused;
-    if (flyout_panel_ && !flyout_closing_) {
+    if (flyout_presentation_.is_open()) {
         if (in_flyout) {
             flyout_focused_ = true;
         } else if (on_side_strip && flyout_focus_pending_) {
@@ -691,7 +693,7 @@ void DockSite::on_focus_moved(const FocusedControlChange&) {
             flyout_focus_pending_ = false;
             focus_into_flyout();
             return;
-        } else if (flyout_focused_ && !on_side_strip && !menu_from_flyout_ && !position_menu_open()) {
+        } else if (flyout_focused_ && !on_side_strip && !menu_from_flyout() && !position_menu_open()) {
             // Focus left a flyout that had it (a side strip keeps it out);
             // where it went is noted below as for any focus move.
             close_flyout(DockFlyoutCause::focus_lost);
@@ -912,15 +914,16 @@ void DockSite::move_view_to_flyout(StackSlot& slot) {
     if (strip && (*strip).visible.read()) (*strip).visible = false;
     // The side tab chose the panel: the view shows it without a layout edit.
     syncing_ = true;
-    static_cast<void>((*slot.view).pages().select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
+    static_cast<void>((*slot.view).pages().select(PageId{(*flyout_panel()).value}, PageSelectionCause::programmatic));
     syncing_ = false;
-    slot.title = (*workspace_).panel_title(*flyout_panel_);
+    slot.title = (*workspace_).panel_title(*flyout_panel());
     supply_content(slot.stack);
 }
 
 void DockSite::move_view_to_site(StackSlot& slot) {
-    if (!slot.in_flyout || !flyout_root_ || !slot.view) return;
-    const Control::Ptr view = (*flyout_root_).remove_child((*slot.view).runtime_id());
+    Control* const flyout_root = flyout_root_ptr();
+    if (!slot.in_flyout || flyout_root == nullptr || !slot.view) return;
+    const Control::Ptr view = (*flyout_root).remove_child((*slot.view).runtime_id());
     slot.in_flyout = false;
     if (view) {
         add_child(view);
@@ -1270,8 +1273,8 @@ void DockSite::arrange_side_strips(const std::array<bool, 4>& edges, const std::
 // is over (the window's overlays are not edited during layout); one still
 // behind side tabs follows the pass.
 void DockSite::follow_flyout_after_pass() {
-    if (!flyout_panel_) return;
-    const StackSlot* const slot = slot_for(flyout_stack_);
+    if (!flyout_panel()) return;
+    const StackSlot* const slot = slot_for(flyout_stack_id());
     const bool behind_tabs = slot != nullptr && ((*slot).auto_hidden || (*slot).side_tabbed);
     if (!behind_tabs) {
         schedule_stale_check();
@@ -1412,7 +1415,7 @@ AnatomyStateSet DockSite::button_states(std::size_t stack, Zone zone) const {
     if (hot_.zone == zone && hot_.index == stack) states.insert(AnatomyState::hot);
     if (pressed_.zone == zone && pressed_.index == stack) states.insert(AnatomyState::pressed);
     bool available = effectively_enabled();
-    if (zone == Zone::menu && menu_open_ && menu_stack_ == stack) states.insert(AnatomyState::open);
+    if (zone == Zone::menu && menu_open_on(stack)) states.insert(AnatomyState::open);
     if (zone == Zone::pin && stack < stacks_.size()) {
         // Docked is pinned: pressing the pin auto-hides the stack; an
         // auto-hidden stack's pin docks it back.
@@ -1834,7 +1837,7 @@ void DockSite::handle_mouse(MouseEventArgs& arguments) {
         return;
     }
     if (hit.zone == Zone::menu) {
-        if (menu_open_ && menu_stack_ == hit.index) {
+        if (menu_open_on(hit.index)) {
             close_position_menu();
             return;
         }
@@ -2229,7 +2232,7 @@ bool DockSite::run_position_command(const DockPanelId& panel, DockPositionComman
             const stxlib::Optional<Point> corner = to_desktop(Point{(*slot).bounds.x, (*slot).bounds.y});
             if (corner.present()) frame = {((*corner.value())).x, ((*corner.value())).y, (*slot).bounds.width, (*slot).bounds.height};
         }
-        if (flyout_panel_ && flyout_stack_ == location.stack) close_flyout(DockFlyoutCause::pointer);
+        if (flyout_panel() && flyout_stack_id() == location.stack) close_flyout(DockFlyoutCause::pointer);
         result = (*workspace_).float_subject(DockSubject::of_panel(panel), frame);
         if (result) static_cast<void>((*workspace_).activate_panel(panel, DockActivationCause::keyboard));
         const bool applied = result.applied;
@@ -2251,7 +2254,7 @@ bool DockSite::run_position_command(const DockPanelId& panel, DockPositionComman
         const bool across = edge == DockSide::left || edge == DockSide::right;
         double extent = across ? bounds.width : bounds.height;
         if (!(extent > 0.0) || (*slot).side_tabbed) extent = flyout_default_extent(*slot);
-        if (flyout_panel_ && flyout_stack_ == location.stack) close_flyout(DockFlyoutCause::pointer);
+        if (flyout_panel() && flyout_stack_id() == location.stack) close_flyout(DockFlyoutCause::pointer);
         DockTransaction transaction{};
         transaction.origin = DockEditOrigin::user;
         transaction.edits.push_back(DockEdit::auto_hide(DockSubject::of_stack(location.stack), edge, extent));
@@ -2261,7 +2264,7 @@ bool DockSite::run_position_command(const DockPanelId& panel, DockPositionComman
     }
     if (command == DockPositionCommand::dock && location.placement == DockPlacementKind::auto_hidden) {
         // Back to where the stack stood; the panel stays active there.
-        if (flyout_panel_ && flyout_stack_ == location.stack) close_flyout(DockFlyoutCause::pointer);
+        if (flyout_panel() && flyout_stack_id() == location.stack) close_flyout(DockFlyoutCause::pointer);
         DockTransaction transaction{};
         transaction.origin = DockEditOrigin::user;
         transaction.edits.push_back(DockEdit::unpin(location.stack));
@@ -2313,7 +2316,7 @@ bool DockSite::show_position_menu(const DockPanelId& panel, MenuOpenMode mode) {
     }
     // A stack in the tree, or the stack whose flyout shows this panel.
     if (index == stacks_.size()) return false;
-    const bool from_flyout = stacks_[index].in_flyout && flyout_panel_ && *flyout_panel_ == panel;
+    const bool from_flyout = stacks_[index].in_flyout && flyout_panel() && *flyout_panel() == panel;
     if (stacks_[index].collapsed && !from_flyout) return false;
     const StackSlot& slot = stacks_[index];
     const bool tool_panel = (*(*workspace_).layout().find_descriptor(panel)).kind == DockPanelKind::tool;
@@ -2363,17 +2366,25 @@ bool DockSite::show_position_menu(const DockPanelId& panel, MenuOpenMode mode) {
     (*menu_).set_items(std::move(items));
     const ScaleFrame local_frame = window_frame();
     Point anchor = frame_to_outer(local_frame, Point{slot.bounds.x, slot.bounds.y});
+    PositionMenuTarget target{};
+    target.panel = panel;
+    target.stack = index;
     // From the flyout, focus in the menu does not count as leaving it.
-    menu_from_flyout_ = from_flyout;
+    target.from_flyout = from_flyout;
     if (slot.kind == DockNodeKind::tool_stack) {
         const CaptionGeometry placed = caption_geometry(slot.caption, pin_shown(slot), close_shown(slot));
         anchor = frame_to_outer(local_frame, Point{placed.menu.x, placed.menu.y + placed.menu.height});
     } else {
         anchor.y += strip_extent(*this);
     }
-    menu_panel_ = panel;
-    menu_stack_ = index;
+    // A menu already shown closes first (ContextMenu::show would close it
+    // and report the close against this target).
+    close_position_menu();
+    menu_presentation_ = OverlayPresentation<PositionMenuTarget>::opening(std::move(target));
     (*menu_).show(shared_from_this(), anchor, mode);
+    // The menu stayed closed (nothing to show, or a focus handler closed
+    // it): the target goes.
+    if (menu_presentation_.is_opening()) menu_presentation_.finish_closing();
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
@@ -2388,16 +2399,31 @@ bool DockSite::position_menu_open() const noexcept {
 }
 
 void DockSite::on_menu_open_changed(bool open) {
-    menu_open_ = open;
-    if (!open) menu_from_flyout_ = false;
+    if (open) {
+        static_cast<void>(menu_presentation_.settle_open());
+    } else {
+        menu_presentation_.finish_closing();
+    }
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+bool DockSite::menu_open_on(const std::size_t index) const noexcept {
+    const PositionMenuTarget* const target = menu_presentation_.open_state();
+    return target != nullptr && (*target).stack == index;
+}
+
+bool DockSite::menu_from_flyout() const noexcept {
+    const PositionMenuTarget* const target = menu_presentation_.shown_state();
+    return target != nullptr && (*target).from_flyout;
 }
 
 void DockSite::on_menu_item_invoked(const MenuItemInvocation& invocation) {
     const std::string prefix = std::string(stable_id().value()) + ".position.";
     for (std::size_t command = 0; command < position_names.size(); ++command) {
         if (invocation.item_id != prefix + std::string(position_names[command])) continue;
-        const DockPanelId panel = menu_panel_;
+        const PositionMenuTarget* const target = menu_presentation_.shown_state();
+        if (target == nullptr) return;
+        const DockPanelId panel = (*target).panel;
         static_cast<void>(run_position_command(panel, static_cast<DockPositionCommand>(command)));
         return;
     }
@@ -2406,15 +2432,17 @@ void DockSite::on_menu_item_invoked(const MenuItemInvocation& invocation) {
 // -- the navigator -------------------------------------------------------------
 
 std::shared_ptr<DockNavigator> DockSite::navigator() const noexcept {
-    if (!navigator_open_) return {};
-    return navigator_;
+    const NavigatorOpening* const shown = navigator_presentation_.open_state();
+    if (shown == nullptr) return {};
+    return (*shown).navigator;
 }
 
 bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier release) {
     require_mutable();
     Window* const host = attached_window();
     if (host == nullptr || workspace_ == nullptr) return false;
-    if (navigator_open_) return true;
+    // Opening, open or closing: the one navigator there is serves.
+    if (!navigator_presentation_.is_closed()) return navigator_presentation_.is_shown();
     close_position_menu();
     // Each list: the panels in most-recently-active order, then the others
     // shown in tree order; panels in collapsed stacks are left out.
@@ -2448,73 +2476,90 @@ bool DockSite::open_navigator(DockNavigatorList list, int direction, Modifier re
     }
     if (tools.empty() && documents.empty()) return false;
     const std::string identity = std::string(stable_id().value()) + ".navigator";
-    navigator_ = make_control<DockNavigator>(StableId(identity));
-    (*navigator_).set_entries(std::move(tools), std::move(documents), list);
+    NavigatorOpening opening{};
+    opening.navigator = make_control<DockNavigator>(StableId(identity));
+    DockNavigator& navigator = *opening.navigator;
+    navigator.set_entries(std::move(tools), std::move(documents), list);
     // The row after the active one (the second most recent), or the last.
-    const DockNavigatorList shown_list = (*navigator_).current_list();
-    const std::size_t count = (*navigator_).entries(shown_list).size();
+    const DockNavigatorList shown_list = navigator.current_list();
+    const std::size_t count = navigator.entries(shown_list).size();
     const std::size_t row = direction >= 0 ? std::min<std::size_t>(1U, count - 1U) : count - 1U;
-    static_cast<void>((*navigator_).select(shown_list, row));
-    (*navigator_).release_modifier = release;
-    const Size wanted = (*navigator_).measure(Size{absolute_bounds().width, absolute_bounds().height});
+    static_cast<void>(navigator.select(shown_list, row));
+    navigator.release_modifier = release;
+    const Size wanted = navigator.measure(Size{absolute_bounds().width, absolute_bounds().height});
     const Rect absolute = absolute_bounds();
     const Rect placed = centred(absolute, wanted.width, wanted.height);
-    (*navigator_).set_requested_bounds(placed);
-    navigator_chosen_ = (*navigator_).chosen().subscribe(
+    navigator.set_requested_bounds(placed);
+    opening.chosen = navigator.chosen().subscribe(
         *this, Delegate<const DockNavigatorChoice&>::bind<DockSite, &DockSite::on_navigator_chosen>(*this));
-    navigator_cancelled_ =
-        (*navigator_).cancelled().subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_navigator_cancelled>(*this));
-    navigator_token_ = (*host).open_overlay(shared_from_this(), navigator_);
-    if (Event<>* const closed = navigator_token_.closed_event()) {
-        navigator_revoked_ =
+    opening.cancelled =
+        navigator.cancelled().subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_navigator_cancelled>(*this));
+    opening.lease.overlay = (*host).open_overlay(shared_from_this(), opening.navigator);
+    if (Event<>* const closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed =
             (*closed).subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_navigator_revoked>(*this));
     }
     if (const Control::Ptr root = (*host).root()) {
-        window_pointer_ = (*root).pointer_preview_observed().subscribe(
+        opening.window_pointer = (*root).pointer_preview_observed().subscribe(
             *this, Delegate<const PointerEvent&>::bind<DockSite, &DockSite::on_window_pointer>(*this));
     }
+    const std::shared_ptr<DockNavigator> navigator_control = opening.navigator;
+    navigator_presentation_ = OverlayPresentation<NavigatorOpening>::opening(std::move(opening));
     FocusScopeOptions options{};
     options.contain_focus = true;
-    navigator_scope_ = (*host).begin_focus_scope(navigator_, navigator_, options);
-    static_cast<void>((*host).request_focus(navigator_));
-    navigator_open_ = true;
+    // Beginning the scope runs focus handlers; one may close the navigator,
+    // and then the scope begun here is ended here.
+    const FocusScopeId scope = (*host).begin_focus_scope(navigator_control, navigator_control, options);
+    if (!navigator_presentation_.settle_open()) {
+        if (scope && attached_window() != nullptr) {
+            static_cast<void>((*attached_window()).end_focus_scope(scope));
+        }
+        return false;
+    }
+    (*navigator_presentation_.open_state()).lease.scope = scope;
+    static_cast<void>((*host).request_focus(navigator_control));
     return true;
 }
 
 // Closing order: focus returns (the scope restores it), the window drops the
-// overlay, then the site forgets it.
+// overlay, then the site forgets it. A close or open asked meanwhile is
+// refused.
 void DockSite::close_navigator() noexcept {
-    if (!navigator_open_ || navigator_closing_) return;
-    navigator_closing_ = true;
+    if (!navigator_presentation_.begin_closing()) return;
+    NavigatorOpening& closing = *navigator_presentation_.closing_state();
     Window* const host = attached_window();
-    if (host != nullptr && navigator_scope_) {
+    if (host != nullptr && closing.lease.scope) {
         try {
-            static_cast<void>((*host).end_focus_scope(navigator_scope_));
+            static_cast<void>((*host).end_focus_scope(closing.lease.scope));
         } catch (...) {
         }
     }
-    navigator_scope_ = {};
-    window_pointer_.disconnect();
-    navigator_revoked_.disconnect();
-    navigator_chosen_.disconnect();
-    navigator_cancelled_.disconnect();
-    navigator_token_.disconnect();
-    navigator_.reset();
-    navigator_open_ = false;
-    navigator_closing_ = false;
+    closing.lease.scope = {};
+    closing.window_pointer.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    closing.chosen.disconnect();
+    closing.cancelled.disconnect();
+    closing.lease.overlay.disconnect();
+    navigator_presentation_.finish_closing();
 }
 
 void DockSite::on_navigator_revoked() {
-    if (!navigator_open_ || navigator_closing_) return;
+    if (!navigator_presentation_.begin_closing()) return;
+    NavigatorOpening& closing = *navigator_presentation_.closing_state();
     Window* const host = attached_window();
-    if (host != nullptr && navigator_scope_) {
+    if (host != nullptr && closing.lease.scope) {
         try {
-            static_cast<void>((*host).end_focus_scope(navigator_scope_, FocusScopeCloseReason::owner_unavailable));
+            static_cast<void>((*host).end_focus_scope(closing.lease.scope, FocusScopeCloseReason::owner_unavailable));
         } catch (...) {
         }
     }
-    navigator_scope_ = {};
-    close_navigator();
+    closing.lease.scope = {};
+    closing.window_pointer.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    closing.chosen.disconnect();
+    closing.cancelled.disconnect();
+    closing.lease.overlay.disconnect();
+    navigator_presentation_.finish_closing();
 }
 
 void DockSite::on_navigator_chosen(const DockNavigatorChoice& choice) {
@@ -2529,7 +2574,7 @@ void DockSite::on_navigator_cancelled() {
 
 // A press outside the navigator closes it and passes through.
 void DockSite::on_window_pointer(const PointerEvent& event) {
-    if (!navigator_open_ || event.action != PointerAction::down) return;
+    if (!navigator_presentation_.is_open() || event.action != PointerAction::down) return;
     close_navigator();
 }
 
@@ -2634,7 +2679,7 @@ std::vector<SemanticNode> DockSite::caption_nodes(const StackSlot& slot, std::si
     menu.bounds = to_window(absolute, placed.menu);
     menu.states = SemanticState::visible;
     if (effectively_enabled()) menu.states |= SemanticState::enabled;
-    if (menu_open_ && menu_stack_ == index) menu.states |= SemanticState::expanded;
+    if (menu_open_on(index)) menu.states |= SemanticState::expanded;
     menu.actions = {SemanticAction::press, SemanticAction::show_menu};
     nodes.push_back(std::move(menu));
     if (!placed.pin.empty()) {
@@ -2882,7 +2927,7 @@ void DockSite::publish_part_geometry(std::span<PartGeometry> geometry) const {
         record.drop_cue = PartGeometry::from_bounds(cue);
         record.drop_cue.states.insert(AnatomyState::drop_rejected);
     }
-    if (flyout_panel_) {
+    if (flyout_panel()) {
         const FlyoutGeometry placed = flyout_geometry();
         record.flyout_shadow = PartGeometry::from_bounds(placed.full);
         record.flyout_face = PartGeometry::from_bounds(placed.full);
