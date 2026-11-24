@@ -1597,11 +1597,20 @@ void BindingSource::on_dispose() noexcept {
     // The provider is let go: its link is revoked, then it is detached.
     revoke_link();
     provider_.reset();
+    // Everything bind_provider, rebuild_view and begin_edit set goes, so a
+    // disposed source answers as an empty one in provider order with no
+    // edit (it kept reporting an index view and the edited row's ID).
     view_.reset();
+    view_mode_ = BindingViewMode::provider_order;
+    sort_.clear();
+    filter_ = BindingFilter{};
     row_cache_.clear();
     provider_count_ = 0U;
     editing_ = false;
     edit_values_.clear();
+    edit_stable_id_.clear();
+    suspended_ = false;
+    pending_reset_ = false;
     // The currency manager stays for the source's whole life (A-gf-core-01-F5):
     // currency_manager() hands out a reference, and the manager only forwards
     // to this source, whose members answer a disposed source as they would.

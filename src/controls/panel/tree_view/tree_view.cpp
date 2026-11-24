@@ -234,6 +234,9 @@ void TreeView::set_top_row(std::size_t row) {
     }
     if (top_row_ == row) return;
     top_row_ = row;
+    // The hot row is the row under the pointer, which the scroll moved
+    // away: it is found again at the next pointer move.
+    hovered_row_.reset();
     conceal_cut_off_text();
     invalidate(Dirty::paint | Dirty::semantics);
 }
@@ -367,8 +370,11 @@ stxlib::Optional<std::size_t> TreeView::visible_row_at(Point absolute) const noe
 
 void TreeView::ensure_visible(std::size_t row) {
     const std::size_t count = visible_row_count();
+    const std::size_t previous_top = top_row_;
     if (row < top_row_) top_row_ = row;
     else if (row >= top_row_ + count) top_row_ = row - count + 1U;
+    // A scroll moves the rows under the pointer (set_top_row's rule).
+    if (top_row_ != previous_top) hovered_row_.reset();
 }
 
 void TreeView::select_visible_row(std::size_t row, bool activate) {
@@ -543,6 +549,8 @@ void TreeView::handle_pointer(PointerEvent& event) {
                 (event.wheel_delta.y > 0.0 ? -3 : 3),
             0, static_cast<std::ptrdiff_t>(visible_.size() - 1U));
         set_top_row(static_cast<std::size_t>(next));
+        // The pointer is where the wheel turned: the row now under it is hot.
+        if (is_alive()) hovered_row_ = visible_row_at(event.position);
         event.handled = true;
         return;
     }
