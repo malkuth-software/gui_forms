@@ -273,7 +273,7 @@ gui_forms::LookupComboBox
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 7 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 11 supported, 0 deferred, 0 excluded, 5 unclassified; 16 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -335,7 +335,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
    * - method
      - GUI.Forms-only
      - ``close_drop_down``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``lookup_combo_box_property_entries``
@@ -343,7 +343,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
    * - method
      - GUI.Forms-only
      - ``open_drop_down``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``row_of``

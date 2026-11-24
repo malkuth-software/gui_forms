@@ -179,6 +179,9 @@ gui_forms::Ribbon
       **menu_open** : ``bool``, read-only
          Whether the application menu (either form) or a command's menu is open.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the ribbon's state agrees with itself (state hunt, 2026-11-23): its records have the shape of its tabs, its tab indices are in range, and each overlay it holds open is in the window. For tests and diagnostics.
+
       **overlay_group** : ``std::optional<std::string>``, read-only
          The ID of the group whose overlay is open, or none.
 
@@ -648,6 +651,10 @@ gui_forms::Ribbon
 
       Whether the application menu (either form) or a command's menu is open.
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the ribbon's state agrees with itself (state hunt, 2026-11-23): its records have the shape of its tabs, its tab indices are in range, and each overlay it holds open is in the window. For tests and diagnostics.
+
    .. cpp:function:: std::optional<std::string> overlay_group() const
 
       The ID of the group whose overlay is open, or none.
@@ -943,7 +950,7 @@ gui_forms::Ribbon
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 5 unclassified; 51 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 47 supported, 0 deferred, 0 excluded, 5 unclassified; 52 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -954,6 +961,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``application_menu``

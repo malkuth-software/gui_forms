@@ -98,6 +98,9 @@ gui_forms::DockSite
       **navigator_open** : ``bool``, read-only
          Whether the navigator is open.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the site's navigator, flyout and position-menu state agree with themselves (state hunt, 2026-11-23). For tests and diagnostics.
+
       **navigator** : ``std::shared_ptr<DockNavigator>``, default none, read-only
          The open navigator.
 
@@ -594,6 +597,10 @@ gui_forms::DockSite
 
       Whether the navigator is open.
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the site's navigator, flyout and position-menu state agree with themselves (state hunt, 2026-11-23). For tests and diagnostics.
+
    .. cpp:function:: std::shared_ptr<DockNavigator> navigator() const noexcept
 
       The open navigator.
@@ -935,7 +942,7 @@ gui_forms::DockSite
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 51 supported, 0 deferred, 0 excluded, 7 unclassified; 58 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 53 supported, 0 deferred, 0 excluded, 6 unclassified; 59 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -946,6 +953,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 51 s
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``collapsed_stacks``
@@ -1105,7 +1116,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 51 s
    * - method
      - GUI.Forms-only
      - ``close_navigator``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``close_position_menu``

@@ -45,6 +45,9 @@ gui_forms::StepIndicator
          A current step past the new last step moves to the last, or to zero
          when there are none.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the indicator agrees with itself (state hunt, 2026-11-23): the current step names one of the steps, or is 0 with none. For tests and diagnostics.
+
       **parts** : ``Parts``, read-only
 
    :Events:
@@ -110,6 +113,10 @@ gui_forms::StepIndicator
 
       Sets :cpp:func:`steps <gui_forms::StepIndicator::steps>`; see the property's description above.
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the indicator agrees with itself (state hunt, 2026-11-23): the current step names one of the steps, or is 0 with none. For tests and diagnostics.
+
    .. cpp:function:: Parts parts() const
 
 
@@ -161,7 +168,7 @@ gui_forms::StepIndicator
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 2 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 2 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -172,6 +179,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 4 su
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``current_step``

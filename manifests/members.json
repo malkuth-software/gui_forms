@@ -391,7 +391,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "children_revision", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_core_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "classes", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "command_target", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/command_chain_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "committed_arranged_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/collection_controls_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "committed_arranged_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/binding_navigator_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "content_effect", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/paint_group_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "declares_clarity", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_chunk_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "dirty", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_core_tests.cpp"},
@@ -586,7 +586,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "text_font", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/app_font_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "text_input_caret", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_text_editor_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "theme_role_colours", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/theme_language/theme_colour_role_css_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "tool_tip_items", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "tool_tip_items", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/inspection_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "visual_context", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_core_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "visual_outsets", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "warp_pointer", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
@@ -2736,7 +2736,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "enumeration_name", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "flag_names", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "none_name", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "event", "winforms": null, "gui_forms": "drop_down_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "event", "winforms": null, "gui_forms": "drop_down_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/inspection_controls_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "value_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "flags_value_editor_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
@@ -2836,6 +2836,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "try_set_property_value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
     ]},
     {"type": "PropertyList", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/abi/schema/gf_abi_schema_export.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/inspection_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "content_height", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/inspection_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "groups", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "header_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/inspection_controls_tests.cpp"},
@@ -3223,6 +3224,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "set_page_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"}
     ]},
     {"type": "NavigationPane", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/navigation_pane_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "configure_menu_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/navigation_pane_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "hidden_pages", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "overlay_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/navigation_pane_tests.cpp"},
@@ -3235,7 +3237,7 @@
       {"kind": "event", "winforms": null, "gui_forms": "state_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/navigation_pane_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "apply_state", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "close_configure_menu", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/navigation_pane_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "close_overlay", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "close_overlay", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/navigation_pane_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "initialize_control_tree", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "open_overlay", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "page_hidden", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/tabs-and-pages_tests.cpp"},
@@ -3245,6 +3247,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "show_more_buttons", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/navigation_pane_tests.cpp"}
     ]},
     {"type": "DockSite", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_site_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "collapsed_stacks", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_auto_hide_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "document_area_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/mdi_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "document_area_maximized", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
@@ -3284,7 +3287,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "begin_keyboard_move", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "cancel_drag", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "close_flyout", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_auto_hide_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "close_navigator", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "close_navigator", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_site_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "close_position_menu", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_site_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "document_frame", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/mdi_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "document_frame_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/mdi_tests.cpp"},
@@ -3792,7 +3795,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "progress_bar", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tool_strip_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_item_checked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_item_text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/kept_layout_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "set_item_width", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "set_item_width", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/tool_strip_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "show_drop_down", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "show_overflow", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/quick_access_toolbar_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "text_box", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/binding_navigator_tests.cpp"},
@@ -3811,15 +3814,16 @@
       {"kind": "method", "winforms": null, "gui_forms": "set_field_widths", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"}
     ]},
     {"type": "RibbonColorPicker", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "natural_size", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "palette", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "palette_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "palette_overlay", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "realized_entries", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
-      {"kind": "event", "winforms": null, "gui_forms": "palette_open_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "event", "winforms": null, "gui_forms": "palette_open_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "value_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "close_palette", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "open_palette", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
+      {"kind": "method", "winforms": null, "gui_forms": "open_palette", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"}
     ]},
     {"type": "BackstageView", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "items", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
@@ -3829,6 +3833,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "activate", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "RibbonGallery", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_gallery_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "can_scroll_down", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "can_scroll_up", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_gallery_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "categories", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -3980,6 +3985,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "initialize_control_tree", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "Ribbon", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/command_route_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "application_menu", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/menu_popup_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "application_menu_overlay", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/menu_popup_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "backstage_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
@@ -3987,10 +3993,10 @@
       {"kind": "property", "winforms": null, "gui_forms": "group_overlay", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "ladder_step", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_contextual_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "menu_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/menu_popup_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "overlay_group", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_scaling_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "overlay_group", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "plane_hidden", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_contextual_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "plane_popup", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "plane_popup_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "plane_popup_open", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "quick_access_toolbar", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "realized_commands", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/engine_gate_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "realized_groups", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_contextual_tests.cpp"},
@@ -4015,7 +4021,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "close_backstage", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "close_group_overlay", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "close_menus", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/menu_popup_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "close_plane_popup", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "close_plane_popup", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "combo_box", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_scaling_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "group_layouts", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_scaling_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "numeric_up_down", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_scale_raster_tests.cpp"},
@@ -4026,7 +4032,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "show_backstage", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "show_drop_down", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "show_group_overlay", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "show_plane_popup", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "show_plane_popup", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_file_area_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "tab_set_accent", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_contextual_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "tab_set_availability", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/ribbon_contextual_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "tab_shown", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -4218,6 +4224,7 @@
       {"kind": "method", "winforms": "Close", "scope": "admitted", "gui_forms": "close", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": "ShowDialog", "scope": "admitted", "overloads": 3, "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "ShowDialogAsync", "scope": "admitted", "overloads": 3, "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/task_dialog_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "checked_radio_button", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/task_dialog_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "expander_button", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/task_dialog_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "page", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
@@ -4279,6 +4286,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "dial_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "StepIndicator", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "current_step", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "steps", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "current_step_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/property_family_generated_tests.cpp"},
@@ -4322,10 +4330,11 @@
     {"type": "Callout", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "action_button", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "action_text", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "is_shown", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "light_dismiss", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "prefers_above", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "target", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "target", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "text", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "title", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "event", "winforms": null, "gui_forms": "action_clicked", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
@@ -4336,8 +4345,9 @@
       {"kind": "method", "winforms": null, "gui_forms": "show", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"}
     ]},
     {"type": "ModalLayer", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "close_on_escape", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "content", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "is_shown", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "result", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "scrim_opacity", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
@@ -4361,9 +4371,9 @@
       {"kind": "property", "winforms": null, "gui_forms": "shown_text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "drop_down_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "selected_key_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "close_drop_down", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "close_drop_down", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "lookup_combo_box_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "open_drop_down", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "open_drop_down", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "row_of", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "AboutDialog", "winforms": null, "gui_forms_base": "Component", "status": "supported", "basis": "test", "evidence": "tests/final_controls_tests.cpp", "members": [
@@ -4905,6 +4915,7 @@
       {"kind": "method", "winforms": "ShowHelpIndex", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "ShowPopup", "scope": "admitted", "static": true, "gui_forms": "show_popup", "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "active_viewer", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "bookmarks", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "help_mode_active", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "locale", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -4918,7 +4929,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "attach", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "attach_ribbon", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "attach_ribbon_tool_tip", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "cancel_help_mode", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "cancel_help_mode", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "catalog", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "clear_user_overrides", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "close_popup", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},

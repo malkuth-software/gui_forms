@@ -61,6 +61,9 @@ gui_forms::Callout
       **target** : ``Control::Ptr``, read-only
          The target while shown, else null.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the callout's state agrees with itself (state hunt, 2026-11-23): shown, it is in its presentation's layer; closed, it has no parent, no target and nothing pressed. For tests and diagnostics.
+
       **action_button** : ``std::shared_ptr<Button>``, read-only
          The action :cpp:class:`Button <gui_forms::Button>` while :cpp:member:`action_text <gui_forms::Callout::action_text>` is set, else null.
 
@@ -160,6 +163,10 @@ gui_forms::Callout
    .. cpp:function:: Control::Ptr target() const noexcept
 
       The target while shown, else null.
+
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the callout's state agrees with itself (state hunt, 2026-11-23): shown, it is in its presentation's layer; closed, it has no parent, no target and nothing pressed. For tests and diagnostics.
 
    .. cpp:function:: std::shared_ptr<Button> action_button() const noexcept
 
@@ -270,7 +277,7 @@ gui_forms::Callout
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 8 unclassified; 14 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 8 supported, 0 deferred, 0 excluded, 7 unclassified; 15 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -291,6 +298,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 6 su
      - unclassified (untested)
    * - property
      - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``is_shown``
      - supported
    * - property
@@ -304,7 +315,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 6 su
    * - property
      - GUI.Forms-only
      - ``target``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``text``
