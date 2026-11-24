@@ -186,6 +186,9 @@ jobs:
           # tests' stable-ID literal rule.
           python3 -B -m unittest discover -s tools -p test_check_exit_statics.py
           python3 -B -m unittest discover -s tools -p test_check_stable_id_literals.py
+          # The state-agreement candidates (hunt 2026-11-23): report-only, never fails.
+          python3 -B -m unittest discover -s tools -p test_check_state_agreement.py
+          python3 -B tools/check_state_agreement.py src | tail -n 1
           python3 -B tools/check_lifetime_rules.py include src lab demo examples tools file_manager_demoboard stx_fontpack
           # D15 (decision 6a): the standard-library rules, STXlib's check_std_rules
           # copied at 60dea8f; tools/std_rules_allowance.txt only shrinks.
