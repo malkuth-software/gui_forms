@@ -160,7 +160,7 @@ public:
     // declared output; false for anything else.
     bool structured(const char* json, std::size_t bytes);
     // Adds an image (PNG unless mime_type names another image type); false
-    // for no bytes, more than 16 MiB, or a mime type that is not image/*.
+    // for no bytes, more than 16 MiB, or a mime type outside the image types.
     bool image(const unsigned char* bytes, std::size_t count, const char* mime_type);
     // Fails the call with error, a message and a hint (each NUL-terminated,
     // may be null).

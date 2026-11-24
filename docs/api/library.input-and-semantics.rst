@@ -1040,7 +1040,7 @@ Types
 
    .. cpp:function:: bool image(const unsigned char* bytes, std::size_t count, const char* mime_type)
 
-      Adds an image (PNG unless mime_type names another image type); false for no bytes, more than 16 MiB, or a mime type that is not image/*.
+      Adds an image (PNG unless mime_type names another image type); false for no bytes, more than 16 MiB, or a mime type outside the image types.
 
    .. cpp:function:: void fail(ModelToolError error, const char* message, const char* hint)
 
