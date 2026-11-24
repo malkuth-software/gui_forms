@@ -124,7 +124,9 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, "
         "show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list "
         "does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), "
-        "never submitted. Waits for idle and replies with what changed; terse gives counts. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).",
+        "never submitted. Waits for idle and replies with what changed; terse gives counts. Acts need "
+        "control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that "
+        "allows).",
         object_schema(targets +
                       ",\"action\":{\"type\":\"string\",\"enum\":[\"press\",\"select\",\"expand\",\"collapse\","
                       "\"focus\",\"set_value\",\"increment\",\"decrement\",\"show_menu\",\"close\","
@@ -135,7 +137,8 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "reset", "Reset",
         "Puts the interface back in order: closes the dialogs you opened (as Cancel), popups and menus, tooltips "
         "and drags, releases pointer capture, and stops content that froze; replies with what it reset "
-        "and what it left (a dialog the user opened). Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).",
+        "and what it left (a dialog the user opened). Acts need control: in a shared launch (--mcp-shared) "
+        "your first act asks the user (a 10-second countdown that allows).",
         object_schema(std::string_view{}), ToolAccess::acting));
     // A point's schema, in the space `space` names (round 2: the pointer's
     // arguments were bare objects).
@@ -162,7 +165,9 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "Pointer input through the program's own input path: move, hover, click, double_click, right_click, down, "
         "up, drag, wheel. Aim with a target (offset inside it, default its centre) or with position in window "
         "coordinates, not both. A drag presses at that point and moves through path: with a target, path points "
-        "are in the target's space like offset; without one, window coordinates like position. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).",
+        "are in the target's space like offset; without one, window coordinates like position. Acts need "
+        "control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that "
+        "allows).",
         object_schema(targets +
                       ",\"action\":{\"type\":\"string\",\"enum\":[\"move\",\"hover\",\"click\",\"double_click\","
                       "\"right_click\",\"down\",\"up\",\"drag\",\"wheel\"]},"
@@ -175,7 +180,8 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
     specs.push_back(built_in(
         "keyboard", "Keyboard",
         "Key chords (\"Ctrl+S\") and sequences, committed text, and composition, to the focused control or to a "
-        "target focused first. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows). Replies with what changed, as act does.",
+        "target focused first. Acts need control: in a shared launch (--mcp-shared) your first act asks the "
+        "user (a 10-second countdown that allows). Replies with what changed, as act does.",
         object_schema(targets +
                       ",\"keys\":{\"type\":[\"string\",\"array\"],\"items\":{\"type\":\"string\"}},"
                       "\"text\":{\"type\":\"string\"},\"composition\":{\"type\":\"object\"},"
@@ -231,7 +237,7 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         batch_schema(), ToolAccess::acting));
     specs.push_back(built_in(
         "release_control", "Release control",
-        "Gives the program back to the user and ends AI mode. In a default launch your first act asks the user "
+        "Gives the program back to the user and ends AI mode. In a shared launch your first act asks the user "
         "(a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s "
         "pass without a call; a launch with --mcp is yours from the start. Reads never need control.",
         "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}", ToolAccess::read_only));
@@ -402,6 +408,27 @@ void append_cancel_keys(std::vector<HostEventPayload>& events) {
     events.push_back(up);
 }
 
+// Readies `window` for the cancel keys: a tooltip takes Escape as its own
+// dismissal, and a window with no focused control (a dialog the program
+// opened while another application was frontmost) routes keys nowhere
+// (round 3: the Resize dialog never saw the model's Escape). Focuses the
+// first control that takes focus, breadth first.
+void ready_for_cancel_keys(Window& window) {
+    if (window.tool_tip_visible()) window.hide_tool_tip();
+    if (window.focused_control()) return;
+    const Control::Ptr root = window.root();
+    std::vector<Control::Ptr> work{};
+    if (root) work.push_back(root);
+    for (std::size_t next = 0U; next < work.size(); ++next) {
+        const Control::Ptr current = work[next];
+        if (current != root && window.request_focus(current)) return;
+        for (std::size_t index = 0U; index < (*current).child_count(); ++index) {
+            Control::Ptr child = (*current).child_at(index);
+            if (child) work.push_back(std::move(child));
+        }
+    }
+}
+
 // Performs a prepared act on the UI thread, at its own dispatcher turn.
 // Returns whether the window took it; `detail` says why not.
 bool perform_act(Window& window, const PreparedAct& act, const ClientIdentity& client, ActOutcome& outcome) {
@@ -562,6 +589,8 @@ std::string window_list_line(AutomationCore& core) {
     core.fill_windows(windows);
     std::string line{};
     for (Window* const window : windows) {
+        // Tooltip windows are no window a model names (as windows lists).
+        if (core.passive_popup_window(*window)) continue;
         if (!line.empty()) line += ' ';
         line += "[" + core.window_stable_id(*window) + "]";
     }
@@ -819,6 +848,12 @@ void AutomationCore::fill_tool_specs(std::vector<ToolSpec>& specs) {
         // call's answer.
         const CommandState& state = (*command).state();
         const std::string name = command_tool_name((*command).stable_id());
+        // Commands sharing a stable ID (a menu's Save and the Quick Access
+        // Toolbar's) are one tool: a second spec of the name failed to bind
+        // (round 2).
+        bool listed = false;
+        for (const ToolSpec& served : specs) listed = listed || served.name == name;
+        if (listed) continue;
         // A command's text may change as it runs ("Undo Draw"); its first
         // spec stands for the launch.
         bool cached = false;
@@ -1115,6 +1150,7 @@ StepOutcome CoreAccess::reset_tool(RunningCall& call, FrameTime now) {
         if (dialog.open && dialog.window == window && !dialog.drivable) {
             if (model_dialog(dialog)) {
                 // Escape, as the user cancels; closed when the dialog is gone.
+                ready_for_cancel_keys(*window);
                 std::vector<HostEventPayload> keys{};
                 append_cancel_keys(keys);
                 const std::uint64_t pressed = detail::nanoseconds_of(now);
@@ -1306,11 +1342,17 @@ StepOutcome CoreAccess::prepare_act(RunningCall& call, Window& window, FrameTime
         std::vector<FlatNode> nodes{};
         core.flatten_window(window, nodes);
         const OpenDialog dialog = find_open_dialog(core, window, nodes);
-        const Control::Ptr dialog_control =
-            target.has_value() && dialog.window == &window && *target == dialog.id ? window.find(dialog.id) : nullptr;
+        Control::Ptr dialog_control{};
+        if (target.has_value() && dialog.window == &window && *target == dialog.id) {
+            dialog_control = window.find(dialog.id);
+            // A window run modally is the dialog itself (round 3: act close
+            // on the Resize dialog's window was refused as a dialog_open).
+            if (!dialog_control && dialog.id == core.window_stable_id(window)) dialog_control = window.root();
+        }
         if (dialog_control && !dialog.drivable && model_dialog(dialog)) {
             // Escape, as the user cancels: the dialog's own node lies
             // outside its focus scope, where no semantic action reaches.
+            ready_for_cancel_keys(window);
             PreparedAct& act = call.act;
             act.kind = ActKind::input;
             append_cancel_keys(act.events);
@@ -1755,6 +1797,9 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
         text += "the window closed\n";
     }
     for (Window* const open : windows) {
+        // A tooltip's window is no window a model uses (round 3: the Resize
+        // dialog's tooltip was named as opened).
+        if (core.passive_popup_window(*open)) continue;
         const std::string id = core.window_stable_id(*open);
         if (std::find(call.windows_before.begin(), call.windows_before.end(), id) != call.windows_before.end()) continue;
         text += "opened: window \"" + (*open).text.read() + "\" [" + id + "]\n";
@@ -1904,6 +1949,8 @@ StepOutcome CoreAccess::control_gate(RunningCall& call, FrameTime now) {
     AutomationControl& control = core.control();
     if (control.acts_allowed()) {
         call.control_checked = true;
+        // Allowed after this call asked: its reply carries the snapshot.
+        call.took_control = call.asked_control;
         return StepOutcome::resume_at(now);
     }
     if (!call.asked_control) {

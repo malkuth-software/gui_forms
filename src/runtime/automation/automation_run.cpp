@@ -24,6 +24,7 @@
 #include <cstdlib>
 #include <exception>
 #include <utility>
+#include <vector>
 #include <stxlib/threads.hpp>
 
 namespace gui_forms::automation {
@@ -106,27 +107,48 @@ struct CloseAllWork final {
 
 } // namespace
 
+namespace {
+
+// One launch argument read into `launch`; `next` is the argument after it
+// (null for none). True when it took `next` too.
+bool read_launch_argument(std::string_view argument, const std::string* next, AutomationLaunch& launch) {
+    // --model-directed is --mcp's old name (model.directed folds into the
+    // AI-led launch, owner's control model of 2026-11-24).
+    if (argument == "--mcp" || argument == "--model-directed") launch.mcp = true;
+    if (argument == "--mcp-shared") launch.shared = true;
+    if (argument == "--mcp-appearance-review") launch.appearance_review = true;
+    if (argument == "--mcp-script" && next != nullptr) {
+        launch.script_path = *next;
+        return true;
+    }
+    return false;
+}
+
+void read_launch_arguments(const std::vector<std::string>& arguments, AutomationLaunch& launch) {
+    for (std::size_t index = 0U; index < arguments.size(); ++index) {
+        const std::string* const next = index + 1U < arguments.size() ? &arguments[index + 1U] : nullptr;
+        if (read_launch_argument(arguments[index], next, launch)) ++index;
+    }
+}
+
+} // namespace
+
 AutomationLaunch read_automation_launch() {
     AutomationLaunch launch{};
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
     const stxlib::OperationResult<stxlib::ProcessArguments> read = stxlib::process_arguments();
     if (read.succeeded()) {
         const stxlib::ProcessArguments& host = *read.value();
+        std::vector<std::string> arguments{};
         for (stxlib::usize index = 1; index < host.count(); ++index) {
             const stxlib::View<char> bytes = host.argument(index).bytes();
-            const std::string_view argument(bytes.data(), static_cast<std::size_t>(bytes.count()));
-            // --model-directed is --mcp's old name (model.directed folds into
-            // the AI-led launch, owner's control model of 2026-11-24).
-            if (argument == "--mcp" || argument == "--model-directed") launch.mcp = true;
-            if (argument == "--mcp-shared") launch.shared = true;
-            if (argument == "--mcp-appearance-review") launch.appearance_review = true;
-            if (argument == "--mcp-script" && index + 1 < host.count()) {
-                const stxlib::View<char> path = host.argument(index + 1).bytes();
-                launch.script_path.assign(path.data(), static_cast<std::size_t>(path.count()));
-                ++index;
-            }
+            arguments.emplace_back(bytes.data(), static_cast<std::size_t>(bytes.count()));
         }
+        read_launch_arguments(arguments, launch);
     }
+    // What a program took from its argv first (on macOS the process's own
+    // arguments are that argv, edited in place).
+    read_launch_arguments(detail::taken_mcp_arguments(), launch);
     const std::string variable = environment_value("GUI_FORMS_MCP");
     if (variable == "1") launch.mcp = true;
     if (variable == "shared") launch.shared = true;

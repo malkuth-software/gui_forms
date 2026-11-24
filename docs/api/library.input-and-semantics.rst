@@ -1056,7 +1056,7 @@ Types
 
    .. cpp:member:: const char* name
 
-      1 to 64 bytes of ASCII letters, digits, '_', '-' and '.', starting with a letter; unique among the program's tools and the built-in ones.
+      1 to 64 bytes of ASCII letters, digits, '_' and '-', starting with a letter (no '.': clients rename dotted names, round 2); unique among the program's tools and the built-in ones, and not starting "command_" (the commands' own tools).
 
    .. cpp:member:: const char* title
 
@@ -2705,9 +2705,29 @@ Functions, constants and aliases
 
    The identity set, or empty when none was. Static storage, valid until the next set_mcp_identity.
 
+.. cpp:function:: bool set_model_app_note(const char* utf8_note)
+
+   The program's note on how it works (round 2): a paragraph a model reads before it acts, given in the server's instructions and as the resource gui://app/note. Plan Paint's says that shapes float until committed. Set before the first window opens; at most 4096 bytes of UTF-8; null or "" clears it. False, keeping the note, for longer or invalid text.
+
+.. cpp:function:: const char* model_app_note() noexcept
+
+   The note set, or "". Static storage, valid until the next set_model_app_note.
+
+.. cpp:function:: bool set_model_pending_state(const char* key, const char* what, const char* how_to_settle)
+
+   Pending state (round 2): something the program holds that is not yet part of its document, such as a floating shape, which a model must commit or cancel. Every reply names each pending state with how to settle it. ``key`` names it (1 to 64 bytes); ``what`` says what is pending ("a rectangle floats at 10,10 to 90,60"); ``how_to_settle`` says how to commit or cancel it ("double-click commits, Escape cancels"). Each at most 512 bytes of UTF-8. Setting a key again replaces it. UI thread.
+
+.. cpp:function:: void clear_model_pending_state(const char* key)
+
+   Removes the pending state ``key``; nothing when none is set.
+
+.. cpp:function:: bool model_pending_state_set() noexcept
+
+   Whether any pending state is set.
+
 .. cpp:function:: void take_mcp_arguments(int& argc, char** argv) noexcept
 
-   Removes the automation's launch arguments from a program's argv before the program reads it (study 4.2): --mcp, --model-directed, --mcp-appearance-review and --mcp-script <file>. argv's pointers move down and argc shrinks; argv [argc] stays null. The library reads the process's own arguments, so a program that never calls this still gets MCP; one that parses argv calls it first so the arguments do not reach its parser.
+   Removes the automation's launch arguments from a program's argv before the program reads it (study 4.2): --mcp, --mcp-shared, --model-directed (the old name of --mcp), --mcp-appearance-review and --mcp-script <file>. argv's pointers move down and argc shrinks; argv[argc] stays null. The library reads the process's own arguments, so a program that never calls this still gets MCP; one that parses argv calls it first so the arguments do not reach its parser.
 
 .. cpp:namespace:: gui_forms::automation
 

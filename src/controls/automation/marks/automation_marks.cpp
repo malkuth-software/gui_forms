@@ -62,6 +62,9 @@ struct MarkTable final {
     std::string identity{};
     std::string app_note{};
     std::vector<PendingMark> pending{};
+    // The launch arguments take_mcp_arguments removed: on macOS it edits
+    // the C runtime's argv in place, which is where the launch is read.
+    std::vector<std::string> taken_arguments{};
 };
 
 MarkTable& marks() noexcept {
@@ -377,6 +380,21 @@ bool model_pending_state_set() noexcept {
     return set;
 }
 
+namespace {
+
+// Keeps one taken argument for the launch reader; a failure to keep it
+// loses only that argument (the program's argv is edited either way).
+void keep_taken_argument(std::string_view argument) noexcept {
+    try {
+        MarkTable& table = marks();
+        const stxlib::ScopedLock lock(table.mutex);
+        table.taken_arguments.emplace_back(argument);
+    } catch (...) {
+    }
+}
+
+} // namespace
+
 void take_mcp_arguments(int& argc, char** argv) noexcept {
     if (argv == nullptr || argc <= 1) return;
     int write = 1;
@@ -384,13 +402,17 @@ void take_mcp_arguments(int& argc, char** argv) noexcept {
     while (read < argc) {
         const char* const argument = argv[read];
         const std::string_view text = argument == nullptr ? std::string_view{} : std::string_view(argument);
-        if (text == "--mcp" || text == "--model-directed" || text == "--mcp-appearance-review") {
+        if (text == "--mcp" || text == "--mcp-shared" || text == "--model-directed" ||
+            text == "--mcp-appearance-review") {
+            keep_taken_argument(text);
             ++read;
             continue;
         }
         if (text == "--mcp-script") {
             // The option and its file; a trailing option without a file is
             // dropped alone.
+            keep_taken_argument(text);
+            if (read + 1 < argc && argv[read + 1] != nullptr) keep_taken_argument(argv[read + 1]);
             read += read + 1 < argc ? 2 : 1;
             continue;
         }
@@ -403,6 +425,13 @@ void take_mcp_arguments(int& argc, char** argv) noexcept {
 }
 
 namespace detail {
+
+std::vector<std::string> taken_mcp_arguments() {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    std::vector<std::string> taken = table.taken_arguments;
+    return taken;
+}
 
 bool user_step_known(std::string_view stable_id) {
     MarkTable& table = marks();

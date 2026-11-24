@@ -129,10 +129,21 @@ void SurfaceRoot::gather_veil_surfaces(detail::ModelSignState& sign) {
             continue;
         }
         // A container's own parts that are surfaces (a scrolling control's
-        // scroll bars, a tab control's tabs), then its children.
-        for (const SemanticNode& part : (*control).semantic_virtual_children()) {
-            if (veil_kind(part.role) != VeilKind::surface) continue;
-            if (!part.bounds.empty() && part.bounds.finite()) sign.veil_rects.push_back(part.bounds);
+        // scroll bars, a tab control's tabs, a ribbon's commands inside its
+        // groups: parts nest, round 3), then its children.
+        const std::vector<SemanticNode> parts = (*control).semantic_virtual_children();
+        std::vector<const SemanticNode*> part_work{};
+        for (const SemanticNode& part : parts) part_work.push_back(&part);
+        while (!part_work.empty()) {
+            const SemanticNode& part = *part_work.back();
+            part_work.pop_back();
+            const VeilKind part_kind = veil_kind(part.role);
+            if (part_kind == VeilKind::surface) {
+                if (!part.bounds.empty() && part.bounds.finite()) sign.veil_rects.push_back(part.bounds);
+                continue;
+            }
+            if (part_kind == VeilKind::content) continue;
+            for (const SemanticNode& inner : part.children) part_work.push_back(&inner);
         }
         if (visit.depth >= veil_depth_limit) continue;
         for (const Control::Ptr& child : (*control).children()) pending.push_back(VeilVisit{child, visit.depth + 1U});
@@ -287,8 +298,10 @@ CursorImage x_cursor_image(int scale) {
 
 bool SurfaceRoot::model_cursor(CursorImagesPtr& images, CursorKind& fallback) const {
     if (!model_sign_ || !(*model_sign_).veil_shown) return false;
-    static const CursorImagesPtr shared = CursorImages::create({x_cursor_image(1), x_cursor_image(2)}, 0.0, 0.0);
-    images = shared;
+    // Never destroyed (exit releases nothing).
+    static const CursorImagesPtr* const shared =
+        new CursorImagesPtr(CursorImages::create({x_cursor_image(1), x_cursor_image(2)}, 0.0, 0.0));
+    images = *shared;
     fallback = CursorKind::forbidden;
     return true;
 }

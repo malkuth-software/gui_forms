@@ -5,7 +5,7 @@
 // owner's control model of 2026-11-24, which supersedes ruling 10 and
 // retires model.directed):
 // - who holds the program: the user, or a model. Reads (snapshot, capture,
-//   inspect) need no control. In a default launch a model's first act asks
+//   inspect) need no control. In a shared launch a model's first act asks
 //   the user, with a 10-second countdown that allows it when it runs out;
 //   the act waits on the answer. Once allowed the model holds control:
 //   later acts run at once, and the program is in AI mode (the stripes,
@@ -77,7 +77,7 @@ enum class ControlRelease : std::uint8_t {
     model_ended,
     // The user took control back through the take-back dialog.
     user_took_back,
-    // No model call for the grace period (default launches only).
+    // No model call for the grace period (shared launches only).
     idle,
     // The client went away (the pipe closed), or the automation stopped.
     disconnected,
@@ -172,7 +172,7 @@ struct ControlSettings final {
     bool appearance_review{};
     // How long the take question counts down before it allows.
     std::chrono::milliseconds take_countdown{10000};
-    // A default launch's control returns to the user after this long
+    // A shared launch's control returns to the user after this long
     // without a model call.
     std::chrono::milliseconds grace{30000};
 };
@@ -251,7 +251,8 @@ public:
     // later destructive act asks again, and the act that asked says why
     // (round 2: a question never shown is never "the user did not allow").
     void consent_not_shown(std::string why);
-    [[nodiscard]] const std::string& consent_failure() const noexcept { return consent_failure_; }
+    [[nodiscard]] const std::string& consent_failure() const& noexcept { return consent_failure_; }
+    const std::string& consent_failure() const&& = delete;
 
     // The gate's answer (session_directory.hpp): user input to `window` is
     // held while a model holds control, except input to the presenter's own

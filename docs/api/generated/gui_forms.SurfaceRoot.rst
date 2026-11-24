@@ -214,6 +214,9 @@ gui_forms::SurfaceRoot
       **next_settling_wake** : ``stxlib::Optional<FrameTime>``, read-only
          next_wake without the ambient effects' wakes (the band's march or sweep): when the window's own work next wants a frame, for a caller waiting for it to settle (the automation's idle).
 
+      **needs_settling_frame** : ``bool``, read-only
+         needs_frame without the frames only ambient effects want (the band's glint, any work an ambient wake runs): whether the window's own work still wants a frame, for a caller waiting for it to settle.
+
       **occluded** : ``bool``, default ``false``
          Whether the host reports the window as hidden from view. While occluded,
          painting and paint wake-ups are suspended, and motion values jump to
@@ -684,6 +687,8 @@ gui_forms::SurfaceRoot
         - Captures the committed retained visual state without exposing a renderer or native host object.
       * - :cpp:func:`semantic_snapshot <gui_forms::SurfaceRoot::semantic_snapshot>`
         - Builds the semantic tree that assistive technology and automation see: roles, names, values, states and bounds, keyed by stable ID.
+      * - :cpp:func:`model_cursor <gui_forms::SurfaceRoot::model_cursor>`
+        - The cursor the window shows wherever the pointer is, over every control's own: the automation's X cursor while the AI-mode veil shows (Window::set_model_veil), drawn by GUI.Forms with ``fallback`` for a host that cannot show an image.
       * - :cpp:func:`perform_semantic_action <gui_forms::SurfaceRoot::perform_semantic_action>`
         - Performs an automation action, such as focus or press, and returns whether it was performed.
       * - :cpp:func:`semantic_text_layout <gui_forms::SurfaceRoot::semantic_text_layout>`
@@ -994,6 +999,10 @@ gui_forms::SurfaceRoot
    .. cpp:function:: stxlib::Optional<FrameTime> next_settling_wake() const noexcept
 
       next_wake without the ambient effects' wakes (the band's march or sweep): when the window's own work next wants a frame, for a caller waiting for it to settle (the automation's idle).
+
+   .. cpp:function:: bool needs_settling_frame() const noexcept
+
+      needs_frame without the frames only ambient effects want (the band's glint, any work an ambient wake runs): whether the window's own work still wants a frame, for a caller waiting for it to settle.
 
    .. cpp:function:: bool occluded() const noexcept
 
@@ -1868,6 +1877,10 @@ gui_forms::SurfaceRoot
 
       Builds the semantic tree that assistive technology and automation see:
       roles, names, values, states and bounds, keyed by stable ID.
+
+   .. cpp:function:: bool model_cursor(CursorImagesPtr& images, CursorKind& fallback) const
+
+      The cursor the window shows wherever the pointer is, over every control's own: the automation's X cursor while the AI-mode veil shows (Window::set_model_veil), drawn by GUI.Forms with ``fallback`` for a host that cannot show an image. False, setting nothing, otherwise. Each host asks it before the hit control's cursor.
 
    .. cpp:function:: bool perform_semantic_action(std::string_view stable_id, SemanticAction action, std::string_view value = {})
 

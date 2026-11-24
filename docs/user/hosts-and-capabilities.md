@@ -363,18 +363,46 @@ Windows (Win32)
   directory `GUI_FORMS_FONT_DIR` names or the checkout's `assets/fonts`. If
   the pack does not open, the renderer name says so and no text metrics
   provider is installed. Automation is the library's MCP integration, the
-  same on every host: a program launched with `--mcp` serves MCP on its
+  same on every host. A program launched with `--mcp` or `--mcp-shared`
+  (or with `GUI_FORMS_MCP=shared` in its environment) serves MCP on its
   standard input and output (only the process that started it can drive
   it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
-  While a model is connected, each window shows that it is in use:
-  - a 5 px accent band on its border, with a glint running round it while
-    the model reads or acts (with reduced motion, a tint change instead);
-  - the model's name in its title;
-  - the content drawn mostly desaturated (a wash the theme tunes with
-    `ThemeDefinition::model_wash_saturation`; none in high contrast, and no
-    cost while no model is connected);
+  With no flag nothing is served. Attaching to a program the user already
+  has open needs another transport (a local socket); that is a later
+  release.
+  Reads never need control; acts do (the control model):
+  - `--mcp` is AI-led: the model holds control from the start, with no
+    question, and keeps it until it calls `release_control` or the user
+    takes it back.
+  - `--mcp-shared` leaves the user in control until the model's first act.
+    That act asks in the program whether the model may take control, with a
+    10 s countdown that allows when it ends; the act waits for the answer.
+    Don't Allow refuses the act and says so; the next act asks again. Once
+    allowed, the act runs and its reply carries the window's snapshot, and
+    later acts run at once. Control returns after 30 s without a call, on
+    `release_control`, or when the user takes it back.
+  - The model's next reply says when control came back, and why.
+
+  While the model holds control (AI mode), each window shows it:
+  - grey barber-pole stripes over the window's control surfaces (buttons,
+    fields, lists, toolbars; not content such as a canvas, an image or a
+    document), moving slowly; still with reduced motion, and none in high
+    contrast;
+  - an X cursor over the window;
+  - the user's input is held back: a click anywhere shows "Do you want to
+    take back control of this program?" with "<model> has not yet released
+    the application." Taking back ends control and interrupts the model's
+    call; Keep Waiting leaves the model in control.
+
+  While a model is connected, in or out of control:
+  - a 5 px accent band on the window's border, with a glint running round
+    it while the model reads or acts (with reduced motion, a tint change
+    instead);
+  - the model's name in its title ("is connected", or "is in control");
   - on Windows 11, the system border in the accent, restored on disconnect.
 
+  Captures leave the sign out unless the capture asks for it
+  (`include_sign`). None of it costs anything while no model is connected.
   A debug or test build also takes `--mcp-appearance-review`, which serves
   MCP with none of this, so the windows look exactly as they do to a user without a
   model (for reviewing the interface's appearance from captures); a release

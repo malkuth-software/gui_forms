@@ -1,5 +1,7 @@
 #include "automation_control.hpp"
 
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+
 #include "../../../core/host/session/session_directory.hpp"
 #include "gui_forms/window/window.hpp"
 
@@ -56,7 +58,7 @@ struct OfferTakeBackWork final {
 
 AutomationControl::AutomationControl(ControlSettings settings, AutomationPresenter* presenter)
     : settings_(settings), presenter_(presenter), grace_(settings.grace),
-      self_(std::make_shared<AutomationControl*>(this)) {}
+      self_(gui_forms::detail::make_library_shared<AutomationControl*>(this)) {}
 
 AutomationControl::~AutomationControl() {
     self_.reset();

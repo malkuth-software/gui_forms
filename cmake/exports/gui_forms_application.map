@@ -3694,6 +3694,8 @@
     _ZN9gui_forms10automation13ModelToolCall*;
     _ZN9gui_forms10automation13ModelToolSpec*;
     _ZN9gui_forms10automation14ModelToolReply*;
+    _ZN9gui_forms10automation14model_app_noteB*;
+    _ZN9gui_forms10automation14model_app_noteE*;
     _ZN9gui_forms10automation14model_drivableB*;
     _ZN9gui_forms10automation14model_drivableE*;
     _ZN9gui_forms10automation16ModelInspectText*;
@@ -3709,6 +3711,8 @@
     _ZN9gui_forms10automation18action_destructiveE*;
     _ZN9gui_forms10automation18complete_user_stepB*;
     _ZN9gui_forms10automation18complete_user_stepE*;
+    _ZN9gui_forms10automation18set_model_app_noteB*;
+    _ZN9gui_forms10automation18set_model_app_noteE*;
     _ZN9gui_forms10automation18set_model_drivableB*;
     _ZN9gui_forms10automation18set_model_drivableE*;
     _ZN9gui_forms10automation18take_mcp_argumentsB*;
@@ -3730,6 +3734,12 @@
     _ZN9gui_forms10automation22set_action_destructiveE*;
     _ZN9gui_forms10automation22set_window_destructiveB*;
     _ZN9gui_forms10automation22set_window_destructiveE*;
+    _ZN9gui_forms10automation23model_pending_state_setB*;
+    _ZN9gui_forms10automation23model_pending_state_setE*;
+    _ZN9gui_forms10automation23set_model_pending_stateB*;
+    _ZN9gui_forms10automation23set_model_pending_stateE*;
+    _ZN9gui_forms10automation25clear_model_pending_stateB*;
+    _ZN9gui_forms10automation25clear_model_pending_stateE*;
     _ZN9gui_forms10automation25command_hidden_from_modelB*;
     _ZN9gui_forms10automation25command_hidden_from_modelE*;
     _ZN9gui_forms10automation27clipboard_readable_by_modelB*;

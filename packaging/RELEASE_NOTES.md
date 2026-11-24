@@ -559,17 +559,62 @@ Visible-area guarantee (stage VA):
   not answer. It waits for a window's tools, which appear when the window
   joins the automation.
 
-### 1.0.4: MCP round 1, the in-use sign
+### 1.0.4: MCP rounds 1 to 3, the control model
 
-- **The in-use sign.** While a model drives a window over MCP, a 5 px
-  accent band runs round it with a white glint that sweeps while the model
-  reads or acts, the title names the model ("<title> — <model> is using
-  this"), and the content is washed nearly to grey
-  (`ThemeDefinition::model_wash_saturation`, `Window::set_content_wash`).
-  The band follows the window's corners. Overlays and the band are drawn
-  after the wash. A window no model has signed pays nothing. On Windows 11
-  the system border takes the accent and is restored on disconnect.
-  `--mcp-appearance-review` (debug and test builds) shows none of the sign.
+- **Launching.** `--mcp` is an AI-led launch: the model holds control from
+  its first call, with no question and no return after idle.
+  `--mcp-shared` (or `GUI_FORMS_MCP=shared`) is the shared launch: the user
+  keeps the program until the model's first act. With no flag nothing is
+  served. `--model-directed` is the old name of `--mcp`.
+  `automation::take_mcp_arguments` removes all of these from `argv`.
+  Attaching to a program the user already has open needs a transport other
+  than standard input and output (a local socket); that is a later release.
+- **The control model** (owner, 2026-11-24). Reads never need control. In a
+  shared launch the model's first act asks the user in the program, with a
+  10 s countdown that allows when it ends; the act waits for the answer,
+  runs once allowed, and its reply carries the window's snapshot. Don't
+  Allow refuses the act ("the user declined"), and the next act asks again.
+  Later acts run at once. Control returns to the user when the model calls
+  `release_control`, after 30 s without a call (shared launches only), or
+  when the user takes it back; the model's next reply says which.
+- **AI mode, the in-use sign.** While the model holds control, every
+  control surface of the window (buttons, fields, lists, toolbars: not
+  content such as a canvas, an image or a document) is covered by grey
+  barber-pole stripes that move slowly (still under reduced motion, none in
+  high contrast), the cursor over the window is an X, and the user's input
+  never reaches the program: a click anywhere shows "Do you want to take
+  back control of this program?" ("<model> has not yet released the
+  application."). Taking back ends control at once and interrupts the
+  model's call; Keep Waiting leaves the model in control. The 5 px accent
+  band with its glint stays while a model is connected, and the title says
+  "— <model> is connected", or "is in control" in AI mode. Captures leave
+  the sign out unless `include_sign` asks for it.
+  `--mcp-appearance-review` (debug and test builds) shows none of it.
+  The round-1 grey wash is gone; `ThemeDefinition::model_wash_saturation`
+  and `Window::set_content_wash` remain and are unused by the automation.
+- **Tools (round 2).** Tool names have no dots: commands are `command_<id>`
+  and program tools use underscores (`register_model_tool` refuses a dot).
+  `release_control` is new and reserved. Pointer arguments are typed with
+  their coordinate space (`target_point`, `window_point`, `path_point`,
+  `wheel_delta`); pointer takes a target or a position, not both, and a
+  drag's path is read in the target's space. A failed `batch` returns every
+  step as JSON (`{"steps":[...]}`) beside the message. `expect` with nothing
+  to check and `wait` on a user step the program never declared are
+  refused. `keyboard` replies with what changed, as `act` does. `windows`
+  lists only real windows, counts tooltip and popup windows, reads a
+  window run modally as a dialog, and says who holds control. The served
+  tool list is the same all launch long (no `tools/list_changed` for state
+  changes), and commands sharing a stable ID are one tool. The destructive
+  act question, when it cannot be shown, fails the act with the reason.
+- **For programs.** `set_model_app_note` gives a model the program's own
+  note, in the server's instructions and as the `gui://app/note` resource.
+  `set_model_pending_state` names state that floats (a shape not yet
+  placed) in every reply with how to settle it.
+- **Input.** The model's injected pointer events carry their own pointer
+  identity; the user's idle pointer never feeds the model's drag, and the
+  user's press ends it. Idle waits ignore the sign's motion and ambient
+  animation. A tooltip window no longer gets the sign (it opened nested
+  tooltip windows, 65 deep).
 - **Window corners** are reported with their source
   (`WindowCornerReport::source`: `platform`, `layout_region`,
   `private_getter` or `unknown`). macOS 26 reads the corner from layout
@@ -578,7 +623,8 @@ Visible-area guarantee (stage VA):
   high-integrity builds; turn it off for sandboxed or App Store builds). A
   window whose corner no source reports is drawn square.
 - **Dialogs and models.** A model closes a dialog its own act opened as
-  Cancel and never submits one. Controls that open a dialog are marked
+  Cancel and never submits one; a window run modally is a dialog whatever
+  its root's role. Controls that open a dialog are marked
   `needs_user` with their dialog-free tool (`set_opens_dialog`). The new
   `reset` tool closes the model's dialogs, popups, menus and tooltips and
   releases held input. A native alert is reported as `native`, never as a

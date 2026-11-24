@@ -19,7 +19,7 @@
  {
   "name": "snapshot",
   "title": "Snapshot",
-  "description": "The control tree as an outline: role, name, [stable ID], states, value, the actions each node takes and what its press opens (needs_user: it opens a dialog the user answers; instead= names a tool that does the same without one). A virtualised list says how many rows it does not show. Narrow it with root and filter; actions false leaves the actions out.",
+  "description": "The control tree as an outline: role, name, [stable ID], states, value, the actions each node takes and what its press opens (needs_user: it opens a dialog the user answers; instead= names a tool that does the same without one). A virtualised list says how many rows it does not show. Narrow it with root and filter; actions false leaves the actions out. A read: needs no control.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -95,7 +95,7 @@
  {
   "name": "act",
   "title": "Act",
-  "description": "A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), never submitted. Waits for idle and replies with what changed; terse gives counts.",
+  "description": "A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), never submitted. Waits for idle and replies with what changed; terse gives counts. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -148,7 +148,7 @@
  {
   "name": "reset",
   "title": "Reset",
-  "description": "Puts the interface back in order: closes the dialogs you opened (as Cancel), popups and menus, tooltips and drags, releases pointer capture and a hold, and stops content that froze; replies with what it reset and what it left (a dialog the user opened).",
+  "description": "Puts the interface back in order: closes the dialogs you opened (as Cancel), popups and menus, tooltips and drags, releases pointer capture, and stops content that froze; replies with what it reset and what it left (a dialog the user opened). Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -170,7 +170,7 @@
  {
   "name": "pointer",
   "title": "Pointer",
-  "description": "Pointer input through the program's own input path: move, hover, click, double_click, right_click, down, up, drag, wheel; at a target (offset inside it, default its centre) or a window position.",
+  "description": "Pointer input through the program's own input path: move, hover, click, double_click, right_click, down, up, drag, wheel. Aim with a target (offset inside it, default its centre) or with position in window coordinates, not both. A drag presses at that point and moves through path: with a target, path points are in the target's space like offset; without one, window coordinates like position. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -201,16 +201,59 @@
      ]
     },
     "offset": {
-     "type": "object"
+     "type": "object",
+     "description": "Logical pixels from the target's top-left corner (its bounds as snapshot bounds gives them)",
+     "properties": {
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "x",
+      "y"
+     ],
+     "additionalProperties": false
     },
     "position": {
-     "type": "object"
+     "type": "object",
+     "description": "Window coordinates: logical pixels from the top-left corner of the window's content area, the space of snapshot bounds",
+     "properties": {
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "x",
+      "y"
+     ],
+     "additionalProperties": false
     },
     "path": {
      "type": "array",
      "items": {
-      "type": "object"
+      "type": "object",
+      "description": "With a target, logical pixels from the target's top-left corner (as offset); without one, window coordinates (as position)",
+      "properties": {
+       "x": {
+        "type": "number"
+       },
+       "y": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "x",
+       "y"
+      ],
+      "additionalProperties": false
      },
+     "minItems": 1,
      "maxItems": 256
     },
     "button": {
@@ -228,7 +271,17 @@
      }
     },
     "delta": {
-     "type": "object"
+     "type": "object",
+     "description": "Wheel notches: y -1 scrolls down one notch, y 1 up; x scrolls sideways. Default {x: 0, y: -1}",
+     "properties": {
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "additionalProperties": false
     },
     "terse": {
      "type": "boolean"
@@ -247,7 +300,7 @@
  {
   "name": "keyboard",
   "title": "Keyboard",
-  "description": "Key chords (\"Ctrl+S\") and sequences, committed text, and composition, to the focused control or to a target focused first.",
+  "description": "Key chords (\"Ctrl+S\") and sequences, committed text, and composition, to the focused control or to a target focused first. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows). Replies with what changed, as act does.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -402,7 +455,7 @@
  {
   "name": "capture",
   "title": "Capture",
-  "description": "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out.",
+  "description": "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so you see the program as its user does without a model. A read: needs no control.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -434,6 +487,9 @@
      "type": "boolean"
     },
     "popups": {
+     "type": "boolean"
+    },
+    "include_sign": {
      "type": "boolean"
     }
    },
@@ -574,33 +630,19 @@
   }
  },
  {
-  "name": "control",
-  "title": "Control",
-  "description": "direct_begin and direct_end hold the interface with a take-back popup (launched --model-directed); suspend_input and resume_input in builds with the test controls; status.",
+  "name": "release_control",
+  "title": "Release control",
+  "description": "Gives the program back to the user and ends AI mode. In a default launch your first act asks the user (a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s pass without a call; a launch with --mcp is yours from the start. Reads never need control.",
   "inputSchema": {
    "type": "object",
-   "properties": {
-    "action": {
-     "type": "string",
-     "enum": [
-      "direct_begin",
-      "direct_end",
-      "suspend_input",
-      "resume_input",
-      "status"
-     ]
-    }
-   },
-   "required": [
-    "action"
-   ],
+   "properties": {},
    "additionalProperties": false
   },
   "annotations": {
-   "title": "Control",
-   "readOnlyHint": false,
+   "title": "Release control",
+   "readOnlyHint": true,
    "destructiveHint": false,
-   "idempotentHint": false,
+   "idempotentHint": true,
    "openWorldHint": false
   }
  }

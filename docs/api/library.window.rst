@@ -660,6 +660,10 @@ Related types
 
    What Window::capture_control draws (owner request 2026-11-11, the theme palette): one control and its descendants as the window lays them out.
 
+   .. cpp:member:: bool include_model_sign
+
+      The automation's AI-mode veil over the subtree, as WindowCaptureOptions::include_model_sign: off by default.
+
    .. cpp:member:: double scale
 
       Device pixels per logical unit; 0 takes the window's own scale.
@@ -2577,6 +2581,10 @@ Related types
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
    What Window::capture_window draws (owner request 2026-11-09, the product ports: screenshots and tests).
+
+   .. cpp:member:: bool include_model_sign
+
+      The automation's in-use sign (the band, the AI-mode veil): off by default, so a capture shows the program as the user sees it without a model (MCP round 2); on draws it as the screen shows it.
 
    .. cpp:member:: bool include_overlays
 

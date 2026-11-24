@@ -7,6 +7,7 @@
 #include "gui_forms/semantics/types/semantic_types.hpp"
 
 #include <string>
+#include <vector>
 #include <string_view>
 
 namespace gui_forms::automation::detail {
@@ -20,6 +21,9 @@ namespace gui_forms::automation::detail {
 // or empty, into `tool`.
 // Whether `stable_id` was ever required as a user step (done or not).
 [[nodiscard]] bool user_step_known(std::string_view stable_id);
+// The launch arguments take_mcp_arguments removed from argv, in order (the
+// launch reader adds them to the process's own arguments).
+[[nodiscard]] std::vector<std::string> taken_mcp_arguments();
 // Appends a line "pending: <what> (<how to settle>)" for each pending
 // state the program declared (set_model_pending_state).
 void append_pending_states(std::string& text);
