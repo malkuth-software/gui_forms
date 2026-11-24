@@ -754,10 +754,14 @@ struct ContextMenu::Impl final {
 
     void show(const Control::Ptr& invoker, Point position,
               const std::vector<MenuItemSpec>& specs, const MenuOpenMode mode) {
-        close();
         if (!invoker || !(*invoker).attached_window()) {
             throw std::logic_error("ContextMenu requires an attached owner control");
         }
+        close();
+        // Closing the open menu ran its handlers, which may have detached
+        // the owner or destroyed its window: the menu then stays closed
+        // (found by the IC fuzzer's hostile_context_menu).
+        if (!(*invoker).attached_window()) return;
         snapshot = snapshot_items(specs);
         // Every command hidden (or nothing but separators) is a state the
         // application reaches through command visibility, and show runs
