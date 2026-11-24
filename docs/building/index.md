@@ -280,7 +280,7 @@ forwarders), or a GCC or LLVM runtime.
 CI proves this on every Windows build (`tools/own_runtime.py evidence`).
 The compiler's `#include` search list (`clang -v`) must be exactly those
 four directories. No link map (`GUI_FORMS_LINK_MAP`, on in CI; lld-link
-`/MAP` beside every image) may name a MinGW, Visual C++ or Windows SDK
+`/lldmap` beside every image, which names every input by its path) may name a MinGW, Visual C++ or Windows SDK
 file. Every DLL the tree built, `gui_forms_abi1.dll` among them, must
 import only system DLLs and `ucrtbase.dll`.
 

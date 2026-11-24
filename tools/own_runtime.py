@@ -262,37 +262,65 @@ def check_include_list(tree: Path) -> list[str]:
 
 
 def check_link_maps(tree: Path) -> list[str]:
-    """Problems in the tree's link maps: an input from a forbidden folder."""
-    # lld-link /MAP writes <image>.map beside <image>.exe or .dll; other .map
+    """Problems in the tree's link maps: a line naming a forbidden folder.
+
+    The second, independent look: lld's map names every object and section
+    an image holds; check_link_commands gives the libraries' paths."""
+    # lld-link /lldmap writes <image>.map beside <image>.exe or .dll; other .map
     # files (export version scripts) are not link maps.
     maps: list[Path] = sorted(path for path in tree.rglob('*.map')
                               if path.with_suffix('.exe').is_file() or path.with_suffix('.dll').is_file())
     problems: list[str] = []
     if not maps:
         return ['no link map under ' + str(tree) + ' (configure with -DGUI_FORMS_LINK_MAP=ON)']
-    inputs: set[str] = set()
     link_map: Path
     for link_map in maps:
         text: str = link_map.read_text(encoding='utf-8', errors='replace')
-        found: list[str] = re.findall(r'([A-Za-z]:[\\/][^\s:(]+|/[^\s:(]+|[^\s:(]+)\.(lib|obj|o|a|res)\b', text)
-        stem: str
-        suffix: str
-        for stem, suffix in found:
-            inputs.add(f'{stem}.{suffix}')
         line: str
         for line in text.splitlines():
             if FORBIDDEN_FOLDERS.search(line):
                 problems.append(f'{link_map.relative_to(tree)}: {line.strip()}')
                 break
-    libraries: list[str] = sorted({Path(name.replace('\\', '/')).name for name in inputs
-                                   if name.lower().endswith('.lib')})
-    print(f'link maps: {len(maps)}; libraries read: {", ".join(libraries)}', flush=True)
+    print(f'link maps: {len(maps)}, none naming a forbidden folder', flush=True)
+    return problems
+
+
+def check_link_commands(tree: Path) -> list[str]:
+    """Problems in the tree's link commands (ninja -t commands).
+
+    With -nostdlib and /NODEFAULTLIB (cmake/llvm22-windows-msvc-own.cmake) a
+    link reads only what its command names, so the commands are the complete
+    list of libraries: none may lie in a forbidden folder, and the links must
+    name the own runtime's C library (ucrtbase.lib) and libc++ (libc++.lib).
+    lld's map lists archive members without their archive, so it cannot.
+    """
+    listing: str = subprocess.run(['ninja', '-C', str(tree), '-t', 'commands'], capture_output=True, text=True,
+                                  check=True).stdout
+    links: list[str] = [line for line in listing.splitlines()
+                        if '-fuse-ld=lld' in line or 'lld-link' in line]
+    libraries: set[str] = set()
+    problems: list[str] = []
+    line: str
+    for line in links:
+        match: re.Match[str]
+        for match in re.finditer(r'"([^"]+)"|(\S+)', line):
+            token: str = match.group(1) or match.group(2)
+            value: str = token.split(':', 1)[1] if token.upper().startswith('/LIBPATH:') else token
+            if value.lower().endswith(('.lib', '.a')) or token.upper().startswith('/LIBPATH:'):
+                if FORBIDDEN_FOLDERS.search(value):
+                    problems.append('a link names ' + value)
+                libraries.add(Path(value.replace('\\', '/')).name.lower())
+    print(f'link commands: {len(links)}; libraries named: {", ".join(sorted(libraries))}', flush=True)
+    required: str
+    for required in ('ucrtbase.lib', 'libc++.lib'):
+        if required not in libraries:
+            problems.append(f'no link names {required}: not an own-runtime link')
     return problems
 
 
 def command_evidence(arguments: argparse.Namespace) -> None:
     tree: Path = arguments.build.resolve()
-    problems: list[str] = check_include_list(tree) + check_link_maps(tree)
+    problems: list[str] = check_include_list(tree) + check_link_commands(tree) + check_link_maps(tree)
     if arguments.dlls is not None:
         sys.path.insert(0, str(ROOT / 'tools'))
         from ci_build import check_windows_sdk_imports
