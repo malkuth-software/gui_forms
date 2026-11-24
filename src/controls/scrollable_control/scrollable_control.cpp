@@ -875,21 +875,28 @@ bool ScrollableControl::handle_scroll_pointer(PointerEvent& event) {
         event.handled = true;
         return true;
     }
+    // A thumb drag or a held part starts with the capture and only if it
+    // was taken: a refused capture, or capture handlers that drop the
+    // control, leave no press standing for the next move to notice.
+    event.handled = true;
+    const Control::Ptr lifetime = shared_from_this();
     if (part == ScrollPart::horizontal_thumb ||
         part == ScrollPart::vertical_thumb) {
         // The thumb is direct manipulation: it takes the axis from a
         // smooth scroll where the position stands.
         stop_glide(orientation);
+        set_pointer_capture(true);
+        if (!is_alive() || !has_pointer_capture()) return true;
         dragging_orientation_.set(orientation);
         dragging_pointer_id_ = event.pointer_id == 0U ? 1U : event.pointer_id;
         dragging_origin_ = local;
         dragging_start_value_ = axis.value_;
-        set_pointer_capture(true);
     } else {
+        set_pointer_capture(true);
+        if (!is_alive() || !has_pointer_capture()) return true;
         pressed_part_ = part;
         pressed_pointer_id_ = event.pointer_id == 0U ? 1U : event.pointer_id;
         repeat_pointer_ = local;
-        set_pointer_capture(true);
         static_cast<void>(step_part(part));
         begin_repeat();
     }

@@ -731,15 +731,25 @@ void ContentTextEditor::handle_pointer(PointerEvent& event) {
     const ScaleFrame local_frame = window_frame();
     const Point local = frame_to_inner(local_frame, event.position);
     if (event.action == PointerAction::down && event.button == PointerButton::primary) {
-        if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
+        const Control::Ptr lifetime = shared_from_this();
+        event.handled = true;
+        if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
+        // The focus handlers may detach or dispose the box: nothing below
+        // runs on a box that left its window (`lifetime` keeps it until the
+        // press is done).
+        if (!is_alive() || window() == nullptr) return;
         const Utf8Offset position = position_at(local);
         const bool extend = includes(event.modifiers, Modifier::shift);
         const TextSelection placed = extend ? TextSelection{(*editing_).selection().anchor, position}
                                             : TextSelection{position, position};
         set_selection(placed);
-        selecting_ = true;
+        // The selection drag starts with the capture and only if it was
+        // taken: a refused capture, or handlers that drop the box, leave no
+        // drag waiting for a release that may never come.
+        if (!is_alive() || window() == nullptr) return;
         set_pointer_capture(true);
-        event.handled = true;
+        if (!is_alive()) return;
+        selecting_ = has_pointer_capture();
         return;
     }
     const bool dragging = event.action == PointerAction::move && selecting_ && has_pointer_capture();

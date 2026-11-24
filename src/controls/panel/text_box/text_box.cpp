@@ -1066,18 +1066,28 @@ void TextBox::handle_pointer(PointerEvent& event) {
     }
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
+        const Control::Ptr lifetime = shared_from_this();
+        event.handled = true;
         if (window() != nullptr) {
-            static_cast<void>((*window()).request_focus(shared_from_this()));
+            static_cast<void>((*window()).request_focus(lifetime));
         }
+        // The focus handlers may detach or dispose the box: nothing below
+        // runs on a box that left its window (`lifetime` keeps it until the
+        // press is done).
+        if (!is_alive() || window() == nullptr) return;
         // Placing the caret ends a completion and keeps the text.
         end_auto_complete(false);
         const Utf8Offset position = multiline.read() ? multiline_position_at(local_x, local_y) : position_at(local_x);
         const bool extend = includes(event.modifiers, Modifier::shift);
         set_selection(extend ? TextSelection{(*editing_).selection().anchor, position}
                              : TextSelection{position, position});
-        selecting_ = true;
+        // The selection drag starts with the capture and only if it was
+        // taken: a refused capture, or handlers that drop the box, leave no
+        // drag waiting for a release that may never come.
+        if (!is_alive() || window() == nullptr) return;
         set_pointer_capture(true);
-        event.handled = true;
+        if (!is_alive()) return;
+        selecting_ = has_pointer_capture();
     } else if (event.action == PointerAction::move && selecting_ &&
                has_pointer_capture()) {
         const Utf8Offset position = multiline.read() ? multiline_position_at(local_x, local_y) : position_at(local_x);
