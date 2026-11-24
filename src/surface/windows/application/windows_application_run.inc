@@ -938,7 +938,10 @@ void compose_layer(std::vector<std::uint32_t>& canvas, const int canvas_width, c
     }
 }
 
-bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner, const std::wstring& path) {
+// Unreferenced since the MCP automation replaced the text commands
+// (capture-composite among them); kept for the capture tool it is to back.
+[[maybe_unused]] bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner,
+                                              const std::wstring& path) {
     const HWND owner_window = owner.native_window();
     std::vector<CompositeLayer> layers;
     CompositeLayer own{};

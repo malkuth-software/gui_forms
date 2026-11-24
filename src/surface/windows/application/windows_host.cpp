@@ -1620,7 +1620,7 @@ class WindowsApplicationRun;
 // their desktop places over a checkerboard, as one PNG at `path`, and
 // prints their client rectangles (capture-composite). Defined in
 // windows_application_run.inc; `run` is null outside an application run.
-bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner, const std::wstring& path);
+[[maybe_unused]] bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner, const std::wstring& path);
 // As TitleCallbackState: only the UI thread reads or revokes host. The
 // operation owns no host; it reaches the host only while the window lives.
 struct ClientSizeCallbackState final {
