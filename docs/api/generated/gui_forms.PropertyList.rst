@@ -430,6 +430,10 @@ gui_forms::PropertyList
 
    .. cpp:function:: void arrange(Rect final_bounds) override
 
+   .. cpp:function:: bool content_scrolls() const noexcept override
+
+      True: its rows lie in a scrolled space of its own (scroll_offset), so an overflow scrolls them rather than scaling them (stage VA).
+
    .. cpp:function:: void on_paint(Painter& painter, Rect local_damage) override
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override

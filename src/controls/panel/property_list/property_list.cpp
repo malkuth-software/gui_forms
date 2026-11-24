@@ -1195,6 +1195,8 @@ void PropertyList::on_key_down(KeyEventArgs& arguments) {
     if (event.handled) arguments.handled = true;
 }
 
+bool PropertyList::content_scrolls() const noexcept { return true; }
+
 SemanticDescriptor PropertyList::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::property_grid;

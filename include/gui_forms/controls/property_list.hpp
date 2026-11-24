@@ -57,6 +57,9 @@ public:
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
+    // True: its rows lie in a scrolled space of its own (scroll_offset), so
+    // an overflow scrolls them rather than scaling them (stage VA).
+    [[nodiscard]] bool content_scrolls() const noexcept override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
