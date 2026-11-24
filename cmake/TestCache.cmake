@@ -88,7 +88,11 @@ function(gui_forms_describe_test_cache)
                               CMAKE_POSITION_INDEPENDENT_CODE CMAKE_INTERPROCEDURAL_OPTIMIZATION
                               CMAKE_OSX_DEPLOYMENT_TARGET CMAKE_OSX_ARCHITECTURES CMAKE_MSVC_RUNTIME_LIBRARY
                               CMAKE_CXX_STANDARD_LIBRARIES CMAKE_OBJCXX_STANDARD_LIBRARIES
-                              CMAKE_C_STANDARD_LIBRARIES)
+                              CMAKE_C_STANDARD_LIBRARIES
+                              # Windows: the own runtime the toolchain file reads
+                              # (cmake/llvm22-windows-msvc-own.cmake).
+                              GUI_FORMS_MSVC_RUNTIME GUI_FORMS_OWN_RUNTIME_SOURCE GUI_FORMS_OWN_RUNTIME_PREFIX
+                              GUI_FORMS_LIBCXX_PREFIX GUI_FORMS_LINK_MAP)
         _gui_forms_test_cache_quote("${${variable}}" quoted)
         string(APPEND description "set(GF_TC_SETTING_${variable} ${quoted})\n")
     endforeach()

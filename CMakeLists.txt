@@ -177,16 +177,19 @@ find_package(Threads REQUIRED)
 include(GNUInstallDirs)
 include(cmake/LocalizablePlugin.cmake)
 
-# Windows (the MSYS2 CLANG64 toolchain, a MinGW-w64 target): every executable
-# and DLL this project builds links the LLVM runtimes (libc++, libc++abi,
-# libunwind, compiler-rt) and winpthreads statically, so no build output or
-# program package imports a runtime DLL, and none can import a GCC runtime
-# (libgcc_s, libstdc++). A program is one module (owner, 2026-11-15: every
+# Windows: every executable and DLL this project builds links its C++
+# runtime statically, so no build output or program package imports a
+# runtime DLL. GUI.Forms 1.0 ships x86_64-pc-windows-msvc on STXlib's own
+# runtime (owner, 2026-11-24; cmake/llvm22-windows-msvc-own.cmake): libc++
+# and STXlib's startup and C++ runtime are linked in, and the C library is
+# ucrtbase.dll. A MinGW-w64 build (MINGW, below) still links the LLVM
+# runtimes, winpthreads and the MinGW-w64 CRT statically and never a GCC
+# runtime (libgcc_s, libstdc++). A program is one module (owner, 2026-11-15: every
 # independently delivered program holds exactly one copy of any routine):
 # the C++ libraries are static archives linked into it, so it holds one copy
 # of the runtimes; the C ABI library (cmake/CAbi.cmake) is one module of its
 # own for C and C# programs. tools/package_programs.py rejects a package
-# that imports a GCC or LLVM runtime DLL, or any DLL but the system's.
+# that imports a Microsoft, GCC or LLVM runtime DLL, or any DLL but the system's.
 if(MINGW)
     add_link_options(-static)
 endif()
@@ -3285,7 +3288,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         # The Gallery and the labs carry GUI_FORMS_PROGRAM_FONT_NOTICES beside
         # them; the staging at the end of this file copies them.
         find_program(GUI_FORMS_WINDOWS_OBJDUMP
-            NAMES x86_64-w64-mingw32-objdump
+            NAMES llvm-objdump x86_64-w64-mingw32-objdump
             NO_CMAKE_FIND_ROOT_PATH
         )
         if(GUI_FORMS_WINDOWS_OBJDUMP)
@@ -3537,8 +3540,15 @@ endif()
 # MinGW-w64 CRT (add_link_options(-static) above). Their licences come from
 # the toolchain prefix, the directory above the compiler's bin (the CLANG64
 # tree); the LLVM exception does not require them for embedded runtime code,
-# and they are installed anyway. The MSVC target embeds Microsoft's runtime
-# objects instead, under the Visual Studio licence (Stage B, temporary).
+# and they are installed anyway. The own-runtime MSVC target embeds libc++,
+# whose licence tools/own_runtime.py copies into GUI_FORMS_LIBCXX_PREFIX,
+# and STXlib's runtime, whose notices the stx package installs.
+if(GUI_FORMS_MSVC_RUNTIME STREQUAL "OWN" AND EXISTS "${GUI_FORMS_LIBCXX_PREFIX}/LICENSE.TXT")
+    install(FILES "${GUI_FORMS_LIBCXX_PREFIX}/LICENSE.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms
+            RENAME libc++-LICENSE.txt)
+elseif(GUI_FORMS_MSVC_RUNTIME STREQUAL "OWN")
+    message(WARNING "No libc++ licence at ${GUI_FORMS_LIBCXX_PREFIX}/LICENSE.TXT; the installed SDK will lack libc++-LICENSE.txt")
+endif()
 if(MINGW)
     get_filename_component(_gf_toolchain_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
     get_filename_component(_gf_toolchain_prefix "${_gf_toolchain_bin}" DIRECTORY)

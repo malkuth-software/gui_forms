@@ -151,7 +151,14 @@ class ManifestTests(unittest.TestCase):
                      "libc++.1.dylib"):
             self.assertIsNone(pp.refused_dependency(name), name)
         self.assertTrue(pp.windows_system_import("KERNEL32.dll"))
-        self.assertTrue(pp.windows_system_import("api-ms-win-crt-runtime-l1-1-0.dll"))
+        self.assertTrue(pp.windows_system_import("api-ms-win-core-synch-l1-2-0.dll"))
+        self.assertTrue(pp.windows_system_import("ucrtbase.dll"))
+        # The own runtime (owner, 2026-11-24): the UCRT by name, never a
+        # Microsoft C or C++ runtime DLL or the UCRT's forwarders.
+        for name in ("api-ms-win-crt-runtime-l1-1-0.dll", "msvcrt.dll", "VCRUNTIME140.dll", "vcruntime140_1.dll",
+                     "MSVCP140.dll", "ucrtbased.dll"):
+            self.assertFalse(pp.windows_system_import(name), name)
+            self.assertIsNotNone(pp.refused_dependency(name), name)
         self.assertFalse(pp.windows_system_import("gui_forms_abi1.dll"))
         # macOS bundles only the LLVM runtime dylibs, while the runtime tree has no archives.
         for name in ("libc++.1.dylib", "libc++abi.1.dylib", "libunwind.1.dylib"):
