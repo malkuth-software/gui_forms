@@ -223,7 +223,13 @@ LookupComboBox::LookupComboBox(StableId stable_id) : Control(std::move(stable_id
 }
 
 LookupComboBox::~LookupComboBox() {
-    release_overlay();
+    if (presentation_.begin_closing()) release_overlay();
+    presentation_.finish_closing();
+}
+
+LookupComboBox::List* LookupComboBox::shown_list() const noexcept {
+    const DropDownOpening* const shown = presentation_.open_state();
+    return shown != nullptr ? (*shown).list.get() : nullptr;
 }
 
 void LookupComboBox::set_columns(std::vector<LookupColumn> columns) {
@@ -238,7 +244,8 @@ void LookupComboBox::set_columns(std::vector<LookupColumn> columns) {
     }
     columns_ = std::move(columns);
     invalidate(Dirty::paint | Dirty::semantics);
-    if (list_) (*list_).invalidate(Dirty::paint);
+    List* const list = shown_list();
+    if (list != nullptr) (*list).invalidate(Dirty::paint);
 }
 
 void LookupComboBox::set_rows(std::vector<LookupRow> rows) {
@@ -268,7 +275,7 @@ stxlib::Optional<std::size_t> LookupComboBox::row_of(std::string_view key) const
 }
 
 std::string LookupComboBox::shown_text() const {
-    if (dropped_down_ && !filter_.empty()) return filter_;
+    if (presentation_.is_open() && !filter_.empty()) return filter_;
     const stxlib::Optional<std::size_t> found = row_of(selected_key.read());
     const std::size_t* const row = found.value();
     if (row == nullptr) return {};
@@ -296,10 +303,11 @@ void LookupComboBox::refilter() {
         if (chosen != nullptr && filtered_[position] == *chosen) highlighted_.set(position);
     }
     if (highlighted_.absent() && !filtered_.empty() && !filter_.empty()) highlighted_.set(0U);
-    if (list_) {
+    List* const list = shown_list();
+    if (list != nullptr) {
         const std::size_t* const highlighted = highlighted_.value();
-        if (highlighted != nullptr) (*list_).reveal(*highlighted);
-        (*list_).invalidate(Dirty::paint);
+        if (highlighted != nullptr) (*list).reveal(*highlighted);
+        (*list).invalidate(Dirty::paint);
     }
 }
 
@@ -332,7 +340,7 @@ Size LookupComboBox::measure(Size available) {
 AnatomyStateSet LookupComboBox::anatomy_states() const {
     AnatomyStateSet states = base_anatomy_states();
     if (hot_) states.insert(AnatomyState::hot);
-    if (dropped_down_) states.insert(AnatomyState::active_tool);
+    if (presentation_.is_open()) states.insert(AnatomyState::active_tool);
     return states;
 }
 
@@ -349,7 +357,7 @@ void LookupComboBox::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, drop_down);
     PartPaint disclosure{.role = PartRole::disclosure, .bounds = placed.glyph, .states = states,
                          .family = ControlVisualRole::choice};
-    disclosure.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
+    disclosure.mark = presentation_.is_open() ? PartMark::arrow_up : PartMark::arrow_down;
     paint_part(painter, *this, disclosure);
     const std::string shown = shown_text();
     PartPaint content{.role = PartRole::content, .bounds = placed.label, .states = states,
@@ -357,7 +365,7 @@ void LookupComboBox::on_paint(Painter& painter, Rect) {
     content.text = lend_paint_text(shown);
     content.font = field_font();
     paint_part(painter, *this, content);
-    if (focused_ || dropped_down_) {
+    if (focused_ || presentation_.is_open()) {
         PartPaint ring{.role = PartRole::focus, .bounds = placed.well, .states = states,
                        .family = ControlVisualRole::editor};
         ring.states.insert(AnatomyState::focus_visible);
@@ -386,7 +394,7 @@ void LookupComboBox::on_mouse_down(MouseEventArgs& arguments) {
         arguments.handled = true;
         Window* const host = attached_window();
         if (host != nullptr) static_cast<void>((*host).request_focus(shared_from_this()));
-        if (dropped_down_) {
+        if (presentation_.is_open()) {
             close_drop_down();
         } else {
             open_drop_down();
@@ -409,7 +417,8 @@ void LookupComboBox::move_highlight(std::ptrdiff_t delta, bool to_edge) {
     }
     const std::size_t moved = static_cast<std::size_t>(next);
     highlighted_.set(moved);
-    if (list_) (*list_).reveal(moved);
+    List* const list = shown_list();
+    if (list != nullptr) (*list).reveal(moved);
 }
 
 void LookupComboBox::step_selection(std::ptrdiff_t delta) {
@@ -437,7 +446,7 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
     const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::f4 || (alt && (key == PhysicalKey::down || key == PhysicalKey::up))) {
         arguments.handled = true;
-        if (!dropped_down_) {
+        if (!presentation_.is_open()) {
             open_drop_down();
             return;
         }
@@ -447,7 +456,7 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
         close_drop_down();
         return;
     }
-    if (!dropped_down_) {
+    if (!presentation_.is_open()) {
         if (key == PhysicalKey::up || key == PhysicalKey::left) {
             step_selection(-1);
             arguments.handled = true;
@@ -466,8 +475,9 @@ void LookupComboBox::on_key_down(KeyEventArgs& arguments) {
     // A page is one row fewer than the list shows, and at least one row: no
     // row fits before the list's first layout or in a very short window, and
     // 0 - 1 would wrap to a page of -1 (A-gf-controls-06-F6).
+    const List* const list = shown_list();
     const std::ptrdiff_t page =
-        list_ ? static_cast<std::ptrdiff_t>(std::max<std::size_t>((*list_).visible_rows(), 2U) - 1U) : 1;
+        list != nullptr ? static_cast<std::ptrdiff_t>(std::max<std::size_t>((*list).visible_rows(), 2U) - 1U) : 1;
     bool recognized = true;
     switch (key) {
     case PhysicalKey::up: move_highlight(-1, false); break;
@@ -507,8 +517,8 @@ void LookupComboBox::on_text_input(TextInputEvent& event) {
     const unsigned char first = static_cast<unsigned char>(event.text_utf8.front());
     if (first < 0x20U || first == 0x7FU) return;
     event.handled = true;
-    if (!dropped_down_) open_drop_down();
-    if (!dropped_down_) return;
+    if (!presentation_.is_open()) open_drop_down();
+    if (!presentation_.is_open()) return;
     filter_ += event.text_utf8;
     refilter();
     invalidate(Dirty::paint | Dirty::semantics);
@@ -523,7 +533,8 @@ void LookupComboBox::on_focus_changed(bool focused) {
 void LookupComboBox::open_drop_down() {
     require_mutable();
     Window* const host = attached_window();
-    if (dropped_down_ || host == nullptr) return;
+    // Open or closing: the one presentation there is serves.
+    if (!presentation_.is_closed() || host == nullptr) return;
     filter_.clear();
     refilter();
     double width = 0.0;
@@ -536,39 +547,43 @@ void LookupComboBox::open_drop_down() {
     AnchoredOverlayPlacement placement{};
     placement.preferred_size = Size{width, height};
     const std::string prefix(stable_id().value());
-    layer_ = make_control<AnchoredOverlayLayer>(StableId(prefix + ".overlay.layer"), shared_from_this(), placement);
-    list_ = make_control<List>(StableId(prefix + ".overlay.list"), *this);
-    (*layer_).set_content(list_);
-    overlay_ = (*host).open_overlay(shared_from_this(), layer_);
-    activation_ = (*list_).row_activated().subscribe(
+    DropDownOpening opening{};
+    opening.layer = make_control<AnchoredOverlayLayer>(StableId(prefix + ".overlay.layer"), shared_from_this(), placement);
+    opening.list = make_control<List>(StableId(prefix + ".overlay.list"), *this);
+    (*opening.layer).set_content(opening.list);
+    opening.lease.overlay = (*host).open_overlay(shared_from_this(), opening.layer);
+    opening.activation = (*opening.list).row_activated().subscribe(
         *this, Delegate<std::size_t>::bind<LookupComboBox, &LookupComboBox::on_row_activated>(*this));
-    dismissal_ = (*layer_).dismiss_requested().subscribe(
+    opening.dismissal = (*opening.layer).dismiss_requested().subscribe(
         *this, Delegate<OverlayDismissReason>::bind<LookupComboBox, &LookupComboBox::on_dismiss>(*this));
-    if (Event<>* revoked = overlay_.closed_event()) {
-        overlay_revoked_ = (*revoked).subscribe(
+    if (Event<>* revoked = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed = (*revoked).subscribe(
             *this, Delegate<>::bind<LookupComboBox, &LookupComboBox::on_overlay_revoked>(*this));
     }
-    dropped_down_ = true;
+    const std::shared_ptr<List> list = opening.list;
+    presentation_ = PresentationState<DropDownOpening>::open(std::move(opening));
     const std::size_t* const highlighted = highlighted_.value();
-    if (highlighted != nullptr) (*list_).reveal(*highlighted);
+    if (highlighted != nullptr) (*list).reveal(*highlighted);
     invalidate(Dirty::paint | Dirty::semantics);
     drop_down_changed_.emit(true);
 }
 
 void LookupComboBox::release_overlay() noexcept {
-    activation_.disconnect();
-    dismissal_.disconnect();
-    overlay_revoked_.disconnect();
-    if (layer_) (*layer_).clear_content();
-    overlay_.disconnect();
-    list_.reset();
-    layer_.reset();
+    DropDownOpening* const closing = presentation_.closing_state();
+    if (closing == nullptr) return;
+    (*closing).activation.disconnect();
+    (*closing).dismissal.disconnect();
+    (*closing).lease.overlay_closed.disconnect();
+    if ((*closing).layer) (*(*closing).layer).clear_content();
+    (*closing).lease.overlay.disconnect();
 }
 
 void LookupComboBox::close_drop_down() {
-    if (!dropped_down_) return;
-    dropped_down_ = false;
+    // Open becomes closing: a handler the release runs can neither close
+    // nor open the list again until it is closed.
+    if (!presentation_.begin_closing()) return;
     release_overlay();
+    presentation_.finish_closing();
     filter_.clear();
     refilter();
     invalidate(Dirty::paint | Dirty::semantics);
@@ -592,13 +607,13 @@ void LookupComboBox::on_dismiss(OverlayDismissReason) {
 }
 
 void LookupComboBox::on_overlay_revoked() {
-    if (!dropped_down_) return;
-    dropped_down_ = false;
-    activation_.disconnect();
-    dismissal_.disconnect();
-    overlay_revoked_.disconnect();
-    list_.reset();
-    layer_.reset();
+    // The window took the layer back: nothing is left to take it out of.
+    if (!presentation_.begin_closing()) return;
+    DropDownOpening& closing = *presentation_.closing_state();
+    closing.activation.disconnect();
+    closing.dismissal.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    presentation_.finish_closing();
     filter_.clear();
     refilter();
     invalidate(Dirty::paint | Dirty::semantics);
@@ -612,19 +627,19 @@ SemanticDescriptor LookupComboBox::semantic_descriptor() const {
     descriptor.description = accessible_description.read();
     descriptor.value = shown_text();
     descriptor.has_popup = true;
-    if (dropped_down_) descriptor.states |= SemanticState::expanded;
+    if (presentation_.is_open()) descriptor.states |= SemanticState::expanded;
     descriptor.states |= SemanticState::read_only;
-    descriptor.actions = {SemanticAction::focus, dropped_down_ ? SemanticAction::collapse : SemanticAction::expand};
+    descriptor.actions = {SemanticAction::focus, presentation_.is_open() ? SemanticAction::collapse : SemanticAction::expand};
     descriptor.exposed = true;
     return descriptor;
 }
 
 bool LookupComboBox::on_semantic_action(SemanticAction action, std::string_view value) {
-    if (action == SemanticAction::expand && !dropped_down_) {
+    if (action == SemanticAction::expand && !presentation_.is_open()) {
         open_drop_down();
-        return dropped_down_;
+        return presentation_.is_open();
     }
-    if (action == SemanticAction::collapse && dropped_down_) {
+    if (action == SemanticAction::collapse && presentation_.is_open()) {
         close_drop_down();
         return true;
     }
@@ -644,7 +659,7 @@ void LookupComboBox::publish_part_geometry(std::span<PartGeometry> geometry) con
     record.label = PartGeometry::from_bounds(placed.label);
     record.actuator = PartGeometry::from_bounds(placed.actuator);
     record.glyph = PartGeometry::from_bounds(placed.glyph);
-    if (focused_ || dropped_down_) record.focus = PartGeometry::from_bounds(placed.well);
+    if (focused_ || presentation_.is_open()) record.focus = PartGeometry::from_bounds(placed.well);
     write_parts(anatomy(), lookup_part_fields, record, geometry);
 }
 
@@ -656,8 +671,8 @@ LookupComboBox::Parts LookupComboBox::parts() const {
 }
 
 void LookupComboBox::on_dispose() noexcept {
-    dropped_down_ = false;
-    release_overlay();
+    if (presentation_.begin_closing()) release_overlay();
+    presentation_.finish_closing();
     Control::on_dispose();
 }
 

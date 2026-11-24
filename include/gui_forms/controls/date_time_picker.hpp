@@ -4,6 +4,7 @@
 #include "gui_forms/controls/date_time_format_provider.hpp"
 #include "gui_forms/controls/date_time_picker_values.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/presentation_state.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/date_time_picker_capabilities.hpp"
@@ -120,24 +121,26 @@ private:
     bool style_authored_{};
     HitPart pressed_part_{HitPart::none};
     HitPart activation_part_{HitPart::none};
-    bool dropped_down_{};
     bool focused_{};
-    bool closing_overlay_{};
-    std::shared_ptr<Panel> overlay_layer_;
-    Control::Ptr overlay_calendar_;
-    OverlayToken overlay_token_;
-    std::uint64_t overlay_scope_{};
-    // Set while open_drop_down begins its focus scope (A-gf-controls-08-F3).
-    bool opening_drop_down_{};
-    SubscriptionToken overlay_commit_;
-    SubscriptionToken overlay_cancel_;
-    SubscriptionToken overlay_dismiss_;
-    SubscriptionToken overlay_revocation_;
+    // One opening of the calendar: its layer and calendar, the lease (with
+    // the revocation subscription and the focus scope), the calendar's and
+    // layer's subscriptions, and the picker Popup's closing subscription
+    // while the calendar is lifted. Opening while open_drop_down begins the
+    // scope (A-gf-controls-08-F3); dropped_down reads open.
+    struct DropDownOpening final {
+        std::shared_ptr<Panel> layer{};
+        Control::Ptr calendar{};
+        OverlayLease lease{};
+        SubscriptionToken commit{};
+        SubscriptionToken cancel{};
+        SubscriptionToken dismiss{};
+        SubscriptionToken popup_closed{};
+    };
+    PresentationState<DropDownOpening> presentation_{};
     // The calendar's Popup while it shows outside the owner's layer (owner,
     // 2026-11-08: pickers are Popups before 0.5); the host closing it
     // closes the calendar.
     PopupLift lift_;
-    SubscriptionToken lift_closed_;
     Event<DateTimeValue> value_changed_;
     Event<bool> checked_changed_;
     Event<bool> drop_down_changed_;

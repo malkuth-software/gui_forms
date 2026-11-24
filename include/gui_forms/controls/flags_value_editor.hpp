@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/controls/presentation_state.hpp"
 #include "gui_forms/inspection/inspection_types.hpp"
 #include "gui_forms/window/native_popup/popup_lift.hpp"
 #include "gui_forms/controls/flags_value_editor_capabilities.hpp"
@@ -104,24 +105,27 @@ private:
     std::vector<std::string> form_flag_names_;
     std::string form_none_name_;
     std::vector<std::string> form_checked_flags_;
-    std::shared_ptr<Panel> overlay_layer_;
-    std::shared_ptr<CheckedListBox> overlay_list_;
-    std::vector<std::size_t> overlay_choice_indices_;
-    std::uint64_t overlay_scope_{};
-    // Set while open_drop_down begins its focus scope (A-gf-controls-08-F3).
-    bool opening_drop_down_{};
-    OverlayToken overlay_token_;
-    SubscriptionToken overlay_check_;
-    SubscriptionToken overlay_dismissal_;
-    SubscriptionToken overlay_revocation_;
+    // One opening of the list: its layer and list, the descriptor choices
+    // its rows show, the lease (with the revocation subscription and the
+    // focus scope), the list's and layer's subscriptions, and the picker
+    // Popup's closing subscription while the list is lifted. Opening while
+    // open_drop_down begins the scope (A-gf-controls-08-F3); dropped_down
+    // reads open.
+    struct DropDownOpening final {
+        std::shared_ptr<Panel> layer{};
+        std::shared_ptr<CheckedListBox> list{};
+        std::vector<std::size_t> choice_indices{};
+        OverlayLease lease{};
+        SubscriptionToken check{};
+        SubscriptionToken dismissal{};
+        SubscriptionToken popup_closed{};
+    };
+    PresentationState<DropDownOpening> presentation_{};
     // The list's Popup while it shows outside the owner's layer (owner,
     // 2026-11-08: drop-downs are Popups before 0.5).
     PopupLift lift_;
-    SubscriptionToken lift_closed_;
-    bool dropped_down_{};
     bool focused_{};
     bool synchronizing_overlay_{};
-    bool closing_overlay_{};
     Event<const PropertyEnumValue&> value_changed_;
     Event<bool> drop_down_changed_;
     // property_codemod begin FlagsValueEditor (tools/property_families/flags_value_editor.json; generated, do not edit)

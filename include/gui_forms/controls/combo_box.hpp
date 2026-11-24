@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/controls/presentation_state.hpp"
 #include "gui_forms/controls/combo_box_values.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
@@ -161,7 +162,10 @@ private:
     bool step_selection(std::uint32_t key);
     // Lifts the open list into the owner's picker Popup at `face`, watching
     // for the Popup window's close; false, changing nothing, when it cannot.
-    [[nodiscard]] bool lift_list(const std::shared_ptr<ListBox>& list, Rect face, PopupLiftInput input);
+    // Lifts the list into the picker Popup and subscribes `popup_closed` to
+    // the Popup window's closing; false (nothing subscribed) when it cannot.
+    [[nodiscard]] bool lift_list(const std::shared_ptr<ListBox>& list, Rect face, PopupLiftInput input,
+                                 SubscriptionToken& popup_closed);
     void release_lift() noexcept;
     // The host closed a Popup window: the picker's closes the list.
     void on_popup_window_closed(std::size_t slot);
@@ -171,19 +175,26 @@ private:
     stxlib::Optional<std::size_t> edit_selection_{};
     std::string edit_former_text_;
     stxlib::Optional<std::size_t> selected_index_;
-    bool dropped_down_{};
     bool focused_{};
-    std::shared_ptr<Panel> overlay_layer_;
-    std::shared_ptr<ListBox> overlay_list_;
-    std::uint64_t overlay_scope_{};
-    OverlayToken overlay_token_;
-    SubscriptionToken overlay_selection_;
-    SubscriptionToken overlay_activation_;
-    SubscriptionToken overlay_dismissal_;
-    SubscriptionToken overlay_revocation_;
+    // One opening of the list: its layer and list, the lease (with the
+    // revocation subscription and, for the drop_down_list style, the focus
+    // scope), the list's and layer's subscriptions, and the picker Popup's
+    // closing subscription while the list is lifted. Opening while the
+    // scope is begun; dropped_down reads open.
+    struct DropDownOpening final {
+        std::shared_ptr<Panel> layer{};
+        std::shared_ptr<ListBox> list{};
+        OverlayLease lease{};
+        SubscriptionToken selection{};
+        SubscriptionToken activation{};
+        SubscriptionToken dismissal{};
+        SubscriptionToken popup_closed{};
+    };
+    PresentationState<DropDownOpening> presentation_{};
+    // The list's record while it is opening or open; null otherwise.
+    [[nodiscard]] DropDownOpening* drop_down() noexcept { return presentation_.shown_state(); }
     // The open list's Popup while it shows outside the owner's layer.
     PopupLift lift_;
-    SubscriptionToken lift_closed_;
     std::shared_ptr<TextBox> editor_;
     SubscriptionToken editor_text_;
     SubscriptionToken editor_focus_;
@@ -202,7 +213,6 @@ private:
     Event<bool> drop_down_changed_;
     Event<> items_changed_;
     Event<const std::string&> text_changed_;
-    bool closing_overlay_{};
     // property_codemod begin ComboBox (tools/property_families/combo_box.json; generated, do not edit)
 public:
     // ComboBox's property table: Panel's entries, then its own.
