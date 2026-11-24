@@ -16,6 +16,9 @@ program prints "GUI.Forms window smoke passed" before exiting 0. A launch
 passes when the exit code is 0, the pass line was printed, the receipt reports
 at least one presented frame and the renderer loaded its bundled fonts.
 
+Every extracted program is also launched with --mcp (tools/check_mcp_launch.py):
+it must answer initialize and tools/list, and exit once its input closes.
+
 Results are written to smoke-<platform>.json beside the packages receipt and
 the exit status is non-zero when any launch fails.
 """
@@ -35,6 +38,8 @@ import zipfile
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
+
+import check_mcp_launch
 
 ROOT: Path = Path(__file__).resolve().parents[1]
 PLATFORMS: tuple[str, ...] = ("macos-arm64", "windows-x64", "linux-x64", "linux-arm64")
@@ -169,6 +174,17 @@ class Smoke:
                             receipt is not None, renderer, round(time.monotonic() - started, 2), detail,
                             stdout_lines[-20:], stderr_lines[-20:])
 
+    def serve_mcp(self, record: dict[str, Any], executable: Path, source: str) -> LaunchResult:
+        """Launch the program with --mcp and check that it serves MCP (tools/check_mcp_launch.py)."""
+        arguments = ["--mcp"]
+        if self.dry_run:
+            self.log(f"    would check: {executable} --mcp")
+            return LaunchResult(record["id"], source, str(executable), arguments, True, True, 0, False, None, 0.0, "dry run")
+        started = time.monotonic()
+        passed, detail = check_mcp_launch.check(executable, self.timeout, clean_environment(self.platform))
+        return LaunchResult(record["id"], source, str(executable), arguments, passed, passed, None, False, None,
+                            round(time.monotonic() - started, 2), detail)
+
     # -- install paths ------------------------------------------------------------
 
     def install_and_locate(self, record: dict[str, Any], installer: Path) -> Path:
@@ -233,6 +249,8 @@ def main(argv: list[str] | None = None) -> int:
                 extract_archive(archive, extracted, platform)
             folder = record["install"]["macos_app"] if platform.startswith("macos") else record["install"]["folder"]
             results.append(smoke.launch(record, extracted / folder / record["executable"], "archive"))
+            print(f"    {'PASS' if results[-1].passed else 'FAIL'}: {results[-1].detail}")
+            results.append(smoke.serve_mcp(record, extracted / folder / record["executable"], "archive --mcp"))
             print(f"    {'PASS' if results[-1].passed else 'FAIL'}: {results[-1].detail}")
             installer_name = record["artifacts"].get("installer")
             if args.install and installer_name:

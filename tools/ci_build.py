@@ -42,21 +42,25 @@ ROOT: Path = Path(__file__).resolve().parents[2]
 
 
 def check_windows_sdk_imports(sdk: Path) -> None:
-    """Fail when an installed SDK DLL imports a compiler runtime DLL.
+    """Fail when a DLL or program under `sdk` imports a compiler runtime DLL.
 
     Every Windows binary links libc++ and STXlib's runtime statically
-    (cmake/llvm22-windows-msvc-own.cmake), so a DLL imports Windows system
-    DLLs, ucrtbase.dll and GUI.Forms' own DLLs only; the forbidden names
-    (Microsoft, GCC and LLVM runtimes, the api-ms-win-crt forwarders) are
-    package_programs.py's. Prints each DLL's non-system imports.
+    (cmake/llvm22-windows-msvc-own.cmake), so a DLL or program imports
+    Windows system DLLs, ucrtbase.dll and GUI.Forms' own DLLs only; the
+    forbidden names (Microsoft, GCC and LLVM runtimes, the api-ms-win-crt
+    forwarders) are package_programs.py's. CMake's own probes (CMakeFiles)
+    are not looked at. Prints each image's non-system imports. A program
+    that consumes GUI.Forms points own_runtime.py evidence --dlls at its
+    build tree to check its programs the same way.
     """
     from package_programs import WINDOWS_FORBIDDEN_RUNTIME_DLL, WINDOWS_SYSTEM_DLLS
     objdump: str | None = shutil.which('objdump') or shutil.which('llvm-objdump')
     if objdump is None:
         raise RuntimeError('objdump (or llvm-objdump) is needed to check the installed DLLs')
-    dlls: list[Path] = sorted(sdk.rglob('*.dll'))
+    dlls: list[Path] = sorted(path for pattern in ('*.dll', '*.exe') for path in sdk.rglob(pattern)
+                              if 'CMakeFiles' not in path.relative_to(sdk).parts)
     if not dlls:
-        raise RuntimeError('no DLL under ' + str(sdk))
+        raise RuntimeError('no DLL or program under ' + str(sdk))
     dll: Path
     for dll in dlls:
         listing: str = subprocess.run([objdump, '-p', str(dll)], check=True, capture_output=True,
@@ -296,9 +300,19 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         examples: Path = build / 'installed-reference-examples'
         run('cmake', '-S', ROOT / 'gui_forms/examples/reference', '-B', examples,
             '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', f'-DCMAKE_PREFIX_PATH={sdk}',
+            # This interpreter runs the windowed examples' MCP check
+            # (tools/check_mcp_launch.py), so the check never skips quietly.
+            f'-DPython3_EXECUTABLE={sys.executable}',
             *toolchain_options(ROOT / 'gui_forms'))
         run('cmake', '--build', examples, '--parallel', jobs)
         run('ctest', '--test-dir', examples, '--output-on-failure')
+        # Every demonstrator serves --mcp (tools/check_mcp_launch.py; CMake
+        # lists them in demonstrators.txt when the automation is built).
+        demonstrators: Path = toolkit / 'demonstrators.txt'
+        if demonstrators.is_file():
+            programs: list[str] = [line for line in demonstrators.read_text(encoding='utf-8').splitlines() if line]
+            if programs:
+                run(sys.executable, '-B', ROOT / 'gui_forms/tools/check_mcp_launch.py', *programs)
     if install_only or test_cache is None:
         return
     run(sys.executable, '-B', ROOT / 'gui_forms/tools/test_cache.py', 'pack', '--build-dir', toolkit,

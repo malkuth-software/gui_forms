@@ -5,10 +5,10 @@ build_directory=${1:-"$(pwd)/build-windows-x64"}
 build_directory=$(CDPATH= cd -- "$build_directory" && pwd)
 wine_binary=${WINE_BINARY:-/opt/homebrew/bin/wine}
 gallery="$build_directory/GUI.Forms Gallery.exe"
-script="$evidence_directory/wine-gallery-smoke-script.jsonl"
 evidence_directory=${GUI_FORMS_EVIDENCE_DIR:-"$build_directory"}
 mkdir -p "$evidence_directory"
 evidence_directory=$(CDPATH= cd -- "$evidence_directory" && pwd)
+script="$evidence_directory/wine-gallery-smoke-script.jsonl"
 log="$evidence_directory/wine-gallery-smoke.jsonl"
 
 test -x "$wine_binary"

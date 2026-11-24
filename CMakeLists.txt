@@ -6,7 +6,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "GUI.Forms supports Apple silicon arm64 only")
     endif()
 endif()
-project(GUIForms VERSION 1.0.0 LANGUAGES C CXX)
+project(GUIForms VERSION 1.0.1 LANGUAGES C CXX)
 
 # The browser target's compiler is the pinned emsdk's clang
 # (cmake/emscripten.cmake checks the release); every other target is LLVM 22.1.
@@ -2286,7 +2286,11 @@ endif()
 
 # The automation core (src/controls/automation; stage G1) in the controls
 # library, and its run and MCP transport (src/runtime/automation; stage G2)
-# in the Application library of every desktop host.
+# in the Automation archive, which the Application library of every desktop
+# host links whole and every desktop host library links: Application::run and
+# the hosts' single-window entries (host::run_macos, run_windows, run_linux)
+# both start the run, so a program that calls its host directly serves --mcp
+# too (1.0.1: the demonstrators did not).
 if(GUI_FORMS_MCP)
     target_sources(gui_forms_controls PRIVATE
         src/controls/automation/control/automation_control.cpp
@@ -2303,14 +2307,24 @@ if(GUI_FORMS_MCP)
         target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP_TEST_CONTROLS=1)
     endif()
     if(TARGET gui_forms_application AND NOT GUI_FORMS_HIGH_INTEGRITY)
-        target_sources(gui_forms_application PRIVATE
+        add_library(gui_forms_automation STATIC
             src/runtime/automation/automation_run.cpp
             src/runtime/automation/automation_script.cpp
             src/runtime/automation/mcp_transport.cpp)
+        target_compile_features(gui_forms_automation PUBLIC cxx_std_20)
+        target_link_libraries(gui_forms_automation PUBLIC gui_forms_core gui_forms_controls)
+        target_compile_definitions(gui_forms_automation PRIVATE GUI_FORMS_MCP_BUILT=1)
         target_compile_definitions(gui_forms_application PRIVATE GUI_FORMS_MCP_BUILT=1)
+        gui_forms_application_add_archives(gui_forms_application gui_forms_automation)
+        foreach(_gf_host IN ITEMS gui_forms_host_macos gui_forms_host_linux gui_forms_host_windows)
+            if(TARGET ${_gf_host})
+                target_link_libraries(${_gf_host} PRIVATE gui_forms_automation)
+                target_compile_definitions(${_gf_host} PRIVATE GUI_FORMS_MCP_BUILT=1)
+            endif()
+        endforeach()
         if(TARGET stxlib::mcp)
-            target_link_libraries(gui_forms_application PRIVATE stxlib::mcp)
-            target_compile_definitions(gui_forms_application PRIVATE GUI_FORMS_MCP_TRANSPORT=1)
+            target_link_libraries(gui_forms_automation PRIVATE stxlib::mcp)
+            target_compile_definitions(gui_forms_automation PRIVATE GUI_FORMS_MCP_TRANSPORT=1)
         else()
             # MCP on with no transport would configure a program whose --mcp
             # only reports that it has none (cp37: the stx package exported no
@@ -2332,7 +2346,8 @@ foreach(_gf_archive IN ITEMS
         gui_forms_host_headless gui_forms_text_engine gui_forms_prepared_text_impl
         gui_forms_text_masks_impl gui_forms_sealed_pages_objects gui_forms_dib_frame_store_objects
         gui_forms_skia gui_drawing_skia gui_forms_host_macos gui_forms_host_linux
-        gui_forms_windows_host_objects gui_forms_host_windows gui_forms_host_surface gui_forms_host_web)
+        gui_forms_windows_host_objects gui_forms_host_windows gui_forms_host_surface gui_forms_host_web
+        gui_forms_automation)
     if(TARGET ${_gf_archive})
         gui_forms_application_archive(${_gf_archive})
     endif()
@@ -3763,3 +3778,23 @@ endif()
 
 # The test cache's description, after the last target (cmake/TestCache.cmake).
 gui_forms_describe_test_cache()
+
+# The demonstrators: every program that runs its window through a desktop host
+# library directly (host::run_macos, run_windows, run_linux). tools/ci_build.py
+# starts each with --mcp and expects it to serve MCP (tools/check_mcp_launch.py),
+# reading their paths from demonstrators.txt in the build tree. Until 1.0.1 none
+# did, and no check noticed.
+if(GUI_FORMS_MCP AND NOT GUI_FORMS_HIGH_INTEGRITY AND TARGET gui_forms_automation)
+    get_property(_gf_targets DIRECTORY PROPERTY BUILDSYSTEM_TARGETS)
+    set(_gf_demonstrators "")
+    foreach(_gf_target IN LISTS _gf_targets)
+        get_target_property(_gf_type ${_gf_target} TYPE)
+        get_target_property(_gf_excluded ${_gf_target} EXCLUDE_FROM_ALL)
+        get_target_property(_gf_links ${_gf_target} LINK_LIBRARIES)
+        if(_gf_type STREQUAL "EXECUTABLE" AND NOT _gf_excluded
+           AND _gf_links MATCHES "(^|;)gui_forms_host_(macos|linux|windows)(;|$)")
+            string(APPEND _gf_demonstrators "$<TARGET_FILE:${_gf_target}>\n")
+        endif()
+    endforeach()
+    file(GENERATE OUTPUT "${CMAKE_BINARY_DIR}/demonstrators.txt" CONTENT "${_gf_demonstrators}")
+endif()

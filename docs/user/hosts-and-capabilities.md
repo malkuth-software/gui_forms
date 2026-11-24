@@ -366,6 +366,9 @@ Windows (Win32)
   same on every host: a program launched with `--mcp` serves MCP on its
   standard input and output (only the process that started it can drive
   it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
+  This holds for a program run by `Application::run` and for one that calls
+  its host's single-window entry (`host::run_macos`, `run_windows`,
+  `run_linux`) directly; that window joins as `main`.
   A program declares its own model tools and inspect sections beside the
   built-in ones with `register_model_tool` and
   `register_model_inspect_section` (`gui_forms/automation/tools/model_tools.hpp`;

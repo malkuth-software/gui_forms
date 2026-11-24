@@ -326,7 +326,10 @@ To run a Windows build under Wine, copy its build directory to the Mac and
 run the program from there: it loads no DLL of its own and no runtime
 DLL. Run `wine "GUI.Forms Gallery.exe"`; add
 `--mcp-script <file.jsonl>` to run an automation script (one tool call a
-line, the library's MCP automation).
+line, the library's MCP automation). The Gallery runs through the Win32
+host's single-window entry (`host::run_windows`), which starts the
+automation as `Application::run` does. Until 1.0.1 it did not, and every
+demonstrator ignored `--mcp` and `--mcp-script` on every host.
 
 `tools/run_windows_wine_smoke.sh <build-dir>` launches the gallery with an
 automation script (`--mcp-script`) that clicks three page rows and three
@@ -345,7 +348,9 @@ dispatcher and host-service pages. The scripts need `wine` (override with
 `WINE_BINARY`) and `rg`. When the build is configured on macOS with `wine`
 found, the `gui_forms_windows_wine_smoke` and
 `gui_forms_windows_gallery_services_smoke` targets run the first and last of
-these against the build directory. With `llvm-objdump` available,
+these against the build directory. No CI job runs them. What CI checks on
+every platform is that each packaged program, and each windowed installed
+example, answers `--mcp` (`tools/check_mcp_launch.py`). With `llvm-objdump` available,
 `gui_forms_windows_boundary_audit` rejects a gallery that imports a GPU or
 managed runtime DLL or lacks `GDI32.dll` and `USER32.dll`.
 

@@ -221,6 +221,43 @@ void attach_application_window(SurfaceRoot& model, const std::shared_ptr<Applica
     }
 }
 
+namespace {
+// DirectRunWindow::wrap's host_ready: the program's own, then the join.
+struct DirectRunReady final {
+    std::shared_ptr<ApplicationWindowState> state{};
+    SurfaceRoot* model{};
+    DirectRunWindow::HostReady inner{};
+    void operator()(std::function<void()> wake, std::function<void()> request_close,
+                    std::function<HostDialogResult(const HostDialogRequest&)> show_dialog,
+                    std::function<HostClipboardTextResult()> read_clipboard_text,
+                    std::function<HostServiceStatus(std::string_view)> write_clipboard_text) const {
+        (*state).request_close = request_close;
+        if (inner) {
+            inner(std::move(wake), std::move(request_close), std::move(show_dialog),
+                  std::move(read_clipboard_text), std::move(write_clipboard_text));
+        }
+        if ((*state).ready || (*state).closed) return;
+        (*state).thread = stxlib::current_thread();
+        (*state).ready = true;
+        const ApplicationWindowHandle handle = ApplicationHandleAccess::make(state);
+        notify_window_ready(*model, (*state).stable_id, handle);
+    }
+};
+} // namespace
+
+DirectRunWindow::DirectRunWindow()
+    : state_(gui_forms::detail::make_library_shared<ApplicationWindowState>()) {}
+
+DirectRunWindow::~DirectRunWindow() {
+    revoke_window_state(*state_);
+}
+
+DirectRunWindow::HostReady DirectRunWindow::wrap(SurfaceRoot& model, std::string stable_id, HostReady inner) {
+    (*state_).stable_id = std::move(stable_id);
+    HostReady wrapped = DirectRunReady{state_, &model, std::move(inner)};
+    return wrapped;
+}
+
 void revoke_window_state(ApplicationWindowState& state) noexcept {
     state.closed = true;
     state.ready = false;

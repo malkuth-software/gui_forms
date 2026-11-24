@@ -346,7 +346,7 @@ def main() -> None:
     build.add_argument('--github-env', action='store_true', help='append the settings to $GITHUB_ENV')
     evidence: argparse.ArgumentParser = commands.add_parser('evidence', help='prove a tree used the own runtime')
     evidence.add_argument('--build', type=Path, required=True, help='a configured and built tree')
-    evidence.add_argument('--dlls', type=Path, help='a folder whose DLLs\' imports are checked')
+    evidence.add_argument('--dlls', type=Path, help='a folder whose DLLs\' and programs\' imports are checked')
     arguments: argparse.Namespace = parser.parse_args()
     if arguments.command == 'build':
         command_build(arguments)

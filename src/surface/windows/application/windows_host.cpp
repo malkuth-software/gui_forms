@@ -1,6 +1,10 @@
 #include "gui_forms/paint_framebuffer.hpp"
 #include "../../../host/offscreen_font_lookup.hpp"
 #include "windows_host.hpp"
+#include "../../../core/application/application_state.hpp"
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../../../runtime/automation/automation_run.hpp"
+#endif
 #include "../accessibility/windows_accessibility.hpp"
 #include "../services/windows_clipboard_image.hpp"
 #include "../services/windows_clipboard_open.hpp"
@@ -4530,6 +4534,15 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
         return 3;
     }
 
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The automation (--mcp, --mcp-script) as Application::run starts it; it
+    // ends after the window's model and the window's state below.
+    const gui_forms::automation::AutomationRunScope automation{};
+#endif
+    // The window joins the automation once the host is ready
+    // (gui_forms::detail::DirectRunWindow); nothing happens without one.
+    gui_forms::detail::DirectRunWindow direct_window{};
+    options.host_ready = direct_window.wrap(*model, "main", std::move(options.host_ready));
     WindowsHostState state(std::move(model), options);
     const DWORD style = options.popup_window ? (WS_POPUP | WS_BORDER) :
         (options.minimizable ? WS_OVERLAPPEDWINDOW : (WS_OVERLAPPEDWINDOW & ~WS_MINIMIZEBOX));

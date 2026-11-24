@@ -3,6 +3,10 @@
 // macos_application_run.mm; the view, its input, drawing and accessibility
 // are under ../view and ../accessibility (macos_view.hpp lists the units).
 
+#include "../../../core/application/application_state.hpp"
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../../../runtime/automation/automation_run.hpp"
+#endif
 #include "macos_host_private.hpp"
 #include "macos_main_work.hpp"
 #include "macos_window_delegates.hpp"
@@ -185,6 +189,15 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
             *model, windowDragRegionIds).accepted()) {
         return 2;
     }
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The automation (--mcp, --mcp-script) as Application::run starts it; it
+    // ends after the window's model and the window's state below.
+    const gui_forms::automation::AutomationRunScope automation{};
+#endif
+    // The window joins the automation once the host is ready
+    // (gui_forms::detail::DirectRunWindow); nothing happens without one.
+    gui_forms::detail::DirectRunWindow direct_window{};
+    options.host_ready = direct_window.wrap(*model, "main", std::move(options.host_ready));
     int exitCode = 0;
     @autoreleasepool {
         NSApplication* application = [NSApplication sharedApplication];
