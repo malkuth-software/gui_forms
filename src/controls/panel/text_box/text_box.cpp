@@ -1778,7 +1778,7 @@ const std::array<PropertyEntry, TextBox::text_box_property_count>& TextBox::text
          &read_cell_entry<TextBox, decltype(&TextBox::read_only), &TextBox::read_only>,
          &write_cell_entry<TextBox, decltype(&TextBox::read_only), &TextBox::read_only>,
          nullptr, nullptr, nullptr,
-         nullptr},
+         &connect_event_entry<TextBox, decltype(&TextBox::read_only_changed_), &TextBox::read_only_changed_>},
         {"multiline", &describe_text_box_multiline,
          &read_cell_entry<TextBox, decltype(&TextBox::multiline), &TextBox::multiline>,
          &write_cell_entry<TextBox, decltype(&TextBox::multiline), &TextBox::multiline>,
@@ -1809,7 +1809,9 @@ void TextBox::written(const decltype(placeholder_text)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void TextBox::on_read_only_changed() {}
+void TextBox::on_read_only_changed() {
+    publish_change(read_only_changed_, (*editing_).read_only());
+}
 
 void TextBox::on_multiline_changed() {}
 
