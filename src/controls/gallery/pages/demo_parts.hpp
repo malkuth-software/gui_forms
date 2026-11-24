@@ -67,7 +67,10 @@ public:
         (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
         (*layer_).placement = placement();
         token_ = (*window).open_overlay(anchor_, layer_);
-        scope_ = (*window).begin_focus_scope(layer_, focus_);
+        // The preferred focus only when it can take it now (attached, shown,
+        // enabled and focusable); otherwise the scope chooses its first stop.
+        const bool focus_ready = focus_ && (*focus_).eligible_for_input() && (*focus_).focusable.read();
+        scope_ = (*window).begin_focus_scope(layer_, focus_ready ? focus_ : Control::Ptr{});
         (*anchor_).expanded_state = stxlib::Optional<bool>::of(true);
         if (Event<>* closed = token_.closed_event()) {
             on(*closed, *this, &PopupPanel::on_overlay_closed);
