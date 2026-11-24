@@ -284,7 +284,9 @@ OpenDialog find_open_dialog(AutomationCore& core, Window& window, std::span<cons
         if (session == nullptr) continue;
         if ((*session).snapshot().modal_depth != 0U) {
             blocked = true;
-        } else if (free_window == nullptr) {
+        } else if (free_window == nullptr && !core.passive_popup_window(*candidate)) {
+            // A tooltip's window is never the dialog: with only passive
+            // popups free, the dialog is a native one.
             free_window = candidate;
         }
     }
@@ -658,7 +660,7 @@ AutomationCore::~AutomationCore() {
     }
 }
 
-bool AutomationCore::attach_window(Window& window, std::string stable_id) {
+bool AutomationCore::attach_window(Window& window, std::string stable_id, const bool passive_popup) {
     AutomationPresenter* const presenter = control_.presenter();
     if (presenter != nullptr && (*presenter).presenter_window(window)) return false;
     prune_windows();
@@ -669,7 +671,7 @@ bool AutomationCore::attach_window(Window& window, std::string stable_id) {
         stable_id = "window." + std::to_string(next_window_number_);
         ++next_window_number_;
     }
-    windows_.push_back(AutomationWindow{window.window_ref(), std::move(stable_id)});
+    windows_.push_back(AutomationWindow{window.window_ref(), std::move(stable_id), passive_popup});
     if (presenter != nullptr) (*presenter).window_attached(window);
     return true;
 }
@@ -719,6 +721,13 @@ Window* AutomationCore::find_window(std::string_view name) {
         if ((*window).text.read() == name) return window;
     }
     return nullptr;
+}
+
+bool AutomationCore::passive_popup_window(const Window& window) const noexcept {
+    for (const AutomationWindow& entry : windows_) {
+        if (entry.window.get() == &window) return entry.passive_popup;
+    }
+    return false;
 }
 
 std::string AutomationCore::window_stable_id(const Window& window) const {

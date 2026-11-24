@@ -177,6 +177,9 @@ inline constexpr std::size_t no_parent = static_cast<std::size_t>(-1);
 struct AutomationWindow final {
     WindowRef window{};
     std::string stable_id{};
+    // A passive popup window (a tooltip): listed and captured, never taken
+    // for a dialog.
+    bool passive_popup{};
 };
 
 class AutomationCore final {
@@ -198,8 +201,11 @@ public:
     // Joins `window` to the automation under `stable_id` (empty: the core
     // names it "window.<n>"); a window joined already keeps its entry. The
     // presenter's own windows are refused (false). Leaves on its own when
-    // the window is destroyed.
-    bool attach_window(Window& window, std::string stable_id);
+    // the window is destroyed. `passive_popup` marks a popup window that
+    // never takes focus (ApplicationWindowState::passive_popup).
+    bool attach_window(Window& window, std::string stable_id, bool passive_popup = false);
+    // Whether `window` joined as a passive popup window.
+    [[nodiscard]] bool passive_popup_window(const Window& window) const noexcept;
     void detach_window(const Window& window) noexcept;
     // The live windows, oldest first. Borrowed for the current call.
     void fill_windows(std::vector<Window*>& windows);

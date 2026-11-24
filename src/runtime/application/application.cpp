@@ -245,6 +245,7 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     (*bridge).floating = source.floating != HostWindowFloating::none;
     detail::ApplicationWindowState& state = *(*bridge).state;
     state.can_hide = !primary;
+    state.passive_popup = source.popup.present() && ((*source.popup.value())).focus == HostPopupFocus::passive;
     state.stable_id = source.stable_id;
     state.run = run;
     if ((*bridge).options.frame_changed) state.frame_changed = FrameChanged{bridge};

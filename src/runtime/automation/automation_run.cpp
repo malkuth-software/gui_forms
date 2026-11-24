@@ -1,5 +1,6 @@
 #include "automation_run_internal.hpp"
 
+#include "../../core/application/application_state.hpp"
 #include "../../core/host/session/session_directory.hpp"
 
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
@@ -196,7 +197,10 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
     // (attach_application_window's callers).
     Window* const model = static_cast<Window*>(&window);
     try {
-        if (!run.core_.attach_window(*model, std::string(stable_id))) return;
+        const std::shared_ptr<gui_forms::detail::ApplicationWindowState> state =
+            gui_forms::detail::ApplicationHandleAccess::state(handle);
+        const bool passive_popup = state != nullptr && (*state).passive_popup;
+        if (!run.core_.attach_window(*model, std::string(stable_id), passive_popup)) return;
         run.presenter_.set_windowing(handle, stable_id);
         run.handles_.push_back(handle);
         bool closing = false;

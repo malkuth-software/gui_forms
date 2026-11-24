@@ -678,6 +678,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     state.stable_id = window.stable_id;
     state.run = run_;
     state.can_hide = kind != HostWindowKind::primary;
+    state.passive_popup = popup.present() && ((*popup.value())).focus == HostPopupFocus::passive;
     state.request_close = HeadlessRequestClose{this, window.id};
     if (floating) {
         // The floating policy decides when the window is on screen.

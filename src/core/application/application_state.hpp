@@ -11,6 +11,10 @@ struct ApplicationWindowState final {
     bool ready{};
     bool closed{};
     bool can_hide{};
+    // A passive popup window (a tooltip, a Splash, a menu panel that never
+    // takes focus): never a dialog, so the automation does not take one for
+    // the window a modal call left free (find_open_dialog).
+    bool passive_popup{};
     // The window's stable id and, once it is ready, its identity in the run.
     std::string stable_id{};
     HostWindowId id{};
