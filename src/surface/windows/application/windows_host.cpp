@@ -4081,6 +4081,13 @@ private:
     bool update_cursor(Point position) {
         const bool hidden = services_.maintain_hidden_cursor();
         if (hidden) { return true; }
+        // The automation's X cursor over every control while a model holds
+        // control (SurfaceRoot::model_cursor).
+        CursorImagesPtr model_images{};
+        CursorKind model_fallback = CursorKind::arrow;
+        if ((*model_).model_cursor(model_images, model_fallback)) {
+            return services_.set_custom_cursor(model_images, scale_, model_fallback).accepted();
+        }
         const Control::Ptr captured = (*model_).captured_control();
         const Control::Ptr target = captured ? captured : (*model_).hit_test(position);
         const CursorKind cursor = target ? (*target).effective_cursor() : CursorKind::arrow;

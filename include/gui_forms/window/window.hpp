@@ -375,6 +375,20 @@ public:
     // repaints when it changes. UI thread.
     void set_content_wash(double saturation);
     [[nodiscard]] double content_wash() const noexcept;
+    // The automation's AI-mode veil (owner, 2026-11-24), shown while a
+    // model holds control: grey barber-pole stripes, the progress bar's
+    // marching stripes in grey, over the window's control surfaces
+    // (buttons, fields, lists, scroll bars, tabs, menus, toolbars), never
+    // over content (a canvas, an image, a document); and the X cursor over
+    // the whole window (SurfaceRoot::model_cursor). The stripes move and
+    // come to rest under reduced motion, with ambient motion off and while
+    // the window is occluded; forced high contrast draws none. Their motion
+    // is ambient, so the window still settles. Captures leave the veil out
+    // unless asked (WindowCaptureOptions::include_model_sign). UI thread.
+    void set_model_veil(bool shown);
+    [[nodiscard]] bool model_veil() const noexcept;
+    // How many times the veil's stripes have moved, for tests.
+    [[nodiscard]] std::uint64_t model_veil_frames() const noexcept;
     // The platform's own window border in `colour`, or the system's colour
     // for none (HostServices::apply_system_border_colour: Windows 11 colours
     // its border, other hosts have none to colour). Applied now when a host

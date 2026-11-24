@@ -884,6 +884,9 @@ ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window
     const std::shared_ptr<ModalOutcome> outcome = gui_forms::detail::make_library_shared<ModalOutcome>();
     (*outcome).dialog_result = (*window.model).dialog_result();
     const std::string owner_id = window.owner_id;
+    // The model is owned by the run while its window is open; its modal flag
+    // is set once the window has its session.
+    const WindowRef modal_model = (*window.model).window_ref();
     SubscriptionToken subscription =
         (*window.model).dialog_result_changed().subscribe(ModalDialogResultChanged{outcome});
     const ApplicationWindowOpenResult opened = open_window(std::move(window));
@@ -899,6 +902,7 @@ ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window
     // The open's callbacks may already have closed the window.
     const HostWindowId id = opened.window.id();
     if (id.valid() && windowing.live(id)) {
+        if (Window* const live = modal_model.get()) gui_forms::detail::note_shown_modally(*live, true);
         try {
             result.status = windowing.run_modal(id);
         } catch (...) {
@@ -907,6 +911,7 @@ ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window
         }
     }
     subscription.disconnect();
+    if (Window* const live = modal_model.get()) gui_forms::detail::note_shown_modally(*live, false);
     if (!(*run).closed) restore_owner_focus(*run, owner_id);
     result.dialog_result = (*outcome).dialog_result == DialogResult::none
         ? DialogResult::cancel : (*outcome).dialog_result;

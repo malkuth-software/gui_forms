@@ -1888,6 +1888,14 @@ void NativeWindow::event(XEvent &event) {
     // button's press, which the host reports after the press itself.
     if (pointer.action == PointerAction::down && pointer.button == PointerButton::secondary)
       static_cast<void>(dispatch(HostContextRequestEvent{ContextRequestOrigin::pointer, pointer.position}));
+    // The automation's X cursor over every control while a model holds
+    // control (SurfaceRoot::model_cursor).
+    CursorImagesPtr model_images{};
+    CursorKind model_fallback = CursorKind::arrow;
+    if ((*entry.model).model_cursor(model_images, model_fallback)) {
+      static_cast<void>((*services).set_custom_cursor(model_images, scale, model_fallback));
+      return;
+    }
     const Control::Ptr captured = (*entry.model).captured_control();
     const Control::Ptr target = captured ? captured : (*entry.model).hit_test(pointer.position);
     static_cast<void>((*services).set_custom_cursor(

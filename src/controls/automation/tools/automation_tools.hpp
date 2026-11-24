@@ -10,7 +10,7 @@
 // model may call is declared and dispatched (notes:planning/studies/
 // MCP_AUTOMATION_STUDY.md, sections 6.1 and 7). The automation core
 // registers its built-in tools here (windows, snapshot, act, pointer,
-// keyboard, text, wait, capture, inspect, batch, control); a program, and
+// keyboard, text, wait, capture, inspect, batch, release_control); a program, and
 // GUI.Forms' later stages (the inspection extensions and the WinForms
 // converter, study section 18), register theirs the same way. The MCP
 // wiring binds every entry to stx_mcp, and a script runs them without a
@@ -84,6 +84,10 @@ struct ToolFailure final {
     ToolError error{ToolError::internal};
     std::string message{};
     std::string hint{};
+    // Structured detail after the error (round 2): a JSON value the MCP
+    // reply carries as a second text item, such as a failed batch's steps;
+    // empty for none.
+    std::string detail_json{};
 };
 
 // A tool's reply: its success or its failure, never both (house style 2).
@@ -101,6 +105,7 @@ public:
     // The failure, or null for a success. Borrowed from this reply.
     [[nodiscard]] const ToolFailure* failure_value() const& noexcept { return std::get_if<ToolFailure>(&state_); }
     const ToolFailure* failure_value() const&& = delete;
+    [[nodiscard]] ToolFailure* failure_value() & noexcept { return std::get_if<ToolFailure>(&state_); }
 
     ToolReply() : state_(ToolFailure{}) {}
 
@@ -122,8 +127,9 @@ using ToolAccess = ModelToolAccess;
 // script runner) and touch no window: a converter reading files, say.
 using ToolThread = ModelToolThread;
 
-// The longest tool name, and its alphabet: ASCII letters, digits, '_',
-// '-' and '.', starting with a letter (MCP's tool name rule).
+// The longest tool name, and its alphabet: ASCII letters, digits, '_' and
+// '-', starting with a letter: a name every current client keeps as it is
+// (round 2: clients rename names with '.').
 inline constexpr std::size_t maximum_tool_name_bytes = 64U;
 // The most tools one registry holds, programs' commands not counted.
 inline constexpr std::size_t maximum_registered_tools = 256U;

@@ -107,8 +107,10 @@ enum class ModelToolError : std::uint8_t {
 // A tool's declaration. The texts are UTF-8, NUL-terminated and copied by
 // register_model_tool.
 struct GUI_FORMS_API ModelToolSpec final {
-    // 1 to 64 bytes of ASCII letters, digits, '_', '-' and '.', starting
-    // with a letter; unique among the program's tools and the built-in ones.
+    // 1 to 64 bytes of ASCII letters, digits, '_' and '-', starting with a
+    // letter (no '.': clients rename dotted names, round 2); unique among
+    // the program's tools and the built-in ones, and not starting
+    // "command_" (the commands' own tools).
     const char* name{};
     // A short title for a client's list; may be null.
     const char* title{};

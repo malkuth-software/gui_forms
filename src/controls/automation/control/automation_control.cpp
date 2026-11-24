@@ -1,6 +1,10 @@
 #include "automation_control.hpp"
 
 #include "../../../core/host/session/session_directory.hpp"
+#include "gui_forms/window/window.hpp"
+
+#include <algorithm>
+#include <memory>
 
 namespace gui_forms::automation {
 
@@ -19,8 +23,8 @@ std::string client_label(const ClientIdentity& client) {
 const char* control_state_name(ControlState state) noexcept {
     switch (state) {
     case ControlState::user_control: return "user_control";
-    case ControlState::model_directed: return "model_directed";
-    case ControlState::input_suspended: return "input_suspended";
+    case ControlState::asking: return "asking";
+    case ControlState::model_control: return "model_control";
     }
     // A state outside the enumeration reads as the fallback.
     return "user_control";
@@ -34,10 +38,28 @@ bool test_controls_built() noexcept {
 #endif
 }
 
-AutomationControl::AutomationControl(ControlSettings settings, AutomationPresenter* presenter) noexcept
-    : settings_(settings), presenter_(presenter) {}
+namespace {
+
+// The gate's held press, run at the UI thread's next turn so the dialog
+// never opens inside the input's own dispatch.
+// Holds the control weakly: a control destroyed before the turn is not
+// called.
+struct OfferTakeBackWork final {
+    std::weak_ptr<AutomationControl*> control{};
+    void operator()() const {
+        const std::shared_ptr<AutomationControl*> live = control.lock();
+        if (live) (**live).offer_take_back();
+    }
+};
+
+} // namespace
+
+AutomationControl::AutomationControl(ControlSettings settings, AutomationPresenter* presenter)
+    : settings_(settings), presenter_(presenter), grace_(settings.grace),
+      self_(std::make_shared<AutomationControl*>(this)) {}
 
 AutomationControl::~AutomationControl() {
+    self_.reset();
     disconnect();
 }
 
@@ -49,65 +71,75 @@ void AutomationControl::set_client(const ClientIdentity& client) {
     if (presenter_ != nullptr) (*presenter_).client_changed(client_);
 }
 
-ControlRefusal AutomationControl::begin_directed(ChainId chain, FrameTime now) {
-    if (!settings_.model_directed_allowed) return ControlRefusal::not_launched_directed;
-    switch (state_) {
-    case ControlState::user_control:
-        enter(ControlState::model_directed, chain, now);
-        return ControlRefusal::none;
-    case ControlState::model_directed:
-        // Held already: the newer chain takes it over, so its end gives
-        // input back.
-        holder_ = chain;
-        last_call_ = now;
-        return ControlRefusal::none;
-    case ControlState::input_suspended:
-        return ControlRefusal::held_otherwise;
-    }
-    // An unknown state: the fallback, and the request refused.
-    release(ControlRelease::disconnected);
-    return ControlRefusal::held_otherwise;
+bool AutomationControl::acts_allowed() const noexcept {
+    const bool allowed = settings_.appearance_review || state_ == ControlState::model_control;
+    return allowed;
 }
 
-ControlRefusal AutomationControl::begin_suspend(ChainId chain, FrameTime now) {
-    if (!test_controls_built()) return ControlRefusal::not_in_this_build;
-    switch (state_) {
-    case ControlState::user_control:
-        enter(ControlState::input_suspended, chain, now);
-        return ControlRefusal::none;
-    case ControlState::input_suspended:
-        holder_ = chain;
-        last_call_ = now;
-        return ControlRefusal::none;
-    case ControlState::model_directed:
-        return ControlRefusal::held_otherwise;
+void AutomationControl::request_take(FrameTime now) {
+    if (state_ != ControlState::user_control || settings_.appearance_review) return;
+    ++counters_.takes_asked;
+    if (presenter_ == nullptr) {
+        // Nobody can be asked: refused at once.
+        last_take_allowed_ = false;
+        ++counters_.takes_answered;
+        return;
     }
-    release(ControlRelease::disconnected);
-    return ControlRefusal::held_otherwise;
+    state_ = ControlState::asking;
+    asked_at_ = now;
+    last_call_ = now;
+    try {
+        (*presenter_).ask_take(client_, settings_.take_countdown);
+    } catch (...) {
+        // A question that cannot be shown is refused; the failure goes on.
+        state_ = ControlState::user_control;
+        last_take_allowed_ = false;
+        ++counters_.takes_answered;
+        throw;
+    }
 }
 
-void AutomationControl::end_hold() {
-    if (state_ != ControlState::user_control) release(ControlRelease::model_ended);
+void AutomationControl::answer_take(bool allow) {
+    // Only the question asked is answered.
+    if (state_ != ControlState::asking) return;
+    last_take_allowed_ = allow;
+    ++counters_.takes_answered;
+    if (!allow) {
+        state_ = ControlState::user_control;
+        return;
+    }
+    enter_model_control(last_call_);
 }
 
-void AutomationControl::chain_finished(ChainId chain) {
-    if (state_ != ControlState::user_control && holder_.value != 0U && holder_ == chain) {
-        release(ControlRelease::chain_ended);
+void AutomationControl::begin_ai_led(FrameTime now) {
+    if (!settings_.ai_led || settings_.appearance_review || state_ == ControlState::model_control) return;
+    enter_model_control(now);
+}
+
+void AutomationControl::set_grace(std::chrono::milliseconds grace) noexcept {
+    if (grace.count() == 0) {
+        grace_ = settings_.grace;
+        return;
     }
-    if (interrupted_ == chain) interrupted_ = ChainId{};
-    if (timed_out_ == chain) timed_out_ = ChainId{};
+    grace_ = std::clamp(grace, std::chrono::milliseconds{1000}, std::chrono::milliseconds{600000});
+}
+
+void AutomationControl::release_by_model() {
+    if (state_ == ControlState::model_control) release(ControlRelease::model_ended);
 }
 
 void AutomationControl::user_took_back() {
-    if (state_ == ControlState::user_control) return;
-    // Recorded before the release, so the chain's next step sees it.
-    if (holder_.value != 0U) interrupted_ = holder_;
+    if (state_ != ControlState::model_control) return;
+    // Counted before the release, so a running call's next step sees it.
     ++counters_.holds_taken_back;
+    notice_ = "the user took back control of the program: your work was interrupted; acts now ask the user again";
     release(ControlRelease::user_took_back);
 }
 
 void AutomationControl::disconnect() noexcept {
-    if (state_ != ControlState::user_control) release(ControlRelease::disconnected);
+    if (state_ == ControlState::model_control) release(ControlRelease::disconnected);
+    // A take question still asked is refused by the disconnect.
+    if (state_ == ControlState::asking) state_ = ControlState::user_control;
     if (gate_installed_) {
         gui_forms::detail::remove_user_input_gate(this);
         gate_installed_ = false;
@@ -117,14 +149,10 @@ void AutomationControl::disconnect() noexcept {
     if (consent_ == ConsentState::asking) consent_ = ConsentState::declined;
 }
 
-bool AutomationControl::chain_interrupted(ChainId chain) const noexcept {
-    const bool interrupted = chain.value != 0U && interrupted_ == chain;
-    return interrupted;
-}
-
-bool AutomationControl::chain_timed_out(ChainId chain) const noexcept {
-    const bool timed_out = chain.value != 0U && timed_out_ == chain;
-    return timed_out;
+std::string AutomationControl::take_notice() {
+    std::string notice = std::move(notice_);
+    notice_.clear();
+    return notice;
 }
 
 void AutomationControl::note_model_call(FrameTime now) noexcept {
@@ -134,40 +162,47 @@ void AutomationControl::note_model_call(FrameTime now) noexcept {
 void AutomationControl::tick(FrameTime now) {
     switch (state_) {
     case ControlState::user_control:
-        // The user has control: no hold to time out.
         return;
-    case ControlState::input_suspended:
-        if (now - held_since_ >= settings_.suspend_ceiling) {
-            if (holder_.value != 0U) timed_out_ = holder_;
-            ++counters_.holds_ceilinged;
-            release(ControlRelease::ceiling);
-            return;
+    case ControlState::asking:
+        // The countdown ends as Allow (the presenter's own countdown answers
+        // first; this covers a presenter whose timer did not run).
+        if (now - asked_at_ >= settings_.take_countdown + std::chrono::milliseconds{1000}) answer_take(true);
+        return;
+    case ControlState::model_control:
+        if (settings_.ai_led) return;
+        if (now - last_call_ >= grace_) {
+            ++counters_.holds_idle_returned;
+            notice_ = "control returned to the user after " + std::to_string(grace_.count() / 1000) +
+                      " s without a call; the next act asks the user again";
+            release(ControlRelease::idle);
         }
-        break;
-    case ControlState::model_directed:
-        // Model-directed control has no ceiling; the idle check below applies.
-        break;
-    default:
-        release(ControlRelease::disconnected);
         return;
     }
-    // A hold no chain owns ends once the model has gone quiet.
-    if (holder_.value == 0U && now - last_call_ >= settings_.idle_ceiling) {
-        ++counters_.holds_ceilinged;
-        release(ControlRelease::ceiling);
-    }
+    release(ControlRelease::disconnected);
 }
 
 void AutomationControl::request_consent() {
     if (consent_ != ConsentState::unasked) return;
     consent_ = ConsentState::asking;
+    consent_failure_.clear();
     ++counters_.consent_questions;
     if (presenter_ == nullptr) {
         // Nobody can be asked (a script without a window): Don't Allow.
         consent_ = ConsentState::declined;
         return;
     }
-    (*presenter_).ask_consent(client_);
+    try {
+        (*presenter_).ask_consent(client_);
+    } catch (...) {
+        consent_ = ConsentState::unasked;
+        throw;
+    }
+}
+
+void AutomationControl::consent_not_shown(std::string why) {
+    if (consent_ != ConsentState::asking) return;
+    consent_ = ConsentState::unasked;
+    consent_failure_ = why.empty() ? std::string("the question could not be shown") : std::move(why);
 }
 
 void AutomationControl::answer_consent(bool allow) {
@@ -178,32 +213,48 @@ void AutomationControl::answer_consent(bool allow) {
 }
 
 bool AutomationControl::holds_user_input(const SurfaceRoot& window) const noexcept {
-    if (state_ == ControlState::user_control) return false;
+    if (state_ != ControlState::model_control) return false;
     if (presenter_ != nullptr && (*presenter_).presenter_window(window)) return false;
     return true;
 }
 
-bool AutomationControl::gate(void* context, const SurfaceRoot& window) noexcept {
-    const AutomationControl& control = *static_cast<const AutomationControl*>(context);
+void AutomationControl::offer_take_back() {
+    offer_posted_ = false;
+    if (state_ != ControlState::model_control || presenter_ == nullptr) return;
+    ++counters_.take_back_offers;
+    (*presenter_).offer_take_back(client_);
+}
+
+bool AutomationControl::gate(void* context, const SurfaceRoot& window, bool press) noexcept {
+    AutomationControl& control = *static_cast<AutomationControl*>(context);
     const bool held = control.holds_user_input(window);
+    if (held && press && !control.offer_posted_) {
+        // Every application window is a Window (attach_application_window).
+        const Window& owner = static_cast<const Window&>(window);
+        try {
+            const DispatchOperation posted = owner.dispatcher().begin_invoke(OfferTakeBackWork{control.self_});
+            control.offer_posted_ = posted.state() == DispatchOperationState::pending;
+        } catch (...) {
+            // A dispatcher that cannot post drops the press; the next one
+            // offers again.
+            control.offer_posted_ = false;
+        }
+    }
     return held;
 }
 
-void AutomationControl::enter(ControlState state, ChainId chain, FrameTime now) {
-    state_ = state;
-    holder_ = chain;
-    held_since_ = now;
+void AutomationControl::enter_model_control(FrameTime now) {
+    state_ = ControlState::model_control;
     last_call_ = now;
     ++counters_.holds_begun;
     if (!gate_installed_) {
         gui_forms::detail::install_user_input_gate(&AutomationControl::gate, this);
         gate_installed_ = true;
     }
-    if (presenter_ != nullptr && state == ControlState::model_directed) {
-        // The take-back popup is the user's way out of the hold: a presenter
-        // that cannot show it gives the input back before the failure goes
-        // on (release's own call is guarded the same way), so the hold never
-        // stands without its popup.
+    if (presenter_ != nullptr) {
+        // AI mode and its take-back dialog are the user's way back: a
+        // presenter that cannot show them gives control back before the
+        // failure goes on.
         try {
             (*presenter_).control_changed(state_, client_);
         } catch (...) {
@@ -215,16 +266,15 @@ void AutomationControl::enter(ControlState state, ChainId chain, FrameTime now) 
 
 void AutomationControl::release(ControlRelease reason) noexcept {
     static_cast<void>(reason);
-    const ControlState previous = state_;
     state_ = ControlState::user_control;
-    holder_ = ChainId{};
+    grace_ = settings_.grace;
     if (gate_installed_) {
         gui_forms::detail::remove_user_input_gate(this);
         gate_installed_ = false;
     }
-    if (presenter_ != nullptr && previous == ControlState::model_directed) {
-        // The popup closes; a presenter failure must not keep input held,
-        // which the state above has already given back.
+    if (presenter_ != nullptr) {
+        // AI mode ends; a presenter failure must not keep input held, which
+        // the state above has already given back.
         try {
             (*presenter_).control_changed(state_, client_);
         } catch (...) {

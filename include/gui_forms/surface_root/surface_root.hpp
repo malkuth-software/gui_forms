@@ -431,6 +431,10 @@ struct GUI_FORMS_API ControlSnapshot final {
 // What Window::capture_window draws (owner request 2026-11-09, the product
 // ports: screenshots and tests).
 struct GUI_FORMS_API WindowCaptureOptions final {
+    // The automation's in-use sign (the band, the AI-mode veil): off by
+    // default, so a capture shows the program as the user sees it without a
+    // model (MCP round 2); on draws it as the screen shows it.
+    bool include_model_sign{};
     // The window's in-surface overlays (menus, drop-downs, tooltips and
     // other overlays opened in it), composited over its content as
     // presented. Off, the capture shows the content beneath them. Windows
@@ -444,6 +448,9 @@ struct GUI_FORMS_API WindowCaptureOptions final {
 // What Window::capture_control draws (owner request 2026-11-11, the theme
 // palette): one control and its descendants as the window lays them out.
 struct GUI_FORMS_API ControlCaptureOptions final {
+    // The automation's AI-mode veil over the subtree, as
+    // WindowCaptureOptions::include_model_sign: off by default.
+    bool include_model_sign{};
     // Device pixels per logical unit; 0 takes the window's own scale.
     double scale{};
     // Logical units added around the control's bounds on every side, for
@@ -1078,6 +1085,10 @@ public:
     // sweep): when the window's own work next wants a frame, for a caller
     // waiting for it to settle (the automation's idle).
     [[nodiscard]] stxlib::Optional<FrameTime> next_settling_wake() const noexcept;
+    // needs_frame without the frames only ambient effects want (the band's
+    // glint, any work an ambient wake runs): whether the window's own work
+    // still wants a frame, for a caller waiting for it to settle.
+    [[nodiscard]] bool needs_settling_frame() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
                                                    FrameTime deadline);
     [[nodiscard]] FrameRequestToken schedule_ui_timer(
@@ -1694,6 +1705,12 @@ public:
     [[nodiscard]] VisualInspectionSnapshot visual_inspection_snapshot(
         VisualInspectionOptions options = {});
     [[nodiscard]] SemanticSnapshot semantic_snapshot();
+    // The cursor the window shows wherever the pointer is, over every
+    // control's own: the automation's X cursor while the AI-mode veil shows
+    // (Window::set_model_veil), drawn by GUI.Forms with `fallback` for a
+    // host that cannot show an image. False, setting nothing, otherwise.
+    // Each host asks it before the hit control's cursor.
+    [[nodiscard]] bool model_cursor(CursorImagesPtr& images, CursorKind& fallback) const;
     [[nodiscard]] std::uint64_t semantic_generation() const noexcept {
         return semantic_generation_;
     }
@@ -3412,6 +3429,10 @@ private:
     FrameTime last_presentation_time_{};
     std::function<void()> paint_wake_handler_;
     bool paint_wake_pending_{};
+    // Ambient wakes running now (their invalidations do not hold settling),
+    // and whether paint not made by one is still waiting to be drawn.
+    std::uint32_t ambient_wake_depth_{};
+    bool settling_paint_pending_{true};
     std::function<void()> schedule_wake_handler_;
     // A schedule wake was handed to the host and its poll has not run yet.
     bool schedule_wake_pending_{};
@@ -3476,6 +3497,18 @@ private:
     void band_flash_due(FrameTime now);
     // The flash wake's target (window_band.cpp).
     struct BandFlashWake;
+    // The AI-mode veil (Window::set_model_veil, model_veil.cpp): gathers
+    // the control surfaces it stripes; damages them; starts or stops its
+    // motion as the motion settings allow (called with refresh_band); the
+    // motion's wake, its interval and its target; and its painting over
+    // the application's planes, clipped to each painted rectangle.
+    void gather_veil_surfaces(detail::ModelSignState& sign);
+    void damage_veil(const detail::ModelSignState& sign);
+    void refresh_veil_motion();
+    [[nodiscard]] FrameInterval veil_step() const noexcept;
+    void veil_motion_due(FrameTime now);
+    void paint_model_veil(detail::RecordingPainter& candidate, std::span<const Rect> painted);
+    struct VeilWake;
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.

@@ -14,6 +14,9 @@ namespace gui_forms::automation {
 enum class CallPhase : std::uint8_t {
     // Parsed; its first step runs next.
     starting,
+    // An act waits for the user's answer to the take question (the owner's
+    // control model, 2026-11-24).
+    awaiting_control,
     // A destructive act waits for the user's answer (study 10).
     awaiting_consent,
     // An act was posted; the call waits for it and for idle (study 7.4).
@@ -135,6 +138,19 @@ struct AutomationCore::RunningCall final {
     std::string transcript{};
     std::vector<ToolImage> images{};
     bool stop_on_error{true};
+    // The user's take-backs when the call began: a different count later
+    // means the user took control back while it ran.
+    std::uint64_t take_backs_at_start{};
+    // The act's control: checked (it may act), the take question asked for
+    // it (and how many questions were answered before), and whether this
+    // act's question gave the model control (its reply then carries a
+    // snapshot, saving the model a call).
+    bool control_checked{};
+    bool asked_control{};
+    std::uint64_t takes_answered_before{};
+    bool took_control{};
+    // The batch's steps' structured transcript (round 2): a JSON array.
+    std::string steps_json{};
 };
 
 namespace detail {

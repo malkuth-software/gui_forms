@@ -408,11 +408,12 @@ bool window_idle(Window& window, FrameTime now, std::chrono::milliseconds horizo
         busy = std::to_string(dispatcher.pending) + " posted callbacks waiting";
         return false;
     }
-    if (window.needs_frame()) {
+    // The band's motion (the in-use sign itself) and any ambient animation
+    // never hold idle: neither their frames nor their wakes.
+    if (window.needs_settling_frame()) {
         busy = "a frame is wanted (layout, paint or animation)";
         return false;
     }
-    // The band's motion (the in-use sign itself) never holds idle.
     const stxlib::Optional<FrameTime> wake = window.next_settling_wake();
     if (const FrameTime* const due = wake.value()) {
         if (*due < now + horizon) {
@@ -432,7 +433,9 @@ std::uint64_t paint_passes_of(const Window& window) {
 
 void append_window_line(AutomationCore& core, Window& window, std::string& text) {
     const Size size = window.client_size();
-    text += "window ";
+    // A window run modally reads as the dialog it is (round 2), its
+    // controls under it.
+    text += gui_forms::detail::shown_modally(window) ? "dialog (modal window) " : "window ";
     const std::string title = window.text.read();
     if (title.empty()) {
         // An empty title reads as one, not as a missing value (MCP round 1).
@@ -556,12 +559,18 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
     if (!resolve_optional_target(nodes, arguments, index, refusal)) return refusal;
     const std::optional<double> scale = number_member(arguments, "scale");
     const std::optional<bool> overlays = boolean_member(arguments, "include_overlays");
+    // The in-use sign (the band, AI mode's stripes) only when asked: by
+    // default the model sees the program as the user does without a model
+    // (round 2: captures were near-greyscale while a model was connected).
+    const std::optional<bool> with_sign = boolean_member(arguments, "include_sign");
+    const bool sign = with_sign.has_value() && *with_sign;
     std::optional<WindowCapture> capture{};
     Point origin{};
     std::string what{};
     if (index == no_parent) {
         WindowCaptureOptions options{};
         options.include_overlays = !overlays.has_value() || *overlays;
+        options.include_model_sign = sign;
         if (scale.has_value() && *scale > 0.0 && *scale <= 8.0) options.scale = *scale;
         capture = window.capture_window(options);
         what = "window [" + core.window_stable_id(window) + "]";
@@ -582,6 +591,7 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
         }
         ControlCaptureOptions options{};
         options.include_overlays = !overlays.has_value() || *overlays;
+        options.include_model_sign = sign;
         if (scale.has_value() && *scale > 0.0 && *scale <= 8.0) options.scale = *scale;
         const std::optional<double> margin = number_member(arguments, "margin");
         if (margin.has_value() && *margin >= 0.0 && *margin <= 64.0) options.margin = *margin;
@@ -611,7 +621,7 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
     ToolSuccess success{};
     success.text = "capture of " + what + ": " + std::to_string((*capture).pixel_width) + "x" +
                    std::to_string((*capture).pixel_height) + " px at scale " + number_text((*capture).scale) +
-                   " (rendered)";
+                   (sign ? " (rendered, with the in-use sign)" : " (rendered, without the in-use sign)");
     if (composited != 0U) success.text += " with its popup windows over it: " + popups;
     success.images.push_back(std::move(image));
     ToolReply reply = ToolReply::success(std::move(success));

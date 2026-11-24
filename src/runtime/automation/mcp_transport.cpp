@@ -98,6 +98,9 @@ void call_tool(void* binding, const stxlib::mcp::ToolRequest& request, stxlib::m
         const ToolFailure& failure = *answer.failure_value();
         const std::string code(tool_error_name(failure.error));
         reply.fail(text_view(code), text_view(failure.message), text_view(failure.hint));
+        // The structured detail (a failed batch's steps) as its own item,
+        // JSON, never escaped inside the error's text (round 2).
+        if (!failure.detail_json.empty()) reply.text(text_view(failure.detail_json));
     } catch (const std::exception& failure) {
         const std::string message(failure.what());
         reply.fail("internal", text_view(message), stxlib::TextView{});
@@ -108,51 +111,116 @@ void call_tool(void* binding, const stxlib::mcp::ToolRequest& request, stxlib::m
 
 } // namespace
 
+// The program's note (set_model_app_note) as an MCP resource.
+constexpr stxlib::TextView app_note_uri = "gui://app/note";
+
 struct McpTransport::State final {
     AutomationRun* run{};
     std::string identity{};
+    std::string instructions{};
+    std::string app_note{};
+    stxlib::ProtocolStreams streams{};
     stxlib::mcp::Server server{};
     stxlib::Mutex mutex{};
-    std::vector<std::string> bound{};
+    bool serving{};
+    // The specs bound now, by name; a sync binds only what changed.
+    std::vector<ToolSpec> bound{};
 };
 
-std::unique_ptr<McpTransport> McpTransport::start(AutomationRun& run, const std::string& identity,
-                                                  std::string& error) {
+namespace {
+
+void read_app_note(void* binding, const stxlib::mcp::ResourceRequest&, stxlib::mcp::ResourceReply& reply) noexcept {
+    const McpTransport::State& state = *static_cast<const McpTransport::State*>(binding);
+    reply.text(app_note_uri, "text/plain", text_view(state.app_note));
+}
+
+bool same_spec(const ToolSpec& left, const ToolSpec& right) noexcept {
+    const bool same = left.name == right.name && left.title == right.title && left.description == right.description &&
+                      left.input_schema == right.input_schema && left.access == right.access &&
+                      left.destructive == right.destructive;
+    return same;
+}
+
+// Binds one spec; false (said on stderr) when the server refuses it.
+bool bind_one(McpTransport::State& state, const ToolSpec& spec) {
+    stxlib::mcp::ToolSpec bound{};
+    bound.name = text_view(spec.name);
+    bound.title = text_view(spec.title);
+    bound.description = text_view(spec.description);
+    bound.input_schema = text_view(spec.input_schema);
+    bound.annotations.read_only = spec.access == ToolAccess::read_only;
+    bound.annotations.destructive = spec.destructive;
+    bound.annotations.idempotent = spec.access == ToolAccess::read_only;
+    bound.annotations.open_world = false;
+    const stxlib::OperationStatus status = state.server.bind_tool(bound, &call_tool, state.run);
+    if (status.failed()) {
+        std::fprintf(stderr, "GUI.Forms: the tool %s could not be bound\n", spec.name.c_str());
+        return false;
+    }
+    return true;
+}
+
+} // namespace
+
+std::unique_ptr<McpTransport> McpTransport::claim(AutomationRun& run, std::string& error) {
     std::unique_ptr<State> state = std::make_unique<State>();
     (*state).run = &run;
-    (*state).identity = identity;
+    stxlib::OperationResult<stxlib::ProtocolStreams> streams = stxlib::claim_protocol_streams();
+    if (streams.failed()) {
+        error = "standard input and output could not be claimed";
+        return nullptr;
+    }
+    (*state).streams = std::move(*streams.value());
+    return std::unique_ptr<McpTransport>(new McpTransport(std::move(state)));
+}
+
+bool McpTransport::serve(const std::string& identity, const std::string& instructions, const std::string& app_note,
+                         const std::vector<ToolSpec>& specs, std::string& error) {
+    State& state = *state_;
+    const stxlib::ScopedLock lock(state.mutex);
+    if (state.serving) return true;
+    state.identity = identity;
+    state.instructions = instructions;
+    state.app_note = app_note;
     stxlib::mcp::ServerIdentity server_identity{};
-    server_identity.name = text_view((*state).identity);
+    server_identity.name = text_view(state.identity);
     server_identity.version = "1";
-    server_identity.instructions =
-        "A GUI.Forms program. Read it with windows and snapshot; act with act, pointer and keyboard; each act "
-        "replies with what changed. Destructive acts ask the user once per launch.";
+    server_identity.instructions = text_view(state.instructions);
     stxlib::mcp::ServerOptions options{};
     options.model_meta_key = model_meta_key;
     stxlib::mcp::ServerEvents events{};
-    events.context = &run;
+    events.context = state.run;
     events.client_seen = &client_seen;
     events.input_ended = &input_ended;
     stxlib::OperationResult<stxlib::mcp::Server> created =
         stxlib::mcp::Server::create(server_identity, options, events);
     if (created.failed()) {
         error = "the MCP server could not be created";
-        return nullptr;
+        return false;
     }
-    (*state).server = std::move(*created.value());
-    stxlib::OperationResult<stxlib::ProtocolStreams> streams = stxlib::claim_protocol_streams();
-    if (streams.failed()) {
-        error = "standard input and output could not be claimed";
-        return nullptr;
+    state.server = std::move(*created.value());
+    // Everything known now is bound before serving starts, so a client
+    // sees the whole list at once and no list_changed for it.
+    for (const ToolSpec& spec : specs) {
+        if (bind_one(state, spec)) state.bound.push_back(spec);
     }
-    stxlib::ProtocolStreams& claimed = *streams.value();
+    if (!state.app_note.empty()) {
+        stxlib::mcp::ResourceSpec note{};
+        note.uri = app_note_uri;
+        note.name = "app-note";
+        note.title = "How this program works";
+        note.description = "The program's own note for a model: how its tools and its interface behave.";
+        note.mime_type = "text/plain";
+        static_cast<void>(state.server.bind_resource(note, &read_app_note, &state));
+    }
     const stxlib::OperationStatus started =
-        (*state).server.start(std::move(claimed.input), std::move(claimed.output));
+        state.server.start(std::move(state.streams.input), std::move(state.streams.output));
     if (started.failed()) {
         error = "the MCP server did not start";
-        return nullptr;
+        return false;
     }
-    return std::unique_ptr<McpTransport>(new McpTransport(std::move(state)));
+    state.serving = true;
+    return true;
 }
 
 McpTransport::McpTransport(std::unique_ptr<State> state) noexcept : state_(std::move(state)) {}
@@ -163,34 +231,48 @@ McpTransport::~McpTransport() {
 
 void McpTransport::stop() noexcept {
     if (!state_) return;
+    if (!(*state_).serving) return;
     (*state_).server.stop();
     static_cast<void>((*state_).server.wait());
+}
+
+bool McpTransport::serving() const noexcept {
+    const stxlib::ScopedLock lock((*state_).mutex);
+    return (*state_).serving;
 }
 
 void McpTransport::bind_tools(const std::vector<ToolSpec>& specs) {
     State& state = *state_;
     const stxlib::ScopedLock lock(state.mutex);
-    // Unbind what is gone, or changed (bound again below).
-    for (const std::string& name : state.bound) {
-        static_cast<void>(state.server.unbind_tool(text_view(name)));
-    }
-    state.bound.clear();
-    for (const ToolSpec& spec : specs) {
-        stxlib::mcp::ToolSpec bound{};
-        bound.name = text_view(spec.name);
-        bound.title = text_view(spec.title);
-        bound.description = text_view(spec.description);
-        bound.input_schema = text_view(spec.input_schema);
-        bound.annotations.read_only = spec.access == ToolAccess::read_only;
-        bound.annotations.destructive = spec.destructive;
-        bound.annotations.idempotent = spec.access == ToolAccess::read_only;
-        bound.annotations.open_world = false;
-        const stxlib::OperationStatus status = state.server.bind_tool(bound, &call_tool, state.run);
-        if (status.failed()) {
-            std::fprintf(stderr, "GUI.Forms: the tool %s could not be bound\n", spec.name.c_str());
+    if (!state.serving) return;
+    // Only what changed: each bind or unbind sends the client list_changed,
+    // so tools whose spec is the same are left bound.
+    std::size_t index = 0U;
+    while (index < state.bound.size()) {
+        const ToolSpec& old = state.bound[index];
+        bool kept = false;
+        for (const ToolSpec& spec : specs) {
+            if (same_spec(old, spec)) {
+                kept = true;
+                break;
+            }
+        }
+        if (kept) {
+            ++index;
             continue;
         }
-        state.bound.push_back(spec.name);
+        static_cast<void>(state.server.unbind_tool(text_view(old.name)));
+        state.bound.erase(state.bound.begin() + static_cast<std::ptrdiff_t>(index));
+    }
+    for (const ToolSpec& spec : specs) {
+        bool present = false;
+        for (const ToolSpec& old : state.bound) {
+            if (old.name == spec.name) {
+                present = true;
+                break;
+            }
+        }
+        if (!present && bind_one(state, spec)) state.bound.push_back(spec);
     }
 }
 
@@ -198,9 +280,19 @@ void McpTransport::bind_tools(const std::vector<ToolSpec>& specs) {
 
 struct McpTransport::State final {};
 
-std::unique_ptr<McpTransport> McpTransport::start(AutomationRun&, const std::string&, std::string& error) {
+std::unique_ptr<McpTransport> McpTransport::claim(AutomationRun&, std::string& error) {
     error = "this build has no MCP transport (stx_mcp was not found)";
     return nullptr;
+}
+
+bool McpTransport::serve(const std::string&, const std::string&, const std::string&, const std::vector<ToolSpec>&,
+                         std::string& error) {
+    error = "this build has no MCP transport";
+    return false;
+}
+
+bool McpTransport::serving() const noexcept {
+    return false;
 }
 
 McpTransport::McpTransport(std::unique_ptr<State> state) noexcept : state_(std::move(state)) {}

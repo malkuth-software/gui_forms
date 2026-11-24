@@ -42,80 +42,117 @@ std::string model_label(const ClientIdentity& client) {
     return std::string("A model");
 }
 
-constexpr Size take_back_size{360.0, 120.0};
-constexpr Size question_size{460.0, 190.0};
+constexpr Size dialog_size{480.0, 200.0};
+// The take question's countdown ticks once a second.
+constexpr std::chrono::milliseconds countdown_tick{1000};
 
-// A popup's content: the heading and text, and its buttons. Its buttons'
-// clicks reach the presenter, which outlives the popup (it destroys its
-// popups first).
+// A dialog's stable ID and window title.
+const char* dialog_id(PresenterDialog dialog) noexcept {
+    switch (dialog) {
+    case PresenterDialog::take: return "automation.take";
+    case PresenterDialog::take_back: return "automation.take-back";
+    case PresenterDialog::consent: return "automation.question";
+    }
+    return "automation.question";
+}
+
+const char* dialog_title(PresenterDialog dialog) noexcept {
+    switch (dialog) {
+    case PresenterDialog::take: return "Allow a model to take control?";
+    case PresenterDialog::take_back: return "Take back control?";
+    case PresenterDialog::consent: return "Allow destructive acts?";
+    }
+    return "Allow destructive acts?";
+}
+
+std::size_t dialog_index(PresenterDialog dialog) noexcept {
+    const std::size_t index = static_cast<std::size_t>(dialog);
+    return index < presenter_dialog_count ? index : presenter_dialog_count - 1U;
+}
+
+// A dialog's content: the heading, the text, an optional warning, and its
+// two buttons. Its buttons' clicks reach the presenter, which outlives the
+// dialog (it destroys its dialogs first).
 class PresenterPanel final : public Control {
 public:
     static constexpr bool initialize_tree_after_construction = true;
 
-    PresenterPanel(StableId stable_id, StockPresenter* presenter, bool question, std::string heading,
-                   std::string text)
-        : Control(std::move(stable_id)), presenter_(presenter), question_(question), heading_(std::move(heading)),
-          text_(std::move(text)) {}
+    PresenterPanel(StableId stable_id, StockPresenter* presenter, PresenterDialog dialog, std::string heading,
+                   std::string text, std::string warning)
+        : Control(std::move(stable_id)), presenter_(presenter), dialog_(dialog), heading_(std::move(heading)),
+          text_(std::move(text)), warning_(std::move(warning)) {}
 
     void initialize_control_tree() {
-        const Size size = question_ ? question_size : take_back_size;
+        const Size size = dialog_size;
         const std::string base(stable_id().value());
         const std::shared_ptr<Label> heading = make_control<Label>(StableId(base + ".heading"), heading_);
         (*heading).set_bounds({20.0, 14.0, size.width - 40.0, 24.0});
         add_child(heading);
-        const std::shared_ptr<Label> text = make_control<Label>(StableId(base + ".text"), text_);
-        (*text).text_wrapping = TextWrapping::word;
-        (*text).set_bounds({20.0, 42.0, size.width - 40.0, size.height - 98.0});
-        add_child(text);
-        if (question_) {
-            const std::shared_ptr<Button> deny = make_control<Button>(StableId(base + ".deny"), "Don't Allow");
-            (*deny).set_bounds({size.width - 250.0, size.height - 48.0, 110.0, 32.0});
-            on((*deny).clicked(), *this, &PresenterPanel::deny_clicked);
-            add_child(deny);
-            const std::shared_ptr<Button> allow = make_control<Button>(StableId(base + ".allow"), "Allow");
-            (*allow).set_bounds({size.width - 130.0, size.height - 48.0, 110.0, 32.0});
-            on((*allow).clicked(), *this, &PresenterPanel::allow_clicked);
-            add_child(allow);
-            return;
+        const double text_height = warning_.empty() ? size.height - 98.0 : size.height - 126.0;
+        text_label_ = make_control<Label>(StableId(base + ".text"), text_);
+        (*text_label_).text_wrapping = TextWrapping::word;
+        (*text_label_).set_bounds({20.0, 42.0, size.width - 40.0, text_height});
+        add_child(text_label_);
+        if (!warning_.empty()) {
+            const std::shared_ptr<Label> warning = make_control<Label>(StableId(base + ".warning"), warning_);
+            (*warning).text_wrapping = TextWrapping::word;
+            (*warning).set_bounds({20.0, 42.0 + text_height, size.width - 40.0, 26.0});
+            add_child(warning);
         }
-        const std::shared_ptr<Button> take = make_control<Button>(StableId(base + ".take-back"), "Take back control");
-        (*take).set_bounds({size.width - 190.0, size.height - 48.0, 170.0, 32.0});
-        on((*take).clicked(), *this, &PresenterPanel::take_back_clicked);
-        add_child(take);
+        const bool take_back = dialog_ == PresenterDialog::take_back;
+        const std::shared_ptr<Button> decline =
+            make_control<Button>(StableId(base + ".decline"), take_back ? "Keep Waiting" : "Don't Allow");
+        (*decline).set_bounds({size.width - 330.0, size.height - 48.0, 140.0, 32.0});
+        on((*decline).clicked(), *this, &PresenterPanel::decline_clicked);
+        add_child(decline);
+        const std::shared_ptr<Button> accept =
+            make_control<Button>(StableId(base + ".accept"), take_back ? "Take Back Control" : "Allow");
+        (*accept).set_bounds({size.width - 180.0, size.height - 48.0, 160.0, 32.0});
+        on((*accept).clicked(), *this, &PresenterPanel::accept_clicked);
+        add_child(accept);
     }
 
-    void take_back_clicked(ButtonBase&) {
-        if (presenter_ != nullptr) (*presenter_).take_back_chosen();
+    void accept_clicked(ButtonBase&) {
+        if (presenter_ != nullptr) (*presenter_).dialog_chosen(dialog_, true);
     }
-    void allow_clicked(ButtonBase&) {
-        if (presenter_ != nullptr) (*presenter_).consent_chosen(true);
+    void decline_clicked(ButtonBase&) {
+        if (presenter_ != nullptr) (*presenter_).dialog_chosen(dialog_, false);
     }
-    void deny_clicked(ButtonBase&) {
-        if (presenter_ != nullptr) (*presenter_).consent_chosen(false);
-    }
+    [[nodiscard]] const std::shared_ptr<Label>& text_label() const noexcept { return text_label_; }
 
 private:
     StockPresenter* presenter_{};
-    bool question_{};
+    PresenterDialog dialog_{PresenterDialog::consent};
     std::string heading_{};
     std::string text_{};
+    std::string warning_{};
+    std::shared_ptr<Label> text_label_{};
 };
 
-// A popup's closed callback (ApplicationWindowOptions::closed).
-struct PopupClosed final {
+// A dialog's closed callback (ApplicationWindowOptions::closed).
+struct DialogClosed final {
     StockPresenter* presenter{};
-    bool question{};
-    void operator()() const noexcept { (*presenter).popup_closed(question); }
+    PresenterDialog dialog{};
+    void operator()() const noexcept { (*presenter).dialog_closed(dialog); }
 };
 
-// A popup closes at its own dispatcher turn: never from inside one of its
-// own button's clicks, which run on the popup's window.
+// A dialog closes at its own dispatcher turn: never from inside one of its
+// own button's clicks, which run on the dialog's window.
 struct DeferredClose final {
     std::weak_ptr<StockPresenter*> presenter{};
-    bool question{};
+    PresenterDialog dialog{};
     void operator()() const noexcept {
         const std::shared_ptr<StockPresenter*> live = presenter.lock();
-        if (live) (**live).close_popup_now(question);
+        if (live) (**live).close_dialog_now(dialog);
+    }
+};
+
+// The take question's countdown tick (schedule_ui_timer's callback).
+struct CountdownTick final {
+    std::weak_ptr<StockPresenter*> presenter{};
+    void operator()(FrameTime) const noexcept {
+        const std::shared_ptr<StockPresenter*> live = presenter.lock();
+        if (live) (**live).countdown_ticked();
     }
 };
 
@@ -132,10 +169,10 @@ StockPresenter::StockPresenter() : self_(gui_forms::detail::make_library_shared<
 
 StockPresenter::~StockPresenter() {
     self_.reset();
-    close_popup_now(true);
-    close_popup_now(false);
-    close_popup(true);
-    close_popup(false);
+    countdown_tick_.disconnect();
+    close_dialog_now(PresenterDialog::take);
+    close_dialog_now(PresenterDialog::take_back);
+    close_dialog_now(PresenterDialog::consent);
     disconnected();
 }
 
@@ -174,9 +211,8 @@ void StockPresenter::window_attached(Window& window) {
     entry.window = window.window_ref();
     windows_.push_back(std::move(entry));
     window.set_band_appearance(sign_appearance(window, false));
-    if (!connected_) return;
-    show_title_note(window, true);
-    show_tag_line(window, tag_line_moment);
+    show_sign(window);
+    if (connected_) show_tag_line(window, tag_line_moment);
 }
 
 WindowBandAppearance StockPresenter::sign_appearance(const Window& window, bool moving) const {
@@ -194,23 +230,23 @@ WindowBandAppearance StockPresenter::sign_appearance(const Window& window, bool 
     return appearance;
 }
 
-void StockPresenter::show_title_note(Window& window, bool shown) noexcept {
+void StockPresenter::show_sign(Window& window) noexcept {
+    const bool connected = connected_ && !unsigned_;
+    const bool in_control = connected && in_control_;
     try {
-        // The wash goes with the note: the window's content, mostly grey,
-        // says a model drives it away from the border too.
-        double saturation = 1.0;
-        const Control::Ptr root = window.root();
-        if (shown && root) saturation = (*root).effective_theme().definition().model_wash_saturation;
-        window.set_content_wash(shown ? saturation : 1.0);
+        // AI mode: the stripes over the control surfaces and the X cursor.
+        window.set_model_veil(in_control);
         // Windows 11's own border joins the sign in the accent.
         stxlib::Optional<Color> border{};
-        if (shown && root) border = stxlib::Optional<Color>::of((*root).effective_theme().basic_style().accent);
+        const Control::Ptr root = window.root();
+        if (connected && root) border = stxlib::Optional<Color>::of((*root).effective_theme().basic_style().accent);
         window.set_system_border_colour(border);
-        if (!shown) {
+        if (!connected) {
             window.set_title_note(nullptr);
             return;
         }
-        const std::string note = " \u2014 " + model_label(client_) + " is using this";
+        const std::string note =
+            " \u2014 " + model_label(client_) + (in_control ? " is in control" : " is connected");
         window.set_title_note(note.c_str());
     } catch (...) {
         // A name that is not valid title text, or no memory: the band still
@@ -222,7 +258,10 @@ void StockPresenter::window_detached(Window& window) noexcept {
     for (std::size_t index = 0U; index < windows_.size(); ++index) {
         if (windows_[index].window.get() != &window) continue;
         windows_[index].glint_end.disconnect();
-        show_title_note(window, false);
+        const bool connected = connected_;
+        connected_ = false;
+        show_sign(window);
+        connected_ = connected;
         windows_.erase(windows_.begin() + static_cast<std::ptrdiff_t>(index));
         return;
     }
@@ -263,7 +302,7 @@ void StockPresenter::client_changed(const ClientIdentity& client) {
         Window* const window = entry.window.get();
         if (window == nullptr) continue;
         (*window).set_band_appearance(sign_appearance(*window, entry.steady));
-        show_title_note(*window, true);
+        show_sign(*window);
         if ((*window).active()) show_tag_line(*window, tag_line_moment);
     }
 }
@@ -359,27 +398,108 @@ void StockPresenter::calls_finished() noexcept {
 
 void StockPresenter::control_changed(ControlState state, const ClientIdentity& client) {
     client_ = client;
-    if (state == ControlState::model_directed) {
-        if (!take_back_.get()) {
-            static_cast<void>(open_popup(false, client_label(client) + " is in control",
-                                         "Your input is paused while it works. Take back control at any time."));
+    in_control_ = state == ControlState::model_control;
+    for (BandWindow& entry : windows_) {
+        Window* const window = entry.window.get();
+        if (window != nullptr) show_sign(*window);
+    }
+    if (!in_control_) close_dialog(PresenterDialog::take_back);
+    if (state != ControlState::asking) {
+        countdown_tick_.disconnect();
+        close_dialog(PresenterDialog::take);
+    }
+}
+
+std::string StockPresenter::take_text(std::int64_t seconds) const {
+    const std::string label = model_label(client_);
+    const std::string text = label + " wants to use this program. While it is in control your clicks and keys go "
+                                     "to a dialog that lets you take control back. Allowed in " +
+                             std::to_string(std::max<std::int64_t>(seconds, 0)) + " s unless you refuse.";
+    return text;
+}
+
+void StockPresenter::ask_take(const ClientIdentity& client, std::chrono::milliseconds countdown) {
+    client_ = client;
+    countdown_end_ = FrameClock::now() + countdown;
+    std::string why{};
+    const std::int64_t seconds = std::chrono::duration_cast<std::chrono::seconds>(countdown).count();
+    const bool opened = open_dialog(PresenterDialog::take, "Allow " + model_label(client) + " to take control?",
+                                    take_text(seconds), std::string{}, why);
+    // Nobody can be asked: refused (a question that cannot be shown is
+    // never Allow).
+    if (!opened) {
+        if (control_ != nullptr) (*control_).answer_take(false);
+        return;
+    }
+    arm_countdown();
+}
+
+void StockPresenter::arm_countdown() noexcept {
+    countdown_tick_.disconnect();
+    for (const BandWindow& entry : windows_) {
+        Window* const window = entry.window.get();
+        const Control::Ptr root = window == nullptr ? Control::Ptr{} : (*window).root();
+        if (!root) continue;
+        try {
+            countdown_tick_ = (*window).schedule_ui_timer(*root, countdown_tick, FrameClock::now() + countdown_tick,
+                                                          CountdownTick{self_});
+            return;
+        } catch (...) {
+            // This window cannot schedule (closing): the next one.
+        }
+    }
+}
+
+void StockPresenter::countdown_ticked() noexcept {
+    countdown_tick_.disconnect();
+    if (control_ == nullptr || (*control_).state() != ControlState::asking) return;
+    const FrameTime now = FrameClock::now();
+    if (now >= countdown_end_) {
+        // The countdown ran out: Allow (the owner's control model).
+        close_dialog(PresenterDialog::take);
+        try {
+            (*control_).answer_take(true);
+        } catch (...) {
+            // AI mode could not be shown: the control gave control back.
         }
         return;
     }
-    // user_control (and input_suspended, which shows no popup: study 8.2).
-    close_popup(false);
+    const std::int64_t left =
+        std::chrono::duration_cast<std::chrono::milliseconds>(countdown_end_ - now).count() / 1000 + 1;
+    const std::shared_ptr<Label> label = countdown_label_.lock();
+    if (label && dialogs_[dialog_index(PresenterDialog::take)].get() != nullptr) {
+        try {
+            (*label).text = take_text(left);
+        } catch (...) {
+            // The text could not change (no memory): the countdown runs on.
+        }
+    }
+    arm_countdown();
+}
+
+void StockPresenter::offer_take_back(const ClientIdentity& client) {
+    client_ = client;
+    if (dialogs_[dialog_index(PresenterDialog::take_back)].get() != nullptr) return;
+    std::string why{};
+    const std::string label = model_label(client);
+    static_cast<void>(open_dialog(PresenterDialog::take_back, "Do you want to take back control of this program?",
+                                  "Taking back ends " + label + "'s control and interrupts its work; it is told in "
+                                  "its next reply.",
+                                  label + " has not yet released the application.", why));
 }
 
 void StockPresenter::ask_consent(const ClientIdentity& client) {
     client_ = client;
-    const std::string label = client_label(client);
-    const bool opened = open_popup(true, "Allow " + label + "?",
-                                   "Allow " + label +
-                                       " to edit files and perform potentially destructive acts? Your answer holds "
-                                       "until the program closes.");
-    // No windowing to ask with: Don't Allow (study 10: closing is Don't
-    // Allow, and a question that cannot be shown is never Allow).
-    if (!opened && control_ != nullptr) (*control_).answer_consent(false);
+    const std::string label = model_label(client);
+    std::string why{};
+    const bool opened = open_dialog(PresenterDialog::consent, "Allow " + label + "?",
+                                    "Allow " + label +
+                                        " to edit files and perform potentially destructive acts? Your answer holds "
+                                        "until the program closes.",
+                                    std::string{}, why);
+    // No windowing to ask with: the question stays unasked, and the act
+    // says it could not be shown (round 2: never "the user did not allow").
+    if (!opened && control_ != nullptr) (*control_).consent_not_shown(why);
 }
 
 void StockPresenter::user_step_needed(Window& window, const SemanticNode& node, std::string_view what) {
@@ -399,62 +519,82 @@ void StockPresenter::user_step_needed(Window& window, const SemanticNode& node, 
 
 void StockPresenter::disconnected() noexcept {
     connected_ = false;
-    close_popup(false);
-    close_popup(true);
+    in_control_ = false;
+    countdown_tick_.disconnect();
+    close_dialog(PresenterDialog::take);
+    close_dialog(PresenterDialog::take_back);
+    close_dialog(PresenterDialog::consent);
     for (BandWindow& entry : windows_) {
         // rest() reads connected_, now false: the plain band.
         rest(entry);
         Window* const window = entry.window.get();
         if (window == nullptr) continue;
-        show_title_note(*window, false);
+        show_sign(*window);
     }
 }
 
 bool StockPresenter::presenter_window(const SurfaceRoot& window) const noexcept {
-    const SurfaceRoot* const take_back = take_back_.get();
-    const SurfaceRoot* const question = question_.get();
-    const bool own = (take_back != nullptr && take_back == &window) || (question != nullptr && question == &window);
-    return own;
+    for (const WindowRef& dialog : dialogs_) {
+        const SurfaceRoot* const own = dialog.get();
+        if (own != nullptr && own == &window) return true;
+    }
+    return false;
 }
 
-bool StockPresenter::open_popup(bool question, const std::string& heading, const std::string& text) {
-    if (!owner_.active()) return false;
+bool StockPresenter::dialog_open(PresenterDialog dialog) const noexcept {
+    const bool open = dialogs_[dialog_index(dialog)].get() != nullptr;
+    return open;
+}
+
+bool StockPresenter::open_dialog(PresenterDialog dialog, const std::string& heading, const std::string& text,
+                                 const std::string& warning, std::string& why) {
+    const std::size_t index = dialog_index(dialog);
+    if (dialogs_[index].get() != nullptr) return true;
+    if (!owner_.active()) {
+        why = "the program has no window to ask from";
+        return false;
+    }
     const ApplicationWindows windowing = owner_.windows();
-    if (!windowing.active()) return false;
-    const Size size = question ? question_size : take_back_size;
-    const char* const id = question ? "automation.question" : "automation.take-back";
-    const Control::Ptr panel = make_control<PresenterPanel>(StableId(std::string(id)), this, question, heading, text);
-    std::unique_ptr<Window> model = std::make_unique<Window>(panel, size);
+    if (!windowing.active()) {
+        why = "the program's windowing has stopped";
+        return false;
+    }
+    const char* const id = dialog_id(dialog);
+    const std::shared_ptr<PresenterPanel> panel =
+        make_control<PresenterPanel>(StableId(std::string(id)), this, dialog, heading, text, warning);
+    if (dialog == PresenterDialog::take) countdown_label_ = (*panel).text_label();
+    std::unique_ptr<Window> model = std::make_unique<Window>(panel, dialog_size);
     const WindowRef reference = (*model).window_ref();
     ApplicationWindow entry{};
     entry.stable_id = id;
     entry.owner_id = owner_id_;
     entry.tool_window = true;
     entry.model = std::move(model);
-    entry.options.title = question ? "Allow destructive acts?" : "A model is in control";
-    entry.options.initial_size = size;
-    entry.options.minimum_size = size;
+    entry.options.title = dialog_title(dialog);
+    entry.options.initial_size = dialog_size;
+    entry.options.minimum_size = dialog_size;
     entry.options.minimizable = false;
-    entry.options.closed = PopupClosed{this, question};
-    // Set before opening: the gate asks presenter_window for the popup's
+    entry.options.closed = DialogClosed{this, dialog};
+    // Set before opening: the gate asks presenter_window for the dialog's
     // first input, which may come during open_window.
-    (question ? question_ : take_back_) = reference;
+    dialogs_[index] = reference;
     const ApplicationWindowOpenResult opened = windowing.open_window(std::move(entry));
     if (!opened.status.accepted()) {
-        (question ? question_ : take_back_) = WindowRef{};
+        dialogs_[index] = WindowRef{};
+        why = "the program refused to open the dialog window";
         return false;
     }
-    (question ? question_handle_ : take_back_handle_) = opened.window;
+    dialog_handles_[index] = opened.window;
     return true;
 }
 
-void StockPresenter::close_popup(bool question) noexcept {
+void StockPresenter::close_dialog(PresenterDialog dialog) noexcept {
     if (self_) {
         for (const BandWindow& entry : windows_) {
             Window* const window = entry.window.get();
             if (window == nullptr) continue;
             try {
-                static_cast<void>((*window).begin_invoke(DeferredClose{self_, question}));
+                static_cast<void>((*window).begin_invoke(DeferredClose{self_, dialog}));
                 return;
             } catch (...) {
                 // The window stopped accepting work: close now.
@@ -462,13 +602,14 @@ void StockPresenter::close_popup(bool question) noexcept {
             }
         }
     }
-    close_popup_now(question);
+    close_dialog_now(dialog);
 }
 
-void StockPresenter::close_popup_now(bool question) noexcept {
-    ApplicationWindowHandle& handle = question ? question_handle_ : take_back_handle_;
+void StockPresenter::close_dialog_now(PresenterDialog dialog) noexcept {
+    const std::size_t index = dialog_index(dialog);
+    ApplicationWindowHandle& handle = dialog_handles_[index];
     if (!handle.active()) {
-        (question ? question_ : take_back_) = WindowRef{};
+        dialogs_[index] = WindowRef{};
         return;
     }
     const ApplicationWindowHandle closing = handle;
@@ -480,22 +621,24 @@ void StockPresenter::close_popup_now(bool question) noexcept {
     } catch (...) {
         // The run is ending: its windows close with it.
     }
-    (question ? question_ : take_back_) = WindowRef{};
+    dialogs_[index] = WindowRef{};
 }
 
-void StockPresenter::popup_closed(bool question) noexcept {
-    ApplicationWindowHandle& handle = question ? question_handle_ : take_back_handle_;
+void StockPresenter::dialog_closed(PresenterDialog dialog) noexcept {
+    const std::size_t index = dialog_index(dialog);
+    ApplicationWindowHandle& handle = dialog_handles_[index];
     const bool by_user = handle.active();
     handle = ApplicationWindowHandle{};
-    (question ? question_ : take_back_) = WindowRef{};
+    dialogs_[index] = WindowRef{};
     if (!by_user || control_ == nullptr) return;
     try {
-        // Closing the question is Don't Allow; closing the take-back popup
-        // takes control back (study 8.3, step 3).
-        if (question) {
+        // Closing the take question or the destructive-act question is
+        // Don't Allow; closing the take-back dialog keeps waiting.
+        if (dialog == PresenterDialog::take) {
+            countdown_tick_.disconnect();
+            (*control_).answer_take(false);
+        } else if (dialog == PresenterDialog::consent) {
             if ((*control_).consent() == ConsentState::asking) (*control_).answer_consent(false);
-        } else {
-            (*control_).user_took_back();
         }
     } catch (...) {
         // The control's presenter call failed: the state already changed
@@ -503,16 +646,21 @@ void StockPresenter::popup_closed(bool question) noexcept {
     }
 }
 
-void StockPresenter::take_back_chosen() {
-    // The control changes state first and then tells control_changed, which
-    // closes the popup at a later turn.
-    if (control_ != nullptr) (*control_).user_took_back();
-    close_popup(false);
-}
-
-void StockPresenter::consent_chosen(bool allow) {
-    close_popup(true);
-    if (control_ != nullptr && (*control_).consent() == ConsentState::asking) (*control_).answer_consent(allow);
+void StockPresenter::dialog_chosen(PresenterDialog dialog, bool accepted) {
+    close_dialog(dialog);
+    if (control_ == nullptr) return;
+    switch (dialog) {
+    case PresenterDialog::take:
+        countdown_tick_.disconnect();
+        (*control_).answer_take(accepted);
+        return;
+    case PresenterDialog::take_back:
+        if (accepted) (*control_).user_took_back();
+        return;
+    case PresenterDialog::consent:
+        if ((*control_).consent() == ConsentState::asking) (*control_).answer_consent(accepted);
+        return;
+    }
 }
 
 } // namespace gui_forms::automation

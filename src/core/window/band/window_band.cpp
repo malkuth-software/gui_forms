@@ -403,6 +403,8 @@ void SurfaceRoot::damage_band_strips(Insets widths) {
 }
 
 void SurfaceRoot::refresh_band() {
+    // The AI-mode veil moves or rests by the same motion settings.
+    refresh_veil_motion();
     const Window* const window = root_ ? (*root_).attached_window() : nullptr;
     if (window == nullptr || theme_ == nullptr) return;
     ResolvedBand resolved{};

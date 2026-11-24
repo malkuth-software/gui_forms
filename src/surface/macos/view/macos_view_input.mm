@@ -371,6 +371,15 @@ static std::vector<DragDataItem> drag_items_for(NSPasteboard* pasteboard) {
 
 - (void)updateCursorAtPoint:(GFPoint)position {
     if (_hostServices != nullptr) {
+        // The automation's X cursor over every control while a model holds
+        // control (SurfaceRoot::model_cursor).
+        gui_forms::CursorImagesPtr model_images{};
+        CursorKind model_fallback = CursorKind::arrow;
+        if ((*_model).model_cursor(model_images, model_fallback)) {
+            static_cast<void>((*_hostServices).set_custom_cursor(model_images, self.window.backingScaleFactor,
+                                                                 model_fallback));
+            return;
+        }
         const gui_forms::Control::Ptr captured = (*_model).captured_control();
         const gui_forms::Control::Ptr target = captured ? captured : (*_model).hit_test(position);
         static_cast<void>((*_hostServices).set_custom_cursor(

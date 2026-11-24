@@ -628,6 +628,7 @@ add_library(gui_forms_core STATIC
     src/core/window/backdrop/window_backdrop_grant.cpp
     src/core/window/backdrop/backdrop_chain.cpp
     src/core/window/band/window_band.cpp
+    src/core/window/model_sign/model_veil.cpp
     src/core/window/chrome/window_chrome.cpp
     src/core/window/backplane/window_backplane.cpp
     src/core/engine/primitives/kernel/box_blur.cpp

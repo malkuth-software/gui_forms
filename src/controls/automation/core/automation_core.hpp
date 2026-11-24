@@ -268,6 +268,12 @@ private:
     void prune_windows() noexcept;
     // Tells the presenter when no call runs any more.
     void note_calls_finished() noexcept;
+    // A finished top-level call's reply gains what the model must know
+    // whatever it called (round 2 and the owner's control model): the
+    // notice that the user took control back or that control returned, the
+    // program's pending states, and, for the act whose question gave the
+    // model control, the window's snapshot.
+    void finish_reply(RunningCall& call, StepOutcome& outcome);
 
     AutomationControl& control_;
     AutomationSettings settings_;
@@ -277,6 +283,10 @@ private:
     // The dialogs a model's act opened, by the ID find_open_dialog gives:
     // the model may close them (as Cancel), never submit them (MCP round 1).
     std::vector<std::string> model_dialogs_{};
+    // Each command tool's spec as first seen, for the launch (round 2:
+    // stable specs, so tools/list_changed goes out only when a command
+    // comes or goes).
+    std::vector<ToolSpec> command_specs_{};
     std::uint64_t next_call_{1U};
     // A ring of route_trace_capacity events across windows; route_next_ is
     // the slot written next.

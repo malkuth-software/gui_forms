@@ -91,8 +91,32 @@ GUI_FORMS_API bool set_mcp_identity(const char* identity);
 // next set_mcp_identity.
 [[nodiscard]] GUI_FORMS_API const char* mcp_identity_override() noexcept;
 
+// The program's note on how it works (round 2): a paragraph a model reads
+// before it acts, given in the server's instructions and as the resource
+// gui://app/note. Plan Paint's says that shapes float until committed. Set
+// before the first window opens; at most 4096 bytes of UTF-8; null or ""
+// clears it. False, keeping the note, for longer or invalid text.
+GUI_FORMS_API bool set_model_app_note(const char* utf8_note);
+// The note set, or "". Static storage, valid until the next
+// set_model_app_note.
+[[nodiscard]] GUI_FORMS_API const char* model_app_note() noexcept;
+
+// Pending state (round 2): something the program holds that is not yet
+// part of its document, such as a floating shape, which a model must
+// commit or cancel. Every reply names each pending state with how to
+// settle it. `key` names it (1 to 64 bytes); `what` says what is pending
+// ("a rectangle floats at 10,10 to 90,60"); `how_to_settle` says how to
+// commit or cancel it ("double-click commits, Escape cancels"). Each at
+// most 512 bytes of UTF-8. Setting a key again replaces it. UI thread.
+GUI_FORMS_API bool set_model_pending_state(const char* key, const char* what, const char* how_to_settle);
+// Removes the pending state `key`; nothing when none is set.
+GUI_FORMS_API void clear_model_pending_state(const char* key);
+// Whether any pending state is set.
+[[nodiscard]] GUI_FORMS_API bool model_pending_state_set() noexcept;
+
 // Removes the automation's launch arguments from a program's argv before
-// the program reads it (study 4.2): --mcp, --model-directed,
+// the program reads it (study 4.2): --mcp, --model-directed (the old name
+// of --mcp),
 // --mcp-appearance-review and --mcp-script <file>. argv's pointers move down and argc shrinks; argv
 // [argc] stays null. The library reads the process's own arguments, so a
 // program that never calls this still gets MCP; one that parses argv calls

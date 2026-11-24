@@ -512,6 +512,44 @@ bool input_payload(const HostEventPayload& payload) noexcept {
                        std::holds_alternative<GestureEvent>(payload);
     return input;
 }
+
+// Whether `payload` is a press: a pointer button or a key going down.
+bool press_payload(const HostEventPayload& payload) noexcept {
+    if (const PointerEvent* const pointer = std::get_if<PointerEvent>(&payload)) {
+        const bool down = (*pointer).action == PointerAction::down;
+        return down;
+    }
+    if (const KeyEvent* const key = std::get_if<KeyEvent>(&payload)) {
+        const bool down = (*key).action == KeyAction::down;
+        return down;
+    }
+    return false;
+}
+
+// What the model's pointer gesture makes of one input event
+// (session_directory.hpp, admit_model_pointer and admit_user_input).
+detail::GestureVerdict gesture_verdict(const Window& window, const HostEventPayload& payload, const bool from_model) {
+    if (from_model) {
+        const PointerEvent* const pointer = std::get_if<PointerEvent>(&payload);
+        if (pointer == nullptr) return detail::GestureVerdict::deliver;
+        const bool down = (*pointer).action == PointerAction::down;
+        const bool up = (*pointer).action == PointerAction::up;
+        const bool held = (*pointer).action == PointerAction::move && (*pointer).button != PointerButton::none;
+        return detail::admit_model_pointer(window, down, up, held);
+    }
+    bool idle_pointer = std::holds_alternative<HostHoverEvent>(payload);
+    bool press = false;
+    if (const PointerEvent* const pointer = std::get_if<PointerEvent>(&payload)) {
+        const PointerAction action = (*pointer).action;
+        idle_pointer = (action == PointerAction::move || action == PointerAction::enter ||
+                        action == PointerAction::leave) &&
+                       (*pointer).button == PointerButton::none;
+        press = action == PointerAction::down;
+    } else if (const KeyEvent* const key = std::get_if<KeyEvent>(&payload)) {
+        press = (*key).action == KeyAction::down;
+    }
+    return detail::admit_user_input(window, idle_pointer, press);
+}
 } // namespace
 
 HostDispatchResult HostSession::dispatch_model_input(HostEventPayload payload, std::uint64_t timestamp_nanoseconds) {
@@ -623,14 +661,36 @@ HostDispatchResult HostSession::admit(HostEvent& event, InputOrigin origin) {
         observed_.emit(event, result);
         return result;
     }
-    // A model holds the interface (model.directed or suspend_input): the
-    // user's input is counted and dropped, never the model's. The window is
-    // alive here (dispatch and dispatch_model_input saw it).
+    // A model holds control (the owner's control model, 2026-11-24): the
+    // user's input is counted and dropped, never the model's, and a press
+    // offers the take-back dialog (the gate posts it). The window is alive
+    // here (dispatch and dispatch_model_input saw it).
     Window* const gated = window_.get();
-    if (origin == InputOrigin::user && input && gated != nullptr && detail::user_input_held(*gated)) {
+    if (origin == InputOrigin::user && input && gated != nullptr &&
+        detail::user_input_held(*gated, press_payload(event.payload))) {
         ++snapshot_.user_input_held;
         observed_.emit(event, result);
         return result;
+    }
+    if (input && gated != nullptr) {
+        // The model's pointer gesture and the user's (session_directory.hpp):
+        // the user's idle pointer never feeds the model's drag, and, where
+        // the user's input is not held, the user's press or key ends the
+        // model's gesture at once.
+        const detail::GestureVerdict verdict = gesture_verdict(*gated, event.payload, origin == InputOrigin::model);
+        if (verdict == detail::GestureVerdict::drop) {
+            if (origin == InputOrigin::user) {
+                ++snapshot_.user_input_held;
+            } else {
+                ++snapshot_.modal_input_suppressions;
+            }
+            observed_.emit(event, result);
+            return result;
+        }
+        if (verdict == detail::GestureVerdict::cancel_model_gesture) {
+            (*gated).cancel_drag();
+            (*gated).release_pointer();
+        }
     }
     // Event callbacks are ordinary C++ and propagate through Event::emit. The
     // portable host seam is where they meet the host's native callback, so

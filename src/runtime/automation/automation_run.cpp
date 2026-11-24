@@ -5,6 +5,7 @@
 
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/automation/marks/automation_marks.hpp"
+#include "../../controls/automation/marks/automation_marks_internal.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/window.hpp"
 
@@ -114,8 +115,10 @@ AutomationLaunch read_automation_launch() {
         for (stxlib::usize index = 1; index < host.count(); ++index) {
             const stxlib::View<char> bytes = host.argument(index).bytes();
             const std::string_view argument(bytes.data(), static_cast<std::size_t>(bytes.count()));
-            if (argument == "--mcp") launch.mcp = true;
-            if (argument == "--model-directed") launch.model_directed = true;
+            // --model-directed is --mcp's old name (model.directed folds into
+            // the AI-led launch, owner's control model of 2026-11-24).
+            if (argument == "--mcp" || argument == "--model-directed") launch.mcp = true;
+            if (argument == "--mcp-shared") launch.shared = true;
             if (argument == "--mcp-appearance-review") launch.appearance_review = true;
             if (argument == "--mcp-script" && index + 1 < host.count()) {
                 const stxlib::View<char> path = host.argument(index + 1).bytes();
@@ -124,7 +127,11 @@ AutomationLaunch read_automation_launch() {
             }
         }
     }
-    if (environment_value("GUI_FORMS_MCP") == "1") launch.mcp = true;
+    const std::string variable = environment_value("GUI_FORMS_MCP");
+    if (variable == "1") launch.mcp = true;
+    if (variable == "shared") launch.shared = true;
+    // Both asked: AI-led, the stronger.
+    if (launch.mcp) launch.shared = false;
 #endif
     return launch;
 }
@@ -135,6 +142,12 @@ const char* automation_launch_refusal(const AutomationLaunch& launch, bool test_
     }
     return nullptr;
 }
+
+// What every program tells a model first; the program's own note follows.
+constexpr std::string_view base_instructions =
+    "A GUI.Forms program. Read it with windows and snapshot; act with act, pointer and keyboard; each act replies "
+    "with what changed. Destructive acts ask the user once per launch. Dialogs a model opens are closed as Cancel, "
+    "never submitted; one the program opened is the user's to answer.";
 
 std::string automation_identity() {
     const std::string_view own(mcp_identity_override());
@@ -148,11 +161,24 @@ std::string automation_identity() {
     return identity;
 }
 
+// The launch's control settings: --mcp and a script are AI-led (a script
+// has no user to ask), --mcp-shared is the default control model, and an
+// appearance review needs no control.
+namespace {
+
+ControlSettings control_settings(const AutomationLaunch& launch) noexcept {
+    ControlSettings settings{};
+    settings.ai_led = launch.mcp || (!launch.shared && !launch.script_path.empty());
+    settings.appearance_review = launch.appearance_review;
+    return settings;
+}
+
+} // namespace
+
 // ---- the run ----------------------------------------------------------------------
 
 AutomationRun::AutomationRun(AutomationLaunch launch)
-    : launch_(std::move(launch)), control_(ControlSettings{launch_.model_directed}, &presenter_),
-      core_(control_) {
+    : launch_(std::move(launch)), control_(control_settings(launch_), &presenter_), core_(control_) {
     presenter_.bind_control(&control_);
     presenter_.set_unsigned(launch_.appearance_review);
 }
@@ -172,15 +198,17 @@ AutomationRun::~AutomationRun() {
 
 void AutomationRun::start() {
     gui_forms::detail::install_window_ready_hook(&AutomationRun::window_ready, this);
+    // AI-led: the model holds control from the start.
+    control_.begin_ai_led(FrameClock::now());
     const char* const refusal = automation_launch_refusal(launch_, test_controls_built());
     if (refusal != nullptr) {
         // Refused outright: a review launch never falls back to a signed
         // one, nor a release build to an unsigned one.
         std::fprintf(stderr, "GUI.Forms: %s\n", refusal);
-    } else if (launch_.mcp || launch_.appearance_review) {
+    } else if (launch_.mcp || launch_.shared || launch_.appearance_review) {
         std::string error{};
-        transport_ = McpTransport::start(*this, automation_identity(), error);
-        if (!transport_) std::fprintf(stderr, "GUI.Forms: --mcp is not available: %s\n", error.c_str());
+        transport_ = McpTransport::claim(*this, error);
+        if (!transport_) std::fprintf(stderr, "GUI.Forms: MCP is not available: %s\n", error.c_str());
     }
     if (!launch_.script_path.empty()) {
         std::string error{};
@@ -216,6 +244,9 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         // A client seen before this window joined (set_client ignores the
         // same client posted again).
         if (client_seen) run.core_.set_client(client);
+        // Serving starts with the first window, when the program has
+        // registered its tools, commands and note.
+        run.serve_when_ready();
         run.sync_tools();
         // The input closed before this window joined, so no close reached
         // it: it closes at the UI thread's next turn, once it is running.
@@ -349,8 +380,25 @@ void AutomationRun::close_all() noexcept {
     }
 }
 
+void AutomationRun::serve_when_ready() {
+    if (!transport_ || (*transport_).serving()) return;
+    std::vector<ToolSpec> specs{};
+    core_.fill_tool_specs(specs);
+    tool_generation_ = core_.tool_generation();
+    std::string instructions(base_instructions);
+    const std::string note = detail::app_note_copy();
+    if (!note.empty()) {
+        instructions += "\n\nHow this program works (its own note, also the resource gui://app/note):\n";
+        instructions += note;
+    }
+    std::string error{};
+    if (!(*transport_).serve(automation_identity(), instructions, note, specs, error)) {
+        std::fprintf(stderr, "GUI.Forms: MCP is not available: %s\n", error.c_str());
+    }
+}
+
 void AutomationRun::sync_tools() {
-    if (!transport_) return;
+    if (!transport_ || !(*transport_).serving()) return;
     const std::uint64_t generation = core_.tool_generation();
     if (generation == tool_generation_) return;
     tool_generation_ = generation;

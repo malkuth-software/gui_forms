@@ -25,6 +25,11 @@ bool SurfaceRoot::needs_frame() const noexcept {
     return paint_pending();
 }
 
+bool SurfaceRoot::needs_settling_frame() const noexcept {
+    const bool wanted = settling_paint_pending_ && paint_pending();
+    return wanted;
+}
+
 stxlib::Optional<FrameTime> SurfaceRoot::next_wake() const noexcept {
     const stxlib::Optional<FrameTime> wake = earliest_wake(false);
     return wake;
@@ -328,7 +333,12 @@ FramePollResult SurfaceRoot::poll_frame_schedule(FrameTime now) {
             // The timer's callback is application code: an exception from
             // it ends the process at the fail-fast boundary.
             const FrameTime tick_time = (*request).paced_to_display ? presented : now;
+            // What an ambient wake invalidates does not hold settling
+            // (needs_settling_frame).
+            const bool ambient = (*request).ambient;
+            if (ambient) ++ambient_wake_depth_;
             if (callback) gui_forms::detail::call_failing_fast("scheduler.ui_timer", &run_ui_timer, callback, tick_time);
+            if (ambient) --ambient_wake_depth_;
             if ((*request).connected() && !(*request).callback) (*request).callback = std::move(callback);
             continue;
         }

@@ -262,8 +262,10 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
     backplane_context.dark = presentation_settings_.colour_scheme == ColourScheme::dark;
     const SurfaceMaterial backplane = backplane_base(backplane_context);
     const bool starts_clear = backdrop_grant_.granted != WindowBackdrop::opaque;
-    // The capture shows what the screen shows: the content wash too.
-    const bool wash = begin_content_wash(candidate, window_bounds);
+    // The automation's sign (the wash, the veil and the band) only when
+    // asked: by default a capture shows the program without it (MCP round
+    // 2).
+    const bool wash = options.include_model_sign && begin_content_wash(candidate, window_bounds);
     paint_backplane_rectangle(candidate, window_bounds, backplane, starts_clear);
     for (std::size_t index = 0; index < paint_plane_count; ++index) {
         const PaintPlane plane = static_cast<PaintPlane>(index);
@@ -271,6 +273,10 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
                         consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
     }
     if (wash) candidate.end_group();
+    if (options.include_model_sign) {
+        const std::array<Rect, 1> veiled{window_bounds};
+        paint_model_veil(candidate, veiled);
+    }
     // The overlay roots, gathered before any paints: a paint callback may
     // close one, which the liveness check below then skips.
     std::vector<Control::Ptr> overlay_roots;
@@ -288,8 +294,10 @@ std::optional<WindowCapture> SurfaceRoot::capture_window(const WindowCaptureOpti
                             consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
         }
     }
-    const std::array<Rect, 1> whole{window_bounds};
-    paint_band(candidate, whole);
+    if (options.include_model_sign) {
+        const std::array<Rect, 1> whole{window_bounds};
+        paint_band(candidate, whole);
+    }
     const std::shared_ptr<const detail::DisplayChunk> recorded =
         candidate.finish(display_generation_, PaintPlane::control, window_bounds);
     // Rebuilt chunks consumed their paint dirt without reaching the screen.
@@ -358,6 +366,11 @@ std::optional<WindowCapture> SurfaceRoot::capture_control(const Control::Ptr& co
         const PaintPlane plane = static_cast<PaintPlane>(index);
         paint_recursive(control, parent_frame_of(*control), candidate, area, plane, visited_nodes, painted_controls,
                         consumed_invalidations, chunks_rebuilt, chunks_reused, commands_replayed);
+    }
+    // The AI-mode veil only when asked, as capture_window draws it.
+    if (options.include_model_sign) {
+        const std::array<Rect, 1> veiled{area};
+        paint_model_veil(candidate, veiled);
     }
     // The overlays the subtree owns, over it (exhibit gap E3).
     std::vector<Control::Ptr> owned_overlays;
@@ -1013,6 +1026,9 @@ stxlib::Optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& p
             }
         }
         if (wash) candidate.end_group();
+        // The AI-mode veil over the application's control surfaces, under
+        // the overlays (a menu opened over a striped toolbar is clear).
+        paint_model_veil(candidate, painted);
         // Window-owned overlay roots are composited after all application
         // content, in opening order and independently of consumer layout.
         for (const Control::Ptr& overlay : overlay_roots) {
