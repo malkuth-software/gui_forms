@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2456 | 3 | 370 | 4174 | 2611 |
+| 2468 | 3 | 370 | 4163 | 2612 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 253 | 0 | 12 | 329 | 237 |
+| `Control` | `Control` | 258 | 0 | 12 | 325 | 238 |
 | `Component` | `Component` | 11 | 0 | 0 | 9 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
@@ -24,7 +24,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `WindowCapsule` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
 | `TextBox` | `TextBox` | 25 | 0 | 0 | 26 | 31 |
 | `TokenBox` | GUI.Forms-only | 12 | 0 | 0 | 2 | 14 |
-| `SearchField` | GUI.Forms-only | 6 | 0 | 0 | 6 | 12 |
+| `SearchField` | GUI.Forms-only | 7 | 0 | 0 | 5 | 12 |
 | `ButtonTextBox` | GUI.Forms-only | 10 | 0 | 0 | 6 | 16 |
 | `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 38 | 7 |
 | `RichTextBox` | `RichTextBox` | 26 | 0 | 2 | 55 | 20 |
@@ -175,7 +175,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 258 | 0 | 13 | 142 | 273 |
+| `Window` | `Form` | 264 | 0 | 13 | 136 | 273 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -318,5 +318,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 1001 |
+| `untested` | 990 |
 | `w-open` | 5 |
