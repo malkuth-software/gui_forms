@@ -106,6 +106,10 @@ struct ContextMenu::Impl final {
     class MenuLayer final : public Panel {
     public:
         MenuLayer(StableId id, Impl& impl) : Panel(std::move(id)), impl_(impl) {
+            // The menu places its panels itself (Control's clip, not a
+            // Windows Forms panel's contain): a panel past the layer is
+            // never scaled.
+            viewport_fit = ViewportFit{OverflowAnswer::clip};
             set_paint_plane(PaintPlane::overlay);
             border_style = BorderStyle::none;
             set_background(Color::rgba(0, 0, 0, 0));
@@ -190,6 +194,8 @@ struct ContextMenu::Impl final {
     public:
         MenuPanel(StableId id, Impl& impl, std::size_t depth)
             : Panel(std::move(id)), impl_(impl), depth_(depth) {
+            // It places its rows itself and scrolls them: never scaled.
+            viewport_fit = ViewportFit{OverflowAnswer::clip};
             focusable = true;
             set_paint_plane(PaintPlane::overlay);
             // The theme's card role, an overlay surface resolved per
