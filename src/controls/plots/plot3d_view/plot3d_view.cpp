@@ -563,7 +563,8 @@ void Plot3DView::handle_pointer(PointerEvent& event) {
 // A drag whose capture is lost ends without a pick; the resting frame is
 // rendered again, as after a release.
 void Plot3DView::end_drag() {
-    if (drag_ == Drag::none) return;
+    // A disposed view has nothing to redraw (invalidate would refuse).
+    if (drag_ == Drag::none || !is_alive()) return;
     drag_ = Drag::none;
     dragged_ = false;
     invalidate(Dirty::paint);

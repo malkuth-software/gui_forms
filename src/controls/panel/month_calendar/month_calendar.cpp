@@ -807,6 +807,9 @@ void MonthCalendar::end_broken_press() {
 // drag has already ended; any other loss ends it here (A-gf-controls-08-F4).
 void MonthCalendar::on_mouse_capture_changed() {
     Control::on_mouse_capture_changed();
+    // The raiser ran the application's handlers, which may have disposed
+    // the calendar: nothing is changed then (end_broken_press invalidates).
+    if (!is_alive()) return;
     if (dragging_ || pressed_zone_ != Zone::none) end_broken_press();
 }
 
