@@ -145,6 +145,9 @@ gui_forms::ComboBox
 
       **states** : ``States``, read-only
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the drop-down's state agrees with itself (state hunt): open, its overlay is in the window with its list; closed, nothing is lifted into a Popup.
+
    :Events:
 
       **drop_down_changed** : ``Event<bool>``
@@ -445,6 +448,10 @@ gui_forms::ComboBox
 
    .. cpp:function:: States states() const
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the drop-down's state agrees with itself (state hunt): open, its overlay is in the window with its list; closed, nothing is lifted into a Popup.
+
 
    .. rubric:: Events
 
@@ -569,7 +576,7 @@ gui_forms::ComboBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supported, 0 deferred, 1 excluded, 54 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ComboBox``. Members declared here and by the counterpart: 12 supported, 0 deferred, 1 excluded, 54 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -788,6 +795,10 @@ Counterpart: ``ComboBox``. Members declared here and by the counterpart: 11 supp
      - ``SelectAll``
      - none
      - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``drop_down_filter``

@@ -852,4 +852,11 @@ void DateTimePicker::on_font_changed() {}
 
 // property_codemod end DateTimePicker
 
+bool DateTimePicker::agrees_with_itself() const noexcept {
+    const DropDownOpening* const open = presentation_.open_state();
+    if (open != nullptr) return (*open).lease.overlay.connected() && (*open).layer && (*open).calendar;
+    if (!presentation_.is_closed()) return true;
+    return !lift_.lifted();
+}
+
 } // namespace gui_forms

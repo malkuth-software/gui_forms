@@ -1539,6 +1539,7 @@
       {"kind": "method", "winforms": "OnTextUpdate", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "hook: a protected On* raiser; GUI.Forms raises events without an overridable raiser"},
       {"kind": "method", "winforms": "Select", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "method", "winforms": "SelectAll", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/combo_box_filter_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "drop_down_filter", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "drop_down_items", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/combo_box_filter_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "editor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/auto_complete_tests.cpp"},
@@ -2732,6 +2733,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "parse_value", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "FlagsValueEditor", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp", "members": [
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/inspection_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "checked_flags", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "enumeration_name", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "flag_names", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -2908,6 +2910,7 @@
       {"kind": "field", "winforms": "DefaultTrailingForeColor", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "field", "winforms": "MaxDateTime", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "field", "winforms": "MinDateTime", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+      {"kind": "property", "winforms": null, "gui_forms": "agrees_with_itself", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/date_time_picker_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "effective_format_provider", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "follows_host_locale", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_locale_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "formatted_value", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_locale_tests.cpp"},

@@ -1451,4 +1451,11 @@ void ComboBox::on_drop_down_style_changed() {}
 
 // property_codemod end ComboBox
 
+bool ComboBox::agrees_with_itself() const noexcept {
+    const DropDownOpening* const open = presentation_.open_state();
+    if (open != nullptr) return (*open).lease.overlay.connected() && (*open).layer && (*open).list;
+    if (!presentation_.is_closed()) return true;
+    return !lift_.lifted();
+}
+
 } // namespace gui_forms

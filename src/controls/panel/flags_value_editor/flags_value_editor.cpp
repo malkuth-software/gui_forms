@@ -856,4 +856,11 @@ std::span<const PropertyEntry> FlagsValueEditor::property_table() const noexcept
 
 // property_codemod end FlagsValueEditor
 
+bool FlagsValueEditor::agrees_with_itself() const noexcept {
+    const DropDownOpening* const open = presentation_.open_state();
+    if (open != nullptr) return (*open).lease.overlay.connected() && (*open).layer && (*open).list;
+    if (!presentation_.is_closed()) return true;
+    return !lift_.lifted();
+}
+
 } // namespace gui_forms

@@ -88,6 +88,11 @@ public:
     [[nodiscard]] Parts parts() const;
     [[nodiscard]] States states() const;
 
+    // Whether the drop-down's state agrees with itself (state hunt): open,
+    // its overlay is in the window with its calendar; closed, nothing is
+    // lifted into a Popup.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
+
 protected:
     void on_mouse_down(MouseEventArgs& arguments) override;
     void on_mouse_up(MouseEventArgs& arguments) override;

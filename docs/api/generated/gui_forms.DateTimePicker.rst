@@ -109,6 +109,9 @@ gui_forms::DateTimePicker
 
       **states** : ``States``, read-only
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the drop-down's state agrees with itself (state hunt): open, its overlay is in the window with its calendar; closed, nothing is lifted into a Popup.
+
    :Events:
 
       **value_changed** : ``Event<DateTimeValue>``
@@ -354,6 +357,10 @@ gui_forms::DateTimePicker
 
    .. cpp:function:: States states() const
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the drop-down's state agrees with itself (state hunt): open, its overlay is in the window with its calendar; closed, nothing is lifted into a Popup.
+
 
    .. rubric:: Events
 
@@ -443,7 +450,7 @@ gui_forms::DateTimePicker
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 8 supported, 0 deferred, 1 excluded, 47 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 9 supported, 0 deferred, 1 excluded, 47 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -646,6 +653,10 @@ Counterpart: ``DateTimePicker``. Members declared here and by the counterpart: 8
      - ``MinDateTime``
      - none
      - unclassified (unmatched)
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``effective_format_provider``
