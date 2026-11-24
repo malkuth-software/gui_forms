@@ -263,7 +263,10 @@ def check_include_list(tree: Path) -> list[str]:
 
 def check_link_maps(tree: Path) -> list[str]:
     """Problems in the tree's link maps: an input from a forbidden folder."""
-    maps: list[Path] = sorted(tree.rglob('*.map'))
+    # lld-link /MAP writes <image>.map beside <image>.exe or .dll; other .map
+    # files (export version scripts) are not link maps.
+    maps: list[Path] = sorted(path for path in tree.rglob('*.map')
+                              if path.with_suffix('.exe').is_file() or path.with_suffix('.dll').is_file())
     problems: list[str] = []
     if not maps:
         return ['no link map under ' + str(tree) + ' (configure with -DGUI_FORMS_LINK_MAP=ON)']
