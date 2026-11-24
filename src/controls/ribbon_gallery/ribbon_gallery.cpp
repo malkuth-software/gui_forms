@@ -690,7 +690,16 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
     // one is ended here and nothing reports an opening (A-gf-controls-12-F4).
     // `lifetime` holds the gallery across them.
     const Control::Ptr lifetime = shared_from_this();
-    const FocusScopeId started = window.begin_focus_scope(layer_, preferred_focus);
+    // A refused scope (state hunt N3: a containing scope, the nesting
+    // limit) takes the overlay down again before the refusal leaves: a
+    // failed open leaves nothing shown and reports nothing.
+    FocusScopeId started{};
+    try {
+        started = window.begin_focus_scope(layer_, preferred_focus);
+    } catch (...) {
+        abandon_opening();
+        throw;
+    }
     if (!is_alive() || !presentation_.settle_open()) {
         if (started) static_cast<void>(window.end_focus_scope(started));
         return false;
@@ -725,6 +734,31 @@ void RibbonGallery::close_overlay() {
     pressed_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
     overlay_open_changed_.emit(false);
+}
+
+// An opening whose scope was refused: its record is dismantled and the
+// gallery leaves the layer and the Popup, with nothing reported (no
+// opening was reported either).
+void RibbonGallery::abandon_opening() noexcept {
+    if (presentation_.begin_closing()) {
+        AnchoredOpening& closing = *presentation_.closing_state();
+        closing.lease.overlay_closed.disconnect();
+        closing.lease.overlay.disconnect();
+        closing.popup_closed.disconnect();
+        presentation_.finish_closing();
+    }
+    release_lift();
+    release_layer_content();
+}
+
+bool RibbonGallery::agrees_with_itself() const noexcept {
+    // Open, its overlay is in the window. Closed, it is neither its layer's
+    // content nor lifted into a Popup.
+    const AnchoredOpening* const open = presentation_.open_state();
+    if (open != nullptr) return (*open).lease.overlay.connected();
+    if (!presentation_.is_closed()) return true;
+    if (layer_ && (*layer_).content().get() == this) return false;
+    return !lift_.lifted();
 }
 
 void RibbonGallery::on_layer_dismissed(OverlayDismissReason) {
@@ -793,6 +827,9 @@ bool RibbonGallery::show_more() {
 }
 
 void RibbonGallery::on_more_open_changed(bool open) {
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     // Without a command the full gallery's choice becomes this gallery's.
     if (!open && !command.read() && more_gallery_ && (*more_gallery_).own_selection_ != own_selection_) {
         own_selection_ = (*more_gallery_).own_selection_;

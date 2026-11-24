@@ -118,6 +118,10 @@ public:
     // Cancels any preview, then closes the overlay and returns focus.
     void close_overlay();
     [[nodiscard]] bool overlay_open() const noexcept { return presentation_.is_shown(); }
+    // Whether the gallery's overlay state agrees with itself (state hunt,
+    // 2026-11-23): open, its overlay is in the window; closed, it is not in
+    // its layer or a Popup. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // In-ribbon form: opens the full gallery (the more button). Returns false
     // for the drop-down form or when it cannot open.
     bool show_more();
@@ -287,6 +291,7 @@ private:
     // The host closed a Popup window: the picker's closes the overlay.
     void on_popup_window_closed(std::size_t slot);
     void release_lift() noexcept;
+    void abandon_opening() noexcept;
     void release_layer_content() noexcept;
     void on_more_open_changed(bool open);
     [[nodiscard]] bool navigate(std::uint32_t key);

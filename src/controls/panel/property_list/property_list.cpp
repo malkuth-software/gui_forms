@@ -262,8 +262,14 @@ struct PropertyList::Impl final {
         return (*current).parent_id.empty();
     }
 
+    // The rows leave the list before their editors leave the tree (state
+    // hunt N1): removing an editor whose drop-down is open closes it, moves
+    // focus and may flush layout, and that layout must find no rows rather
+    // than old rows indexing new groups.
     void clear_editors() noexcept {
-        for (RowState& row : rows) {
+        std::vector<RowState> leaving = std::move(rows);
+        rows.clear();
+        for (RowState& row : leaving) {
             if (row.editor && (*row.editor).parent().get() == &owner) {
                 Control::Ptr removed = owner.remove_child((*row.editor).runtime_id());
                 if (removed && (*removed).is_alive()) (*removed).dispose();
@@ -274,11 +280,23 @@ struct PropertyList::Impl final {
                 if (removed && (*removed).is_alive()) (*removed).dispose();
             }
         }
-        rows.clear();
     }
 
+    // One editor and reset button per row of `groups`. A child the window
+    // refuses part-way (state hunt C36: an editor identity another control
+    // of the window holds) takes out those added and leaves: no row then
+    // stands for an editor that is not there.
     void rebuild_editors() {
         clear_editors();
+        try {
+            add_editors();
+        } catch (...) {
+            clear_editors();
+            throw;
+        }
+    }
+
+    void add_editors() {
         for (std::size_t group_index = 0; group_index < groups.size(); ++group_index) {
             for (std::size_t row_index = 0;
                  row_index < groups[group_index].rows.size(); ++row_index) {
@@ -461,13 +479,17 @@ struct PropertyList::Impl final {
     }
 
     void arrange_editors() {
-        if (header) {
+        if (header && (*header).parent().get() == &owner) {
             owner.set_child_layout(header,
                 {0.0, -scroll_offset,
                  std::max(0.0, owner.committed_arranged_bounds().width),
                  header_height});
         }
         for (RowState& state : rows) {
+            if (state.group_index >= groups.size() ||
+                state.row_index >= groups[state.group_index].rows.size()) {
+                continue;
+            }
             const bool visible = groups[state.group_index].expanded &&
                 row_visible(state);
             if (state.editor) {
@@ -644,9 +666,30 @@ void PropertyList::set_groups(std::vector<PropertyGroupSpec> groups) {
             prior_rows.emplace(row.stable_id, &row);
         }
     }
+    // The old editors go while the old groups stand (state hunt N1); then
+    // the groups and their editors change together (C36): a refused editor
+    // brings back the groups before, with fresh editors, and the refusal
+    // leaves. Should that be refused too, the list is left empty.
+    (*impl_).clear_editors();
+    std::vector<PropertyGroupSpec> previous = std::move((*impl_).groups);
     (*impl_).groups = std::move(groups);
     (*impl_).scroll_offset = 0.0;
-    (*impl_).rebuild_editors();
+    try {
+        (*impl_).rebuild_editors();
+    } catch (...) {
+        (*impl_).groups = std::move(previous);
+        try {
+            (*impl_).rebuild_editors();
+        } catch (...) {
+            (*impl_).groups.clear();
+        }
+        (*impl_).recompute_geometry();
+        try {
+            invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+        } catch (...) {
+        }
+        throw;
+    }
     (*impl_).recompute_geometry();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
@@ -867,17 +910,39 @@ void PropertyList::set_header_content(Control::Ptr content, double height) {
                    Dirty::semantics);
         return;
     }
+    // The new header joins first (state hunt N6): a refused add changes
+    // nothing, where before the list named a header that was not its
+    // child and every later layout threw. Then the old one goes.
+    if (content) add_child(content);
     if ((*impl_).header && (*(*impl_).header).parent().get() == this) {
         Control::Ptr previous = remove_child((*(*impl_).header).runtime_id());
         if (previous && (*previous).is_alive()) (*previous).dispose();
     }
     (*impl_).header = std::move(content);
     (*impl_).header_height = height;
-    if ((*impl_).header) add_child((*impl_).header);
     (*impl_).recompute_geometry();
     (*impl_).arrange_editors();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
+}
+
+bool PropertyList::agrees_with_itself() const noexcept {
+    // Each row stands for one row of the groups, in order, and its editor
+    // and reset button are this list's children; the header is a child.
+    std::size_t expected = 0U;
+    for (const PropertyGroupSpec& group : (*impl_).groups) expected += group.rows.size();
+    if ((*impl_).rows.size() != expected) return false;
+    std::size_t position = 0U;
+    for (std::size_t group_index = 0; group_index < (*impl_).groups.size(); ++group_index) {
+        for (std::size_t row_index = 0; row_index < (*impl_).groups[group_index].rows.size(); ++row_index) {
+            const Impl::RowState& state = (*impl_).rows[position];
+            if (state.group_index != group_index || state.row_index != row_index) return false;
+            if (state.editor && (*state.editor).parent().get() != this) return false;
+            if (state.reset_button && (*state.reset_button).parent().get() != this) return false;
+            ++position;
+        }
+    }
+    return !(*impl_).header || (*(*impl_).header).parent().get() == this;
 }
 
 Control::Ptr PropertyList::header_content() const noexcept {

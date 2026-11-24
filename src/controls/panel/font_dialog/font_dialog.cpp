@@ -356,16 +356,25 @@ bool FontDialog::show(const Control::Ptr& owner) {
     // (and even open it again). A scope this show() began after that is
     // ended here, since the close found none to end (as TaskDialog,
     // A-gf-controls-13-F4).
-    if (Window* const popup = presentation_.popup_window()) {
-        static_cast<void>((*popup).begin_focus_scope(presentation_.popup_root(), face_list_));
-    }
-    if (!presentation_.shown_with(*layer)) return true;
+    // A refused scope (a containing scope, the nesting limit) takes the
+    // dialog down again before the refusal leaves, with nothing raised.
+    Control::Ptr preferred = face_list_;
+    if (preferred && !((*preferred).eligible_for_input() && (*preferred).focusable.read())) preferred = {};
     FocusScopeId started{};
-    if (presentation_.surface() == NativePopupSurface::native) {
-        // The empty layer keeps the owner's keys from its controls.
-        started = host.begin_focus_scope(layer);
-    } else {
-        started = host.begin_focus_scope(layer, face_list_);
+    try {
+        if (Window* const popup = presentation_.popup_window()) {
+            static_cast<void>((*popup).begin_focus_scope(presentation_.popup_root(), preferred));
+        }
+        if (!presentation_.shown_with(*layer)) return true;
+        if (presentation_.surface() == NativePopupSurface::native) {
+            // The empty layer keeps the owner's keys from its controls.
+            started = host.begin_focus_scope(layer);
+        } else {
+            started = host.begin_focus_scope(layer, preferred);
+        }
+    } catch (...) {
+        if (is_alive() && presentation_.shown_with(*layer)) abandon_show();
+        throw;
     }
     if (!presentation_.adopt_scope(*layer, started)) {
         if (started) static_cast<void>(host.end_focus_scope(started));
@@ -418,6 +427,19 @@ void FontDialog::release_overlay(FocusScopeCloseReason reason) {
     DialogPresentation closing = presentation_.take();
     closing.dismantle(*this, reason);
     set_paint_plane(PaintPlane::control);
+}
+
+// A show whose scope was refused: the dialog leaves its layer and popup and
+// both close, with closed not raised (no show was reported either).
+void FontDialog::abandon_show() noexcept {
+    const Control::Ptr retained = weak_from_this().lock();
+    DialogPresentation closing = presentation_.take();
+    try {
+        closing.dismantle(*this, FocusScopeCloseReason::explicit_close);
+        set_paint_plane(PaintPlane::control);
+    } catch (...) {
+        closing.abandon();
+    }
 }
 
 void FontDialog::close(DialogResult result) {

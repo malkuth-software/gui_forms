@@ -163,6 +163,9 @@ void MenuStrip::on_overlay_item_invoked(
 void MenuStrip::on_overlay_open_changed(bool open_state) {
     if (open_state || switching_ || active_index_.absent()) return;
     active_index_.reset();
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(open_changed_, active_index_);
 }

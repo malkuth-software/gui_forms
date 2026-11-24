@@ -339,8 +339,29 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog progress bounds must be finite and ordered");
         }
     }
+    // The page and its child controls change together (state hunt C21): a
+    // child the window refuses part-way (an identity another control of
+    // the window holds) brings back the page shown before, with its
+    // children, and the refusal leaves. Should that rebuild be refused too,
+    // the dialog is left with an empty page and no children, which agree.
+    TaskDialogPage previous = std::move(page_);
     page_ = std::move(page);
-    rebuild_children();
+    try {
+        rebuild_children();
+    } catch (...) {
+        page_ = std::move(previous);
+        try {
+            rebuild_children();
+        } catch (...) {
+            page_ = TaskDialogPage{};
+            clear_children_of_page();
+            try {
+                clear_children();
+            } catch (...) {
+            }
+        }
+        throw;
+    }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     if (!presentation_.shown()) return;
     // A page shown in place of another: focus moves to its default button.
@@ -657,18 +678,30 @@ bool TaskDialog::show(const Control::Ptr& owner) {
     // focus and validation handlers; one may close the dialog (and even
     // show it again), and then the scope this show() opened is ended here,
     // since finish found none to end (A-gf-controls-13-F4).
-    if (Window* const popup = presentation_.popup_window()) {
-        static_cast<void>((*popup).begin_focus_scope(presentation_.popup_root(), button(State::default_button_id(*this))));
-    }
-    if (!is_alive() || !presentation_.shown_with(*layer)) return true;
+    // The default button takes focus when it can; a disabled or hidden one
+    // is not offered to the window, which would refuse it and leave the
+    // dialog shown with no scope (state hunt, run 6). Any other refusal (a
+    // containing scope, the nesting limit) takes the dialog down again
+    // before it leaves, with nothing raised.
+    Control::Ptr preferred = button(State::default_button_id(*this));
+    if (preferred && !((*preferred).eligible_for_input() && (*preferred).focusable.read())) preferred = {};
     FocusScopeId started{};
-    if (presentation_.surface() == NativePopupSurface::native) {
-        // The empty layer keeps the owner's keys from its controls.
-        started = host.begin_focus_scope(layer);
-    } else {
-        const Control::Ptr first =
-            state.input_ ? Control::Ptr(state.input_) : Control::Ptr(button(State::default_button_id(*this)));
-        started = host.begin_focus_scope(layer, first);
+    try {
+        if (Window* const popup = presentation_.popup_window()) {
+            static_cast<void>((*popup).begin_focus_scope(presentation_.popup_root(), preferred));
+        }
+        if (!is_alive() || !presentation_.shown_with(*layer)) return true;
+        if (presentation_.surface() == NativePopupSurface::native) {
+            // The empty layer keeps the owner's keys from its controls.
+            started = host.begin_focus_scope(layer);
+        } else {
+            // A page with a text field focuses it first.
+            const Control::Ptr first = state.input_ ? Control::Ptr(state.input_) : preferred;
+            started = host.begin_focus_scope(layer, first);
+        }
+    } catch (...) {
+        if (is_alive() && presentation_.shown_with(*layer)) abandon_show();
+        throw;
     }
     if (!is_alive() || !presentation_.adopt_scope(*layer, started)) {
         if (started) static_cast<void>(host.end_focus_scope(started));
@@ -728,6 +761,34 @@ void TaskDialog::close(std::string_view button_id) {
 void TaskDialog::on_overlay_revoked() {
     // The owner left its window: the dialog closes as cancelled.
     State::finish(*this, State::cancel_button_id(*this));
+}
+
+bool TaskDialog::agrees_with_itself() const noexcept {
+    // The page and the child controls it describes, matched by index.
+    const State& state = *state_;
+    if (page_.buttons.size() != state.buttons_.size() || page_.radio_buttons.size() != state.radios_.size()) return false;
+    if (static_cast<bool>(page_.expander) != static_cast<bool>(state.expander_button_)) return false;
+    if (page_.verification_text.empty() == static_cast<bool>(state.verification_)) return false;
+    if (page_.input.has_value() != static_cast<bool>(state.input_)) return false;
+    for (const std::shared_ptr<Button>& control : state.buttons_) {
+        if (!control || (*control).parent().get() != this) return false;
+    }
+    // Shown: in the presentation's layer or popup root; closed: no parent.
+    if (!presentation_.shown()) return !parent();
+    const Control::Ptr holder = parent();
+    return holder && (holder == presentation_.layer() || holder == presentation_.popup_root());
+}
+
+// A show whose scope was refused: the dialog leaves its layer and popup and
+// both close, with closed not raised (no show was reported either).
+void TaskDialog::abandon_show() noexcept {
+    const Control::Ptr retained = weak_from_this().lock();
+    DialogPresentation closing = presentation_.take();
+    try {
+        closing.dismantle(*this, FocusScopeCloseReason::explicit_close);
+    } catch (...) {
+        closing.abandon();
+    }
 }
 
 void TaskDialog::State::finish(TaskDialog& self, std::string button_id) {

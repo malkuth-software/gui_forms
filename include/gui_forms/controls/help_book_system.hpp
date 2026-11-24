@@ -218,6 +218,11 @@ public:
     bool enter_help_mode(Window& window);
     void cancel_help_mode() noexcept;
     [[nodiscard]] bool help_mode_active() const noexcept;
+    // Whether the system's popup and help-mode state agree with themselves
+    // (state hunt, 2026-11-23): help mode held has its layer and window, and
+    // while shown its overlay is in that window; the popup held has its
+    // layer. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
 
     // Program routes: a HelpProvider's request (its target's page unless a
     // handler took it) and the ribbon's "?" or a RibbonToolTip's F1 (the
@@ -254,6 +259,7 @@ private:
     };
 
     void on_pick(Window& window, Point position);
+    void on_pick_revoked();
     void wire_viewer(HelpBookViewer& viewer);
     void on_window_viewer_created(HelpBookViewer& viewer);
     [[nodiscard]] std::shared_ptr<HelpBookViewer> present();

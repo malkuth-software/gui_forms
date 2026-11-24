@@ -1178,6 +1178,9 @@ void ToolStrip::on_overlay_open_changed(bool open) {
     if (open) return;
     open_index_.reset();
     overflow_open_ = false;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 

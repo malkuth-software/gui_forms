@@ -1431,6 +1431,32 @@ bool NavigationPane::open_overlay() {
             (*closed).subscribe(*this, Delegate<>::bind<NavigationPane, &NavigationPane::on_overlay_revoked>(*this));
     }
     presentation_ = OverlayPresentation<OverlayOpening>::opening(std::move(opening));
+    // Until the scope is begun a refusal (state hunt N3: the move of the
+    // content, a containing scope, the nesting limit) closes the overlay
+    // again before it leaves; an overlay closed while opening reports
+    // nothing, so a failed open leaves nothing shown.
+    FocusScopeId started{};
+    try {
+        started = enter_overlay(*host, flyout);
+    } catch (...) {
+        release_overlay(FocusScopeCloseReason::explicit_close);
+        throw;
+    }
+    if (!presentation_.settle_open()) {
+        Window* const still = attached_window();
+        if (started && still != nullptr) static_cast<void>((*still).end_focus_scope(started));
+        return false;
+    }
+    (*presentation_.open_state()).lease.scope = started;
+    invalidate(Dirty::paint | Dirty::semantics);
+    overlay_open_changed_.emit(true);
+    return true;
+}
+
+// Moves the content panel into the opening overlay, watches the window's
+// pointer, and begins the overlay's focus scope. Runs focus handlers.
+FocusScopeId NavigationPane::enter_overlay(Window& window, const std::shared_ptr<Flyout>& flyout) {
+    Window* const host = &window;
     move_host_to_overlay(*flyout);
     OverlayOpening* const shown = presentation_.opening_state();
     if (shown != nullptr) {
@@ -1447,15 +1473,18 @@ bool NavigationPane::open_overlay() {
     FocusScopeOptions options{};
     options.contain_focus = false;
     const FocusScopeId started = (*host).begin_focus_scope(flyout, {}, options);
-    if (!presentation_.settle_open()) {
-        Window* const still = attached_window();
-        if (started && still != nullptr) static_cast<void>((*still).end_focus_scope(started));
-        return false;
+    return started;
+}
+
+bool NavigationPane::agrees_with_itself() const noexcept {
+    // Held, the overlay has its flyout, and open its overlay is in the
+    // window. Closed, the content panel is the pane's.
+    const OverlayOpening* const held = presentation_.held_state();
+    if (held != nullptr) {
+        if (!(*held).flyout) return false;
+        return !presentation_.is_open() || (*held).lease.overlay.connected();
     }
-    (*presentation_.open_state()).lease.scope = started;
-    invalidate(Dirty::paint | Dirty::semantics);
-    overlay_open_changed_.emit(true);
-    return true;
+    return !host_ || (*host_).parent().get() == this;
 }
 
 void NavigationPane::close_overlay() noexcept {
@@ -1568,6 +1597,9 @@ bool NavigationPane::show_configure_menu(MenuOpenMode mode) {
 }
 
 void NavigationPane::on_menu_open_changed(bool) {
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 

@@ -37,6 +37,11 @@ public:
         std::string_view row_id) const;
     void set_header_content(Control::Ptr content, double height);
     [[nodiscard]] Control::Ptr header_content() const noexcept;
+    // Whether the list's state agrees with itself (state hunt, 2026-11-23):
+    // one row record per row of the groups, in order, each editor and reset
+    // button a child of the list, and the header a child. For tests and
+    // diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
 
     [[nodiscard]] double content_height() const noexcept;
 

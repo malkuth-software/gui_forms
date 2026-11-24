@@ -73,6 +73,16 @@ struct ContextMenu::Impl final {
     class PopupFrame;
     class MenuRow;
 
+    // What the controls of one open menu (layer, panels, rows) reach the
+    // menu through (state hunt S3): those controls are shared and may be
+    // held past the close by a tree walk, a C ABI handle or an inspection,
+    // so they keep this link, never the Impl itself. The close and the
+    // menu's destruction clear `impl`; each control also checks that it is
+    // still the one in its slot before it acts.
+    struct OpenLink final {
+        Impl* impl{};
+    };
+
     struct PanelState final {
         std::shared_ptr<MenuPanel> panel;
         // The panel's face in the owner's client coordinates, wherever it
@@ -97,7 +107,16 @@ struct ContextMenu::Impl final {
     Impl& operator=(const Impl&) = delete;
     // Marks the menu destroyed for a call still running inside it (see
     // destroyed below).
-    ~Impl() { *destroyed = true; }
+    ~Impl() {
+        *destroyed = true;
+        unlink();
+    }
+
+    // Lets go of the open menu's controls: none reaches the menu again.
+    void unlink() noexcept {
+        if (link) (*link).impl = nullptr;
+        link.reset();
+    }
 
     [[nodiscard]] double text_scale() const noexcept {
         return window ? (*window).presentation_settings().text_scale : 1.0;
@@ -105,7 +124,7 @@ struct ContextMenu::Impl final {
 
     class MenuLayer final : public Panel {
     public:
-        MenuLayer(StableId id, Impl& impl) : Panel(std::move(id)), impl_(impl) {
+        MenuLayer(StableId id, Impl& impl) : Panel(std::move(id)), link_(impl.link) {
             // The menu places its panels itself (Control's clip, not a
             // Windows Forms panel's contain): a panel past the layer is
             // never scaled.
@@ -120,7 +139,7 @@ struct ContextMenu::Impl final {
         // the menu. The layer's leave reaches no owner.
         void on_mouse_down(MouseEventArgs& arguments) override {
             if (!offer_outside(arguments) && arguments.button != PointerButton::none) {
-                impl_.close();
+                if (Impl* const impl = live()) (*impl).close();
                 arguments.handled = true;
             }
             Control::on_mouse_down(arguments);
@@ -143,9 +162,10 @@ struct ContextMenu::Impl final {
 
         // Whether the owner's handler took the event (it is then handled).
         bool offer_outside(MouseEventArgs& arguments) {
-            if (!impl_.outside_pointer_handler) return false;
+            Impl* const impl = live();
+            if (impl == nullptr || !(*impl).outside_pointer_handler) return false;
             const PointerEvent event = pointer_event_of(arguments);
-            const bool taken = impl_.outside_pointer_handler(event);
+            const bool taken = (*impl).outside_pointer_handler(event);
             if (taken) arguments.handled = true;
             return taken;
         }
@@ -166,11 +186,13 @@ struct ContextMenu::Impl final {
         // A key no subscriber handled goes to the open menu.
         void forward(KeyEventArgs& arguments, KeyAction action) {
             if (arguments.handled || arguments.released_by_deactivation) return;
-            if (impl_.forward_key(key_event_of(arguments, action))) arguments.handled = true;
+            Impl* const impl = live();
+            if (impl != nullptr && (*impl).forward_key(key_event_of(arguments, action))) arguments.handled = true;
         }
 
         void on_text_input(TextInputEvent& event) override {
-            if (impl_.forward_text(event)) event.handled = true;
+            Impl* const impl = live();
+            if (impl != nullptr && (*impl).forward_text(event)) event.handled = true;
         }
 
         // Transparent: the layer only takes outside clicks and keys, so
@@ -187,13 +209,19 @@ struct ContextMenu::Impl final {
         }
 
     private:
-        Impl& impl_;
+        // The open menu while this is its layer, else null.
+        [[nodiscard]] Impl* live() const noexcept {
+            Impl* const impl = link_ ? (*link_).impl : nullptr;
+            return impl != nullptr && (*impl).layer.get() == this ? impl : nullptr;
+        }
+
+        std::shared_ptr<OpenLink> link_;
     };
 
     class MenuPanel final : public Panel {
     public:
         MenuPanel(StableId id, Impl& impl, std::size_t depth)
-            : Panel(std::move(id)), impl_(impl), depth_(depth) {
+            : Panel(std::move(id)), link_(impl.link), depth_(depth) {
             // It places its rows itself and scrolls them: never scaled.
             viewport_fit = ViewportFit{OverflowAnswer::clip};
             focusable = true;
@@ -248,8 +276,9 @@ struct ContextMenu::Impl final {
         }
 
         void on_mouse_wheel(MouseEventArgs& arguments) override {
-            if (arguments.wheel_delta.y != 0.0) {
-                impl_.scroll(depth_, arguments.wheel_delta.y > 0.0 ? -3 : 3);
+            Impl* const impl = live();
+            if (impl != nullptr && arguments.wheel_delta.y != 0.0) {
+                (*impl).scroll(depth_, arguments.wheel_delta.y > 0.0 ? -3 : 3);
                 arguments.handled = true;
             }
             Control::on_mouse_wheel(arguments);
@@ -266,36 +295,40 @@ struct ContextMenu::Impl final {
         // resting on any row does. Moves over the panel's border and over
         // input-taking rows are not the panel's.
         void on_mouse_move(MouseEventArgs& arguments) override {
-            const std::optional<std::size_t> row = impl_.inert_row_at(depth_, arguments.window_position);
+            Impl* const impl = live();
+            const std::optional<std::size_t> row =
+                impl != nullptr ? (*impl).inert_row_at(depth_, arguments.window_position) : std::nullopt;
             if (row.has_value()) {
-                impl_.pointer_moved(depth_, *row, arguments.window_position);
+                (*impl).pointer_moved(depth_, *row, arguments.window_position);
                 arguments.handled = true;
             }
             Control::on_mouse_move(arguments);
         }
 
         void on_pointer_bubble(PointerEvent& event) override {
-            if (!event.handled && event.action == PointerAction::wheel &&
+            Impl* const impl = live();
+            if (impl != nullptr && !event.handled && event.action == PointerAction::wheel &&
                 event.wheel_delta.y != 0.0) {
-                impl_.scroll(depth_, event.wheel_delta.y > 0.0 ? -3 : 3);
+                (*impl).scroll(depth_, event.wheel_delta.y > 0.0 ? -3 : 3);
                 event.handled = true;
             }
         }
 
         void on_key_down(KeyEventArgs& arguments) override {
             Control::on_key_down(arguments);
-            if (arguments.handled) return;
+            Impl* const impl = live();
+            if (arguments.handled || impl == nullptr) return;
             if (arguments.physical_key == PhysicalKey::down || arguments.physical_key == PhysicalKey::home) {
-                impl_.focus_edge(depth_, false);
+                (*impl).focus_edge(depth_, false);
             } else if (arguments.physical_key == PhysicalKey::up || arguments.physical_key == PhysicalKey::end) {
-                impl_.focus_edge(depth_, true);
+                (*impl).focus_edge(depth_, true);
             } else if (arguments.physical_key == PhysicalKey::left || arguments.physical_key == PhysicalKey::right) {
                 // Toward the reading end moves on: Right left to right,
                 // Left right to left.
-                const std::uint32_t onward = impl_.right_to_left ? PhysicalKey::left : PhysicalKey::right;
-                static_cast<void>(impl_.navigate_root(arguments.physical_key == onward ? 1 : -1));
+                const std::uint32_t onward = (*impl).right_to_left ? PhysicalKey::left : PhysicalKey::right;
+                static_cast<void>((*impl).navigate_root(arguments.physical_key == onward ? 1 : -1));
             } else if (arguments.physical_key == PhysicalKey::escape) {
-                impl_.close();
+                (*impl).close();
             } else {
                 return;
             }
@@ -305,8 +338,10 @@ struct ContextMenu::Impl final {
         // A plain letter in an open menu acts as that item's mnemonic, as in
         // a native Windows menu; Alt is not needed.
         void on_text_input(TextInputEvent& event) override {
+            Impl* const impl = live();
+            if (impl == nullptr) return;
             const stxlib::Optional<char32_t> character = typed_character(event);
-            if (character.present() && impl_.type_mnemonic(depth_, std::nullopt, *character.value())) {
+            if (character.present() && (*impl).type_mnemonic(depth_, std::nullopt, *character.value())) {
                 event.handled = true;
             }
         }
@@ -321,7 +356,15 @@ struct ContextMenu::Impl final {
         }
 
     private:
-        Impl& impl_;
+        // The open menu while this is its panel at depth_, else null.
+        [[nodiscard]] Impl* live() const noexcept {
+            Impl* const impl = link_ ? (*link_).impl : nullptr;
+            const bool placed = impl != nullptr && depth_ < (*impl).panels.size() &&
+                                (*impl).panels[depth_].panel.get() == this;
+            return placed ? impl : nullptr;
+        }
+
+        std::shared_ptr<OpenLink> link_;
         std::size_t depth_{};
         bool shadow_{true};
     };
@@ -413,8 +456,8 @@ struct ContextMenu::Impl final {
     public:
         MenuRow(StableId id, Impl& impl, std::size_t depth, std::size_t index,
                 const MenuSnapshot& item)
-            : Control(std::move(id)), impl_(impl), depth_(depth), index_(index),
-              item_(item) {
+            : Control(std::move(id)), link_(impl.link), depth_(depth), index_(index),
+              item_(row_item(item)), enabled_item_(snapshot_enabled(item)) {
             set_paint_plane(PaintPlane::overlay);
             enabled = item.kind != MenuItemKind::separator && enabled_item();
             focusable = item.kind != MenuItemKind::separator && enabled_item();
@@ -423,7 +466,7 @@ struct ContextMenu::Impl final {
         }
 
         [[nodiscard]] bool enabled_item() const noexcept {
-            return snapshot_enabled(item_);
+            return enabled_item_;
         }
 
         void set_hot(bool hot) {
@@ -443,7 +486,11 @@ struct ContextMenu::Impl final {
             // The gutters, marks and chevron follow the text scale, as the
             // label's font and the row's height do (audit N111); the
             // plate's 2 by 1 inset is the edge and stays.
-            const double scale = impl_.text_scale();
+            Impl* const impl = live();
+            // A row of a menu that closed paints nothing.
+            if (impl == nullptr) return;
+            mirrored_ = (*impl).right_to_left;
+            const double scale = (*impl).text_scale();
             const double label_left = menu_label_left * scale;
             // The separator rule, the hot plate, the check or radio mark,
             // the label and the submenu chevron are menu item parts the
@@ -452,7 +499,7 @@ struct ContextMenu::Impl final {
             AnatomyStateSet states{};
             if (hot_ || focused_) states.insert(AnatomyState::hot);
             if (!enabled_item()) states.insert(AnatomyState::disabled);
-            const bool submenu_shown = item_.kind == MenuItemKind::submenu && impl_.submenu_open(depth_, index_);
+            const bool submenu_shown = item_.kind == MenuItemKind::submenu && (*impl).submenu_open(depth_, index_);
             if (submenu_shown) states.insert(AnatomyState::open);
             if (item_.kind == MenuItemKind::separator) {
                 // The panel's divider, as the two-pane application menu
@@ -526,7 +573,7 @@ struct ContextMenu::Impl final {
             // colour until the theme has a text tone for it (asked).
             if (item_.command_state.destructive) label.authored_foreground.set(menu_ink(item_, style));
             const double label_width = std::max(0.0, bounds.width - label_left);
-            if (impl_.right_to_left) {
+            if (mirrored_) {
                 // Right-aligned against the gutter, which is on the right.
                 const Size label_size = painter.measure_text_utf8(display_text, font);
                 const double shown = std::min(label_size.width, label_width);
@@ -557,7 +604,7 @@ struct ContextMenu::Impl final {
                 PartPaint chevron;
                 chevron.family = ControlVisualRole::menu_item;
                 chevron.role = PartRole::disclosure;
-                chevron.mark = impl_.right_to_left ? PartMark::chevron_left : PartMark::chevron_right;
+                chevron.mark = mirrored_ ? PartMark::chevron_left : PartMark::chevron_right;
                 chevron.bounds = row_side({bounds.width - 18.0 * scale, std::floor((bounds.height - 8.0 * scale) * 0.5),
                                            8.0 * scale, 8.0 * scale});
                 chevron.states = states;
@@ -571,7 +618,7 @@ struct ContextMenu::Impl final {
         [[nodiscard]] Rect row_side(Rect laid) const {
             const Rect bounds = committed_arranged_bounds();
             const Rect frame{0.0, 0.0, bounds.width, bounds.height};
-            const Rect side = impl_.right_to_left ? horizontally_mirrored(laid, frame) : laid;
+            const Rect side = mirrored_ ? horizontally_mirrored(laid, frame) : laid;
             return side;
         }
 
@@ -579,15 +626,21 @@ struct ContextMenu::Impl final {
         // hit testing passes it by: its moves reach the panel instead
         // (MenuPanel::on_mouse_move).
         void on_mouse_move(MouseEventArgs& arguments) override {
-            impl_.pointer_moved(depth_, index_, arguments.window_position);
+            Impl* const impl = live();
+            if (impl == nullptr) {
+                Control::on_mouse_move(arguments);
+                return;
+            }
+            (*impl).pointer_moved(depth_, index_, arguments.window_position);
             arguments.handled = true;
             Control::on_mouse_move(arguments);
         }
 
         void on_mouse_down(MouseEventArgs& arguments) override {
-            if (item_.kind != MenuItemKind::separator && arguments.button == PointerButton::primary) {
+            Impl* const impl = live();
+            if (impl != nullptr && item_.kind != MenuItemKind::separator && arguments.button == PointerButton::primary) {
                 pressed_ = true;
-                impl_.hover(depth_, index_);
+                (*impl).hover(depth_, index_);
                 arguments.handled = true;
             }
             Control::on_mouse_down(arguments);
@@ -597,7 +650,8 @@ struct ContextMenu::Impl final {
             if (item_.kind != MenuItemKind::separator && arguments.button == PointerButton::primary) {
                 const bool invoke = pressed_ && absolute_bounds().contains(arguments.window_position);
                 pressed_ = false;
-                if (invoke) impl_.activate(depth_, index_);
+                Impl* const impl = live();
+                if (invoke && impl != nullptr) (*impl).activate(depth_, index_);
                 arguments.handled = true;
             }
             Control::on_mouse_up(arguments);
@@ -610,35 +664,36 @@ struct ContextMenu::Impl final {
 
         void on_key_down(KeyEventArgs& arguments) override {
             Control::on_key_down(arguments);
-            if (arguments.handled || !focused_) return;
+            Impl* const impl = live();
+            if (arguments.handled || !focused_ || impl == nullptr) return;
             // The keyboard takes over: a row the pointer rested on no
             // longer opens or closes a submenu when its delay elapses.
-            impl_.cancel_settle();
+            (*impl).cancel_settle();
             // A right-to-left menu opens submenus to the left: Left opens
             // one and Right closes it (WinForms' RightToLeft menus).
-            const std::uint32_t onward = impl_.right_to_left ? PhysicalKey::left : PhysicalKey::right;
-            const std::uint32_t backward = impl_.right_to_left ? PhysicalKey::right : PhysicalKey::left;
+            const std::uint32_t onward = (*impl).right_to_left ? PhysicalKey::left : PhysicalKey::right;
+            const std::uint32_t backward = (*impl).right_to_left ? PhysicalKey::right : PhysicalKey::left;
             if (arguments.physical_key == PhysicalKey::down) {
-                impl_.move_focus(depth_, index_, 1);
+                (*impl).move_focus(depth_, index_, 1);
             } else if (arguments.physical_key == PhysicalKey::up) {
-                impl_.move_focus(depth_, index_, -1);
+                (*impl).move_focus(depth_, index_, -1);
             } else if (arguments.physical_key == PhysicalKey::home) {
-                impl_.focus_edge(depth_, false);
+                (*impl).focus_edge(depth_, false);
             } else if (arguments.physical_key == PhysicalKey::end) {
-                impl_.focus_edge(depth_, true);
+                (*impl).focus_edge(depth_, true);
             } else if (arguments.physical_key == onward) {
                 if (item_.kind == MenuItemKind::submenu) {
-                    impl_.open_submenu(depth_, index_, true);
+                    (*impl).open_submenu(depth_, index_, true);
                 } else if (depth_ == 0U) {
-                    static_cast<void>(impl_.navigate_root(1));
+                    static_cast<void>((*impl).navigate_root(1));
                 }
             } else if (arguments.physical_key == backward) {
-                impl_.close_submenu(depth_);
+                (*impl).close_submenu(depth_);
             } else if (arguments.physical_key == PhysicalKey::enter ||
                        arguments.physical_key == PhysicalKey::space) {
-                impl_.activate(depth_, index_);
+                (*impl).activate(depth_, index_);
             } else if (arguments.physical_key == PhysicalKey::escape) {
-                impl_.close();
+                (*impl).close();
             } else {
                 return;
             }
@@ -646,10 +701,11 @@ struct ContextMenu::Impl final {
         }
 
         void on_text_input(TextInputEvent& event) override {
-            if (!focused_) return;
-            impl_.cancel_settle();
+            Impl* const impl = live();
+            if (!focused_ || impl == nullptr) return;
+            (*impl).cancel_settle();
             const stxlib::Optional<char32_t> character = typed_character(event);
-            if (character.present() && impl_.type_mnemonic(depth_, index_, *character.value())) {
+            if (character.present() && (*impl).type_mnemonic(depth_, index_, *character.value())) {
                 event.handled = true;
             }
         }
@@ -657,7 +713,8 @@ struct ContextMenu::Impl final {
         void on_focus_changed(bool focused) override {
             focused_ = focused;
             set_hot(focused);
-            if (focused) impl_.ensure_visible(depth_, index_);
+            Impl* const impl = live();
+            if (focused && impl != nullptr) (*impl).ensure_visible(depth_, index_);
             invalidate(Dirty::paint | Dirty::semantics);
         }
 
@@ -686,8 +743,9 @@ struct ContextMenu::Impl final {
                                    item_.command_state.checked;
             if (can_check) descriptor.states |= SemanticState::checkable;
             if (item_.command_state.checked) descriptor.states |= SemanticState::checked;
-            if (item_.kind == MenuItemKind::submenu &&
-                impl_.submenu_open(depth_, index_)) {
+            Impl* const impl = live();
+            if (item_.kind == MenuItemKind::submenu && impl != nullptr &&
+                (*impl).submenu_open(depth_, index_)) {
                 descriptor.states |= SemanticState::expanded;
             }
             descriptor.exposed = true;
@@ -706,24 +764,27 @@ struct ContextMenu::Impl final {
 
         bool on_semantic_action(SemanticAction action,
                                 std::string_view) override {
-            impl_.cancel_settle();
+            // A row of a menu that closed takes no action.
+            Impl* const impl = live();
+            if (impl == nullptr) return false;
+            (*impl).cancel_settle();
             if (action == SemanticAction::focus) {
                 if (window()) return (*window()).request_focus(shared_from_this());
                 return false;
             }
             if (action == SemanticAction::press &&
                 item_.kind != MenuItemKind::submenu && enabled_item()) {
-                impl_.activate(depth_, index_);
+                (*impl).activate(depth_, index_);
                 return true;
             }
             if (action == SemanticAction::expand &&
                 item_.kind == MenuItemKind::submenu && enabled_item()) {
-                impl_.open_submenu(depth_, index_, true);
+                (*impl).open_submenu(depth_, index_, true);
                 return true;
             }
             if (action == SemanticAction::collapse &&
                 item_.kind == MenuItemKind::submenu) {
-                impl_.remove_panels_after(depth_);
+                (*impl).remove_panels_after(depth_);
                 return true;
             }
             return false;
@@ -737,16 +798,44 @@ struct ContextMenu::Impl final {
         }
 
         bool process_mnemonic_self(char32_t character) override {
-            if (!mnemonic_matches(character)) return false;
-            impl_.activate(depth_, index_);
+            Impl* const impl = live();
+            if (impl == nullptr || !mnemonic_matches(character)) return false;
+            (*impl).activate(depth_, index_);
             return true;
         }
 
     private:
-        Impl& impl_;
+        // The row's own copy of its item, without the submenu's items (a
+        // row never reads them): the snapshot goes with the close.
+        [[nodiscard]] static MenuSnapshot row_item(const MenuSnapshot& item) {
+            MenuSnapshot copy;
+            copy.stable_id = item.stable_id;
+            copy.kind = item.kind;
+            copy.command = item.command;
+            copy.command_state = item.command_state;
+            copy.text = item.text;
+            copy.italic = item.italic;
+            copy.image = item.image;
+            return copy;
+        }
+
+        // The open menu while this row is still the one at its depth and
+        // index (a closed submenu's row is not), else null.
+        [[nodiscard]] Impl* live() const noexcept {
+            Impl* const impl = link_ ? (*link_).impl : nullptr;
+            const bool placed = impl != nullptr && depth_ < (*impl).panels.size() &&
+                                index_ < (*impl).panels[depth_].rows.size() &&
+                                (*impl).panels[depth_].rows[index_].get() == this;
+            return placed ? impl : nullptr;
+        }
+
+        std::shared_ptr<OpenLink> link_;
         std::size_t depth_{};
         std::size_t index_{};
-        const MenuSnapshot& item_;
+        MenuSnapshot item_;
+        bool enabled_item_{};
+        // Whether the row mirrors, as of its last paint.
+        bool mirrored_{};
         bool hot_{};
         bool focused_{};
         bool pressed_{};
@@ -779,6 +868,10 @@ struct ContextMenu::Impl final {
         right_to_left = (*invoker).effective_layout_direction() == LayoutDirection::right_to_left;
         invoker_theme = invoker_theme_override(invoker);
         const Size client = (*window).client_size();
+        // A fresh link for this open: the controls of an earlier one keep
+        // theirs, which the close cleared.
+        link = gui_forms::detail::make_library_shared<OpenLink>();
+        (*link).impl = this;
         layer = make_control<MenuLayer>(
             StableId(owner.stable_id_ + ".overlay.layer"), *this);
         // Fresh controls without inline styles: the override cannot be refused.
@@ -994,6 +1087,7 @@ struct ContextMenu::Impl final {
     // the caller releases after its last use of the menu: the invoker may
     // hold the last reference to the menu's owner (A-gf-controls-06-F1).
     [[nodiscard]] Control::Ptr reset_visual_state() noexcept {
+        unlink();
         cancel_settle();
         last_pointer.reset();
         Control::Ptr invoker = std::move(owner_control);
@@ -1637,6 +1731,8 @@ struct ContextMenu::Impl final {
     // The invoker's nearest theme override while open (none: the window's).
     std::shared_ptr<const Theme> invoker_theme;
     std::shared_ptr<MenuLayer> layer;
+    // The open menu's link (see OpenLink), null while closed.
+    std::shared_ptr<OpenLink> link;
     std::vector<MenuSnapshot> snapshot;
     std::vector<PanelState> panels;
     OverlayToken overlay_token;

@@ -542,6 +542,11 @@ public:
     bool show_drop_down(std::string_view command_id, MenuOpenMode mode = MenuOpenMode::keyboard);
     void close_menus() noexcept;
     [[nodiscard]] bool menu_open() const noexcept;
+    // Whether the ribbon's state agrees with itself (state hunt, 2026-11-23):
+    // its records have the shape of its tabs, its tab indices are in range,
+    // and each overlay it holds open is in the window. For tests and
+    // diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // Opens a collapsed group of the selected tab in an overlay below the ribbon,
     // at its largest layout (owner decision 27); the group's hosted controls
     // move into the overlay while it is open. False for a group that is not
@@ -1053,6 +1058,8 @@ private:
     [[nodiscard]] AnatomyStateSet group_button_states(std::size_t group) const;
     [[nodiscard]] bool group_collapsed(const Layout& placed, std::size_t group) const noexcept;
     [[nodiscard]] ImageId group_image(const RibbonGroupSpec& group) const noexcept;
+    [[nodiscard]] const CommandRecord* record_at(std::size_t tab, std::size_t group, std::size_t command) const noexcept;
+    [[nodiscard]] CommandRecord* record_at(std::size_t tab, std::size_t group, std::size_t command) noexcept;
     [[nodiscard]] const RibbonGroupSpec* selected_group(std::size_t group) const noexcept;
     [[nodiscard]] const RibbonCommandSpec* selected_command(CommandAddress address) const noexcept;
     [[nodiscard]] const std::string& authored_text(const RibbonCommandSpec& command) const noexcept;

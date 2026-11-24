@@ -435,7 +435,6 @@ bool Callout::show(const Control::Ptr& target) {
     const Control::Ptr self = shared_from_this();
     std::shared_ptr<Layer> layer = make_control<Layer>(StableId(std::string(stable_id().value()) + ".layer"), *this);
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    target_ = target;
     // Until the presentation is installed, every step is undone on an
     // exception: the guard takes the callout out of the layer, and the
     // lease and subscription end with `owner_half`.
@@ -449,11 +448,30 @@ bool Callout::show(const Control::Ptr& target) {
     }
     in_layer.commit();
     presentation_ = DialogPresentation::overlay(std::move(owner_half));
+    // The target is written with the presentation (state hunt C6: it was
+    // set before open_overlay, and stayed set after a refused show).
+    target_ = target;
     FocusScopeOptions options{};
     options.contain_focus = false;
     options.restore_focus = true;
-    const Control::Ptr preferred = action_ ? Control::Ptr(action_) : self;
-    const FocusScopeId started = host.begin_focus_scope(self, preferred, options);
+    // Focus goes to the action button when it can take focus, else to the
+    // callout when it can; a disabled or hidden action button is not
+    // offered to the window, which would refuse it (state hunt C6).
+    Control::Ptr preferred{};
+    if (action_ && (*action_).eligible_for_input() && (*action_).focusable.read()) {
+        preferred = action_;
+    } else if (eligible_for_input() && focusable.read()) {
+        preferred = self;
+    }
+    // A refused scope (a containing scope, the nesting limit) takes the
+    // callout down again before the refusal leaves, with nothing raised.
+    FocusScopeId started{};
+    try {
+        started = host.begin_focus_scope(self, preferred, options);
+    } catch (...) {
+        abandon_show();
+        throw;
+    }
     // A focus handler run by begin_focus_scope may have closed the callout
     // (finish found no scope to end): the scope is ended here.
     if (!presentation_.adopt_scope(*layer, started)) {
@@ -503,6 +521,27 @@ void Callout::finish(CalloutCloseReason reason) {
     closing.dismantle(*this, FocusScopeCloseReason::explicit_close);
     target_.reset();
     closed_.emit(reason);
+}
+
+// A show whose scope was refused: the callout leaves its layer and the
+// overlay closes, with closed not raised (no show was reported either).
+void Callout::abandon_show() noexcept {
+    const Control::Ptr retained = weak_from_this().lock();
+    DialogPresentation closing = presentation_.take();
+    try {
+        closing.dismantle(*this, FocusScopeCloseReason::explicit_close);
+    } catch (...) {
+        closing.abandon();
+    }
+    target_.reset();
+}
+
+bool Callout::agrees_with_itself() const noexcept {
+    // Shown: in the presentation's layer, with a target. Closed: no
+    // parent, no target, nothing pressed.
+    if (!presentation_.shown()) return !parent() && target_.expired() && !pressed_close_;
+    const Control::Ptr layer = presentation_.layer();
+    return layer && parent() == layer;
 }
 
 void Callout::on_dispose() noexcept {

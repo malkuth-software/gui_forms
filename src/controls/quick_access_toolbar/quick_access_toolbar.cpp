@@ -283,6 +283,9 @@ bool QuickAccessToolbar::customize_menu_open() const noexcept {
 void QuickAccessToolbar::on_menu_open_changed(bool open) {
     if (open) return;
     customize_open_ = false;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 

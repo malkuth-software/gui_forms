@@ -172,6 +172,7 @@ private:
     // ends the focus scope, takes the dialog out of its layer (and popup
     // root) and releases them.
     void release_overlay(FocusScopeCloseReason reason);
+    void abandon_show() noexcept;
 
     FontSpec font_{FontRole::content, 9.0, 400, false};
     FontSpec selection_{FontRole::content, 9.0, 400, false};

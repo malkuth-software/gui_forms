@@ -42,6 +42,10 @@ public:
     void set_steps(std::vector<std::string> steps);
     [[nodiscard]] const std::vector<std::string>& steps() const& noexcept { return steps_; }
     const std::vector<std::string>& steps() const&& = delete;
+    // Whether the indicator agrees with itself (state hunt, 2026-11-23): the
+    // current step names one of the steps, or is 0 with none. For tests and
+    // diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // The step whose chip or name contains a local point, if any.
     [[nodiscard]] stxlib::Optional<std::size_t> step_at(Point local_point) const;
 

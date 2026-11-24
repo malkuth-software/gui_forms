@@ -3475,6 +3475,9 @@ void DataGridView::on_choices_open_changed(bool open) {
     const std::optional<CellKey> cell = current_;
     editing_ = false;
     edit_kind_ = EditKind::none;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
     const DataGridViewCellEvent ended = cell ? cell_event(*cell) : DataGridViewCellEvent{};
     cell_end_edit_.emit(ended);

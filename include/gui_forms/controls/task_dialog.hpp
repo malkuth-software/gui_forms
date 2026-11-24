@@ -210,6 +210,11 @@ public:
     // The children for each part of the current page, or null.
     [[nodiscard]] std::shared_ptr<Button> button(std::string_view button_id) const;
     [[nodiscard]] std::shared_ptr<RadioButton> radio_button(std::string_view radio_id) const;
+    // Whether the dialog's state agrees with itself (state hunt, 2026-11-23):
+    // its page describes exactly the child controls it has, and shown, it
+    // is in its presentation's layer or popup root; closed, it has no
+    // parent. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     [[nodiscard]] std::shared_ptr<CheckBox> verification_check_box() const noexcept;
     [[nodiscard]] std::shared_ptr<Button> expander_button() const noexcept;
     [[nodiscard]] std::shared_ptr<ProgressBar> progress_bar() const noexcept;
@@ -271,6 +276,7 @@ private:
     void on_verification(bool checked);
     void on_radio(bool checked);
     void on_overlay_revoked();
+    void abandon_show() noexcept;
     void paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& place) const;
 
     TaskDialogPage page_{};
