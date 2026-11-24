@@ -322,11 +322,21 @@ def loader_text(description: dict[str, str], locations: dict[str, str], relocati
     out.append('    set_property(TARGET ${target} PROPERTY ${property} "${resolved}")')
     out.append('endfunction()')
     out.append('')
-    out.append('# The variables the gui_forms configure left at directory scope.')
+    out.append('# The variables the gui_forms configure left at directory scope. A cache')
+    out.append('# entry is a machine\'s own setting: the consumer\'s cache entry, when it')
+    out.append('# has one, wins over the value recorded where the cache was built.')
+    cache_names: set[str] = set(cmake_list(description.get('GF_TC_CACHE_VARIABLES', '')))
     name: str
     for name in cmake_list(description.get('GF_TC_VARIABLES', '')):
-        if name in description:
-            out.append(f'_gf_tc_set({name} {bracket(relocation.text(description[name]))})')
+        if name not in description:
+            continue
+        line: str = f'_gf_tc_set({name} {bracket(relocation.text(description[name]))})'
+        if name in cache_names:
+            out.append(f'if(NOT DEFINED CACHE{{{name}}})')
+            out.append('    ' + line)
+            out.append('endif()')
+        else:
+            out.append(line)
     out.append('')
     out.append('# The directory scope\'s compile and link settings.')
     for name in ('COMPILE_OPTIONS', 'COMPILE_DEFINITIONS', 'INCLUDE_DIRECTORIES', 'LINK_OPTIONS',

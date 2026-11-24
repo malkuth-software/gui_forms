@@ -101,15 +101,22 @@ function(gui_forms_describe_test_cache)
     # packages' and this function's.
     get_cmake_property(variables VARIABLES)
     set(kept_variables "")
+    # Those that are also cache entries: a machine's own settings (the own
+    # runtime and libc++ prefixes, a toolchain path), which the loader leaves
+    # to the consumer's cache when it has the entry.
+    set(cache_variables "")
     foreach(variable IN LISTS variables)
         if(variable MATCHES "^(CMAKE_|_CMAKE|ARGV|ARGC|ARGN|PROJECT_|GUIForms_|Python3_|_Python3|Threads_|THREADS_|X11_|PKG_CONFIG|FETCHCONTENT_|FIND_PACKAGE_|__)"
            OR variable MATCHES "_(DIR|FOUND|CONSIDERED_CONFIGS|CONSIDERED_VERSIONS)$"
-           OR variable MATCHES "^(description|cache_directory|property|value|quoted|variable|variables|kept_variables)$")
+           OR variable MATCHES "^(description|cache_directory|property|value|quoted|variable|variables|kept_variables|cache_variables)$")
             continue()
         endif()
         _gui_forms_test_cache_quote("${${variable}}" quoted)
         string(APPEND description "set(${variable} ${quoted})\n")
         list(APPEND kept_variables ${variable})
+        if(DEFINED CACHE{${variable}})
+            list(APPEND cache_variables ${variable})
+        endif()
     endforeach()
 
     _gui_forms_test_cache_targets("${CMAKE_SOURCE_DIR}" all_targets)
@@ -194,6 +201,7 @@ function(gui_forms_describe_test_cache)
     string(APPEND description "set(GF_TC_TARGETS [==[${cached_targets}]==])\n")
     string(APPEND description "set(GF_TC_UTILITIES [==[${utility_targets}]==])\n")
     string(APPEND description "set(GF_TC_VARIABLES [==[${kept_variables}]==])\n")
+    string(APPEND description "set(GF_TC_CACHE_VARIABLES [==[${cache_variables}]==])\n")
     file(WRITE "${cache_directory}/description.cmake" "${description}")
     file(GENERATE OUTPUT "${cache_directory}/locations.cmake" CONTENT "${locations}")
     list(LENGTH cached_targets cached_count)
