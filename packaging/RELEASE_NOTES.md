@@ -498,3 +498,23 @@ Visible-area guarantee (stage VA):
   error, because its sheet named a colour role outside the theme language's
   vocabulary. It now uses `ink-on-paper`.
 - The installed package's config sets `GUIForms_MCP`.
+
+### 1.0.2: STXlib 1.0.1, the library allocator in our programs
+
+- GUI.Forms builds with stx 1.0.1 on STXlib 1.0.1. On Windows, STXlib's
+  headers now declare the whole API of every system DLL it ships an import
+  list for, and the C runtime's POSIX names (`open`, `fileno`, `stat`, ...),
+  so third-party C code such as the image codecs compiles on the own
+  runtime. A program may now replace only some of the global `operator new`
+  and `delete` forms and still link.
+- GUI.Forms' own demo and demonstrator programs, the Gallery included, put
+  their C++ allocations on STXlib's allocator
+  (`gui_forms_use_library_allocator`). Sanitizer builds keep the
+  toolchain's `operator new`.
+- The test cache's loader no longer overrides a consumer's own cache
+  entries (the own-runtime and libc++ prefixes) with the values recorded on
+  the machine that built the cache.
+- `THIRD_PARTY_NOTICES.md` and the Windows packages' `licenses/` match the
+  own runtime: libc++ is the only LLVM runtime linked, and the MinGW-w64
+  rows are gone. The reliability page says where each allocation route
+  ends up.
