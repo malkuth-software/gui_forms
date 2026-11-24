@@ -8,13 +8,13 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2469 | 3 | 370 | 4164 | 2614 |
+| 2480 | 3 | 370 | 4154 | 2615 |
 
 ## GUI.Forms types
 
 | Type | Windows Forms | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|---|---|
-| `Control` | `Control` | 258 | 0 | 12 | 326 | 239 |
+| `Control` | `Control` | 259 | 0 | 12 | 325 | 239 |
 | `Component` | `Component` | 11 | 0 | 0 | 9 | 11 |
 | `ButtonBase` | `ButtonBase` | 18 | 0 | 0 | 37 | 22 |
 | `Button` | `Button` | 8 | 0 | 0 | 8 | 9 |
@@ -68,7 +68,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `DomainUpDown` | `DomainUpDown` | 3 | 0 | 0 | 13 | 5 |
 | `ColorPicker` | GUI.Forms-only | 5 | 0 | 0 | 4 | 9 |
 | `ColorValueEditor` | GUI.Forms-only | 7 | 0 | 0 | 3 | 10 |
-| `FlagsValueEditor` | GUI.Forms-only | 1 | 0 | 0 | 6 | 7 |
+| `FlagsValueEditor` | GUI.Forms-only | 2 | 0 | 0 | 5 | 7 |
 | `PropertyGrid` | `PropertyGrid` | 19 | 0 | 2 | 72 | 19 |
 | `PropertyList` | GUI.Forms-only | 16 | 0 | 0 | 5 | 21 |
 | `DateTimePicker` | `DateTimePicker` | 8 | 0 | 1 | 47 | 7 |
@@ -85,8 +85,8 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TabControl` | `TabControl` | 16 | 1 | 2 | 38 | 12 |
 | `PageStrip` | GUI.Forms-only | 30 | 0 | 0 | 7 | 37 |
 | `PageView` | GUI.Forms-only | 8 | 0 | 0 | 1 | 9 |
-| `NavigationPane` | GUI.Forms-only | 17 | 0 | 0 | 3 | 20 |
-| `DockSite` | GUI.Forms-only | 51 | 0 | 0 | 7 | 58 |
+| `NavigationPane` | GUI.Forms-only | 18 | 0 | 0 | 2 | 20 |
+| `DockSite` | GUI.Forms-only | 52 | 0 | 0 | 6 | 58 |
 | `DockNavigator` | GUI.Forms-only | 10 | 0 | 0 | 4 | 14 |
 | `TabPage` | `TabPage` | 4 | 0 | 0 | 16 | 0 |
 | `FlexPanel` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
@@ -107,9 +107,9 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `HScrollBar` | `HScrollBar` | 1 | 0 | 0 | 0 | 0 |
 | `VScrollBar` | `VScrollBar` | 1 | 0 | 0 | 1 | 0 |
 | `MenuStrip` | `MenuStrip` | 13 | 0 | 0 | 8 | 10 |
-| `ToolStrip` | `ToolStrip` | 16 | 0 | 2 | 76 | 19 |
+| `ToolStrip` | `ToolStrip` | 17 | 0 | 2 | 75 | 19 |
 | `RibbonFontControl` | GUI.Forms-only | 9 | 0 | 0 | 1 | 10 |
-| `RibbonColorPicker` | GUI.Forms-only | 7 | 0 | 0 | 2 | 9 |
+| `RibbonColorPicker` | GUI.Forms-only | 9 | 0 | 0 | 0 | 9 |
 | `BackstageView` | GUI.Forms-only | 3 | 0 | 0 | 2 | 5 |
 | `RibbonGallery` | GUI.Forms-only | 18 | 0 | 0 | 7 | 25 |
 | `StatusStrip` | `StatusStrip` | 1 | 0 | 1 | 9 | 0 |
@@ -137,8 +137,8 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Wizard` | GUI.Forms-only | 13 | 0 | 0 | 12 | 25 |
 | `WizardPage` | GUI.Forms-only | 0 | 0 | 0 | 4 | 4 |
 | `Callout` | GUI.Forms-only | 6 | 0 | 0 | 8 | 14 |
-| `ModalLayer` | GUI.Forms-only | 7 | 0 | 0 | 4 | 11 |
-| `LookupComboBox` | GUI.Forms-only | 9 | 0 | 0 | 7 | 16 |
+| `ModalLayer` | GUI.Forms-only | 8 | 0 | 0 | 3 | 11 |
+| `LookupComboBox` | GUI.Forms-only | 11 | 0 | 0 | 5 | 16 |
 | `PopupContainerBox` | GUI.Forms-only | 9 | 0 | 0 | 2 | 11 |
 | `CheckedComboBox` | GUI.Forms-only | 11 | 0 | 0 | 6 | 17 |
 | `AboutDialog` | GUI.Forms-only | 5 | 0 | 0 | 1 | 6 |
@@ -166,7 +166,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `HelpProvider` | `HelpProvider` | 16 | 0 | 0 | 7 | 10 |
 | `HelpBook` | GUI.Forms-only | 9 | 0 | 0 | 17 | 26 |
 | `HelpBookViewer` | GUI.Forms-only | 28 | 0 | 0 | 14 | 42 |
-| `HelpBookSystem` | `Help` | 33 | 0 | 0 | 12 | 42 |
+| `HelpBookSystem` | `Help` | 34 | 0 | 0 | 11 | 42 |
 | `SemanticFeedback` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
 | `Binding` | `Binding` | 10 | 0 | 0 | 20 | 7 |
 | `BindingSource` | `BindingSource` | 46 | 0 | 0 | 59 | 28 |
@@ -175,7 +175,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ListControl` | `ListControl` | 2 | 0 | 0 | 33 | 1 |
 | `UpDownBase` | `UpDownBase` | 3 | 0 | 5 | 23 | 1 |
 | `BusinessCard` | GUI.Forms-only | 16 | 0 | 0 | 2 | 18 |
-| `Window` | `Form` | 264 | 0 | 13 | 136 | 273 |
+| `Window` | `Form` | 264 | 0 | 13 | 137 | 274 |
 
 ## Windows Forms types without a GUI.Forms type
 
@@ -318,5 +318,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 991 |
+| `untested` | 981 |
 | `w-open` | 5 |
