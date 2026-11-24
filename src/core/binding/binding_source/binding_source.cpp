@@ -873,11 +873,9 @@ bool BindingSource::remove_at(std::size_t index) {
         throw std::logic_error("GUI.Forms BindingSource provider does not remove rows");
     }
     const std::size_t provider = provider_row(index);
-    if (editing_ && stable_id(index) == edit_stable_id_) {
-        editing_ = false;
-        edit_values_.clear();
-        edit_stable_id_.clear();
-    }
+    // The row's edit ends only once the provider removed it: a refused
+    // removal leaves the row, its edited values and the edit to cancel.
+    const std::string removed_identity = stable_id(index);
     BindingWriteResult result;
     {
         const ProviderCallScope scope(provider_depth_);
@@ -890,6 +888,11 @@ bool BindingSource::remove_at(std::size_t index) {
     }
     if (!result.accepted()) {
         return false;
+    }
+    if (editing_ && edit_stable_id_ == removed_identity) {
+        editing_ = false;
+        edit_values_.clear();
+        edit_stable_id_.clear();
     }
     apply_notification(BindingNotification{BindingNotificationKind::removed, provider, 1U, 0U});
     return true;
@@ -1020,11 +1023,15 @@ void BindingSource::remove_filter() {
     set_filter(BindingFilter{});
 }
 
+// view_mode_ is index exactly while view_ holds an index: the mode is
+// written with each exit's view, so a throw while the index is built
+// (an allocation) leaves no index and a mode that says so.
 void BindingSource::rebuild_view() {
+    const bool was_delegated = view_mode_ == BindingViewMode::provider_view;
     view_.reset();
+    view_mode_ = BindingViewMode::provider_order;
     const bool sorting = !sort_.empty();
     const bool filtering = !filter_.empty();
-    const bool was_delegated = view_mode_ == BindingViewMode::provider_view;
     bool sort_delegated = false;
     bool filter_delegated = false;
     {
@@ -1050,9 +1057,9 @@ void BindingSource::rebuild_view() {
     provider_count_ = read_row_count();
     const bool own_sort = sorting && !sort_delegated;
     const bool own_filter = filtering && !filter_delegated;
+    view_mode_ = (sort_delegated || filter_delegated) ? BindingViewMode::provider_view
+                                                      : BindingViewMode::provider_order;
     if (!own_sort && !own_filter) {
-        view_mode_ = (sort_delegated || filter_delegated) ? BindingViewMode::provider_view
-                                                          : BindingViewMode::provider_order;
         return;
     }
     std::vector<detail::BindingViewKey> keys;

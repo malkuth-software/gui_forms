@@ -104,16 +104,20 @@ HostServiceStatus ToastNotification::show() {
     request.text = text.read();
     request.urgency = urgency.read();
     request.silent = silent.read();
+    // The token owns the connection until forget_notification; its
+    // disconnection also reports that the services' event is gone.
+    // Subscribed before the notification is shown and kept only once it is,
+    // so a subscription that throws leaves no notification shown that
+    // shown() would deny.
+    SubscriptionToken events = (*services).desktop_notification_events().subscribe(
+        Delegate<const HostDesktopNotificationEvent&>::bind<ToastNotification,
+                                                            &ToastNotification::on_notification_event>(*this));
     const HostDesktopNotificationResult result = (*services).show_desktop_notification(request);
     status_ = result.status;
     if (!result.status.accepted()) return status_;
     services_ = services;
     notification_id_ = result.notification_id;
-    // The token owns the connection until forget_notification; its
-    // disconnection also reports that the services' event is gone.
-    notification_events_ = (*services).desktop_notification_events().subscribe(
-        Delegate<const HostDesktopNotificationEvent&>::bind<ToastNotification,
-                                                            &ToastNotification::on_notification_event>(*this));
+    notification_events_ = std::move(events);
     return status_;
 }
 

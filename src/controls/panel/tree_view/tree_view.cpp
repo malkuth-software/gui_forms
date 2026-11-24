@@ -67,11 +67,16 @@ void TreeView::set_items(std::vector<TreeViewItem> items) {
             throw std::invalid_argument("TreeView requires unique IDs and a valid preorder depth sequence");
         }
     }
-    const std::string retained_selection = selected_id_;
-    const std::string retained_active = active_id_;
+    // Everything that can throw (the kept IDs, the visible rows' storage)
+    // is made before the items are replaced: visible_ and the row indices
+    // hold rows of items_, and a throw between the two would leave them
+    // indexing the old items.
+    std::string kept_selection = identities.contains(selected_id_) ? selected_id_ : std::string{};
+    std::string kept_active = identities.contains(active_id_) ? active_id_ : std::string{};
+    visible_.reserve(items.size());
     items_ = std::move(items);
-    selected_id_ = item_index(retained_selection).present() ? retained_selection : std::string{};
-    active_id_ = item_index(retained_active).present() ? retained_active : std::string{};
+    selected_id_ = std::move(kept_selection);
+    active_id_ = std::move(kept_active);
     rebuild_visible();
     invalidate(Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }

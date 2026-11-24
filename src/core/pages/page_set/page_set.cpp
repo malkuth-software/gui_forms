@@ -290,8 +290,17 @@ PageEditStatus PageSet::extract_page(const PageId& id, StoredPage& out) {
     }
     const std::size_t position = (*found.value()).value;
     const bool was_selected = selected_ == id;
+    if (was_selected && !pending_.selection_changed) {
+        // The origin the report names is copied before the page leaves, and
+        // the selection is dropped with it (neither step throws): an
+        // allocation that fails while the fallback is chosen leaves no
+        // selection, never one naming the removed page.
+        pending_.selection_origin = selected_;
+        pending_.selection_changed = true;
+    }
     out = extract_entry(position);
     if (was_selected) {
+        selected_.reset();
         const std::optional<PageId> fallback = fallback_selection(position);
         change_selection(fallback, PageSelectionCause::fallback);
     }
