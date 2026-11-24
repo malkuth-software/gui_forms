@@ -593,13 +593,15 @@ void ComboBox::written(const decltype(font)&) {
 }
 
 bool ComboBox::read_view(const decltype(dropped_down)&) const {
-    return presentation_.is_open();
+    // Opening counts: a handler the open's focus move runs sees it shown,
+    // and its close is served.
+    return presentation_.is_shown();
 }
 
 // Opened by the button, a key or the program, the list shows every item.
 void ComboBox::write_view(const decltype(dropped_down)&, bool incoming) {
     require_mutable();
-    if (incoming == presentation_.is_open()) return;
+    if (incoming == presentation_.is_shown()) return;
     if (incoming) open_drop_down({});
     else close_drop_down();
 }
