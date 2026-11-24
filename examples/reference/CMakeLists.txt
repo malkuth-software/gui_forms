@@ -169,7 +169,9 @@ endif()
 
 if(TARGET GUIForms::Audio)
     add_library(audio_adapter STATIC audio_worker.cpp)
-    target_compile_features(audio_adapter PRIVATE cxx_std_20)
+    # PUBLIC: audio_worker.hpp names std::filesystem, so its users compile
+    # C++17 or later too (clang's default for x86_64-pc-windows-msvc is C++14).
+    target_compile_features(audio_adapter PUBLIC cxx_std_20)
     target_link_libraries(audio_adapter PRIVATE GUIForms::Audio stxlib::boundary)
     set_target_properties(audio_adapter PROPERTIES NO_SYSTEM_FROM_IMPORTED TRUE)
     add_executable(ogg_worker ogg_worker.cpp)
