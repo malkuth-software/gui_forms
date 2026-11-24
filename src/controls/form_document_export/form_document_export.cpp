@@ -142,11 +142,12 @@ FormDocumentRegistration register_form_document(const Control::Ptr& root, const 
         if (!add_source(*made, source)) return FormDocumentRegistration::refused;
     }
     ProcessExports& exports = process_exports();
-    // Forget the sources of forms that ended, and any earlier record of root.
+    // Forget the sources of forms that ended or were disposed (whose records
+    // the registry drops), and any earlier record of root.
     std::vector<OwnedSources> kept{};
     for (OwnedSources& owned : exports.sources) {
         const Control::Ptr held = owned.root.lock();
-        if (held == nullptr || held == root) continue;
+        if (held == nullptr || !(*held).is_alive() || held == root) continue;
         kept.push_back(std::move(owned));
     }
     const form_language::FormSources& borrowed = *made;

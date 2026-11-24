@@ -1906,7 +1906,13 @@ void SurfaceRoot::change_pointer_capture(const Control::Ptr& control,
             } else {
                 break_pointer_sequences();
             }
-            (*previous).on_mouse_capture_changed();
+            // A control that is being disposed is not told, as a focus
+            // publication tells it nothing (FocusChangePublication): it can
+            // no longer change, and an override that invalidates throws
+            // DisposedError out of the noexcept disposal that revoked the
+            // capture (dispose_subtree), which ends the process (state hunt:
+            // MonthCalendar and Plot3DView disposed while pressed).
+            if ((*previous).is_alive()) (*previous).on_mouse_capture_changed();
             if (window_destroyed(*lifetime, presenting)) return;
         }
     }
@@ -2374,7 +2380,7 @@ void SurfaceRoot::raise_mouse_events(const PointerEvent& event, const Control::P
     // dropped): the capture's end is physical and always reported.
     const Control::Ptr lost_capture = deferred_capture_changed_.lock();
     deferred_capture_changed_.reset();
-    if (lost_capture) (*lost_capture).on_mouse_capture_changed();
+    if (lost_capture && (*lost_capture).is_alive()) (*lost_capture).on_mouse_capture_changed();
 }
 
 void SurfaceRoot::break_pointer_sequences() noexcept {

@@ -59,7 +59,9 @@ struct GUI_FORMS_API HelpSearchHit final {
     std::uint32_t frequency{};
 };
 
-// Searches `section`. `hits` is cleared first and its storage reused.
+// Searches `section`. `hits` is cleared first and its storage reused. A
+// section filled by hand is read only within its own bounds: a term whose
+// postings run past `postings`, or a posting naming no record, is skipped.
 [[nodiscard]] GUI_FORMS_API HelpSearchStatus search_help(const HelpBookSection& section, const HelpSearchQuery& query,
                                            const HelpSearchOptions& options, std::vector<HelpSearchHit>& hits);
 

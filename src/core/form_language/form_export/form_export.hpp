@@ -69,8 +69,9 @@ class FormExportRegistry final {
 public:
     // Registers `root` (a window's root control) with the document it was
     // built from and the sources it was bound to, replacing a record of the
-    // same root. `sources` is borrowed and must outlive the record. False
-    // when maximum_exported_windows live records exist.
+    // same root. `sources` is borrowed and must outlive the record, which
+    // ends when the root ends or is disposed. False when
+    // maximum_exported_windows live records exist.
     bool add(const Control::Ptr& root, std::string file, std::string document, const FormSources& sources);
     void forget(const Control& root) noexcept;
 
