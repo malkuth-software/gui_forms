@@ -204,11 +204,18 @@ void ListBox::prepare_write(const decltype(selection_mode)&, ListSelectionMode&)
     require_mutable();
 }
 
-// Narrowing to one item keeps the active (or first) selected row; dropping
-// the others raises selection_changed before the repaint request.
+// Narrowing to one item keeps the active row when it is selected, else the
+// first selected row: the active row can be one a toggle just unselected,
+// and narrowing never selects a row that was not (it used to keep the
+// active row whatever it was). Dropping the others raises
+// selection_changed before the repaint request.
 void ListBox::written(const decltype(selection_mode)&) {
     if (selection_mode.read() == ListSelectionMode::one && selected_.size() > 1U) {
-        const std::size_t retained = active_index_.value_or(selected_.front());
+        std::size_t retained = selected_.front();
+        if (active_index_.present() &&
+            std::find(selected_.cbegin(), selected_.cend(), *active_index_.value()) != selected_.cend()) {
+            retained = *active_index_.value();
+        }
         apply_selection({retained}, stxlib::Optional<std::size_t>::of(retained));
     }
     invalidate(Dirty::paint | Dirty::semantics);
