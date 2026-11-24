@@ -4,6 +4,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "../details_columns.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
@@ -22,6 +23,7 @@ namespace gui_forms {
 
 using detail::property_editor_height;
 using detail::property_gap;
+using detail::label_share;
 using detail::property_group_height;
 using detail::property_padding;
 using detail::property_row_height;
@@ -173,6 +175,35 @@ struct PropertyList::Impl final {
     [[nodiscard]] double line_height() const {
         return owner.resolve_text_layout_utf8(
             "Mg", owner.effective_font(font)).logical_size.height / scale();
+    }
+
+    // The font the row names paint in.
+    [[nodiscard]] FontSpec name_font() const {
+        return owner.effective_font(font_overridden
+            ? font : FontSpec{FontRole::content, 9.5, 600, false});
+    }
+
+    // How wide `row`'s name lays out in the name font.
+    [[nodiscard]] double name_extent(const PropertyRowSpec& row) const {
+        return owner.measure_text_extent_utf8(row.name, name_font()).logical_size.width;
+    }
+
+    // The name column beside the values: the authored label_width, widened
+    // to the widest visible name and its indent, but to no more than
+    // label_share of the list; a name wider than that is shortened with an
+    // ellipsis and shows whole in its tooltip.
+    [[nodiscard]] double label_column(double width) const {
+        const double s = scale();
+        const double authored = label_width * s;
+        double widest = 0.0;
+        for (const RowState& state : rows) {
+            if (!groups[state.group_index].expanded || !row_visible(state)) continue;
+            const PropertyRowSpec& row = spec(state);
+            const double indent = static_cast<double>(row.depth) * 15.0 * s + (row.expandable ? 14.0 * s : 0.0);
+            widest = std::max(widest, indent + name_extent(row) + property_gap * s);
+        }
+        const double cap = std::max(authored, (width - property_padding * s * 2.0) * label_share);
+        return std::clamp(widest, authored, cap);
     }
 
     [[nodiscard]] double group_extent() const {
@@ -361,10 +392,11 @@ struct PropertyList::Impl final {
         const double stacked_extra = std::max(21.0, line + 6.0) - 21.0;
         const double padding = property_padding * s;
         const double gap = property_gap * s;
-        const double scaled_label_width = label_width * s;
+        // Whether the rows stack reads the authored column; the column the
+        // names get beside the values is measured.
+        const bool stacked = width < std::max(230.0 * s, label_width * s + 116.0 * s);
+        const double scaled_label_width = label_column(width);
         const double validation_height = std::max(property_validation_height, line + 4.0) * s;
-        const bool stacked = width < std::max(230.0 * s,
-                                              scaled_label_width + 116.0 * s);
         double y{header_height};
         for (std::size_t group_index = 0; group_index < groups.size(); ++group_index) {
             y += group_extent();
@@ -537,6 +569,7 @@ PropertyList::PropertyList(StableId stable_id)
     border_style = BorderStyle::none;
     focusable = true;
     set_paint_plane(PaintPlane::control);
+    set_publishes_item_tool_tips(true);
 }
 
 PropertyList::~PropertyList() = default;
@@ -962,8 +995,10 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     FontSpec group_font = effective_font((*impl_).font_overridden
         ? (*impl_).font : FontSpec{FontRole::control, 8.5, 700, false, 0.24});
     group_font.weight = std::max<std::uint16_t>(group_font.weight, 700U);
-    const FontSpec name_font = effective_font((*impl_).font_overridden
-        ? (*impl_).font : FontSpec{FontRole::content, 9.5, 600, false});
+    const FontSpec name_font = (*impl_).name_font();
+    // A name wider than its column is shortened with an ellipsis (the
+    // tooltip shows it whole); one buffer serves every row.
+    std::string shown_name;
     const FontSpec value_font = text_font((*impl_).font);
     const FontSpec validation_font = effective_font((*impl_).font_overridden
         ? (*impl_).font : FontSpec{FontRole::content, 8.5, 600, false});
@@ -1048,7 +1083,8 @@ void PropertyList::on_paint(Painter& painter, Rect) {
             name_part.family = ControlVisualRole::editor;
             name_part.role = PartRole::label;
             name_part.states = row_states;
-            name_part.text = lend_paint_text(row.name);
+            details_detail::elide_to_width(painter, row.name, name_font, name.width, shown_name);
+            name_part.text = lend_paint_text(shown_name);
             name_part.font = name_font;
             paint_text_part_at(painter, *this, name_part, {name.x, name_baseline}, name.width);
             if (row.editor == PropertyEditorKind::read_only) {
@@ -1256,6 +1292,32 @@ std::vector<SemanticNode> PropertyList::semantic_virtual_children() const {
                 nodes.push_back(std::move(node));
             }
             y += row_state.row_bounds.height;
+        }
+    }
+    return nodes;
+}
+
+std::vector<SemanticNode> PropertyList::tool_tip_items() const {
+    std::vector<SemanticNode> nodes;
+    const Rect absolute = absolute_bounds();
+    for (std::size_t group_index = 0; group_index < (*impl_).groups.size(); ++group_index) {
+        if (!(*impl_).groups[group_index].expanded) continue;
+        for (const Impl::RowState& row_state : (*impl_).rows) {
+            if (row_state.group_index != group_index || !(*impl_).row_visible(row_state)) continue;
+            const PropertyRowSpec& row = (*impl_).spec(row_state);
+            if ((*impl_).name_extent(row) <= row_state.name_bounds.width) continue;
+            SemanticNode node;
+            node.stable_id = row.stable_id + ".name";
+            node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
+            node.role = SemanticRole::static_text;
+            node.name = row.name;
+            node.tool_tip = row.name;
+            node.bounds = {absolute.x + row_state.name_bounds.x,
+                           absolute.y + row_state.name_bounds.y - (*impl_).scroll_offset,
+                           row_state.name_bounds.width, row_state.name_bounds.height};
+            node.states = SemanticState::visible;
+            if (row.enabled) node.states |= SemanticState::enabled;
+            nodes.push_back(std::move(node));
         }
     }
     return nodes;
