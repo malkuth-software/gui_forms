@@ -10,6 +10,8 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "list_box_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -20,13 +22,14 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::list_box;
 namespace {
 
 // The ListSelectionMode enumeration, numbered as declared. Static storage;
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> list_selection_mode_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "list_selection_mode", {{"one", 0}, {"multiple_extended", 1}}, false});
     return value;
 }
@@ -201,11 +204,18 @@ void ListBox::prepare_write(const decltype(selection_mode)&, ListSelectionMode&)
     require_mutable();
 }
 
-// Narrowing to one item keeps the active (or first) selected row; dropping
-// the others raises selection_changed before the repaint request.
+// Narrowing to one item keeps the active row when it is selected, else the
+// first selected row: the active row can be one a toggle just unselected,
+// and narrowing never selects a row that was not (it used to keep the
+// active row whatever it was). Dropping the others raises
+// selection_changed before the repaint request.
 void ListBox::written(const decltype(selection_mode)&) {
     if (selection_mode.read() == ListSelectionMode::one && selected_.size() > 1U) {
-        const std::size_t retained = active_index_.value_or(selected_.front());
+        std::size_t retained = selected_.front();
+        if (active_index_.present() &&
+            std::find(selected_.cbegin(), selected_.cend(), *active_index_.value()) != selected_.cend()) {
+            retained = *active_index_.value();
+        }
         apply_selection({retained}, stxlib::Optional<std::size_t>::of(retained));
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -277,6 +287,9 @@ void ListBox::write_view(const decltype(top_index)&, std::size_t incoming) {
     }
     if (top_index_ == incoming) return;
     top_index_ = incoming;
+    // The hot item is the one under the pointer, which the scroll moved
+    // away: it is found again at the next pointer move.
+    hovered_index_.reset();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -295,8 +308,11 @@ void ListBox::ensure_visible(std::size_t index) {
         return;
     }
     const std::size_t visible = visible_row_count();
+    const std::size_t previous_top = top_index_;
     if (index < top_index_) top_index_ = index;
     else if (index >= top_index_ + visible) top_index_ = index - visible + 1U;
+    // A scroll moves the items under the pointer (write_view's rule).
+    if (top_index_ != previous_top) hovered_index_.reset();
 }
 
 void ListBox::arrange(Rect final_bounds) {
@@ -359,7 +375,7 @@ void ListBox::invalidate_row(std::size_t index) {
 stxlib::Optional<std::size_t> ListBox::index_at(Point absolute) const noexcept {
     const Rect bounds = absolute_bounds();
     if (!bounds.contains(absolute)) return stxlib::Optional<std::size_t>::none();
-    const double local_y = absolute.y - bounds.y - well_inset;
+    const double local_y = point_from_window(absolute).y - well_inset;
     if (local_y < 0.0) return stxlib::Optional<std::size_t>::none();
     const double row_height = item_height.read() * effective_text_scale();
     const std::size_t index = top_index_ +
@@ -506,6 +522,9 @@ void ListBox::list_pointer(MouseEventArgs& arguments) {
                 static_cast<std::ptrdiff_t>(top_index_) + direction * 3,
                 0, static_cast<std::ptrdiff_t>(items.read().size() - 1U));
             top_index = static_cast<std::size_t>(next);
+            // The pointer is where the wheel turned: the item now under it
+            // is hot.
+            if (is_alive()) hovered_index_ = index_at(arguments.window_position);
             arguments.handled = true;
         }
         return;
@@ -601,7 +620,8 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
     // Paint realizes one row past the fully visible ones; so does this.
     const std::size_t end = std::min(count, first + visible_count + 1U);
     nodes.reserve(end - first);
-    const Rect list_bounds = absolute_bounds();
+    const ScaleFrame list_frame = window_frame();
+    const Rect list_area = client_rectangle();
     const double row_height = item_height.read() * effective_text_scale();
     for (std::size_t index = first; index < end; ++index) {
         SemanticNode node;
@@ -612,13 +632,12 @@ std::vector<SemanticNode> ListBox::semantic_virtual_children() const {
         node.value = items.read()[index];
         node.position_in_set.set(index + 1U);
         node.set_size.set(count);
-        const double row_y = list_bounds.y + well_inset +
+        const double row_y = well_inset +
             (static_cast<double>(index) - static_cast<double>(top_index_)) *
                 row_height;
-        node.bounds = Rect::intersection(
-            {list_bounds.x + well_inset, row_y, std::max(0.0, list_bounds.width - well_insets),
-             row_height},
-            list_bounds);
+        const Rect row = Rect::intersection(
+            {well_inset, row_y, std::max(0.0, list_area.width - well_insets), row_height}, list_area);
+        node.bounds = frame_to_outer(list_frame, row);
         if (effectively_enabled()) node.states |= SemanticState::enabled;
         node.states |= SemanticState::focusable;
         if (index >= top_index_ && index < visible_end) {
@@ -916,7 +935,7 @@ BindingValue PropertyValueTraits<ListSelectionMode>::to_binding(ListSelectionMod
     descriptor.enumeration = list_selection_mode_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -951,7 +970,7 @@ std::span<const PropertyEntry> ListBox::property_table() const noexcept {
 
 void ListBox::prepare_write(const decltype(item_height)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 256.0) {
+    if (!ic::admits_item_height(incoming)) {
         throw std::invalid_argument("ListBox item height must be finite and between 12 and 256");
     }
 }

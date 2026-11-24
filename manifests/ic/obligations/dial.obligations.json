@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Dial",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/dial.ic.toml",
+    "sha256": "7e49eae19d99998f9f38b633c57360a32440d8648f0374dcb137eefb94ab99a7"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.dial.tick_frequency_write.requires.tick_frequency",
+      "kind": "entry-check",
+      "statement": "tick_frequency runs only when finite(incoming) and incoming >= 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::dial::admits_tick_frequency, called in src/controls/instruments/dial/dial.cpp"
+    },
+    {
+      "id": "gui_forms.dial.tick_frequency_write.refusal.tick_frequency",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0, tick_frequency changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

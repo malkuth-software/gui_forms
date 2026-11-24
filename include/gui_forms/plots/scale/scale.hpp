@@ -17,9 +17,10 @@
 //
 // Accuracy: linear, time and category map through one subtraction, one
 // multiplication and one addition, so a round trip forward then inverse is
-// within a few ulp of the domain's extent. Log and symlog use engine_math
-// (engine_logarithm, engine_exponential), never the host libm, so a mapping
-// is the same bits on every host; their error is engine_math's bound.
+// within a few ulp of the domain's extent. Log and symlog use STXlib's math
+// (stxlib::math::log10 and pow), never the host libm, so a mapping is the
+// same bits on every host; their error is STXlib's bound (within 0.51 ulp
+// per call, stxlib/math.hpp).
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/plots/plot_types/plot_types.hpp"
@@ -106,8 +107,8 @@ struct GUI_FORMS_API ScaleMappingResult final {
 
 [[nodiscard]] GUI_FORMS_API ScaleCheck check_scale(const Scale& scale) noexcept;
 
-// log10 of `value` through engine_logarithm (NaN for ≤ 0 and NaN), and 10
-// raised to `exponent` through engine_exponential. Exact at integer
+// log10 of `value` through STXlib's log10 (NaN for ≤ 0 and NaN), and 10
+// raised to `exponent` through STXlib's pow. Exact at integer
 // exponents from -22 to 22, where the result is a double exactly.
 [[nodiscard]] GUI_FORMS_API double engine_log10(double value) noexcept;
 [[nodiscard]] GUI_FORMS_API double engine_exp10(double exponent) noexcept;

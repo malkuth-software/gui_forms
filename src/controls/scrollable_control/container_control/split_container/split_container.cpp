@@ -5,6 +5,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "../../../../core/drag_engine/drag_engine.hpp"
 #include "../../../basic/number_text.hpp"
+#include "split_container_ic_checks.hpp"
 
 #include <vector>
 #include <array>
@@ -20,8 +21,12 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::split_container;
 
 namespace {
+
+// The bound a panel minimum is held to when its maximum is unset (ic::admits_<side>_minimum_order).
+constexpr double unbounded = std::numeric_limits<double>::infinity();
 
 void require_finite_nonnegative(double value, const char* message) {
     if (!std::isfinite(value) || value < 0.0) throw std::invalid_argument(message);
@@ -435,8 +440,30 @@ Size SplitContainer::measure(Size available) {
                      requested.height > 0.0 ? requested.height : available.height)};
 }
 
+// A panel's visibility is the collapse state's to say (Panel1Collapsed and
+// Panel2Collapsed in Windows Forms): the flags are the record, and a panel
+// is shown exactly when its side is not collapsed. The panels are handed out
+// (first_panel(), second_panel()) and addressable by stable ID, so a direct
+// write of their visible property (the property table, a form file, the C
+// ABI) is put back here on every arrange, never compared with a cached copy
+// (state hunt O10). A visibility write runs handlers, which may drop the
+// container: false when it is gone.
+bool SplitContainer::reassert_panel_visibility() {
+    if ((*first_panel_).visible.read() == first_collapsed_) {
+        (*first_panel_).visible = !first_collapsed_;
+        if (!is_alive()) return false;
+    }
+    if ((*second_panel_).visible.read() == second_collapsed_) {
+        (*second_panel_).visible = !second_collapsed_;
+        if (!is_alive()) return false;
+    }
+    return true;
+}
+
 void SplitContainer::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
+    const Control::Ptr lifetime = shared_from_this();
+    if (!reassert_panel_visibility()) return;
     const double total = axis_extent(final_bounds);
     const double visible_width = effective_splitter_width();
     reconcile_automatic_collapse(total);
@@ -717,11 +744,11 @@ double SplitContainer::axis_extent(Rect bounds) const noexcept {
 }
 
 double SplitContainer::pointer_axis(Point point) const noexcept {
-    const Rect absolute = absolute_bounds();
-    if (orientation.read() != Orientation::vertical) return point.y - absolute.y;
+    const Point local = point_from_window(point);
+    if (orientation.read() != Orientation::vertical) return local.y;
     // Mirrored, the distance is measured from the right edge.
-    const double from_left = point.x - absolute.x;
-    const double along = mirrored_split() ? absolute.width - from_left : from_left;
+    const double from_left = local.x;
+    const double along = mirrored_split() ? client_rectangle().width - from_left : from_left;
     return along;
 }
 
@@ -788,11 +815,10 @@ double SplitContainer::constrained_distance(double requested,
 }
 
 Rect SplitContainer::collapse_tab_bounds() const noexcept {
-    const Rect bounds = (*splitter_).absolute_bounds();
+    const ScaleFrame bounds_frame = (*splitter_).window_frame();
     const Rect actuator =
         static_cast<const SplitterGrip&>(*splitter_).actuator_bounds();
-    return {bounds.x + actuator.x, bounds.y + actuator.y,
-            actuator.width, actuator.height};
+    return frame_to_outer(bounds_frame, actuator);
 }
 
 bool SplitContainer::collapse_target_is_collapsed() const noexcept {
@@ -1046,9 +1072,11 @@ void SplitContainer::append_interactions(std::vector<InteractionDeclaration>& in
 
 void SplitContainer::prepare_write(const decltype(first_minimum)&, double& incoming) {
     require_mutable();
-    require_finite_nonnegative(incoming, "first panel minimum must be finite and nonnegative");
+    if (!ic::admits_first_minimum_extent(incoming)) {
+        throw std::invalid_argument("first panel minimum must be finite and nonnegative");
+    }
     const double* maximum = first_maximum.read().value();
-    if (maximum != nullptr && incoming > *maximum) {
+    if (!ic::admits_first_minimum_order(incoming, maximum != nullptr ? *maximum : unbounded)) {
         throw std::invalid_argument("first panel minimum may not exceed its maximum");
     }
 }
@@ -1059,9 +1087,11 @@ void SplitContainer::written(const decltype(first_minimum)&) {
 
 void SplitContainer::prepare_write(const decltype(second_minimum)&, double& incoming) {
     require_mutable();
-    require_finite_nonnegative(incoming, "second panel minimum must be finite and nonnegative");
+    if (!ic::admits_second_minimum_extent(incoming)) {
+        throw std::invalid_argument("second panel minimum must be finite and nonnegative");
+    }
     const double* maximum = second_maximum.read().value();
-    if (maximum != nullptr && incoming > *maximum) {
+    if (!ic::admits_second_minimum_order(incoming, maximum != nullptr ? *maximum : unbounded)) {
         throw std::invalid_argument("second panel minimum may not exceed its maximum");
     }
 }
@@ -1118,7 +1148,7 @@ void SplitContainer::written(const decltype(fixed_panel)&) {
 
 void SplitContainer::prepare_write(const decltype(keyboard_increment)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming <= 0.0) {
+    if (!ic::admits_keyboard_increment(incoming)) {
         throw std::invalid_argument("splitter keyboard increment must be finite and positive");
     }
 }

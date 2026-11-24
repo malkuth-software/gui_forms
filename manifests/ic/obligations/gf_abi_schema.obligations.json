@@ -1,0 +1,221 @@
+{
+  "schema": 1,
+  "component": "gf_abi::schema",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_schema.ic.toml",
+    "sha256": "a8b6d67900b5f4e5e33a23103d41a3fe96227cc3cf652116f82a6e1e72c213a4"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.schema.type_count.requires.type_count_count",
+      "kind": "entry-check",
+      "statement": "type_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_type_count_count, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.type_count.refusal.type_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), type_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.find_type.requires.find_type_type",
+      "kind": "entry-check",
+      "statement": "find_type runs only when not_null(type); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_find_type_type, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.find_type.refusal.find_type_type",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(type), find_type changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.state_at.requires.state_at_name",
+      "kind": "entry-check",
+      "statement": "state_at runs only when not_null(name); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_state_at_name, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.state_at.refusal.state_at_name",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(name), state_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.custom_state_at.requires.custom_state_at_name",
+      "kind": "entry-check",
+      "statement": "custom_state_at runs only when not_null(name); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_custom_state_at_name, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.custom_state_at.refusal.custom_state_at_name",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(name), custom_state_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.parameter_choice_at.requires.parameter_choice_at_name",
+      "kind": "entry-check",
+      "statement": "parameter_choice_at runs only when not_null(name); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_parameter_choice_at_name, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.parameter_choice_at.refusal.parameter_choice_at_name",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(name), parameter_choice_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.effect_count.requires.effect_count_count",
+      "kind": "entry-check",
+      "statement": "effect_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_effect_count_count, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.effect_count.refusal.effect_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), effect_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.child_property_count.requires.child_property_count_count",
+      "kind": "entry-check",
+      "statement": "child_property_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_child_property_count_count, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.child_property_count.refusal.child_property_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), child_property_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.composite_count.requires.composite_count_count",
+      "kind": "entry-check",
+      "statement": "composite_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_composite_count_count, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.composite_count.refusal.composite_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), composite_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.composite_state_at.requires.composite_state_at_name",
+      "kind": "entry-check",
+      "statement": "composite_state_at runs only when not_null(name); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_composite_state_at_name, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.composite_state_at.refusal.composite_state_at_name",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(name), composite_state_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.composite_custom_state_at.requires.composite_custom_state_at_name",
+      "kind": "entry-check",
+      "statement": "composite_custom_state_at runs only when not_null(name); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_composite_custom_state_at_name, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.composite_custom_state_at.refusal.composite_custom_state_at_name",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(name), composite_custom_state_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.schema.composite_command_at.requires.composite_command_at_name",
+      "kind": "entry-check",
+      "statement": "composite_command_at runs only when not_null(name); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_schema::admits_composite_command_at_name, called in src/abi/stable/tables/abi_schema_table.cpp"
+    },
+    {
+      "id": "gf_abi.schema.composite_command_at.refusal.composite_command_at_name",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(name), composite_command_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -207,10 +207,10 @@ Related types
      - Stage T1 anatomy, as dot members: the scrollable parts, a face and an edge.
    * - :cpp:class:`PanelCapabilities <gui_forms::PanelCapabilities>`
      - Every Panel capability, in the order the declaring class takes them.
+   * - :cpp:class:`ScaledGroupBoxAspectCapability <gui_forms::ScaledGroupBoxAspectCapability>`
+     - How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment.
    * - :cpp:class:`ScaledGroupBoxCapabilities <gui_forms::ScaledGroupBoxCapabilities>`
      - Every ScaledGroupBox capability, in the order the declaring class takes them.
-   * - :cpp:class:`ScaledGroupBoxDesignSizeCapability <gui_forms::ScaledGroupBoxDesignSizeCapability>`
-     - The coordinate space the children's design bounds are written in; it scales to the arranged size.
    * - :cpp:class:`SectionItem <gui_forms::SectionItem>`
      -  
    * - :cpp:class:`TabControl::Item <gui_forms::TabControl::Item>`
@@ -1572,7 +1572,24 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ScaledGroupBoxCapabilities : public ScaledGroupBoxDesignSizeCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ScaledGroupBoxAspectCapability
+
+   ``#include <gui_forms/controls/scaled_group_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/scaled_group_box_capabilities.hpp>`)
+
+   How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ScaledGroupBoxAspectCapability& capability, ScaledAspect incoming)
+
+   .. cpp:member:: PropertyCell<ScaledAspect, ScaledGroupBoxAspectCapability<Declaring>> aspect
+
+      Default: ``{ScaledAspect::stretch}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ScaledGroupBoxCapabilities : public ScaledGroupBoxAspectCapability<Declaring>
 
    ``#include <gui_forms/controls/scaled_group_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/scaled_group_box_capabilities.hpp>`)
 
@@ -1581,26 +1598,9 @@ Related types
 
    .. rubric:: Properties
 
-   .. cpp:member:: Size design_size
+   .. cpp:member:: ScaledAspect aspect
 
-      The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
-
-.. cpp:namespace:: gui_forms
-
-.. cpp:struct:: template <typename Declaring> ScaledGroupBoxDesignSizeCapability
-
-   ``#include <gui_forms/controls/scaled_group_box_capabilities.hpp>`` (:src:`source <include/gui_forms/controls/scaled_group_box_capabilities.hpp>`)
-
-   The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
-
-
-   .. rubric:: Methods
-
-   .. cpp:function:: static void assign(ScaledGroupBoxDesignSizeCapability& capability, Size incoming)
-
-   .. cpp:member:: PropertyCell<Size, ScaledGroupBoxDesignSizeCapability<Declaring>> design_size
-
-      Default: ``{Size{1.0, 1.0}}``.
+      How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
 
 .. cpp:namespace:: gui_forms
 

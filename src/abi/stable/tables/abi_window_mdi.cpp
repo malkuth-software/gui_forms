@@ -8,6 +8,7 @@
 #include "../failure/abi_failure.hpp"
 #include "../registry/abi_registry.hpp"
 #include "../windows/abi_window_handle.hpp"
+#include "../ic/abi_windows_ic_checks.hpp"
 
 #include "gui_forms/controls/menu_strip.hpp"
 #include "gui_forms/window.hpp"
@@ -103,7 +104,7 @@ gf_status windows_set_mdi_container_body(gf_object window_or_root, std::uint32_t
 }
 
 gf_status windows_mdi_container_body(gf_object window_or_root, std::uint32_t* container) {
-    if (container == nullptr) {
+    if (!ic_windows::admits_mdi_container_container(container)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, mdi_container_slot, "mdi_container needs an output");
     }
     Window* window = nullptr;
@@ -131,7 +132,7 @@ gf_status windows_set_anchor_bottom_body(gf_object window_or_root, std::uint32_t
 }
 
 gf_status windows_anchor_bottom_body(gf_object window_or_root, std::uint32_t* bottom) {
-    if (bottom == nullptr) {
+    if (!ic_windows::admits_mdi_children_minimized_anchor_bottom_bottom(bottom)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, anchor_bottom_slot,
                     "mdi_children_minimized_anchor_bottom needs an output");
     }
@@ -147,7 +148,7 @@ gf_status windows_anchor_bottom_body(gf_object window_or_root, std::uint32_t* bo
 // -- the children ---------------------------------------------------------------------
 
 gf_status windows_mdi_child_count_body(gf_object window_or_root, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_windows::admits_mdi_child_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, mdi_child_count_slot, "mdi_child_count needs a count output");
     }
     Window* window = nullptr;
@@ -249,7 +250,7 @@ gf_status windows_set_main_menu_strip_body(gf_object window_or_root, gf_object s
 }
 
 gf_status windows_main_menu_strip_body(gf_object window_or_root, gf_object* strip) {
-    if (strip == nullptr) {
+    if (!ic_windows::admits_main_menu_strip_strip(strip)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, main_menu_strip_slot, "main_menu_strip needs a strip output");
     }
     Window* window = nullptr;

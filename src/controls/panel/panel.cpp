@@ -6,6 +6,7 @@
 #include "panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -23,7 +24,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> border_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "border_style", {{"none", 0}, {"line", 1}, {"sunken", 2}, {"raised", 3}}, false});
     return value;
 }
@@ -32,6 +33,8 @@ std::shared_ptr<const PropertyEnumDescriptor> border_style_enum() {
 
 Panel::Panel(StableId stable_id) : ScrollableControl(std::move(stable_id)) {
     set_paint_plane(PaintPlane::backplane);
+    // A Windows Forms panel contains what overflows it (stage VA, decision 4).
+    viewport_fit = panel_viewport_fit;
 }
 
 void Panel::on_attached_to_window() {
@@ -337,7 +340,7 @@ BindingValue PropertyValueTraits<BorderStyle>::to_binding(BorderStyle value) {
     descriptor.enumeration = border_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

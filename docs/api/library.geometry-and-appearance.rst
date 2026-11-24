@@ -170,8 +170,6 @@ Types
      - The table.
    * - :cpp:class:`EnginePrimitive <gui_forms::EnginePrimitive>`
      - One kind of effect.
-   * - :cpp:class:`EngineSineCosine <gui_forms::EngineSineCosine>`
-     - The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50.
    * - :cpp:class:`EngineVersion <gui_forms::EngineVersion>`
      - The engine version a primitive was introduced in, and the version a theme declares it needs.
    * - :cpp:class:`ExpressionCompilation <gui_forms::ExpressionCompilation>`
@@ -242,6 +240,8 @@ Types
      - A lamp's colour, linear RGB at unit power.
    * - :cpp:class:`LampDrive <gui_forms::engine_light::LampDrive>`
      - A lamp as composited: its colour and its power (0 off, 1 the baked unit; the strike envelope passes through, lamp_power).
+   * - :cpp:class:`LampGlint <gui_forms::engine_light::LampGlint>`
+     - One glint: its centre in the dot's radii from the dot's centre (x right, y down) and its strength now, 0 for none.
    * - :cpp:class:`LentImageVariants <gui_forms::LentImageVariants>`
      - The variants lent for one bake, by fill layer; null where none is lent.
    * - :cpp:class:`LightComposite <gui_forms::engine_light::LightComposite>`
@@ -436,6 +436,8 @@ Types
      - ``family``, when set, is a control visual family's registered name (the theme's ControlVisualRole, such as ``accent_button``): the selector matches only parts resolved for that family (PartFacts::family).
    * - :cpp:class:`RuleSpecificity <gui_forms::RuleSpecificity>`
      - A selector's specificity, CSS's three columns compared in order: the stable ID and the item's ID; the classes, the item's classes, the states (standard and custom) and the family (pseudo-classes); the control type or surface and the part (its name or role, one each, as pseudo-elements).
+   * - :cpp:class:`ScaleFrame <gui_forms::ScaleFrame>`
+     - A uniform scale and a translation: the map of the in-tree scale frame (stage VA).
    * - :cpp:class:`ScopedCondition <gui_forms::ScopedCondition>`
      - A copy's condition: the part's winning definition of ``name`` is ``definition``, or, for custom_property_undefined, no definition matches.
    * - :cpp:class:`ScopedDefinition <gui_forms::ScopedDefinition>`
@@ -2884,18 +2886,6 @@ Types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: EngineSineCosine final
-
-   ``#include <gui_forms/engine/engine_math/engine_math.hpp>`` (:src:`source <include/gui_forms/engine/engine_math/engine_math.hpp>`)
-
-   The sine and cosine of ``x`` radians, computed together (E3's springs), for every finite x with absolute error at most 2^-50. The argument is reduced by the nearest multiple of π/2: up to 2^20 with π/2 split in three parts (Cody and Waite), exact to about 2^-100 relative; above that by Payne and Hanek's method, in integers against a fixed 1280-bit table of 2/π, which is exact for every finite double up to the largest. Exact case: x = 0 gives sine 0 and cosine 1. Infinities and NaN have no angle and give the stated value sine 0 and cosine 1, the turn of angle 0, so no NaN reaches geometry from here.
-
-   .. cpp:member:: double sine
-
-   .. cpp:member:: double cosine
-
-.. cpp:namespace:: gui_forms
-
 .. cpp:struct:: EngineVersion final
 
    ``#include <gui_forms/engine/types/engine_types.hpp>`` (:src:`source <include/gui_forms/engine/types/engine_types.hpp>`)
@@ -3544,6 +3534,20 @@ Types
 
    .. cpp:member:: double power
 
+.. cpp:namespace:: gui_forms::engine_light
+
+.. cpp:struct:: LampGlint final
+
+   ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
+
+   One glint: its centre in the dot's radii from the dot's centre (x right, y down) and its strength now, 0 for none.
+
+   .. cpp:member:: double x
+
+   .. cpp:member:: double y
+
+   .. cpp:member:: double strength
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: LentImageVariants final
@@ -3560,7 +3564,7 @@ Types
 
    ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
-   The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1). ``filter`` is a coloured face over the bake (dialog_demo.cpp, lamp_light): the room's light crosses it twice, in and out, and a lamp's once, so an unlit coloured lamp shows its tint; white, the default, leaves the bake as baked. ``shape`` lays it out.
+   The composite's settings, defaulting to the owner's panel_lamps choices: the room at gain 1 and the tone's exposure 1.3. ``press_mix`` mixes the up bake (0) toward the down bake (1). ``filter`` is a coloured face over the bake (dialog_demo.cpp, lamp_light): the room's light crosses it twice, in and out, and a lamp's once, so an unlit coloured lamp shows its tint; white, the default, leaves the bake as baked. ``shape`` lays it out. ``glints`` (lamp_sparkle_glints) sparkle a jewel or a pinpoint's dot, each a soft point of light, whitened from the first drive's colour and scaled by its power (at most 1), added over the toned jewel; a whole bake shows none.
 
    .. cpp:member:: double room
 
@@ -3579,6 +3583,8 @@ Types
    .. cpp:member:: LightShape shape
 
       Default: ``{LightShape::whole}``.
+
+   .. cpp:member:: LampGlints glints
 
 .. cpp:namespace:: gui_forms::engine_light
 
@@ -3632,6 +3638,10 @@ Types
    .. cpp:function:: std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes, LampDrive drive, const LightComposite& settings, DeviceExtent extent, DeviceScale scale)
 
       The composite of ``planes`` over ``extent`` device pixels at ``scale``, every lamp driven by ``drive``: the kept raster when the bake, drive, settings, extent and scale are those it was made with, else a new one, then kept. Null, and nothing kept, when ``planes`` is null, the extent is empty, or no raster of that extent and scale can be made (PartRaster::create). Throws std::bad_alloc when a new raster cannot be stored (what was kept stays).
+
+   .. cpp:function:: std::shared_ptr<const PartRaster> composite(const std::shared_ptr<const LightPlanes>& planes, const std::shared_ptr<const LightPlanes>& down, LampDrive drive, const LightComposite& settings, DeviceExtent extent, DeviceScale scale)
+
+      As above for a key with a pressed bake: ``down`` is mixed in by settings.press_mix (composite_light_planes), and a null ``down`` is ``planes``. A change of either bake makes a new composite.
 
    .. cpp:function:: void release() noexcept
 
@@ -4999,7 +5009,7 @@ Types
 
    .. cpp:function:: virtual void draw_image(ImageId image, Rect destination, double opacity = 1.0) = 0
 
-      Draws ``image`` over ``destination``. Below 1x on either axis the CPU renderer draws a copy resampled by pixel area (stx_conv) to the device size, cached by image content and size; at or above 1x it draws the image directly with a linear filter.
+      Draws ``image`` over ``destination``. Below 1x on either axis the CPU renderer draws a copy resampled by pixel area (stxlib::conv's canon) to the device size, cached by image content and size; at or above 1x it draws the image directly with a linear filter.
 
    .. cpp:function:: virtual void draw_live_surface(std::shared_ptr<LiveSurface> surface, Rect destination, double opacity = 1.0)
 
@@ -5267,6 +5277,10 @@ Types
    A part composited from baked light planes (skeudoindustrial surfaces; engine/light_planes): the bake, the one drive every lamp of it takes, the composite's settings (its shape, such as a jewel lamp seen through a dot, and its face filter), and the composite its control keeps between paints. See PartPaint::light_planes.
 
    .. cpp:member:: std::shared_ptr<const engine_light::LightPlanes> planes
+
+   .. cpp:member:: std::shared_ptr<const engine_light::LightPlanes> down
+
+      A key's pressed bake, mixed in by settings.press_mix; empty: ``planes``.
 
    .. cpp:member:: engine_light::LampDrive drive
 
@@ -6452,6 +6466,20 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: ScaleFrame final
+
+   ``#include <gui_forms/types/scale_frame/scale_frame.hpp>`` (:src:`source <include/gui_forms/types/scale_frame/scale_frame.hpp>`)
+
+   A uniform scale and a translation: the map of the in-tree scale frame (stage VA). A point p of the inner coordinates lies at origin + scale * p in the outer ones, so rectangles map to rectangles and nothing turns. The default is the identity. scale is positive and finite wherever the window makes a frame. A control's window frame (Control::window_frame) maps its local coordinates into its window's; its content frame (Control:: content_frame) maps its children's coordinates into its own, and is the identity unless the window carries out a contain or cover of its viewport.
+
+   .. cpp:member:: Point origin
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: ScopedCondition final
 
    ``#include <gui_forms/engine/theme_rules/theme_rules.hpp>`` (:src:`source <include/gui_forms/engine/theme_rules/theme_rules.hpp>`)
@@ -7024,7 +7052,7 @@ Types
 
    .. cpp:function:: bool paint_finish_tiles(Painter& painter, const Control& control, const FinishTiles& tiles) const
 
-      Paints ``tiles.finish`` over ``tiles.area`` of ``control`` from the window's world finish tiles (EnginePartTable::finish_tile; cp31): - The finish is evaluated at world device pixels, at the window's scale times the zoom, on the lattice of finish_tile_side-pixel tiles through world (0, 0) (snapped to the nearest device pixel, so tiles land on whole pixels). Each tile is the kernel at those pixels, so adjacent tiles join exactly: no period, and no seam. - A tile not held is queued for an idle frame and its place left bare; once the queue is painted the window repaints the area (the record ``tiles.key`` names). Panning reuses the tiles held; a new zoom or scale names new tiles, painted again in idle frames. - Cost: one draw_part_raster per tile meeting the area, inside one save, clip_rect and restore; nothing is painted inside the paint. Draws nothing and returns false for a control in no window, an empty or non-finite area, anchor or zoom, or no finish; otherwise returns whether every tile was held. Not reentrant, as paint is not.
+      Paints ``tiles.finish`` over ``tiles.area`` of ``control`` from the window's world finish tiles (EnginePartTable::finish_tile; cp31): - The finish is evaluated at world device pixels, at the window's scale times the zoom, on the lattice of finish_tile_side-pixel tiles through world (0, 0) (snapped to the nearest device pixel, so tiles land on whole pixels). Each tile is the kernel at those pixels, so adjacent tiles join exactly: no period, and no seam. Each raster carries an apron of the world beyond its square (finish_tile_apron), drawn over the edge of the tile before it, so no edge composited short (resampled, antialiased or rounded to the other pixel) shows the surface beneath. - A tile not held is queued for an idle frame and its place left bare; once the queue is painted the window repaints the area (the record ``tiles.key`` names). Panning reuses the tiles held; a new zoom or scale names new tiles, painted again in idle frames. - Cost: one draw_part_raster per tile meeting the area, inside one save, clip_rect and restore; nothing is painted inside the paint. Draws nothing and returns false for a control in no window, an empty or non-finite area, anchor or zoom, or no finish; otherwise returns whether every tile was held. Not reentrant, as paint is not.
 
    .. cpp:function:: PartHitRegion hit_region(const Control& control, const PartPaint& part) const noexcept
 
@@ -9924,9 +9952,9 @@ Functions, constants and aliases
 
    0 below edge0, 1 above edge1, u²(3 − 2u) between; equal edges give 0.
 
-.. cpp:function:: inline double effect_sine(double x) noexcept
+.. cpp:function:: double effect_sine(double x) noexcept
 
-   The sine of x radians (engine_sine_cosine: the same bits on every host).
+   The sine of x radians: STXlib's sine (stxlib/math.hpp), the same bits on every host, defined out of line (effect_canvas.cpp) so an effect's own translation unit needs no STXlib header. NaN for \|x\| above 2^32 and for infinities and NaN, as STXlib's sine.
 
 .. cpp:function:: constexpr Color effect_faded(Color color, double factor) noexcept
 
@@ -10102,47 +10130,13 @@ Functions, constants and aliases
 
    Value: ``static_cast<std::size_t>(ExpressionOperation::count)``.
 
-.. cpp:namespace:: gui_forms
-
-``#include <gui_forms/engine/engine_math/engine_math.hpp>`` (:src:`source <include/gui_forms/engine/engine_math/engine_math.hpp>`)
-
-.. cpp:function:: double engine_logarithm(double x) noexcept
-
-   Natural logarithm of ``x``. Requires x > 0 and finite; returns NaN for x < 0 or NaN, −infinity for 0, and +infinity for +infinity.
-
-.. cpp:function:: double engine_exponential(double x) noexcept
-
-   e raised to ``x``. Returns 0 below about −745, +infinity above about 709.8, and NaN for NaN.
-
-.. cpp:function:: double engine_power(double base, double exponent) noexcept
-
-   ``base`` raised to ``exponent``, for base ≥ 0. Exact cases: base^0 is 1, 1^exponent is 1, and 0^exponent is 0 for exponent > 0. Returns NaN for a negative or NaN base and for a NaN exponent.
-
-.. cpp:function:: EngineSineCosine engine_sine_cosine(double x) noexcept
-
-.. cpp:function:: double engine_arctangent2(double y, double x) noexcept
-
-   The angle of the point (x, y) from the positive x axis, in radians in [−π, π], as std::atan2(y, x) (E9.6's conic gradient). Exact cases: (0, 0) gives 0, and a point on an axis gives 0, ±π/2 or π. NaN in either argument gives NaN. The ratio of the smaller to the larger magnitude is reduced twice (by π/4 and by the half-angle formula) to at most 0.2, where a 13-term series converges past 2^-60.
-
-.. cpp:function:: EngineSineCosine engine_sine_cosine_degrees(double degrees) noexcept
-
-   The sine and cosine of ``degrees``, for every finite angle (the theme language's rotate() and arc rotations, drawing replay's gradient directions). Exact at every multiple of 90 degrees: 0, 90, 180 and 270 give (0, 1), (1, 0), (0, −1) and (−1, 0) with no rounding. The angle is reduced exactly (fmod by 360, then the nearest multiple of 90, both without rounding), the remainder of at most 45 degrees is turned into radians (one rounding) and passed to engine_sine_cosine, and the quarter turns are applied by swapping and negating. Absolute error at most 2^-49. Infinities and NaN give the stated value sine 0 and cosine 1, as engine_sine_cosine does. This and the radian functions above are the only trigonometry the raster and theme paths call, so a later move to STXlib's certified kernels (stxlib/math.hpp's sincos and atan2, once gui_forms_core links stxlib::algorithms at a pin that carries them) changes their bodies only; STXlib's glyph seat needs the same exact quarter turns for rotated text.
-
-.. cpp:function:: double engine_tangent(double x) noexcept
-
-   The tangent of ``x`` radians, as engine_sine_cosine's sine over its cosine (the theme language's arc handles, 4/3 tan(piece/4) with \|piece/4\| at most π/8). For \|x\| ≤ π/4 the cosine is at least 0.7071, so the absolute error is at most 2^-48; beyond that it grows as 1/cos²(x). Exact case: 0 gives 0. Every finite x has a finite result (no double but 0 is a multiple of π/2); infinities and NaN give the stated value 0.
-
-.. cpp:function:: double engine_hypotenuse(double x, double y) noexcept
-
-   The length of (x, y), as sqrt(x² + y²): each square, the sum and the root round once, so the result has the same bits on every host, where the host's hypot need not. Relative error at most 2^-52 (about one unit in the last place). No scaling: the squares overflow for magnitudes above about 1e154 and lose precision below about 1e-154, far outside the coordinates and colours this serves. NaN in either gives NaN.
-
 .. cpp:namespace:: gui_forms::engine_light
 
 ``#include <gui_forms/engine/light_planes/light_planes.hpp>`` (:src:`source <include/gui_forms/engine/light_planes/light_planes.hpp>`)
 
 .. cpp:function:: LampColour lamp_colour_from_srgb(Color colour) noexcept
 
-   A colour given as sRGB, such as a control's lamp colour property, as a lamp's linear colour at unit power: each channel decoded by the sRGB curve (through engine_power, so every host decodes alike). Alpha is ignored.
+   A colour given as sRGB, such as a control's lamp colour property, as a lamp's linear colour at unit power: each channel decoded by the sRGB curve (through STXlib's pow, so every host decodes alike). Alpha is ignored.
 
 .. cpp:function:: LightPlanesDefect read_light_planes(std::span<const std::byte> bytes, LightPlanes& planes)
 
@@ -10155,6 +10149,14 @@ Functions, constants and aliases
 .. cpp:function:: std::span<const std::byte> shipped_light_plane_store(std::string_view name) noexcept
 
    The bake ``name`` as shipped with the library (assets/light_planes/ <name>.gflp, compiled into Core): its store's bytes, static storage, or empty for a name not shipped. The shipped bakes are the study's dialog keys (dialog_ok_up, dialog_ok_down, dialog_cancel_up, dialog_cancel_down) and its indicator jewels (indicator_backed_up, indicator_clear_up).
+
+.. cpp:function:: bool same_lamp_glints(const LampGlints& left, const LampGlints& right) noexcept
+
+   Whether two sets of glints are the same, member by member.
+
+.. cpp:function:: LampGlints lamp_sparkle_glints(std::uint32_t seed, double seconds) noexcept
+
+   The glints of the sparkle seeded ``seed`` at ``seconds`` since it began: each stream's glint now, strength 0 where it has none, and none at all for a time that is not finite and positive.
 
 .. cpp:function:: LampColour jewel_filter(LampColour colour) noexcept
 
@@ -10249,6 +10251,32 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double pinpoint_core_share
 
    Value: ``1.0 / 3.0``.
+
+.. cpp:var:: constexpr std::size_t lamp_sparkle_streams
+
+   -- the lamp's sparkle (owner, 2026-11-22) ----------------------------------------- A lit jewel may sparkle as a string of Christmas lights does: now and then a small glint catches in one of the crown's facets, swells and fades. It is slow, small and deterministic: lamp_sparkle_streams streams each hold at most one glint in a slot of lamp_sparkle_slot_seconds (the second stream's slots half a slot later), chosen by a hash of the seed and the slot: a glint in 55% of slots, starting anywhere it fits, lasting lamp_sparkle_glint_seconds and swelling and fading as sin², at 60% to 100% strength, in one of eight facets round the crown (its centre between 30% and 70% of the dot's radius out). So at most two glints a slot, some 1.7 a second and about 0.9 on average, well under three flashes a second (WCAG 2.3.1), each over a few device pixels. The same seed and time always give the same glints, so captures and tests repeat. The caller leaves the glints out under reduced motion. Value: ``2U``.
+
+.. cpp:var:: constexpr double lamp_sparkle_slot_seconds
+
+   Value: ``1.2``.
+
+.. cpp:var:: constexpr double lamp_sparkle_glint_seconds
+
+   Value: ``0.4``.
+
+.. cpp:var:: constexpr double lamp_sparkle_gain
+
+   A glint's peak light, added to the toned jewel, and its core's spread as a share of the dot's radius (at least lamp_sparkle_least_spread device pixels). Value: ``0.9``.
+
+.. cpp:var:: constexpr double lamp_sparkle_spread_share
+
+   Value: ``0.07``.
+
+.. cpp:var:: constexpr double lamp_sparkle_least_spread
+
+   Value: ``0.6``.
+
+.. cpp:type:: LampGlints = std::array<LampGlint, lamp_sparkle_streams>
 
 .. cpp:var:: constexpr double jewel_lamp_power
 
@@ -10408,9 +10436,17 @@ Functions, constants and aliases
 
    World finish tiles (cp31; the node canvas's finish texture): squares of finish_tile_side device pixels of a surface finish evaluated at world device pixels (engine_primitives::paint_world_finish), so that held tiles join with no seam. A tile is named by its finish, the display scale its raster is drawn at, the kernel's scale (device pixels per world unit: the display scale times the canvas's zoom), and its column and row on the lattice of tiles through the world's origin: tile (c, r) covers world device pixels [c * side, (c + 1) * side) by [r * side, (r + 1) * side). A paint takes the tiles held and queues the rest; idle frames paint them (EnginePartTable::generate_finish_tiles). Value: ``128U``.
 
+.. cpp:var:: constexpr std::uint32_t finish_tile_apron
+
+   The world pixels a tile's raster carries beyond its square on every side (owner, 2026-11-22: a grid showed where tiles met): its raster is finish_tile_raster_side pixels square, its first pixel world pixel (c * side - apron, r * side - apron), and neighbours overlap by twice the apron. Drawn in order, each tile covers the edge of the one before with the same world pixels, so a tile edge that is not composited whole (a raster resampled at another scale, whose edge pixels read transparent texels beyond it; an antialiased edge between device pixels; a corner rounded to the other pixel) never shows the surface beneath. Value: ``2U``.
+
+.. cpp:var:: constexpr std::uint32_t finish_tile_raster_side
+
+   Value: ``finish_tile_side + 2U * finish_tile_apron``.
+
 .. cpp:var:: constexpr std::size_t finish_tile_budget_bytes
 
-   The most bytes of finish tiles one window keeps: 512 tiles of 64 KiB, a 2900-pixel square of one layer. The least recently used tile is evicted first, never one the latest paint used: a tile that finds no room is not held (counted as a refusal) and its place stays bare. A proposed default. Value: ``32U * 1024U * 1024U``.
+   The most bytes of finish tiles one window keeps: about 480 tiles of 68 KiB (finish_tile_raster_side squared), a 2800-pixel square of one layer. The least recently used tile is evicted first, never one the latest paint used: a tile that finds no room is not held (counted as a refusal) and its place stays bare. A proposed default. Value: ``32U * 1024U * 1024U``.
 
 .. cpp:var:: constexpr std::size_t maximum_queued_finish_tiles
 
@@ -11662,7 +11698,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr std::size_t maximum_measured_curve_chords
 
-   Path length and trimming (owner, 2026-11-16: trim paths in the core). Both measure a path on chords, in + - * / and sqrt only (engine_math), so the same path and tolerance give the same bits on every host. The chord counts are fixed by the geometry: a Bezier curve takes Wang's count for ``tolerance`` (at most maximum_measured_curve_chords), an arc enough equal angular steps that no chord's sagitta exceeds ``tolerance`` and none turns more than a quarter (at most maximum_measured_arc_chords). These are counts of their own, finer for arcs than flatten_paint_path's. Value: ``1024U``.
+   Path length and trimming (owner, 2026-11-16: trim paths in the core). Both measure a path on chords, in + - * /, sqrt and STXlib's hypot only, so the same path and tolerance give the same bits on every host. The chord counts are fixed by the geometry: a Bezier curve takes Wang's count for ``tolerance`` (at most maximum_measured_curve_chords), an arc enough equal angular steps that no chord's sagitta exceeds ``tolerance`` and none turns more than a quarter (at most maximum_measured_arc_chords). These are counts of their own, finer for arcs than flatten_paint_path's. Value: ``1024U``.
 
 .. cpp:var:: constexpr std::size_t maximum_measured_arc_chords
 
@@ -11808,14 +11844,38 @@ Functions, constants and aliases
 
    A point on the monotonic clock: intervals between two of them are meaningful, the points themselves are not times of day.
 
-.. cpp:type:: Thread = std::thread
+.. cpp:type:: Thread = stxlib::Thread
 
    A thread the library starts and joins (a sub-surface's).
 
-.. cpp:type:: Mutex = std::mutex
+.. cpp:type:: Mutex = stxlib::Mutex
 
    A mutual-exclusion lock.
 
-.. cpp:type:: ThreadId = std::thread::id
+.. cpp:type:: ThreadId = stxlib::ThreadIdentity
 
-   A thread's identity (an owner thread, a UI thread); default-constructed, no thread.
+   A thread's identity (an owner thread, a UI thread); default-constructed, no thread. Never reused, even after its thread ends.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/types/scale_frame/scale_frame.hpp>`` (:src:`source <include/gui_forms/types/scale_frame/scale_frame.hpp>`)
+
+.. cpp:function:: bool is_identity_frame(const ScaleFrame& frame) noexcept
+
+   Whether ``frame`` is the identity: no translation and scale 1.
+
+.. cpp:function:: Point frame_to_outer(const ScaleFrame& frame, Point inner) noexcept
+
+   An inner point or rectangle in the outer coordinates.
+
+.. cpp:function:: Rect frame_to_outer(const ScaleFrame& frame, Rect inner) noexcept
+
+.. cpp:function:: Point frame_to_inner(const ScaleFrame& frame, Point outer) noexcept
+
+   An outer point or rectangle in the inner coordinates: the inverse map. ``frame``'s scale must be positive.
+
+.. cpp:function:: Rect frame_to_inner(const ScaleFrame& frame, Rect outer) noexcept
+
+.. cpp:function:: ScaleFrame compose_frames(const ScaleFrame& outer, const ScaleFrame& inner) noexcept
+
+   The frame that maps as ``inner`` and then ``outer``: frame_to_outer(compose_frames(outer, inner), p) is frame_to_outer(outer, frame_to_outer(inner, p)).

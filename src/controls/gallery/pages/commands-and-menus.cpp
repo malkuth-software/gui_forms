@@ -15,6 +15,7 @@
 #include "gui_forms/controls/status_strip.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/controls/tool_strip_container.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "commands-and-menus_form.hpp"
 #include <stxlib/optional.hpp>
@@ -93,7 +94,7 @@ private:
         const std::string_view id, const std::string_view text,
         const std::string_view description, const std::string_view shortcut = {}) {
         std::shared_ptr<Command> command =
-            std::make_shared<Command>(std::string(id), std::string(text));
+            gui_forms::detail::make_library_shared<Command>(std::string(id), std::string(text));
         (*command).set_description(std::string(description));
         if (!shortcut.empty()) (*command).set_shortcut(std::string(shortcut));
         return command;
@@ -219,7 +220,7 @@ private:
     void build_context_menu() {
         context_button_ = document_.gallery_commands_context_open;
         // The page's one tooltip: its window is the bubble and its shadow,
-        // and the shadow takes no input (tools/popup_margin_probe.py).
+        // and the shadow takes no input (gui_forms_tests tools/popup_margin_probe.py).
         (*context_button_).tool_tip_text = "Opens the context menu";
         on((*context_button_).clicked(), *this, &CommandsAndMenusPage::on_context_requested);
         context_menu_.set_items({
@@ -281,8 +282,8 @@ private:
     // and the gallery value command they share, standalone (the scaling
     // specimens below host the same command's galleries in a Ribbon).
     void build_gallery() {
-        const std::shared_ptr<Command> styles = std::make_shared<Command>("gallery.commands.styles", "Styles");
-        styles_ = std::make_shared<GalleryCommand>(styles);
+        const std::shared_ptr<Command> styles = gui_forms::detail::make_library_shared<Command>("gallery.commands.styles", "Styles");
+        styles_ = gui_forms::detail::make_library_shared<GalleryCommand>(styles);
         std::vector<RibbonGalleryCategory> categories{{"headings", "Headings"}, {"body", "Body text"},
                                                       {"quotes", "Quotations"}};
         std::vector<RibbonGalleryItem> items;
@@ -391,10 +392,10 @@ private:
     // Backstage, and a second BackstageView shown in place so that its
     // column and pages can be seen without opening it.
     void build_file_area() {
-        font_command_ = std::make_shared<FontCommand>(
+        font_command_ = gui_forms::detail::make_library_shared<FontCommand>(
             make_command("gallery.commands.font", "Font", "Choose the document's font"));
         (*font_command_).set_value({"Portsmouth Rapids", 11.0});
-        color_command_ = std::make_shared<ColorCommand>(
+        color_command_ = gui_forms::detail::make_library_shared<ColorCommand>(
             make_command("gallery.commands.colour", "Font colour", "Colour the selected text"));
         std::shared_ptr<RibbonFontControl> font =
             make_control<RibbonFontControl>(StableId("gallery.commands.ribbon-file-area.font"));
@@ -658,8 +659,9 @@ private:
     }
 
     void on_context_requested(ButtonBase& source) {
-        const Rect bounds = source.absolute_bounds();
-        context_menu_.show(source.shared_from_this(), {bounds.x + 12.0, bounds.y + bounds.height},
+        const ScaleFrame bounds_frame = source.window_frame();
+        const Rect bounds = frame_to_outer(bounds_frame, source.client_rectangle());
+        context_menu_.show(source.shared_from_this(), frame_to_outer(bounds_frame, Point{12.0, bounds.height}),
                            MenuOpenMode::keyboard);
     }
 
@@ -724,7 +726,7 @@ private:
 
 void add_commands_and_menus(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<CommandsAndMenusPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<CommandsAndMenusPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

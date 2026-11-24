@@ -14,8 +14,8 @@
 // start) is at time n / (60 · samples_per_tick) and depends only on n, so
 // grouping ticks into frames differently never changes the samples.
 //
-// Determinism: sines through engine_sine_cosine with the phase reduced to
-// one cycle first (its bound holds at any run length); noise from
+// Determinism: sines through STXlib's sine (effect_sine) with the phase
+// reduced to one cycle first (within its 2^32-radian range at any run length); noise from
 // EffectRandom's hash keyed by the sample index; no library randomness, no
 // allocation, no indirect calls. The clock is the motion clock's or a live
 // sub-surface's frame time (LiveSurfacePacer), so tests install a

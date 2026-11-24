@@ -4,7 +4,7 @@
 #include "miniaudio.h"
 #include <array>
 #include <atomic>
-#include <thread>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 struct AudioEngineState;
@@ -47,7 +47,7 @@ struct AudioLoopTransportState final {
     ma_sound sound{};
     ma_engine* native_engine{}; // Borrowed while engine owns this graph.
     bool source_initialized{}, sound_initialized{}; // Control thread only.
-    const std::thread::id control_thread;
+    const stxlib::ThreadIdentity control_thread;
     const std::uint64_t epoch;
     std::atomic<bool> closing{};
     std::atomic<AudioLoopStatus> failure{AudioLoopStatus::ok};

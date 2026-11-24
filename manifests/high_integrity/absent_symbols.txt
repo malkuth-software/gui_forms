@@ -59,6 +59,14 @@ read_windows_clipboard_image\(
 write_windows_clipboard_image\(
 ShellExecute
 posix_spawn$
+# Desktop notifications: no notification service is reached
+# (UNUserNotificationCenter, Windows toasts, org.freedesktop.Notifications).
+show_desktop_notification_impl\(
+withdraw_desktop_notification_impl\(
+AppKitDesktopNotifications
+WindowsToastNotifications
+LinuxDesktopNotifications
+UNUserNotificationCenter
 # Frame capture to a file (the hosts' capture_path).
 complete_frame_capture\(
 frame_capture_report_json\(

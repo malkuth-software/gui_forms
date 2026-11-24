@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::RasterCanvas",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/raster_canvas.ic.toml",
+    "sha256": "6dd42b88228ce54bb04178e21b1d764225b1929c61c03ff852c5a27b38863b2a"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.rastercanvas.transparency_cell_size_write.requires.transparency_cell_size",
+      "kind": "entry-check",
+      "statement": "transparency_cell_size runs only when finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128)); otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::raster_canvas::admits_transparency_cell_size, called in src/controls/raster_canvas/raster_canvas.cpp"
+    },
+    {
+      "id": "gui_forms.rastercanvas.transparency_cell_size_write.refusal.transparency_cell_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128)), transparency_cell_size changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -2,6 +2,7 @@
 
 #include "macos_window_requests.hpp"
 #include "macos_main_work.hpp"
+#include "macos_window_delegates.hpp"
 #include "macos_values.hpp"
 #include "../view/macos_view.hpp"
 
@@ -44,6 +45,21 @@ void toggle_full_screen_on_main(void* context) {
     [(*work).window toggleFullScreen:nil];
 }
 
+// The program's close request for one window. Every window the hosts make
+// has a GUIFormsWindowDelegate; a window without one is asked as its close
+// box asks it (performClose:).
+void request_close_on_main(void* context) {
+    const std::unique_ptr<WindowWork> work(static_cast<WindowWork*>(context));
+    NSWindow* const window = (*work).window;
+    const id<NSWindowDelegate> delegate = window.delegate;
+    if (![delegate isKindOfClass:[GUIFormsWindowDelegate class]]) {
+        [window performClose:nil];
+        return;
+    }
+    GUIFormsWindowDelegate* const windowDelegate = (GUIFormsWindowDelegate*)delegate;
+    [windowDelegate requestCloseForApplication:window];
+}
+
 void order_out_on_main(void* context) {
     const std::unique_ptr<WindowViewWork> work(static_cast<WindowViewWork*>(context));
     GUIFormsView* const view = (*work).view;
@@ -61,7 +77,8 @@ void DispatchAndCollectWake::operator()() const
 
 void RequestNativeClose::operator()() const
 {
-    post_perform_close(window_);
+    WindowWork* const work = new WindowWork{window_};
+    post_main_work(work, &request_close_on_main);
 }
 
 void RequestNativeShow::operator()() const

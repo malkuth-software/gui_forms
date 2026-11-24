@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::TreeListView",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/tree_list_view.ic.toml",
+    "sha256": "bbfaa80c597b2d1374b306f1316c844c5d408d57cd6a8b6cb7fa916b9f91e8ab"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.treelistview.indentation_write.requires.indentation",
+      "kind": "entry-check",
+      "statement": "indentation runs only when finite(incoming) and incoming >= indentation_least and incoming <= indentation_most; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::tree_list_view::admits_indentation, called in src/controls/panel/tree_list_view/tree_list_view.cpp"
+    },
+    {
+      "id": "gui_forms.treelistview.indentation_write.refusal.indentation",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= indentation_least and incoming <= indentation_most, indentation changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

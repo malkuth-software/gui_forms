@@ -48,7 +48,7 @@
       "hand": [],
       "sample": "25.0",
       "prepare": [
-        "if (!std::isfinite(incoming)) throw std::invalid_argument(\"ProgressRing value must be finite\");"
+        "if (!ic::admits_value(incoming)) throw std::invalid_argument(\"ProgressRing value must be finite\");"
       ]
     },
     {
@@ -83,7 +83,7 @@
       "hand": [],
       "sample": "50.0",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming <= 0.0) {",
+        "if (!ic::admits_maximum(incoming)) {",
         "    throw std::invalid_argument(\"ProgressRing maximum must be finite and greater than zero\");",
         "}"
       ]

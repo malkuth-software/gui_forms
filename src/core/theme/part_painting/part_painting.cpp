@@ -4,7 +4,7 @@
 #include "../../types/painter/text_turn.hpp"
 #include "gui_forms/control/control/control.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/layout/types/layout_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
@@ -184,6 +184,8 @@ constexpr double least_dotted_width = 0.5;
 // The most dots one side of a dotted ring holds; a longer side (a very
 // large focused part) is stroked solid instead, so a paint stays bounded.
 constexpr double maximum_dots_per_side = 4096.0;
+// The most grip dots across or down one grip_dots mark.
+constexpr double maximum_grip_dots_per_side = 256.0;
 
 // A dotted ring whose stroke is centred on `ring`'s edges: square dots one
 // width across, one every two widths, clockwise from the top-left corner,
@@ -259,14 +261,21 @@ void fill_arrow_strips(Painter& painter, bool horizontal_strips, double centre, 
     }
 }
 
+// The most strips one arrow is filled with: a larger box (a part laid out
+// huge) draws its arrow at this depth, centred, so a paint stays bounded and
+// the depth is converted to int only once it is known to fit (as
+// maximum_dots_per_side bounds a dotted ring).
+constexpr double maximum_arrow_strips = 1024.0;
+
 // A solid triangle pointing `direction`, filled one device-independent strip
 // at a time so every host rasterizes the same spans. The tip is the one-unit
 // strip; each strip after it reaches one unit further on either side. The
 // triangle is `half` strips deep, with its middle strip at the box's centre.
 void fill_arrow(Painter& painter, Rect bounds, PartMark direction, Color color) {
     const double side = std::min(bounds.width, bounds.height);
-    const double half = std::floor(side * 0.5);
-    if (half < 1.0) return;
+    // Tested so a box that is not a number draws nothing.
+    if (!(side >= 2.0)) return;
+    const double half = std::min(std::floor(side * 0.5), maximum_arrow_strips);
     const double centre_x = std::floor(bounds.x + bounds.width * 0.5);
     const double centre_y = std::floor(bounds.y + bounds.height * 0.5);
     const int rows = static_cast<int>(half);
@@ -574,9 +583,21 @@ void paint_mark(Painter& painter, const PartPaint& part, const ControlVisualReci
         return;
     }
     case PartMark::grip_dots: {
-        // Two-unit dots on a four-unit pitch, filling the box.
-        for (double y = box.y + 1.0; y + 2.0 <= box.y + box.height; y += 4.0) {
-            for (double x = box.x + 1.0; x + 2.0 <= box.x + box.width; x += 4.0) {
+        // Two-unit dots on a four-unit pitch, filling the box, at most
+        // maximum_grip_dots_per_side across and down (a grip laid out huge
+        // keeps that many from its top-left corner). Counted as doubles and
+        // bounded before the conversion; a box that is not a number draws
+        // none, where the old loop over doubles never ended for a coordinate
+        // past 2^53.
+        const double across_dots = std::floor((box.width + 1.0) / 4.0);
+        const double down_dots = std::floor((box.height + 1.0) / 4.0);
+        if (!(across_dots >= 1.0) || !(down_dots >= 1.0)) return;
+        const int across = static_cast<int>(std::min(across_dots, maximum_grip_dots_per_side));
+        const int down = static_cast<int>(std::min(down_dots, maximum_grip_dots_per_side));
+        for (int row = 0; row < down; ++row) {
+            const double y = box.y + 1.0 + 4.0 * static_cast<double>(row);
+            for (int column = 0; column < across; ++column) {
+                const double x = box.x + 1.0 + 4.0 * static_cast<double>(column);
                 painter.fill_rect({x, y, 2.0, 2.0}, recipe.muted_text);
             }
         }
@@ -818,8 +839,10 @@ InscribedCircle inscribed_circle(Rect bounds) noexcept {
 // o'clock, with the engine's sine and cosine, so that a dial is the same on
 // every host.
 Point point_at_angle(Point centre, double radius, double angle) noexcept {
-    const EngineSineCosine turned = engine_sine_cosine(angle);
-    const Point result{centre.x + radius * turned.sine, centre.y - radius * turned.cosine};
+    double turned_sine = 0.0;
+    double turned_cosine = 0.0;
+    stxlib::math::sincos(angle, turned_sine, turned_cosine);
+    const Point result{centre.x + radius * turned_sine, centre.y - radius * turned_cosine};
     return result;
 }
 
@@ -1543,7 +1566,7 @@ bool paint_light_plane_part(Painter& painter, const Control& control, const Part
     }
     const DeviceExtent extent{static_cast<std::uint32_t>(device_width), static_cast<std::uint32_t>(device_height)};
     const std::shared_ptr<const PartRaster> raster =
-        (*light.raster).composite(light.planes, light.drive, light.settings, extent, DeviceScale{scale});
+        (*light.raster).composite(light.planes, light.down, light.drive, light.settings, extent, DeviceScale{scale});
     if (!raster) return false;
     if (clips.empty()) {
         draw_light_plane_raster(painter, part, raster);

@@ -27,7 +27,8 @@
 //   public signature carries it only after review.
 //
 // The macro follows bfft's (third_party/bfft/src/detail/bruun_simd_backend.hpp)
-// and stx_conv's STX_CONV_RESTRICT: MSVC proper takes `__restrict`; Clang
+// and the STX_CONV_RESTRICT of stx_conv (the CONV library before it became
+// stxlib::conv): MSVC proper takes `__restrict`; Clang
 // (clang-cl included) and GCC take `__restrict__`, because macOS's
 // <sys/cdefs.h> defines `__restrict` as nothing in C++, which silently drops
 // the promise.

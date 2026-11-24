@@ -23,8 +23,16 @@ struct GUI_FORMS_API HostSessionSnapshot final {
     std::uint64_t modal_input_suppressions{};
     // HostRelativeMotionEvent samples delivered to the window.
     std::uint64_t relative_motion_events{};
+    // GestureEvent reports delivered to the window.
+    std::uint64_t gesture_events{};
     std::uint64_t drag_events{};
     std::uint64_t drag_drops{};
+    // A model's input delivered through HostSession::dispatch_model_input,
+    // and the user's input events held back while a model held the
+    // interface (model.directed or suspend_input; MCP automation study,
+    // sections 8.2 and 8.3).
+    std::uint64_t model_input_events{};
+    std::uint64_t user_input_held{};
     std::uint32_t modal_depth{};
     bool attached{};
     bool active{};

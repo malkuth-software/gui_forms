@@ -83,8 +83,9 @@ HAND_WRITTEN: frozenset[str] = frozenset({
 
 # Payload structs an event lends read-only but a raiser lends writable (the
 # class tables' hook entries read the fields the entry wrote back): Control's
-# mouse raisers take a MouseEventArgs whose handled ends the route.
-LENT_WRITABLE: frozenset[str] = frozenset({'MouseEventArgs'})
+# mouse raisers take a MouseEventArgs whose handled ends the route, and the
+# gesture raiser a GestureEventArgs (gf_control_hooks.on_gesture).
+LENT_WRITABLE: frozenset[str] = frozenset({'MouseEventArgs', 'GestureEventArgs'})
 
 # Types no event field carries yet, with the family that takes them.
 DEFERRED: dict[str, str] = {

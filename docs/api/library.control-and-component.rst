@@ -5,7 +5,7 @@
 Control and component
 =====================
 
-The base classes every control and nonvisual component derives from, with layout, docking, anchoring and validation vocabularies (layout constraints, intrinsic sizes and layout direction among them), and the anatomy each control publishes: named parts, part roles and states, and the interactions each type raises; composite controls, the control types a ``.control`` document defines.
+The base classes every control and nonvisual component derives from, with layout, docking, anchoring and validation vocabularies (layout constraints, intrinsic sizes and layout direction among them), and the anatomy each control publishes: named parts, part roles and states, and the interactions each type raises; composite controls, the control types a ``.control`` document defines; and form documents for tools: the schema, a document's check and a preview window.
 
 .. list-table::
    :class: autosummary longtable
@@ -124,6 +124,8 @@ Related types
      - One application-defined finite state, as written in ``:state(name)``.
    * - :cpp:class:`CustomStateIndex <gui_forms::CustomStateIndex>`
      - Position of an application-defined state in its control type's declaration list.
+   * - :cpp:class:`DesignSizeCapability <gui_forms::DesignSizeCapability>`
+     - The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent.
    * - :cpp:class:`DirectionRingStyle <gui_forms::DirectionRingStyle>`
      - The direction ring: an annulus between ``inner_radius`` and ``outer_radius`` (finite, 0 <= inner < outer) about the layout's centre in ``track``, with the picked item's sector of it in ``pick``.
    * - :cpp:class:`DisposedError <gui_forms::DisposedError>`
@@ -162,6 +164,16 @@ Related types
      - The font of the control's text (Font).
    * - :cpp:class:`ForeColorCapability <gui_forms::ForeColorCapability>`
      - The own text colour; empty takes the parent's.
+   * - :cpp:class:`FormDocumentCheck <gui_forms::FormDocumentCheck>`
+     - A document's check: whether it compiles, and the diagnostics in the order found.
+   * - :cpp:class:`FormDocumentDiagnostic <gui_forms::FormDocumentDiagnostic>`
+     - One diagnostic, in the form compiler's terms (``main.form:4:7: error: E812 form_generation_refused: ...``).
+   * - :cpp:class:`FormDocumentSchema <gui_forms::FormDocumentSchema>`
+     - The types a document may name.
+   * - :cpp:class:`FormDocumentType <gui_forms::FormDocumentType>`
+     - One type a document may name, borrowed from its schema.
+   * - :cpp:class:`FormDocumentWindow <gui_forms::FormDocumentWindow>`
+     - A document loaded into a window, to look at: the window, the document's title, and the load's check.
    * - :cpp:class:`FractionFactor <gui_forms::FractionFactor>`
      -  
    * - :cpp:class:`GridAvailableExtent <gui_forms::GridAvailableExtent>`
@@ -252,6 +264,8 @@ Related types
      - MnemonicText separates rendered UTF-8 from the optional activation scalar parsed from Forms-compatible ampersand notation.
    * - :cpp:class:`NameCapability <gui_forms::NameCapability>`
      - The stable authoring name (Control::Name).
+   * - :cpp:class:`OverflowRecord <gui_forms::OverflowRecord>`
+     - One overflow a window knows of now (SurfaceRoot::overflow_records).
    * - :cpp:class:`OwnerDecorationRecipe <gui_forms::OwnerDecorationRecipe>`
      -  
    * - :cpp:class:`PaddingCapability <gui_forms::PaddingCapability>`
@@ -276,6 +290,8 @@ Related types
      - One placed item: its box, its anchor and direction, and the sector of directions that picks it, from ``sweep_start`` to ``sweep_start + sweep`` degrees (sweep = 360 / count, centred on the direction).
    * - :cpp:class:`RuntimeId <gui_forms::RuntimeId>`
      - RuntimeId is the monotonic process-local identity used for exact retained instances and child operations.
+   * - :cpp:class:`SafeInsets <gui_forms::SafeInsets>`
+     - The edges of a window's client area that the host or the device hides (a notch, rounded corners, a television's overscan, a browser's toolbar over the canvas), in logical units.
    * - :cpp:class:`SizeValue <gui_forms::SizeValue>`
      -  
    * - :cpp:class:`StableIdLiteral <gui_forms::StableIdLiteral>`
@@ -296,6 +312,12 @@ Related types
      - The plain tooltip text; empty never shows.
    * - :cpp:class:`TrackBreadth <gui_forms::TrackBreadth>`
      -  
+   * - :cpp:class:`ViewportFit <gui_forms::ViewportFit>`
+     - A viewport owner's policy (Control::viewport_fit).
+   * - :cpp:class:`ViewportFitCapability <gui_forms::ViewportFitCapability>`
+     - What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling.
+   * - :cpp:class:`ViewportPlacement <gui_forms::ViewportPlacement>`
+     - Where content of extent ``content`` goes in ``viewport`` under ``fit``: the pure computation every owner that carries out contain or cover uses.
    * - :cpp:class:`VisibleCapability <gui_forms::VisibleCapability>`
      - Whether the control takes part in presentation and input (Visible).
    * - :cpp:class:`WrongThreadError <gui_forms::WrongThreadError>`
@@ -1220,7 +1242,7 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public HelpLineCapability<Declaring>, public HelpCapability<Declaring>, public KeywordsCapability<Declaring>, public CeremonialCapability<Declaring>, public TagCapability<Declaring>, public FocusableCapability<Declaring>, public DoubleBufferedCapability<Declaring>, public ClassesCapability<Declaring>
+.. cpp:struct:: template <typename Declaring> ControlCapabilities : public NameCapability<Declaring>, public VisibleCapability<Declaring>, public EnabledCapability<Declaring>, public AutoSizeCapability<Declaring>, public CausesValidationCapability<Declaring>, public ToolTipTextCapability<Declaring>, public CursorCapability<Declaring>, public BackColorCapability<Declaring>, public ForeColorCapability<Declaring>, public MinimumSizeCapability<Declaring>, public MaximumSizeCapability<Declaring>, public ViewportFitCapability<Declaring>, public DesignSizeCapability<Declaring>, public MarginCapability<Declaring>, public PaddingCapability<Declaring>, public DockCapability<Declaring>, public AnchorCapability<Declaring>, public JustifySelfCapability<Declaring>, public AlignSelfCapability<Declaring>, public AutoSizeModeCapability<Declaring>, public LayoutDirectionCapability<Declaring>, public TabIndexCapability<Declaring>, public TabStopCapability<Declaring>, public AllowDropCapability<Declaring>, public HitTestTransparentCapability<Declaring>, public AccessibleNameCapability<Declaring>, public AccessibleDescriptionCapability<Declaring>, public HelpLineCapability<Declaring>, public HelpCapability<Declaring>, public KeywordsCapability<Declaring>, public CeremonialCapability<Declaring>, public TagCapability<Declaring>, public FocusableCapability<Declaring>, public DoubleBufferedCapability<Declaring>, public ClassesCapability<Declaring>
 
    ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
 
@@ -1272,6 +1294,14 @@ Related types
    .. cpp:member:: Size maximum_size
 
       The largest size layout gives the control; zero is unbounded.
+
+   .. cpp:member:: ViewportFit viewport_fit
+
+      What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+
+   .. cpp:member:: Size design_size
+
+      The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent. Contain and cover scale content of this extent into the viewport. Throws std::invalid_argument unless both sides are finite and either both zero or both positive.
 
    .. cpp:member:: Insets margin
 
@@ -1441,6 +1471,23 @@ Related types
    Position of an application-defined state in its control type's declaration list.
 
    .. cpp:member:: std::uint8_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> DesignSizeCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
+
+   The extent this control's content is designed at (stage VA); 0 x 0, the default, means the content's own laid-out extent. Contain and cover scale content of this extent into the viewport. Throws std::invalid_argument unless both sides are finite and either both zero or both positive.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(DesignSizeCapability& capability, Size incoming)
+
+   .. cpp:member:: PropertyCell<Size, DesignSizeCapability<Declaring>> design_size
+
+      Default: ``{Size{}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1829,6 +1876,163 @@ Related types
    .. cpp:function:: static void assign(ForeColorCapability& capability, stxlib::Optional<Color> incoming)
 
    .. cpp:member:: PropertyCell<stxlib::Optional<Color>, ForeColorCapability<Declaring>> fore_color
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FormDocumentCheck final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   A document's check: whether it compiles, and the diagnostics in the order found. Move-only; an empty check (moved from, or refused for want of memory) does not compile and holds none.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: FormDocumentCheck() noexcept
+
+   .. cpp:function:: FormDocumentCheck(FormDocumentCheck&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool compiled() const noexcept
+
+      The form compiler would accept the document (warnings allowed).
+
+   .. cpp:function:: stxlib::usize count() const noexcept
+
+   .. cpp:function:: stxlib::usize error_count() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: FormDocumentDiagnostic diagnostic(stxlib::usize index) const& noexcept
+
+      The diagnostic at ``index`` (below count()), borrowed from this check.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FormDocumentDiagnostic final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   One diagnostic, in the form compiler's terms (``main.form:4:7: error: E812 form_generation_refused: ...``). The texts are borrowed from the check, the code's label and name from static storage.
+
+   .. cpp:member:: bool error
+
+   .. cpp:member:: stxlib::usize line
+
+      One-based; zero where the diagnostic names no place.
+
+   .. cpp:member:: stxlib::usize column
+
+   .. cpp:member:: stxlib::View<char> code_label
+
+      ``E812``, and the code's name: ``form_generation_refused``.
+
+   .. cpp:member:: stxlib::View<char> code_name
+
+   .. cpp:member:: stxlib::View<char> file
+
+   .. cpp:member:: stxlib::View<char> rule
+
+      The element or rule it concerns, the property (may be empty), and what is wrong.
+
+   .. cpp:member:: stxlib::View<char> property
+
+   .. cpp:member:: stxlib::View<char> detail
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FormDocumentSchema final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   The types a document may name.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: stxlib::usize type_count() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static const FormDocumentSchema& registry()
+
+      The registry's: every stock type that can be made alone, in registry order, then the form root. Made on the first call (UI thread) and never destroyed.
+
+   .. cpp:function:: FormDocumentType type(stxlib::usize index) const noexcept
+
+      The type at ``index``, which must be below type_count().
+
+   .. cpp:function:: stxlib::usize find(const char* name, stxlib::usize name_bytes) const noexcept
+
+      The index of the type registered as ``name``, or type_count() for none.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FormDocumentType final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   One type a document may name, borrowed from its schema.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: stxlib::View<char> name() const noexcept
+
+      The registered name: ``check_box`` (a document writes ``check-box``).
+
+   .. cpp:function:: bool holds_children() const noexcept
+
+      Whether objects of the type may hold objects: controls do, other components do not.
+
+   .. cpp:function:: stxlib::View<PropertyDescriptor> properties() const noexcept
+
+      The properties a document may set on the type.
+
+   .. cpp:function:: stxlib::View<PropertyDescriptor> child_properties() const noexcept
+
+      The properties the type provides to its direct children.
+
+   .. cpp:function:: stxlib::usize interaction_count() const noexcept
+
+      The interactions' registered names: ``checked_changed``.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: stxlib::View<char> interaction(stxlib::usize index) const noexcept
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: FormDocumentWindow final
+
+   ``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+   A document loaded into a window, to look at: the window, the document's title, and the load's check. The window lives as long as this value; the program shows or captures it (OffscreenAttachment) but does not keep it past this value. Move-only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: FormDocumentWindow() noexcept
+
+   .. cpp:function:: FormDocumentWindow(FormDocumentWindow&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: Window* window() const& noexcept
+
+      The window, or null when the load was refused (the check says why).
+
+   .. cpp:function:: stxlib::View<char> title() const& noexcept
+
+      The document's title (a Window holds none), for the host.
+
+   .. cpp:function:: const FormDocumentCheck& check() const& noexcept
 
 .. cpp:namespace:: gui_forms
 
@@ -2676,6 +2880,40 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: OverflowRecord final
+
+   ``#include <gui_forms/layout/viewport_fit/viewport_fit.hpp>`` (:src:`source <include/gui_forms/layout/viewport_fit/viewport_fit.hpp>`)
+
+   One overflow a window knows of now (SurfaceRoot::overflow_records). A record exists while its overflow lasts; it is replaced when its answer or cause changes and removed when the content fits again or its owner leaves the window.
+
+   .. cpp:member:: RuntimeId owner
+
+      The viewport owner, a control of the window (SurfaceRoot:: overflow_owner finds it).
+
+   .. cpp:member:: OverflowCause cause
+
+      Default: ``{OverflowCause::minimum_content_exceeds_viewport}``.
+
+   .. cpp:member:: Size content_extent
+
+      The content's extent and the viewport's, in the owner's logical units.
+
+   .. cpp:member:: Size viewport_extent
+
+   .. cpp:member:: OverflowAnswer answer
+
+      The answer the owner gives: scroll for an owner that scrolls its content, otherwise its viewport_fit's answer. Default: ``{OverflowAnswer::contain}``.
+
+   .. cpp:member:: double effective_scale
+
+      The scale carried out (1 where none is). Default: ``{1.0}``.
+
+   .. cpp:member:: bool answered
+
+      False only for an unanswered overflow: the owner's answer is not carried out (a scroll by an owner that does not scroll, or a contain or cover where none is applied yet). A healthy window has none.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: OwnerDecorationRecipe final
 
    ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
@@ -2891,6 +3129,22 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: SafeInsets final
+
+   ``#include <gui_forms/layout/viewport_fit/viewport_fit.hpp>`` (:src:`source <include/gui_forms/layout/viewport_fit/viewport_fit.hpp>`)
+
+   The edges of a window's client area that the host or the device hides (a notch, rounded corners, a television's overscan, a browser's toolbar over the canvas), in logical units. Zero on a host that reports none.
+
+   .. cpp:member:: double left
+
+   .. cpp:member:: double top
+
+   .. cpp:member:: double right
+
+   .. cpp:member:: double bottom
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: SizeValue final
 
    ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
@@ -3065,6 +3319,75 @@ Related types
    .. cpp:member:: LengthPercentage length
 
    .. cpp:member:: FractionFactor fraction
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ViewportFit final
+
+   ``#include <gui_forms/layout/viewport_fit/viewport_fit.hpp>`` (:src:`source <include/gui_forms/layout/viewport_fit/viewport_fit.hpp>`)
+
+   A viewport owner's policy (Control::viewport_fit). Independent options with valid defaults; valid_viewport_fit states the rules.
+
+   .. cpp:member:: OverflowAnswer answer
+
+      Default: ``{OverflowAnswer::contain}``.
+
+   .. cpp:member:: double minimum_scale
+
+      Bounds on the effective scale of contain and cover: the product of every applied scale from this owner up to its root. A contain whose ratio falls below minimum_scale takes below_minimum instead, at minimum_scale. Default: ``{0.0}``.
+
+   .. cpp:member:: double maximum_scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: OverflowAnswer below_minimum
+
+      Default: ``{OverflowAnswer::scroll}``.
+
+   .. cpp:member:: ContentAlignment alignment
+
+      Where contained or covered content sits in the leftover space. Default: ``{ContentAlignment::middle_center}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Declaring> ViewportFitCapability
+
+   ``#include <gui_forms/control/control_capabilities/control_capabilities.hpp>`` (:src:`source <include/gui_forms/control/control_capabilities/control_capabilities.hpp>`)
+
+   What this control does when its content, after layout, does not fit its viewport (stage VA): clip by default, recorded; Windows Forms panels (Panel, UserControl, SplitterPanel and their kinds) contain, media contains without a floor, CSS panels scroll; an owner that scrolls its content answers by scrolling. Throws std::invalid_argument unless valid_viewport_fit holds, changing nothing.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static void assign(ViewportFitCapability& capability, ViewportFit incoming)
+
+   .. cpp:member:: PropertyCell<ViewportFit, ViewportFitCapability<Declaring>> viewport_fit
+
+      Default: ``{ViewportFit{OverflowAnswer::clip}}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ViewportPlacement final
+
+   ``#include <gui_forms/layout/viewport_fit/viewport_fit.hpp>`` (:src:`source <include/gui_forms/layout/viewport_fit/viewport_fit.hpp>`)
+
+   Where content of extent ``content`` goes in ``viewport`` under ``fit``: the pure computation every owner that carries out contain or cover uses.
+
+   .. cpp:member:: OverflowAnswer applied
+
+      The answer carried out: fit.answer, or fit.below_minimum for a contain whose ratio fell below minimum_scale. Default: ``{OverflowAnswer::contain}``.
+
+   .. cpp:member:: double scale
+
+      Content units to viewport units. Default: ``{1.0}``.
+
+   .. cpp:member:: Rect destination
+
+      The scaled content's rectangle in the viewport's coordinates. It lies inside the viewport when ``fits``; a cover, a clip or a scroll of larger content reaches past it.
+
+   .. cpp:member:: bool fits
+
+      Default: ``{true}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3713,6 +4036,8 @@ Enumerations
 
    .. cpp:enumerator:: arrange_outside_slot
 
+   .. cpp:enumerator:: content_overflow
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: LayoutDiagnosticSeverity
@@ -3734,6 +4059,34 @@ Enumerations
    .. cpp:enumerator:: left_to_right
 
    .. cpp:enumerator:: right_to_left
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: OverflowAnswer
+
+   ``#include <gui_forms/layout/viewport_fit/viewport_fit.hpp>`` (:src:`source <include/gui_forms/layout/viewport_fit/viewport_fit.hpp>`)
+
+   .. cpp:enumerator:: scroll
+
+   .. cpp:enumerator:: contain
+
+   .. cpp:enumerator:: cover
+
+   .. cpp:enumerator:: clip
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: OverflowCause
+
+   ``#include <gui_forms/layout/viewport_fit/viewport_fit.hpp>`` (:src:`source <include/gui_forms/layout/viewport_fit/viewport_fit.hpp>`)
+
+   .. cpp:enumerator:: minimum_content_exceeds_viewport
+
+   .. cpp:enumerator:: design_size_exceeds_viewport
+
+   .. cpp:enumerator:: placed_child_outside_viewport
+
+   .. cpp:enumerator:: minimum_size_exceeds_work_area
 
 .. cpp:namespace:: gui_forms
 
@@ -4268,6 +4621,18 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/forms/form_documents/form_documents.hpp>`` (:src:`source <include/gui_forms/forms/form_documents/form_documents.hpp>`)
+
+.. cpp:function:: FormDocumentCheck check_form_document(const FormDocumentSchema& schema, const char* file, stxlib::usize file_bytes, const char* document, stxlib::usize document_bytes)
+
+   ``document`` (named ``file`` in the diagnostics) checked against ``schema`` as the form compiler checks it: parsed, its model built, every name, value and binding checked. Nothing is made.
+
+.. cpp:function:: FormDocumentWindow load_form_document_window(const FormDocumentSchema& schema, const char* file, stxlib::usize file_bytes, const char* document, stxlib::usize document_bytes)
+
+   ``document`` loaded against ``schema`` into a window of the current application (or, with none, a window with its own resources), with no model: a document that binds (``<bind>``) is refused, so a preview blanks its bindings first. A document whose root is a control, not a form, is refused too. UI thread.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
 .. cpp:function:: BlockFlowSolveOutcome solve_block_flow(const BlockFlowContainerInput& container, std::span<const BlockFlowItemInput> items, BlockFlowLayoutWorkspace& workspace)
@@ -4493,6 +4858,60 @@ Functions, constants and aliases
 ``#include <gui_forms/layout/types/layout_types.hpp>`` (:src:`source <include/gui_forms/layout/types/layout_types.hpp>`)
 
 .. cpp:var:: constexpr TypeTag<LayoutDirection> layout_direction
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/layout/viewport_fit/viewport_fit.hpp>`` (:src:`source <include/gui_forms/layout/viewport_fit/viewport_fit.hpp>`)
+
+.. cpp:function:: constexpr bool is_valid_overflow_answer(OverflowAnswer answer) noexcept
+
+.. cpp:function:: const char* overflow_answer_name(OverflowAnswer answer) noexcept
+
+   The answer's snake_case name ("scroll", "contain", "cover", "clip"), or "unknown" for a value outside the enumeration.
+
+.. cpp:function:: bool valid_viewport_fit(const ViewportFit& fit) noexcept
+
+   Whether ``fit`` is one a viewport owner accepts: both answers in the enumeration, below_minimum scroll or clip, minimum_scale finite and not negative, maximum_scale finite, positive, at least minimum_scale and at most maximum_viewport_scale, and the alignment in its enumeration.
+
+.. cpp:function:: ViewportPlacement place_viewport_content(Size content, Rect viewport, const ViewportFit& fit) noexcept
+
+   Places ``content`` in ``viewport``: - contain: scale = min(w_v / w_c, h_v / h_c), kept at most maximum_scale; below minimum_scale the placement takes below_minimum at minimum_scale; - cover: scale = max(w_v / w_c, h_v / h_c), kept within both bounds; - scroll and clip: scale 1; then aligns the scaled extent in the leftover space by fit.alignment (scroll and clip by the viewport's top left). Content with an empty or non-finite extent, or an empty viewport, is placed at scale 1 at the viewport's origin and fits. ``fit`` must be valid (valid_viewport_fit); an invalid one is placed as the default ViewportFit.
+
+.. cpp:function:: constexpr bool is_valid_overflow_cause(OverflowCause cause) noexcept
+
+.. cpp:function:: const char* overflow_cause_name(OverflowCause cause) noexcept
+
+.. cpp:function:: bool valid_safe_insets(const SafeInsets& insets) noexcept
+
+   Whether every edge is finite and not negative.
+
+.. cpp:function:: ScaleFrame placement_frame(Rect content, const ViewportPlacement& placement) noexcept
+
+   The frame that carries out ``placement`` for content occupying ``content`` in its own coordinates: the content's top left goes to the destination's top left, at the placement's scale.
+
+.. cpp:function:: ViewportFit fit_within_outer_scale(const ViewportFit& fit, double outer_scale) noexcept
+
+   ``fit`` with its scale bounds expressed for an owner whose ancestors already scale by ``outer_scale`` (positive): the bounds of a ViewportFit are on the effective scale, so a nested contain cannot escape the floor by nesting. Both bounds are divided by ``outer_scale`` and kept at most maximum_viewport_scale, the maximum at least the minimum.
+
+.. cpp:var:: constexpr double maximum_viewport_scale
+
+   The largest scale a ViewportFit may allow: content shown up to 1024 times its design size. Value: ``1024.0``.
+
+.. cpp:var:: constexpr ViewportFit panel_viewport_fit
+
+   The defaults per kind of owner (section 8; owner decision 4). Control's own default is clip, recorded: a control that places parts of its own answers its overflow itself (strips, the ribbon, navigation). Windows Forms panels (Panel and its kinds, UserControl, SplitterPanel) contain: content outside them is scaled to fit, a deliberate difference from Windows Forms, which clips; never enlarged. Value: ``{OverflowAnswer::contain, 0.0, 1.0}``.
+
+.. cpp:var:: constexpr ViewportFit media_viewport_fit
+
+   Media (PictureBox, RasterCanvas, a SubSurfaceHost with a design size) contains with no floor and up to maximum_viewport_scale. Value: ``{OverflowAnswer::contain, 0.0, maximum_viewport_scale}``.
+
+.. cpp:var:: constexpr ViewportFit reflowing_viewport_fit
+
+   CSS panels (FlexPanel, GridPanel, BlockPanel) reflow, then scroll: an overflow they cannot scroll (auto_scroll off) is recorded unanswered. Value: ``{OverflowAnswer::scroll, 0.0, 1.0}``.
+
+.. cpp:var:: constexpr std::size_t maximum_overflow_records
+
+   The most overflow records a window keeps; later ones are counted (SurfaceRoot::dropped_overflow_records). Value: ``1000U``.
 
 .. cpp:namespace:: gui_forms
 

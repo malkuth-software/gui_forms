@@ -1,5 +1,7 @@
 #include "gui_forms/controls/plot_axis_item.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "plot_axis_item_ic_checks.hpp"
 
 #include <cmath>
 #include <memory>
@@ -7,6 +9,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::plot_axis_item;
 
 namespace {
 
@@ -14,14 +17,14 @@ namespace {
 // declared. Static storage; any thread may read them.
 std::shared_ptr<const PropertyEnumDescriptor> plot_axis_direction_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "plot_axis_direction", {{"horizontal", 0}, {"vertical", 1}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> plot_axis_scale_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "plot_axis_scale", {{"linear", 0}, {"log10", 1}, {"symlog", 2}, {"time", 3}, {"category", 4}}, false});
     return value;
 }
@@ -139,7 +142,7 @@ void PlotAxisItem::written(const decltype(auto_fit)&) {
 
 void PlotAxisItem::prepare_write(const decltype(follow_span)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0) {
+    if (!ic::admits_follow_span(incoming)) {
         throw std::invalid_argument("PlotAxisItem follow_span must be finite and not negative");
     }
 }
@@ -297,7 +300,7 @@ BindingValue PropertyValueTraits<PlotAxisDirection>::to_binding(PlotAxisDirectio
     descriptor.enumeration = plot_axis_direction_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -316,7 +319,7 @@ BindingValue PropertyValueTraits<PlotAxisScale>::to_binding(PlotAxisScale value)
     descriptor.enumeration = plot_axis_scale_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

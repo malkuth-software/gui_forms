@@ -31,6 +31,7 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/content/types/content_types.hpp"
 #include "gui_forms/control/control/control.hpp"
@@ -41,11 +42,13 @@
 #include "gui_forms/controls/breadcrumb_trail.hpp"
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/button_base.hpp"
+#include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/calendar_values.hpp"
 #include "gui_forms/controls/callout.hpp"
 #include "gui_forms/controls/card.hpp"
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/check_box_values.hpp"
+#include "gui_forms/controls/checked_combo_box.hpp"
 #include "gui_forms/controls/checked_list_box.hpp"
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/color_picker.hpp"
@@ -96,9 +99,11 @@
 #include "gui_forms/controls/page_strip.hpp"
 #include "gui_forms/controls/page_view.hpp"
 #include "gui_forms/controls/picture_box.hpp"
+#include "gui_forms/controls/pie_chart.hpp"
 #include "gui_forms/controls/plot3d_view.hpp"
 #include "gui_forms/controls/plot_values.hpp"
 #include "gui_forms/controls/plot_view.hpp"
+#include "gui_forms/controls/popup_container_box.hpp"
 #include "gui_forms/controls/property_grid.hpp"
 #include "gui_forms/controls/property_list.hpp"
 #include "gui_forms/controls/quick_access_toolbar.hpp"
@@ -141,6 +146,7 @@
 #include "gui_forms/docking/types/dock_types.hpp"
 #include "gui_forms/drawing/types/drawing_types.hpp"
 #include "gui_forms/events/drag_events/drag_events.hpp"
+#include "gui_forms/events/gesture_events/gesture_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
@@ -531,6 +537,30 @@ struct EnumerationChoices<FontRole> {
         {"control", static_cast<std::int64_t>(FontRole::control)},
         {"content", static_cast<std::int64_t>(FontRole::content)},
         {"monospace", static_cast<std::int64_t>(FontRole::monospace)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<GestureKind> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"magnify", static_cast<std::int64_t>(GestureKind::magnify)},
+        {"rotate", static_cast<std::int64_t>(GestureKind::rotate)},
+        {"smart_magnify", static_cast<std::int64_t>(GestureKind::smart_magnify)},
+        {"swipe", static_cast<std::int64_t>(GestureKind::swipe)},
+    }};
+};
+
+template <>
+struct EnumerationChoices<GesturePhase> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 6> choices{{
+        {"began", static_cast<std::int64_t>(GesturePhase::began)},
+        {"changed", static_cast<std::int64_t>(GesturePhase::changed)},
+        {"ended", static_cast<std::int64_t>(GesturePhase::ended)},
+        {"cancelled", static_cast<std::int64_t>(GesturePhase::cancelled)},
+        {"momentum", static_cast<std::int64_t>(GesturePhase::momentum)},
+        {"momentum_ended", static_cast<std::int64_t>(GesturePhase::momentum_ended)},
     }};
 };
 
@@ -1040,6 +1070,17 @@ struct EnumerationChoices<PointerButton> {
 };
 
 template <>
+struct EnumerationChoices<PopupCloseReason> {
+    static constexpr bool flags = false;
+    static constexpr std::array<EnumerationChoice, 4> choices{{
+        {"accepted", static_cast<std::int64_t>(PopupCloseReason::accepted)},
+        {"cancelled", static_cast<std::int64_t>(PopupCloseReason::cancelled)},
+        {"click_away", static_cast<std::int64_t>(PopupCloseReason::click_away)},
+        {"escape", static_cast<std::int64_t>(PopupCloseReason::escape)},
+    }};
+};
+
+template <>
 struct EnumerationChoices<ProceduralPattern> {
     static constexpr bool flags = false;
     static constexpr std::array<EnumerationChoice, 9> choices{{
@@ -1371,6 +1412,7 @@ void append_field(EventFields& fields, std::string_view name, const BusinessCard
 void read_field(EventFields& fields, std::string_view name, BusinessCardRequest& value);
 void append_field(EventFields& fields, std::string_view name, const CalendarDateRange& value);
 void append_field(EventFields& fields, std::string_view name, const CaretSettings& value);
+void append_field(EventFields& fields, std::string_view name, const CheckedComboItemChange& value);
 void append_field(EventFields& fields, std::string_view name, const CommandInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const CommandItem& value);
 void append_field(EventFields& fields, std::string_view name, const CommandState& value);
@@ -1432,6 +1474,7 @@ void append_field(EventFields& fields, std::string_view name, const DockLayoutCh
 void append_field(EventFields& fields, std::string_view name, const DockNavigatorChoice& value);
 void append_field(EventFields& fields, std::string_view name, const DockPanelId& value);
 void append_field(EventFields& fields, std::string_view name, const DragInteraction& value);
+void append_field(EventFields& fields, std::string_view name, const EditButtonClick& value);
 void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value);
 void append_field(EventFields& fields, std::string_view name, const FileDialogOk& value);
 void read_field(EventFields& fields, std::string_view name, FileDialogOk& value);
@@ -1446,6 +1489,8 @@ void read_field(EventFields& fields, std::string_view name, FontFamilyStackId& v
 void append_field(EventFields& fields, std::string_view name, const FontSpec& value);
 void read_field(EventFields& fields, std::string_view name, FontSpec& value);
 void append_field(EventFields& fields, std::string_view name, const GalleryPreview& value);
+void append_field(EventFields& fields, std::string_view name, const GestureEventArgs& value);
+void read_field(EventFields& fields, std::string_view name, GestureEventArgs& value);
 void append_field(EventFields& fields, std::string_view name, const GradientStop& value);
 void append_field(EventFields& fields, std::string_view name, const HelpLinkActivation& value);
 void read_field(EventFields& fields, std::string_view name, HelpLinkActivation& value);
@@ -1525,12 +1570,15 @@ void read_field(EventFields& fields, std::string_view name, PageId& value);
 void append_field(EventFields& fields, std::string_view name, const PageInvocation& value);
 void append_field(EventFields& fields, std::string_view name, const PagePinRequest& value);
 void read_field(EventFields& fields, std::string_view name, PagePinRequest& value);
+void append_field(EventFields& fields, std::string_view name, const PieSliceActivation& value);
+void append_field(EventFields& fields, std::string_view name, const PieSliceSelection& value);
 void append_field(EventFields& fields, std::string_view name, const PlotHandleMove& value);
 void append_field(EventFields& fields, std::string_view name, const PlotPointPick& value);
 void append_field(EventFields& fields, std::string_view name, const PlotQuery& value);
 void append_field(EventFields& fields, std::string_view name, const PlotViewRanges& value);
 void append_field(EventFields& fields, std::string_view name, const PointerEvent& value);
 void append_field(EventFields& fields, std::string_view name, const PointerSettings& value);
+void append_field(EventFields& fields, std::string_view name, const PopupClosed& value);
 void append_field(EventFields& fields, std::string_view name, const PortIndex& value);
 void append_field(EventFields& fields, std::string_view name, const PortRef& value);
 void append_field(EventFields& fields, std::string_view name, const PresentationSettings& value);
@@ -1589,6 +1637,7 @@ void append_field(EventFields& fields, std::string_view name, const ToolStripMov
 void append_field(EventFields& fields, std::string_view name, const ToolTipEvent& value);
 void append_field(EventFields& fields, std::string_view name, const TreeExpansionChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListActivation& value);
+void append_field(EventFields& fields, std::string_view name, const TreeListCheckChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListColumnMove& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListColumnWidthChange& value);
 void append_field(EventFields& fields, std::string_view name, const TreeListExpansionChange& value);
@@ -1739,6 +1788,13 @@ inline void append_field(EventFields& fields, std::string_view name, const Caret
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "blink_milliseconds", value.blink_milliseconds);
     append_field(fields, "origin", value.origin);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const CheckedComboItemChange& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "item_id", value.item_id);
+    append_field(fields, "checked", value.checked);
     fields.leave(prefix);
 }
 
@@ -2319,6 +2375,12 @@ inline void append_field(EventFields& fields, std::string_view name, const DragI
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const EditButtonClick& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "button_id", value.button_id);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const ErrorProviderChange& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "target_stable_id", value.target_stable_id);
@@ -2426,6 +2488,38 @@ inline void append_field(EventFields& fields, std::string_view name, const Galle
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "item_id", value.item_id);
     append_field(fields, "source_id", value.source_id);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const GestureEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "gesture_phase", value.gesture_phase);
+    append_field(fields, "location", value.location);
+    append_field(fields, "window_position", value.window_position);
+    append_field(fields, "scale", value.scale);
+    append_field(fields, "rotation_degrees", value.rotation_degrees);
+    append_field(fields, "translation", value.translation);
+    append_field(fields, "modifiers", value.modifiers);
+    append_field(fields, "phase", value.phase);
+    append_field(fields, "handled", value.handled);
+    append_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
+    fields.leave(prefix);
+}
+
+inline void read_field(EventFields& fields, std::string_view name, GestureEventArgs& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    read_field(fields, "kind", value.kind);
+    read_field(fields, "gesture_phase", value.gesture_phase);
+    read_field(fields, "location", value.location);
+    read_field(fields, "window_position", value.window_position);
+    read_field(fields, "scale", value.scale);
+    read_field(fields, "rotation_degrees", value.rotation_degrees);
+    read_field(fields, "translation", value.translation);
+    read_field(fields, "modifiers", value.modifiers);
+    read_field(fields, "phase", value.phase);
+    read_field(fields, "handled", value.handled);
+    read_field(fields, "timestamp_nanoseconds", value.timestamp_nanoseconds);
     fields.leave(prefix);
 }
 
@@ -3141,6 +3235,19 @@ inline void read_field(EventFields& fields, std::string_view name, PagePinReques
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const PieSliceActivation& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "slice_id", value.slice_id);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const PieSliceSelection& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "previous_id", value.previous_id);
+    append_field(fields, "current_id", value.current_id);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const PlotHandleMove& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "id", value.id);
@@ -3210,6 +3317,12 @@ inline void append_field(EventFields& fields, std::string_view name, const Point
     fields.leave(prefix);
 }
 
+inline void append_field(EventFields& fields, std::string_view name, const PopupClosed& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "reason", value.reason);
+    fields.leave(prefix);
+}
+
 inline void append_field(EventFields& fields, std::string_view name, const PortIndex& value) {
     // An identity: the field is its one value.
     append_field(fields, name, value.value);
@@ -3235,6 +3348,7 @@ inline void append_field(EventFields& fields, std::string_view name, const Prese
     append_field(fields, "pointer", value.pointer);
     append_field(fields, "caret", value.caret);
     append_field(fields, "colour_scheme", value.colour_scheme);
+    append_field(fields, "minimum_content_scale", value.minimum_content_scale);
     fields.leave(prefix);
 }
 
@@ -3611,6 +3725,7 @@ inline void append_field(EventFields& fields, std::string_view name, const TaskD
     append_field(fields, "button_id", value.button_id);
     append_field(fields, "verification_checked", value.verification_checked);
     append_field(fields, "radio_button_id", value.radio_button_id);
+    append_field(fields, "input_text", value.input_text);
     fields.leave(prefix);
 }
 
@@ -3699,6 +3814,13 @@ inline void append_field(EventFields& fields, std::string_view name, const TreeE
 inline void append_field(EventFields& fields, std::string_view name, const TreeListActivation& value) {
     const EventFieldPrefix prefix = fields.enter(name);
     append_field(fields, "node_id", value.node_id);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const TreeListCheckChange& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "node_id", value.node_id);
+    append_field(fields, "check_state", value.check_state);
     fields.leave(prefix);
 }
 
@@ -3879,6 +4001,15 @@ inline SubscriptionToken connect_card_activated(Component& source, const EventSi
 
 inline SubscriptionToken connect_choice_group_activated(Component& source, const EventSink& sink) {
     ChoiceGroup* typed = dynamic_cast<ChoiceGroup*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).activated(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_toast_notification_activated(Component& source, const EventSink& sink) {
+    ToastNotification* typed = dynamic_cast<ToastNotification*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4080,6 +4211,15 @@ inline SubscriptionToken connect_help_book_viewer_built_in_language_requested(Co
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).built_in_language_requested(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_button_text_box_button_clicked(Component& source, const EventSink& sink) {
+    ButtonTextBox* typed = dynamic_cast<ButtonTextBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).button_clicked(), sink);
     return token;
 }
 
@@ -4364,6 +4504,15 @@ inline SubscriptionToken connect_image_list_changed(Component& source, const Eve
 
 inline SubscriptionToken connect_check_box_check_state_changed(Component& source, const EventSink& sink) {
     CheckBox* typed = dynamic_cast<CheckBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).check_state_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_tree_list_view_check_state_changed(Component& source, const EventSink& sink) {
+    TreeListView* typed = dynamic_cast<TreeListView*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -4897,6 +5046,15 @@ inline SubscriptionToken connect_anchored_overlay_layer_dismiss_requested(Compon
     return token;
 }
 
+inline SubscriptionToken connect_toast_notification_dismissed(Component& source, const EventSink& sink) {
+    ToastNotification* typed = dynamic_cast<ToastNotification*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).dismissed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_binding_source_disposed_event(Component& source, const EventSink& sink) {
     BindingSource* typed = dynamic_cast<BindingSource*>(&source);
     if (typed == nullptr) {
@@ -5070,6 +5228,15 @@ inline SubscriptionToken connect_date_time_picker_drop_down_changed(Component& s
 
 inline SubscriptionToken connect_flags_value_editor_drop_down_changed(Component& source, const EventSink& sink) {
     FlagsValueEditor* typed = dynamic_cast<FlagsValueEditor*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).drop_down_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_checked_combo_box_drop_down_changed(Component& source, const EventSink& sink) {
+    CheckedComboBox* typed = dynamic_cast<CheckedComboBox*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -5275,6 +5442,15 @@ inline SubscriptionToken connect_help_book_system_external_link(Component& sourc
     return token;
 }
 
+inline SubscriptionToken connect_toast_notification_failed(Component& source, const EventSink& sink) {
+    ToastNotification* typed = dynamic_cast<ToastNotification*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).failed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_open_file_dialog_file_ok(Component& source, const EventSink& sink) {
     OpenFileDialog* typed = dynamic_cast<OpenFileDialog*>(&source);
     if (typed == nullptr) {
@@ -5348,6 +5524,15 @@ inline SubscriptionToken connect_menu_strip_frame_button_pressed(Component& sour
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).frame_button_pressed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_control_gesture(Component& source, const EventSink& sink) {
+    Control* typed = dynamic_cast<Control*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).gesture(), sink);
     return token;
 }
 
@@ -5532,6 +5717,15 @@ inline SubscriptionToken connect_tree_list_view_item_activated(Component& source
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).item_activated(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_checked_combo_box_item_check_changed(Component& source, const EventSink& sink) {
+    CheckedComboBox* typed = dynamic_cast<CheckedComboBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).item_check_changed(), sink);
     return token;
 }
 
@@ -6176,6 +6370,24 @@ inline SubscriptionToken connect_control_pointer_preview_observed(Component& sou
     return token;
 }
 
+inline SubscriptionToken connect_popup_container_box_popup_closed(Component& source, const EventSink& sink) {
+    PopupContainerBox* typed = dynamic_cast<PopupContainerBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).popup_closed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_popup_container_box_popup_opened(Component& source, const EventSink& sink) {
+    PopupContainerBox* typed = dynamic_cast<PopupContainerBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).popup_opened(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_help_book_viewer_popup_requested(Component& source, const EventSink& sink) {
     HelpBookViewer* typed = dynamic_cast<HelpBookViewer*>(&source);
     if (typed == nullptr) {
@@ -6756,6 +6968,15 @@ inline SubscriptionToken connect_node_canvas_selection_changed(Component& source
     return token;
 }
 
+inline SubscriptionToken connect_pie_chart_selection_changed(Component& source, const EventSink& sink) {
+    PieChart* typed = dynamic_cast<PieChart*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_plot_view_selection_changed(Component& source, const EventSink& sink) {
     PlotView* typed = dynamic_cast<PlotView*>(&source);
     if (typed == nullptr) {
@@ -6789,6 +7010,15 @@ inline SubscriptionToken connect_virtual_rows_view_selection_changed(Component& 
         return SubscriptionToken{};
     }
     SubscriptionToken token = subscribe_forwarded((*typed).selection_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_pie_chart_slice_activated(Component& source, const EventSink& sink) {
+    PieChart* typed = dynamic_cast<PieChart*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).slice_activated(), sink);
     return token;
 }
 
@@ -6972,8 +7202,26 @@ inline SubscriptionToken connect_button_base_text_changed(Component& source, con
     return token;
 }
 
+inline SubscriptionToken connect_button_text_box_text_changed(Component& source, const EventSink& sink) {
+    ButtonTextBox* typed = dynamic_cast<ButtonTextBox*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_label_text_changed(Component& source, const EventSink& sink) {
     Label* typed = dynamic_cast<Label*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).text_changed(), sink);
+    return token;
+}
+
+inline SubscriptionToken connect_popup_container_box_text_changed(Component& source, const EventSink& sink) {
+    PopupContainerBox* typed = dynamic_cast<PopupContainerBox*>(&source);
     if (typed == nullptr) {
         return SubscriptionToken{};
     }
@@ -7346,11 +7594,12 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 383> event_connectors{{
+inline constexpr std::array<EventConnector, 397> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
     {"activated", "ChoiceGroup", &connect_choice_group_activated},
+    {"activated", "ToastNotification", &connect_toast_notification_activated},
     {"activation_changed", "DockWorkspace", &connect_dock_workspace_activation_changed},
     {"active_changed", "Window", &connect_window_active_changed},
     {"adding_new", "BindingNavigator", &connect_binding_navigator_adding_new},
@@ -7372,6 +7621,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"bookmarks_changed", "HelpBookViewer", &connect_help_book_viewer_bookmarks_changed},
     {"bookmarks_changed", "HelpBookSystem", &connect_help_book_system_bookmarks_changed},
     {"built_in_language_requested", "HelpBookViewer", &connect_help_book_viewer_built_in_language_requested},
+    {"button_clicked", "ButtonTextBox", &connect_button_text_box_button_clicked},
     {"button_clicked", "TaskDialog", &connect_task_dialog_button_clicked},
     {"camera_changed", "Plot3DView", &connect_plot3_d_view_camera_changed},
     {"cancelled", "TextBox", &connect_text_box_cancelled},
@@ -7404,6 +7654,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"changed", "ChoiceGroup", &connect_choice_group_changed},
     {"changed", "ImageList", &connect_image_list_changed},
     {"check_state_changed", "CheckBox", &connect_check_box_check_state_changed},
+    {"check_state_changed", "TreeListView", &connect_tree_list_view_check_state_changed},
     {"checked_changed", "DateTimePicker", &connect_date_time_picker_checked_changed},
     {"checked_changed", "CheckBox", &connect_check_box_checked_changed},
     {"checked_changed", "RadioButton", &connect_radio_button_checked_changed},
@@ -7462,6 +7713,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"dialog_result_changed", "Button", &connect_button_dialog_result_changed},
     {"dialog_result_changed", "Window", &connect_window_dialog_result_changed},
     {"dismiss_requested", "AnchoredOverlayLayer", &connect_anchored_overlay_layer_dismiss_requested},
+    {"dismissed", "ToastNotification", &connect_toast_notification_dismissed},
     {"disposed_event", "BindingSource", &connect_binding_source_disposed_event},
     {"document_closing", "DockWorkspace", &connect_dock_workspace_document_closing},
     {"double_click", "Control", &connect_control_double_click},
@@ -7482,6 +7734,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"drop_down_changed", "ComboBox", &connect_combo_box_drop_down_changed},
     {"drop_down_changed", "DateTimePicker", &connect_date_time_picker_drop_down_changed},
     {"drop_down_changed", "FlagsValueEditor", &connect_flags_value_editor_drop_down_changed},
+    {"drop_down_changed", "CheckedComboBox", &connect_checked_combo_box_drop_down_changed},
     {"drop_down_changed", "LookupComboBox", &connect_lookup_combo_box_drop_down_changed},
     {"drop_down_close_requested", "DropDownButton", &connect_drop_down_button_drop_down_close_requested},
     {"drop_down_item_invoked", "Ribbon", &connect_ribbon_drop_down_item_invoked},
@@ -7504,6 +7757,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"expansion_changed", "TreeListView", &connect_tree_list_view_expansion_changed},
     {"external_link", "HelpBookViewer", &connect_help_book_viewer_external_link},
     {"external_link", "HelpBookSystem", &connect_help_book_system_external_link},
+    {"failed", "ToastNotification", &connect_toast_notification_failed},
     {"file_ok", "OpenFileDialog", &connect_open_file_dialog_file_ok},
     {"file_ok", "SaveFileDialog", &connect_save_file_dialog_file_ok},
     {"finished", "Wizard", &connect_wizard_finished},
@@ -7512,6 +7766,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"focused_control_changed", "Window", &connect_window_focused_control_changed},
     {"format", "Binding", &connect_binding_format},
     {"frame_button_pressed", "MenuStrip", &connect_menu_strip_frame_button_pressed},
+    {"gesture", "Control", &connect_control_gesture},
     {"graph_edited", "NodeCanvas", &connect_node_canvas_graph_edited},
     {"group_changed", "PropertyList", &connect_property_list_group_changed},
     {"handle_committed", "PlotView", &connect_plot_view_handle_committed},
@@ -7532,6 +7787,7 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"item_activated", "TreeView", &connect_tree_view_item_activated},
     {"item_activated", "ListView", &connect_list_view_item_activated},
     {"item_activated", "TreeListView", &connect_tree_list_view_item_activated},
+    {"item_check_changed", "CheckedComboBox", &connect_checked_combo_box_item_check_changed},
     {"item_check_state_changed", "CheckedListBox", &connect_checked_list_box_item_check_state_changed},
     {"item_checked", "ListView", &connect_list_view_item_checked},
     {"item_checking", "CheckedListBox", &connect_checked_list_box_item_checking},
@@ -7601,6 +7857,8 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"point_picked", "PlotView", &connect_plot_view_point_picked},
     {"pointer_observed", "Control", &connect_control_pointer_observed},
     {"pointer_preview_observed", "Control", &connect_control_pointer_preview_observed},
+    {"popup_closed", "PopupContainerBox", &connect_popup_container_box_popup_closed},
+    {"popup_opened", "PopupContainerBox", &connect_popup_container_box_popup_opened},
     {"popup_requested", "HelpBookViewer", &connect_help_book_viewer_popup_requested},
     {"position_changed", "BindingSource", &connect_binding_source_position_changed},
     {"presentation_changed", "MasterDetailView", &connect_master_detail_view_presentation_changed},
@@ -7665,10 +7923,12 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"selection_changed", "DataGridView", &connect_data_grid_view_selection_changed},
     {"selection_changed", "ListView", &connect_list_view_selection_changed},
     {"selection_changed", "NodeCanvas", &connect_node_canvas_selection_changed},
+    {"selection_changed", "PieChart", &connect_pie_chart_selection_changed},
     {"selection_changed", "PlotView", &connect_plot_view_selection_changed},
     {"selection_changed", "RibbonGallery", &connect_ribbon_gallery_selection_changed},
     {"selection_changed", "TreeListView", &connect_tree_list_view_selection_changed},
     {"selection_changed", "VirtualRowsView", &connect_virtual_rows_view_selection_changed},
+    {"slice_activated", "PieChart", &connect_pie_chart_slice_activated},
     {"sort_changed", "TreeListView", &connect_tree_list_view_sort_changed},
     {"sort_compare", "DataGridView", &connect_data_grid_view_sort_compare},
     {"sort_requested", "ObjectView", &connect_object_view_sort_requested},
@@ -7689,7 +7949,9 @@ inline constexpr std::array<EventConnector, 383> event_connectors{{
     {"text_changed", "TextBox", &connect_text_box_text_changed},
     {"text_changed", "GroupBox", &connect_group_box_text_changed},
     {"text_changed", "ButtonBase", &connect_button_base_text_changed},
+    {"text_changed", "ButtonTextBox", &connect_button_text_box_text_changed},
     {"text_changed", "Label", &connect_label_text_changed},
+    {"text_changed", "PopupContainerBox", &connect_popup_container_box_text_changed},
     {"text_changed", "SearchField", &connect_search_field_text_changed},
     {"text_changed", "SevenSegmentDisplay", &connect_seven_segment_display_text_changed},
     {"text_changed", "TextBlock", &connect_text_block_text_changed},

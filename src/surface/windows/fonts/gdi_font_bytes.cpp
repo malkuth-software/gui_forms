@@ -3,15 +3,20 @@
 // src/surface/windows/.
 #include "gdi_font_bytes.hpp"
 
+#include "../../../platform/library_files.hpp"
+
 #include <windows.h>
 
 #include <algorithm>
 #include <climits>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <string>
 #include <string_view>
+#include <stxlib/buffer.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 #include <utility>
 #include <vector>
 
@@ -21,16 +26,12 @@ namespace {
 // A file's bytes, empty when it cannot be read, is empty or is larger than
 // maximum_bytes.
 std::vector<std::byte> read_file(const std::filesystem::path& path, std::size_t maximum_bytes) {
-    std::ifstream input(path, std::ios::binary | std::ios::ate);
-    if (!input) return {};
-    const std::streamoff length = input.tellg();
-    if (length <= 0 || static_cast<std::uintmax_t>(length) > maximum_bytes) {
-        return {};
-    }
-    std::vector<std::byte> bytes(static_cast<std::size_t>(length));
-    input.seekg(0);
-    input.read(reinterpret_cast<char*>(bytes.data()), length);
-    return input ? std::move(bytes) : std::vector<std::byte>{};
+    const stxlib::OperationResult<stxlib::Buffer<stxlib::Byte>> read = platform::read_whole_file(path, maximum_bytes);
+    if (read.failed()) return {};
+    const stxlib::View<stxlib::Byte> view = (*read.value()).view();
+    const std::byte* const first = reinterpret_cast<const std::byte*>(view.data());
+    std::vector<std::byte> bytes(first, first + view.count());
+    return bytes;
 }
 
 std::wstring wide_from_utf8(std::string_view value) {

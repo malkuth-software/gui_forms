@@ -12,7 +12,8 @@ First follow [Installation](../user/install.md#configure-build-install) to confi
 your platform. Linux requires an enabled X11 host; the CPU renderer,
 `stx_skia` from the stx package (below), is linked on every platform.
 Every platform builds against LLVM's libc++ 22: the pinned macOS 14
-runtime, MSYS2 CLANG64's static libc++ on Windows, and on Linux the
+runtime, on Windows libc++ built against STXlib's own runtime
+(`tools/own_runtime.py`; below), and on Linux the
 harness's own runtime. `template_harness/harness/build_linux_runtimes.py`
 builds libc++, libc++abi and libunwind from the pinned LLVM 22.1.8 as
 position-independent, hermetic static archives for the host's C library
@@ -63,7 +64,6 @@ from the font pack compiled into it. On Linux the gallery needs
 | `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the nine Noto fallback faces in the font pack, and install their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
 | `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from `GUI_FORMS_FONT_DIR` or else this checkout's `assets/fonts` before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
 | `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
-| `GUI_FORMS_BUILD_BENCHMARKS`, `GUI_FORMS_BUILD_FUZZERS` | OFF | Measurement harnesses and libFuzzer entry points |
 | `GUI_FORMS_BUILD_C_ABI` | ON | Build the C ABI library, `gui_forms_abi` (`cmake/CAbi.cmake`) |
 | `GUI_FORMS_BUILD_MODULE` | OFF | Build and install the `gui_forms` C++20 module (`import gui_forms;`, `GUIForms::Module`); needs CMake 3.28 or later with Ninja or a Visual Studio generator (`cmake/Module.cmake`) |
 | `GUI_FORMS_ENABLE_WAYLAND_PRESENT` | OFF | Build the Wayland `wl_shm` presentation path; there is no Wayland host |
@@ -79,7 +79,8 @@ from the font pack compiled into it. On Linux the gallery needs
 | `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
 | `GUI_FORMS_EFFECT_VERIFY_REQUIRED` | OFF | Fail the configure when effect programs cannot be verified, instead of building them unverified; Linux CI sets it |
 | `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
-| `GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT` | ON | Let a Windows program that calls `host::accept_automation_environment` turn on automation from `GUI_FORMS_WINDOWS_AUTOMATION=1`; turn it off for a build that must stay closed to the variable |
+| `GUI_FORMS_MCP` | ON | Build the automation and MCP capability; a launch with `--mcp` (or `GUI_FORMS_MCP=1`) serves MCP on standard input and output, and `--mcp-script <file.jsonl>` runs an automation script. The transport needs STXlib's `stxlib::mcp`; without it `--mcp` says so. Off in a high-integrity build |
+| `GUI_FORMS_MCP_TEST_CONTROLS` | ON in Debug, else OFF | Build the automation's test controls (`control suspend_input`); never in a shipped program |
 
 The remaining `GUI_FORMS_BUILD_TEXT_*` and `GUI_FORMS_BUILD_PREPARED_TEXT` /
 `GUI_FORMS_BUILD_TEXT_MASKS` options build development-only text services and
@@ -204,16 +205,20 @@ belong to [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests)
 This repository keeps the suppression files, `tools/sanitizer/lsan.supp` and
 `tools/sanitizer/tsan.supp`, because the sanitized tree is built here.
 
-On Windows, AddressSanitizer and UndefinedBehaviorSanitizer both link on the
-pinned toolchain (MSYS2 CLANG64, LLVM 22.1.8). The MinGW runtime has no
-LeakSanitizer, so leaks are not checked there.
+Windows builds no sanitized tree. The sanitizer runtimes for
+x86_64-pc-windows-msvc (compiler-rt's `clang_rt.asan_dynamic` and the rest)
+are built for, and import, Microsoft's C and C++ runtime DLLs, which the own
+runtime replaces, and the target has no LeakSanitizer or ThreadSanitizer at
+all. The sanitized runs are Linux's and macOS's over the same sources; the
+Windows-only code (`src/surface/windows/`, `src/host/windows/`) runs under
+the Windows suite without them.
 
 ## ThreadSanitizer
 
 The C ABI promises release from any thread, deferred destruction on the UI
 thread, `begin_invoke` from any thread and a thread handover before the first
 window (`gf_abi.h`, "Threads"). ThreadSanitizer checks those promises on
-Linux and macOS. The MinGW runtime on Windows has no ThreadSanitizer, so the
+Linux and macOS. The Windows target has no ThreadSanitizer, so the
 procedure below does not run there.
 
 ```sh
@@ -252,20 +257,38 @@ architecture, `clang --version`) with the results in the notes repository
 
 ## Windows builds and Wine
 
-Use the native MSYS2 CLANG64 instructions in [Installation](../user/install).
-There is no cross-build from macOS or Linux: the former MinGW-w64 GCC
-toolchain file, which the LLVM 22.1.x configure check rejected, and the
-script that staged GCC's runtime DLLs beside a cross-built program were
-retired on 2026-10-21. Windows binaries never use a GCC runtime.
+Windows builds target x86_64-pc-windows-msvc on STXlib's own runtime
+(owner, 2026-11-24): no MinGW, Visual C++ tools or Windows SDK. Follow
+[Installation](../user/install): `tools/own_runtime.py build` makes the
+runtime (STXlib at the commit stx pins, libc++ 22.1.8 static with
+`_LIBCPP_NO_VCRUNTIME`), and `cmake/llvm22-windows-msvc.cmake` with
+`GUI_FORMS_MSVC_RUNTIME=OWN` builds against it. The include order is
+libc++, clang's resource headers, STXlib's C library headers and STXlib's
+Windows API headers, behind `-nostdinc`. Every link passes `-nostdlib` and
+`/NODEFAULTLIB`, and names the runtime's archives and import libraries.
 
-Every Windows executable and DLL links the LLVM runtimes (libc++, libc++abi,
-libunwind, compiler-rt), winpthreads and the MinGW-w64 CRT statically
-(`add_link_options(-static)` in `CMakeLists.txt`), so none imports a runtime
-DLL. Every GUI.Forms library and STXlib's state are static archives linked
-into the program, so it is one module (owner decision, 2026-11-15) and
-`llvm-objdump -p <binary>` lists only Windows system DLLs.
-`tools/package_programs.py` fails a package whose binaries import any other
-DLL: a GUI.Forms, STXlib or bundled library, or a GCC or LLVM runtime.
+Every Windows executable and DLL links libc++ and STXlib's startup and C++
+runtime statically and imports Windows system DLLs only, the C library
+among them as `ucrtbase.dll` by name. Every GUI.Forms library and STXlib's
+state are static archives linked into the program, so it is one module
+(owner decision, 2026-11-15) and `llvm-objdump -p <binary>` lists only
+Windows system DLLs. `tools/package_programs.py` fails a package whose
+binaries import any other DLL: a GUI.Forms, STXlib or bundled library, a
+Microsoft C or C++ runtime (msvcrt, vcruntime, msvcp, the api-ms-win-crt
+forwarders), or a GCC or LLVM runtime.
+
+CI proves this on every Windows build (`tools/own_runtime.py evidence`).
+The compiler's `#include` search list (`clang -v`) must be exactly those
+four directories. No link map (`GUI_FORMS_LINK_MAP`, on in CI; lld-link
+`/lldmap` beside every image, which names every input by its path) may name a MinGW, Visual C++ or Windows SDK
+file. Every DLL the tree built, `gui_forms_abi1.dll` among them, must
+import only system DLLs and `ucrtbase.dll`.
+
+The target can be checked from a Mac: `tools/own_runtime.py build` cross
+builds the runtime with Homebrew's `llvm@22` and `lld`, and a configure with
+a toolchain file that sets `CMAKE_SYSTEM_NAME` to `Windows` before including
+`cmake/llvm22-windows-msvc.cmake` compiles the tree for the target. Running
+a program still needs Windows or Wine.
 
 ## One module per program
 
@@ -289,29 +312,30 @@ a Clang plugin loaded by the compiler and never ships in a program.
 Release links prune what a program does not reach: sources are compiled
 with `-ffunction-sections -fdata-sections` and linked with `--gc-sections`
 (`-dead_strip` on macOS). `GUI_FORMS_LTO` (default on) adds link-time
-optimisation where the toolchain is pinned for it, the MinGW LLVM 22
-toolchain. `tools/package_programs.py` strips the shipped binaries. On macOS
+optimisation where the toolchain is pinned for it (LLVM 22's lld on every
+platform). `tools/package_programs.py` strips the shipped binaries. On macOS
 the C++ runtime is linked statically when the pinned runtime tree carries
 `libc++.a` and `libc++abi.a` (`GUI_FORMS_STATIC_CXX_RUNTIME`); until then a
 macOS package bundles the LLVM runtime dylibs and nothing else.
 
 Windows builds target the Windows 10 API level (`_WIN32_WINNT=0x0A00`). A
 Windows host build produces `GUI.Forms Gallery.exe` (one module), the
-automation client `gui_forms_windows_probe.exe` and a `fonts/` directory of
-font licences, all in the build directory.
+and a `fonts/` directory of font licences, all in the build directory.
 
 To run a Windows build under Wine, copy its build directory to the Mac and
 run the program from there: it loads no DLL of its own and no runtime
 DLL. Run `wine "GUI.Forms Gallery.exe"`; add
-`--automation` to accept commands from the probe.
+`--mcp-script <file.jsonl>` to run an automation script (one tool call a
+line, the library's MCP automation).
 
-`tools/run_windows_wine_smoke.sh <build-dir>` launches the gallery with
-`--automation`, clicks three page rows and three controls by stable ID,
-captures the framebuffer, closes through the real `WM_CLOSE` path and checks
-the structured log: six handled clicks, a saved capture, the Win32 DIB
+`tools/run_windows_wine_smoke.sh <build-dir>` launches the gallery with an
+automation script (`--mcp-script`) that clicks three page rows and three
+controls by stable ID and captures the window; the run then closes through
+the real `WM_CLOSE` path, and the script checks the log: six clicks, the
+script's capture, the Win32 DIB
 renderer with bundled fonts, no rejected host events, exactly one close
 request, and a closed, shut-down host. The log and capture
-(`wine-gallery-smoke.jsonl`, `gallery-automation.bmp`) go to the build
+(`wine-gallery-smoke.jsonl`, `wine-gallery-smoke-script.jsonl.1.png`) go to the build
 directory or `GUI_FORMS_EVIDENCE_DIR`. `tools/run_windows_gallery_text_smoke.sh`
 runs the Windows text test program (`gui_forms_windows_text_tests.exe`, built
 by gui_forms_tests and copied into the build directory) under Wine before
@@ -321,12 +345,9 @@ dispatcher and host-service pages. The scripts need `wine` (override with
 `WINE_BINARY`) and `rg`. When the build is configured on macOS with `wine`
 found, the `gui_forms_windows_wine_smoke` and
 `gui_forms_windows_gallery_services_smoke` targets run the first and last of
-these against the build directory. With `x86_64-w64-mingw32-objdump`
-available, `gui_forms_windows_boundary_audit` rejects a gallery that imports a
-GPU or managed runtime DLL or lacks `GDI32.dll` and `USER32.dll`.
-
-The native Windows build in MSYS2 uses the same host sources with
-`cmake/llvm22.cmake`.
+these against the build directory. With `llvm-objdump` available,
+`gui_forms_windows_boundary_audit` rejects a gallery that imports a GPU or
+managed runtime DLL or lacks `GDI32.dll` and `USER32.dll`.
 
 ## Install prefix and SDK layout
 

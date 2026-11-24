@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::LookupComboBox",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/lookup_combo_box.ic.toml",
+    "sha256": "242a94a72ba233386cb8bc867adc1a185b2a9c0a4b2784b0262b11c895495aec"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.lookupcombobox.max_drop_down_rows_write.requires.max_drop_down_rows",
+      "kind": "entry-check",
+      "statement": "max_drop_down_rows runs only when incoming != 0 and incoming <= 64; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::lookup_combo_box::admits_max_drop_down_rows, called in src/controls/lookup_combo_box/lookup_combo_box.cpp"
+    },
+    {
+      "id": "gui_forms.lookupcombobox.max_drop_down_rows_write.refusal.max_drop_down_rows",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming != 0 and incoming <= 64, max_drop_down_rows changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

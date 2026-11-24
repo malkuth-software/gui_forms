@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../property_service_utilities.hpp"
 
 #include <algorithm>
@@ -192,7 +193,7 @@ void PropertyValueConverterRegistry::set_context(
 
 std::shared_ptr<PropertyValueConverterRegistry>
 PropertyValueConverterRegistry::create_default() {
-    std::shared_ptr<gui_forms::PropertyValueConverterRegistry> result = std::make_shared<PropertyValueConverterRegistry>();
+    std::shared_ptr<gui_forms::PropertyValueConverterRegistry> result = gui_forms::detail::make_library_shared<PropertyValueConverterRegistry>();
     PropertyValueConverter invariant;
     invariant.format = format_invariant_value;
     invariant.parse = parse_invariant_value;

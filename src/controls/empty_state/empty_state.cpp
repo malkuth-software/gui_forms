@@ -70,7 +70,16 @@ Control::Ptr EmptyState::set_action(Control::Ptr control) {
     }
     Control::Ptr previous = action_;
     if (control) add_child(control);
-    if (action_) previous = remove_child((*action_).runtime_id());
+    // A refused removal takes the new action out again, so it is never a
+    // child that action_ does not name (Card::replace_section's rule).
+    if (action_) {
+        try {
+            previous = remove_child((*action_).runtime_id());
+        } catch (...) {
+            if (control) static_cast<void>(remove_child((*control).runtime_id()));
+            throw;
+        }
+    }
     action_ = std::move(control);
     action_size_ = Size{};
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);

@@ -38,6 +38,11 @@ struct GUI_FORMS_API FramePollResult final {
     bool damage_pending{};
     bool suppressed_by_occlusion{};
     stxlib::Optional<FrameTime> next_wake;
+    // The time the frames this poll produced are shown: the window's next
+    // presentation after the poll's time when its display timing is paced
+    // (SurfaceRoot::display_timing), else the poll's time. The motion clock
+    // and display-paced animation timers were advanced to it.
+    FrameTime presentation_time{};
 };
 
 } // namespace gui_forms

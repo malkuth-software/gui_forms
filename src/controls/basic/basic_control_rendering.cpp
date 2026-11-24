@@ -1,6 +1,7 @@
 #include "basic_control_rendering.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/text.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -102,7 +103,7 @@ double vertical_offset(ContentAlignment alignment, double free) noexcept {
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> picture_box_size_mode_enum() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "picture_box_size_mode",
             {{"normal", 0}, {"stretch_image", 1}, {"auto_size", 2},

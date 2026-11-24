@@ -2,6 +2,7 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/controls/panel.hpp"
+#include "gui_forms/controls/dialog_presentation.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 #include "gui_forms/controls/font_dialog_capabilities.hpp"
@@ -86,7 +87,7 @@ public:
     // Closes the dialog with `result` (OK takes the selection as font()) and
     // raises closed. Nothing happens when it is not open.
     void close(DialogResult result);
-    [[nodiscard]] bool is_open() const noexcept { return open_; }
+    [[nodiscard]] bool is_open() const noexcept { return presentation_.shown(); }
 
     // Raised by Apply, with the new font().
     [[nodiscard]] Event<const FontSpec&>& apply() noexcept { return apply_; }
@@ -130,6 +131,30 @@ private:
     // The name the style list shows for `style`.
     [[nodiscard]] static std::string_view style_name(FontStyle style) noexcept;
 
+    // Where every child and painted part sits at `width`, and the size the
+    // dialog wants: the columns, captions and buttons are measured with the
+    // children's own fonts at the window's text scale, never narrower or
+    // shorter than the default layout scaled by the text scale; the font
+    // column takes any width beyond what the columns need.
+    struct DialogLayout final {
+        Rect title{};
+        Rect face_caption{};
+        Rect style_caption{};
+        Rect size_caption{};
+        Rect face_list{};
+        Rect style_list{};
+        Rect size_box{};
+        Rect preview_well{};
+        Rect ok{};
+        Rect cancel{};
+        // Empty while Apply is hidden.
+        Rect apply{};
+        Size preferred{};
+    };
+    [[nodiscard]] DialogLayout dialog_layout(double width) const;
+    // The layout of the last arrange, which painting and the published
+    // parts read.
+    DialogLayout arranged_{};
     [[nodiscard]] Parts dialog_parts() const;
     // Shows the selection in the controls.
     void show_selection();
@@ -143,15 +168,16 @@ private:
     void on_cancel(ButtonBase& button);
     void on_apply(ButtonBase& button);
     void on_overlay_revoked();
-    // Leaves the overlay: ends the focus scope, takes the dialog out of its
-    // layer and releases the layer.
+    // Leaves the presentation closed at once, then dismantles what it held:
+    // ends the focus scope, takes the dialog out of its layer (and popup
+    // root) and releases them.
     void release_overlay(FocusScopeCloseReason reason);
+    void abandon_show() noexcept;
 
     FontSpec font_{FontRole::content, 9.0, 400, false};
     FontSpec selection_{FontRole::content, 9.0, 400, false};
     double minimum_size_{8.0};
     double maximum_size_{72.0};
-    bool open_{};
     bool synchronizing_{};
     std::shared_ptr<Label> face_caption_;
     std::shared_ptr<Label> style_caption_;
@@ -164,27 +190,24 @@ private:
     std::shared_ptr<Button> apply_button_;
     // The styles the style list shows for the selected face.
     std::vector<FontStyle> styles_;
-    std::shared_ptr<Panel> overlay_layer_;
-    OverlayToken overlay_token_;
-    std::uint64_t overlay_scope_{};
-    // The native popup window the dialog is in (DialogSurface::native_popup):
-    // its root holds the dialog, so closing detaches the dialog at once even
-    // though the window itself is released later.
     DialogSurface surface_{DialogSurface::overlay};
-    Control::Ptr native_root_{};
-    NativePopupToken native_token_{};
-    SubscriptionToken native_closed_;
-    // Moves the open dialog from the layer into a native popup window at
-    // `bounds`; false (the dialog back in the layer) when the run cannot
-    // open one.
-    bool open_native(Window& host, const Control::Ptr& owner, Rect bounds);
+    // Closed, or open over the owner's window: as an overlay in its layer,
+    // or in a native popup window (DialogSurface::native_popup) whose root
+    // holds the dialog, so closing detaches the dialog at once even though
+    // the window itself is released later. The layer, its lease, the
+    // revocation subscription and the focus scope live in the state.
+    DialogPresentation presentation_{};
+    // Moves the dialog, in `owner_half`'s layer, into a native popup window
+    // at `bounds`. Returns the native presentation, or the overlay one (the
+    // dialog back in the layer) when the run cannot open a popup window.
+    [[nodiscard]] DialogPresentation present_natively(Window& host, const Control::Ptr& owner, Rect bounds,
+                                                      PresentationLayer owner_half);
     SubscriptionToken face_token_;
     SubscriptionToken style_token_;
     SubscriptionToken size_token_;
     SubscriptionToken ok_token_;
     SubscriptionToken cancel_token_;
     SubscriptionToken apply_token_;
-    SubscriptionToken revocation_token_;
     Event<const FontSpec&> apply_;
     Event<const FontDialogResult&> closed_;
     // property_codemod begin FontDialog (tools/property_families/font_dialog.json; generated, do not edit)

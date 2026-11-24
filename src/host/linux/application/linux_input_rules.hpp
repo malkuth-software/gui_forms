@@ -3,7 +3,9 @@
 // (owner's mouse-event rule, 2026-11-08): the click count of each press,
 // from the desktop's double-click time and distance, and which keys ask
 // for a context menu. Plain values in, no Xlib, so the rules are tested on
-// every platform.
+// every platform. The touchpad pinch (XI 2.4 gesture events) is turned
+// into the portable GestureEvent here too, from the event's plain values.
+#include "gui_forms/events/gesture_events/gesture_events.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/types.hpp"
 
@@ -41,5 +43,28 @@ struct LinuxClickHistory final {
 // Shift alone. The host asks only after the window left the key
 // unhandled.
 [[nodiscard]] bool requests_keyboard_context(std::uint32_t physical_key, Modifier modifiers) noexcept;
+
+// Which XI 2.4 pinch event the server sent: XI_GesturePinchBegin, Update
+// or End.
+enum class LinuxPinchStage : std::uint8_t { begin, update, end };
+
+// A window's pinch in progress: XI 2.4 reports the scale since the
+// gesture began, the portable event the change since its previous event.
+struct LinuxPinchState final {
+  double scale{1.0};
+};
+
+// One XI 2.4 pinch event as the portable GestureEvent (kind magnify), with
+// `state` updated. `position` and `delta` are already logical units;
+// `absolute_scale` is the event's scale since the gesture began (libinput's,
+// 1 at the start); `delta_angle_clockwise` is libinput's turn since the
+// previous event in degrees, clockwise positive, so the portable rotation
+// is its negation. An end with XIGesturePinchEventCancelled is cancelled.
+// A scale that is not finite or not above zero changes nothing.
+[[nodiscard]] GestureEvent next_pinch_event(LinuxPinchState &state, LinuxPinchStage stage,
+                                            bool cancelled, Point position,
+                                            double absolute_scale, double delta_angle_clockwise,
+                                            Point delta, Modifier modifiers,
+                                            std::uint64_t timestamp_nanoseconds) noexcept;
 
 } // namespace gui_forms::host::linux_detail

@@ -1,12 +1,14 @@
 #include "../../core/text/prepared/prepared_storage.hpp"
-#include "harfbuzz/harfbuzz_font_engine.hpp"
-#include "../../core/thread_records/thread_records_end.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "shaping/text_shape_engine.hpp"
+#include "../../core/threading/start_thread.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <cstring>
 #include <limits>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 namespace {
@@ -26,7 +28,7 @@ std::uint64_t acquire_service_instance() {
 }
 
 bool owner_executor(const detail::PreparedServiceState& service) noexcept {
-    const bool current = service.executor == std::this_thread::get_id();
+    const bool current = service.executor == stxlib::current_thread();
     return current;
 }
 
@@ -40,9 +42,9 @@ bool matching_primary(const detail::PreparedFontBank& bank, const FontSpec font)
 } // namespace
 
 PreparedTextService::PreparedTextService() {
-    std::shared_ptr<detail::PreparedServiceState> candidate = std::make_shared<detail::PreparedServiceState>();
-    (*candidate).ledger = std::make_shared<detail::PreparedLedger>();
-    (*candidate).executor = std::this_thread::get_id();
+    std::shared_ptr<detail::PreparedServiceState> candidate = gui_forms::detail::make_library_shared<detail::PreparedServiceState>();
+    (*candidate).ledger = gui_forms::detail::make_library_shared<detail::PreparedLedger>();
+    (*candidate).executor = stxlib::current_thread();
     (*candidate).instance = acquire_service_instance();
     state_ = std::move(candidate);
 }
@@ -50,7 +52,7 @@ PreparedTextService::~PreparedTextService() { begin_close(); }
 std::uint64_t PreparedTextService::instance() const noexcept { return (*state_).instance; }
 PreparedTextBudgetSnapshot PreparedTextService::budget_snapshot() const {
     detail::PreparedLedger& ledger = *(*state_).ledger;
-    std::lock_guard<std::mutex> lock(ledger.mutex);
+    const stxlib::ScopedLock lock(ledger.mutex);
     return ledger.usage;
 }
 PreparedTextStatus PreparedTextService::create_font_bank(const std::span<const PreparedFontSource> sources,
@@ -79,7 +81,7 @@ PreparedTextStatus PreparedTextService::create_font_bank(const std::span<const P
     const PreparedTextStatus admitted = reservation.acquire((*state_).ledger, detail::PreparedResource::font_bank, bytes);
     if (admitted != PreparedTextStatus::success) return admitted;
     try {
-        std::shared_ptr<detail::PreparedFontBank> candidate = std::make_shared<detail::PreparedFontBank>();
+        std::shared_ptr<detail::PreparedFontBank> candidate = gui_forms::detail::make_library_shared<detail::PreparedFontBank>();
         detail::PreparedFontBank& bank = *candidate;
         bank.reservation = std::move(reservation);
         bank.ledger = (*state_).ledger;
@@ -87,7 +89,7 @@ PreparedTextStatus PreparedTextService::create_font_bank(const std::span<const P
         bank.encoded_bytes = bytes;
         {
             detail::PreparedLedger& ledger = *bank.ledger;
-            std::lock_guard<std::mutex> lock(ledger.mutex);
+            const stxlib::ScopedLock lock(ledger.mutex);
             if (ledger.next_bank == std::numeric_limits<std::uint64_t>::max()) return PreparedTextStatus::generation_exhausted;
             bank.identity = ledger.next_bank;
             ++ledger.next_bank;
@@ -159,30 +161,31 @@ PreparedTextStatus PreparedTextService::open_session(const EncodedFontLease& fon
     if (!bank || (*bank).ledger != (*state_).ledger) return PreparedTextStatus::invalid_input;
     const std::shared_ptr<detail::PreparedSessionState> previous = (*state_).session.lock();
     if (previous) {
-        std::lock_guard<std::mutex> lock((*previous).mutex);
+        const stxlib::ScopedLock lock((*previous).mutex);
         if (!(*previous).snapshot.joined) return PreparedTextStatus::busy;
     }
     std::uint64_t session_id = 0;
     {
         detail::PreparedLedger& ledger = *(*state_).ledger;
-        std::lock_guard<std::mutex> lock(ledger.mutex);
+        const stxlib::ScopedLock lock(ledger.mutex);
         if (ledger.closing) return PreparedTextStatus::closing;
     }
     const PreparedTextStatus identified = detail::acquire_prepared_session_instance(session_id);
     if (identified != PreparedTextStatus::success) return identified;
     try {
-        std::shared_ptr<detail::PreparedSessionState> state = std::make_shared<detail::PreparedSessionState>();
+        std::shared_ptr<detail::PreparedSessionState> state = gui_forms::detail::make_library_shared<detail::PreparedSessionState>();
         const PreparedTextStatus claimed = (*state).claim.acquire((*state_).ledger);
         if (claimed != PreparedTextStatus::success) return claimed;
         (*state).service = state_;
         (*state).fonts = bank;
-        (*state).authority = std::make_shared<detail::PreparedAuthorityState>();
+        (*state).authority = gui_forms::detail::make_library_shared<detail::PreparedAuthorityState>();
         (*(*state).authority).current.session = session_id;
         (*(*state).authority).executor = (*state_).executor;
         (*state).executor = (*state_).executor;
         (*state).wake = wake;
         std::unique_ptr<PreparedTextSession> session = detail::PreparedTextAccess::session(state);
-        (*state).worker = std::thread(&detail::PreparedSessionState::run, state.get());
+        (*state).worker = detail::start_library_thread(&detail::PreparedSessionState::thread_main, state.get(),
+                                                       "the prepared text session could not start its worker");
         (*state_).session = state;
         output = std::move(session);
         return PreparedTextStatus::success;
@@ -197,7 +200,7 @@ void PreparedTextService::begin_close() {
     if (!owner_executor(*state_)) std::terminate();
     {
         detail::PreparedLedger& ledger = *(*state_).ledger;
-        std::lock_guard<std::mutex> lock(ledger.mutex);
+        const stxlib::ScopedLock lock(ledger.mutex);
         ledger.closing = true;
     }
     const std::shared_ptr<detail::PreparedSessionState> session = (*state_).session.lock();
@@ -208,7 +211,7 @@ PreparedTextSession::PreparedTextSession(std::shared_ptr<detail::PreparedSession
 PreparedTextSession::~PreparedTextSession() { begin_close(); join_and_release(); }
 
 PreparedTextStatus PreparedTextSession::desire(const PreparedTextKey& key, LayoutAuthority& authority) {
-    if ((*state_).executor != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if ((*state_).executor != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     const PreparedTextStatus validated = detail::validate_prepared_key(key);
     if (validated != PreparedTextStatus::success) return validated;
     const detail::PreparedFontBank& fonts = *(*state_).fonts;
@@ -216,7 +219,7 @@ PreparedTextStatus PreparedTextSession::desire(const PreparedTextKey& key, Layou
         key.font_set != fonts.identity || key.font_generation != fonts.generation) return PreparedTextStatus::stale;
     if (!matching_primary(fonts, key.font)) return PreparedTextStatus::incompatible_font;
     detail::PreparedAuthorityState& state = *(*state_).authority;
-    std::lock_guard<std::mutex> lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     if (state.closing) return PreparedTextStatus::closing;
     if (state.current.epoch == std::numeric_limits<std::uint64_t>::max()) return PreparedTextStatus::generation_exhausted;
     ++state.current.epoch;
@@ -226,17 +229,17 @@ PreparedTextStatus PreparedTextSession::desire(const PreparedTextKey& key, Layou
 }
 
 PreparedTextStatus PreparedTextSession::submit(const LayoutAuthority authority, PrepareInput& input) {
-    if ((*state_).executor != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if ((*state_).executor != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     std::unique_ptr<detail::PreparedInputStorage>& payload = detail::PreparedTextAccess::input(input);
     if (!payload || (*payload).ledger != (*(*state_).service).ledger) return PreparedTextStatus::invalid_input;
     {
         detail::PreparedAuthorityState& current = *(*state_).authority;
-        std::lock_guard<std::mutex> lock(current.mutex);
+        const stxlib::ScopedLock lock(current.mutex);
         if (current.closing) return PreparedTextStatus::closing;
         if (!current.key || !same_layout_authority(current.current, authority) ||
             !same_prepared_text_key(*current.key, (*payload).key)) return PreparedTextStatus::stale;
     }
-    std::lock_guard<std::mutex> lock((*state_).mutex);
+    const stxlib::ScopedLock lock((*state_).mutex);
     if ((*state_).snapshot.closing) return PreparedTextStatus::closing;
     if ((*state_).snapshot.slot != PreparedTextSlot::empty) return PreparedTextStatus::busy;
     detail::PreparedReservation reservation{};
@@ -265,23 +268,23 @@ PreparedTextStatus PreparedTextSession::submit(const LayoutAuthority authority, 
 }
 
 PreparedTextSessionSnapshot PreparedTextSession::inspect_ready() const {
-    if ((*state_).executor != std::this_thread::get_id()) throw std::logic_error("Prepared session executor mismatch");
+    if ((*state_).executor != stxlib::current_thread()) throw std::logic_error("Prepared session executor mismatch");
     PreparedTextSessionSnapshot snapshot{};
     {
-        std::lock_guard<std::mutex> lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         snapshot = (*state_).snapshot;
         (*state_).wake_pending = false;
     }
     {
-        std::lock_guard<std::mutex> lock((*(*state_).authority).mutex);
+        const stxlib::ScopedLock lock((*(*state_).authority).mutex);
         snapshot.desired = (*(*state_).authority).current;
     }
     return snapshot;
 }
 
 PreparedTextStatus PreparedTextSession::adopt_ready(const LayoutAuthority expected, PreparedTextLayout& output) {
-    if ((*state_).executor != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
-    std::lock_guard<std::mutex> lock((*state_).mutex);
+    if ((*state_).executor != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
+    const stxlib::ScopedLock lock((*state_).mutex);
     if ((*state_).snapshot.closing) return PreparedTextStatus::closing;
     if ((*state_).snapshot.slot != PreparedTextSlot::ready) return PreparedTextStatus::pending;
     if ((*state_).snapshot.completion != PreparedTextStatus::success) return (*state_).snapshot.completion;
@@ -292,8 +295,8 @@ PreparedTextStatus PreparedTextSession::adopt_ready(const LayoutAuthority expect
 }
 
 PreparedTextStatus PreparedTextSession::discard_ready() {
-    if ((*state_).executor != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
-    std::lock_guard<std::mutex> lock((*state_).mutex);
+    if ((*state_).executor != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
+    const stxlib::ScopedLock lock((*state_).mutex);
     if ((*state_).snapshot.slot != PreparedTextSlot::ready) return PreparedTextStatus::busy;
     (*state_).ready.reset();
     (*state_).job.reset();
@@ -301,17 +304,17 @@ PreparedTextStatus PreparedTextSession::discard_ready() {
     return PreparedTextStatus::success;
 }
 void PreparedTextSession::cancel() {
-    if ((*state_).executor != std::this_thread::get_id()) std::terminate();
+    if ((*state_).executor != stxlib::current_thread()) std::terminate();
     detail::PreparedAuthorityState& state = *(*state_).authority;
-    std::lock_guard<std::mutex> lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     state.key.reset();
 }
 void PreparedTextSession::begin_close() {
-    if ((*state_).executor != std::this_thread::get_id()) std::terminate();
+    if ((*state_).executor != stxlib::current_thread()) std::terminate();
     (*state_).close();
 }
 void PreparedTextSession::join_and_release() {
-    if ((*state_).executor != std::this_thread::get_id()) std::terminate();
+    if ((*state_).executor != stxlib::current_thread()) std::terminate();
     (*state_).close();
     (*state_).join();
 }
@@ -324,21 +327,21 @@ std::unique_ptr<PreparedTextSession> PreparedTextAccess::session(std::shared_ptr
 PreparedSessionState::~PreparedSessionState() { close(); join(); }
 void PreparedSessionState::close() {
     if (authority) {
-        std::lock_guard<std::mutex> lock((*authority).mutex);
+        const stxlib::ScopedLock lock((*authority).mutex);
         (*authority).closing = true;
         (*authority).key.reset();
     }
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        const stxlib::ScopedLock lock(mutex);
         snapshot.closing = true;
         wake = nullptr;
         condition.notify_one();
     }
 }
 void PreparedSessionState::join() {
-    if (worker.joinable()) worker.join();
+    join_library_thread(worker);
     {
-        std::lock_guard<std::mutex> lock(mutex);
+        const stxlib::ScopedLock lock(mutex);
         job.reset();
         ready.reset();
         snapshot.slot = PreparedTextSlot::empty;
@@ -347,15 +350,25 @@ void PreparedSessionState::join() {
     claim.release();
 }
 
+void PreparedSessionState::thread_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+    // The snapshot's closing ends the loop; STXlib ends the thread's records
+    // after this returns.
+    static_cast<void>(stop);
+    (*static_cast<PreparedSessionState*>(context)).run();
+}
+
+bool PreparedSessionState::job_or_closing(const void* const context) noexcept {
+    const PreparedSessionState& state = *static_cast<const PreparedSessionState*>(context);
+    return state.snapshot.closing || state.snapshot.slot == PreparedTextSlot::queued;
+}
+
 void PreparedSessionState::run() noexcept {
-    // Closes last: the thread's records are released here, on the thread.
-    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
-    std::unique_ptr<render::text::HarfBuzzFontEngine> engine{};
+    std::unique_ptr<render::text::TextShapeEngine> engine{};
     PreparedTextStatus initialization = PreparedTextStatus::success;
     std::size_t engine_bytes = 0;
     std::array<FontFaceId, PreparedTextLimits::font_faces> face_ids{};
     try {
-        engine = std::make_unique<render::text::HarfBuzzFontEngine>();
+        engine = std::make_unique<render::text::TextShapeEngine>();
         const PreparedFontBank& bank = *fonts;
         engine_bytes = (*engine).configure_bounded_registration(bank.face_count, PreparedTextLimits::workspace_bytes);
         for (std::size_t index = 0; index < bank.face_count; ++index) {
@@ -382,8 +395,8 @@ void PreparedSessionState::run() noexcept {
     for (;;) {
         std::unique_ptr<PreparedTextStorage> active{};
         {
-            std::unique_lock<std::mutex> lock(mutex);
-            while (!snapshot.closing && snapshot.slot != PreparedTextSlot::queued) condition.wait(lock);
+            stxlib::ScopedLock lock(mutex);
+            condition.wait(lock, &PreparedSessionState::job_or_closing, this);
             if (snapshot.closing) break;
             active = std::move(job);
             snapshot.slot = PreparedTextSlot::running;
@@ -425,7 +438,7 @@ void PreparedSessionState::run() noexcept {
         catch (const std::bad_alloc&) { completion = PreparedTextStatus::resource_failure; }
         catch (...) { completion = PreparedTextStatus::native_failure; }
         {
-            std::lock_guard<std::mutex> lock(mutex);
+            const stxlib::ScopedLock lock(mutex);
             ready = std::move(result);
             // Failed/cancelled work retains its occupied reservation until the
             // owner discards it or joins; completion is not deallocation.

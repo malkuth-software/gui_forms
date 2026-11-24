@@ -5,7 +5,9 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../platform/stxlib_bridge.hpp"
+#include "label_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,6 +19,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::label;
 namespace {
 // The label's text insets (audit F6), named once for measure, layout and
 // paint. Logical units.
@@ -49,14 +52,14 @@ struct PainterLabelWidth final {
 };
 std::shared_ptr<const PropertyEnumDescriptor> vertical_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "vertical_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> text_wrapping_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "text_wrapping", {{"no_wrap", 0}, {"word", 1}}, false});
     return value;
 }
@@ -84,7 +87,7 @@ const PropertyDescriptor& describe_label_fore_color() {
 
 std::shared_ptr<const PropertyEnumDescriptor> label_detail::horizontal_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "horizontal_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
@@ -641,7 +644,7 @@ BindingValue PropertyValueTraits<VerticalAlignment>::to_binding(VerticalAlignmen
     descriptor.enumeration = vertical_alignment_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -660,7 +663,7 @@ BindingValue PropertyValueTraits<TextWrapping>::to_binding(TextWrapping value) {
     descriptor.enumeration = text_wrapping_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -769,7 +772,7 @@ void Label::written(const decltype(maximum_lines)&) {
 
 void Label::prepare_write(const decltype(line_spacing)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.75 || incoming > 3.0) throw std::invalid_argument("Label line spacing must be finite and between 0.75 and 3.0");
+    if (!ic::admits_line_spacing(incoming)) throw std::invalid_argument("Label line spacing must be finite and between 0.75 and 3.0");
 }
 
 void Label::written(const decltype(line_spacing)&) {

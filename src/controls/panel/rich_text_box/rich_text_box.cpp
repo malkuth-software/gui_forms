@@ -450,10 +450,9 @@ void RichTextBox::on_text_input(TextInputEvent& event) {
 
 void RichTextBox::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const double local_x = event.position.x - absolute.x;
-    const double local_y = event.position.y - absolute.y;
-    const Point local{local_x, local_y};
+    const Point local = point_from_window(event.position);
+    const double local_x = local.x;
+    const double local_y = local.y;
     if (!selecting_ && control_bar_visible.read() && event.action != PointerAction::wheel && bar_pointer(event, local)) {
         return;
     }
@@ -475,7 +474,13 @@ void RichTextBox::handle_pointer(PointerEvent& event) {
     }
     const bool command = command_modifier(event.modifiers);
     if (event.action == PointerAction::down && event.button == PointerButton::primary) {
-        if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
+        const Control::Ptr lifetime = shared_from_this();
+        event.handled = true;
+        if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
+        // The focus handlers may detach or dispose the box: nothing below
+        // runs on a box that left its window (`lifetime` keeps it until the
+        // press is done).
+        if (!is_alive() || window() == nullptr) return;
         if (command) {
             // Ctrl or Cmd with a click opens a link; the caret stays.
             const std::optional<std::string> target = link_at(local_x, local_y);
@@ -489,9 +494,13 @@ void RichTextBox::handle_pointer(PointerEvent& event) {
         const bool extend = includes(event.modifiers, Modifier::shift);
         const TextSelection selection = (*editing_).selection();
         set_selection(extend ? TextSelection{selection.anchor, position} : TextSelection{position, position});
-        selecting_ = true;
+        // The selection drag starts with the capture and only if it was
+        // taken: a refused capture, or handlers that drop the box, leave no
+        // drag waiting for a release that may never come.
+        if (!is_alive() || window() == nullptr) return;
         set_pointer_capture(true);
-        event.handled = true;
+        if (!is_alive()) return;
+        selecting_ = has_pointer_capture();
         return;
     }
     if (event.action == PointerAction::move && selecting_ && has_pointer_capture()) {

@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "component": "gui_forms::NumericUpDown",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/numeric_up_down.ic.toml",
+    "sha256": "8203eaa22a31431093be363fe9f951abba6e62c9a87c6471f203861745cdd3da"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.numericupdown.minimum_write.requires.minimum",
+      "kind": "entry-check",
+      "statement": "minimum runs only when finite(incoming); otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::numeric_up_down::admits_minimum, called in src/controls/panel/numeric_up_down/numeric_up_down.cpp"
+    },
+    {
+      "id": "gui_forms.numericupdown.minimum_write.refusal.minimum",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming), minimum changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.numericupdown.maximum_write.requires.maximum",
+      "kind": "entry-check",
+      "statement": "maximum runs only when finite(incoming); otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::numeric_up_down::admits_maximum, called in src/controls/panel/numeric_up_down/numeric_up_down.cpp"
+    },
+    {
+      "id": "gui_forms.numericupdown.maximum_write.refusal.maximum",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming), maximum changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.numericupdown.increment_write.requires.increment",
+      "kind": "entry-check",
+      "statement": "increment runs only when finite(incoming) and incoming > 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::numeric_up_down::admits_increment, called in src/controls/panel/numeric_up_down/numeric_up_down.cpp"
+    },
+    {
+      "id": "gui_forms.numericupdown.increment_write.refusal.increment",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming > 0, increment changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 #include "gui_forms/controls/plot_series_item.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -19,7 +20,7 @@ namespace {
 // thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> plot_series_kind_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "plot_series_kind",
             {{"line", 0}, {"stairs", 1}, {"scatter", 2}, {"shaded", 3}, {"bars", 4}, {"stems", 5}},
             false});
@@ -163,7 +164,7 @@ void PlotSeriesItem::borrow_points(plots::BorrowedSeries<double> xs, plots::Borr
 std::shared_ptr<plots::SeriesRingChannel> PlotSeriesItem::live_channel(std::size_t capacity) {
     require_mutable();
     if (!channel_) {
-        channel_ = std::make_shared<plots::SeriesRingChannel>(capacity, 2U);
+        channel_ = gui_forms::detail::make_library_shared<plots::SeriesRingChannel>(capacity, 2U);
         make_ring((*channel_).capacity());
         notify_data_changed();
     }
@@ -480,7 +481,7 @@ BindingValue PropertyValueTraits<PlotSeriesKind>::to_binding(PlotSeriesKind valu
     descriptor.enumeration = plot_series_kind_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

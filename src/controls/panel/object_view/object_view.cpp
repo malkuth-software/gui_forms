@@ -7,6 +7,7 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "object_view_ic_checks.hpp"
 
 #include <vector>
 #include <string>
@@ -20,6 +21,7 @@
 #include <unordered_set>
 
 namespace gui_forms {
+namespace ic = detail::ic::object_view;
 
 namespace {
 
@@ -887,8 +889,8 @@ Rect ObjectView::shown(Rect reading) const noexcept {
 
 // A window position in the view's local coordinates, in reading order.
 Point ObjectView::reading_local(Point absolute) const noexcept {
-    const Rect bounds = absolute_bounds();
-    const Point drawn{absolute.x - bounds.x, absolute.y - bounds.y};
+    const ScaleFrame bounds_frame = window_frame();
+    const Point drawn = frame_to_inner(bounds_frame, absolute);
     const Point reading = details_detail::reading_point(drawn, local_bounds(), mirrored());
     return reading;
 }
@@ -1431,7 +1433,7 @@ std::vector<SemanticNode> ObjectView::semantic_virtual_children() const {
         (top_row_ + visible_row_count()) * columns());
     const bool table = has_details_columns();
     nodes.reserve(end - std::min(first, end) + (table ? details_columns_.size() : 0U));
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     if (table) append_column_headers(nodes);
     for (std::size_t index = first; index < end; ++index) {
         const ObjectViewItem& item = items_[index];
@@ -1454,7 +1456,7 @@ std::vector<SemanticNode> ObjectView::semantic_virtual_children() const {
         node.value = item.secondary_text;
         node.description = item.description;
         const Rect drawn = shown(local);
-        node.bounds = {absolute.x + drawn.x, absolute.y + drawn.y, drawn.width, drawn.height};
+        node.bounds = frame_to_outer(local_frame, drawn);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (effectively_enabled() && item.enabled) node.states |= SemanticState::enabled;
         if (is_selected(item.stable_id)) node.states |= SemanticState::selected;
@@ -1471,7 +1473,7 @@ std::vector<SemanticNode> ObjectView::semantic_virtual_children() const {
 // press, which sorts as clicking it does (owner decision, stage A gap 2);
 // the others do nothing when clicked and offer no action.
 void ObjectView::append_column_headers(std::vector<SemanticNode>& nodes) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect band{4.0, 2.0, std::max(0.0, local_bounds().width - 8.0), header_height()};
     const std::string view_id(stable_id().value());
     for (std::size_t column = 0U; column < details_columns_.size(); ++column) {
@@ -1487,7 +1489,7 @@ void ObjectView::append_column_headers(std::vector<SemanticNode>& nodes) const {
         if (!details_sort_.column.value.empty() && definition.id == details_sort_.column) {
             node.value = details_sort_.direction == ObjectSortDirection::ascending ? "ascending" : "descending";
         }
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible;
         if (effectively_enabled()) node.states |= SemanticState::enabled;
         if (definition.sortable) node.actions = {SemanticAction::press};
@@ -1499,7 +1501,7 @@ void ObjectView::append_column_headers(std::vector<SemanticNode>& nodes) const {
 // realized columns). A cell has no actions of its own; its row takes them.
 void ObjectView::append_row_cells(std::size_t index, SemanticNode& row_node) const {
     const ObjectViewItem& item = items_[index];
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect line = item_bounds(index);
     const double header = header_height();
     const Rect body{4.0, 2.0 + header, std::max(0.0, local_bounds().width - 8.0),
@@ -1519,7 +1521,7 @@ void ObjectView::append_row_cells(std::size_t index, SemanticNode& row_node) con
         cell.value = value.text;
         cell.row_index.set(index + 1U);
         cell.column_index.set(column + 1U);
-        cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        cell.bounds = frame_to_outer(local_frame, bounds);
         cell.states = SemanticState::visible;
         if (enabled && value.availability == ObjectCellAvailability::available) cell.states |= SemanticState::enabled;
         row_node.children.push_back(std::move(cell));
@@ -1562,10 +1564,9 @@ bool ObjectView::on_semantic_child_action(std::string_view id,
         const stxlib::Optional<std::size_t> shown_index = item_index(identity);
         if (shown_index.absent()) return true;
         const Rect local = shown(item_bounds(*shown_index.value()));
-        const Rect absolute = absolute_bounds();
+        const ScaleFrame local_frame = window_frame();
         context_requested_.emit({identity,
-            {absolute.x + local.x + local.width * .5,
-             absolute.y + local.y + local.height * .5}});
+            frame_to_outer(local_frame, Point{local.x + local.width * .5, local.y + local.height * .5})});
     } else if (action == SemanticAction::focus) {
         focus_index(current_index);
     } else {
@@ -2420,9 +2421,7 @@ void ObjectView::append_interactions(std::vector<InteractionDeclaration>& intera
 
 void ObjectView::prepare_write(const decltype(icon_cell_size)&, Size& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) ||
-        incoming.width < 86.0 || incoming.height < 78.0 ||
-        incoming.width > 512.0 || incoming.height > 512.0) {
+    if (!ic::admits_icon_cell_size(incoming)) {
         throw std::invalid_argument("ObjectView icon cell must be 86x78 through 512x512");
     }
 }
@@ -2433,7 +2432,7 @@ void ObjectView::written(const decltype(icon_cell_size)&) {
 
 void ObjectView::prepare_write(const decltype(details_row_height)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 20.0 || incoming > 256.0) {
+    if (!ic::admits_details_row_height(incoming)) {
         throw std::invalid_argument("ObjectView details row height must be 20 through 256");
     }
 }

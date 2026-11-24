@@ -30,6 +30,7 @@
 #include "gui_forms/text/locale_file/locale_file.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <atomic>
 #include <any>
@@ -40,7 +41,6 @@
 #include <limits>
 #include <memory>
 #include <map>
-#include <mutex>
 #include <optional>
 #include <stxlib/optional.hpp>
 #include <span>
@@ -384,6 +384,8 @@ constexpr ControlStyles& operator|=(ControlStyles& left,
 // (Control::release_children_iteratively).
 inline constexpr std::size_t maximum_control_tree_depth = 64U;
 
+// ic: gui_forms::Control: generated from include/gui_forms/control/control/control.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Control : public Component,
                 public std::enable_shared_from_this<Control>,
                 public ControlCapabilities<Control> {
@@ -498,7 +500,23 @@ public:
     [[nodiscard]] virtual Rect display_rectangle() const noexcept {
         return client_rectangle();
     }
+    // This control's bounds in its window's coordinates: its arranged
+    // bounds mapped through its parent's window frame, so under a contain
+    // or cover above it the rectangle it is seen in.
     [[nodiscard]] Rect absolute_bounds() const;
+    // The map from this control's local coordinates into its window's
+    // (stage VA, the in-tree scale frame): its position, at the product of
+    // every contain or cover scale the window carries out above it (scale 1
+    // in a subtree nothing contains). point_to_window, point_from_window,
+    // rectangle_to_window and rectangle_from_window map through it, and so
+    // do the pointer's location and the text input caret; a local length
+    // is window_frame().scale window units long.
+    [[nodiscard]] ScaleFrame window_frame() const;
+    // The frame the window applies to this control's children as the
+    // viewport owner carrying out a contain or cover (stage VA): their
+    // coordinates into this control's. The identity otherwise. Set by the
+    // window's viewport check after each layout flush.
+    [[nodiscard]] ScaleFrame content_frame() const noexcept { return content_frame_; }
     [[nodiscard]] Point point_to_window(Point local) const;
     [[nodiscard]] Point point_from_window(Point window_point) const;
     [[nodiscard]] Rect rectangle_to_window(Rect local) const;
@@ -1047,6 +1065,17 @@ public:
     [[nodiscard]] Event<const RelativePointerEnded&>& relative_pointer_ended() {
         return relative_pointer_events().relative_pointer_ended;
     }
+    // The touchpad gestures (gesture_events.hpp: pinch to magnify, rotate,
+    // smart magnify, swipe), raised by on_gesture's base. Kept with the
+    // mouse events, in their record.
+    [[nodiscard]] Event<const GestureEventArgs&>& gesture() { return mouse_events().gesture; }
+    // Whether this control handles touchpad gestures: a control that
+    // overrides on_gesture or subscribes to gesture() sets it, so that its
+    // window asks its host for them (SurfaceRoot::gesture_input_requested;
+    // on Windows that engages DirectManipulation, which a window without a
+    // gesture handler never does).
+    void set_gesture_input(bool requested) noexcept;
+    [[nodiscard]] bool gesture_input() const noexcept { return gesture_input_; }
     [[nodiscard]] ControlBindingsCollection& data_bindings();
     [[nodiscard]] const ControlBindingsCollection& data_bindings() const;
     // Keeps `link`, a form binding's link of one of this control's
@@ -1056,7 +1085,7 @@ public:
     void adopt_property_link(std::unique_ptr<PropertyLink> link);
     // Control's own table (its capabilities' entries); a derived type joins
     // it first (join_property_tables) and returns the joined table.
-    static constexpr std::size_t control_property_count = 41U;
+    static constexpr std::size_t control_property_count = 42U;
     [[nodiscard]] static const std::array<PropertyEntry, control_property_count>& control_property_entries() noexcept;
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
     // The properties below are the instance registry's
@@ -1196,6 +1225,41 @@ public:
     // converges. False by default, so a 0 stays 0 for every control that
     // does not say otherwise; Label answers true.
     [[nodiscard]] virtual bool sizes_unrequested_extents_from_content() const noexcept;
+    // The visible-area guarantee (stage VA). Whether this control scrolls
+    // its content: its scroll range reaches every part of what overflows
+    // its viewport, so it answers an overflow by scrolling whatever its
+    // viewport_fit says (OverflowAnswer::scroll). False by default;
+    // ScrollableControl answers its auto_scroll, and a control that
+    // positions its children in a scrolled space of its own answers true.
+    [[nodiscard]] virtual bool content_scrolls() const noexcept;
+    // The scale this control applies to its content itself, as the
+    // viewport owner carrying out a contain or cover of its viewport_fit;
+    // none while it applies none. None by default: the window carries out
+    // every other owner's contain or cover through its content frame
+    // (content_frame). A SubSurfaceHost applies its sub-surface's root
+    // scale; ScaledPanel and ScaledGroupBox their stretch.
+    [[nodiscard]] virtual stxlib::Optional<double> applied_viewport_scale() const noexcept;
+    // Whether this control shows media (an image, a video, a canvas, a game
+    // in a sub-surface) rather than controls (stage VA, decision 5): a
+    // contain of media is bounded by its viewport_fit's minimum_scale
+    // alone; one of controls also by the presentation settings' floor
+    // (PresentationSettings::minimum_content_scale). False by default.
+    [[nodiscard]] virtual bool shows_media_content() const noexcept;
+    // Whether this control maps its own design space onto its arranged
+    // size (ScaledPanel's and ScaledGroupBox's explicit stretch, decision
+    // 10). Such a control is laid out in its whole viewport, at the root
+    // too: the designed contain (content_layout_rectangle,
+    // SurfaceRoot::root_layout_rectangle) applies only where no control
+    // declares its own mapping. False by default.
+    [[nodiscard]] virtual bool scales_design_space() const noexcept;
+    // The rectangle Control::arrange lays the children out in: the child
+    // viewport, or, while this control has a design_size and its
+    // viewport_fit answers contain or cover (and it neither scrolls its
+    // content nor scales it itself, scales_design_space), that size at the
+    // viewport's origin.
+    // A layout container overriding arrange lays out in it too to take
+    // part in a designed contain.
+    [[nodiscard]] Rect content_layout_rectangle() const noexcept;
     // layout_direction stores the authored inline direction, `inherit` by
     // default (stage L, PLAN section 4): Windows Forms' RightToLeft. The
     // registry, the property grid and forms spell it `right_to_left` (No,
@@ -1487,6 +1551,12 @@ protected:
     virtual void on_mouse_up(MouseEventArgs& arguments);
     virtual void on_mouse_move(MouseEventArgs& arguments);
     virtual void on_mouse_wheel(MouseEventArgs& arguments);
+    // A touchpad gesture (gesture_events.hpp), routed as the wheel: the
+    // target's on_gesture, then each ancestor's (arguments.phase bubble),
+    // until one sets handled. The base raises gesture. A control that
+    // overrides it calls set_gesture_input(true), so that its window asks
+    // the host for gestures.
+    virtual void on_gesture(GestureEventArgs& arguments);
     virtual void on_mouse_enter();
     virtual void on_mouse_hover();
     virtual void on_mouse_leave();
@@ -1736,6 +1806,7 @@ protected:
     void advance_layout_revision() noexcept { ++layout_revision_; }
 
 private:
+    friend struct detail::StateFlipAccess;
     // add_child and insert_child: validates, then inserts child at index
     // counted from the top.
     void attach_child(Ptr child, std::size_t index);
@@ -1823,6 +1894,8 @@ private:
     friend struct ForeColorCapability<Control>;
     friend struct MinimumSizeCapability<Control>;
     friend struct MaximumSizeCapability<Control>;
+    friend struct ViewportFitCapability<Control>;
+    friend struct DesignSizeCapability<Control>;
     friend struct MarginCapability<Control>;
     friend struct PaddingCapability<Control>;
     friend struct DockCapability<Control>;
@@ -1870,10 +1943,20 @@ private:
     void written(const decltype(back_color)& cell);
     void prepare_write(const decltype(fore_color)& cell, stxlib::Optional<Color>& value);
     void written(const decltype(fore_color)& cell);
+    // ic: Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0
+    // ic: and (maximum_size.width <= 0 or incoming.width <= maximum_size.width) and (maximum_size.height <= 0 or
+    // ic: incoming.height <= maximum_size.height), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(minimum_size)& cell, Size& value);
     void written(const decltype(minimum_size)& cell);
+    // ic: Requires finite(incoming.width) and finite(incoming.height) and incoming.width >= 0 and incoming.height >= 0
+    // ic: and (incoming.width <= 0 or incoming.width >= minimum_size.width) and (incoming.height <= 0 or
+    // ic: incoming.height >= minimum_size.height), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(maximum_size)& cell, Size& value);
     void written(const decltype(maximum_size)& cell);
+    void prepare_write(const decltype(viewport_fit)& cell, ViewportFit& value);
+    void written(const decltype(viewport_fit)& cell);
+    void prepare_write(const decltype(design_size)& cell, Size& value);
+    void written(const decltype(design_size)& cell);
     void prepare_write(const decltype(margin)& cell, Insets& value);
     void written(const decltype(margin)& cell);
     void prepare_write(const decltype(padding)& cell, Insets& value);
@@ -2128,6 +2211,9 @@ private:
     // are not inherited here.
     bool stops_inherited_colours_{};
     [[nodiscard]] const InheritedValues& inherited_values() const noexcept;
+    // property_descriptors' list, gathered (the public call adds the
+    // corrupted-size check around it).
+    [[nodiscard]] std::vector<PropertyDescriptor> collect_property_descriptors() const;
     // The resolved direction (effective_layout_direction), kept eagerly:
     // refresh_resolved_direction updates it for a subtree whenever
     // layout_direction is written or the control's ancestors change, so it
@@ -2157,6 +2243,8 @@ private:
     static void announce_direction_changes(const std::vector<Ptr>& announcements);
     detail::LendingPointer<Window> window_{};
     detail::LendingPointer<SurfaceRoot> surface_root_{};
+    // Control::set_gesture_input; counted by the root it is attached to.
+    bool gesture_input_{};
     // This control's slot in its surface root's control table while it is
     // attached (assigned and released with surface_root_); unassigned
     // otherwise.
@@ -2203,6 +2291,18 @@ private:
     std::shared_ptr<const PaintGroupEffect> contrast_effect_source_{};
     double last_painted_effect_reach_{};
     bool layout_collapsed_{};
+    // The window's last viewport check of this control as an owner
+    // (SurfaceRoot::check_viewports): the layout pass sequence it was
+    // queued in, so one flush checks each owner once.
+    std::uint64_t viewport_check_pass_{};
+    // The window's map of this control's children into its own coordinates
+    // while it carries out a contain or cover (SurfaceRoot::
+    // check_viewport_owner); the identity otherwise.
+    ScaleFrame content_frame_{};
+    // The window-frame scale this control's display chunk was recorded at
+    // (SurfaceRoot::paint_recursive records at the window's scale times
+    // it); a chunk recorded at another is recorded again.
+    double recorded_frame_scale_{1.0};
     // Whether this is its window's hovered control, the one the pointer was
     // last over (stage T4, hot states). Only the window sets it, before the
     // control sees the enter or leave; base_anatomy_states reports it as
@@ -2217,7 +2317,7 @@ private:
                           ControlStyles::selectable};
     std::shared_ptr<const detail::ControlInlineStyle> inline_style_;
     // Ends inline_style() views whenever inline_style_ is replaced.
-    [[no_unique_address]] detail::BorrowLender inline_style_lender_{};
+    GUI_FORMS_NO_UNIQUE_ADDRESS detail::BorrowLender inline_style_lender_{};
     CursorImagesPtr cursor_images_;
     std::shared_ptr<const Theme> theme_override_;
     // The composite look (look_rules); null for most controls. The serial
@@ -2301,6 +2401,7 @@ private:
         Event<> double_click;
         Event<const MouseEventArgs&> mouse_double_click;
         Event<ContextMenuRequest&> context_menu_requested;
+        Event<const GestureEventArgs&> gesture;
     };
     MouseEvents& mouse_events();
     std::unique_ptr<MouseEvents> mouse_events_{};
@@ -2376,6 +2477,7 @@ private:
         bounds,
         minimum_size,
         maximum_size,
+        design_size,
         margin,
         padding,
         auto_scroll_offset,
@@ -2481,6 +2583,9 @@ private:
             } else if constexpr (
                 Property == RegisteredProperty::maximum_size) {
                 return BindingValue{(*control).maximum_size.read()};
+            } else if constexpr (
+                Property == RegisteredProperty::design_size) {
+                return BindingValue{(*control).design_size.read()};
             } else if constexpr (Property == RegisteredProperty::margin) {
                 return BindingValue{(*control).margin.read()};
             } else if constexpr (Property == RegisteredProperty::padding) {
@@ -2599,6 +2704,9 @@ private:
             } else if constexpr (
                 Property == RegisteredProperty::maximum_size) {
                 (*control).maximum_size = std::get<Size>(value);
+            } else if constexpr (
+                Property == RegisteredProperty::design_size) {
+                (*control).design_size = std::get<Size>(value);
             } else if constexpr (Property == RegisteredProperty::margin) {
                 (*control).margin = std::get<Insets>(value);
             } else if constexpr (Property == RegisteredProperty::padding) {
@@ -2726,7 +2834,7 @@ template <typename ControlType, typename... Arguments>
 [[nodiscard]] std::shared_ptr<ControlType> make_control(StableId stable_id,
                                                         Arguments&&... arguments) {
     static_assert(std::is_base_of_v<Control, ControlType>);
-    std::shared_ptr<ControlType> control = std::make_shared<ControlType>(
+    std::shared_ptr<ControlType> control = gui_forms::detail::make_library_shared<ControlType>(
         std::move(stable_id), std::forward<Arguments>(arguments)...);
     // Retained compound controls cannot safely establish parent links from
     // their constructor because Control::add_child intentionally requires a

@@ -8,7 +8,9 @@ This module therefore imports nothing from template_harness: run and the
 pinned-checkout check are its own, and match harness/ci_build_steps.py's.
 """
 from __future__ import annotations
+import os
 from pathlib import Path
+import platform
 import subprocess
 
 
@@ -71,10 +73,40 @@ def stx_options(stx_prefix: str, stx_package_dir: str) -> list[str]:
     return options
 
 
+OWN_RUNTIME_SETTINGS: tuple[str, ...] = ('GUI_FORMS_OWN_RUNTIME_SOURCE', 'GUI_FORMS_OWN_RUNTIME_PREFIX',
+                                         'GUI_FORMS_LIBCXX_PREFIX')
+
+
+def toolchain_options(source: Path) -> list[str]:
+    """The toolchain file and its settings for this host.
+
+    Linux and macOS: cmake/llvm22.cmake. Windows: x86_64-pc-windows-msvc
+    with STXlib's runtime (cmake/llvm22-windows-msvc.cmake with
+    GUI_FORMS_MSVC_RUNTIME=OWN; owner, 2026-11-24: no MinGW, Visual C++
+    tools or Windows SDK), whose three locations tools/own_runtime.py build
+    prints and sets in the environment. CI (GITHUB_ACTIONS) also writes a
+    link map beside every image, which own_runtime.py evidence reads.
+    """
+    if platform.system() != 'Windows':
+        return ['-DCMAKE_TOOLCHAIN_FILE=' + str(source / 'cmake/llvm22.cmake')]
+    missing: list[str] = [name for name in OWN_RUNTIME_SETTINGS if not os.environ.get(name)]
+    if missing:
+        raise RuntimeError('the Windows build links STXlib\'s own runtime: run tools/own_runtime.py build and '
+                           'set ' + ', '.join(missing))
+    options: list[str] = ['-DCMAKE_TOOLCHAIN_FILE=' + (source / 'cmake/llvm22-windows-msvc.cmake').as_posix(),
+                          '-DGUI_FORMS_MSVC_RUNTIME=OWN']
+    name: str
+    for name in OWN_RUNTIME_SETTINGS:
+        options.append(f'-D{name}=' + Path(os.environ[name]).as_posix())
+    if os.environ.get('GITHUB_ACTIONS') == 'true':
+        options.append('-DGUI_FORMS_LINK_MAP=ON')
+    return options
+
+
 def toolkit_options(source: Path, prefix: Path, gallery: bool, tests: bool) -> list[str]:
     """The configure options every toolkit build shares, ahead of host_options.
 
-    One Release build with the pinned LLVM toolchain file, position-
+    One Release build with the pinned LLVM toolchain (toolchain_options), position-
     independent code, the audio service with the stx Vorbis decoder, and
     prefix as the install prefix; gallery and tests switch the demonstration
     programs and the test cache (cmake/TestCache.cmake: the tree described
@@ -91,8 +123,16 @@ def toolkit_options(source: Path, prefix: Path, gallery: bool, tests: bool) -> l
     """
     gallery_option: str = 'ON' if gallery else 'OFF'
     tests_option: str = 'ON' if tests else 'OFF'
-    return ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib',
-            '-DCMAKE_TOOLCHAIN_FILE=' + str(source / 'cmake/llvm22.cmake'),
+    return ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib', *toolchain_options(source),
             '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', f'-DGUI_FORMS_BUILD_GALLERY={gallery_option}',
             f'-DGUI_FORMS_TEST_CACHE={tests_option}', f'-DGUI_FORMS_REFERENCE_ARITHMETIC={tests_option}',
             '-DGUI_FORMS_BUILD_AUDIO=ON', '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx', f'-DCMAKE_INSTALL_PREFIX={prefix}']
+
+
+if __name__ == '__main__':
+    # `toolkit_configure.py toolchain` prints this host's toolchain options
+    # (toolchain_options) for a workflow's own configure line.
+    import sys
+    if sys.argv[1:] != ['toolchain']:
+        raise SystemExit('usage: toolkit_configure.py toolchain')
+    print(' '.join(toolchain_options(Path(__file__).resolve().parents[1])))

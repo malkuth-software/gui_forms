@@ -16,6 +16,8 @@ Types
 
    * - :cpp:class:`ApplicationTable <gui_forms::abi::ApplicationTable>`
      - gf_application_table, negotiated as GF_TABLE_APPLICATION.
+   * - :cpp:class:`AutomationTable <gui_forms::abi::AutomationTable>`
+     - gf_automation_table, negotiated as GF_TABLE_AUTOMATION.
    * - :cpp:class:`BindingsTable <gui_forms::abi::BindingsTable>`
      - gf_bindings_table, negotiated as GF_TABLE_BINDINGS.
    * - :cpp:class:`ClassesTable <gui_forms::abi::ClassesTable>`
@@ -85,6 +87,16 @@ Types
    * - :cpp:class:`gf_application_config <gf_application_config>`
      - gf_application_config (C ABI 1.1) is what application.create makes the library's application with: the theme base, up to 16 packages compiled after it, and the presentation source.
    * - :cpp:class:`gf_application_table <gf_application_table>`
+     - ic: gf_abi::application: generated from include/gui_forms/c/gf_abi_application.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines.
+   * - :cpp:class:`gf_automation_inspect_call <gf_automation_inspect_call>`
+     -  
+   * - :cpp:class:`gf_automation_inspect_section <gf_automation_inspect_section>`
+     -  
+   * - :cpp:class:`gf_automation_table <gf_automation_table>`
+     -  
+   * - :cpp:class:`gf_automation_tool <gf_automation_tool>`
+     -  
+   * - :cpp:class:`gf_automation_tool_call <gf_automation_tool_call>`
      -  
    * - :cpp:class:`gf_binding_arguments <gf_binding_arguments>`
      -  
@@ -101,7 +113,7 @@ Types
    * - :cpp:class:`gf_binding_sort_key <gf_binding_sort_key>`
      -  
    * - :cpp:class:`gf_bindings_table <gf_bindings_table>`
-     -  
+     - ic: gf_abi::bindings: generated from include/gui_forms/c/gf_abi_bindings.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines.
    * - :cpp:class:`gf_button_base_class <gf_button_base_class>`
      -  
    * - :cpp:class:`gf_button_class <gf_button_class>`
@@ -119,7 +131,7 @@ Types
    * - :cpp:class:`gf_class_header <gf_class_header>`
      -  
    * - :cpp:class:`gf_classes_table <gf_classes_table>`
-     -  
+     - ic: gf_abi::classes: generated from include/gui_forms/c/gf_abi_classes.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_combo_box_hooks <gf_combo_box_hooks>`
      -  
    * - :cpp:class:`gf_composite_spec <gf_composite_spec>`
@@ -147,7 +159,7 @@ Types
    * - :cpp:class:`gf_content_statistics <gf_content_statistics>`
      -  
    * - :cpp:class:`gf_content_table <gf_content_table>`
-     -  
+     - ic: gf_abi::content: generated from include/gui_forms/c/gf_abi_content.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_content_text_cluster <gf_content_text_cluster>`
      -  
    * - :cpp:class:`gf_content_text_layout <gf_content_text_layout>`
@@ -157,7 +169,7 @@ Types
    * - :cpp:class:`gf_control_hooks <gf_control_hooks>`
      -  
    * - :cpp:class:`gf_controls_table <gf_controls_table>`
-     -  
+     - ic: gf_abi::controls: generated from include/gui_forms/c/gf_abi_controls.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines.
    * - :cpp:class:`gf_create_arguments <gf_create_arguments>`
      -  
    * - :cpp:class:`gf_create_choice <gf_create_choice>`
@@ -167,7 +179,7 @@ Types
    * - :cpp:class:`gf_custom_control_spec <gf_custom_control_spec>`
      -  
    * - :cpp:class:`gf_custom_controls_table <gf_custom_controls_table>`
-     -  
+     - ic: gf_abi::custom_controls: generated from include/gui_forms/c/gf_abi_custom_controls.ic.toml by ic: tools/ic_declarations.py; edit the declaration, not these lines.
    * - :cpp:class:`gf_custom_layout_callbacks <gf_custom_layout_callbacks>`
      -  
    * - :cpp:class:`gf_custom_property <gf_custom_property>`
@@ -181,13 +193,13 @@ Types
    * - :cpp:class:`gf_data_grid_row <gf_data_grid_row>`
      -  
    * - :cpp:class:`gf_data_grid_table <gf_data_grid_table>`
-     -  
+     - ic: gf_abi::data_grid: generated from include/gui_forms/c/gf_abi_data_grid.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines.
    * - :cpp:class:`gf_data_grid_view_hooks <gf_data_grid_view_hooks>`
      -  
    * - :cpp:class:`gf_date_time_picker_hooks <gf_date_time_picker_hooks>`
      -  
    * - :cpp:class:`gf_diagnostics_table <gf_diagnostics_table>`
-     -  
+     - ic: gf_abi::diagnostics: generated from include/gui_forms/c/gf_abi_diagnostics.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines.
    * - :cpp:class:`gf_dial_class <gf_dial_class>`
      -  
    * - :cpp:class:`gf_dialog_request <gf_dialog_request>`
@@ -195,7 +207,7 @@ Types
    * - :cpp:class:`gf_dialog_result <gf_dialog_result>`
      -  
    * - :cpp:class:`gf_dispatch_table <gf_dispatch_table>`
-     -  
+     - ic: gf_abi::dispatch: generated from include/gui_forms/c/gf_abi_dispatch.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines.
    * - :cpp:class:`gf_dock_edit <gf_dock_edit>`
      -  
    * - :cpp:class:`gf_dock_frame_memory <gf_dock_frame_memory>`
@@ -211,7 +223,7 @@ Types
    * - :cpp:class:`gf_dock_site_class <gf_dock_site_class>`
      -  
    * - :cpp:class:`gf_docking_table <gf_docking_table>`
-     -  
+     - ic: gf_abi::docking: generated from include/gui_forms/c/gf_abi_docking.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_effect_mask_layer <gf_effect_mask_layer>`
      -  
    * - :cpp:class:`gf_error_detail <gf_error_detail>`
@@ -221,7 +233,7 @@ Types
    * - :cpp:class:`gf_event_field <gf_event_field>`
      -  
    * - :cpp:class:`gf_events_table <gf_events_table>`
-     -  
+     - ic: gf_abi::events: generated from include/gui_forms/c/gf_abi_events.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_failure_detail <gf_failure_detail>`
      -  
    * - :cpp:class:`gf_failure_snapshot <gf_failure_snapshot>`
@@ -231,17 +243,17 @@ Types
    * - :cpp:class:`gf_font <gf_font>`
      -  
    * - :cpp:class:`gf_fonts_table <gf_fonts_table>`
-     -  
+     - ic: gf_abi::fonts: generated from include/gui_forms/c/gf_abi_fonts.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_gauge_base_class <gf_gauge_base_class>`
      -  
    * - :cpp:class:`gf_group_box_class <gf_group_box_class>`
      -  
    * - :cpp:class:`gf_help_table <gf_help_table>`
-     -  
+     - ic: gf_abi::help: generated from include/gui_forms/c/gf_abi_help.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_host_capabilities <gf_host_capabilities>`
      -  
    * - :cpp:class:`gf_host_table <gf_host_table>`
-     -  
+     - ic: gf_abi::host: generated from include/gui_forms/c/gf_abi_host.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_hosted_input_report <gf_hosted_input_report>`
      -  
    * - :cpp:class:`gf_hosted_options <gf_hosted_options>`
@@ -263,7 +275,7 @@ Types
    * - :cpp:class:`gf_list_view_item <gf_list_view_item>`
      -  
    * - :cpp:class:`gf_list_view_table <gf_list_view_table>`
-     -  
+     - ic: gf_abi::list_view: generated from include/gui_forms/c/gf_abi_list_view.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines.
    * - :cpp:class:`gf_logical_insets <gf_logical_insets>`
      -  
    * - :cpp:class:`gf_logical_point <gf_logical_point>`
@@ -285,9 +297,11 @@ Types
    * - :cpp:class:`gf_numeric_up_down_hooks <gf_numeric_up_down_hooks>`
      -  
    * - :cpp:class:`gf_objects_table <gf_objects_table>`
+     - ic: gf_abi::objects: generated from include/gui_forms/c/gf_abi_objects.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
+   * - :cpp:class:`gf_overflow_record <gf_overflow_record>`
      -  
    * - :cpp:class:`gf_overlays_table <gf_overlays_table>`
-     -  
+     - ic: gf_abi::overlays: generated from include/gui_forms/c/gf_abi_overlays.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines.
    * - :cpp:class:`gf_owned_window_options <gf_owned_window_options>`
      -  
    * - :cpp:class:`gf_page_strip_class <gf_page_strip_class>`
@@ -307,9 +321,9 @@ Types
    * - :cpp:class:`gf_progress_bar_class <gf_progress_bar_class>`
      -  
    * - :cpp:class:`gf_properties_table <gf_properties_table>`
-     -  
+     - ic: gf_abi::properties: generated from include/gui_forms/c/gf_abi_properties.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines.
    * - :cpp:class:`gf_property_grid_table <gf_property_grid_table>`
-     -  
+     - ic: gf_abi::property_grid: generated from include/gui_forms/c/gf_abi_property_grid.ic.toml by ic: tools/ic_declarations.py; edit the declaration, not these lines.
    * - :cpp:class:`gf_radio_button_class <gf_radio_button_class>`
      -  
    * - :cpp:class:`gf_radio_button_hooks <gf_radio_button_hooks>`
@@ -333,7 +347,7 @@ Types
    * - :cpp:class:`gf_rule_condition <gf_rule_condition>`
      -  
    * - :cpp:class:`gf_rules_table <gf_rules_table>`
-     -  
+     - ic: gf_abi::rules: generated from include/gui_forms/c/gf_abi_rules.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_run_options <gf_run_options>`
      -  
    * - :cpp:class:`gf_runtime_table <gf_runtime_table>`
@@ -361,7 +375,7 @@ Types
    * - :cpp:class:`gf_schema_property <gf_schema_property>`
      -  
    * - :cpp:class:`gf_schema_table <gf_schema_table>`
-     -  
+     - ic: gf_abi::schema: generated from include/gui_forms/c/gf_abi_schema.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_schema_type <gf_schema_type>`
      -  
    * - :cpp:class:`gf_scroll_axis <gf_scroll_axis>`
@@ -383,7 +397,7 @@ Types
    * - :cpp:class:`gf_subsurface_content <gf_subsurface_content>`
      -  
    * - :cpp:class:`gf_subsurfaces_table <gf_subsurfaces_table>`
-     -  
+     - ic: gf_abi::subsurfaces: generated from include/gui_forms/c/gf_abi_subsurfaces.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines.
    * - :cpp:class:`gf_sweep_scope_class <gf_sweep_scope_class>`
      -  
    * - :cpp:class:`gf_text_box_base_class <gf_text_box_base_class>`
@@ -391,7 +405,7 @@ Types
    * - :cpp:class:`gf_text_decoration <gf_text_decoration>`
      -  
    * - :cpp:class:`gf_text_editing_table <gf_text_editing_table>`
-     -  
+     - ic: gf_abi::text_editing: generated from include/gui_forms/c/gf_abi_text_editing.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines.
    * - :cpp:class:`gf_theme_diagnostic <gf_theme_diagnostic>`
      -  
    * - :cpp:class:`gf_theme_file <gf_theme_file>`
@@ -401,7 +415,7 @@ Types
    * - :cpp:class:`gf_theme_report <gf_theme_report>`
      -  
    * - :cpp:class:`gf_themes_table <gf_themes_table>`
-     -  
+     - ic: gf_abi::themes: generated from include/gui_forms/c/gf_abi_themes.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`gf_tool_strip_class <gf_tool_strip_class>`
      -  
    * - :cpp:class:`gf_track_bar_class <gf_track_bar_class>`
@@ -414,6 +428,8 @@ Types
      - gf_utf8_view (C ABI 1) borrows size bytes of UTF-8 text, not terminated; the callee copies what it keeps.
    * - :cpp:class:`gf_value <gf_value>`
      -  
+   * - :cpp:class:`gf_viewport_fit <gf_viewport_fit>`
+     -  
    * - :cpp:class:`gf_window_band_appearance <gf_window_band_appearance>`
      -  
    * - :cpp:class:`gf_window_band_options <gf_window_band_options>`
@@ -423,9 +439,9 @@ Types
    * - :cpp:class:`gf_window_shaping <gf_window_shaping>`
      -  
    * - :cpp:class:`gf_windows_paint_endpoint_table <gf_windows_paint_endpoint_table>`
-     -  
+     - ic: gf_abi::windows_paint_endpoint: generated from include/gui_forms/c/gf_abi_windows_paint_endpoint.ic.toml by ic: tools/ic_declarations.py; edit the declaration, not these lines.
    * - :cpp:class:`gf_windows_table <gf_windows_table>`
-     -  
+     - ic: gf_abi::windows: generated from include/gui_forms/c/gf_abi_windows.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines.
    * - :cpp:class:`HelpTable <gui_forms::abi::HelpTable>`
      - gf_help_table, negotiated as GF_TABLE_HELP.
    * - :cpp:class:`HostTable <gui_forms::abi::HostTable>`
@@ -497,6 +513,73 @@ Types
    .. cpp:function:: gf_status state(gf_application_state* state) const noexcept
 
    .. cpp:function:: gf_status set_program_identity(const gf_program_identity* identity) const noexcept
+
+.. cpp:namespace:: gui_forms::abi
+
+.. cpp:class:: AutomationTable
+
+   ``#include <gui_forms/c/gf_abi.hpp>`` (:src:`source <include/gui_forms/c/gf_abi.hpp>`)
+
+   gf_automation_table, negotiated as GF_TABLE_AUTOMATION.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: AutomationTable() noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: const gf_automation_table& c_table() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static gf_status negotiate(AutomationTable& output) noexcept
+
+      Negotiates the table at the header's version into output; a refusal leaves output serving nothing.
+
+   .. cpp:function:: static AutomationTable adopt(const gf_automation_table& adopted_table) noexcept
+
+      A table the caller negotiated through gf_abi_get_table.
+
+   .. cpp:function:: gf_status capability_built(uint32_t* built) const noexcept
+
+   .. cpp:function:: gf_status require_user_step(gf_utf8_view stable_id, gf_utf8_view what) const noexcept
+
+   .. cpp:function:: gf_status complete_user_step(gf_utf8_view stable_id) const noexcept
+
+   .. cpp:function:: gf_status user_step_pending(gf_utf8_view stable_id, uint32_t* pending) const noexcept
+
+   .. cpp:function:: gf_status register_tool(const gf_automation_tool* tool) const noexcept
+
+   .. cpp:function:: gf_status unregister_tool(gf_utf8_view name) const noexcept
+
+   .. cpp:function:: gf_status reply_text(void* reply, gf_utf8_view text) const noexcept
+
+   .. cpp:function:: gf_status reply_structured(void* reply, gf_utf8_view json) const noexcept
+
+   .. cpp:function:: gf_status reply_image(void* reply, const uint8_t* bytes, uint64_t count, gf_utf8_view mime_type) const noexcept
+
+   .. cpp:function:: gf_status reply_fail(void* reply, gf_automation_tool_error error, gf_utf8_view message, gf_utf8_view hint) const noexcept
+
+   .. cpp:function:: gf_status register_inspect_section(const gf_automation_inspect_section* section) const noexcept
+
+   .. cpp:function:: gf_status unregister_inspect_section(gf_utf8_view name) const noexcept
+
+   .. cpp:function:: gf_status inspect_append(void* text, gf_utf8_view utf8) const noexcept
+
+   .. cpp:function:: gf_status set_window_drivable(gf_object window, uint32_t drivable) const noexcept
+
+   .. cpp:function:: gf_status set_window_destructive(gf_object window, uint32_t destructive) const noexcept
+
+   .. cpp:function:: gf_status set_action_destructive(gf_utf8_view stable_id, gf_automation_action action, uint32_t destructive) const noexcept
+
+   .. cpp:function:: gf_status set_command_hidden(gf_utf8_view stable_id, uint32_t hidden) const noexcept
+
+   .. cpp:function:: gf_status set_clipboard_readable(uint32_t readable) const noexcept
+
+   .. cpp:function:: gf_status set_identity(gf_utf8_view identity) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -655,7 +738,7 @@ Types
 
    .. cpp:function:: gf_status sink_heartbeat(gf_content_sink sink) const noexcept
 
-   .. cpp:function:: gf_status sink_publish_semantics(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* result) const noexcept
+   .. cpp:function:: gf_status sink_publish_semantics(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* outcome) const noexcept
 
    .. cpp:function:: gf_status sink_request(gf_content_sink sink, gf_content_request* request) const noexcept
 
@@ -776,6 +859,8 @@ Types
 
    .. cpp:function:: gf_status warp_pointer(gf_object object, gf_logical_point position, uint32_t* warped) const noexcept
 
+   .. cpp:function:: gf_status viewport_fit(gf_object object, gf_viewport_fit* fit) const noexcept
+
    .. cpp:function:: gf_status set_pointer_capture(gf_object object, uint32_t captured) const noexcept
 
    .. cpp:function:: gf_status set_scroll_axis(gf_object object, gf_scroll_orientation orientation, const gf_scroll_axis* axis) const noexcept
@@ -783,6 +868,8 @@ Types
    .. cpp:function:: gf_status set_pointer_release_regions(gf_object object, const gf_logical_rect* regions, uint32_t count) const noexcept
 
    .. cpp:function:: gf_status set_content_effect(gf_object object, const gf_content_effect* effect) const noexcept
+
+   .. cpp:function:: gf_status set_viewport_fit(gf_object object, const gf_viewport_fit* fit) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1071,6 +1158,14 @@ Types
 
    .. cpp:function:: gf_status merged_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
 
+   .. cpp:function:: gf_status merge_tool_strip(gf_object workspace, gf_object* strip) const noexcept
+
+   .. cpp:function:: gf_status merged_tool_strip_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
+   .. cpp:function:: gf_status merge_ribbon(gf_object workspace, gf_object* ribbon) const noexcept
+
+   .. cpp:function:: gf_status merged_ribbon_document(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required) const noexcept
+
    .. cpp:function:: gf_status set_panel_content(gf_object workspace, gf_utf8_view panel, gf_object content) const noexcept
 
    .. cpp:function:: gf_status set_panel_title(gf_object workspace, gf_utf8_view panel, gf_utf8_view title) const noexcept
@@ -1082,6 +1177,14 @@ Types
    .. cpp:function:: gf_status set_frame_icons_at_bottom(gf_object workspace, uint32_t bottom) const noexcept
 
    .. cpp:function:: gf_status set_panel_menu_strip(gf_object workspace, gf_utf8_view panel, gf_object strip) const noexcept
+
+   .. cpp:function:: gf_status set_merge_tool_strip(gf_object workspace, gf_object strip) const noexcept
+
+   .. cpp:function:: gf_status set_panel_tool_strip(gf_object workspace, gf_utf8_view panel, gf_object strip) const noexcept
+
+   .. cpp:function:: gf_status set_merge_ribbon(gf_object workspace, gf_object ribbon) const noexcept
+
+   .. cpp:function:: gf_status set_panel_ribbon(gf_object workspace, gf_utf8_view panel, gf_object ribbon) const noexcept
 
 .. cpp:namespace:: gui_forms::abi
 
@@ -1835,20 +1938,173 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::application: generated from include/gui_forms/c/gf_abi_application.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*create)(const gf_application_config* config, gf_theme_report* report)
 
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for an unknown base or source, a non-zero reserved field, ic: or packages null with a non-zero count.), unchanged; invalid_state (GF_STATUS_INVALID_STATE, making nothing ic: and leaving the findings, while an application is current or while the library holds objects made without ic: one;), unchanged.
+
    .. cpp:member:: gf_status (*close)(uint64_t* windows_alive)
+
+      ic: Requires not_null(windows_alive), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state ic: (GF_STATUS_INVALID_STATE, changing nothing, while any is; once closed, the theme is the built-in one again ic: (as themes.reset), windows made afterwards use the process default and create may make another application.), ic: unchanged.
 
    .. cpp:member:: gf_status (*state)(gf_application_state* state)
 
+      ic: Requires not_null(state), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*set_program_identity)(const gf_program_identity* identity)
+
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a null or short record, a non-zero reserved field, ic: text that is not UTF-8 or a website that is neither empty nor an https:// address.), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
    .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_inspect_call
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view window_id
+
+   .. cpp:member:: gf_utf8_view node_id
+
+   .. cpp:member:: gf_utf8_view arguments_json
+
+   .. cpp:member:: void* text
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_inspect_section
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: void (*inspect)(void* context, const gf_automation_inspect_call* call)
+
+   .. cpp:member:: void (*release)(void* context)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view description
+
+   .. cpp:member:: void* context
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_table
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: gf_status (*capability_built)(uint32_t* built)
+
+   .. cpp:member:: gf_status (*set_window_drivable)(gf_object window, uint32_t drivable)
+
+   .. cpp:member:: gf_status (*set_window_destructive)(gf_object window, uint32_t destructive)
+
+   .. cpp:member:: gf_status (*set_action_destructive)(gf_utf8_view stable_id, gf_automation_action action, uint32_t destructive)
+
+   .. cpp:member:: gf_status (*set_command_hidden)(gf_utf8_view stable_id, uint32_t hidden)
+
+   .. cpp:member:: gf_status (*require_user_step)(gf_utf8_view stable_id, gf_utf8_view what)
+
+   .. cpp:member:: gf_status (*complete_user_step)(gf_utf8_view stable_id)
+
+   .. cpp:member:: gf_status (*user_step_pending)(gf_utf8_view stable_id, uint32_t* pending)
+
+   .. cpp:member:: gf_status (*set_clipboard_readable)(uint32_t readable)
+
+   .. cpp:member:: gf_status (*set_identity)(gf_utf8_view identity)
+
+   .. cpp:member:: gf_status (*register_tool)(const gf_automation_tool* tool)
+
+   .. cpp:member:: gf_status (*unregister_tool)(gf_utf8_view name)
+
+   .. cpp:member:: gf_status (*reply_text)(void* reply, gf_utf8_view text)
+
+   .. cpp:member:: gf_status (*reply_structured)(void* reply, gf_utf8_view json)
+
+   .. cpp:member:: gf_status (*reply_image)(void* reply, const uint8_t* bytes, uint64_t count, gf_utf8_view mime_type)
+
+   .. cpp:member:: gf_status (*reply_fail)(void* reply, gf_automation_tool_error error, gf_utf8_view message, gf_utf8_view hint)
+
+   .. cpp:member:: gf_status (*register_inspect_section)(const gf_automation_inspect_section* section)
+
+   .. cpp:member:: gf_status (*unregister_inspect_section)(gf_utf8_view name)
+
+   .. cpp:member:: gf_status (*inspect_append)(void* text, gf_utf8_view utf8)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t abi_minor
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_tool
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+
+   .. rubric:: Methods
+
+   .. cpp:member:: void (*call)(void* context, const gf_automation_tool_call* call)
+
+   .. cpp:member:: void (*release)(void* context)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_automation_tool_access access
+
+   .. cpp:member:: gf_automation_tool_flags flags
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view name
+
+   .. cpp:member:: gf_utf8_view title
+
+   .. cpp:member:: gf_utf8_view description
+
+   .. cpp:member:: gf_utf8_view input_schema
+
+   .. cpp:member:: void* context
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_automation_tool_call
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: uint32_t reserved
+
+   .. cpp:member:: gf_utf8_view arguments_json
+
+   .. cpp:member:: gf_utf8_view client_name
+
+   .. cpp:member:: gf_utf8_view model_name
+
+   .. cpp:member:: gf_utf8_view window_id
+
+   .. cpp:member:: void* reply
 
 .. cpp:namespace:: 0
 
@@ -1987,46 +2243,86 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::bindings: generated from include/gui_forms/c/gf_abi_bindings.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*bind)(const gf_binding_arguments* arguments, gf_object* binding)
 
+      ic: Fails disposed (code: the target has been disposed), unchanged; invalid_argument (A property that is not ic: bindable gives GF_STATUS_INVALID_ARGUMENT.), unchanged. Returns gf_object, owned by the caller.
+
    .. cpp:member:: gf_status (*unbind)(gf_object binding)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: ic: the binding is no longer bound), unchanged.
 
    .. cpp:member:: gf_status (*read_value)(gf_object binding, uint32_t* updated)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(updated), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: read_value_updated, then the ic: state refusal.
+
    .. cpp:member:: gf_status (*write_value)(gf_object binding, uint32_t* updated)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(updated), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: write_value_updated, then ic: the state refusal.
 
    .. cpp:member:: gf_status (*add_record)(gf_object source, const gf_binding_record* record, uint64_t* index)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(index), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: add_record_index, then the ic: state refusal. Fails invalid_state (code: the source's provider does not insert rows), unchanged.
+
    .. cpp:member:: gf_status (*insert_record)(gf_object source, uint64_t index, const gf_binding_record* record)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: the index is past the records), unchanged; invalid_state (code: the source's provider does not insert ic: rows), unchanged.
 
    .. cpp:member:: gf_status (*remove_record)(gf_object source, uint64_t index, uint32_t* removed)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(removed), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: remove_record_removed, then ic: the state refusal. Fails invalid_state (A source that allows no removal gives GF_STATUS_INVALID_STATE.), ic: unchanged.
+
    .. cpp:member:: gf_status (*clear_records)(gf_object source)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
 
    .. cpp:member:: gf_status (*set_position)(gf_object source, int64_t position, uint32_t* moved)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(moved), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: set_position_moved, then the ic: state refusal. Fails invalid_argument (A position past the records gives GF_STATUS_INVALID_ARGUMENT.), ic: unchanged.
+
    .. cpp:member:: gf_status (*position)(gf_object source, int64_t* position, uint64_t* count)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: position needs both outputs), unchanged.
 
    .. cpp:member:: gf_status (*current_field)(gf_object source, gf_utf8_view field, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (The ic: current record's field, as properties.get gives a value; no current record or no such field gives ic: GF_STATUS_NOT_FOUND.), unchanged.
+
    .. cpp:member:: gf_status (*set_current_field)(gf_object source, gf_utf8_view field, const gf_value* value, uint32_t* accepted)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(accepted), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: set_current_field_accepted, then the state refusal.
 
    .. cpp:member:: gf_status (*add_records)(gf_object source, const gf_binding_record* records, uint64_t count, uint64_t* first)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(first) ic: and (not_null(records) or count == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several ic: refusals apply: add_records_records, then the state refusal. Fails invalid_argument (code: add_records needs ic: records and a first output), unchanged; invalid_state (code: the source's provider does not insert rows), ic: unchanged; limit_exceeded (More than GF_BINDING_MAXIMUM_RECORDS_PER_CALL records give ic: GF_STATUS_LIMIT_EXCEEDED; count 0 adds nothing and writes first.), unchanged.
+
    .. cpp:member:: gf_status (*set_provider)(gf_object source, const gf_binding_column* columns, uint64_t column_count, const gf_binding_provider_callbacks* callbacks, uint64_t* provider)
+
+      ic: Requires not_null(provider), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(callbacks) ic: or column_count == 0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: set_provider_provider, then set_provider_columns. Fails invalid_argument (code: provider callbacks or columns ic: their checks refuse), unchanged; wrong_handle_kind (code: the object is not a binding source), unchanged.
 
    .. cpp:member:: gf_status (*notify)(uint64_t provider, gf_binding_notification_kind kind, uint64_t row, uint64_t count, uint64_t target)
 
+      ic: Fails invalid_argument (code: kind is a gf_binding_notification_kind), unchanged; removed (An id the source ic: has let go, or whose source is disposed, gives GF_STATUS_REMOVED.), unchanged. Thread: any.
+
    .. cpp:member:: gf_status (*set_sort)(gf_object source, const gf_binding_sort_key* keys, uint64_t count)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (Sorts the ic: source's rows by count keys (0 clears), through the provider when it sorts, otherwise through the source's ic: own index; an unknown column gives GF_STATUS_NOT_FOUND and changes nothing.), unchanged.
 
    .. cpp:member:: gf_status (*set_filter)(gf_object source, const gf_binding_predicate* predicates, uint64_t count)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (code: a ic: predicate names a column the source has not got), unchanged.
+
    .. cpp:member:: gf_status (*generation)(gf_object source, uint64_t* generation, uint64_t* count)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: generation needs its two outputs), unchanged.
+
    .. cpp:member:: gf_status (*read_cell)(gf_object source, uint64_t generation, uint64_t row, uint64_t column, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (The ic: cell (row, column) of the shown rows, read at generation, as properties.get gives a value; a generation that ic: is no longer the source's gives GF_STATUS_STALE_HANDLE, a row or column past the source's ic: GF_STATUS_NOT_FOUND, and a cell the provider gave no valid answer for GF_STATUS_INVALID_STATE with its error ic: as the failure's message.), unchanged; not_found (The cell (row, column) of the shown rows, read at ic: generation, as properties.get gives a value; a generation that is no longer the source's gives ic: GF_STATUS_STALE_HANDLE, a row or column past the source's GF_STATUS_NOT_FOUND, and a cell the provider gave ic: no valid answer for GF_STATUS_INVALID_STATE with its error as the failure's message.), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2144,12 +2440,18 @@ Types
 
    ``#include <gui_forms/c/gf_abi_classes.h>`` (:src:`source <include/gui_forms/c/gf_abi_classes.h>`)
 
+   ic: gf_abi::classes: generated from include/gui_forms/c/gf_abi_classes.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*create)(const gf_class_header* table, gf_utf8_view stable_id, void* instance, gf_object* object)
 
+      ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(table), else ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: create_object, then create_table. ic: Fails invalid_argument (A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header ic: smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id ic: is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, ic: and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re), ic: unchanged; not_found (A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header ic: smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id ic: is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, ic: and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re), ic: unchanged; unsupported_capability (code: this class is not made from a stable id alone; it has no class table ic: object yet), unchanged; unsupported_version (A class with no class table gives GF_STATUS_NOT_FOUND; a ic: malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the ic: class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) ic: gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: ic: nothing is created and re), unchanged. Returns gf_object, owned by the caller.
+
    .. cpp:member:: gf_status (*base_raiser)(gf_class_id class_id, uint32_t entry, gf_base_raiser* raiser)
+
+      ic: Fails invalid_argument (code: a base function needs an event), unchanged; not_found (An unknown class or ic: entry gives GF_STATUS_NOT_FOUND.), unchanged. Thread: any.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2377,16 +2679,24 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::content: generated from include/gui_forms/c/gf_abi_content.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state(): ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui, ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*open_content)(gf_object surface, uint32_t opaque, gf_content_sink* sink)
 
+      ic: Fails invalid_argument (code: open_content needs an output), unchanged; limit_exceeded (code: ic: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first), unchanged; wrong_handle_kind (A surface that is ic: not a content_surface gives GF_STATUS_WRONG_HANDLE_KIND.), unchanged. Returns gf_content_sink, owned by the ic: caller.
+
    .. cpp:member:: gf_status (*close_content)(gf_object surface)
 
    .. cpp:member:: gf_status (*start_program)(gf_object surface, const gf_content_program* program)
 
+      ic: Fails invalid_argument (code: a gf_content_program needs struct_size of at least 40 and opaque 0 or 1), ic: unchanged.
+
    .. cpp:member:: gf_status (*start_hosted)(gf_object surface, const gf_hosted_options* options)
+
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for an executable that is not an absolute path or a slot ic: size over the limit.), unchanged; limit_exceeded (code: a hosted program takes at most ic: GF_HOSTED_MAXIMUM_ARGUMENTS arguments), unchanged; unsupported_capability (code: hosted content is not ic: available on this platform (GF_HOST_CAPABILITY_HOSTED_CONTENT)), unchanged.
 
    .. cpp:member:: gf_status (*terminate)(gf_object surface)
 
@@ -2394,45 +2704,85 @@ Types
 
    .. cpp:member:: gf_status (*set_stale_interval)(gf_object surface, uint64_t milliseconds)
 
+      ic: Fails invalid_argument (code: a time is at most GF_CONTENT_MAXIMUM_WAIT_MS milliseconds), unchanged.
+
    .. cpp:member:: gf_status (*status)(gf_object surface, gf_content_status* status)
+
+      ic: Fails invalid_argument (code: status needs an output), unchanged.
 
    .. cpp:member:: gf_status (*failure)(gf_object surface, char* buffer, uint64_t capacity, uint64_t* required)
 
    .. cpp:member:: gf_status (*statistics)(gf_object surface, gf_content_statistics* statistics)
 
+      ic: Requires not_null(statistics), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires statistics_size ic: >= statistics_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: statistics_statistics, then statistics_statistics_size.
+
    .. cpp:member:: gf_status (*request)(gf_object surface, gf_content_request* request)
+
+      ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >= ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: request_request, then request_request_size.
 
    .. cpp:member:: gf_status (*set_status_caption)(gf_object surface, gf_content_status status, gf_utf8_view caption)
 
+      ic: Fails invalid_argument (code: an unknown gf_content_status), unchanged.
+
    .. cpp:member:: gf_status (*set_semantics)(gf_object surface, const gf_content_semantics* semantics)
+
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT when it is not UTF-8 or too long (nothing changes then).), ic: unchanged.
 
    .. cpp:member:: gf_status (*program_running)(gf_object surface, uint32_t* running)
 
+      ic: Requires not_null(running), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*hosted_input)(gf_object surface, gf_hosted_input_report* report)
+
+      ic: Requires not_null(report), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires report_size >= ic: hosted_input_report_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals ic: apply: hosted_input_report, then hosted_input_report_size.
 
    .. cpp:member:: gf_status (*hosted_support)(gf_hosted_support* support)
 
+      ic: Requires not_null(support), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
+
    .. cpp:member:: gf_status (*sink_publish)(gf_content_sink sink, const gf_content_frame* frame, gf_content_publish_result* result)
+
+      ic: Fails invalid_argument (code: a gf_content_frame needs struct_size of at least 64, reserved zero, opaque 0 or ic: 1 and a ), unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*sink_heartbeat)(gf_content_sink sink)
 
-   .. cpp:member:: gf_status (*sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* result)
+      ic: Thread: any.
+
+   .. cpp:member:: gf_status (*sink_publish_semantics)(gf_content_sink sink, const gf_content_semantics* semantics, gf_content_semantics_result* outcome)
+
+      ic: Requires not_null(outcome), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*sink_request)(gf_content_sink sink, gf_content_request* request)
 
+      ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >= ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: sink_request_request, then sink_request_request_size. Thread: any.
+
    .. cpp:member:: gf_status (*sink_wait_for_request)(gf_content_sink sink, uint64_t seen_generation, uint64_t timeout_ms, gf_content_request* request)
+
+      ic: Requires not_null(request), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires request_size >= ic: request_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: sink_wait_for_request_request, then sink_wait_for_request_request_size.
 
    .. cpp:member:: gf_status (*sink_state)(gf_content_sink sink, uint32_t* revoked, uint32_t* stop_requested)
 
+      ic: Fails invalid_argument (code: sink_state needs both outputs), unchanged. Thread: any.
+
    .. cpp:member:: gf_status (*sink_statistics)(gf_content_sink sink, gf_content_statistics* statistics)
+
+      ic: Requires not_null(statistics), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires statistics_size ic: >= statistics_size_1_4, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: sink_statistics_statistics, then sink_statistics_statistics_size. Thread: any.
 
    .. cpp:member:: gf_status (*sink_release)(gf_content_sink sink)
 
+      ic: Thread: any.
+
    .. cpp:member:: gf_status (*program_sink)(gf_content_sink* sink)
+
+      ic: Fails invalid_argument (code: program_sink needs an output), unchanged; invalid_state (Elsewhere ic: GF_STATUS_INVALID_STATE.), unchanged; limit_exceeded (code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release ic: one first), unchanged. Returns gf_content_sink, owned by the caller.
 
    .. cpp:member:: gf_status (*program_fail)(gf_utf8_view message)
 
+      ic: Fails invalid_state (Elsewhere GF_STATUS_INVALID_STATE.), unchanged.
+
    .. cpp:member:: gf_status (*editor_text_revision)(gf_object editor, uint64_t* revision)
+
+      ic: Requires not_null(revision), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind (A ic: content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
 
    .. cpp:member:: gf_status (*editor_text)(gf_object editor, char* buffer, uint64_t capacity, uint64_t* required)
 
@@ -2440,35 +2790,67 @@ Types
 
    .. cpp:member:: gf_status (*editor_submit_layout)(gf_object editor, const gf_content_text_layout* layout, gf_content_layout_result* result)
 
+      ic: Fails invalid_argument (code: a gf_content_text_layout needs struct_size of at least 64, reserved zero and a ic: result), unchanged.
+
    .. cpp:member:: gf_status (*editor_layout_current)(gf_object editor, uint32_t* current)
+
+      ic: Requires not_null(current), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*editor_open_frames)(gf_object editor, uint32_t opaque, gf_content_sink* sink)
 
+      ic: Requires not_null(sink), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails limit_exceeded (code: ic: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first), unchanged. Returns gf_content_sink, owned by the ic: caller.
+
    .. cpp:member:: gf_status (*editor_caret_rectangle)(gf_object editor, uint32_t* present, gf_logical_rect* rectangle)
+
+      ic: Fails invalid_argument (code: editor_caret_rectangle needs both outputs), unchanged.
 
    .. cpp:member:: gf_status (*editor_selection_rectangles)(gf_object editor, gf_logical_rect* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (The selection's boxes from the current layout, in order: required receives ic: their number; a buffer of fewer than that many gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing.), ic: unchanged.
+
    .. cpp:member:: gf_status (*editor_position_at)(gf_object editor, gf_logical_point point, uint64_t* offset)
+
+      ic: Requires not_null(offset), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*editor_set_draws_selection)(gf_object editor, uint32_t draws)
 
+      ic: Fails invalid_argument (code: a flag is 0 or 1), unchanged.
+
    .. cpp:member:: gf_status (*editor_set_multiline)(gf_object editor, uint32_t multiline)
+
+      ic: Fails invalid_argument (code: a flag is 0 or 1), unchanged.
 
    .. cpp:member:: gf_status (*editor_set_read_only)(gf_object editor, uint32_t read_only)
 
+      ic: Fails invalid_argument (code: a flag is 0 or 1), unchanged.
+
    .. cpp:member:: gf_status (*editor_set_accepts_tab)(gf_object editor, uint32_t accepts)
+
+      ic: Fails invalid_argument (code: a flag is 0 or 1), unchanged.
 
    .. cpp:member:: gf_status (*editor_replace_selection)(gf_object editor, gf_utf8_view replacement, uint32_t* applied)
 
+      ic: Requires not_null(applied), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for text that is not UTF-8.), unchanged.
+
    .. cpp:member:: gf_status (*editor_delete_selection)(gf_object editor, uint32_t* applied)
+
+      ic: Requires not_null(applied), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*editor_composition_range)(gf_object editor, uint32_t* present, uint64_t* start, uint64_t* end)
 
+      ic: Fails invalid_argument (code: editor_composition_range needs all three outputs), unchanged.
+
    .. cpp:member:: gf_status (*editor_caret_quad)(gf_object editor, uint32_t* present, gf_content_quad* quad)
+
+      ic: Fails invalid_argument (code: editor_caret_quad needs both outputs), unchanged.
 
    .. cpp:member:: gf_status (*editor_selection_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (The selection's, and the composition's, boxes as mapped quads, in order, ic: as editor_selection_rectangles: required receives their number; a buffer of fewer gives ic: GF_STATUS_BUFFER_TOO_SMALL and writes nothing.), unchanged.
+
    .. cpp:member:: gf_status (*editor_composition_quads)(gf_object editor, gf_content_quad* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (code: the buffer holds fewer quads than there are), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2628,52 +3010,94 @@ Types
 
    .. cpp:member:: gf_hook_entry on_validating
 
+   .. cpp:member:: gf_hook_entry on_gesture
+
 .. cpp:namespace:: 0
 
 .. cpp:struct:: gf_controls_table
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::controls: generated from include/gui_forms/c/gf_abi_controls.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*suspend_layout)(gf_object object)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
+
    .. cpp:member:: gf_status (*resume_layout)(gf_object object, uint32_t perform_layout)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: perform_layout is 0 or 1), unchanged.
 
    .. cpp:member:: gf_status (*perform_layout)(gf_object object)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
+
    .. cpp:member:: gf_status (*layout_state)(gf_object object, gf_layout_transaction* state)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
 
    .. cpp:member:: gf_status (*window_bounds)(gf_object object, gf_logical_rect* bounds)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(bounds), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: window_bounds_bounds, then ic: the state refusal.
+
    .. cpp:member:: gf_status (*set_pointer_capture)(gf_object object, uint32_t captured)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: captured is 0 or 1), unchanged.
+
    .. cpp:member:: gf_status (*pointer_capture)(gf_object object, uint32_t* captured)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(captured), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: pointer_capture_captured, then the state refusal.
 
    .. cpp:member:: gf_status (*scroll_state)(gf_object object, gf_scroll_snapshot* state)
 
    .. cpp:member:: gf_status (*set_scroll_axis)(gf_object object, gf_scroll_orientation orientation, const gf_scroll_axis* axis)
 
+      ic: Fails invalid_argument (code: an axis has a known orientation, finite non-negative bounds and changes, and a ic: value ), unchanged.
+
    .. cpp:member:: gf_status (*scroll_into_view)(gf_object object, gf_object child)
 
    .. cpp:member:: gf_status (*invalidate)(gf_object object, const gf_logical_rect* damage)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: damage is finite with a size not negative), unchanged.
+
    .. cpp:member:: gf_status (*focus)(gf_object object, uint32_t* focused)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state ic: (GF_STATUS_INVALID_STATE, changing nothing, for a control not in a window, disabled or hidden (or under a ic: disabled or hidden ancestor), not focusable (its focusable property, or its edit part's for a composite), ic: outside the window's open focus scope (a dialog or overlay), or whose window's validation kept focus where it ic: was.), unchanged.
 
    .. cpp:member:: gf_status (*focus_state)(gf_object object, uint32_t* focused, uint32_t* contains_focus)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
+
    .. cpp:member:: gf_status (*request_relative_pointer)(gf_object object, const gf_relative_pointer_request* request, gf_relative_pointer_grant* grant)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for a request flag that is not 0 or 1.), unchanged.
 
    .. cpp:member:: gf_status (*release_relative_pointer)(gf_object object, uint32_t* released)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
+
    .. cpp:member:: gf_status (*relative_pointer_state)(gf_object object, gf_relative_pointer_state* state)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
 
    .. cpp:member:: gf_status (*warp_pointer)(gf_object object, gf_logical_point position, uint32_t* warped)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: the position is not finite), unchanged.
+
    .. cpp:member:: gf_status (*set_pointer_release_regions)(gf_object object, const gf_logical_rect* regions, uint32_t count)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: at most 8 regions, and an array for any), unchanged; invalid_state (code: the control is not in a ic: window), unchanged.
+
    .. cpp:member:: gf_status (*set_content_effect)(gf_object object, const gf_content_effect* effect)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: the effect is smaller than its 1.5 size), unchanged.
+
+   .. cpp:member:: gf_status (*set_viewport_fit)(gf_object object, const gf_viewport_fit* fit)
+
+   .. cpp:member:: gf_status (*viewport_fit)(gf_object object, gf_viewport_fit* fit)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2760,20 +3184,34 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::custom_controls: generated from include/gui_forms/c/gf_abi_custom_controls.ic.toml by ic: tools/ic_declarations.py; edit the declaration, not these lines. States: alive (initial), disposing, disposed. ic: Observed by gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*create)(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object)
 
+      ic: Requires not_null(spec) and not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires ic: spec_size >= spec_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: create_outputs, then create_spec_size. Fails invalid_argument (code: a stable id that breaks the rule, a ic: property definition the spec cannot hold, or layout callbacks whose struct_size is below 32, not a multiple ic: of 8, or whose reserved is not zero), unchanged. Returns gf_object, owned by the caller.
+
    .. cpp:member:: gf_status (*notify_changed)(gf_object object, uint64_t index)
+
+      ic: Fails invalid_argument (code: the index is past the properties), unchanged; wrong_handle_kind (code: the ic: control is not a custom control), unchanged.
 
    .. cpp:member:: gf_status (*load_composite)(const gf_composite_spec* spec, gf_object* definition)
 
+      ic: Fails invalid_argument (code: load_composite needs a gf_composite_spec of at least the 1.5 size and a ic: definition output), unchanged. Returns gf_object, owned by the caller.
+
    .. cpp:member:: gf_status (*create_composite)(gf_object definition, gf_utf8_view stable_id, gf_object* object)
+
+      ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails disposed (code: the ic: definition has been disposed), unchanged; wrong_handle_kind (code: create_composite takes a definition), ic: unchanged. Returns gf_object, owned by the caller.
 
    .. cpp:member:: gf_status (*perform_composite)(gf_object control, gf_utf8_view command, uint32_t* performed)
 
+      ic: Fails not_found (code: the composite declares no command of that name), unchanged.
+
    .. cpp:member:: gf_status (*composite_child)(gf_object control, gf_utf8_view local_id, gf_object* child)
+
+      ic: Requires not_null(child), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: the ic: composite has no child of that local id), unchanged. Returns gf_object, owned by the caller.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -2904,64 +3342,120 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::data_grid: generated from include/gui_forms/c/gf_abi_data_grid.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*column_count)(gf_object grid, uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*column_at)(gf_object grid, uint64_t index, gf_data_grid_column* column, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+      ic: Fails buffer_too_small (Column index (below the count) into column, an output record of at least the 1.1 ic: size; its name, header text and data property name are copied into text_buffer, one after another, and the ic: views point there. text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which ic: leaves the record unwritten.), unchanged; invalid_argument (code: column_at needs a column record of at least ic: the 1.1 size, a text size output, and a ), unchanged; not_found (GF_STATUS_NOT_FOUND past the columns.), ic: unchanged.
 
    .. cpp:member:: gf_status (*column_item)(gf_object grid, uint64_t column, uint64_t item, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Fails not_found (GF_STATUS_NOT_FOUND past the columns or the choices.), unchanged.
+
    .. cpp:member:: gf_status (*insert_column)(gf_object grid, uint64_t index, const gf_data_grid_column* column)
+
+      ic: Fails invalid_argument (A malformed column, a repeated name or an index past the count gives ic: GF_STATUS_INVALID_ARGUMENT, changing nothing.), unchanged; limit_exceeded (code: a combo box column has at ic: most 4096 choices), unchanged.
 
    .. cpp:member:: gf_status (*remove_column)(gf_object grid, uint64_t index)
 
+      ic: Fails not_found (GF_STATUS_NOT_FOUND past the columns.), unchanged.
+
    .. cpp:member:: gf_status (*column_index)(gf_object grid, gf_utf8_view name, uint64_t* index)
+
+      ic: Requires not_null(index), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found ic: (GF_STATUS_NOT_FOUND for none.), unchanged.
 
    .. cpp:member:: gf_status (*set_column_header_text)(gf_object grid, uint64_t column, gf_utf8_view text)
 
+      ic: Fails invalid_argument (A width below the column's minimum gives GF_STATUS_INVALID_ARGUMENT; an auto-sized ic: column takes its automatic width again at the next layout.), unchanged; not_found (GF_STATUS_NOT_FOUND past ic: the columns.), unchanged.
+
    .. cpp:member:: gf_status (*set_column_width)(gf_object grid, uint64_t column, double width)
+
+      ic: Fails not_found (code: the column is past the grid's columns), unchanged.
 
    .. cpp:member:: gf_status (*set_column_read_only)(gf_object grid, uint64_t column, uint32_t read_only)
 
+      ic: Fails invalid_argument (code: read_only is 0 or 1), unchanged; not_found (code: the column is past the grid's ic: columns), unchanged.
+
    .. cpp:member:: gf_status (*set_column_hidden)(gf_object grid, uint64_t column, uint32_t hidden)
+
+      ic: Fails invalid_argument (code: hidden is 0 or 1), unchanged; not_found (code: the column is past the grid's ic: columns), unchanged.
 
    .. cpp:member:: gf_status (*row_count)(gf_object grid, uint64_t* count, int64_t* new_row)
 
+      ic: Fails invalid_argument (code: row_count needs a count and a new row output), unchanged.
+
    .. cpp:member:: gf_status (*insert_rows)(gf_object grid, uint64_t index, const gf_data_grid_row* rows, uint64_t count)
+
+      ic: Fails invalid_argument (All or nothing: a repeated or malformed stable id, a malformed value, more values ic: than columns or an index past the rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than ic: GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives GF_STATUS_LIMIT_EXCEEDED.), unchanged; limit_exceeded (All or ic: nothing: a repeated or malformed stable id, a malformed value, more values than columns or an index past the ic: rows gives GF_STATUS_INVALID_ARGUMENT and adds none; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL gives ic: GF_STATUS_LIMIT_EXCEEDED.), unchanged.
 
    .. cpp:member:: gf_status (*append_rows)(gf_object grid, const gf_data_grid_row* rows, uint64_t count, uint64_t* first)
 
+      ic: Requires not_null(first), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails limit_exceeded (code: one ic: call adds at most 65536 rows), unchanged.
+
    .. cpp:member:: gf_status (*erase_rows)(gf_object grid, uint64_t index, uint64_t count)
 
+      ic: Fails invalid_argument (Erases count rows from index; a range past the collection gives ic: GF_STATUS_INVALID_ARGUMENT.), unchanged.
+
    .. cpp:member:: gf_status (*replace_row)(gf_object grid, uint64_t index, const gf_data_grid_row* row)
+
+      ic: Requires not_null(row), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires row_size >= ic: row_size_1_1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: replace_row_row, then replace_row_row_size.
 
    .. cpp:member:: gf_status (*clear_rows)(gf_object grid)
 
    .. cpp:member:: gf_status (*row_id)(gf_object grid, uint64_t position, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Fails not_found (GF_STATUS_NOT_FOUND past the rows.), unchanged.
+
    .. cpp:member:: gf_status (*row_position)(gf_object grid, gf_utf8_view row_id, uint64_t* position)
+
+      ic: Requires not_null(position), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found ic: (GF_STATUS_NOT_FOUND for none.), unchanged.
 
    .. cpp:member:: gf_status (*cell_value)(gf_object grid, gf_utf8_view row_id, uint64_t column, gf_value_kind as_kind, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
+      ic: Fails invalid_argument (A row ID naming no row or a column past the columns gives GF_STATUS_NOT_FOUND, here ic: and in the other cell slots. as_kind NULL gives the value as stored; another kind gives it converted ic: (BindingValue's conversion: a number from its text, text from a number, ...), or GF_STATUS_INVALID_ARGUMENT, ic: with value unwritten, when it has no form of that kind.), unchanged; not_found (A row ID naming no row or a ic: column past the columns gives GF_STATUS_NOT_FOUND, here and in the other cell slots. as_kind NULL gives the ic: value as stored; another kind gives it converted (BindingValue's conversion: a number from its text, text ic: from a number, ...), or GF_STATUS_INVALID_ARGUMENT, with value unwritten, when it has no form of that kind.), ic: unchanged.
+
    .. cpp:member:: gf_status (*set_cell_value)(gf_object grid, gf_utf8_view row_id, uint64_t column, const gf_value* value, uint32_t* accepted)
+
+      ic: Requires not_null(accepted), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: the ic: column is past the grid's columns), unchanged.
 
    .. cpp:member:: gf_status (*cell_text)(gf_object grid, gf_utf8_view row_id, uint64_t column, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Fails not_found (code: the column is past the grid's columns), unchanged.
+
    .. cpp:member:: gf_status (*read_cells)(gf_object grid, uint64_t column, uint64_t first_row, uint64_t row_count, gf_value* values, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+      ic: Requires not_null(text_required) and (not_null(text_buffer) or text_capacity == 0), else returns ic: GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (Reads one column's values in row_count rows ic: from position first_row into values, an array of row_count records (the array rule above; fields past the 1.0 ic: size are left alone), their text copied into text_buffer one after another, each value's view pointing there. ic: text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.), ic: unchanged; limit_exceeded (A range past the rows gives GF_STATUS_NOT_FOUND; more than ic: GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.), unchanged; not_found (A range past the ic: rows gives GF_STATUS_NOT_FOUND; more than GF_DATA_GRID_MAXIMUM_ROWS_PER_CALL rows GF_STATUS_LIMIT_EXCEEDED.), ic: unchanged; unsupported_capability (code: a cell's value kind has no gf_value form in this library), ic: unchanged.
 
    .. cpp:member:: gf_status (*current_cell)(gf_object grid, uint32_t* present, uint64_t* row, uint64_t* column)
 
+      ic: Fails invalid_argument (code: current_cell needs present, row and column outputs), unchanged.
+
    .. cpp:member:: gf_status (*set_current_cell)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t* moved)
+
+      ic: Requires not_null(moved), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_state (A cell in ic: a hidden column gives GF_STATUS_INVALID_STATE.), unchanged; not_found (code: the column is past the grid's ic: columns), unchanged.
 
    .. cpp:member:: gf_status (*selected_rows)(gf_object grid, uint64_t* positions, uint64_t capacity, uint64_t* count)
 
+      ic: Requires not_null(count) and (not_null(positions) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (The selected rows' positions in order (full-row selections, or in cell ic: mode the rows whose every cell is selected) into the caller's array of capacity elements; count receives ic: their number, also with GF_STATUS_BUFFER_TOO_SMALL, which writes none. positions may be null when capacity is ic: zero.), unchanged.
+
    .. cpp:member:: gf_status (*selected_cells)(gf_object grid, gf_data_grid_cell* cells, uint64_t capacity, uint64_t* count)
+
+      ic: Requires not_null(count) and (not_null(cells) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (code: the array is smaller than the selected cells), unchanged.
 
    .. cpp:member:: gf_status (*set_row_selected)(gf_object grid, gf_utf8_view row_id, uint32_t selected)
 
+      ic: Fails invalid_argument (code: selected is 0 or 1), unchanged; not_found (code: no row of the grid has that ic: row ID), unchanged.
+
    .. cpp:member:: gf_status (*set_cell_selected)(gf_object grid, gf_utf8_view row_id, uint64_t column, uint32_t selected)
+
+      ic: Fails invalid_argument (code: selected is 0 or 1), unchanged; not_found (code: the column is past the grid's ic: columns), unchanged.
 
    .. cpp:member:: gf_status (*clear_selection)(gf_object grid)
 
@@ -2969,7 +3463,11 @@ Types
 
    .. cpp:member:: gf_status (*begin_edit)(gf_object grid, uint32_t select_all, uint32_t* began)
 
+      ic: Fails invalid_argument (code: begin_edit takes select_all 0 or 1 and a began output), unchanged.
+
    .. cpp:member:: gf_status (*end_edit)(gf_object grid, uint32_t* committed)
+
+      ic: Requires not_null(committed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*cancel_edit)(gf_object grid)
 
@@ -3051,28 +3549,48 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::diagnostics: generated from include/gui_forms/c/gf_abi_diagnostics.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*shadow_frames)(gf_shadow_frame* frames, uint64_t capacity, uint64_t* required, gf_shadow_stack_info* info)
 
+      ic: Requires not_null(required) and (not_null(frames) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (When capacity is smaller, nothing else is written and the result is ic: GF_STATUS_BUFFER_TOO_SMALL. frames may be null when capacity is zero.), unchanged; invalid_argument (code: ic: the output record is null or smaller than its 1.0 size), unchanged.
+
    .. cpp:member:: gf_status (*set_invalidation_overlay)(uint32_t enabled)
+
+      ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*invalidation_overlay)(uint32_t* enabled)
 
+      ic: Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*failure_snapshot)(gf_failure_snapshot* snapshot, gf_shadow_frame* frames, uint64_t frame_capacity, uint64_t* frames_required, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
+
+      ic: Requires not_null(frames_required) and not_null(message_required) and (not_null(frames) or frame_capacity == ic: 0) and (not_null(message_buffer) or message_capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (When frame_capacity or message_capacity is smaller, nothing else is ic: written and the result is GF_STATUS_BUFFER_TOO_SMALL. frames and message_buffer may be null when their ic: capacity is zero.), unchanged; invalid_argument (code: the output record is null or smaller than its 1.0 ic: size), unchanged.
 
    .. cpp:member:: gf_status (*clear_failure_snapshot)(void)
 
    .. cpp:member:: gf_status (*set_exception_reflection)(uint32_t enabled)
 
+      ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
+
    .. cpp:member:: gf_status (*exception_reflection)(uint32_t* enabled)
+
+      ic: Requires not_null(enabled), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*raise_native_exception)(gf_utf8_view message)
 
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT, with no snapshot, for a message that is not UTF-8 or too ic: long.), unchanged.
+
    .. cpp:member:: gf_status (*failure_detail)(gf_failure_detail* detail)
 
+      ic: Requires not_null(output), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires output_size >= ic: failure_detail_size_1_5, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: failure_detail_output, then failure_detail_output_size.
+
    .. cpp:member:: gf_status (*set_diagnostic_overlay)(uint32_t enabled)
+
+      ic: Requires enabled <= 1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*toggle_diagnostic_overlay)(uint32_t* enabled)
 
@@ -3156,12 +3674,18 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::dispatch: generated from include/gui_forms/c/gf_abi_dispatch.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*begin_invoke)(gf_object target, const gf_callback* callback)
 
+      ic: Fails limit_exceeded (At most 4096 callbacks wait at once (GF_STATUS_LIMIT_EXCEEDED).), unchanged. Thread: ic: any. Transfers callback from caller to library.
+
    .. cpp:member:: gf_status (*run_pending)(uint64_t* invoked)
+
+      ic: Requires not_null(invoked), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3323,58 +3847,126 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::docking: generated from include/gui_forms/c/gf_abi_docking.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state(): ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui, ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*register_panel)(gf_object workspace, const gf_dock_panel* panel)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (The ic: id is a stable id ('.'-separated segments of lowercase ASCII letters and digits joined by single '-') and ic: must be new: another spelling, or an id registered before, gives GF_STATUS_INVALID_ARGUMENT.), unchanged.
+
    .. cpp:member:: gf_status (*set_panel_content)(gf_object workspace, gf_utf8_view panel, gf_object content)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (While ic: the workspace holds content it made for the panel (shown, or hidden since), another control gives ic: GF_STATUS_INVALID_STATE; close the panel first.), unchanged; not_found (code: no panel of that id is ic: registered), unchanged.
 
    .. cpp:member:: gf_status (*set_panel_title)(gf_object workspace, gf_utf8_view panel, gf_utf8_view title)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (code: no ic: panel of that id is registered), unchanged.
+
    .. cpp:member:: gf_status (*apply_edit)(gf_object workspace, const gf_dock_edit* edit, gf_dock_refusal* refusal)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: an edit record has at least the 1.1 size and reserved zero), unchanged; invalid_state (A refused edit ic: gives GF_STATUS_INVALID_STATE, leaves the layout unchanged and writes the reason into refusal (may be null); ic: an applied one writes GF_DOCK_REFUSAL_NONE.), unchanged; not_found (code: no panel of that id is registered), ic: unchanged.
 
    .. cpp:member:: gf_status (*locate)(gf_object workspace, gf_utf8_view panel, gf_dock_location* location)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(location), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires location_size >= ic: location_size_1_1, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: locate_location, then locate_location_size, then the state refusal. Fails not_found (code: no panel of that ic: id is registered), unchanged.
+
    .. cpp:member:: gf_status (*save_layout)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (The ic: layout as XML (C++ DockLayout::write_xml) into the caller's buffer; required receives its size, also with ic: GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
 
    .. cpp:member:: gf_status (*load_layout)(gf_object workspace, gf_utf8_view xml, uint64_t* diagnostic_count)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (Malformed or refused XML gives GF_STATUS_INVALID_ARGUMENT and leaves the layout unchanged.), unchanged.
+
    .. cpp:member:: gf_status (*activate_panel)(gf_object workspace, gf_utf8_view panel)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state ic: (GF_STATUS_INVALID_STATE when it is not placed.), unchanged; not_found (code: no panel of that id is ic: registered), unchanged.
 
    .. cpp:member:: gf_status (*attach_windows)(gf_object workspace)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state ic: (GF_STATUS_INVALID_STATE while no window is running or before it is ready; again once bound is ic: GF_STATUS_OK.), unchanged; unsupported_capability (code: the host has no runtime windows, or the workspace ic: refused the window), unchanged.
+
    .. cpp:member:: gf_status (*document_area)(gf_object workspace, uint32_t* node)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(node), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: document_area_node, then the ic: state refusal.
 
    .. cpp:member:: gf_status (*panel_at)(gf_object workspace, uint32_t stack, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_NOT_FOUND past the stack's panels; another node than a stack gives GF_STATUS_INVALID_ARGUMENT.), ic: unchanged; not_found (GF_STATUS_NOT_FOUND past the stack's panels; another node than a stack gives ic: GF_STATUS_INVALID_ARGUMENT.), unchanged.
+
    .. cpp:member:: gf_status (*floating_sites)(gf_object workspace, uint32_t* sites, uint64_t capacity, uint64_t* count)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count) ic: and (not_null(sites) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several ic: refusals apply: floating_sites_sites, then the state refusal. Fails buffer_too_small (The floating sites' ic: numbers, in the layout's order, into sites (capacity entries); count receives how many there are, also with ic: GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
 
    .. cpp:member:: gf_status (*floating_site)(gf_object workspace, uint32_t site, gf_logical_rect* frame, uint32_t* first_stack)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: floating_site needs its outputs), unchanged; not_found (code: no floating site of that number), ic: unchanged.
+
    .. cpp:member:: gf_status (*update_panel)(gf_object workspace, const gf_dock_panel* panel)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (An ic: unregistered id gives GF_STATUS_NOT_FOUND; another kind than it was registered with gives ic: GF_STATUS_INVALID_ARGUMENT.), unchanged; invalid_state (code: the workspace refused the descriptor), ic: unchanged; not_found (An unregistered id gives GF_STATUS_NOT_FOUND; another kind than it was registered with ic: gives GF_STATUS_INVALID_ARGUMENT.), unchanged.
 
    .. cpp:member:: gf_status (*set_options)(gf_object workspace, const gf_dock_options* options)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: an options record has at least the 1.1 size, known flags and reserved zero), unchanged.
+
    .. cpp:member:: gf_status (*set_floating_window_visibility)(gf_object workspace, uint32_t site, gf_dock_window_visibility visibility)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: a visibility is WORKSPACE, SHOWN or POLICY), unchanged; not_found (An unknown site gives ic: GF_STATUS_NOT_FOUND.), unchanged.
 
    .. cpp:member:: gf_status (*document_presentation)(gf_object workspace, gf_dock_document_presentation* presentation)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(presentation), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: document_presentation_presentation, then the state refusal.
+
    .. cpp:member:: gf_status (*arrange_frames)(gf_object workspace, gf_dock_frame_arrangement arrangement, gf_dock_refusal* refusal)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: an arrangement is CASCADE, TILE_HORIZONTAL, TILE_VERTICAL or ARRANGE_ICONS), unchanged; invalid_state ic: (A refused arrangement gives GF_STATUS_INVALID_STATE and writes the reason into refusal (may be null), as ic: apply_edit.), unchanged.
 
    .. cpp:member:: gf_status (*frame_memory)(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(frame), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires frame_size >= frame_memory_size_1_6, else ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: frame_memory_frame, then ic: frame_memory_frame_size, then the state refusal. Fails not_found (code: no panel of that id is registered), ic: unchanged.
+
    .. cpp:member:: gf_status (*set_frame_icons_at_bottom)(gf_object workspace, uint32_t bottom)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: bottom is 0 or 1), unchanged.
 
    .. cpp:member:: gf_status (*area_document_count)(gf_object workspace, uint64_t* count)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: area_document_count_count, ic: then the state refusal.
+
    .. cpp:member:: gf_status (*area_document_at)(gf_object workspace, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (The ic: id of the document at index in the area, in tree and tab order, into the caller's buffer; required receives ic: its size, also with GF_STATUS_BUFFER_TOO_SMALL.), unchanged; not_found (GF_STATUS_NOT_FOUND past the end.), ic: unchanged.
 
    .. cpp:member:: gf_status (*area_active_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
+
    .. cpp:member:: gf_status (*set_panel_menu_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails not_found (code: no ic: panel of that id is registered), unchanged; wrong_handle_kind (Another object than a menu strip gives ic: GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
+
    .. cpp:member:: gf_status (*merged_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged.
+
+   .. cpp:member:: gf_status (*set_merge_tool_strip)(gf_object workspace, gf_object strip)
+
+   .. cpp:member:: gf_status (*merge_tool_strip)(gf_object workspace, gf_object* strip)
+
+   .. cpp:member:: gf_status (*set_panel_tool_strip)(gf_object workspace, gf_utf8_view panel, gf_object strip)
+
+   .. cpp:member:: gf_status (*merged_tool_strip_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
+
+   .. cpp:member:: gf_status (*set_merge_ribbon)(gf_object workspace, gf_object ribbon)
+
+   .. cpp:member:: gf_status (*merge_ribbon)(gf_object workspace, gf_object* ribbon)
+
+   .. cpp:member:: gf_status (*set_panel_ribbon)(gf_object workspace, gf_utf8_view panel, gf_object ribbon)
+
+   .. cpp:member:: gf_status (*merged_ribbon_document)(gf_object workspace, char* buffer, uint64_t capacity, uint64_t* required)
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3460,18 +4052,28 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::events: generated from include/gui_forms/c/gf_abi_events.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state(): ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui, ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*subscribe)(gf_object source, gf_utf8_view interaction, const gf_callback* callback, gf_subscription* subscription)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: subscription_output, then the state refusal. Fails not_found (A name the type does not raise gives ic: GF_STATUS_NOT_FOUND.), unchanged. Returns gf_subscription, owned by the caller. Transfers callback from ic: caller to library.
+
    .. cpp:member:: gf_status (*subscribe_property)(gf_object source, gf_utf8_view property, const gf_callback* callback, gf_subscription* subscription)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(subscription), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: subscription_output, then the state refusal. Fails not_found (code: the source has no property of that name), ic: unchanged. Returns gf_subscription, owned by the caller. Transfers callback from caller to library.
 
    .. cpp:member:: gf_status (*disconnect)(gf_subscription subscription)
 
    .. cpp:member:: gf_status (*write_field)(gf_event* event, uint64_t field, const gf_value* value)
 
+      ic: Fails invalid_argument (GF_STATUS_INVALID_STATE when event is not running, GF_STATUS_NOT_FOUND for an index ic: past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable or a value it does not admit; ic: nothing is written then.), unchanged; invalid_state (GF_STATUS_INVALID_STATE when event is not running, ic: GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a field that is not writable ic: or a value it does not admit; nothing is written then.), unchanged; not_found (GF_STATUS_INVALID_STATE when ic: event is not running, GF_STATUS_NOT_FOUND for an index past the fields, GF_STATUS_INVALID_ARGUMENT for a ic: field that is not writable or a value it does not admit; nothing is written then.), unchanged.
+
    .. cpp:member:: gf_status (*field_element)(const gf_event* event, uint64_t field, uint64_t index, gf_value* element)
+
+      ic: Fails invalid_state (code: no callback is running for that event), unchanged; unsupported_capability ic: (GF_STATUS_UNSUPPORTED_CAPABILITY when the elements are structs.), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3563,16 +4165,26 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::fonts: generated from include/gui_forms/c/gf_abi_fonts.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*family_id)(gf_utf8_view name, uint32_t* family)
 
+      ic: Requires not_null(family), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found (code: no ic: bundled font family answers that name), unchanged.
+
    .. cpp:member:: gf_status (*family_name)(uint32_t family, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Fails not_found (code: no bundled font family has that id), unchanged.
 
    .. cpp:member:: gf_status (*load_family)(gf_utf8_view name, const gf_app_font_face* faces, uint64_t face_count, uint32_t* family)
 
+      ic: Requires not_null(family) and (not_null(faces) or face_count == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails invalid_argument (code: load_family needs its faces and an output), unchanged.
+
    .. cpp:member:: gf_status (*unload_family)(uint32_t family, uint32_t* deferred)
+
+      ic: Fails not_found (code: no loaded application font family has that id), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3606,38 +4218,70 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::help: generated from include/gui_forms/c/gf_abi_help.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state(): ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui, ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*attach)(gf_object system, gf_object window)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails wrong_handle_kind ic: (code: the object is not a help_book_system), unchanged.
+
    .. cpp:member:: gf_status (*detach)(gf_object system, gf_object window)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails wrong_handle_kind ic: (code: the object is not a help_book_system), unchanged.
 
    .. cpp:member:: gf_status (*load_built_in)(gf_object system, gf_utf8_view locale_xml)
 
+      ic: Fails invalid_argument (code: the language file's help text was refused; nothing was loaded), unchanged; ic: wrong_handle_kind (code: the object is not a help_book_system), unchanged.
+
    .. cpp:member:: gf_status (*show)(gf_object system, gf_utf8_view stable_id, uint32_t* shown)
+
+      ic: Requires not_null(shown), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind (code: ic: the object is not a help_book_system), unchanged.
 
    .. cpp:member:: gf_status (*show_navigator)(gf_object system, gf_help_navigator navigator, gf_utf8_view text, uint32_t* shown)
 
+      ic: Fails invalid_argument (code: show_navigator needs a known navigator and a shown output), unchanged; ic: wrong_handle_kind (code: the object is not a help_book_system), unchanged.
+
    .. cpp:member:: gf_status (*show_popup)(gf_object system, gf_utf8_view stable_id, gf_object anchor, uint32_t* shown)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(shown), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: show_popup_shown, then the ic: state refusal. Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
 
    .. cpp:member:: gf_status (*resolve)(gf_object system, gf_object control, char* buffer, uint64_t capacity, uint64_t* required, uint32_t* home)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(home), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: resolve_home, then the state ic: refusal. Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
+
    .. cpp:member:: gf_status (*enter_help_mode)(gf_object system, gf_object window, uint32_t* entered)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: enter_help_mode needs an entered output), unchanged; wrong_handle_kind (code: the object is not a ic: help_book_system), unchanged.
 
    .. cpp:member:: gf_status (*cancel_help_mode)(gf_object system)
 
+      ic: Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
+
    .. cpp:member:: gf_status (*load_translation)(gf_object system, gf_utf8_view locale_xml)
+
+      ic: Fails invalid_argument (code: the translation was refused; nothing was loaded), unchanged; wrong_handle_kind ic: (code: the object is not a help_book_system), unchanged.
 
    .. cpp:member:: gf_status (*load_user_overrides)(gf_object system, gf_utf8_view locale_xml)
 
+      ic: Fails invalid_argument (code: the user's language file was refused or is for another language; nothing was ic: loaded), unchanged; wrong_handle_kind (code: the object is not a help_book_system), unchanged.
+
    .. cpp:member:: gf_status (*clear_user_overrides)(gf_object system)
+
+      ic: Fails wrong_handle_kind (code: the object is not a help_book_system), unchanged.
 
    .. cpp:member:: gf_status (*use_built_in_language)(gf_object system, uint32_t built_in_only)
 
+      ic: Fails invalid_argument (code: built_in_only must be 0 or 1), unchanged; wrong_handle_kind (code: the object ic: is not a help_book_system), unchanged.
+
    .. cpp:member:: gf_status (*export_template)(gf_object system, gf_utf8_view language, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Fails invalid_argument (code: the language is not a language tag), unchanged; limit_exceeded (code: the ic: template passes the locale file's bounds and was not written), unchanged; wrong_handle_kind (code: the object ic: is not a help_book_system), unchanged.
+
    .. cpp:member:: gf_status (*read_field)(gf_object system, gf_utf8_view stable_id, gf_locale_field field, char* buffer, uint64_t capacity, uint64_t* required, gf_locale_origin* origin)
+
+      ic: Fails invalid_argument (code: read_field needs a known field and an origin output), unchanged; ic: wrong_handle_kind (code: the object is not a help_book_system), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3669,22 +4313,36 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::host: generated from include/gui_forms/c/gf_abi_host.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*capabilities)(gf_host_capabilities* record)
 
+      ic: Requires not_null(record), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires record_size >= ic: host_capabilities_size_1_0, else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: capabilities_record, then capabilities_record_size.
+
    .. cpp:member:: gf_status (*platform_name)(char* buffer, uint64_t capacity, uint64_t* required)
 
    .. cpp:member:: gf_status (*set_cursor)(gf_pointer_cursor cursor)
 
+      ic: Fails invalid_argument (code: unknown cursor), unchanged; invalid_state (code: the host has shut down), ic: unchanged; limit_exceeded (code: the request exceeds the host's bounds), unchanged; unsupported_capability ic: (code: the host does not offer this service), unchanged.
+
    .. cpp:member:: gf_status (*read_clipboard_text)(char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails invalid_state (code: the host has shut down), unchanged; limit_exceeded (code: the request ic: exceeds the host's bounds), unchanged; not_found (GF_STATUS_NOT_FOUND when it holds none.), unchanged; ic: unsupported_capability (code: the host does not offer this service), unchanged.
 
    .. cpp:member:: gf_status (*write_clipboard_text)(gf_utf8_view text)
 
+      ic: Fails invalid_argument (code: the host refused the request), unchanged; invalid_state (code: the host has ic: shut down), unchanged; limit_exceeded (code: clipboard text is at most 16 MiB), unchanged; ic: unsupported_capability (code: the host does not offer this service), unchanged.
+
    .. cpp:member:: gf_status (*show_dialog)(const gf_dialog_request* request, gf_dialog_result* result)
 
+      ic: Fails invalid_argument (code: the host refused the request), unchanged; invalid_state (code: the host has ic: shut down), unchanged; limit_exceeded (code: the request exceeds the host's bounds), unchanged; ic: unsupported_capability (code: the host does not offer this service), unchanged.
+
    .. cpp:member:: gf_status (*dialog_path_at)(uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Fails invalid_argument (code: the last dialog chose no path at that index), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -3840,38 +4498,70 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::list_view: generated from include/gui_forms/c/gf_abi_list_view.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*column_count)(gf_object view, uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*column_at)(gf_object view, uint64_t index, gf_list_view_column* column, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+      ic: Fails buffer_too_small (Column index (below the count) into column, an output record of at least the 1.5 ic: size; its stable id and text are copied into text_buffer, one after the other, and the views point there. ic: text_required receives their total size, also with GF_STATUS_BUFFER_TOO_SMALL, which leaves the record ic: unwritten.), unchanged; invalid_argument (code: an output record of at least the 1.5 size, a text size ic: output, and a buffer unless its ), unchanged; not_found (GF_STATUS_NOT_FOUND past the columns.), unchanged.
 
    .. cpp:member:: gf_status (*set_columns)(gf_object view, const gf_list_view_column* columns, uint64_t count)
 
+      ic: Fails invalid_argument (A malformed record, a repeated or empty stable id or a width out of range gives ic: GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, changing ic: nothing.), unchanged; limit_exceeded (A malformed record, a repeated or empty stable id or a width out of ic: range gives GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_COLUMNS GF_STATUS_LIMIT_EXCEEDED, ic: changing nothing.), unchanged.
+
    .. cpp:member:: gf_status (*set_column_width)(gf_object view, uint64_t column, double width)
+
+      ic: Fails invalid_argument (code: a column's width is finite), unchanged; not_found (GF_STATUS_NOT_FOUND past the ic: columns.), unchanged.
 
    .. cpp:member:: gf_status (*item_count)(gf_object view, uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*item_at)(gf_object view, uint64_t index, gf_list_view_item* item, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+      ic: Fails buffer_too_small (code: the text buffer is smaller than the record's text), unchanged; invalid_argument ic: (code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ), unchanged; ic: invalid_state (code: a virtual list view's items belong to its source), unchanged; not_found (code: the item ic: is past the view's items), unchanged.
 
    .. cpp:member:: gf_status (*item_sub_item)(gf_object view, uint64_t index, uint64_t sub_item, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Fails buffer_too_small (Item index's sub-item (below its sub_item_count) as text, into buffer (required ic: receives its size; a short buffer gives GF_STATUS_BUFFER_TOO_SMALL).), unchanged; invalid_state (code: a ic: virtual list view's items belong to its source), unchanged; not_found (GF_STATUS_NOT_FOUND past the items or ic: the sub-items.), unchanged.
+
    .. cpp:member:: gf_status (*set_items)(gf_object view, const gf_list_view_item* items, uint64_t count)
+
+      ic: Fails invalid_argument (A malformed record or a repeated or empty stable id gives GF_STATUS_INVALID_ARGUMENT, ic: more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS sub-items ic: GF_STATUS_LIMIT_EXCEEDED, changing nothing.), unchanged; invalid_state (code: a virtual list view's items ic: belong to its source), unchanged; limit_exceeded (A malformed record or a repeated or empty stable id gives ic: GF_STATUS_INVALID_ARGUMENT, more than GF_LIST_VIEW_MAXIMUM_ITEMS items or GF_LIST_VIEW_MAXIMUM_SUB_ITEMS ic: sub-items GF_STATUS_LIMIT_EXCEEDED, changing nothing.), unchanged.
 
    .. cpp:member:: gf_status (*index_of)(gf_object view, gf_utf8_view item_id, uint64_t* index)
 
+      ic: Requires not_null(index), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails not_found ic: (GF_STATUS_NOT_FOUND when no item has it (and always in virtual mode).), unchanged.
+
    .. cpp:member:: gf_status (*set_item_checked)(gf_object view, uint64_t index, uint32_t checked)
+
+      ic: Fails invalid_argument (code: checked is 0 or 1), unchanged; invalid_state (code: a virtual list view's items ic: belong to its source), unchanged; not_found (GF_STATUS_NOT_FOUND past the items.), unchanged.
 
    .. cpp:member:: gf_status (*group_count)(gf_object view, uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*group_at)(gf_object view, uint64_t index, gf_list_view_group* group, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+      ic: Fails buffer_too_small (code: the text buffer is smaller than the record's text), unchanged; invalid_argument ic: (code: an output record of at least the 1.5 size, a text size output, and a buffer unless its ), unchanged; ic: not_found (code: the group is past the view's groups), unchanged.
 
    .. cpp:member:: gf_status (*set_groups)(gf_object view, const gf_list_view_group* groups, uint64_t count)
 
+      ic: Fails limit_exceeded (code: the array holds more records than the view does), unchanged.
+
    .. cpp:member:: gf_status (*selected_items)(gf_object view, uint64_t* indices, uint64_t capacity, uint64_t* count)
 
+      ic: Requires not_null(count) and (not_null(indices) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (The selected items' indices in ascending order into indices (capacity ic: elements; null when the capacity is zero). count receives the number selected, also with ic: GF_STATUS_BUFFER_TOO_SMALL, which writes no index.), unchanged.
+
    .. cpp:member:: gf_status (*set_selected)(gf_object view, uint64_t index, uint32_t selected)
+
+      ic: Fails invalid_argument (code: selected is 0 or 1), unchanged; not_found (GF_STATUS_NOT_FOUND past the ic: items.), unchanged.
 
    .. cpp:member:: gf_status (*select_all)(gf_object view)
 
@@ -3879,13 +4569,23 @@ Types
 
    .. cpp:member:: gf_status (*focused_item)(gf_object view, int64_t* index)
 
+      ic: Requires not_null(index), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*set_focused_item)(gf_object view, int64_t index)
+
+      ic: Fails invalid_argument (code: the focused item is an index or -1), unchanged; not_found (GF_STATUS_NOT_FOUND ic: past the items.), unchanged.
 
    .. cpp:member:: gf_status (*ensure_visible)(gf_object view, uint64_t index)
 
+      ic: Fails not_found (GF_STATUS_NOT_FOUND past the items.), unchanged.
+
    .. cpp:member:: gf_status (*set_sort_indicator)(gf_object view, int64_t column, gf_list_view_sort_order order)
 
+      ic: Fails invalid_argument (code: the sorted column is an index or -1), unchanged; not_found (GF_STATUS_NOT_FOUND ic: past the columns.), unchanged.
+
    .. cpp:member:: gf_status (*sort_items)(gf_object view, uint64_t column, gf_list_view_sort_order order)
+
+      ic: Fails invalid_argument (code: the sort order is NONE, ASCENDING or DESCENDING), unchanged; invalid_state ic: (code: a virtual list view's items belong to its source), unchanged; not_found (GF_STATUS_NOT_FOUND past the ic: columns.), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4023,34 +4723,58 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::objects: generated from include/gui_forms/c/gf_abi_objects.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. States: alive (initial), disposing, disposed. Observed by gf_objects_table.state(): ic: alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed GF_OBJECT_STATE_DISPOSED. Thread: ui, ic: unless a call says otherwise. Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*create)(gf_utf8_view type_name, gf_utf8_view stable_id, gf_object* object)
 
+      ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (Creates an object of the schema type type_name, written in any spelling of its id ("check_box" or ic: "CheckBox"), with a stable_id: one or more '.'-separated segments of lowercase ASCII letters and digits ic: joined by single '-' ("settings.ok-button"; a Windows Forms name such as "textBox1" is spelled "text-box1"), ic: GF_STATUS_INVALID_ARGUMENT with a message stating the rule otherwise.), unchanged; not_found (A type that ic: needs another object (a dock site its workspace or a timer its window, say: create_with), and the types ic: neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged; unsupported_capability (A ic: type that needs another object (a dock site its workspace or a timer its window, say: create_with), and the ic: types neither slot makes (a binding, which GF_TABLE_BINDINGS makes, and live_surface), give ic: GF_STATUS_UNSUPPORTED_CAPABILITY; an unknown one GF_STATUS_NOT_FOUND.), unchanged. Returns gf_object, owned ic: by the caller.
+
    .. cpp:member:: gf_status (*retain)(gf_object object)
 
+      ic: Thread: any.
+
    .. cpp:member:: gf_status (*release)(gf_object object)
+
+      ic: Thread: any.
 
    .. cpp:member:: gf_status (*dispose)(gf_object object)
 
    .. cpp:member:: gf_status (*state)(gf_object object, gf_object_state* state)
 
+      ic: Requires not_null(state), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*type_id)(gf_object object, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Fails buffer_too_small (Copy the schema type id ("check_box"; for an application's own subclass, its nearest ic: schema type's; for a composite control, its definition's type, the document's name with '-' written '_': ic: "kit_card" for kit-card) or the stable id into buffer (not terminated); required receives its size, also with ic: GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
 
    .. cpp:member:: gf_status (*stable_id)(gf_object object, char* buffer, uint64_t capacity, uint64_t* required)
 
    .. cpp:member:: gf_status (*insert_child)(gf_object parent, gf_object child, uint64_t index)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: a control cannot be its own ancestor), unchanged; invalid_state (code: the child already has a ic: parent), unchanged; limit_exceeded (A tree nests at most 64 levels, the root counted as one: a child whose ic: subtree would end deeper gives GF_STATUS_LIMIT_EXCEEDED, changing nothing.), unchanged.
+
    .. cpp:member:: gf_status (*remove_child)(gf_object parent, gf_object child)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: the child is not a child of the parent), unchanged.
 
    .. cpp:member:: gf_status (*child_count)(gf_object parent, uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*child_at)(gf_object parent, uint64_t index, gf_object* child)
+
+      ic: Requires not_null(child), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code: ic: child_at needs an output), unchanged. Returns gf_object, owned by the caller.
 
    .. cpp:member:: gf_status (*parent)(gf_object object, gf_object* parent)
 
+      ic: Requires not_null(parent), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Returns gf_object, owned by ic: the caller.
+
    .. cpp:member:: gf_status (*create_with)(gf_utf8_view type_name, gf_utf8_view stable_id, const gf_create_arguments* arguments, gf_object* object)
+
+      ic: Requires not_null(object), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires not_null(arguments), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Requires arguments_size >= create_arguments_size_1_0, ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: create_with_object, then ic: create_with_arguments, then create_with_arguments_size. Fails invalid_argument (An owner of the wrong type ic: gives GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a malformed enumeration ic: GF_STATUS_INVALID_ARGUMENT; a type create makes is made as create makes it when arguments asks nothing of ic: it.), unchanged; not_found (code: the schema has no type of that name), unchanged; unsupported_capability ic: (code: a window is made by windows.create), unchanged; wrong_handle_kind (An owner of the wrong type gives ic: GF_STATUS_WRONG_HANDLE_KIND, a stale one GF_STATUS_STALE_HANDLE, a malformed enumeration ic: GF_STATUS_INVALID_ARGUMENT; a type create makes is made as create makes it when arguments asks nothing of ic: it.), unchanged. Returns gf_object, owned by the caller.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4058,30 +4782,72 @@ Types
 
 .. cpp:namespace:: 0
 
+.. cpp:struct:: gf_overflow_record
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_overflow_cause cause
+
+   .. cpp:member:: gf_overflow_answer answer
+
+   .. cpp:member:: uint32_t answered
+
+   .. cpp:member:: gf_logical_size content_extent
+
+   .. cpp:member:: gf_logical_size viewport_extent
+
+   .. cpp:member:: double effective_scale
+
+   .. cpp:member:: gf_utf8_view owner
+
+.. cpp:namespace:: 0
+
 .. cpp:struct:: gf_overlays_table
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   ic: gf_abi::overlays: generated from include/gui_forms/c/gf_abi_overlays.ic.toml by tools/ic_declarations.py; edit ic: the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
 
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*open_overlay)(gf_object owner, gf_object overlay)
 
+      ic: Fails invalid_state (Shows overlay over owner's window. owner must be in a running window (else ic: GF_STATUS_INVALID_STATE); an overlay already open gives GF_STATUS_INVALID_STATE.), unchanged.
+
    .. cpp:member:: gf_status (*close_overlay)(gf_object overlay)
+
+      ic: Fails not_found (Closes overlay; one not open gives GF_STATUS_NOT_FOUND.), unchanged.
 
    .. cpp:member:: gf_status (*set_tool_tip)(gf_object tool_tip, gf_object target, gf_utf8_view text)
 
+      ic: Fails wrong_handle_kind (code: the object is not a tool_tip component), unchanged.
+
    .. cpp:member:: gf_status (*show_tool_tip)(gf_object tool_tip, gf_object target, uint64_t duration_ms)
+
+      ic: Fails wrong_handle_kind (code: the object is not a tool_tip component), unchanged.
 
    .. cpp:member:: gf_status (*hide_tool_tip)(gf_object tool_tip)
 
+      ic: Fails wrong_handle_kind (code: the object is not a tool_tip component), unchanged.
+
    .. cpp:member:: gf_status (*open_anchored)(gf_object anchor, gf_object content, const gf_anchored_overlay_options* options)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.2 size, unknown flags or a size or gap that is ic: negative or not finite.), unchanged; invalid_state (GF_STATUS_INVALID_STATE when anchor is not in a window or ic: is disabled, or content is already open or has a parent;), unchanged.
 
    .. cpp:member:: gf_status (*close_anchored)(gf_object content)
 
+      ic: Fails not_found (GF_STATUS_NOT_FOUND when it is not open (since 1.2).), unchanged.
+
    .. cpp:member:: gf_status (*set_tool_tips_shown)(gf_object window, gf_tool_tips_setting setting)
 
+      ic: Fails disposed (code: the window has been disposed or has closed), unchanged; invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for an unknown setting;), unchanged; invalid_state (GF_STATUS_INVALID_STATE ic: without one), where FOLLOW is refused.), unchanged; wrong_handle_kind (GF_STATUS_WRONG_HANDLE_KIND when ic: window is not a window (since 1.2).), unchanged.
+
    .. cpp:member:: gf_status (*tool_tips_shown)(gf_object window, uint32_t* shown, gf_tool_tips_setting* setting)
+
+      ic: Requires not_null(shown), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails disposed (code: the ic: window has been disposed or has closed), unchanged; wrong_handle_kind (code: the object is not a window), ic: unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4227,22 +4993,38 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::properties: generated from include/gui_forms/c/gf_abi_properties.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*get)(gf_object object, gf_utf8_view name, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small ic: (Text is copied into text_buffer and value->text points there; text_required receives its size (zero for ic: other kinds), also with GF_STATUS_BUFFER_TOO_SMALL.), unchanged; invalid_argument (code: a property name is ic: not empty), unchanged; not_found (An unknown or unreadable property gives GF_STATUS_NOT_FOUND; a kind ic: gf_value cannot hold yet gives GF_STATUS_UNSUPPORTED_CAPABILITY.), unchanged; unsupported_capability (An ic: unknown or unreadable property gives GF_STATUS_NOT_FOUND; a kind gf_value cannot hold yet gives ic: GF_STATUS_UNSUPPORTED_CAPABILITY.), unchanged; wrong_handle_kind (code: the object is a component, not a ic: control or a window), unchanged.
+
    .. cpp:member:: gf_status (*set)(gf_object object, gf_utf8_view name, const gf_value* value)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (A ic: value that does not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property ic: GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.), unchanged; invalid_state (A value that does ic: not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property ic: GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.), unchanged; not_found (A value that does not ic: convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property ic: GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.), unchanged; wrong_handle_kind (code: the object ic: is a component, not a control or a window), unchanged.
 
    .. cpp:member:: gf_status (*reset)(gf_object object, gf_utf8_view name)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: a property name is not empty), unchanged; not_found (code: a window has no property of that name), ic: unchanged; unsupported_capability (GF_STATUS_UNSUPPORTED_CAPABILITY when it has no reset path.), unchanged; ic: wrong_handle_kind (code: the object is a component, not a control or a window), unchanged.
+
    .. cpp:member:: gf_status (*element_at)(gf_object object, gf_utf8_view name, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT when the property is not a collection, GF_STATUS_NOT_FOUND when index is not ic: below its count.), unchanged; not_found (GF_STATUS_INVALID_ARGUMENT when the property is not a collection, ic: GF_STATUS_NOT_FOUND when index is not below its count.), unchanged; wrong_handle_kind (code: the object is a ic: component, not a control or a window), unchanged.
 
    .. cpp:member:: gf_status (*read_elements)(gf_object object, gf_utf8_view name, uint64_t first, uint64_t count, gf_value* values, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires ic: not_null(text_required) and (not_null(text_buffer) or text_capacity == 0), else returns ic: GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: read_elements_text_buffer, then the state ic: refusal. Fails buffer_too_small (Reads count elements of the COLLECTION property name from position first ic: into values, an array of count records (the array rule above; fields past the 1.0 size are left alone), their ic: text copied into text_buffer one after another, each value's view pointing there. text_required receives the ic: total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.), unchanged; invalid_argument ic: (code: read_elements needs a text size output, and a buffer unless its capacity is zero), unchanged; ic: limit_exceeded (A range past the count gives GF_STATUS_NOT_FOUND; more than ic: GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.), ic: unchanged; not_found (A range past the count gives GF_STATUS_NOT_FOUND; more than ic: GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.), ic: unchanged; unsupported_capability (code: an element's value kind has no gf_value form in this library), ic: unchanged; wrong_handle_kind (code: the object is a component, not a control or a window), unchanged.
+
    .. cpp:member:: gf_status (*get_at)(gf_object object, uint64_t index, gf_value* value, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (An ic: index past the list gives GF_STATUS_INVALID_ARGUMENT; otherwise as get and set.), unchanged; not_found (code: ic: the control's type is not in the schema), unchanged; wrong_handle_kind (code: the object is a component, not ic: a control or a window), unchanged.
+
    .. cpp:member:: gf_status (*set_at)(gf_object object, uint64_t index, const gf_value* value)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: the index is past the type's properties), unchanged; not_found (code: the control's type is not in the ic: schema), unchanged; wrong_handle_kind (code: the object is a component, not a control or a window), ic: unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4254,18 +5036,28 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::property_grid: generated from include/gui_forms/c/gf_abi_property_grid.ic.toml by ic: tools/ic_declarations.py; edit the declaration, not these lines. States: alive (initial), disposing, disposed. ic: Observed by gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*select_objects)(gf_object grid, const gf_object* objects, uint64_t count)
 
+      ic: Fails invalid_argument (code: select_objects takes at most 4096 objects, and objects when count is not zero), ic: unchanged.
+
    .. cpp:member:: gf_status (*refresh)(gf_object grid)
 
    .. cpp:member:: gf_status (*try_set_text)(gf_object grid, gf_utf8_view name, gf_utf8_view text, uint32_t* accepted)
 
+      ic: Requires not_null(accepted), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*reset_property)(gf_object grid, gf_utf8_view name, uint32_t* reset)
 
+      ic: Requires not_null(reset), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*activate_editor)(gf_object grid, gf_utf8_view name, uint32_t* activated)
+
+      ic: Requires not_null(activated), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4479,14 +5271,20 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::rules: generated from include/gui_forms/c/gf_abi_rules.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: ic: returns GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*add)(gf_object window, const gf_rule* rule, gf_rule_token* token)
 
+      ic: Fails disposed (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged; ic: invalid_argument (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged; ic: invalid_state (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged; ic: limit_exceeded (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged; ic: not_found (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, object, ic: property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when window ic: is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed window or ic: object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged; ic: wrong_handle_kind (GF_STATUS_INVALID_ARGUMENT for a malformed record (an unknown kind or flag, a missing key, ic: object, property or callback, a collection value, nonzero reserved fields), GF_STATUS_WRONG_HANDLE_KIND when ic: window is not a window or an object is not of the kind its field names, GF_STATUS_DISPOSED for a disposed ic: window or object, GF_STATUS_NOT_FOUND for an interaction the source's type does not raise or a), unchanged. ic: Returns gf_rule_token, owned by the caller.
+
    .. cpp:member:: gf_status (*remove)(gf_rule_token token)
 
    .. cpp:member:: gf_status (*state)(gf_rule_token token, gf_rule_state* state)
+
+      ic: Requires not_null(state), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4531,17 +5329,33 @@ Types
 
    .. cpp:member:: gf_status (*version)(gf_abi_version_info* info)
 
+      ic: Requires not_null(info), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (struct_size is below the 1.0 record size), unchanged.
+
    .. cpp:member:: gf_status (*error_detail)(gf_error_detail* detail, char* message_buffer, uint64_t message_capacity, uint64_t* message_required)
+
+      ic: Requires not_null(detail) and not_null(message_required) and (not_null(message_buffer) or message_capacity == ic: 0), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails buffer_too_small (When message_capacity is ic: smaller, nothing else is written and the result is GF_STATUS_BUFFER_TOO_SMALL. message_buffer may be null ic: when message_capacity is zero.), unchanged; invalid_argument (struct_size is below the 1.0 record size), ic: unchanged.
 
    .. cpp:member:: gf_status (*clear_error)(void)
 
    .. cpp:member:: gf_status (*splashscreen_show)(const gf_splashscreen_options* options, gf_splashscreen* splashscreen)
 
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a record smaller than the 1.1 size, a null ic: splashscreen, artwork that is not a PNG file or has an extent out of range, a status that is not UTF-8 or too ic: long, or a progress outside [0, 1] with show_progress;), unchanged; invalid_state (GF_STATUS_INVALID_STATE ic: while another splashscreen's handle is open (shown, or handed over and not yet closed);), unchanged; ic: unsupported_capability (GF_STATUS_UNSUPPORTED_CAPABILITY when the host has no splashscreen (no display, a ic: host without GF_TRANSIENT_SURFACE_SPLASHSCREEN) or could not present it.), unchanged. Thread: owner. Returns ic: gf_splashscreen, owned by the caller.
+
    .. cpp:member:: gf_status (*splashscreen_set_status)(gf_splashscreen splashscreen, gf_utf8_view status)
+
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT, changing nothing, for text that is not UTF-8 or too ic: long;), unchanged; invalid_state (stated by the code), unchanged; unsupported_capability ic: (GF_STATUS_UNSUPPORTED_CAPABILITY when the frame could not be presented.), unchanged. Thread: owner.
 
    .. cpp:member:: gf_status (*splashscreen_set_progress)(gf_splashscreen splashscreen, uint32_t show_progress, double progress)
 
+      ic: Fails invalid_argument (struct_size is below the 1.0 record size), unchanged; invalid_state (stated by the ic: code), unchanged; unsupported_capability (stated by the code), unchanged. Thread: owner.
+
    .. cpp:member:: gf_status (*splashscreen_close)(gf_splashscreen splashscreen)
+
+      ic: Thread: owner.
+
+   .. cpp:member:: gf_status (*splashscreen_state)(gf_splashscreen splashscreen, gf_splashscreen_state* state)
+
+      ic: Requires not_null(state), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: owner.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -4801,70 +5615,132 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::schema: generated from include/gui_forms/c/gf_abi_schema.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*vocabulary_count)(gf_schema_vocabulary vocabulary, uint64_t* count)
 
+      ic: Fails invalid_argument (code: vocabulary_count needs a known vocabulary and an output), unchanged.
+
    .. cpp:member:: gf_status (*vocabulary_at)(gf_schema_vocabulary vocabulary, uint64_t index, gf_utf8_view* name)
+
+      ic: Fails invalid_argument (code: vocabulary_at needs a known vocabulary and an output), unchanged.
 
    .. cpp:member:: gf_status (*type_count)(uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*find_type)(gf_utf8_view name, uint64_t* type)
+
+      ic: Requires not_null(type), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code: ic: find_type needs an output), unchanged; not_found (code: the schema has no type of that name), unchanged.
 
    .. cpp:member:: gf_status (*type_at)(uint64_t type, gf_schema_type* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
+
    .. cpp:member:: gf_status (*item_system_at)(uint64_t type, uint64_t system, gf_schema_item_system* record)
+
+      ic: Fails invalid_argument (code: item_system_at needs an item system index), unchanged.
 
    .. cpp:member:: gf_status (*part_at)(uint64_t type, uint64_t system, uint64_t part, gf_schema_part* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
+
    .. cpp:member:: gf_status (*state_at)(uint64_t type, uint64_t system, uint64_t part, uint64_t state, gf_utf8_view* name)
+
+      ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*custom_state_at)(uint64_t type, uint64_t system, uint64_t state, gf_utf8_view* name)
 
+      ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*property_at)(uint64_t type, uint64_t property, gf_schema_property* record)
+
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
 
    .. cpp:member:: gf_status (*choice_at)(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
+
    .. cpp:member:: gf_status (*interaction_at)(uint64_t type, uint64_t interaction, gf_schema_interaction* record)
+
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
 
    .. cpp:member:: gf_status (*engine)(gf_schema_engine* record)
 
    .. cpp:member:: gf_status (*primitive_at)(uint64_t primitive, gf_schema_primitive* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
+
    .. cpp:member:: gf_status (*primitive_name_at)(uint64_t primitive, gf_schema_primitive_list list, uint64_t index, gf_utf8_view* name)
+
+      ic: Fails invalid_argument (code: primitive_name_at needs a known list and an output), unchanged.
 
    .. cpp:member:: gf_status (*parameter_at)(uint64_t primitive, uint64_t parameter, gf_schema_parameter* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
+
    .. cpp:member:: gf_status (*parameter_choice_at)(uint64_t primitive, uint64_t parameter, uint64_t choice, gf_utf8_view* name)
+
+      ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*effect_count)(uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*effect_at)(uint64_t effect, gf_schema_effect* record)
+
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT past the end.), unchanged.
 
    .. cpp:member:: gf_status (*child_property_count)(uint64_t type, uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT past the end.), unchanged.
+
    .. cpp:member:: gf_status (*child_property_at)(uint64_t type, uint64_t property, gf_schema_property* record)
+
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
 
    .. cpp:member:: gf_status (*child_choice_at)(uint64_t type, uint64_t property, uint64_t choice, gf_schema_choice* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
+
    .. cpp:member:: gf_status (*composite_count)(uint64_t* count)
+
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*composite_at)(uint64_t index, gf_schema_composite* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged.
+
    .. cpp:member:: gf_status (*composite_part_at)(uint64_t composite, uint64_t part, gf_schema_part* record)
+
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged; removed (code: the ic: composite's load was released), unchanged.
 
    .. cpp:member:: gf_status (*composite_state_at)(uint64_t composite, uint64_t part, uint64_t state, gf_utf8_view* name)
 
+      ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails removed (code: the ic: composite's load was released), unchanged.
+
    .. cpp:member:: gf_status (*composite_custom_state_at)(uint64_t composite, uint64_t state, gf_utf8_view* name)
+
+      ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails removed (code: the ic: composite's load was released), unchanged.
 
    .. cpp:member:: gf_status (*composite_property_at)(uint64_t composite, uint64_t property, gf_schema_property* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged; removed (code: the ic: composite's load was released), unchanged.
+
    .. cpp:member:: gf_status (*composite_choice_at)(uint64_t composite, uint64_t property, uint64_t choice, gf_schema_choice* record)
+
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged; removed (code: the ic: composite's load was released), unchanged.
 
    .. cpp:member:: gf_status (*composite_event_at)(uint64_t composite, uint64_t event, gf_schema_interaction* record)
 
+      ic: Fails invalid_argument (code: the index is past the end of its list), unchanged; removed (code: the ic: composite's load was released), unchanged.
+
    .. cpp:member:: gf_status (*composite_command_at)(uint64_t composite, uint64_t command, gf_utf8_view* name)
+
+      ic: Requires not_null(name), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails removed (code: the ic: composite's load was released), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5058,18 +5934,30 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::subsurfaces: generated from include/gui_forms/c/gf_abi_subsurfaces.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*set_content)(gf_object host, const gf_subsurface_content* content)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (code: a gf_subsurface_content needs struct_size of at least 40 and opaque 0 or 1), unchanged; ic: wrong_handle_kind (A host that is not a sub_surface_host gives GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
+
    .. cpp:member:: gf_status (*set_root)(gf_object root)
+
+      ic: Fails disposed (code: the object has been disposed), unchanged; invalid_state (Only inside a build callback, ic: elsewhere GF_STATUS_INVALID_STATE; a second call replaces the first.), unchanged.
 
    .. cpp:member:: gf_status (*state)(gf_object host, gf_subsurface_state* state)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(state), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: state_state, then the state ic: refusal. Fails wrong_handle_kind (code: the object is not a sub_surface_host), unchanged.
+
    .. cpp:member:: gf_status (*content_epoch)(gf_object host, uint64_t* epoch)
 
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(epoch), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: content_epoch_epoch, then ic: the state refusal. Fails wrong_handle_kind (code: the object is not a sub_surface_host), unchanged.
+
    .. cpp:member:: gf_status (*failure)(gf_object host, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Admitted in alive. In disposing, disposed: returns GF_STATUS_DISPOSED, unchanged. Fails wrong_handle_kind ic: (code: the object is not a sub_surface_host), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5133,36 +6021,62 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::text_editing: generated from include/gui_forms/c/gf_abi_text_editing.ic.toml by tools/ic_declarations.py; ic: edit the declaration, not these lines. States: alive (initial), disposing, disposed. Observed by ic: gf_objects_table.state(): alive GF_OBJECT_STATE_ALIVE, disposing GF_OBJECT_STATE_DISPOSING, disposed ic: GF_OBJECT_STATE_DISPOSED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*select)(gf_object object, uint64_t anchor, uint64_t caret)
 
+      ic: Fails invalid_argument (code: a selection lies within the text), unchanged.
+
    .. cpp:member:: gf_status (*selection)(gf_object object, uint64_t* anchor, uint64_t* caret)
+
+      ic: Fails invalid_argument (code: selection needs anchor and caret outputs), unchanged.
 
    .. cpp:member:: gf_status (*grapheme_boundary)(gf_object object, uint64_t position, int32_t direction, uint64_t* boundary)
 
+      ic: Fails invalid_argument (code: grapheme_boundary needs an output and a direction of 1 or -1), unchanged.
+
    .. cpp:member:: gf_status (*replace_range)(gf_object object, uint64_t start, uint64_t length, gf_utf8_view replacement, uint32_t* changed)
+
+      ic: Requires not_null(changed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument (code: ic: replace_range needs a changed output), unchanged.
 
    .. cpp:member:: gf_status (*undo)(gf_object object, uint32_t* changed)
 
+      ic: Requires not_null(changed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*redo)(gf_object object, uint32_t* changed)
+
+      ic: Requires not_null(changed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*clear_undo_history)(gf_object object)
 
    .. cpp:member:: gf_status (*set_decorations)(gf_object object, uint32_t layer, const gf_text_decoration* decorations, uint64_t count)
 
+      ic: Fails invalid_argument (A range past the text, a range ending before it starts, a weight outside 1 to 1000, ic: an underline or ink out of range, an unknown field bit or a nonzero reserved gives GF_STATUS_INVALID_ARGUMENT ic: and changes nothing. decorations may be null when count is 0.), unchanged.
+
    .. cpp:member:: gf_status (*replace_decorations)(gf_object object, uint32_t layer, uint64_t start, uint64_t end, const gf_text_decoration* decorations, uint64_t count)
+
+      ic: Fails invalid_argument (code: the range lies within the text), unchanged.
 
    .. cpp:member:: gf_status (*clear_decorations)(gf_object object)
 
    .. cpp:member:: gf_status (*decoration_count)(gf_object object, uint32_t layer, uint64_t* count)
 
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
+
    .. cpp:member:: gf_status (*decoration_at)(gf_object object, uint32_t layer, uint64_t index, gf_text_decoration* decoration)
+
+      ic: Requires not_null(decoration), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT past the end.), unchanged.
 
    .. cpp:member:: gf_status (*utf8_to_utf16_offset)(gf_object object, uint64_t utf8_offset, uint64_t* utf16_offset)
 
+      ic: Requires not_null(utf16_offset), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (An offset past the text, inside a UTF-8 sequence or between the halves of a surrogate pair gives ic: GF_STATUS_INVALID_ARGUMENT.), unchanged.
+
    .. cpp:member:: gf_status (*utf16_to_utf8_offset)(gf_object object, uint64_t utf16_offset, uint64_t* utf8_offset)
+
+      ic: Requires not_null(utf8_offset), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails invalid_argument ic: (code: utf16_to_utf8_offset needs an output), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5226,40 +6140,70 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::themes: generated from include/gui_forms/c/gf_abi_themes.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*load)(const gf_theme_package* package, gf_theme_report* report)
 
+      ic: Fails invalid_argument (code: a theme package needs a record of at least the 1.0 size with reserved zero), ic: unchanged; invalid_state (GF_STATUS_INVALID_STATE when a control's inline style does not compile against the ic: new theme: nothing changes then either.), unchanged; limit_exceeded (code: a theme package holds at most 256 ic: files), unchanged.
+
    .. cpp:member:: gf_status (*reset)(void)
 
    .. cpp:member:: gf_status (*install)(const gf_theme_package* package, gf_theme_report* report)
 
+      ic: Fails invalid_argument (code: a theme package needs a record of at least the 1.0 size with reserved zero), ic: unchanged; limit_exceeded (code: a theme package holds at most 256 files), unchanged.
+
    .. cpp:member:: gf_status (*remove)(gf_utf8_view name, uint32_t* removed)
+
+      ic: Requires not_null(removed), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: gf_status (*diagnostic_at)(uint64_t index, gf_theme_diagnostic* record)
 
+      ic: Fails invalid_argument (code: no finding has that index), unchanged.
+
    .. cpp:member:: gf_status (*diagnostic_text)(uint64_t index, gf_theme_diagnostic_text text, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Fails invalid_argument (code: unknown diagnostic text), unchanged.
 
    .. cpp:member:: gf_status (*theme_id)(char* buffer, uint64_t capacity, uint64_t* required)
 
    .. cpp:member:: gf_status (*publish_value)(gf_utf8_view name, double value)
 
+      ic: Fails invalid_argument (Publishes a named value for themes to read (var(--name)). name is 1 to 64 lowercase ic: ASCII letters, digits, hyphens and underscores, starting with a letter, and value is finite, else ic: GF_STATUS_INVALID_ARGUMENT.), unchanged; limit_exceeded (A name once published stays admitted to later loads, ic: withdrawn or not; at most GF_THEME_MAXIMUM_PUBLISHED_VALUES names (GF_STATUS_LIMIT_EXCEEDED).), unchanged.
+
    .. cpp:member:: gf_status (*withdraw_value)(gf_utf8_view name)
+
+      ic: Fails invalid_argument (code: a published name is 1 to 64 lowercase letters, digits, hyphens and underscores, ic: ), unchanged.
 
    .. cpp:member:: gf_status (*published_value)(gf_utf8_view name, double* value, uint32_t* present)
 
+      ic: Fails invalid_argument (code: value and present are outputs), unchanged.
+
    .. cpp:member:: gf_status (*load_image)(const uint8_t* bytes, uint64_t size, uint64_t* image)
+
+      ic: Requires not_null(image) and (not_null(bytes) or size == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails invalid_argument (A file that is not a valid PNG gives GF_STATUS_INVALID_ARGUMENT, one past ic: the registry's limits GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then.), unchanged; limit_exceeded (A file ic: that is not a valid PNG gives GF_STATUS_INVALID_ARGUMENT, one past the registry's limits ic: GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then.), unchanged.
 
    .. cpp:member:: gf_status (*remove_image)(uint64_t image)
 
+      ic: Fails not_found (GF_STATUS_NOT_FOUND for an id the registry does not hold.), unchanged.
+
    .. cpp:member:: gf_status (*load_pixels)(const uint8_t* pixels, uint32_t width, uint32_t height, uint64_t row_bytes, uint64_t* image)
+
+      ic: Fails invalid_argument (Fails with GF_STATUS_LIMIT_EXCEEDED past the registry's limits, else ic: GF_STATUS_INVALID_ARGUMENT, leaving image unwritten.), unchanged; limit_exceeded (Fails with ic: GF_STATUS_LIMIT_EXCEEDED past the registry's limits, else GF_STATUS_INVALID_ARGUMENT, leaving image ic: unwritten.), unchanged.
 
    .. cpp:member:: gf_status (*load_sheet)(gf_utf8_view sheet, gf_utf8_view name, gf_theme_report* report)
 
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a view with a size and no data, ic: GF_STATUS_LIMIT_EXCEEDED past the bound.), unchanged; limit_exceeded (GF_STATUS_INVALID_ARGUMENT for a view ic: with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound.), unchanged.
+
    .. cpp:member:: gf_status (*set_user_theme_policy)(gf_user_theme_policy policy)
 
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for an unknown policy.), unchanged; invalid_state ic: (GF_STATUS_INVALID_STATE once a window shares the resources;), unchanged.
+
    .. cpp:member:: gf_status (*theme_request)(gf_theme_request_outcome* outcome)
+
+      ic: Requires not_null(outcome), else returns GF_STATUS_INVALID_ARGUMENT, unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5354,6 +6298,24 @@ Types
    .. cpp:member:: const struct gf_value* elements
 
    .. cpp:member:: uint64_t element_count
+
+.. cpp:namespace:: 0
+
+.. cpp:struct:: gf_viewport_fit
+
+   ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
+
+   .. cpp:member:: uint32_t struct_size
+
+   .. cpp:member:: gf_overflow_answer answer
+
+   .. cpp:member:: double minimum_scale
+
+   .. cpp:member:: double maximum_scale
+
+   .. cpp:member:: gf_overflow_answer below_minimum
+
+   .. cpp:member:: gf_content_alignment alignment
 
 .. cpp:namespace:: 0
 
@@ -5459,32 +6421,54 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::windows_paint_endpoint: generated from include/gui_forms/c/gf_abi_windows_paint_endpoint.ic.toml by ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise. ic: Identity: generational; a stale one: returns GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*acquire)(gf_object control, uint32_t width, uint32_t height, gf_paint_endpoint* endpoint, uint64_t* compatibility_handle)
 
+      ic: Fails invalid_argument (code: acquire needs outputs and 1 to 32768 pixels a side, at most 2^28 in all), ic: unchanged; wrong_handle_kind (Makes an endpoint of width by height pixels (1 to ic: GF_PAINT_ENDPOINT_MAXIMUM_SIDE each, at most 2^28 pixels) bound to control, a custom control (else ic: GF_STATUS_WRONG_HANDLE_KIND), and gives its token and compatibility handle.), unchanged. Returns ic: gf_paint_endpoint, owned by the caller.
+
    .. cpp:member:: gf_status (*configure)(gf_paint_endpoint endpoint, uint32_t width, uint32_t height)
 
+      ic: Fails invalid_argument (code: configure needs 1 to 32768 pixels a side, at most 2^28 in all), unchanged.
+
    .. cpp:member:: gf_status (*touch)(gf_paint_endpoint endpoint, uint32_t explicit_boundary)
+
+      ic: Fails invalid_argument (code: explicit_boundary is 0 or 1), unchanged.
 
    .. cpp:member:: gf_status (*drain)(gf_paint_endpoint endpoint)
 
    .. cpp:member:: gf_status (*snapshot)(gf_paint_endpoint endpoint, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Requires not_null(required) and (not_null(buffer) or capacity == 0), else returns GF_STATUS_INVALID_ARGUMENT, ic: unchanged. Fails buffer_too_small (The endpoint's state as text, for diagnostics; required receives its size, ic: a short buffer gives GF_STATUS_BUFFER_TOO_SMALL.), unchanged.
+
    .. cpp:member:: gf_status (*submit_bgra)(uint64_t compatibility_handle, uint32_t width, uint32_t height, uint64_t row_bytes, const uint8_t* pixels)
+
+      ic: Fails invalid_argument (code: submit_bgra needs a handle and bounded pixels with rows of at least width * 4 ic: bytes), unchanged.
 
    .. cpp:member:: gf_status (*release)(gf_paint_endpoint endpoint)
 
    .. cpp:member:: gf_status (*get_dc)(uint64_t compatibility_handle, uint64_t* device_context)
 
+      ic: Fails invalid_argument (code: get_dc needs a handle and an output), unchanged.
+
    .. cpp:member:: gf_status (*release_dc)(uint64_t compatibility_handle, uint64_t device_context)
+
+      ic: Fails invalid_argument (code: release_dc needs a handle and a device context), unchanged.
 
    .. cpp:member:: gf_status (*publish_dc)(uint64_t device_context)
 
+      ic: Fails invalid_argument (code: publish_dc needs a device context), unchanged.
+
    .. cpp:member:: gf_status (*begin_write)(uint64_t device_context, gf_paint_write_lease* lease)
 
+      ic: Fails invalid_argument (code: begin_write needs a device context and an output), unchanged. Returns ic: gf_paint_write_lease, owned by the caller.
+
    .. cpp:member:: gf_status (*end_write)(gf_paint_write_lease lease, uint32_t publish)
+
+      ic: Fails invalid_argument (code: end_write needs a lease and publish 0 or 1), unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -5496,70 +6480,144 @@ Types
 
    ``#include <gui_forms/c/gf_abi.h>`` (:src:`source <include/gui_forms/c/gf_abi.h>`)
 
+   ic: gf_abi::windows: generated from include/gui_forms/c/gf_abi_windows.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. States: created (initial), running, ended. Observed by ic: gf_windows_table.lifecycle(): created GF_WINDOW_LIFECYCLE_CREATED, running GF_WINDOW_LIFECYCLE_RUNNING, ended ic: GF_WINDOW_LIFECYCLE_ENDED. Thread: ui, unless a call says otherwise. Identity: generational; a stale one: returns ic: GF_STATUS_STALE_HANDLE, unchanged.
+
 
    .. rubric:: Methods
 
    .. cpp:member:: gf_status (*run)(gf_object window_or_root, const gf_run_options* options)
 
+      ic: Admitted in created; then ended. In running: returns GF_STATUS_INVALID_STATE, unchanged. In ended: returns ic: GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT for a window the run ic: refuses, with a message naming the reason (for a client size below the minimum, both sizes).), unchanged; ic: invalid_state (GF_STATUS_INVALID_STATE while another run is under way.), unchanged; unsupported_capability ic: (code: this build has no window host), unchanged; wrong_handle_kind (code: run takes a window or a root ic: control), unchanged.
+
    .. cpp:member:: gf_status (*request_close)(gf_object window_or_root)
+
+      ic: Admitted in running. In created, ended: returns GF_STATUS_INVALID_STATE, unchanged. Fails invalid_argument ic: (code: the host refused the window's text), unchanged; invalid_state (GF_STATUS_INVALID_STATE when it is not ic: running.), unchanged; limit_exceeded (code: too many modal windows are open), unchanged; ic: unsupported_capability (code: the host cannot open this window during a run), unchanged.
 
    .. cpp:member:: gf_status (*create)(gf_object root, gf_object* window)
 
+      ic: Fails disposed (code: the root has been disposed), unchanged; invalid_argument (code: create needs a window ic: output), unchanged; invalid_state (GF_STATUS_INVALID_STATE when root has a parent or a window.), unchanged. ic: Returns gf_object, owned by the caller.
+
    .. cpp:member:: gf_status (*interaction_count)(uint64_t* count)
+
+      ic: Requires not_null(count), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Thread: any.
 
    .. cpp:member:: gf_status (*interaction_at)(uint64_t interaction, gf_schema_interaction* record)
 
+      ic: Fails invalid_argument (GF_STATUS_INVALID_ARGUMENT past the end.), unchanged. Thread: any. Returns a borrow ic: of library, valid until the process ends.
+
    .. cpp:member:: gf_status (*request_help)(gf_object window, uint32_t* handled)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code: ic: request_help needs a handled output), unchanged; wrong_handle_kind (code: request_help takes a window), ic: unchanged.
 
    .. cpp:member:: gf_status (*key_state)(gf_object window, uint32_t physical_key, uint32_t* down)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT without down;), unchanged; wrong_handle_kind (code: key_state takes a window), ic: unchanged.
+
    .. cpp:member:: gf_status (*show_modal)(gf_object root, const gf_owned_window_options* options, gf_dialog_result_code* result)
+
+      ic: Fails cancelled (When the run ends during the loop (the running window closed), the loop ends with ic: GF_STATUS_CANCELLED and the window closes with the run.), unchanged; disposed (code: the root has been ic: disposed), unchanged; invalid_argument (code: the host refused the window's text), unchanged; invalid_state ic: (UI thread, during a run (GF_STATUS_INVALID_STATE otherwise);), unchanged; limit_exceeded (A callback inside ic: the loop may call show_modal again, up to 8 deep (GF_STATUS_LIMIT_EXCEEDED beyond).), unchanged; ic: unsupported_capability (GF_STATUS_UNSUPPORTED_CAPABILITY where the host has no nested loop;), unchanged.
 
    .. cpp:member:: gf_status (*show_owned)(gf_object root, const gf_owned_window_options* options)
 
+      ic: Fails disposed (code: the root has been disposed), unchanged; invalid_argument (code: the host refused the ic: window's text), unchanged; invalid_state (code: the host refused the window (its owner or stable id)), ic: unchanged; limit_exceeded (code: too many modal windows are open), unchanged; unsupported_capability (code: ic: the host cannot open this window during a run), unchanged.
+
    .. cpp:member:: gf_status (*window_properties)(gf_object window, gf_window_property_flags* supported, gf_window_property_flags* applied)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails wrong_handle_kind ic: (GF_STATUS_WRONG_HANDLE_KIND for an object that is not a window;), unchanged.
 
    .. cpp:member:: gf_status (*focused_control)(gf_object window_or_root, gf_object* control)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code: ic: focused_control needs a control output), unchanged; invalid_state (GF_STATUS_INVALID_STATE for a control not ic: in a window;), unchanged; wrong_handle_kind (code: focused_control takes a window or a control in one), ic: unchanged. Returns gf_object, owned by the caller.
+
    .. cpp:member:: gf_status (*declare_band)(gf_object window, const gf_window_band_options* options)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for a null or short record, a width that is not finite from 0 to ic: window_band_maximum_width, an unknown full-screen choice or nonzero reserved, changing nothing.), unchanged; ic: invalid_state (GF_STATUS_INVALID_STATE for a control not in a window;), unchanged; wrong_handle_kind ic: (GF_STATUS_WRONG_HANDLE_KIND for another object;), unchanged.
 
    .. cpp:member:: gf_status (*undeclare_band)(gf_object window)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the ic: control is not in a window), unchanged; wrong_handle_kind (code: the band takes a window or a control in ic: one), unchanged.
+
    .. cpp:member:: gf_status (*set_band_appearance)(gf_object window, const gf_window_band_appearance* appearance)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT, changing nothing, for a null or short record, an unknown state, role or texture, ic: a frequency that is not finite or below 0, a texture out of range, or nonzero reserved.), unchanged; ic: invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind (code: the band takes a ic: window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*band_report)(gf_object window, gf_window_band_report* report)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for a null or short record.), unchanged; invalid_state (code: the control is not ic: in a window), unchanged; wrong_handle_kind (code: the band takes a window or a control in one), unchanged.
+
    .. cpp:member:: gf_status (*set_corner_preference)(gf_object window, gf_window_corner_preference preference)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for a value outside gf_window_corner_preference, changing nothing.), unchanged; ic: invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind (code: the band takes a ic: window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*content_rect)(gf_object window, gf_logical_rect* rect)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for a null output.), unchanged; invalid_state (code: the control is not in a ic: window), unchanged; wrong_handle_kind (code: the band takes a window or a control in one), unchanged.
+
    .. cpp:member:: gf_status (*shaping)(gf_object window, gf_window_shaping* report)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument ic: (GF_STATUS_INVALID_ARGUMENT for a null or short record.), unchanged; invalid_state (code: the control is not ic: in a window), unchanged; wrong_handle_kind (code: the band takes a window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*pointer_location)(gf_object window_or_control, gf_logical_point* location, gf_logical_point* window_position, uint32_t* inside)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state ic: (GF_STATUS_INVALID_STATE for a control not in a window;), unchanged; wrong_handle_kind ic: (GF_STATUS_WRONG_HANDLE_KIND for an object that is neither;), unchanged.
+
    .. cpp:member:: gf_status (*show_business_card)(gf_object window_or_root, uint32_t* shown)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state ic: (GF_STATUS_INVALID_STATE for a control not in a window or in a sub-surface;), unchanged; wrong_handle_kind ic: (code: show_business_card takes a window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*set_mdi_container)(gf_object window_or_root, uint32_t container)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code: ic: a switch is 0 or 1), unchanged; invalid_state (code: the control is not in a window), unchanged; ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
+
    .. cpp:member:: gf_status (*mdi_container)(gf_object window_or_root, uint32_t* container)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(container), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: mdi_container_container, ic: then the state refusal. Fails invalid_state (code: the control is not in a window), unchanged; ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*mdi_child_count)(gf_object window_or_root, uint64_t* count)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(count), else ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: mdi_child_count_count, then the ic: state refusal. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind ic: (code: the MDI calls take a window or a control in one), unchanged.
+
    .. cpp:member:: gf_status (*mdi_child_at)(gf_object window_or_root, uint64_t index, char* buffer, uint64_t capacity, uint64_t* required)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails buffer_too_small (the id ic: is longer than capacity: required receives its size, nothing else is written), unchanged; invalid_state ic: (code: the control is not in a window), unchanged; not_found (code: the index is past the window's MDI ic: children), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*active_mdi_child)(gf_object window_or_root, char* buffer, uint64_t capacity, uint64_t* required)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the ic: control is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in ic: one), unchanged.
+
    .. cpp:member:: gf_status (*activate_mdi_child)(gf_object window_or_root, gf_utf8_view child, uint32_t* activated)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the ic: control is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in ic: one), unchanged.
 
    .. cpp:member:: gf_status (*layout_mdi)(gf_object window_or_root, gf_mdi_layout layout, uint32_t* arranged)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (A ic: value outside gf_mdi_layout gives GF_STATUS_INVALID_ARGUMENT.), unchanged; invalid_state (code: the control ic: is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), ic: unchanged.
+
    .. cpp:member:: gf_status (*set_mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t bottom)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_argument (code: ic: a switch is 0 or 1), unchanged; invalid_state (code: the control is not in a window), unchanged; ic: wrong_handle_kind (code: the MDI calls take a window or a control in one), unchanged.
 
    .. cpp:member:: gf_status (*mdi_children_minimized_anchor_bottom)(gf_object window_or_root, uint32_t* bottom)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(bottom), ic: else returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: ic: mdi_children_minimized_anchor_bottom_bottom, then the state refusal. Fails invalid_state (code: the control ic: is not in a window), unchanged; wrong_handle_kind (code: the MDI calls take a window or a control in one), ic: unchanged.
+
    .. cpp:member:: gf_status (*set_main_menu_strip)(gf_object window_or_root, gf_object strip)
 
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Fails invalid_state (code: the ic: control is not in a window), unchanged; wrong_handle_kind (A menu_strip object or zero for none; another ic: object gives GF_STATUS_WRONG_HANDLE_KIND.), unchanged.
+
    .. cpp:member:: gf_status (*main_menu_strip)(gf_object window_or_root, gf_object* strip)
+
+      ic: Admitted in created, running. In ended: returns GF_STATUS_DISPOSED, unchanged. Requires not_null(strip), else ic: returns GF_STATUS_INVALID_ARGUMENT, unchanged. When several refusals apply: main_menu_strip_strip, then the ic: state refusal. Fails invalid_state (code: the control is not in a window), unchanged; wrong_handle_kind ic: (code: the MDI calls take a window or a control in one), unchanged. Returns gf_object, owned by the caller.
+
+   .. cpp:member:: gf_status (*overflow_records)(gf_object window_or_root, gf_overflow_record* records, uint64_t capacity, uint64_t* required, char* text_buffer, uint64_t text_capacity, uint64_t* text_required)
+
+   .. cpp:member:: gf_status (*unanswered_overflow_count)(gf_object window_or_root, uint64_t* count)
+
+   .. cpp:member:: gf_status (*safe_insets)(gf_object window_or_root, gf_logical_insets* insets)
+
+   .. cpp:member:: gf_status (*lifecycle)(gf_object window, gf_window_lifecycle* lifecycle)
+
+      ic: Requires not_null(lifecycle), else returns GF_STATUS_INVALID_ARGUMENT, unchanged. Fails wrong_handle_kind ic: (GF_STATUS_WRONG_HANDLE_KIND for an object that is not a window (a run's root control among them);), ic: unchanged.
 
    .. cpp:member:: uint32_t struct_size
 
@@ -6035,6 +7093,8 @@ Types
 
    .. cpp:function:: gf_status splashscreen_close(gf_splashscreen splashscreen) const noexcept
 
+   .. cpp:function:: gf_status splashscreen_state(gf_splashscreen splashscreen, gf_splashscreen_state* state) const noexcept
+
 .. cpp:namespace:: gui_forms::abi
 
 .. cpp:class:: SchemaTable
@@ -6445,6 +7505,14 @@ Types
    .. cpp:function:: gf_status mdi_children_minimized_anchor_bottom(gf_object window_or_root, uint32_t* bottom) const noexcept
 
    .. cpp:function:: gf_status main_menu_strip(gf_object window_or_root, gf_object* strip) const noexcept
+
+   .. cpp:function:: gf_status overflow_records(gf_object window_or_root, gf_overflow_record* records, uint64_t capacity, uint64_t* required, char* text_buffer, uint64_t text_capacity, uint64_t* text_required) const noexcept
+
+   .. cpp:function:: gf_status unanswered_overflow_count(gf_object window_or_root, uint64_t* count) const noexcept
+
+   .. cpp:function:: gf_status safe_insets(gf_object window_or_root, gf_logical_insets* insets) const noexcept
+
+   .. cpp:function:: gf_status lifecycle(gf_object window, gf_window_lifecycle* lifecycle) const noexcept
 
    .. cpp:function:: gf_status set_band_appearance(gf_object window, const gf_window_band_appearance* appearance) const noexcept
 

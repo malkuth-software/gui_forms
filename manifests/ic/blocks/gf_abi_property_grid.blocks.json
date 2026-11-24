@@ -1,0 +1,433 @@
+{
+  "schema": 1,
+  "component": "gf_abi::property_grid",
+  "declaration": "include/gui_forms/c/gf_abi_property_grid.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.property_grid.select_objects.alive",
+      "mode": "legal",
+      "call": "select_objects",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: select_objects takes at most 4096 objects, and objects when count is not zero",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.select_objects.disposing",
+      "mode": "legal",
+      "call": "select_objects",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: select_objects takes at most 4096 objects, and objects when count is not zero",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.select_objects.disposed",
+      "mode": "legal",
+      "call": "select_objects",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: select_objects takes at most 4096 objects, and objects when count is not zero",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.refresh.alive",
+      "mode": "legal",
+      "call": "refresh",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.refresh.disposing",
+      "mode": "legal",
+      "call": "refresh",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.refresh.disposed",
+      "mode": "legal",
+      "call": "refresh",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.try_set_text.alive",
+      "mode": "legal",
+      "call": "try_set_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "alive"
+        },
+        {
+          "name": "accepted",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(accepted)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(accepted)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.try_set_text.disposing",
+      "mode": "legal",
+      "call": "try_set_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "accepted",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(accepted)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(accepted)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.try_set_text.disposed",
+      "mode": "legal",
+      "call": "try_set_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "accepted",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(accepted)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(accepted)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.try_set_text.misuse.try_set_text_accepted",
+      "mode": "misuse",
+      "call": "try_set_text",
+      "violates": "not_null(accepted)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.property_grid.reset_property.alive",
+      "mode": "legal",
+      "call": "reset_property",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "alive"
+        },
+        {
+          "name": "reset",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(reset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(reset)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.reset_property.disposing",
+      "mode": "legal",
+      "call": "reset_property",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "reset",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(reset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(reset)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.reset_property.disposed",
+      "mode": "legal",
+      "call": "reset_property",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "reset",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(reset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(reset)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.reset_property.misuse.reset_property_reset",
+      "mode": "misuse",
+      "call": "reset_property",
+      "violates": "not_null(reset)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.property_grid.activate_editor.alive",
+      "mode": "legal",
+      "call": "activate_editor",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "alive"
+        },
+        {
+          "name": "activated",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(activated)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(activated)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.activate_editor.disposing",
+      "mode": "legal",
+      "call": "activate_editor",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposing"
+        },
+        {
+          "name": "activated",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(activated)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(activated)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.activate_editor.disposed",
+      "mode": "legal",
+      "call": "activate_editor",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::property_grid",
+          "state": "disposed"
+        },
+        {
+          "name": "activated",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(activated)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(activated)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.property_grid.activate_editor.misuse.activate_editor_activated",
+      "mode": "misuse",
+      "call": "activate_editor",
+      "violates": "not_null(activated)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

@@ -61,8 +61,12 @@ RibbonGallery::RibbonGallery(StableId stable_id, RibbonGalleryForm form)
 
 RibbonGallery::~RibbonGallery() {
     dwell_timer_.disconnect();
-    overlay_revoked_.disconnect();
-    overlay_.disconnect();
+    AnchoredOpening* const shown = presentation_.shown_state();
+    if (shown != nullptr) {
+        (*shown).lease.overlay_closed.disconnect();
+        (*shown).lease.overlay.disconnect();
+    }
+    presentation_.finish_closing();
 }
 
 void RibbonGallery::on_dispose() noexcept {
@@ -73,10 +77,14 @@ void RibbonGallery::on_dispose() noexcept {
         } catch (...) {
         }
     }
-    overlay_revoked_.disconnect();
-    overlay_.disconnect();
+    if (presentation_.begin_closing()) {
+        AnchoredOpening& closing = *presentation_.closing_state();
+        closing.lease.overlay_closed.disconnect();
+        closing.lease.overlay.disconnect();
+        closing.popup_closed.disconnect();
+    }
+    presentation_.finish_closing();
     release_lift();
-    overlay_open_ = false;
     command_value_.disconnect();
     command_state_.disconnect();
     more_open_changed_.disconnect();
@@ -119,7 +127,7 @@ void RibbonGallery::set_items(std::vector<RibbonGalleryCategory> categories, std
         }
         item_category[index] = (*found).second;
     }
-    if (overlay_open_) close_overlay();
+    if (presentation_.is_shown()) close_overlay();
     cancel_preview();
     // Display order: uncategorized items first, then category by category.
     std::vector<std::size_t> order{};
@@ -343,7 +351,7 @@ void RibbonGallery::commit(std::size_t position) {
         invalidate(Dirty::paint | Dirty::semantics);
         selection_changed_.emit(own_selection_);
     }
-    if (is_alive() && overlay_open_) close_overlay();
+    if (is_alive() && presentation_.is_shown()) close_overlay();
 }
 
 void RibbonGallery::start_dwell(std::size_t position) {
@@ -435,6 +443,7 @@ void RibbonGallery::on_focus_changed(bool focused) {
 
 bool RibbonGallery::navigate(std::uint32_t key) {
     if (order_.empty()) return false;
+    if (!lines_agree()) rebuild_lines();
     const std::size_t current = focused_.value_or(0U);
     const std::size_t last = order_.size() - 1U;
     std::size_t target = current;
@@ -501,7 +510,7 @@ void RibbonGallery::on_key_down(KeyEventArgs& arguments) {
         if (command.read() && (*command.read()).previewing()) {
             cancel_preview();
             arguments.handled = true;
-        } else if (overlay_open_) {
+        } else if (presentation_.is_shown()) {
             close_overlay();
             arguments.handled = true;
         }
@@ -629,7 +638,7 @@ void RibbonGallery::handle_mouse(MouseEventArgs& arguments) {
 
 bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
     require_mutable();
-    if (form_ != RibbonGalleryForm::drop_down || overlay_open_ || !anchor || (*anchor).attached_window() == nullptr) {
+    if (form_ != RibbonGalleryForm::drop_down || !presentation_.is_closed() || !anchor || (*anchor).attached_window() == nullptr) {
         return false;
     }
     Window& window = *(*anchor).attached_window();
@@ -659,50 +668,67 @@ bool RibbonGallery::open_overlay(const Control::Ptr& anchor) {
     (*layer_).focusable = lifted;
     const Size client = window.client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
+    AnchoredOpening opening{};
     try {
-        overlay_ = window.open_overlay(anchor, layer_);
+        opening.lease.overlay = window.open_overlay(anchor, layer_);
     } catch (...) {
         release_lift();
         release_layer_content();
         throw;
     }
     if (lifted) {
-        lift_closed_ = window.popup_window_closed().subscribe(
+        opening.popup_closed = window.popup_window_closed().subscribe(
             Delegate<std::size_t>::bind<RibbonGallery, &RibbonGallery::on_popup_window_closed>(*this));
     }
-    overlay_open_ = true;
-    if (Event<>* closed = overlay_.closed_event()) {
-        overlay_revoked_ = (*closed).subscribe(Delegate<>::bind<RibbonGallery, &RibbonGallery::on_overlay_revoked>(*this));
+    if (Event<>* closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed =
+            (*closed).subscribe(Delegate<>::bind<RibbonGallery, &RibbonGallery::on_overlay_revoked>(*this));
     }
+    presentation_ = AnchoredPresentation::opening(std::move(opening));
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer_) : shared_from_this();
     // begin_focus_scope runs the previous control's focus and validation
     // handlers; one that closed the overlay found no scope to end, so this
     // one is ended here and nothing reports an opening (A-gf-controls-12-F4).
     // `lifetime` holds the gallery across them.
     const Control::Ptr lifetime = shared_from_this();
-    const FocusScopeId started = window.begin_focus_scope(layer_, preferred_focus);
-    if (!is_alive() || !overlay_open_) {
+    // A refused scope (state hunt N3: a containing scope, the nesting
+    // limit) takes the overlay down again before the refusal leaves: a
+    // failed open leaves nothing shown and reports nothing.
+    FocusScopeId started{};
+    try {
+        started = window.begin_focus_scope(layer_, preferred_focus);
+    } catch (...) {
+        abandon_opening();
+        throw;
+    }
+    if (!is_alive() || !presentation_.settle_open()) {
         if (started) static_cast<void>(window.end_focus_scope(started));
         return false;
     }
-    scope_ = started;
+    (*presentation_.open_state()).lease.scope = started;
     invalidate(Dirty::paint | Dirty::semantics);
     overlay_open_changed_.emit(true);
     return true;
 }
 
 void RibbonGallery::close_overlay() {
-    if (!overlay_open_) return;
+    if (!presentation_.is_shown()) return;
     // The preview is withdrawn before the overlay goes.
     cancel_preview();
-    overlay_open_ = false;
+    // Closing from here on (a handler of the preview's withdrawal may have
+    // closed it already): a handler the steps run can neither close nor
+    // open the overlay again until it is closed.
+    if (!presentation_.begin_closing()) return;
+    AnchoredOpening& closing = *presentation_.closing_state();
     // The scope is the owner's, where the layer is (the gallery itself may
     // be in the picker Popup).
     Window* const window = layer_ ? (*layer_).attached_window() : attached_window();
-    if (window != nullptr && scope_) static_cast<void>((*window).end_focus_scope(scope_));
-    scope_ = {};
-    overlay_revoked_.disconnect();
-    overlay_.disconnect();
+    if (window != nullptr && closing.lease.scope) static_cast<void>((*window).end_focus_scope(closing.lease.scope));
+    closing.lease.scope = {};
+    closing.lease.overlay_closed.disconnect();
+    closing.lease.overlay.disconnect();
+    closing.popup_closed.disconnect();
+    presentation_.finish_closing();
     release_lift();
     release_layer_content();
     hot_.reset();
@@ -711,16 +737,44 @@ void RibbonGallery::close_overlay() {
     overlay_open_changed_.emit(false);
 }
 
+// An opening whose scope was refused: its record is dismantled and the
+// gallery leaves the layer and the Popup, with nothing reported (no
+// opening was reported either).
+void RibbonGallery::abandon_opening() noexcept {
+    if (presentation_.begin_closing()) {
+        AnchoredOpening& closing = *presentation_.closing_state();
+        closing.lease.overlay_closed.disconnect();
+        closing.lease.overlay.disconnect();
+        closing.popup_closed.disconnect();
+        presentation_.finish_closing();
+    }
+    release_lift();
+    release_layer_content();
+}
+
+bool RibbonGallery::agrees_with_itself() const noexcept {
+    // Its lines lay out its display order. Open, its overlay is in the
+    // window. Closed, it is neither its layer's content nor lifted into a
+    // Popup.
+    if (!lines_agree()) return false;
+    const AnchoredOpening* const open = presentation_.open_state();
+    if (open != nullptr) return (*open).lease.overlay.connected();
+    if (!presentation_.is_closed()) return true;
+    if (layer_ && (*layer_).content().get() == this) return false;
+    return !lift_.lifted();
+}
+
 void RibbonGallery::on_layer_dismissed(OverlayDismissReason) {
     close_overlay();
 }
 
 void RibbonGallery::on_overlay_revoked() {
-    if (!overlay_open_) return;
+    if (!presentation_.is_shown()) return;
     cancel_preview();
-    overlay_open_ = false;
-    scope_ = {};
-    overlay_revoked_.disconnect();
+    // The window closed the overlay: the lease and scope are gone with it.
+    if (!presentation_.begin_closing()) return;
+    (*presentation_.closing_state()).popup_closed.disconnect();
+    presentation_.finish_closing();
     release_lift();
     release_layer_content();
     invalidate(Dirty::paint | Dirty::semantics);
@@ -740,8 +794,9 @@ void RibbonGallery::release_layer_content() noexcept {
     }
 }
 
+// The lifted Popup's closing subscription is the presentation's, ended
+// with it.
 void RibbonGallery::release_lift() noexcept {
-    lift_closed_.disconnect();
     lift_.release();
 }
 
@@ -775,6 +830,9 @@ bool RibbonGallery::show_more() {
 }
 
 void RibbonGallery::on_more_open_changed(bool open) {
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     // Without a command the full gallery's choice becomes this gallery's.
     if (!open && !command.read() && more_gallery_ && (*more_gallery_).own_selection_ != own_selection_) {
         own_selection_ = (*more_gallery_).own_selection_;
@@ -803,7 +861,7 @@ SemanticDescriptor RibbonGallery::semantic_descriptor() const {
 
 std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Geometry layout = geometry();
     const std::string prefix(stable_id().value());
     const std::optional<std::string> selected = selected_id.read();
@@ -837,7 +895,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
             node.name = item.label.empty() ? item.stable_id : item.label;
             if (in_view) {
                 const Rect cell = Rect::intersection(cell_bounds(position, layout), layout.viewport);
-                node.bounds = {absolute.x + cell.x, absolute.y + cell.y, cell.width, cell.height};
+                node.bounds = frame_to_outer(local_frame, cell);
             }
             node.states = SemanticState::visible | SemanticState::focusable;
             if (item_enabled(position)) node.states |= SemanticState::enabled;
@@ -867,8 +925,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
         up.runtime_id = virtual_semantic_runtime_id(up.stable_id);
         up.role = SemanticRole::button;
         up.name = "Scroll up";
-        up.bounds = {absolute.x + placed.scroll_up.bounds.x, absolute.y + placed.scroll_up.bounds.y,
-                     placed.scroll_up.bounds.width, placed.scroll_up.bounds.height};
+        up.bounds = frame_to_outer(local_frame, placed.scroll_up.bounds);
         up.states = SemanticState::visible;
         if (can_scroll_up()) up.states |= SemanticState::enabled;
         up.actions = {SemanticAction::press};
@@ -878,8 +935,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
         down.runtime_id = virtual_semantic_runtime_id(down.stable_id);
         down.role = SemanticRole::button;
         down.name = "Scroll down";
-        down.bounds = {absolute.x + placed.scroll_down.bounds.x, absolute.y + placed.scroll_down.bounds.y,
-                       placed.scroll_down.bounds.width, placed.scroll_down.bounds.height};
+        down.bounds = frame_to_outer(local_frame, placed.scroll_down.bounds);
         down.states = SemanticState::visible;
         if (can_scroll_down()) down.states |= SemanticState::enabled;
         down.actions = {SemanticAction::press};
@@ -892,8 +948,7 @@ std::vector<SemanticNode> RibbonGallery::semantic_virtual_children() const {
         more.role = SemanticRole::menu_button;
         more.name = "More";
         more.has_popup = true;
-        more.bounds = {absolute.x + placed.more_button.bounds.x, absolute.y + placed.more_button.bounds.y,
-                       placed.more_button.bounds.width, placed.more_button.bounds.height};
+        more.bounds = frame_to_outer(local_frame, placed.more_button.bounds);
         more.states = SemanticState::visible | SemanticState::enabled;
         if (more_gallery_ && (*more_gallery_).overlay_open()) more.states |= SemanticState::expanded;
         more.actions = {SemanticAction::press, SemanticAction::expand};

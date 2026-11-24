@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::BackstageView",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/backstage_view.ic.toml",
+    "sha256": "994a2d052c5bc28aff7848bc2017ecd83457b39f160d49aa8c8bb7bf75e8bf25"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.backstageview.column_width_write.requires.column_width",
+      "kind": "entry-check",
+      "statement": "column_width runs only when finite(incoming) and incoming >= 48 and incoming <= 480; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::backstage_view::admits_column_width, called in src/controls/backstage_view/backstage_view.cpp"
+    },
+    {
+      "id": "gui_forms.backstageview.column_width_write.refusal.column_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 48 and incoming <= 480, column_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -4,14 +4,17 @@
 #include "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp"
 #include "gui_forms/components/message_box/message_box.hpp"
 #include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
 #include "gui_forms/components/thread_exception_dialog/thread_exception_dialog.hpp"
 #include "gui_forms/controls/font_dialog.hpp"
+#include "gui_forms/controls/input_box.hpp"
 #include "gui_forms/controls/task_dialog.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "dialogs-and-host-services_form.hpp"
 
@@ -74,6 +77,8 @@ private:
     void build_task_dialog();
     void on_show_task_dialog();
     void on_task_dialog_closed(const TaskDialogResult& result);
+    void on_show_input_box();
+    void on_input_box_closed(const TaskDialogResult& result);
     void on_native_dialogs_changed(bool native);
     void on_show_exception_dialog();
     void on_exception_dialog_closed(DialogResult result);
@@ -82,6 +87,10 @@ private:
     void on_notify();
     void on_notify_icon_click(const NotifyIconClick& click);
     void on_notify_icon_menu(const MenuItemInvocation& invocation);
+    void on_show_toast();
+    void on_toast_activated();
+    void on_toast_dismissed();
+    void on_toast_failed();
 
     void on_message_dialog(int index, const CommandInvocation& invocation);
     void on_path_dialog(int index, const CommandInvocation& invocation);
@@ -120,6 +129,11 @@ private:
     Command task_dialog_command_{};
     std::shared_ptr<Button> task_dialog_button_;
     std::shared_ptr<TaskDialog> task_dialog_;
+    Command input_box_command_{};
+    std::shared_ptr<Button> input_box_button_;
+    // The input box shown last; its layer keeps it while it is open.
+    std::shared_ptr<TaskDialog> input_box_;
+    std::string folder_name_{"New folder"};
     // Opens TaskDialog and FontDialog as native popup windows (owner,
     // 2026-11-04: opt-in) instead of overlays.
     std::shared_ptr<CheckBox> native_dialogs_;
@@ -132,6 +146,9 @@ private:
     std::shared_ptr<Button> notify_toggle_button_;
     // Made on first use, when the page's window is known.
     std::shared_ptr<NotifyIcon> notify_icon_;
+    Command toast_command_{};
+    // Made with the first desktop notification, bound to the page's window.
+    std::shared_ptr<ToastNotification> toast_;
     std::string last_acceptance_{"No accepted dialog value yet"};
     std::uint64_t next_request_id_{1U};
     // Declared after the Commands its buttons bind, so it is released first.
@@ -163,6 +180,7 @@ void HostServicesPage::mount_document(const std::shared_ptr<Surface>& body) {
     clipboard_ = document_.gallery_host_clipboard_editor;
     font_button_ = document_.gallery_host_font_choose;
     task_dialog_button_ = document_.gallery_host_task_dialog_show;
+    input_box_button_ = document_.gallery_host_input_box_show;
     exception_dialog_button_ = document_.gallery_host_exception_dialog_show;
     native_dialogs_ = document_.gallery_host_task_dialog_native;
     notify_toggle_button_ = document_.gallery_host_notify_icon_toggle;
@@ -202,10 +220,39 @@ void HostServicesPage::build_task_dialog() {
     report.caption = "GUI.Forms Gallery";
     report.details = "Thrown and caught by this specimen. A C++ exception carries no stack trace, "
                      "so an application supplies its own details.";
-    exception_dialog_ = std::make_shared<ThreadExceptionDialog>(
+    exception_dialog_ = gui_forms::detail::make_library_shared<ThreadExceptionDialog>(
         StableId("gallery.host.exception-dialog.dialog"), std::move(report));
     on(exception_dialog_command_.invoked(), *this, &HostServicesPage::on_show_exception_dialog);
     on((*exception_dialog_).closed(), *this, &HostServicesPage::on_exception_dialog_closed);
+    input_box_command_.set_text("Input box...");
+    input_box_command_.set_description("Ask for a folder name in an input box");
+    (*input_box_button_).bind(input_box_command_);
+    on(input_box_command_.invoked(), *this, &HostServicesPage::on_show_input_box);
+}
+
+// The input box: a prompt, a field holding the last accepted name, OK and
+// Cancel. Its answer arrives when it closes.
+void HostServicesPage::on_show_input_box() {
+    if (input_box_ && (*input_box_).shown()) return;
+    InputBoxRequest request{};
+    request.title = "New folder";
+    request.prompt = "Name the new folder";
+    request.default_response = folder_name_;
+    request.maximum_length = 64U;
+    input_box_ = show_input_box(input_box_button_, request, StableId("gallery.host.input-box.dialog"));
+    if (!input_box_) return;
+    on((*input_box_).closed(), *this, &HostServicesPage::on_input_box_closed);
+    (*status_).text = "Input box shown · Enter accepts, Escape cancels";
+}
+
+void HostServicesPage::on_input_box_closed(const TaskDialogResult& result) {
+    const InputBoxResult answer = input_box_result(result);
+    if (!answer.accepted) {
+        (*status_).text = "Input box cancelled · the name stays " + folder_name_;
+        return;
+    }
+    folder_name_ = answer.text;
+    (*status_).text = "Input box accepted · the new folder is " + folder_name_;
 }
 
 void HostServicesPage::on_show_exception_dialog() {
@@ -324,19 +371,23 @@ void HostServicesPage::build_notify_icon() {
     notify_message_command_.set_text("Notify");
     (*notify_toggle_button_).bind(notify_toggle_command_);
     (*document_.gallery_host_notify_icon_notify).bind(notify_message_command_);
-    notify_menu_command_ = std::make_shared<Command>("gallery.host.notify-icon.hello", "Say hello");
+    notify_menu_command_ = gui_forms::detail::make_library_shared<Command>("gallery.host.notify-icon.hello", "Say hello");
     on(notify_toggle_command_.invoked(), *this, &HostServicesPage::on_toggle_notify_icon);
     on(notify_message_command_.invoked(), *this, &HostServicesPage::on_notify);
+    toast_command_.set_text("Desktop notification");
+    toast_command_.set_description("Show a notification through the desktop's notification service");
+    (*document_.gallery_host_toast_show).bind(toast_command_);
+    on(toast_command_.invoked(), *this, &HostServicesPage::on_show_toast);
 }
 
 void HostServicesPage::on_toggle_notify_icon() {
     Window* const window = (*notify_toggle_button_).attached_window();
     if (window == nullptr) return;
     if (!notify_icon_) {
-        notify_icon_ = std::make_shared<NotifyIcon>(*window);
+        notify_icon_ = gui_forms::detail::make_library_shared<NotifyIcon>(*window);
         (*notify_icon_).icon = std::vector<HostImage>{round_icon(16U), round_icon(32U), round_icon(48U)};
         (*notify_icon_).text = "GUI.Forms Gallery";
-        std::shared_ptr<ContextMenu> menu = std::make_shared<ContextMenu>("gallery.host.notify-icon.menu");
+        std::shared_ptr<ContextMenu> menu = gui_forms::detail::make_library_shared<ContextMenu>("gallery.host.notify-icon.menu");
         (*menu).set_items({MenuItemSpec("gallery.host.notify-icon.menu.hello", MenuItemKind::command,
                                         notify_menu_command_)});
         (*notify_icon_).context_menu = menu;
@@ -359,6 +410,34 @@ void HostServicesPage::on_notify() {
     const HostServiceStatus status = (*notify_icon_).show_balloon_tip(
         "GUI.Forms", "Notification text from the Gallery", HostTrayNotificationIcon::information);
     (*status_).text = "Tray notification: " + service_result(status);
+}
+
+// A ToastNotification: the desktop's own notification, without a tray icon.
+void HostServicesPage::on_show_toast() {
+    if (!toast_) {
+        Window* const window = (*notify_toggle_button_).attached_window();
+        if (window == nullptr) return;
+        toast_ = gui_forms::detail::make_library_shared<ToastNotification>(*window);
+        (*toast_).title = "GUI.Forms Gallery";
+        (*toast_).text = "A desktop notification from the host services page";
+        on((*toast_).activated(), *this, &HostServicesPage::on_toast_activated);
+        on((*toast_).dismissed(), *this, &HostServicesPage::on_toast_dismissed);
+        on((*toast_).failed(), *this, &HostServicesPage::on_toast_failed);
+    }
+    const HostServiceStatus status = (*toast_).show();
+    (*status_).text = "Desktop notification: " + service_result(status);
+}
+
+void HostServicesPage::on_toast_activated() {
+    (*status_).text = "Desktop notification activated";
+}
+
+void HostServicesPage::on_toast_dismissed() {
+    (*status_).text = "Desktop notification dismissed";
+}
+
+void HostServicesPage::on_toast_failed() {
+    (*status_).text = "Desktop notification refused by the platform";
 }
 
 void HostServicesPage::on_notify_icon_click(const NotifyIconClick& click) {
@@ -398,17 +477,17 @@ void HostServicesPage::build_paths() {
         on(command.invoked(), *this, &HostServicesPage::on_path_dialog,
            static_cast<int>(index));
     }
-    open_file_dialog_ = std::make_shared<OpenFileDialog>();
+    open_file_dialog_ = gui_forms::detail::make_library_shared<OpenFileDialog>();
     (*open_file_dialog_).filter = "Text and logs|*.txt;*.log|PNG images|*.png";
-    save_file_dialog_ = std::make_shared<SaveFileDialog>();
+    save_file_dialog_ = gui_forms::detail::make_library_shared<SaveFileDialog>();
     (*save_file_dialog_).title = "Save GUI.Forms evidence";
     (*save_file_dialog_).filter = "Text evidence|*.txt";
     (*save_file_dialog_).default_ext = "txt";
     (*save_file_dialog_).file_name = "gui-forms-evidence";
-    color_dialog_ = std::make_shared<ColorDialog>();
+    color_dialog_ = gui_forms::detail::make_library_shared<ColorDialog>();
     (*color_dialog_).title = "Choose an accent color";
     (*color_dialog_).color = Color::rgba(0x27U, 0x74U, 0xB8U);
-    folder_browser_dialog_ = std::make_shared<FolderBrowserDialog>();
+    folder_browser_dialog_ = gui_forms::detail::make_library_shared<FolderBrowserDialog>();
     (*folder_browser_dialog_).description = "Choose an evidence directory";
 }
 
@@ -676,7 +755,7 @@ void HostServicesPage::play_sound(HostServices& host, const HostSoundCue cue) {
 void add_dialogs_and_host_services(
     const std::shared_ptr<Surface>& page,
     const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<HostServicesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<HostServicesPage>(page));
 }
 
 } // namespace gui_forms::gallery::pages

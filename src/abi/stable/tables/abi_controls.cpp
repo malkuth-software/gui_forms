@@ -6,11 +6,13 @@
 #include "abi_tables.hpp"
 
 #include "../values/abi_values.hpp"
+#include "../ic/abi_controls_ic_checks.hpp"
 
 #include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
 #include "gui_forms/surface_material/types/surface_material_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -168,7 +170,7 @@ gf_status GF_CALL controls_layout_state(gf_object object, gf_layout_transaction*
 }
 
 gf_status controls_window_bounds_body(gf_object object, gf_logical_rect* bounds) {
-    if (bounds == nullptr) {
+    if (!ic_controls::admits_window_bounds_bounds(bounds)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, window_bounds_slot, "window_bounds needs an output");
     }
     Control::Ptr control;
@@ -203,7 +205,7 @@ gf_status GF_CALL controls_set_pointer_capture(gf_object object, std::uint32_t c
 }
 
 gf_status controls_pointer_capture_body(gf_object object, std::uint32_t* captured) {
-    if (captured == nullptr) {
+    if (!ic_controls::admits_pointer_capture_captured(captured)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, pointer_capture_slot, "pointer_capture needs an output");
     }
     Control::Ptr control;
@@ -729,7 +731,7 @@ gf_status controls_set_content_effect_body(gf_object object, const gf_content_ef
         if (!valid_paint_group_effect(built)) {
             return fail(GF_STATUS_INVALID_ARGUMENT, slot, "the effect is not valid");
         }
-        shared = std::make_shared<const PaintGroupEffect>(std::move(built));
+        shared = gui_forms::detail::make_library_shared<const PaintGroupEffect>(std::move(built));
     }
     Control::Ptr control;
     const gf_status entered = enter_live_control(object, slot, control);
@@ -766,6 +768,8 @@ constexpr gf_controls_table table{
     .warp_pointer = &controls_warp_pointer,
     .set_pointer_release_regions = &controls_set_pointer_release_regions,
     .set_content_effect = &controls_set_content_effect,
+    .set_viewport_fit = &controls_set_viewport_fit,
+    .viewport_fit = &controls_viewport_fit,
 };
 
 } // namespace

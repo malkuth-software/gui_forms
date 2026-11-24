@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ResponsiveTrackPanel",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/responsive_track_panel.ic.toml",
+    "sha256": "2494afd7657079239f2ebb88e96b4b3837810aca9539f6fbcd1b9339fbe980d8"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.responsivetrackpanel.track_gap_write.requires.track_gap",
+      "kind": "entry-check",
+      "statement": "track_gap runs only when finite(incoming) and incoming >= 0 and incoming <= 256; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::responsive_track_panel::admits_track_gap, called in src/controls/scrollable_control/container_control/responsive_track_panel/responsive_track_panel.cpp"
+    },
+    {
+      "id": "gui_forms.responsivetrackpanel.track_gap_write.refusal.track_gap",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0 and incoming <= 256, track_gap changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

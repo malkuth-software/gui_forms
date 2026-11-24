@@ -1,0 +1,39 @@
+# TreeView's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/tree_view.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/panel/tree_view/tree_view_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "TreeView"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/tree_view.hpp"
+anchor = "class GUI_FORMS_API TreeView final : public Panel, public TreeViewCapabilities<TreeView> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/panel/tree_view/tree_view_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::tree_view"
+includes = ["gui_forms/controls/tree_view.hpp"]
+used_in = ["src/controls/panel/tree_view/tree_view.cpp"]
+
+[[call]]
+name = "item_height"
+id = "item_height_write"
+declarations = ["void prepare_write(const decltype(item_height)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 14 and incoming <= 256", refuses = "failure:invalid_argument", check = "item_height" },
+]
+
+[[call]]
+name = "indentation"
+id = "indentation_write"
+declarations = ["void prepare_write(const decltype(indentation)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 8 and incoming <= 96", refuses = "failure:invalid_argument", check = "indentation" },
+]

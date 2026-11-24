@@ -1,5 +1,6 @@
 #include "pages.hpp"
 #include "gui_forms/host/services/host_services.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "control-spectrum_form.hpp"
 
@@ -157,7 +158,7 @@ private:
 
 void add_control_spectrum(const std::shared_ptr<Surface>& page,
                           const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ControlSpectrumPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<ControlSpectrumPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

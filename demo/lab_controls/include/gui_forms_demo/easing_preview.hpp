@@ -30,6 +30,8 @@ struct EasingPreviewTrack final {
 };
 
 // A retained animation/easing conformance surface.
+// ic: gui_forms::EasingPreview: generated from demo/lab_controls/include/gui_forms_demo/easing_preview.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class EasingPreview final : public Control, public EasingPreviewCapabilities<EasingPreview> {
 public:
     explicit EasingPreview(StableId stable_id);
@@ -130,6 +132,7 @@ private:
     [[nodiscard]] AnimationSpec read_view(const decltype(specification)& cell) const;
     void write_view(const decltype(motion_policy)& cell, MotionPolicy incoming);
     [[nodiscard]] MotionPolicy read_view(const decltype(motion_policy)& cell) const;
+    // ic: Requires finite(incoming) and incoming >= 4 and incoming <= 48, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(marker_size)& cell, double& incoming);
     void written(const decltype(marker_size)& cell);
     // property_codemod end EasingPreview

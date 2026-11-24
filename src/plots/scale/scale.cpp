@@ -1,6 +1,6 @@
 #include "gui_forms/plots/scale/scale.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <array>
 #include <cmath>
@@ -11,9 +11,6 @@ namespace gui_forms::plots {
 namespace {
 
 constexpr double not_a_number = std::numeric_limits<double>::quiet_NaN();
-
-// ln(10), correctly rounded.
-constexpr double natural_log_ten = 2.302585092994045684;
 
 // The powers of ten a double holds exactly (10^22 is the largest).
 constexpr std::array<double, 23> exact_powers_of_ten{
@@ -38,7 +35,7 @@ double symlog_untransform(double transformed, double width) noexcept {
 
 double engine_log10(double value) noexcept {
     if (!(value > 0.0)) return not_a_number;
-    const double result = engine_logarithm(value) / natural_log_ten;
+    const double result = stxlib::math::log10(value);
     // An exact power of ten gives its exact exponent, so decade ticks land
     // on integers: the nearest integer is taken when 10 to it is exactly
     // the value (10^-k as the double nearest it, 1 / 10^k).
@@ -58,7 +55,7 @@ double engine_exp10(double exponent) noexcept {
         const double result = exponent < 0.0 ? 1.0 / power : power;
         return result;
     }
-    const double result = engine_exponential(exponent * natural_log_ten);
+    const double result = stxlib::math::pow(10.0, exponent);
     return result;
 }
 

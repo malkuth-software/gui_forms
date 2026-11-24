@@ -29,6 +29,7 @@
 #include "gui_forms/events/mouse_events/mouse_events.hpp"
 #include "gui_forms/value/value.hpp"
 #include "gui_forms/window/interaction/interaction_snapshot.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -411,7 +412,7 @@ template <typename... Arguments>
     RuleTrigger made{};
     made.kind = RuleTriggerKind::interaction;
     made.control = control.weak_from_this();
-    made.source = std::make_shared<detail::RuleEventSource<Arguments...>>(event);
+    made.source = gui_forms::detail::make_library_shared<detail::RuleEventSource<Arguments...>>(event);
     Component& anchor = control;
     made.anchor = &anchor;
     return made;
@@ -421,7 +422,7 @@ template <typename T>
 [[nodiscard]] RuleTrigger value_changed(Value<T>& value) {
     RuleTrigger made{};
     made.kind = RuleTriggerKind::value_changed;
-    made.source = std::make_shared<detail::RuleValueSource<T>>(value);
+    made.source = gui_forms::detail::make_library_shared<detail::RuleValueSource<T>>(value);
     Component& anchor = value;
     made.anchor = &anchor;
     return made;

@@ -2,6 +2,8 @@
 
 #include "prepared_window_shape.hpp"
 
+#include <stxlib/threads.hpp>
+
 namespace gui_forms::render::text {
 
 enum class PreparedWindowWakeResult { none, signalled, closed, failed };
@@ -75,7 +77,11 @@ public:
     [[nodiscard]] PreparedTextStatus begin_close();
     [[nodiscard]] PreparedTextStatus join_and_release();
 private:
+    // The worker's STXlib entry (`context` is the session) and its body.
+    static void thread_main(const stxlib::StopSignal& stop, void* context) noexcept;
     void run() noexcept;
+    // work's wait predicate, under the mutex: a queued batch or closing.
+    [[nodiscard]] static bool job_or_closing(const void* context) noexcept;
     void work();
     void notify_owner() noexcept;
     void revoke_locked();
@@ -87,12 +93,12 @@ private:
     std::shared_ptr<detail::PreparedWindowBatchAuthority> authority_{};
     std::shared_ptr<PreparedWindowWakeConnection> connection_{};
     std::shared_ptr<PreparedWindowSessionTestHook> hook_{};
-    const std::thread::id owner_{std::this_thread::get_id()};
-    mutable std::mutex mutex_{};
-    std::condition_variable condition_{};
+    const stxlib::ThreadIdentity owner_{stxlib::current_thread()};
+    mutable stxlib::Mutex mutex_{};
+    stxlib::ConditionVariable condition_{};
     PreparedWindowSessionSnapshot snapshot_{};
     std::unique_ptr<detail::PreparedWindowBatchStorage> batch_{};
-    std::thread worker_{};
+    stxlib::Thread worker_{};
 };
 
 } // namespace gui_forms::render::text

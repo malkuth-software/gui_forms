@@ -34,6 +34,10 @@ public:
     [[nodiscard]] bool move(std::size_t slot, Rect bounds);
     void hide(std::size_t slot) noexcept;
     [[nodiscard]] Window* model(std::size_t slot) const noexcept;
+    // The slot's window rectangle in the owner's client coordinates while
+    // it shows (where the host placed it, after the work-area move); none
+    // otherwise (Window::shown_popup_window).
+    [[nodiscard]] stxlib::Optional<Rect> client_bounds(std::size_t slot) const;
     // The work area under `client_point` in the owner's client coordinates
     // (Window::popup_work_area).
     [[nodiscard]] stxlib::Optional<Rect> work_area(Point client_point);

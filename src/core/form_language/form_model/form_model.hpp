@@ -118,6 +118,7 @@
 #include "gui_forms/component.hpp"
 #include "gui_forms/control.hpp"
 #include "gui_forms/layout/grid_span/grid_span.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <concepts>
 #include <cstddef>
@@ -253,7 +254,7 @@ template <typename ControlType>
 
 template <typename ComponentType>
 [[nodiscard]] Component::Ptr create_form_component(StableId) {
-    const std::shared_ptr<ComponentType> component = std::make_shared<ComponentType>();
+    const std::shared_ptr<ComponentType> component = gui_forms::detail::make_library_shared<ComponentType>();
     return component;
 }
 
@@ -327,7 +328,7 @@ template <typename ControlType>
 
 template <typename ComponentType>
 [[nodiscard]] FormSchemaType form_component_type(std::string name) {
-    const std::shared_ptr<ComponentType> prototype = std::make_shared<ComponentType>();
+    const std::shared_ptr<ComponentType> prototype = gui_forms::detail::make_library_shared<ComponentType>();
     FormSchemaType type = describe_form_type(std::move(name), *prototype);
     type.create = &create_form_component<ComponentType>;
     return type;

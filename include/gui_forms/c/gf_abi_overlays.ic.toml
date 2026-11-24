@@ -1,0 +1,115 @@
+# The C ABI's gf_overlays_table (GF_TABLE_OVERLAYS): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_overlays_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_overlays_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_overlays_table {"
+keys = { manifest = "gf_abi::overlays", abi = "GF_TABLE_OVERLAYS" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_overlays_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_overlays"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_overlays.cpp"]
+
+[[call]]
+name = "open_overlay"
+declarations = ["gf_status (GF_CALL* open_overlay)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_state", when = "Shows overlay over owner's window. owner must be in a running window (else GF_STATUS_INVALID_STATE); an overlay already open gives GF_STATUS_INVALID_STATE." },
+]
+
+[[call]]
+name = "close_overlay"
+declarations = ["gf_status (GF_CALL* close_overlay)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "not_found", when = "Closes overlay; one not open gives GF_STATUS_NOT_FOUND." },
+]
+
+[[call]]
+name = "set_tool_tip"
+declarations = ["gf_status (GF_CALL* set_tool_tip)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a tool_tip component" },
+]
+
+[[call]]
+name = "show_tool_tip"
+declarations = ["gf_status (GF_CALL* show_tool_tip)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a tool_tip component" },
+]
+
+[[call]]
+name = "hide_tool_tip"
+declarations = ["gf_status (GF_CALL* hide_tool_tip)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "wrong_handle_kind", when = "code: the object is not a tool_tip component" },
+]
+
+[[call]]
+name = "open_anchored"
+declarations = ["gf_status (GF_CALL* open_anchored)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for options smaller than their 1.2 size, unknown flags or a size or gap that is negative or not finite." },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE when anchor is not in a window or is disabled, or content is already open or has a parent;" },
+]
+
+[[call]]
+name = "close_anchored"
+declarations = ["gf_status (GF_CALL* close_anchored)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND when it is not open (since 1.2)." },
+]
+
+[[call]]
+name = "set_tool_tips_shown"
+declarations = ["gf_status (GF_CALL* set_tool_tips_shown)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "disposed", when = "code: the window has been disposed or has closed" },
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for an unknown setting;" },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE without one), where FOLLOW is refused." },
+  { failure = "wrong_handle_kind", when = "GF_STATUS_WRONG_HANDLE_KIND when window is not a window (since 1.2)." },
+]
+
+[[call]]
+name = "tool_tips_shown"
+declarations = ["gf_status (GF_CALL* tool_tips_shown)("]
+kind = "static"
+thread = "ui"
+parameters = { shown = "uint32_t*" }
+requires = [
+  { holds = "not_null(shown)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "tool_tips_shown_shown" },
+]
+fails = [
+  { failure = "disposed", when = "code: the window has been disposed or has closed" },
+  { failure = "wrong_handle_kind", when = "code: the object is not a window" },
+]

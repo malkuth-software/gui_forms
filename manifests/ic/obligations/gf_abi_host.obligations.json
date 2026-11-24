@@ -1,0 +1,78 @@
+{
+  "schema": 1,
+  "component": "gf_abi::host",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_host.ic.toml",
+    "sha256": "fffcec7aea4d54b2b07bcd6c26699b2b924bc2de019f1231b432fe5e4d4a2508"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.host.capabilities.requires.capabilities_record",
+      "kind": "entry-check",
+      "statement": "capabilities runs only when not_null(record); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_host::admits_capabilities_record, called in src/abi/stable/tables/abi_host.cpp"
+    },
+    {
+      "id": "gf_abi.host.capabilities.refusal.capabilities_record",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(record), capabilities changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.host.capabilities.requires.capabilities_record_size",
+      "kind": "entry-check",
+      "statement": "capabilities runs only when record_size >= host_capabilities_size_1_0; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_host::admits_capabilities_record_size, called in src/abi/stable/tables/abi_host.cpp"
+    },
+    {
+      "id": "gf_abi.host.capabilities.refusal.capabilities_record_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless record_size >= host_capabilities_size_1_0, capabilities changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.host.capabilities.order",
+      "kind": "refusal-order",
+      "statement": "When several of capabilities's refusals apply, the first of capabilities_record, then capabilities_record_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.host.read_clipboard_text.requires.read_clipboard_text_buffer",
+      "kind": "entry-check",
+      "statement": "read_clipboard_text runs only when not_null(required) and (not_null(buffer) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_host::admits_read_clipboard_text_buffer, called in src/abi/stable/tables/abi_host.cpp"
+    },
+    {
+      "id": "gf_abi.host.read_clipboard_text.refusal.read_clipboard_text_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(required) and (not_null(buffer) or capacity == 0), read_clipboard_text changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

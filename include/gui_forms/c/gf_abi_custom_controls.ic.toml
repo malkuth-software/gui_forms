@@ -1,0 +1,100 @@
+# The C ABI's gf_custom_controls_table (GF_TABLE_CUSTOM_CONTROLS): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_custom_controls_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_custom_controls_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_custom_controls_table {"
+keys = { manifest = "gf_abi::custom_controls", abi = "GF_TABLE_CUSTOM_CONTROLS" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[constants]
+spec_size_1_0 = { value = "80", type = "uint32_t" }
+
+[checks]
+path = "src/abi/stable/ic/abi_custom_controls_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_custom_controls"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_custom_controls.cpp"]
+
+[[call]]
+name = "create"
+declarations = ["gf_status (GF_CALL* create)("]
+kind = "static"
+thread = "ui"
+parameters = { spec = "gf_custom_control_spec*", object = "gf_object*", spec_size = "uint32_t" }
+requires = [
+  { holds = "not_null(spec) and not_null(object)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_outputs" },
+  { holds = "spec_size >= spec_size_1_0", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_spec_size" },
+]
+refusal_order = ["create_outputs", "create_spec_size"]
+fails = [
+  { failure = "invalid_argument", when = "code: a stable id that breaks the rule, a property definition the spec cannot hold, or layout callbacks whose struct_size is below 32, not a multiple of 8, or whose reserved is not zero" },
+]
+returns = { type = "gf_object", owns = "caller" }
+
+[[call]]
+name = "notify_changed"
+declarations = ["gf_status (GF_CALL* notify_changed)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the properties" },
+  { failure = "wrong_handle_kind", when = "code: the control is not a custom control" },
+]
+
+[[call]]
+name = "load_composite"
+declarations = ["gf_status (GF_CALL* load_composite)("]
+kind = "static"
+thread = "ui"
+returns = { type = "gf_object", owns = "caller" }
+fails = [
+  { failure = "invalid_argument", when = "code: load_composite needs a gf_composite_spec of at least the 1.5 size and a definition output" },
+]
+
+[[call]]
+name = "create_composite"
+declarations = ["gf_status (GF_CALL* create_composite)("]
+kind = "static"
+thread = "ui"
+parameters = { object = "gf_object*" }
+returns = { type = "gf_object", owns = "caller" }
+requires = [
+  { holds = "not_null(object)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_composite_object" },
+]
+fails = [
+  { failure = "disposed", when = "code: the definition has been disposed" },
+  { failure = "wrong_handle_kind", when = "code: create_composite takes a definition" },
+]
+
+[[call]]
+name = "perform_composite"
+declarations = ["gf_status (GF_CALL* perform_composite)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "not_found", when = "code: the composite declares no command of that name" },
+]
+
+[[call]]
+name = "composite_child"
+declarations = ["gf_status (GF_CALL* composite_child)("]
+kind = "member"
+thread = "ui"
+parameters = { child = "gf_object*" }
+returns = { type = "gf_object", owns = "caller" }
+requires = [
+  { holds = "not_null(child)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "composite_child_child" },
+]
+fails = [
+  { failure = "not_found", when = "code: the composite has no child of that local id" },
+]

@@ -5,7 +5,11 @@
 
 #include "macos_host.hpp"
 #include "appkit_clipboard_image.hpp"
+#include "appkit_drag_release.hpp"
 #include "appkit_status_items.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "appkit_desktop_notifications.hpp"
+#endif
 #include "appkit_relative_pointer.hpp"
 #include "../compositor/macos_compositor.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
@@ -117,6 +121,36 @@ using gui_forms::render::SkiaRaster;
 // boundary (call_failing_fast).
 - (BOOL)answerAlertShowHelp:(NSAlert*)alert;
 @end
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+// The source of a drag to other programs (HostServices::start_drag): it
+// offers the request's effects to every destination, inside the program or
+// outside, and reports the end to the services that started it. The
+// services hold it for the drag's length and detach it at shutdown or when
+// their window closes, after which an end reports nothing; it holds itself
+// until AppKit's session ends. Not compiled in a high-integrity build
+// (cmake/HighIntegrity.cmake).
+@interface GuiFormsDragSource : NSObject <NSDraggingSource>
+@property(nonatomic, assign) gui_forms::HostServices* services;
+@property(nonatomic, assign) std::uint64_t sessionId;
+@property(nonatomic, assign) NSDragOperation allowedOperations;
+// The press or move the session started from: its button's release is sent
+// to the window when the session ends.
+@property(nonatomic, assign) NSEventType startType;
+// The source itself, from the start until the session ends: AppKit's end
+// reaches a live source even after the services that started it are gone
+// (detached at shutdown, so that end reports nothing).
+@property(nonatomic, strong) GuiFormsDragSource* holdUntilEnd;
+- (NSDragOperation)draggingSession:(NSDraggingSession*)session
+    sourceOperationMaskForDraggingContext:(NSDraggingContext)context;
+- (void)draggingSession:(NSDraggingSession*)session
+           endedAtPoint:(NSPoint)screenPoint
+              operation:(NSDragOperation)operation;
+// The bodies of this class's native entries: each entry calls its answer
+// through the fail-fast boundary (call_failing_fast).
+- (void)answerDraggingSessionEndedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation;
+@end
+#endif
 
 namespace {
 // The named targets the fail-fast boundary (call_failing_fast) calls for
@@ -696,6 +730,66 @@ protected:
         }
         return {};
     }
+
+    // A drag to other programs: one dragging item per file, one for the
+    // text, one for each media-typed item, started from the pointer event
+    // AppKit is delivering (the press or the move start_drag is called
+    // from) through the window's view. AppKit then runs the drag from the
+    // run loop; GuiFormsDragSource reports its end.
+    HostServiceStatus start_drag_impl(std::uint64_t session_id,
+                                      const gui_forms::HostDragSourceRequest& request) override {
+        if (drag_without_session_) {
+            // macos_start_drag_for_testing: the source without a session.
+            drag_without_session_ = false;
+            drag_source_ = make_drag_source(session_id, request.allowed_effects, NSEventTypeLeftMouseDragged);
+            return {};
+        }
+        NSView* const view = backdrop_view_;
+        NSEvent* const event = [NSApp currentEvent];
+        if (view == nil || view.window == nil || event == nil || event.window != view.window ||
+            !drag_start_event(event.type)) {
+            return {HostServiceError::backend_failure};
+        }
+        NSMutableArray<NSDraggingItem*>* const items = [NSMutableArray array];
+        const NSPoint pointer = [view convertPoint:event.locationInWindow fromView:nil];
+        for (const DragDataItem& item : request.items) {
+            if (const DragFileListData* files = std::get_if<DragFileListData>(&item)) {
+                for (const std::string& path_utf8 : (*files).paths_utf8) {
+                    NSString* const path = native_string(path_utf8);
+                    if (path == nil) return {HostServiceError::invalid_argument};
+                    NSURL* const url = [NSURL fileURLWithPath:path];
+                    NSImage* const icon = [NSWorkspace.sharedWorkspace iconForFile:path];
+                    [items addObject:dragging_item(url, icon, pointer, items.count)];
+                }
+            } else if (const DragTextData* text = std::get_if<DragTextData>(&item)) {
+                NSString* const string = native_string((*text).text_utf8);
+                if (string == nil) return {HostServiceError::invalid_argument};
+                NSImage* const icon = [NSWorkspace.sharedWorkspace iconForContentType:UTTypePlainText];
+                [items addObject:dragging_item(string, icon, pointer, items.count)];
+            } else if (const DragBinaryData* binary = std::get_if<DragBinaryData>(&item)) {
+                NSPasteboardType const type = pasteboard_type((*binary).media_type);
+                if (type == nil) return {HostServiceError::invalid_argument};
+                NSData* const data = [NSData dataWithBytes:(*binary).bytes.data() length:(*binary).bytes.size()];
+                NSPasteboardItem* const written = [[NSPasteboardItem alloc] init];
+                if (![written setData:data forType:type]) return {HostServiceError::backend_failure};
+                UTType* const content = [UTType typeWithIdentifier:type];
+                NSImage* const icon = [NSWorkspace.sharedWorkspace
+                    iconForContentType:content != nil ? content : UTTypeData];
+                [items addObject:dragging_item(written, icon, pointer, items.count)];
+            }
+        }
+        if (items.count == 0) return {HostServiceError::invalid_argument};
+        GuiFormsDragSource* const source = make_drag_source(session_id, request.allowed_effects, event.type);
+        NSDraggingSession* const session = [view beginDraggingSessionWithItems:items event:event source:source];
+        if (session == nil) {
+            source.services = nullptr;
+            source.holdUntilEnd = nil;
+            return {HostServiceError::backend_failure};
+        }
+        session.animatesToStartingPositionsOnCancelOrFail = YES;
+        drag_source_ = source;
+        return {};
+    }
 #endif
 
     HostServiceStatus warp_pointer_impl(gui_forms::Point position) override {
@@ -1086,8 +1180,34 @@ protected:
         return (*status_items_).show_menu(icon_id, request);
     }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Desktop notifications through UNUserNotificationCenter, created with
+    // the first (AppKitDesktopNotifications).
+    HostServiceStatus show_desktop_notification_impl(
+        gui_forms::HostDesktopNotificationId notification_id,
+        const gui_forms::HostDesktopNotificationRequest& request) override {
+        if (!notifications_) {
+            notifications_ = std::make_unique<gui_forms::host::detail::AppKitDesktopNotifications>(
+                gui_forms::Delegate<const gui_forms::HostDesktopNotificationEvent&>::bind<
+                    AppKitHostServices, &AppKitHostServices::forward_notification_event>(*this));
+        }
+        return (*notifications_).show(notification_id, request);
+    }
+    void withdraw_desktop_notification_impl(gui_forms::HostDesktopNotificationId notification_id) noexcept override {
+        if (notifications_) (*notifications_).withdraw(notification_id);
+    }
+#endif
+
     void shutdown_impl() noexcept override {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        // A drag still running ends without a report (HostServices::shutdown).
+        drag_source_.services = nullptr;
+        drag_source_ = nil;
+#endif
         status_items_.reset();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        notifications_.reset();
+#endif
         for (const CursorEntry& entry : cursors_) {
             if ([NSCursor currentCursor] == entry.native) [[NSCursor arrowCursor] set];
         }
@@ -1095,8 +1215,87 @@ protected:
         pasteboard_ = nil;
     }
 
+public:
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The window closed (macos_drag_source_window_closed): a running drag
+    // ends now, reported cancelled, and is detached, so AppKit's later end
+    // reports nothing and sends no release to the closed window's view.
+    void source_window_closed() {
+        if (drag_source_ == nil) return;
+        const std::uint64_t session_id = drag_source_.sessionId;
+        drag_source_.services = nullptr;
+        drag_source_ = nil;
+        publish_drag_source_end(gui_forms::HostDragSourceEnd{session_id, gui_forms::DragEffect::none});
+    }
+    // GuiFormsDragSource's report of the drag's end, at `screen_point`: the
+    // end is reported, then the window receives the release of the button
+    // the drag started with, which the dragging session consumed.
+    void finish_drag(std::uint64_t session_id, gui_forms::DragEffect performed_effect, NSPoint screen_point,
+                     NSEventType start_type) {
+        if (drag_source_ != nil && drag_source_.sessionId == session_id) {
+            drag_source_.services = nullptr;
+            drag_source_ = nil;
+        }
+        publish_drag_source_end(gui_forms::HostDragSourceEnd{session_id, performed_effect});
+        NSView* const view = backdrop_view_;
+        if (view != nil) gui_forms::host::detail::deliver_drag_release(view, start_type, screen_point);
+    }
+#endif
+
 private:
     void forward_tray_event(const gui_forms::HostTrayIconEvent& event) { publish_tray_icon_event(event); }
+    void forward_notification_event(const gui_forms::HostDesktopNotificationEvent& event) {
+        publish_desktop_notification_event(event);
+    }
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Whether AppKit can start a drag from an event of `type`: a press or a
+    // move with a button held.
+    static bool drag_start_event(NSEventType type) noexcept {
+        switch (type) {
+        case NSEventTypeLeftMouseDown:
+        case NSEventTypeLeftMouseDragged:
+        case NSEventTypeRightMouseDown:
+        case NSEventTypeRightMouseDragged:
+        case NSEventTypeOtherMouseDown:
+        case NSEventTypeOtherMouseDragged: return true;
+        default: return false;
+        }
+    }
+
+    static NSDragOperation native_drag_operations(gui_forms::DragEffect effects) noexcept {
+        NSDragOperation operations = NSDragOperationNone;
+        if (gui_forms::has_drag_effect(effects, gui_forms::DragEffect::copy)) operations |= NSDragOperationCopy;
+        if (gui_forms::has_drag_effect(effects, gui_forms::DragEffect::move)) operations |= NSDragOperationMove;
+        if (gui_forms::has_drag_effect(effects, gui_forms::DragEffect::link)) operations |= NSDragOperationLink;
+        return operations;
+    }
+
+    // The pasteboard type a media type names: PNG and TIFF by their AppKit
+    // types, another MIME type by the type identifier it maps to, and a name
+    // without a slash as a type identifier already (what an inbound drag
+    // reports). Nil when none applies.
+    static NSPasteboardType pasteboard_type(std::string_view media_type) {
+        if (media_type == "image/png") return NSPasteboardTypePNG;
+        if (media_type == "image/tiff") return NSPasteboardTypeTIFF;
+        NSString* const name = native_string(media_type);
+        if (name == nil) return nil;
+        if (media_type.find('/') == std::string_view::npos) return name;
+        UTType* const type = [UTType typeWithMIMEType:name];
+        return type == nil ? nil : type.identifier;
+    }
+
+    // A dragging item for `writer`, drawn as `icon` (32 points), each item
+    // stepped 4 points from the last so a group shows as a stack.
+    static NSDraggingItem* dragging_item(id<NSPasteboardWriting> writer, NSImage* icon, NSPoint pointer,
+                                         NSUInteger index) {
+        NSDraggingItem* const item = [[NSDraggingItem alloc] initWithPasteboardWriter:writer];
+        const CGFloat step = 4.0 * static_cast<CGFloat>(std::min<NSUInteger>(index, 8U));
+        const NSRect frame = NSMakeRect(pointer.x - 16.0 + step, pointer.y - 16.0 + step, 32.0, 32.0);
+        [item setDraggingFrame:frame contents:icon];
+        return item;
+    }
+#endif
 
     // Gives the pointer back: associated with the mouse, shown, and
     // AppKit's coalescing as it was. Cannot fail in a way that keeps it.
@@ -1178,9 +1377,33 @@ private:
     __strong NSPasteboard* pasteboard_{};
     bool cancel_dialogs_for_testing_{};
     std::unique_ptr<gui_forms::host::detail::AppKitStatusItems> status_items_;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    std::unique_ptr<gui_forms::host::detail::AppKitDesktopNotifications> notifications_;
+#endif
     // The raster view of the window these services belong to; weak, so a
     // view that is gone applies nothing. Set once, by the view's init.
     __weak NSView* backdrop_view_{};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The running drag's source, held for the drag's length (nil when no
+    // drag runs).
+    __strong GuiFormsDragSource* drag_source_{};
+    // The next start_drag makes its source without an AppKit session
+    // (macos_start_drag_for_testing).
+    bool drag_without_session_{};
+
+    // A drag's source, reporting to these services and holding itself until
+    // AppKit's session ends.
+    GuiFormsDragSource* make_drag_source(std::uint64_t session_id, gui_forms::DragEffect allowed,
+                                         NSEventType start_type) {
+        GuiFormsDragSource* const source = [[GuiFormsDragSource alloc] init];
+        source.services = this;
+        source.sessionId = session_id;
+        source.allowedOperations = native_drag_operations(allowed);
+        source.startType = start_type;
+        source.holdUntilEnd = source;
+        return source;
+    }
+#endif
     // Relative pointer mode as applied (appkit_relative_pointer.hpp), the
     // NSCursor hide it balances, and AppKit's coalescing before it.
     gui_forms::host::detail::MacRelativePointerState relative_{};
@@ -1191,13 +1414,124 @@ private:
     bool opened_minimum_known_{};
 
     friend void gui_forms::host::detail::bind_macos_backdrop_view(HostServices& services, NSView* raster);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    friend id<NSDraggingSource> gui_forms::host::detail::macos_start_drag_for_testing(
+        HostServices& services, const gui_forms::HostDragSourceRequest& request);
+#endif
     friend gui_forms::host::detail::MacRelativePointerState
     gui_forms::host::detail::macos_relative_pointer_state(const HostServices& services) noexcept;
 };
 
 } // namespace
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+namespace {
+// The named targets the fail-fast boundary (call_failing_fast) calls for
+// GuiFormsDragSource's native entries.
+NSDragOperation run_drag_source_mask(GuiFormsDragSource* object) {
+    return object.allowedOperations;
+}
+
+void run_drag_source_ended(GuiFormsDragSource* object, NSPoint screen_point, NSDragOperation operation) {
+    [object answerDraggingSessionEndedAtPoint:screen_point operation:operation];
+}
+
+// The one portable effect a destination performed, or none.
+gui_forms::DragEffect performed_drag_effect(NSDragOperation operation) noexcept {
+    if (operation == NSDragOperationCopy) return gui_forms::DragEffect::copy;
+    if (operation == NSDragOperationMove) return gui_forms::DragEffect::move;
+    if (operation == NSDragOperationLink) return gui_forms::DragEffect::link;
+    return gui_forms::DragEffect::none;
+}
+} // namespace
+
+@implementation GuiFormsDragSource
+- (NSDragOperation)draggingSession:(NSDraggingSession*)session
+    sourceOperationMaskForDraggingContext:(NSDraggingContext)context {
+    (void)session;
+    (void)context;
+    return gui_forms::detail::call_failing_fast(
+        "macos.drag_source.draggingSession:sourceOperationMaskForDraggingContext:", &run_drag_source_mask, self);
+}
+
+- (void)draggingSession:(NSDraggingSession*)session
+           endedAtPoint:(NSPoint)screenPoint
+              operation:(NSDragOperation)operation {
+    (void)session;
+    // Kept alive past dropping its own hold below.
+    GuiFormsDragSource* const kept = self;
+    gui_forms::detail::call_failing_fast(
+        "macos.drag_source.draggingSession:endedAtPoint:operation:", &run_drag_source_ended, kept, screenPoint,
+        operation);
+    kept.holdUntilEnd = nil;
+}
+
+- (void)answerDraggingSessionEndedAtPoint:(NSPoint)screenPoint operation:(NSDragOperation)operation {
+    AppKitHostServices* const services = dynamic_cast<AppKitHostServices*>(self.services);
+    if (services == nullptr) return;
+    (*services).finish_drag(self.sessionId, performed_drag_effect(operation), screenPoint, self.startType);
+}
+@end
+#endif
+
 namespace gui_forms::host::detail {
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+NSEvent* drag_release_event(NSWindow* window, NSEventType start_type, NSPoint screen_point) {
+    if (window == nil) return nil;
+    NSEventType release = NSEventTypeLeftMouseUp;
+    switch (start_type) {
+    case NSEventTypeLeftMouseDown:
+    case NSEventTypeLeftMouseDragged: release = NSEventTypeLeftMouseUp; break;
+    case NSEventTypeRightMouseDown:
+    case NSEventTypeRightMouseDragged: release = NSEventTypeRightMouseUp; break;
+    case NSEventTypeOtherMouseDown:
+    case NSEventTypeOtherMouseDragged: release = NSEventTypeOtherMouseUp; break;
+    default: return nil;
+    }
+    const NSPoint location = [window convertPointFromScreen:screen_point];
+    NSEvent* const event = [NSEvent mouseEventWithType:release
+                                              location:location
+                                         modifierFlags:NSEvent.modifierFlags
+                                             timestamp:NSProcessInfo.processInfo.systemUptime
+                                          windowNumber:window.windowNumber
+                                               context:nil
+                                           eventNumber:0
+                                            clickCount:1
+                                              pressure:0.0];
+    return event;
+}
+
+void deliver_drag_release(NSView* view, NSEventType start_type, NSPoint screen_point) {
+    NSEvent* const event = view == nil ? nil : drag_release_event(view.window, start_type, screen_point);
+    if (event == nil) return;
+    if (event.type == NSEventTypeRightMouseUp) {
+        [view rightMouseUp:event];
+    } else if (event.type == NSEventTypeOtherMouseUp) {
+        [view otherMouseUp:event];
+    } else {
+        [view mouseUp:event];
+    }
+}
+#endif
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+void macos_drag_source_window_closed(HostServices& services) {
+    AppKitHostServices* const appkit = dynamic_cast<AppKitHostServices*>(&services);
+    if (appkit == nullptr) return;
+    (*appkit).source_window_closed();
+}
+
+id<NSDraggingSource> macos_start_drag_for_testing(HostServices& services, const HostDragSourceRequest& request) {
+    AppKitHostServices* const appkit = dynamic_cast<AppKitHostServices*>(&services);
+    if (appkit == nullptr) return nil;
+    (*appkit).drag_without_session_ = true;
+    const HostDragSourceResult started = services.start_drag(request);
+    (*appkit).drag_without_session_ = false;
+    if (!started.status.accepted()) return nil;
+    return (*appkit).drag_source_;
+}
+#endif
 
 void bind_macos_backdrop_view(HostServices& services, NSView* raster) {
     AppKitHostServices* const appkit = dynamic_cast<AppKitHostServices*>(&services);

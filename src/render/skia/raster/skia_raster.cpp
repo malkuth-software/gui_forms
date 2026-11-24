@@ -1,5 +1,5 @@
 #include "skia_raster.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
 #include "gui_forms/types/linear_light/linear_light_stops.hpp"
@@ -11,11 +11,12 @@
 #if defined(GUI_FORMS_PREPARED_TEXT)
 #include "prepared_skia_frame.hpp"
 #endif
+#include "../../../platform/library_files.hpp"
 
-#include "../../text/harfbuzz/bundled_face_loader.hpp"
+#include "../../text/shaping/bundled_face_loader.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
-#include "../../text/harfbuzz/harfbuzz_font_engine.hpp"
-#include "../../text/harfbuzz/reusable_shape_workspace.hpp"
+#include "../../text/shaping/text_shape_engine.hpp"
+#include "../../text/shaping/reusable_shape_workspace.hpp"
 #include "../../text/glyph_run/glyph_run_raster.hpp"
 #include "../../../core/text/composite/text_composite.hpp"
 #include "../../../core/text/composite/clip_mask.hpp"
@@ -25,8 +26,8 @@
 #include "../../../core/engine/primitives/material/material_raster.hpp"
 #include "../../../core/display/group_effect/group_effect.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/theme/theme/material_layers.hpp"
-#include "../../../core/interpolation/interpolation.hpp"
 #include "../../../core/types/painter/text_turn.hpp"
 
 #include "include/core/SkCanvas.h"
@@ -49,7 +50,10 @@
 #include "include/effects/SkShaderMaskFilter.h"
 #include "include/effects/SkGradient.h"
 
+#include <stxlib/conv.hpp>
+#include <stxlib/files.hpp>
 #include <stxlib/optional.hpp>
+#include <stxlib/result.hpp>
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -57,7 +61,6 @@
 #include <cmath>
 #include <cstdint>
 #include <filesystem>
-#include <fstream>
 #include <limits>
 #include <memory>
 #include <optional>
@@ -352,16 +355,14 @@ sk_sp<SkData> read_font_file(const char* path) {
 #else
     const std::filesystem::path file_path(path);
 #endif
-    std::error_code size_error;
-    const std::uintmax_t file_bytes = std::filesystem::file_size(file_path, size_error);
-    if (size_error || file_bytes == 0 || file_bytes > maximum_font_file_bytes) return nullptr;
-    std::ifstream input(file_path, std::ios::binary);
-    if (!input) return nullptr;
-    const std::size_t length = static_cast<std::size_t>(file_bytes);
+    const std::optional<std::uint64_t> file_bytes = platform::regular_file_bytes(file_path);
+    if (!file_bytes.has_value() || *file_bytes == 0 || *file_bytes > maximum_font_file_bytes) return nullptr;
+    stxlib::OperationResult<stxlib::File> opened = platform::open_file(file_path, stxlib::FileMode::read);
+    if (opened.failed()) return nullptr;
+    const std::size_t length = static_cast<std::size_t>(*file_bytes);
     sk_sp<SkData> data = SkData::MakeUninitialized(length);
-    char* destination = static_cast<char*>((*data).writable_data());
-    input.read(destination, static_cast<std::streamsize>(length));
-    const bool complete = static_cast<std::uintmax_t>(input.gcount()) == file_bytes;
+    void* const destination = (*data).writable_data();
+    const bool complete = platform::read_exactly_at(*opened.value(), 0, destination, length);
     if (!complete) return nullptr;
     return data;
 }
@@ -436,23 +437,66 @@ struct KeptTextEqual final {
 }
 
 // draw_image below 1x (owner, 2026-11-11, audit P11): neither mipmaps nor an
-// area filter of Skia's; the image is resampled through the interpolation
-// seam (stx_conv, pixel-area on each axis) to the device size it is drawn at,
-// and that copy is drawn instead. A source larger than this many pixels is
-// drawn directly: its binary64 working copy (32 bytes a pixel) would cost
-// more than the draw is worth.
+// area filter of Skia's; the image is resampled through stxlib::conv (the
+// CONV field and its canon transfer over each pixel's footprint) to the
+// device size it is drawn at, and that copy is drawn instead. A source
+// larger than this many pixels is drawn directly, as the cost of its field
+// would outweigh the draw.
 constexpr std::size_t maximum_resampled_source_pixels = 1024U * 1024U;
 
-// One premultiplied channel in [0, 1] quantized once to a byte.
-std::uint8_t channel_byte(double value) noexcept {
-    const double scaled = std::round(std::clamp(value, 0.0, 1.0) * 255.0);
-    return static_cast<std::uint8_t>(scaled);
+// The field takes straight alpha and the renderer keeps premultiplied BGRA.
+// straight_scale[a] turns a premultiplied channel of alpha a back to
+// straight (255 / a), and 0 for a = 0, whose colour the field does not read.
+struct StraightScale final {
+    double by_alpha[256]{};
+};
+
+StraightScale make_straight_scale() noexcept {
+    StraightScale scale{};
+    for (std::size_t alpha = 1U; alpha < 256U; ++alpha) scale.by_alpha[alpha] = 255.0 / static_cast<double>(alpha);
+    return scale;
+}
+
+// Premultiplied BGRA rows (`pixels`) to packed straight RGBA: each colour
+// c of alpha a becomes round(c 255 / a), at most 255.
+void straight_rgba_from_premultiplied_bgra(const SkPixmap& pixels, std::span<stxlib::u8> straight) noexcept {
+    const StraightScale scale = make_straight_scale();
+    const std::size_t width = static_cast<std::size_t>(pixels.width());
+    const std::size_t height = static_cast<std::size_t>(pixels.height());
+    for (std::size_t y = 0U; y < height; ++y) {
+        const std::uint8_t* const row = static_cast<const std::uint8_t*>(pixels.addr(0, static_cast<int>(y)));
+        stxlib::u8* const out = straight.data() + y * width * 4U;
+        for (std::size_t x = 0U; x < width; ++x) {
+            const std::uint8_t* const pixel = row + x * 4U;
+            const double by = scale.by_alpha[pixel[3]];
+            out[x * 4U] = static_cast<stxlib::u8>(std::min(255.0, std::round(static_cast<double>(pixel[2]) * by)));
+            out[x * 4U + 1U] = static_cast<stxlib::u8>(std::min(255.0, std::round(static_cast<double>(pixel[1]) * by)));
+            out[x * 4U + 2U] = static_cast<stxlib::u8>(std::min(255.0, std::round(static_cast<double>(pixel[0]) * by)));
+            out[x * 4U + 3U] = pixel[3];
+        }
+    }
+}
+
+// Packed straight RGBA (`count` pixels) to premultiplied BGRA: each colour c
+// of alpha a becomes round(c a / 255).
+void premultiplied_bgra_from_straight_rgba(std::span<const stxlib::u8> straight, std::size_t count,
+                                           std::uint8_t* const bytes) noexcept {
+    for (std::size_t pixel = 0U; pixel < count; ++pixel) {
+        const stxlib::u8* const in = straight.data() + pixel * 4U;
+        const double alpha = static_cast<double>(in[3]) / 255.0;
+        bytes[pixel * 4U] = static_cast<std::uint8_t>(std::round(static_cast<double>(in[2]) * alpha));
+        bytes[pixel * 4U + 1U] = static_cast<std::uint8_t>(std::round(static_cast<double>(in[1]) * alpha));
+        bytes[pixel * 4U + 2U] = static_cast<std::uint8_t>(std::round(static_cast<double>(in[0]) * alpha));
+        bytes[pixel * 4U + 3U] = in[3];
+    }
 }
 
 // `source` (premultiplied BGRA, 8 bits a channel) resampled to `width` x
 // `height` pixels, each no larger than the source's: null when the source
-// has no readable pixels, is too large (maximum_resampled_source_pixels), or
-// the seam refuses. Allocates its working copies once and releases them.
+// has no readable pixels, has a side of one pixel (a field needs two), is
+// too large (maximum_resampled_source_pixels), or the engine refuses. The
+// field, its workspace and the straight copies are made once here and
+// released on return.
 sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int height) {
     // stx_skia's peekPixels returns the pixmap, empty when the pixels are
     // not readable in place.
@@ -469,40 +513,36 @@ sk_sp<SkImage> resample_image_through_conv(const SkImage& source, int width, int
     const std::size_t source_height = static_cast<std::size_t>(pixels.height());
     const std::size_t target_width = static_cast<std::size_t>(width);
     const std::size_t target_height = static_cast<std::size_t>(height);
-    if (source_width == 0U || source_height == 0U || source_width * source_height > maximum_resampled_source_pixels ||
+    if (source_width < 2U || source_height < 2U || source_width * source_height > maximum_resampled_source_pixels ||
         target_width == 0U || target_height == 0U || target_width > source_width || target_height > source_height) {
         return nullptr;
     }
-    constexpr std::size_t channels = 4U;
-    // Source and target samples, row-major, the channels in BGRA order.
-    std::vector<double> source_samples(source_width * source_height * channels);
-    std::vector<double> target_samples(target_width * target_height * channels);
-    for (std::size_t y = 0U; y < source_height; ++y) {
-        const std::uint8_t* const row = static_cast<const std::uint8_t*>(pixels.addr(0, static_cast<int>(y)));
-        double* const out = source_samples.data() + y * source_width * channels;
-        for (std::size_t index = 0U; index < source_width * channels; ++index) {
-            out[index] = static_cast<double>(row[index]) / 255.0;
-        }
-    }
-    const interpolation::SourceImage from{source_samples, source_width, source_height, channels,
-                                          source_width * channels};
-    const interpolation::TargetImage to{target_samples, target_width, target_height, target_width * channels};
-    const interpolation::Status status =
-        interpolation::resample_image(from, to, interpolation::Sampling::pixel_area, interpolation::ValueRange{});
-    if (status != interpolation::Status::ok) return nullptr;
+    constexpr std::size_t channels = stxlib::conv::channels;
+    std::vector<stxlib::u8> straight_source(source_width * source_height * channels);
+    std::vector<stxlib::u8> straight_target(target_width * target_height * channels);
+    straight_rgba_from_premultiplied_bgra(pixels, straight_source);
+    stxlib::OperationResult<stxlib::conv::Field> made =
+        stxlib::conv::Field::make(source_width, source_height, stxlib::conv::FieldOptions{});
+    if (made.failed()) return nullptr;
+    stxlib::conv::Field field = std::move(made).take_value();
+    const stxlib::conv::Rgba8Image image{stxlib::View<stxlib::u8>(straight_source.data(), straight_source.size()),
+                                         source_width, source_height, source_width * channels};
+    if (field.compile(image).failed()) return nullptr;
+    stxlib::OperationResult<stxlib::conv::Workspace> workspace_made = stxlib::conv::Workspace::make();
+    if (workspace_made.failed()) return nullptr;
+    stxlib::conv::Workspace workspace = std::move(workspace_made).take_value();
+    const stxlib::conv::MutableRgba8Image destination{
+        stxlib::MutableView<stxlib::u8>(straight_target.data(), straight_target.size()), target_width, target_height,
+        target_width * channels};
+    const stxlib::conv::AxisMap map{target_width, target_height};
+    const stxlib::conv::Region whole{0U, 0U, target_width, target_height};
+    const stxlib::OperationStatus transferred =
+        stxlib::conv::transfer(field, map, stxlib::conv::Mode::canon, destination, whole, workspace);
+    if (transferred.failed()) return nullptr;
     const std::size_t row_bytes = target_width * channels;
     sk_sp<SkData> data = SkData::MakeUninitialized(row_bytes * target_height);
     std::uint8_t* const bytes = static_cast<std::uint8_t*>((*data).writable_data());
-    for (std::size_t pixel = 0U; pixel < target_width * target_height; ++pixel) {
-        const std::size_t at = pixel * channels;
-        const double alpha = target_samples[at + 3U];
-        // The seam clamps each channel alone; colour above alpha is clamped
-        // to it, keeping the copy premultiplied.
-        bytes[at] = channel_byte(std::min(target_samples[at], alpha));
-        bytes[at + 1U] = channel_byte(std::min(target_samples[at + 1U], alpha));
-        bytes[at + 2U] = channel_byte(std::min(target_samples[at + 2U], alpha));
-        bytes[at + 3U] = channel_byte(alpha);
-    }
+    premultiplied_bgra_from_straight_rgba(straight_target, target_width * target_height, bytes);
     const SkImageInfo info = SkImageInfo::Make(width, height, kBGRA_8888_SkColorType, kPremul_SkAlphaType,
                                                SkColorSpace::MakeSRGB());
     sk_sp<SkImage> result = SkImages::RasterFromData(info, std::move(data), row_bytes);
@@ -666,10 +706,10 @@ public:
         downscaled_bytes = downscaled_bytes + bytes;
         return made;
     }
-    text::HarfBuzzFontEngine text_engine;
+    text::TextShapeEngine text_engine;
     // Identity of text_engine for shaped-text memos. A memo holding an
     // expired or different identity was shaped by another raster.
-    std::shared_ptr<const bool> text_engine_identity{std::make_shared<const bool>(true)};
+    std::shared_ptr<const bool> text_engine_identity{gui_forms::detail::make_library_shared<const bool>(true)};
     // Kept shaped runs and resolved layouts (N56/S4), valid while the engine
     // holds kept_face_count faces. References returned by shaped_text and
     // resolved_layout stay valid until the next call to either.
@@ -1016,7 +1056,7 @@ public:
         if (!data || (*data).isEmpty()) return false;
         const std::span<const std::byte> bytes(
             static_cast<const std::byte*>((*data).data()), (*data).size());
-        std::shared_ptr<const void> owner = std::make_shared<const sk_sp<SkData>>(std::move(data));
+        std::shared_ptr<const void> owner = gui_forms::detail::make_library_shared<const sk_sp<SkData>>(std::move(data));
         const bool registered = register_font_bytes(role, weight, italic, bytes, std::move(owner));
         return registered;
     }
@@ -1954,8 +1994,8 @@ void SkiaRaster::draw_retained_box_shadow(const Rect rect, const double corner_r
     // square-cornered ones: Skia blurs a rectangle as nine patches it keeps
     // itself, whatever the rectangle's size, while a kept coverage mask is
     // as large as the shadow and is applied through a shader at every
-    // pixel (a panned canvas's sheet shadow, benchmarks/
-    // canvas_pan_benchmark.cpp).
+    // pixel (a panned canvas's sheet shadow, gui_forms_tests
+    // benchmarks/canvas_pan_benchmark.cpp).
     const bool square = !(corner_radius + spread > 0.0);
     if (!cache || blur_radius == 0.0 || square || !matrix.isScaleTranslate() ||
         matrix.getScaleX() <= 0.0F || matrix.getScaleY() <= 0.0F) {
@@ -2610,7 +2650,7 @@ TextExtent SkiaRaster::measure_text_extent_utf8(
 TextResolutionStatus SkiaRaster::fill_line_break_opportunities_utf8(
     std::string_view text, std::span<LineBreakOpportunity> opportunities) {
     const TextResolutionStatus status =
-        text::HarfBuzzFontEngine::fill_line_break_opportunities_utf8(text, opportunities);
+        text::TextShapeEngine::fill_line_break_opportunities_utf8(text, opportunities);
     return status;
 }
 
@@ -3202,8 +3242,9 @@ void SkiaRaster::draw_image_region_sampled(
 // An opaque tile at full opacity under a hard rectangular clip is then
 // copied row by row (copy_opaque_tile) rather than shaded. Resampling a
 // 128-pixel felt at device scale 2 for every pixel of a 2560 x 1294 canvas
-// cost some 230 ms a frame on the Windows test machine (benchmarks/
-// canvas_pan_benchmark.cpp); the kept tile costs one 256 x 256 resample.
+// cost some 230 ms a frame on the Windows test machine (gui_forms_tests
+// benchmarks/canvas_pan_benchmark.cpp); the kept tile costs one 256 x 256
+// resample.
 // False when the conditions do not hold; the caller draws directly.
 namespace {
 
@@ -3529,7 +3570,7 @@ std::shared_ptr<SkiaRaster::Impl::ClipMaskStore> SkiaRaster::Impl::acquire_clip_
         // Only the pool holds it: no save level reads it any longer.
         if (store.use_count() == 1) return store;
     }
-    clip_mask_pool.push_back(std::make_shared<ClipMaskStore>());
+    clip_mask_pool.push_back(gui_forms::detail::make_library_shared<ClipMaskStore>());
     return clip_mask_pool.back();
 }
 
@@ -3560,8 +3601,8 @@ bool SkiaRaster::Impl::make_clip_mask(const SkCanvas& target, const PaintPathVie
     // The longest a unit of content becomes on the device bounds the chord
     // error the device sees. The engine's hypotenuse has the same bits on
     // every host; the stretch decides how many points the flattened clip has.
-    const double first_column = engine_hypotenuse(sx, ky);
-    const double second_column = engine_hypotenuse(kx, sy);
+    const double first_column = stxlib::math::hypot(sx, ky);
+    const double second_column = stxlib::math::hypot(kx, sy);
     const double stretch = std::max(first_column, second_column);
     if (!(stretch > 0.0) || !std::isfinite(stretch)) return false;
     const double tolerance = clip_mask_device_tolerance / stretch;

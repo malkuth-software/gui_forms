@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::GaugeBase",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/gauge_base.ic.toml",
+    "sha256": "051a688deed10755fc2acbdd2f5fd1624c903f63ca95c49d5cdeb1c7694c3bd6"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.gaugebase.tick_frequency_write.requires.tick_frequency",
+      "kind": "entry-check",
+      "statement": "tick_frequency runs only when finite(incoming) and incoming >= 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::gauge_base::admits_tick_frequency, called in src/controls/instruments/gauge_base/gauge_base.cpp"
+    },
+    {
+      "id": "gui_forms.gaugebase.tick_frequency_write.refusal.tick_frequency",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0, tick_frequency changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.gaugebase.decimal_places_write.requires.decimal_places",
+      "kind": "entry-check",
+      "statement": "decimal_places runs only when incoming <= 6; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::gauge_base::admits_decimal_places, called in src/controls/instruments/gauge_base/gauge_base.cpp"
+    },
+    {
+      "id": "gui_forms.gaugebase.decimal_places_write.refusal.decimal_places",
+      "kind": "refusal-leaves",
+      "statement": "Unless incoming <= 6, decimal_places changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

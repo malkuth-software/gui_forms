@@ -98,8 +98,9 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           "constraints, intrinsic sizes and layout direction among them), and the "
           "anatomy each control publishes: named parts, part roles and states, "
           "and the interactions each type raises; composite controls, the "
-          "control types a `.control` document defines.",
-          ("control", "component", "anatomy", "schema", "layout", "borrow", "composites")),
+          "control types a `.control` document defines; and form documents "
+          "for tools: the schema, a document's check and a preview window.",
+          ("control", "component", "anatomy", "schema", "layout", "borrow", "composites", "forms")),
     Group("events-values-and-commands", "Events, values and commands",
           "Retained events and owned handlers, application-owned `Value` state, "
           "command bindings, a window's rules (a trigger, conditions and "
@@ -113,9 +114,9 @@ LIBRARY_GROUPS: tuple[Group, ...] = (
           ("pages",)),
     Group("input-and-semantics", "Input and semantics",
           "Pointer, keyboard, text and drag event records, the public drag "
-          "client, and the semantic tree published to accessibility and "
-          "automation.",
-          ("events", "drag", "semantics")),
+          "client, the semantic tree published to accessibility and "
+          "automation, and a program's own model tools.",
+          ("events", "drag", "semantics", "automation")),
     Group("data-binding", "Data binding",
           "Bindings between control properties and data sources, currency "
           "management and binding events.",
@@ -194,6 +195,9 @@ AREA_TO_CATEGORY: dict[str, str] = {
 # headers below share no stem with their control and are listed.
 CONTROLS_DIRECTORY: str = "include/gui_forms/controls"
 HEADER_TO_CATEGORY: dict[str, str] = {
+    # The presentation state the owned dialogs and the callout share.
+    "include/gui_forms/controls/dialog_presentation.hpp": "Dialogs and overlays",
+    "include/gui_forms/controls/overlay_presentation.hpp": "Dialogs and overlays",
     # The node canvas's graph model and link router precede NodeCanvas.
     "include/gui_forms/controls/link_router.hpp": "Drawing",
     "include/gui_forms/controls/node_graph.hpp": "Drawing",
@@ -204,6 +208,10 @@ HEADER_TO_CATEGORY: dict[str, str] = {
     "include/gui_forms/controls/column_strip.hpp": "Selection from a list",
     # The help system's printing sits beside its controls.
     "include/gui_forms/controls/help_print.hpp": "Information display",
+    # ScaledPanel's and ScaledGroupBox's aspect setting sits with them.
+    "include/gui_forms/controls/scaled_layout_values.hpp": "Layout",
+    # The input box is a TaskDialog page and sits with the dialogs.
+    "include/gui_forms/controls/input_box.hpp": "Dialogs and overlays",
     # The stock specimens (one per anatomy, for captures and the theme
     # editor's palette) are a catalogue, not a control.
     "include/gui_forms/controls/stock_specimens.hpp": "Diagnostics",

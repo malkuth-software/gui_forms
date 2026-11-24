@@ -6,6 +6,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -21,7 +22,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> check_state_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "check_state", {{"unchecked", 0}, {"checked", 1}, {"indeterminate", 2}}, false});
     return value;
 }
@@ -526,7 +527,7 @@ BindingValue PropertyValueTraits<CheckState>::to_binding(CheckState value) {
     descriptor.enumeration = check_state_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/commands/command/command.hpp"
 #include "gui_forms/component/component/component.hpp"
@@ -44,10 +45,8 @@ public:
     bool commit(stxlib::Optional<Color> value, std::string_view source_id);
 
     // Recently committed colours, most recent first, without repeats.
-    [[nodiscard]] std::span<const Color> recent_colors() const& noexcept {
-        return std::span<const Color>(recent_.data(), recent_.size());
-    }
-    std::span<const Color> recent_colors() const&& = delete;
+    [[nodiscard]] BorrowedSpan<Color> recent_colors() const& noexcept { return detail::lend_view(recent_); }
+    BorrowedSpan<Color> recent_colors() const&& = delete;
     void clear_recent_colors() noexcept { recent_.clear(); }
 
     [[nodiscard]] Event<const stxlib::Optional<Color>&>& value_changed() noexcept { return value_changed_; }
@@ -59,7 +58,7 @@ protected:
 private:
     std::shared_ptr<Command> command_;
     stxlib::Optional<Color> value_{};
-    std::vector<Color> recent_{};
+    detail::LendingVector<Color> recent_{};
     Event<const stxlib::Optional<Color>&> value_changed_{};
 };
 

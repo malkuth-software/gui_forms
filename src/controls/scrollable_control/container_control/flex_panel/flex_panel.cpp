@@ -228,7 +228,10 @@ bool item_style_serialized(const Component& container, const Control& child) {
 
 } // namespace
 
-FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {}
+FlexPanel::FlexPanel(StableId stable_id) : ContainerControl(std::move(stable_id)) {
+    // A CSS panel reflows, then scrolls (stage VA, section 8).
+    viewport_fit = reflowing_viewport_fit;
+}
 
 std::span<const ChildPropertyEntry> FlexPanel::child_property_table() const noexcept {
     static constexpr std::array<ChildPropertyEntry, 1U> entries{{
@@ -584,6 +587,9 @@ Size FlexPanel::solve(const SolveRequest& request, FlexLayoutWorkspace& workspac
         inputs_.resize(children_.size());
         static_cast<void>(resolve_flex_main_sizes(container, inputs_, workspace));
         children_.clear();
+        // The arranged workspace was cleared by the solver: its IDs go with
+        // it, so layout_snapshot() and laid_out_children() stay parallel.
+        if (request.assign) arranged_ids_.clear();
         return {};
     }
     resolve_item_inputs(request);

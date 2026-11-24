@@ -39,7 +39,7 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument(\"CommandOverflowPanel gap must be finite and between zero and 256\");"
+        "if (!ic::admits_group_gap(incoming)) throw std::invalid_argument(\"CommandOverflowPanel gap must be finite and between zero and 256\");"
       ],
       "sample": "6.0"
     }

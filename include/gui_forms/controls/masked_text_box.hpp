@@ -136,6 +136,12 @@ private:
         std::weak_ptr<MaskedTextBox> target;
         void operator()(const std::string& text) const;
     };
+    // A direct write of the editor's read_only: the box arranges again,
+    // which puts the box's own value back (state hunt O10).
+    struct EditorReadOnlyCallback final {
+        std::weak_ptr<MaskedTextBox> target;
+        void operator()() const;
+    };
 
     // The editor's edit filter: every user edit becomes a provider edit.
     void filter_edit(TextEdit& edit);
@@ -174,6 +180,7 @@ private:
     std::optional<MaskedTextProvider> pending_;
     std::shared_ptr<TextBox> editor_;
     SubscriptionToken editor_change_;
+    SubscriptionToken editor_read_only_;
     SubscriptionToken validating_;
     Delegate<MaskValidation&> validator_{};
     bool synchronizing_{};

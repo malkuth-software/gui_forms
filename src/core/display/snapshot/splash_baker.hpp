@@ -2,13 +2,11 @@
 
 #include "display_snapshot.hpp"
 
-#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <memory>
-#include <mutex>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::detail {
@@ -112,12 +110,11 @@ private:
         SplashBakeTicket ticket{};
         std::shared_ptr<const PartRaster> raster{};
     };
-    // The worker thread's entry: runs run() on its baker.
-    struct WorkerEntry final {
-        SplashBaker* baker{};
-
-        void operator()() const;
-    };
+    // The worker thread's entry: runs run() on its baker (`context`).
+    static void worker_main(const stxlib::StopSignal& stop, void* context) noexcept;
+    // The worker's wait predicate, under the mutex: a job waits or the
+    // baker is stopping.
+    [[nodiscard]] static bool work_or_stop(const void* context) noexcept;
 
     // The worker: makes its raster, then paints jobs until stopped.
     void run();
@@ -127,8 +124,8 @@ private:
     void publish_locked(Done done);
 
     std::unique_ptr<SplashBakeRasterFactory> factory_;
-    std::mutex mutex_;
-    std::condition_variable wake_;
+    stxlib::Mutex mutex_;
+    stxlib::ConditionVariable wake_;
     std::deque<Job> waiting_;
     // The ticket being painted, or 0.
     std::uint64_t painting_{};
@@ -139,7 +136,7 @@ private:
     // UI thread only.
     std::uint64_t next_ticket_{1U};
     // Declared last: started after every member above exists, joined first.
-    std::thread worker_;
+    stxlib::Thread worker_;
 };
 
 // The run's baker, as the host installs it for the length of a run (UI

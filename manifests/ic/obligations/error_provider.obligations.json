@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ErrorProvider",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/components/error_provider/error_provider.ic.toml",
+    "sha256": "afdab9037fb3956509a7a3764f732bc552b83d381f97cf1d593dbb7ae7308533"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.errorprovider.icon_size_write.requires.icon_size",
+      "kind": "entry-check",
+      "statement": "icon_size runs only when finite(incoming) and incoming >= 8 and incoming <= 64; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::error_provider::admits_icon_size, called in src/controls/guidance/error_provider/error_provider.cpp"
+    },
+    {
+      "id": "gui_forms.errorprovider.icon_size_write.refusal.icon_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 8 and incoming <= 64, icon_size changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

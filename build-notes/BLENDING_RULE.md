@@ -4,7 +4,7 @@ Draft for `planning/` on the notes `gui_forms` branch, written in the study
 branch `claude/blend-study-1` (`build-notes/BLENDING_RULE.md`). The raster
 coder (patterns and geometry, `claude/raster-patterns-1`) builds on the rule
 in section 3. It describes the code at `claude/batch-cp33` 051e41ac5; the
-numbers the study measures come later, from `tools/blend_study.py`.
+numbers the study measures come later, from gui_forms_tests `tools/blend_study.py`.
 
 ## 1. What GUI.Forms blends today
 
@@ -67,8 +67,8 @@ the bytes as they are (not checked for the Linux host's other paths).
    effect sources add the pragma; with it OFF (deployment: the SDK, the
    release packages' consumers, profiling) the compiler contracts as it
    chooses (the SDK, profiling, and the release programs job that builds
-   what ships, section 5, item 5). `engine_math` (its error bounds) and the
-   value paths (parsed text, layout lengths, theme values, motion) stay
+   what ships, section 5, item 5). STXlib's math compiles unfused under
+   its own flags whatever this option says, and the value paths (parsed text, layout lengths, theme values, motion) stay
    unfused in every build (section 5, item 4);
    stx_skia sets its own `-ffp-contract=off`. Skia's explicit fused stages
    are logged, not fixed, before 1.0.
@@ -134,7 +134,7 @@ frame the copy branch of the rule would take: `copied_pixels` against
 `blended_pixels`, the overdraw that copies hide, opaque fills issued
 source-over (which a kernel following the rule turns into copies), and
 opaque images drawn blended (which the decode flag removes). The numbers
-come from `tools/blend_study.py` on the M4; this note is updated with them
+come from gui_forms_tests `tools/blend_study.py` on the M4; this note is updated with them
 once the integrator has run it.
 
 ## 5. Owner decisions (2026-11-16)
@@ -153,8 +153,7 @@ Follow-ups (coordinator, 2026-11-16):
    (`MaterialColourTable::duotone`), as `tritone()` does, so it mixes in
    linear light too. The `MaterialColourMatrix::duotone` matrix remains for
    C++ callers, as a straight line on sRGB-encoded values.
-4. The value paths stay unfused in every build, accepted: `engine_math`
-   (its stated error bounds) and `engine_expression`, `theme_value`,
+4. The value paths stay unfused in every build, accepted: `engine_expression`, `theme_value`,
    `value_text`, `scrub_gesture`, `layout_style_reader`,
    `theme_motion_lowering` and `motion_value`, which produce numbers
    (parsed text, theme values, layout lengths, motion samples), not

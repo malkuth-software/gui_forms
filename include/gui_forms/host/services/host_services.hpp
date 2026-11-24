@@ -11,7 +11,6 @@
 #include <stxlib/optional.hpp>
 #include <chrono>
 #include <optional>
-#include <thread>
 
 namespace gui_forms {
 
@@ -49,6 +48,11 @@ public:
     static constexpr std::size_t maximum_tray_title_bytes = 63U;
     static constexpr std::size_t maximum_tray_text_bytes = 255U;
     static constexpr std::size_t maximum_tray_menu_items = 64U;
+    static constexpr std::size_t maximum_desktop_notification_title_bytes = 255U;
+    static constexpr std::size_t maximum_desktop_notification_text_bytes = 1023U;
+    // Live notification identities a HostServices keeps; showing one more
+    // withdraws the oldest (development bound, not measured capacity).
+    static constexpr std::size_t maximum_live_desktop_notifications = 32U;
 
     explicit HostServices(HostCapabilities capabilities);
     virtual ~HostServices();
@@ -145,6 +149,57 @@ public:
         return tray_icon_events_;
     }
     [[nodiscard]] bool tray_icon_live(HostTrayIconId icon_id) const noexcept;
+    // Starts a drag of `request.items` to other programs (capability
+    // typed_drag_source); the program's own windows are destinations too.
+    // Call it while handling a pointer press or move with a button held
+    // down, as the drag follows that button. Refused, starting nothing:
+    // unsupported without typed_drag_source; invalid_argument for items
+    // outside the bounds HostDragSourceRequest states or for allowed
+    // effects that are none or hold an unknown bit; modal_limit while
+    // another drag from these services runs; backend_failure when the
+    // platform refuses (no button held, no pointer event to start from).
+    // An accepted drag ends exactly once, through drag_source_ended. On
+    // Windows (DoDragDrop) and X11 (the XDND source's loop) the drag runs a
+    // modal loop and ends before start_drag returns; on macOS it ends later,
+    // from the run loop. The platform takes the press's release; on macOS
+    // and X11 the window receives it right after the end is reported, so
+    // pressed and capture state end as after any press (Windows ends the
+    // capture with WM_CAPTURECHANGED). UI thread.
+    [[nodiscard]] HostDragSourceResult start_drag(const HostDragSourceRequest& request);
+    // Raised on the UI thread once for each accepted start_drag.
+    [[nodiscard]] Event<const HostDragSourceEnd&>& drag_source_ended() noexcept {
+        return drag_source_ended_;
+    }
+    // Whether a drag from these services is running.
+    [[nodiscard]] bool drag_source_active() const noexcept { return active_drag_source_ != 0U; }
+    // Desktop notifications (capability desktop_notifications), shown by
+    // the platform's notification service outside the application's
+    // windows. show_desktop_notification hands the request to the platform
+    // and returns its identity, assigned from 1 and never reused by this
+    // HostServices; the platform may still refuse it later, which arrives
+    // as a `failed` event. Refused, changing nothing: unsupported without
+    // the capability (always in a high-integrity build, which compiles the
+    // service out); too_large for a title or text past its maximum;
+    // invalid_utf8 for either not valid UTF-8; invalid_argument for empty
+    // text, a NUL, or an urgency outside the enumeration; backend_failure
+    // when the platform's service could not take it. With
+    // maximum_live_desktop_notifications live, the oldest is withdrawn
+    // first. UI thread.
+    [[nodiscard]] HostDesktopNotificationResult show_desktop_notification(
+        const HostDesktopNotificationRequest& request);
+    // Takes a live notification back from the platform's list, raising no
+    // event. invalid_argument for an identity that is not live.
+    [[nodiscard]] HostServiceStatus withdraw_desktop_notification(HostDesktopNotificationId notification_id);
+    // Whether the identity is shown and not yet activated, dismissed, failed
+    // or withdrawn. Shutdown forgets every identity and leaves the
+    // notifications in the platform's list, as platforms keep them.
+    [[nodiscard]] bool desktop_notification_live(HostDesktopNotificationId notification_id) const noexcept;
+    // Raised on the UI thread, once per live notification, when it is
+    // activated, dismissed or fails; the identity is no longer live when
+    // the event is raised.
+    [[nodiscard]] Event<const HostDesktopNotificationEvent&>& desktop_notification_events() noexcept {
+        return desktop_notification_events_;
+    }
     // Raised on the UI thread when the user asks for help in an open message
     // dialog (its Help button, or F1 where the host's dialog takes it), with
     // the dialog's request identity; the dialog stays open. Handlers run
@@ -226,12 +281,25 @@ protected:
     [[nodiscard]] virtual HostAutoCompleteResult query_auto_complete_impl(
         const HostAutoCompleteRequest& request);
     [[nodiscard]] virtual HostServiceStatus write_clipboard_image_impl(HostImageView image);
+    // Desktop notification adapters: called with a validated request and
+    // the identity the base class assigned, on a host that advertises
+    // desktop_notifications. The defaults refuse as unsupported. Withdraw
+    // must not fail in a way that leaves the notification in the platform's
+    // list where the platform can take it back.
+    [[nodiscard]] virtual HostServiceStatus show_desktop_notification_impl(
+        HostDesktopNotificationId notification_id, const HostDesktopNotificationRequest& request);
+    virtual void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept;
 #endif
     [[nodiscard]] virtual HostDialogResult show_dialog_impl(
         const HostDialogRequest& request) = 0;
     [[nodiscard]] virtual HostServiceStatus play_sound_cue_impl(
         const HostSoundCueRequest& request) = 0;
     virtual void shutdown_impl() noexcept {}
+    // Starts the platform drag for start_drag, which has validated the
+    // request and assigned `session_id`; the adapter reports its end through
+    // publish_drag_source_end. The default refuses as unsupported.
+    [[nodiscard]] virtual HostServiceStatus start_drag_impl(std::uint64_t session_id,
+                                                            const HostDragSourceRequest& request);
     // Tray adapters: called with a validated request and an identity the base
     // class assigned. The defaults refuse as unsupported.
     [[nodiscard]] virtual HostServiceStatus add_tray_icon_impl(
@@ -259,6 +327,17 @@ protected:
     // Adapters report native tray events here, on the UI thread. Events for
     // identities that are not live are dropped.
     void publish_tray_icon_event(const HostTrayIconEvent& event);
+    // Adapters report the end of the drag start_drag_impl started here.
+    // Dropped off the UI thread and for an identity that is not the running
+    // drag's; a performed effect outside the drag's allowed effects is
+    // reported as none. Ends the drag before raising drag_source_ended, so
+    // a handler may start another.
+    void publish_drag_source_end(const HostDragSourceEnd& event);
+    // Adapters report what became of a desktop notification here, on the
+    // UI thread. The identity stops being live before the event is raised;
+    // events for identities that are not live are dropped (a second report,
+    // or one for a withdrawn notification).
+    void publish_desktop_notification_event(const HostDesktopNotificationEvent& event);
 
 private:
     friend class CursorHiddenLease;
@@ -290,7 +369,18 @@ private:
     // The value the next added icon's identity takes.
     std::uint64_t next_tray_icon_id_{1U};
     Event<const HostTrayIconEvent&> tray_icon_events_;
+    // Live desktop notification identities, oldest first; never reused.
+    std::vector<HostDesktopNotificationId> desktop_notifications_;
+    // The value the next shown notification's identity takes.
+    std::uint64_t next_desktop_notification_id_{1U};
+    Event<const HostDesktopNotificationEvent&> desktop_notification_events_;
     Event<const HostDialogHelpEvent&> dialog_help_requested_;
+    // The running drag's identity and allowed effects (zero and none when
+    // no drag runs), and the identity the next drag takes.
+    std::uint64_t active_drag_source_{};
+    DragEffect active_drag_effects_{DragEffect::none};
+    std::uint64_t next_drag_source_{1U};
+    Event<const HostDragSourceEnd&> drag_source_ended_;
 };
 
 } // namespace gui_forms

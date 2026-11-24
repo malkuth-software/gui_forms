@@ -7,6 +7,7 @@
 #include "gui_forms/controls/tree_view.hpp"
 #include "gui_forms/controls/tab_control.hpp"
 #include "gui_forms/controls/tab_page.hpp"
+#include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 
 #include <stxlib/optional.hpp>
@@ -15,6 +16,7 @@
 #include <cmath>
 #include <limits>
 #include <optional>
+#include <stdexcept>
 #include <utility>
 
 namespace gui_forms {
@@ -144,6 +146,123 @@ namespace {
 // The widest the navigation pane is shown in a viewer `viewer_width` wide.
 [[nodiscard]] double navigation_share(double viewer_width) noexcept {
     return std::max(0.0, viewer_width * maximum_navigation_share);
+}
+
+[[nodiscard]] bool utf8(std::string_view text) noexcept {
+    const bool valid = validate_utf8(text).valid();
+    return valid;
+}
+
+// Throws std::invalid_argument naming `what` unless every text a section
+// puts in the viewer's lists (record IDs and titles, page titles, keywords)
+// is UTF-8: the lists refuse anything else, so the check runs before
+// set_section changes anything (state hunt N4), and once a section is in
+// place no list fill made from it can refuse.
+void require_utf8_section(const HelpBookSection& section) {
+    for (const HelpBookRecord& record : section.records) {
+        if (!utf8(record.stable_id) || !utf8(record.title)) {
+            throw std::invalid_argument("help book section records must be valid UTF-8");
+        }
+    }
+    for (const HelpContentsNode& node : section.contents.nodes) {
+        if (!utf8(node.stable_id) || !utf8(node.title)) {
+            throw std::invalid_argument("help book section pages must be valid UTF-8");
+        }
+    }
+    for (const HelpKeywordEntry& entry : section.keywords) {
+        if (!utf8(entry.keyword) || !utf8(entry.subkeyword)) {
+            throw std::invalid_argument("help book section keywords must be valid UTF-8");
+        }
+    }
+}
+
+// Sets a flag for the length of one operation and clears it on every exit,
+// an exception included (house style section 2).
+class FlagScope final {
+public:
+    explicit FlagScope(bool& flag) noexcept : flag_(flag) { flag_ = true; }
+    ~FlagScope() { flag_ = false; }
+    FlagScope(const FlagScope&) = delete;
+    FlagScope& operator=(const FlagScope&) = delete;
+
+private:
+    bool& flag_;
+};
+
+// The rows of the contents tree for `section` (none: no rows).
+[[nodiscard]] std::vector<TreeViewItem> contents_items_of(const HelpBookSection* section) {
+    std::vector<TreeViewItem> items;
+    if (section == nullptr) return items;
+    const std::vector<HelpContentsNode>& nodes = (*section).contents.nodes;
+    items.reserve(nodes.size());
+    for (std::size_t index = 0U; index < nodes.size(); ++index) {
+        const HelpContentsNode& node = nodes[index];
+        TreeViewItem item{};
+        item.stable_id = node.stable_id;
+        item.text = node.title.empty() ? node.stable_id : node.title;
+        item.depth = node.depth;
+        item.expandable = index + 1U < nodes.size() && nodes[index + 1U].parent == index;
+        item.expanded = item.expandable && node.depth == 0U;
+        items.push_back(std::move(item));
+    }
+    return items;
+}
+
+// The title `section` gives `stable_id`, or the ID itself.
+[[nodiscard]] std::string record_title_in(const HelpBookSection* section, std::string_view stable_id) {
+    if (section == nullptr) return std::string(stable_id);
+    const stxlib::Optional<std::size_t> record = (*section).find(stable_id);
+    if (record.absent()) return std::string(stable_id);
+    const std::string& title = (*section).records[(*record.value())].title;
+    return title.empty() ? std::string(stable_id) : title;
+}
+
+// The index's rows (the keyword entries each opens) and their texts for
+// `section` (none: no rows).
+struct IndexListing final {
+    struct Row final {
+        std::size_t first{};
+        std::size_t count{};
+    };
+    std::vector<Row> rows{};
+    std::vector<std::string> texts{};
+};
+
+[[nodiscard]] IndexListing index_listing_of(const HelpBookSection* section) {
+    IndexListing listing;
+    if (section == nullptr) return listing;
+    const std::vector<HelpKeywordEntry>& keywords = (*section).keywords;
+    std::size_t first = 0U;
+    while (first < keywords.size()) {
+        std::size_t end = first + 1U;
+        while (end < keywords.size() && same_index_row(keywords[first], keywords[end])) ++end;
+        const HelpKeywordEntry& entry = keywords[first];
+        if (!entry.subkeyword.empty()) {
+            // A subkeyword whose keyword has no row of its own gets a
+            // heading row that opens nothing.
+            const bool keyword_shown = first > 0U && keywords[first - 1U].keyword == entry.keyword;
+            if (!keyword_shown) {
+                listing.rows.push_back(IndexListing::Row{first, 0U});
+                listing.texts.push_back(entry.keyword);
+            }
+            listing.rows.push_back(IndexListing::Row{first, end - first});
+            listing.texts.push_back("    " + entry.subkeyword);
+        } else {
+            listing.rows.push_back(IndexListing::Row{first, end - first});
+            listing.texts.push_back(entry.keyword);
+        }
+        first = end;
+    }
+    return listing;
+}
+
+// The bookmarks list's rows for `stable_ids` under `section`.
+[[nodiscard]] std::vector<std::string> bookmark_titles_of(const HelpBookSection* section,
+                                                          const std::vector<std::string>& stable_ids) {
+    std::vector<std::string> titles;
+    titles.reserve(stable_ids.size());
+    for (const std::string& bookmark : stable_ids) titles.push_back(record_title_in(section, bookmark));
+    return titles;
 }
 
 } // namespace
@@ -289,8 +408,23 @@ void HelpBookViewer::initialize_control_tree() {
 
 // --- Section and pages ----------------------------------------------------------------
 
+// Commit last (state hunt N4): the section's text is checked and every list
+// it fills is built first; the contents tree, which checks its own rows and
+// refuses before it changes, is filled next; only then do the members and
+// the other lists change, which can no longer refuse.
 void HelpBookViewer::set_section(std::shared_ptr<const HelpBookSection> section) {
     require_mutable();
+    if (section) require_utf8_section(*section);
+    std::vector<TreeViewItem> contents = contents_items_of(section.get());
+    IndexListing listing = index_listing_of(section.get());
+    std::vector<IndexRow> rows;
+    rows.reserve(listing.rows.size());
+    for (const IndexListing::Row& row : listing.rows) rows.push_back(IndexRow{row.first, row.count});
+    std::vector<std::string> bookmark_titles = bookmark_titles_of(section.get(), bookmarks_);
+    {
+        const FlagScope syncing(syncing_contents_);
+        (*contents_tree_).set_items(std::move(contents));
+    }
     section_ = std::move(section);
     history_.clear();
     history_position_ = 0U;
@@ -299,9 +433,9 @@ void HelpBookViewer::set_section(std::shared_ptr<const HelpBookSection> section)
     last_search_ = HelpSearchStatus::empty_query;
     (*search_list_).items = std::vector<std::string>{};
     close_chooser();
-    rebuild_contents();
-    rebuild_index();
-    refresh_bookmark_list();
+    index_rows_ = std::move(rows);
+    (*index_list_).items = std::move(listing.texts);
+    (*bookmarks_list_).items = std::move(bookmark_titles);
     const std::string start = home_page();
     if (start.empty()) {
         (*book_).show_page(HelpPageModel{});
@@ -329,11 +463,8 @@ std::string HelpBookViewer::home_page() const {
 }
 
 std::string HelpBookViewer::record_title(std::string_view stable_id) const {
-    if (!section_) return std::string(stable_id);
-    const stxlib::Optional<std::size_t> record = (*section_).find(stable_id);
-    if (record.absent()) return std::string(stable_id);
-    const std::string& title = (*section_).records[(*record.value())].title;
-    return title.empty() ? std::string(stable_id) : title;
+    const std::string title = record_title_in(section_.get(), stable_id);
+    return title;
 }
 
 bool HelpBookViewer::show(std::string_view stable_id, std::string_view anchor) {
@@ -414,8 +545,13 @@ bool HelpBookViewer::home() {
 
 // --- Tabs -------------------------------------------------------------------------------
 
+// A tab outside the four is refused before the pane is shown, which the
+// tab control's own refusal came after (state hunt N4).
 void HelpBookViewer::select_tab(HelpNavigationTab tab) {
     require_mutable();
+    if (static_cast<std::size_t>(tab) > static_cast<std::size_t>(HelpNavigationTab::bookmarks)) {
+        throw std::invalid_argument("help navigation tab is outside the viewer's tabs");
+    }
     if (!navigation_visible_) set_navigation_visible(true);
     (*tabs_).selected_index = stxlib::Optional<std::size_t>::of(static_cast<std::size_t>(tab));
 }
@@ -434,7 +570,10 @@ void HelpBookViewer::show_contents() {
     focus_child(contents_tree_);
 }
 
+// The field refuses text that is not UTF-8; checked before the tab moves
+// (state hunt N4).
 void HelpBookViewer::show_index(std::string_view keyword) {
+    if (!utf8(keyword)) throw std::invalid_argument("help index keyword must be valid UTF-8");
     select_tab(HelpNavigationTab::index);
     const std::string typed(keyword);
     (*index_field_).text = typed;
@@ -443,6 +582,7 @@ void HelpBookViewer::show_index(std::string_view keyword) {
 }
 
 void HelpBookViewer::show_search(std::string_view text) {
+    if (!utf8(text)) throw std::invalid_argument("help search text must be valid UTF-8");
     select_tab(HelpNavigationTab::search);
     (*search_field_).text = std::string(text);
     run_search();
@@ -450,27 +590,6 @@ void HelpBookViewer::show_search(std::string_view text) {
 }
 
 // --- Contents -----------------------------------------------------------------------------
-
-void HelpBookViewer::rebuild_contents() {
-    std::vector<TreeViewItem> items;
-    if (section_) {
-        const std::vector<HelpContentsNode>& nodes = (*section_).contents.nodes;
-        items.reserve(nodes.size());
-        for (std::size_t index = 0U; index < nodes.size(); ++index) {
-            const HelpContentsNode& node = nodes[index];
-            TreeViewItem item{};
-            item.stable_id = node.stable_id;
-            item.text = node.title.empty() ? node.stable_id : node.title;
-            item.depth = node.depth;
-            item.expandable = index + 1U < nodes.size() && nodes[index + 1U].parent == index;
-            item.expanded = item.expandable && node.depth == 0U;
-            items.push_back(std::move(item));
-        }
-    }
-    syncing_contents_ = true;
-    (*contents_tree_).set_items(std::move(items));
-    syncing_contents_ = false;
-}
 
 void HelpBookViewer::on_contents_activated(const std::string& stable_id) {
     if (syncing_contents_) return;
@@ -483,36 +602,6 @@ void HelpBookViewer::on_contents_selected(const TreeSelectionChange& change) {
 }
 
 // --- Index ----------------------------------------------------------------------------------
-
-void HelpBookViewer::rebuild_index() {
-    index_rows_.clear();
-    std::vector<std::string> texts;
-    if (section_) {
-        const std::vector<HelpKeywordEntry>& keywords = (*section_).keywords;
-        std::size_t first = 0U;
-        while (first < keywords.size()) {
-            std::size_t end = first + 1U;
-            while (end < keywords.size() && same_index_row(keywords[first], keywords[end])) ++end;
-            const HelpKeywordEntry& entry = keywords[first];
-            if (!entry.subkeyword.empty()) {
-                // A subkeyword whose keyword has no row of its own gets a
-                // heading row that opens nothing.
-                const bool keyword_shown = first > 0U && keywords[first - 1U].keyword == entry.keyword;
-                if (!keyword_shown) {
-                    index_rows_.push_back(IndexRow{first, 0U});
-                    texts.push_back(entry.keyword);
-                }
-                index_rows_.push_back(IndexRow{first, end - first});
-                texts.push_back("    " + entry.subkeyword);
-            } else {
-                index_rows_.push_back(IndexRow{first, end - first});
-                texts.push_back(entry.keyword);
-            }
-            first = end;
-        }
-    }
-    (*index_list_).items = std::move(texts);
-}
 
 void HelpBookViewer::on_index_text(const std::string& text) {
     close_chooser();
@@ -648,18 +737,17 @@ void HelpBookViewer::on_titles_only(bool titles_only) { set_titles_only(titles_o
 
 // --- Bookmarks ----------------------------------------------------------------------------------
 
+// Commit last (state hunt N4): the list, which refuses text that is not
+// UTF-8 before it changes, takes the new rows before the bookmarks change.
 void HelpBookViewer::set_bookmarks(std::vector<std::string> stable_ids) {
     require_mutable();
+    (*bookmarks_list_).items = bookmark_titles_of(section_.get(), stable_ids);
     bookmarks_ = std::move(stable_ids);
-    refresh_bookmark_list();
     refresh_buttons();
 }
 
 void HelpBookViewer::refresh_bookmark_list() {
-    std::vector<std::string> titles;
-    titles.reserve(bookmarks_.size());
-    for (const std::string& bookmark : bookmarks_) titles.push_back(record_title(bookmark));
-    (*bookmarks_list_).items = std::move(titles);
+    (*bookmarks_list_).items = bookmark_titles_of(section_.get(), bookmarks_);
 }
 
 bool HelpBookViewer::add_bookmark() {
@@ -809,6 +897,9 @@ void HelpBookViewer::set_navigation_visible(bool visible) {
 
 void HelpBookViewer::set_navigation_width(double width) {
     require_mutable();
+    // NaN passes std::clamp unchanged and made every later layout throw
+    // (state hunt O6): refused before anything changes.
+    if (std::isnan(width)) throw std::invalid_argument("help navigation width must be a number");
     const double clamped = std::clamp(width, minimum_navigation_width, maximum_navigation_width);
     if (clamped == navigation_width_) return;
     navigation_width_ = clamped;
@@ -934,9 +1025,29 @@ Size HelpBookViewer::measure(Size available) {
     return Size{width, height};
 }
 
+// The navigation pane and its splitter are shown exactly when
+// navigation_visible_ says (the record, which the hide button and
+// refresh_buttons read). The tabs are addressable by stable ID, so a direct
+// write of their visible property is put back here on every arrange, never
+// compared with a cached copy (state hunt O10). The writes run handlers,
+// which may drop the viewer.
+bool HelpBookViewer::reassert_navigation_visibility() {
+    if ((*tabs_).visible.read() != navigation_visible_) {
+        (*tabs_).visible = navigation_visible_;
+        if (!is_alive()) return false;
+    }
+    if ((*navigation_splitter_).visible.read() != navigation_visible_) {
+        (*navigation_splitter_).visible = navigation_visible_;
+        if (!is_alive()) return false;
+    }
+    return true;
+}
+
 void HelpBookViewer::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     if (!book_) return;
+    const Control::Ptr lifetime = shared_from_this();
+    if (!reassert_navigation_visibility()) return;
     const double unbounded = std::numeric_limits<double>::infinity();
     // The toolbar: the commands from the left, the way back at the right.
     const std::array<Control::Ptr, 6> commands{hide_button_, back_button_, forward_button_,

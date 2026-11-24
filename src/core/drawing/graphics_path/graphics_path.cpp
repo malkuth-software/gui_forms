@@ -438,19 +438,21 @@ void append_element_points(const PathElement& element, std::vector<PointF>& resu
                 : std::max(-half_pi, finish - start);
             const double end = start + delta;
             const double alpha =
-                4.0 / 3.0 * gui_forms::engine_tangent(delta / 4.0);
+                4.0 / 3.0 * stxlib::math::tan(delta / 4.0);
             const PointF first = ellipse_point(
                 center_x, center_y, radius_x, radius_y, start);
             const PointF last = ellipse_point(
                 center_x, center_y, radius_x, radius_y, end);
-            const gui_forms::EngineSineCosine from =
-                gui_forms::engine_sine_cosine(start);
-            const gui_forms::EngineSineCosine to =
-                gui_forms::engine_sine_cosine(end);
-            result.push_back({first.x - alpha * radius_x * from.sine,
-                              first.y + alpha * radius_y * from.cosine});
-            result.push_back({last.x + alpha * radius_x * to.sine,
-                              last.y - alpha * radius_y * to.cosine});
+            double from_sine = 0.0;
+            double from_cosine = 0.0;
+            stxlib::math::sincos(start, from_sine, from_cosine);
+            double to_sine = 0.0;
+            double to_cosine = 0.0;
+            stxlib::math::sincos(end, to_sine, to_cosine);
+            result.push_back({first.x - alpha * radius_x * from_sine,
+                              first.y + alpha * radius_y * from_cosine});
+            result.push_back({last.x + alpha * radius_x * to_sine,
+                              last.y - alpha * radius_y * to_cosine});
             result.push_back(last);
             start = end;
         }

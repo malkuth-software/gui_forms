@@ -124,29 +124,33 @@
   </scaled-group-box>
 
   <scaled-group-box id="gallery.host.task-dialog"
-      text="TaskDialog and ThreadExceptionDialog · in-window owned dialogs, the same on every host"
+      text="TaskDialog, ThreadExceptionDialog and the input box · in-window owned dialogs, the same on every host"
       design-size="930 96"
       bounds="24 648 930 96"
       classes="paper group-caption">
     <button id="gallery.host.task-dialog.show"
         text="Show task dialog"
         visual-style="accent"
-        bounds="24 40 202 38"/>
+        bounds="24 40 156 38"/>
     <button id="gallery.host.exception-dialog.show"
         text="Show exception dialog"
         visual-style="command"
-        bounds="238 40 202 38"/>
+        bounds="190 40 172 38"/>
+    <button id="gallery.host.input-box.show"
+        text="Input box..."
+        visual-style="command"
+        bounds="372 40 112 38"/>
     <label id="gallery.host.task-dialog.note"
-        text="Each reports its result in closed: a button ID, or cancel and abort."
+        text="Each reports its result in closed: a button ID, cancel and abort, or the typed text."
         classes="muted small"
-        bounds="458 36 446 24"/>
+        bounds="498 36 410 24"/>
     <check-box id="gallery.host.task-dialog.native"
         text="Open the task and font dialogs as native popup windows"
-        bounds="458 60 446 26"/>
+        bounds="498 60 410 26"/>
   </scaled-group-box>
 
   <scaled-group-box id="gallery.host.notify-icon"
-      text="NotifyIcon · an icon in the notification area, where the host has one"
+      text="NotifyIcon and ToastNotification · the notification area and the desktop's notifications, where the host has them"
       design-size="930 96"
       bounds="24 756 930 96"
       classes="paper group-caption">
@@ -157,9 +161,12 @@
     <button id="gallery.host.notify-icon.notify"
         text="Notify"
         bounds="216 40 120 38"/>
+    <button id="gallery.host.toast.show"
+        text="Desktop notification"
+        bounds="348 40 190 38"/>
     <label id="gallery.host.notify-icon.note"
-        text="Click, double-click or open the icon's menu; refusals report the host's capability."
+        text="Click the icon or the notification; refusals report the host's capability."
         classes="muted small"
-        bounds="352 46 560 24"/>
+        bounds="552 46 360 24"/>
   </scaled-group-box>
 </scaled-panel>

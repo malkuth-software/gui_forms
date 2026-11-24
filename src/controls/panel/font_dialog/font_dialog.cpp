@@ -1,6 +1,7 @@
 #include "gui_forms/controls/font_dialog.hpp"
 
 #include "../panel_anatomy.hpp"
+#include "../../dialog_presentation/provisional_child.hpp"
 
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/controls/list_box.hpp"
@@ -28,28 +29,39 @@ constexpr std::array<BundledFontFace, 3> bundled_faces{{
     {.role = FontRole::monospace, .family = "Cousine", .use = "monospace", .italic = true},
 }};
 
-// The dialog's layout in logical units: the title, three columns (face,
-// style, size) under their captions, the preview, and the buttons.
+// The dialog's default layout in logical units at text scale 1: the title,
+// three columns (face, style, size) under their captions, the preview, and
+// the buttons, 460 x 332 in all. Every length scales with the window's text
+// scale, and the columns, caption rows and buttons grow to the text they
+// show (FontDialog::dialog_layout), so a longer name, a larger scale or
+// another theme's font widens the dialog rather than clipping.
 constexpr double dialog_width = 460.0;
-constexpr double dialog_height = 332.0;
 constexpr double dialog_margin = 16.0;
+constexpr double title_top = 8.0;
 constexpr double title_height = 28.0;
-constexpr double caption_top = 44.0;
+// Below the title, the caption row, then the lists.
+constexpr double title_caption_gap = 8.0;
 constexpr double caption_height = 20.0;
-constexpr double list_top = 66.0;
+constexpr double caption_list_gap = 2.0;
 constexpr double list_height = 92.0;
 constexpr double face_width = 172.0;
-constexpr double style_left = 200.0;
 constexpr double style_width = 118.0;
-constexpr double size_left = 330.0;
 constexpr double size_width = 114.0;
 constexpr double size_height = 30.0;
-constexpr double preview_top = 172.0;
+constexpr double column_gap = 12.0;
+constexpr double list_preview_gap = 14.0;
 constexpr double preview_height = 94.0;
-constexpr double button_top = 284.0;
+constexpr double preview_button_gap = 18.0;
 constexpr double button_width = 84.0;
 constexpr double button_height = 32.0;
 constexpr double button_gap = 8.0;
+// What a list row needs beside its text: the well's insets, the row's text
+// inset on both sides, and room for a vertical scroll bar.
+constexpr double list_text_allowance = 40.0;
+// What a caption needs beside its text (the label's insets).
+constexpr double caption_text_allowance = 4.0;
+// The extent offered to a child measured for its one-line text.
+constexpr double measure_limit = 1.0e6;
 
 // The layer under an open dialog: it covers the window and takes presses
 // outside the dialog, so the page below does not react while the dialog is
@@ -97,9 +109,7 @@ FontDialog::FontDialog(StableId stable_id) : Panel(std::move(stable_id)) {
 
 FontDialog::~FontDialog() {
     // Close without raising closed: there is no one left to tell.
-    native_closed_.disconnect();
-    native_token_.disconnect();
-    overlay_token_.disconnect();
+    presentation_.abandon();
 }
 
 void FontDialog::initialize_control_tree() {
@@ -267,7 +277,7 @@ void FontDialog::written(const decltype(show_apply)&) {
 // -- buttons ---------------------------------------------------------------------
 
 void FontDialog::on_ok(ButtonBase&) {
-    if (open_) {
+    if (presentation_.shown()) {
         close(DialogResult::ok);
         return;
     }
@@ -278,7 +288,7 @@ void FontDialog::on_ok(ButtonBase&) {
 }
 
 void FontDialog::on_cancel(ButtonBase&) {
-    if (open_) {
+    if (presentation_.shown()) {
         close(DialogResult::cancel);
         return;
     }
@@ -295,7 +305,7 @@ void FontDialog::on_apply(ButtonBase&) {
 
 void FontDialog::on_key_preview(KeyEvent& event) {
     if (event.action != KeyAction::down || event.physical_key != PhysicalKey::escape) return;
-    if (!open_) return;
+    if (!presentation_.shown()) return;
     close(DialogResult::cancel);
     event.handled = true;
 }
@@ -304,100 +314,137 @@ void FontDialog::on_key_preview(KeyEvent& event) {
 
 bool FontDialog::show(const Control::Ptr& owner) {
     require_mutable();
-    if (open_) return true;
+    if (presentation_.shown()) return true;
     Window* const window = owner ? (*owner).attached_window() : nullptr;
     if (window == nullptr || parent()) return false;
     Window& host = *window;
     const Size client = host.client_size();
     const std::string prefix(stable_id().value());
+    // Holds the dialog across the focus handlers begin_focus_scope runs.
+    const Control::Ptr self = shared_from_this();
     std::shared_ptr<FontDialogLayer> layer = make_control<FontDialogLayer>(StableId(prefix + ".layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    const double width = std::min(dialog_width, client.width);
-    const double height = std::min(dialog_height, client.height);
-    const Rect centred{std::floor((client.width - width) * 0.5), std::floor((client.height - height) * 0.5),
-                       width, height};
-    set_requested_bounds(centred);
     set_paint_plane(PaintPlane::overlay);
     selection_ = normalized(font_);
     show_selection();
-    (*layer).add_child(shared_from_this());
-    OverlayToken token = host.open_overlay(owner, layer);
-    overlay_layer_ = layer;
-    overlay_token_ = std::move(token);
-    if (Event<>* closed = overlay_token_.closed_event()) {
-        revocation_token_ = (*closed).subscribe(
+    // Until the presentation is installed, every step is undone on an
+    // exception: the guard takes the dialog out of the layer, and the
+    // owner half's lease and subscription end with it.
+    ProvisionalChild in_layer(layer, self);
+    PresentationLayer owner_half{};
+    owner_half.overlay = host.open_overlay(owner, layer);
+    owner_half.layer = layer;
+    if (Event<>* closed = owner_half.overlay.closed_event()) {
+        owner_half.overlay_closed = (*closed).subscribe(
             *this, Delegate<>::bind<FontDialog, &FontDialog::on_overlay_revoked>(*this));
     }
-    if (surface_ == DialogSurface::native_popup && open_native(host, owner, centred)) {
-        // The empty layer keeps the owner's keys from its controls.
-        overlay_scope_ = host.begin_focus_scope(layer).value;
-    } else {
-        overlay_scope_ = host.begin_focus_scope(layer, face_list_).value;
+    // Measured now that the dialog is in the owner's window, at its text
+    // scale and with its fonts, then centred.
+    const Size wanted = dialog_layout(0.0).preferred;
+    const double width = std::min(wanted.width, client.width);
+    const double height = std::min(wanted.height, client.height);
+    const Rect centred{std::floor((client.width - width) * 0.5), std::floor((client.height - height) * 0.5),
+                       width, height};
+    set_requested_bounds(centred);
+    DialogPresentation shown = surface_ == DialogSurface::native_popup
+        ? present_natively(host, owner, centred, std::move(owner_half))
+        : DialogPresentation::overlay(std::move(owner_half));
+    in_layer.commit();
+    presentation_ = std::move(shown);
+    // Beginning a focus scope moves the focus, running the previous
+    // control's focus and validation handlers; one may close the dialog
+    // (and even open it again). A scope this show() began after that is
+    // ended here, since the close found none to end (as TaskDialog,
+    // A-gf-controls-13-F4).
+    // A refused scope (a containing scope, the nesting limit) takes the
+    // dialog down again before the refusal leaves, with nothing raised.
+    Control::Ptr preferred = face_list_;
+    if (preferred && !((*preferred).eligible_for_input() && (*preferred).focusable.read())) preferred = {};
+    FocusScopeId started{};
+    try {
+        if (Window* const popup = presentation_.popup_window()) {
+            static_cast<void>((*popup).begin_focus_scope(presentation_.popup_root(), preferred));
+        }
+        if (!presentation_.shown_with(*layer)) return true;
+        if (presentation_.surface() == NativePopupSurface::native) {
+            // The empty layer keeps the owner's keys from its controls.
+            started = host.begin_focus_scope(layer);
+        } else {
+            started = host.begin_focus_scope(layer, preferred);
+        }
+    } catch (...) {
+        if (is_alive() && presentation_.shown_with(*layer)) abandon_show();
+        throw;
     }
-    open_ = true;
+    if (!presentation_.adopt_scope(*layer, started)) {
+        if (started) static_cast<void>(host.end_focus_scope(started));
+        return true;
+    }
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
 
-bool FontDialog::open_native(Window& host, const Control::Ptr& owner, Rect bounds) {
+DialogPresentation FontDialog::present_natively(Window& host, const Control::Ptr& owner, Rect bounds,
+                                                PresentationLayer owner_half) {
     const Control::Ptr self = shared_from_this();
-    static_cast<void>((*overlay_layer_).remove_child(runtime_id()));
-    native_root_ = make_control<Control>(StableId(std::string(stable_id().value()) + ".native"));
+    static_cast<void>((*owner_half.layer).remove_child(runtime_id()));
+    PresentationPopup popup_half{};
+    popup_half.root = make_control<Control>(StableId(std::string(stable_id().value()) + ".native"));
     set_requested_bounds({0.0, 0.0, bounds.width, bounds.height});
     set_paint_plane(PaintPlane::control);
-    (*native_root_).add_child(self);
+    // Taken out of the root again if the popup does not open, or throws.
+    ProvisionalChild in_root(popup_half.root, self);
     NativePopupOptions options{};
     options.focus = HostPopupFocus::takes_focus;
     options.fallback = NativePopupFallback::refuse;
-    native_token_ = host.open_native_popup(owner, native_root_, bounds, options);
-    if (native_token_.surface() != NativePopupSurface::native) {
-        static_cast<void>((*native_root_).remove_child(runtime_id()));
-        native_root_.reset();
+    popup_half.popup = host.open_native_popup(owner, popup_half.root, bounds, options);
+    if (popup_half.popup.surface() != NativePopupSurface::native) {
+        in_root.undo();
         set_requested_bounds(bounds);
         set_paint_plane(PaintPlane::overlay);
-        (*overlay_layer_).add_child(self);
-        return false;
+        (*owner_half.layer).add_child(self);
+        DialogPresentation fallback = DialogPresentation::overlay(std::move(owner_half));
+        return fallback;
     }
-    if (Event<>* closed = native_token_.closed_event()) {
-        native_closed_ = (*closed).subscribe(
+    if (Event<>* closed = popup_half.popup.closed_event()) {
+        popup_half.popup_closed = (*closed).subscribe(
             *this, Delegate<>::bind<FontDialog, &FontDialog::on_overlay_revoked>(*this));
     }
-    Window* const popup = native_token_.window();
-    if (popup != nullptr) static_cast<void>((*popup).begin_focus_scope(native_root_, face_list_));
-    return true;
+    in_root.commit();
+    DialogPresentation shown = DialogPresentation::native(std::move(owner_half), std::move(popup_half));
+    return shown;
 }
 
 NativePopupSurface FontDialog::presented_surface() const noexcept {
-    if (!open_) return NativePopupSurface::none;
-    if (native_root_) return NativePopupSurface::native;
-    return NativePopupSurface::overlay;
+    const NativePopupSurface result = presentation_.surface();
+    return result;
 }
 
 void FontDialog::release_overlay(FocusScopeCloseReason reason) {
-    revocation_token_.disconnect();
-    native_closed_.disconnect();
-    // The scope is the owner's window's, where the layer is.
-    Window* const host = overlay_layer_ ? (*overlay_layer_).attached_window() : nullptr;
-    if (host != nullptr && overlay_scope_ != 0U) {
-        static_cast<void>((*host).end_focus_scope(FocusScopeId{overlay_scope_}, reason));
-    }
-    overlay_scope_ = 0U;
     // Keep this dialog alive past its layer: the application owns it.
     const Control::Ptr self = shared_from_this();
-    if (overlay_layer_) static_cast<void>((*overlay_layer_).remove_child(runtime_id()));
-    const Control::Ptr native_root = native_root_;
-    native_root_.reset();
-    if (native_root) static_cast<void>((*native_root).remove_child(runtime_id()));
-    native_token_.disconnect();
-    overlay_token_.disconnect();
-    overlay_layer_.reset();
+    // Closed from here on, for every handler the steps below run.
+    DialogPresentation closing = presentation_.take();
+    closing.dismantle(*this, reason);
     set_paint_plane(PaintPlane::control);
-    open_ = false;
+}
+
+// A show whose scope was refused: the dialog leaves its layer and popup and
+// both close, with closed not raised (no show was reported either).
+void FontDialog::abandon_show() noexcept {
+    const Control::Ptr retained = weak_from_this().lock();
+    DialogPresentation closing = presentation_.take();
+    try {
+        closing.dismantle(*this, FocusScopeCloseReason::explicit_close);
+        set_paint_plane(PaintPlane::control);
+    } catch (...) {
+        closing.abandon();
+    }
 }
 
 void FontDialog::close(DialogResult result) {
     require_mutable();
-    if (!open_) return;
+    if (!presentation_.shown()) return;
     if (result == DialogResult::ok) font_ = selection_;
     release_overlay(FocusScopeCloseReason::explicit_close);
     const FontDialogResult closing{result, font_};
@@ -405,7 +452,7 @@ void FontDialog::close(DialogResult result) {
 }
 
 void FontDialog::on_overlay_revoked() {
-    if (!open_) return;
+    if (!presentation_.shown()) return;
     release_overlay(FocusScopeCloseReason::owner_unavailable);
     const FontDialogResult closing{DialogResult::cancel, font_};
     closed_.emit(closing);
@@ -413,38 +460,131 @@ void FontDialog::on_overlay_revoked() {
 
 // -- layout and paint ------------------------------------------------------------
 
+FontDialog::DialogLayout FontDialog::dialog_layout(double width) const {
+    const double scale = effective_text_scale();
+    const double margin = dialog_margin * scale;
+    const double gap = column_gap * scale;
+    const Size unbounded{measure_limit, measure_limit};
+    // What each column, row and button needs: the default scaled, or the
+    // measured text with its allowance, whichever is larger.
+    double face_need = face_width * scale;
+    double style_need = style_width * scale;
+    double size_need = size_width * scale;
+    double caption_row = caption_height * scale;
+    double button_row = button_height * scale;
+    double ok_width = button_width * scale;
+    double cancel_width = button_width * scale;
+    double apply_width = button_width * scale;
+    const FontSpec title_font = effective_font(FontSpec{FontRole::control, 13.0, 700, false});
+    const TextExtent title_extent = measure_text_extent_utf8("Font", title_font);
+    const double title_row = std::max(title_height * scale, std::ceil(title_extent.logical_size.height));
+    const double title_need = std::ceil(title_extent.logical_size.width);
+    if (face_list_) {
+        const double caption_allowance = caption_text_allowance * scale;
+        const Size face_caption = (*face_caption_).measure(unbounded);
+        const Size style_caption = (*style_caption_).measure(unbounded);
+        const Size size_caption = (*size_caption_).measure(unbounded);
+        face_need = std::max(face_need, std::ceil(face_caption.width) + caption_allowance);
+        style_need = std::max(style_need, std::ceil(style_caption.width) + caption_allowance);
+        size_need = std::max(size_need, std::ceil(size_caption.width) + caption_allowance);
+        caption_row = std::max({caption_row, std::ceil(face_caption.height), std::ceil(style_caption.height),
+                                std::ceil(size_caption.height)});
+        const double list_allowance = list_text_allowance * scale;
+        const FontSpec face_font = (*face_list_).text_font((*face_list_).font.read());
+        const BorrowedSpan<std::string> faces = (*face_list_).items.read();
+        for (const std::string& face : faces) {
+            const TextExtent extent = (*face_list_).measure_text_extent_utf8(face, face_font);
+            face_need = std::max(face_need, std::ceil(extent.logical_size.width) + list_allowance);
+        }
+        // Every style any face offers, so the column keeps its width when
+        // another face changes the list.
+        const FontSpec style_font = (*style_list_).text_font((*style_list_).font.read());
+        constexpr std::array<FontStyle, 4> all_styles{FontStyle::regular, FontStyle::bold, FontStyle::italic,
+                                                      FontStyle::bold_italic};
+        for (const FontStyle style : all_styles) {
+            const TextExtent extent = (*style_list_).measure_text_extent_utf8(style_name(style), style_font);
+            style_need = std::max(style_need, std::ceil(extent.logical_size.width) + list_allowance);
+        }
+        const Size ok_wanted = (*ok_button_).measure(unbounded);
+        const Size cancel_wanted = (*cancel_button_).measure(unbounded);
+        const Size apply_wanted = (*apply_button_).measure(unbounded);
+        ok_width = std::max(ok_width, std::ceil(ok_wanted.width));
+        cancel_width = std::max(cancel_width, std::ceil(cancel_wanted.width));
+        apply_width = std::max(apply_width, std::ceil(apply_wanted.width));
+        button_row = std::max({button_row, std::ceil(ok_wanted.height), std::ceil(cancel_wanted.height),
+                               std::ceil(apply_wanted.height)});
+    }
+    const bool apply_shown = show_apply.read();
+    const double button_gap_scaled = button_gap * scale;
+    double buttons_need = ok_width + button_gap_scaled + cancel_width;
+    if (apply_shown) buttons_need += button_gap_scaled + apply_width;
+    const double columns_need = face_need + gap + style_need + gap + size_need;
+    const double preferred_width = std::max({dialog_width * scale, margin * 2.0 + columns_need,
+                                             margin * 2.0 + buttons_need, margin * 2.0 + title_need});
+
+    // The columns from the left; the font column takes what the others leave.
+    const double inner = std::max(0.0, width - margin * 2.0);
+    const double face_column = std::max(0.0, inner - gap * 2.0 - style_need - size_need);
+    const double style_left = margin + face_column + gap;
+    const double size_left = style_left + style_need + gap;
+    DialogLayout placed{};
+    placed.title = {margin, title_top * scale, inner, title_row};
+    const double caption_top = placed.title.y + title_row + title_caption_gap * scale;
+    placed.face_caption = {margin, caption_top, face_column, caption_row};
+    placed.style_caption = {style_left, caption_top, style_need, caption_row};
+    placed.size_caption = {size_left, caption_top, size_need, caption_row};
+    const double list_top = caption_top + caption_row + caption_list_gap * scale;
+    const double list_row = list_height * scale;
+    const double size_row = size_height * scale;
+    placed.face_list = {margin, list_top, face_column, list_row};
+    placed.style_list = {style_left, list_top, style_need, list_row};
+    placed.size_box = {size_left, list_top, size_need, size_row};
+    const double preview_top = list_top + std::max(list_row, size_row) + list_preview_gap * scale;
+    placed.preview_well = {margin, preview_top, inner, preview_height * scale};
+    const double button_top = preview_top + preview_height * scale + preview_button_gap * scale;
+    // The buttons sit at the bottom right: Apply last, when shown.
+    double right = width - margin;
+    if (apply_shown) {
+        placed.apply = {right - apply_width, button_top, apply_width, button_row};
+        right -= apply_width + button_gap_scaled;
+    }
+    placed.cancel = {right - cancel_width, button_top, cancel_width, button_row};
+    right -= cancel_width + button_gap_scaled;
+    placed.ok = {right - ok_width, button_top, ok_width, button_row};
+    placed.preferred = {preferred_width, button_top + button_row + margin};
+    return placed;
+}
+
 void FontDialog::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
     if (!face_list_) return;
-    set_child_layout(face_caption_, {dialog_margin, caption_top, face_width, caption_height});
-    set_child_layout(style_caption_, {style_left, caption_top, style_width, caption_height});
-    set_child_layout(size_caption_, {size_left, caption_top, size_width, caption_height});
-    set_child_layout(face_list_, {dialog_margin, list_top, face_width, list_height});
-    set_child_layout(style_list_, {style_left, list_top, style_width, list_height});
-    set_child_layout(size_box_, {size_left, list_top, size_width, size_height});
-    // The buttons sit at the bottom right: Apply last, when shown.
-    double right = final_bounds.width - dialog_margin;
-    if (show_apply.read()) {
-        set_child_layout(apply_button_, {right - button_width, button_top, button_width, button_height});
-        right -= button_width + button_gap;
-    }
-    set_child_layout(cancel_button_, {right - button_width, button_top, button_width, button_height});
-    right -= button_width + button_gap;
-    set_child_layout(ok_button_, {right - button_width, button_top, button_width, button_height});
+    const DialogLayout placed = dialog_layout(final_bounds.width);
+    arranged_ = placed;
+    set_child_layout(face_caption_, placed.face_caption);
+    set_child_layout(style_caption_, placed.style_caption);
+    set_child_layout(size_caption_, placed.size_caption);
+    set_child_layout(face_list_, placed.face_list);
+    set_child_layout(style_list_, placed.style_list);
+    set_child_layout(size_box_, placed.size_box);
+    if (show_apply.read()) set_child_layout(apply_button_, placed.apply);
+    set_child_layout(cancel_button_, placed.cancel);
+    set_child_layout(ok_button_, placed.ok);
 }
 
 FontDialog::Parts FontDialog::dialog_parts() const {
     const Rect bounds = client_rectangle();
     const Panel::Parts panel = panel_parts();
+    // The last arrangement's places: painting measures nothing.
+    const DialogLayout& placed = arranged_;
+    const double scale = effective_text_scale();
     Parts record;
     record.scrollable = panel.scrollable;
     record.face = PartGeometry::from_bounds(bounds);
-    const Rect title{dialog_margin, 8.0, std::max(0.0, bounds.width - dialog_margin * 2.0), title_height};
-    record.title = PartGeometry::from_bounds(title);
-    const Rect well{dialog_margin, preview_top, std::max(0.0, bounds.width - dialog_margin * 2.0), preview_height};
+    record.title = PartGeometry::from_bounds(placed.title);
+    const Rect well = placed.preview_well;
     record.preview_well = PartGeometry::from_bounds(well);
-    const Rect text{well.x + 8.0, well.y + 4.0, std::max(0.0, well.width - 16.0),
-                    std::max(0.0, well.height - 8.0)};
+    const Rect text{well.x + 8.0 * scale, well.y + 4.0 * scale, std::max(0.0, well.width - 16.0 * scale),
+                    std::max(0.0, well.height - 8.0 * scale)};
     record.preview_text = PartGeometry::from_bounds(text);
     return record;
 }
@@ -481,7 +621,7 @@ SemanticDescriptor FontDialog::semantic_descriptor() const {
     // the focus and the pointer, so it blocks the rest of the window
     // (modal). Placed in a layout directly it is not modal.
     descriptor.role = SemanticRole::dialog;
-    descriptor.modal = open_;
+    descriptor.modal = presentation_.shown();
     descriptor.name = accessible_name.read().empty() ? "Font" : accessible_name.read();
     const BundledFontFace& face = bundled_faces[face_index(selection_.role)];
     std::string value(face.family);

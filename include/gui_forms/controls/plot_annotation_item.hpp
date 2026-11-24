@@ -18,6 +18,8 @@ namespace gui_forms {
 // (plots::layout_annotations). Plain text (owner ruling 7a). The item
 // draws nothing itself, takes no input, no focus and no space, and
 // publishes no semantic node; the plot reads it.
+// ic: gui_forms::PlotAnnotationItem: generated from include/gui_forms/controls/plot_annotation_item.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API PlotAnnotationItem final : public Control, public PlotAnnotationItemCapabilities<PlotAnnotationItem> {
 public:
     explicit PlotAnnotationItem(StableId stable_id);
@@ -43,8 +45,10 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(text)& cell, std::string& incoming);
     void written(const decltype(text)& cell);
+    // ic: Requires finite(incoming), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(x)& cell, double& incoming);
     void written(const decltype(x)& cell);
+    // ic: Requires finite(incoming), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(y)& cell, double& incoming);
     void written(const decltype(y)& cell);
     // property_codemod end PlotAnnotationItem

@@ -2,14 +2,6 @@
   "about": "Decisions on the restrict and restrict_span candidates that harness/check_const_restrict.py (E3) reports, matched by path, function, outputs and kind. apply: GUI_FORMS_RESTRICT (or the package's STX_<PKG>_RESTRICT) is on the parameters of an internal kernel, under a written overlap rule checked by an overlap assertion in debug and sanitizer builds. keep: restrict stays out, for the reason given.",
   "decisions": [
     {
-      "path": "fuzz/deflate_fuzz.cpp",
-      "function": "encode",
-      "variable": "output",
-      "kind": "restrict_span",
-      "decision": "keep",
-      "reason": "Fuzz harness: the buffers are only passed on to DeflateStream; the stream's own process entries carry the decision."
-    },
-    {
       "path": "include/gui_forms/anatomy/types/anatomy_types.hpp",
       "function": "gui_forms::write_declared_parts",
       "variable": "geometry",
@@ -66,7 +58,7 @@
       "reason": "Restricted parameters on the internal fill_grapheme_parts; the wrapper asserts text, scalars and boundaries pairwise disjoint (separate allocations and the caller's text)."
     },
     {
-      "path": "src/render/text/harfbuzz/harfbuzz_font_engine.cpp",
+      "path": "src/render/text/shaping/text_shape_engine.cpp",
       "function": "gui_forms::render::text::Impl::fill_bounded_runs",
       "variable": "candidates,scalar_scratch,segments,directions,visual",
       "kind": "restrict_span",

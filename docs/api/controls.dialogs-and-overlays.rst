@@ -64,6 +64,8 @@ Related types
 
    * - :cpp:class:`AboutInfo <gui_forms::AboutInfo>`
      - What an AboutDialog shows.
+   * - :cpp:class:`AnchoredOpening <gui_forms::AnchoredOpening>`
+     - One opening of an anchored picker whose layer and content the control keeps between openings (ColorValueEditor, RibbonColorPicker, RibbonGallery): its lease, and the subscription to the picker Popup's closing while the content is lifted into a Popup (empty otherwise).
    * - :cpp:class:`AnchoredOverlayLayerCapabilities <gui_forms::AnchoredOverlayLayerCapabilities>`
      - Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
    * - :cpp:class:`AnchoredOverlayLayerDismissOnClickAwayCapability <gui_forms::AnchoredOverlayLayerDismissOnClickAwayCapability>`
@@ -106,6 +108,8 @@ Related types
      - The chosen color, and before the dialog is shown the one it starts with (Windows Forms' Color; opaque black by default).
    * - :cpp:class:`ColorDialogTitleCapability <gui_forms::ColorDialogTitleCapability>`
      - The dialog's title; empty gives the host's own.
+   * - :cpp:class:`DialogPresentation <gui_forms::DialogPresentation>`
+     - Where a presented control is: closed, shown as an overlay in its owner's window, or shown in a native popup window with its layer still in the owner's window.
    * - :cpp:class:`FileDialogFilterParse <gui_forms::FileDialogFilterParse>`
      - The result of parsing a filter string: the host filters in order, or the first error with no filters.
    * - :cpp:class:`FileDialogOk <gui_forms::FileDialogOk>`
@@ -130,6 +134,10 @@ Related types
      - How a FontDialog closed, and the font it holds then.
    * - :cpp:class:`FontDialogShowApplyCapability <gui_forms::FontDialogShowApplyCapability>`
      - Whether the Apply button is shown.
+   * - :cpp:class:`InputBoxRequest <gui_forms::InputBoxRequest>`
+     - What to ask (Visual Basic's InputBox arguments): the prompt above the field, the title in the caption band (none without one), the field's starting text (DefaultResponse), the placeholder its empty field shows, and its maximum length in bytes (0 for no limit).
+   * - :cpp:class:`InputBoxResult <gui_forms::InputBoxResult>`
+     - The answer: accepted when OK closed the box, with the field's text; not accepted, with empty text, for Cancel, Escape or a box its window revoked (InputBox returns an empty string then).
    * - :cpp:class:`MessageBoxClosed <gui_forms::MessageBoxClosed>`
      - A message box that closed: the button the user chose, as Windows Forms' DialogResult (none for a Yes/No box the host closed without a choice).
    * - :cpp:class:`MessageBoxRefused <gui_forms::MessageBoxRefused>`
@@ -146,6 +154,14 @@ Related types
      - Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
    * - :cpp:class:`ModalLayerClosingEvent <gui_forms::ModalLayerClosingEvent>`
      - The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
+   * - :cpp:class:`OverlayLease <gui_forms::OverlayLease>`
+     - The lease of an overlay a control shows: the token that keeps its layer in the window, the subscription to the lease's revocation, and the focus scope begun for it.
+   * - :cpp:class:`OverlayPresentation <gui_forms::OverlayPresentation>`
+     - Where a popup, drop-down or overlay a control shows stands, with what each phase holds (owner, 2026-11-23: one presentation state instead of a flag beside the pointers and tokens it qualifies): - closed: nothing is held; - opening: ``Held`` is built and its overlay is in the window, and the control is beginning its focus scope, which runs focus and validation handlers; a second open is refused, a close is served; - open: ``Held`` is complete, its scope begun; - closing: ``Held`` is being dismantled; a second open or close is refused until it is closed, so a handler run by the teardown cannot open a second presentation over the first's remains.
+   * - :cpp:class:`PresentationLayer <gui_forms::PresentationLayer>`
+     - The owner's half of a shown owned dialog or callout (FontDialog, TaskDialog, Callout): the layer in the owner's window that holds the presented control (or, for a native presentation, holds the owner's input while the panel is elsewhere), the overlay lease that keeps the layer in that window, the subscription to the lease's revocation, and the focus scope begun in that window.
+   * - :cpp:class:`PresentationPopup <gui_forms::PresentationPopup>`
+     - The native half of a dialog presented in a native popup window (DialogSurface::native_popup): the root in the popup window that holds the panel, the popup's lease, and the subscription to the popup's closing.
    * - :cpp:class:`ProgramIdentity <gui_forms::ProgramIdentity>`
      - The program's identity, as the business card shows it.
    * - :cpp:class:`RibbonToolTipAutoPopDelayCapability <gui_forms::RibbonToolTipAutoPopDelayCapability>`
@@ -198,14 +214,16 @@ Related types
      - Whether the page's expanded information shows (Windows Forms' TaskDialogExpander.Expanded); a view onto the page's expander.
    * - :cpp:class:`TaskDialogExpander <gui_forms::TaskDialogExpander>`
      - Expanded information, shown below the text while expanded.
-   * - :cpp:class:`TaskDialogPage <gui_forms::TaskDialogPage>`
+   * - :cpp:class:`TaskDialogInput <gui_forms::TaskDialogInput>`
      - One page (Windows Forms' TaskDialogPage).
+   * - :cpp:class:`TaskDialogPage <gui_forms::TaskDialogPage>`
+     - A page without buttons gets an OK button.
    * - :cpp:class:`TaskDialogProgressBar <gui_forms::TaskDialogProgressBar>`
      - A progress bar below the text: a value between the bounds, or a marquee.
    * - :cpp:class:`TaskDialogRadioButton <gui_forms::TaskDialogRadioButton>`
      - One radio button; at most one of a page's radio buttons is checked.
    * - :cpp:class:`TaskDialogResult <gui_forms::TaskDialogResult>`
-     - How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
+     - How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box, the radio buttons and the text field (empty without one) at that moment.
    * - :cpp:class:`TaskDialogVerificationCheckedCapability <gui_forms::TaskDialogVerificationCheckedCapability>`
      - The verification check box's state (Windows Forms' TaskDialogVerificationCheckBox.Checked); a view onto the page.
    * - :cpp:class:`ThreadExceptionReport <gui_forms::ThreadExceptionReport>`
@@ -246,6 +264,18 @@ Related types
    .. cpp:member:: std::string copyright
 
    .. cpp:member:: std::string credits
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AnchoredOpening final
+
+   ``#include <gui_forms/controls/overlay_presentation.hpp>`` (:src:`source <include/gui_forms/controls/overlay_presentation.hpp>`)
+
+   One opening of an anchored picker whose layer and content the control keeps between openings (ColorValueEditor, RibbonColorPicker, RibbonGallery): its lease, and the subscription to the picker Popup's closing while the content is lifted into a Popup (empty otherwise).
+
+   .. cpp:member:: OverlayLease lease
+
+   .. cpp:member:: SubscriptionToken popup_closed
 
 .. cpp:namespace:: gui_forms
 
@@ -637,6 +667,81 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: DialogPresentation final
+
+   ``#include <gui_forms/controls/dialog_presentation.hpp>`` (:src:`source <include/gui_forms/controls/dialog_presentation.hpp>`)
+
+   Where a presented control is: closed, shown as an overlay in its owner's window, or shown in a native popup window with its layer still in the owner's window. One record holds every lease, subscription and scope a state needs, so a shown state without its layer, or a popup root without its popup token, cannot be represented; every query reads the state. Closing is two steps, so that no handler sees a half-closed control: take() leaves the record closed at once and hands back what it held, and the caller dismantles that (dismantle, or abandon where nothing may run). Handlers that run while it is dismantled (a focus handler, the lease's own closing) find the control closed already. UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: DialogPresentation() noexcept
+
+   .. cpp:function:: DialogPresentation(DialogPresentation&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool shown() const noexcept
+
+      Whether it is shown (as an overlay or natively).
+
+   .. cpp:function:: NativePopupSurface surface() const noexcept
+
+      native, overlay, or none while closed.
+
+   .. cpp:function:: Control::Ptr layer() const noexcept
+
+      The layer in the owner's window; null while closed.
+
+   .. cpp:function:: Window* popup_window() const noexcept
+
+      While shown natively, the popup window's model and the root in it that holds the panel; null otherwise (and the window null once the popup has closed).
+
+   .. cpp:function:: Control::Ptr popup_root() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static DialogPresentation closed() noexcept
+
+      The named states.
+
+   .. cpp:function:: static DialogPresentation overlay(PresentationLayer owner) noexcept
+
+      Shown as an overlay: the control is in the owner half's layer. The layer must be set.
+
+   .. cpp:function:: static DialogPresentation native(PresentationLayer owner, PresentationPopup popup) noexcept
+
+      Shown natively: the control is in the popup half's root, and the owner half's layer stays in the owner's window. Both must be set.
+
+   .. cpp:function:: bool shown_with(const Control& layer) const noexcept
+
+      Whether it is shown with :cpp:func:`layer <gui_forms::DialogPresentation::layer>`, the layer one show() made: false once a handler closed it, even if it was shown again since.
+
+   .. cpp:function:: bool adopt_scope(const Control& layer, FocusScopeId scope) noexcept
+
+      Records the owner's focus scope once begin_focus_scope returns. False, recording nothing, when the presentation is no longer the one shown with :cpp:func:`layer <gui_forms::DialogPresentation::layer>`: a handler run by begin_focus_scope closed it (and may have shown it again with another layer); the caller then ends ``scope`` itself.
+
+   .. cpp:function:: DialogPresentation take() noexcept
+
+      Leaves this record closed and returns what it held.
+
+   .. cpp:function:: void dismantle(Control& presented, FocusScopeCloseReason reason)
+
+      Dismantles a taken record, leaving it closed: unsubscribes from the lease's and the popup's closing, ends the owner's focus scope in the layer's window with ``reason``, takes ``presented`` out of the layer and out of the popup root, closes the popup and then the overlay, and drops the root and the layer. The caller keeps ``presented`` alive across the call (removing it from its layer may drop its last other reference). Nothing happens for a closed record.
+
+   .. cpp:function:: void dismantle_on_dispose() noexcept
+
+      The same for a disposed control: ends the scope where the window accepts it (a refusal is left to the window, which ends the scope with the overlay), leaves ``presented``'s parent links to its disposal, and never throws.
+
+   .. cpp:function:: void abandon() noexcept
+
+      Closes the leases and drops the subscriptions without ending the scope or touching the tree: for a destructor, where there is no one left to tell and the window ends the scope with the overlay.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FileDialogFilterParse final
 
    ``#include <gui_forms/components/file_dialog_types/file_dialog_types.hpp>`` (:src:`source <include/gui_forms/components/file_dialog_types/file_dialog_types.hpp>`)
@@ -839,6 +944,36 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: InputBoxRequest final
+
+   ``#include <gui_forms/controls/input_box.hpp>`` (:src:`source <include/gui_forms/controls/input_box.hpp>`)
+
+   What to ask (Visual Basic's InputBox arguments): the prompt above the field, the title in the caption band (none without one), the field's starting text (DefaultResponse), the placeholder its empty field shows, and its maximum length in bytes (0 for no limit).
+
+   .. cpp:member:: std::string prompt
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: std::string default_response
+
+   .. cpp:member:: std::string placeholder
+
+   .. cpp:member:: std::size_t maximum_length
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: InputBoxResult final
+
+   ``#include <gui_forms/controls/input_box.hpp>`` (:src:`source <include/gui_forms/controls/input_box.hpp>`)
+
+   The answer: accepted when OK closed the box, with the field's text; not accepted, with empty text, for Cancel, Escape or a box its window revoked (InputBox returns an empty string then).
+
+   .. cpp:member:: bool accepted
+
+   .. cpp:member:: std::string text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: MessageBoxClosed final
 
    ``#include <gui_forms/components/message_box/message_box.hpp>`` (:src:`source <include/gui_forms/components/message_box/message_box.hpp>`)
@@ -986,6 +1121,129 @@ Related types
    .. cpp:member:: bool cancel
 
       Default: ``{false}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: OverlayLease final
+
+   ``#include <gui_forms/controls/overlay_presentation.hpp>`` (:src:`source <include/gui_forms/controls/overlay_presentation.hpp>`)
+
+   The lease of an overlay a control shows: the token that keeps its layer in the window, the subscription to the lease's revocation, and the focus scope begun for it. The scope is empty while the presentation is opening (OverlayPresentation), because beginning it runs focus handlers.
+
+   .. cpp:member:: OverlayToken overlay
+
+   .. cpp:member:: SubscriptionToken overlay_closed
+
+   .. cpp:member:: FocusScopeId scope
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <typename Held> OverlayPresentation final
+
+   ``#include <gui_forms/controls/overlay_presentation.hpp>`` (:src:`source <include/gui_forms/controls/overlay_presentation.hpp>`)
+
+   Where a popup, drop-down or overlay a control shows stands, with what each phase holds (owner, 2026-11-23: one presentation state instead of a flag beside the pointers and tokens it qualifies): - closed: nothing is held; - opening: ``Held`` is built and its overlay is in the window, and the control is beginning its focus scope, which runs focus and validation handlers; a second open is refused, a close is served; - open: ``Held`` is complete, its scope begun; - closing: ``Held`` is being dismantled; a second open or close is refused until it is closed, so a handler run by the teardown cannot open a second presentation over the first's remains. ``Held`` is the owner's record of one presentation (its layer, content, lease and subscriptions); a contradictory combination of those fields and the phase cannot be represented. Each control states which phases its public queries report as open. UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: OverlayPresentation() noexcept
+
+   .. cpp:function:: OverlayPresentation(OverlayPresentation&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool is_closed() const noexcept
+
+      The phase.
+
+   .. cpp:function:: bool is_opening() const noexcept
+
+   .. cpp:function:: bool is_open() const noexcept
+
+   .. cpp:function:: bool is_closing() const noexcept
+
+   .. cpp:function:: bool is_shown() const noexcept
+
+      Opening or open: shown, as the controls' shown and open queries mean it while the scope is being begun.
+
+   .. cpp:function:: const Held* open_state() const noexcept
+
+   .. cpp:function:: const Held* closing_state() const noexcept
+
+   .. cpp:function:: const Held* shown_state() const noexcept
+
+   .. cpp:function:: const Held* held_state() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static OverlayPresentation closed() noexcept
+
+      The named states.
+
+   .. cpp:function:: static OverlayPresentation opening(Held held) noexcept
+
+   .. cpp:function:: static OverlayPresentation open(Held held) noexcept
+
+   .. cpp:function:: Held* opening_state() noexcept
+
+      What the phase holds; null in any other phase.
+
+   .. cpp:function:: Held* open_state() noexcept
+
+   .. cpp:function:: Held* closing_state() noexcept
+
+   .. cpp:function:: Held* shown_state() noexcept
+
+      Opening or open: the record of the presentation that is shown.
+
+   .. cpp:function:: Held* held_state() noexcept
+
+      Any phase but closed: the record, also while it is being dismantled (for the queries that report a closing presentation as still there).
+
+   .. cpp:function:: bool settle_open() noexcept
+
+      Opening becomes open, keeping its record. False, changing nothing, in any other phase (a handler closed the presentation meanwhile).
+
+   .. cpp:function:: bool begin_closing() noexcept
+
+      Opening or open becomes closing, keeping its record for the teardown. False, changing nothing, when closed or closing already.
+
+   .. cpp:function:: void finish_closing() noexcept
+
+      Ends any phase: the record, with whatever leases it still holds, is released (its tokens close and its subscriptions end as they are destroyed).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PresentationLayer final
+
+   ``#include <gui_forms/controls/dialog_presentation.hpp>`` (:src:`source <include/gui_forms/controls/dialog_presentation.hpp>`)
+
+   The owner's half of a shown owned dialog or callout (FontDialog, TaskDialog, Callout): the layer in the owner's window that holds the presented control (or, for a native presentation, holds the owner's input while the panel is elsewhere), the overlay lease that keeps the layer in that window, the subscription to the lease's revocation, and the focus scope begun in that window. The scope is empty from the moment the presentation is installed until begin_focus_scope returns (DialogPresentation::adopt_scope), because beginning it runs focus handlers that may close the presentation again.
+
+   .. cpp:member:: Control::Ptr layer
+
+   .. cpp:member:: OverlayToken overlay
+
+   .. cpp:member:: SubscriptionToken overlay_closed
+
+   .. cpp:member:: FocusScopeId scope
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: PresentationPopup final
+
+   ``#include <gui_forms/controls/dialog_presentation.hpp>`` (:src:`source <include/gui_forms/controls/dialog_presentation.hpp>`)
+
+   The native half of a dialog presented in a native popup window (DialogSurface::native_popup): the root in the popup window that holds the panel, the popup's lease, and the subscription to the popup's closing. The focus scope inside the popup window ends with that window, so it is not kept.
+
+   .. cpp:member:: Control::Ptr root
+
+   .. cpp:member:: NativePopupToken popup
+
+   .. cpp:member:: SubscriptionToken popup_closed
 
 .. cpp:namespace:: gui_forms
 
@@ -1395,6 +1653,8 @@ Related types
 
    .. cpp:member:: PartGeometry text
 
+   .. cpp:member:: PartGeometry input
+
    .. cpp:member:: PartGeometry progress
 
    .. cpp:member:: PartGeometry radio_group
@@ -1515,11 +1775,25 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: TaskDialogInput final
+
+   ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
+
+   One page (Windows Forms' TaskDialogPage). Empty strings leave their part out: no caption row, heading, text, verification check box or footnote. A text field on a page, under its text (the input box's editor): the text it starts with, the placeholder its empty field shows, and its maximum length in bytes (0 for no limit). The field takes focus first and Enter in it clicks the default button.
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: std::string placeholder
+
+   .. cpp:member:: std::size_t maximum_length
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: TaskDialogPage final
 
    ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
-   One page (Windows Forms' TaskDialogPage). Empty strings leave their part out: no caption row, heading, text, verification check box or footnote. A page without buttons gets an OK button. ``default_button`` names the button Enter clicks and that takes focus first; empty names the first. With ``allow_cancel``, Escape closes the dialog as its cancel button would.
+   A page without buttons gets an OK button. ``default_button`` names the button Enter clicks and that takes focus first; empty names the first. With ``allow_cancel``, Escape closes the dialog as its cancel button would.
 
    .. cpp:member:: std::string caption
 
@@ -1554,6 +1828,10 @@ Related types
       Default: ``{TaskDialogIcon::none}``.
 
    .. cpp:member:: stxlib::Optional<TaskDialogProgressBar> progress_bar
+
+   .. cpp:member:: std::optional<TaskDialogInput> input
+
+      std::optional, as for the expander: stxlib::Optional of a record with strings is move-only, and pages are copied.
 
    .. cpp:member:: bool allow_cancel
 
@@ -1599,13 +1877,15 @@ Related types
 
    ``#include <gui_forms/controls/task_dialog.hpp>`` (:src:`source <include/gui_forms/controls/task_dialog.hpp>`)
 
-   How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box and the radio buttons at that moment.
+   How a dialog closed: the button that closed it (the cancel button's ID, or "cancel", for Escape and a dialog revoked by its window), and the state of the verification check box, the radio buttons and the text field (empty without one) at that moment.
 
    .. cpp:member:: std::string button_id
 
    .. cpp:member:: bool verification_checked
 
    .. cpp:member:: std::string radio_button_id
+
+   .. cpp:member:: std::string input_text
 
 .. cpp:namespace:: gui_forms
 
@@ -2078,8 +2358,32 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/controls/input_box.hpp>`` (:src:`source <include/gui_forms/controls/input_box.hpp>`)
+
+.. cpp:function:: TaskDialogPage input_box_page(const InputBoxRequest& request)
+
+   The TaskDialog page of an input box: the caption, the prompt as its text, a TaskDialogInput, OK (the default) and Cancel, and Escape allowed. Throws std::invalid_argument as TaskDialog::set_page does, when it is set.
+
+.. cpp:function:: InputBoxResult input_box_result(const TaskDialogResult& result)
+
+   The answer a closed input box gave.
+
+.. cpp:function:: std::shared_ptr<TaskDialog> show_input_box(const Control::Ptr& owner, const InputBoxRequest& request, StableId stable_id = StableId("input-box"))
+
+   Makes a TaskDialog named ``stable_id`` with the request's page and shows it over ``owner``'s window. Returns the shown dialog, which its layer keeps until it closes, or null when ``owner`` is not attached to a window. Throws std::invalid_argument for text that is not valid UTF-8 or a default response longer than the maximum length.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/controls/modal_layer.hpp>`` (:src:`source <include/gui_forms/controls/modal_layer.hpp>`)
 
 .. cpp:var:: constexpr FrameInterval modal_scrim_fade
 
    The scrim's fade-in as a modal layer opens (roadmap row 2.6). Value: ``std::chrono::milliseconds(150)``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/overlay_presentation.hpp>`` (:src:`source <include/gui_forms/controls/overlay_presentation.hpp>`)
+
+.. cpp:type:: AnchoredPresentation = OverlayPresentation<AnchoredOpening>
+
+   The presentation of such a picker.

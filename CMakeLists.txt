@@ -6,7 +6,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "GUI.Forms supports Apple silicon arm64 only")
     endif()
 endif()
-project(GUIForms VERSION 0.6.0 LANGUAGES C CXX)
+project(GUIForms VERSION 1.0.0 LANGUAGES C CXX)
 
 # The browser target's compiler is the pinned emsdk's clang
 # (cmake/emscripten.cmake checks the release); every other target is LLVM 22.1.
@@ -120,12 +120,22 @@ option(GUI_FORMS_ENABLE_MACOS_HOST "Build the native AppKit host" ${APPLE})
 option(GUI_FORMS_ENABLE_WINDOWS_HOST "Build the native Win32 host" ${WIN32})
 option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
        "Enable bounded transactional DIB frames in the Windows development host" OFF)
-# A-gf-host-03-F6: the GUI_FORMS_WINDOWS_AUTOMATION variable counts only in
-# a program that called host::accept_automation_environment, and only when
-# this is on. CI packages the tree it tested, so it stays on there; the
-# opt-in keeps a shipped program closed to the variable.
-option(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT
-       "Let a Windows program that opts in (host::accept_automation_environment) turn on automation from GUI_FORMS_WINDOWS_AUTOMATION=1" ON)
+# The automation and MCP (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
+# rulings 3 and 17): GUI_FORMS_MCP builds the capability, on by default; a
+# launch with --mcp (or GUI_FORMS_MCP=1) or --mcp-script turns it on for that
+# run. The transport needs STXlib's stx_mcp (the stxlib::mcp target); with
+# GUI_FORMS_MCP on and no such target the configure fails. The test controls
+# (suspend_input) are on in the debug and test presets only. The Windows
+# WM_COPYDATA channel and the X11 --automation flag that came before are
+# retired.
+option(GUI_FORMS_MCP "Build the automation and MCP capability (turned on per launch with --mcp)" ON)
+# A Debug build has them by default; a Release build (every shipped program)
+# only when asked, as the test-cache job of the test configuration does.
+set(_gf_mcp_test_controls_default OFF)
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    set(_gf_mcp_test_controls_default ON)
+endif()
+option(GUI_FORMS_MCP_TEST_CONTROLS "Build the automation's test controls (suspend_input)" ${_gf_mcp_test_controls_default})
 option(GUI_FORMS_ENABLE_LINUX_HOST "Build the native X11 host with the private CPU renderer" OFF)
 option(GUI_FORMS_ENABLE_WAYLAND_PRESENT "Build the Wayland wl_shm presentation path (no Wayland host yet)" OFF)
 # The browser host (owner decisions, 2026-11-15): Emscripten only, through
@@ -134,7 +144,6 @@ option(GUI_FORMS_ENABLE_WEB_HOST "Build the browser host (Emscripten) with the p
 # ADR-004: the Skia painter, the C drawing API and the Win32 host all draw
 # text with the shared text engine (gui_forms_text_engine), which reads
 # fonts, shapes, measures and draws with STXlib and is always built.
-option(GUI_FORMS_BUILD_FUZZERS "Build libFuzzer entry points" OFF)
 option(GUI_FORMS_WARNINGS_AS_ERRORS "Fail the build on any compiler warning in the library and its programs (tools/ci_build.py turns it on)" OFF)
 # Stage FD5: the program that generates a form document's C++ header; the SDK
 # installs it. A cross build has no host to run it on.
@@ -144,15 +153,10 @@ else()
     set(GUI_FORMS_FORM_COMPILER_DEFAULT ON)
 endif()
 option(GUI_FORMS_BUILD_FORM_COMPILER "Build and install the form compiler" ${GUI_FORMS_FORM_COMPILER_DEFAULT})
-option(GUI_FORMS_BUILD_BENCHMARKS "Build measurement harnesses" OFF)
-option(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK "Build the renderer-neutral D1 measurement harness" OFF)
-option(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE "Build the private text shaping diagnostic" OFF)
-option(GUI_FORMS_BUILD_LABEL_LAYOUT_PROBE "Build the fixed Label measurement diagnostic" OFF)
-option(GUI_FORMS_BUILD_TEXT_WORKER_PROBE "Build the private text worker lifecycle proof" OFF)
-option(GUI_FORMS_BUILD_TEXT_PAINT_PROBE "Build the private prepared glyph raster proof" OFF)
-option(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK "Build the shared text engine cost benchmark" OFF)
-option(GUI_FORMS_BUILD_PAINT_PROFILE "Build the Gallery paint workload that the Linux profiling job samples" OFF)
-option(GUI_FORMS_BUILD_BLEND_STUDY "Build the Gallery blend and opaque study workload (tools/blend_study.py)" OFF)
+# MCP G6: generated forms register their documents and bound members for
+# the automation's forms tools (export, validate, apply, revert). Off: a
+# program carries no form document.
+option(GUI_FORMS_FORM_EXPORT "Generated forms register their documents for the automation's forms tools" OFF)
 option(GUI_FORMS_BUILD_PREPARED_TEXT "Build the development prepared-text service" OFF)
 option(GUI_FORMS_BUILD_TEXT_MASKS "Build the development logical text-mask service" OFF)
 option(GUI_FORMS_TEXT_LAYOUT_DIAGNOSTICS "Instrument private text shaping phases" OFF)
@@ -173,16 +177,19 @@ find_package(Threads REQUIRED)
 include(GNUInstallDirs)
 include(cmake/LocalizablePlugin.cmake)
 
-# Windows (the MSYS2 CLANG64 toolchain, a MinGW-w64 target): every executable
-# and DLL this project builds links the LLVM runtimes (libc++, libc++abi,
-# libunwind, compiler-rt) and winpthreads statically, so no build output or
-# program package imports a runtime DLL, and none can import a GCC runtime
-# (libgcc_s, libstdc++). A program is one module (owner, 2026-11-15: every
+# Windows: every executable and DLL this project builds links its C++
+# runtime statically, so no build output or program package imports a
+# runtime DLL. GUI.Forms 1.0 ships x86_64-pc-windows-msvc on STXlib's own
+# runtime (owner, 2026-11-24; cmake/llvm22-windows-msvc-own.cmake): libc++
+# and STXlib's startup and C++ runtime are linked in, and the C library is
+# ucrtbase.dll. A MinGW-w64 build (MINGW, below) still links the LLVM
+# runtimes, winpthreads and the MinGW-w64 CRT statically and never a GCC
+# runtime (libgcc_s, libstdc++). A program is one module (owner, 2026-11-15: every
 # independently delivered program holds exactly one copy of any routine):
 # the C++ libraries are static archives linked into it, so it holds one copy
 # of the runtimes; the C ABI library (cmake/CAbi.cmake) is one module of its
 # own for C and C# programs. tools/package_programs.py rejects a package
-# that imports a GCC or LLVM runtime DLL, or any DLL but the system's.
+# that imports a Microsoft, GCC or LLVM runtime DLL, or any DLL but the system's.
 if(MINGW)
     add_link_options(-static)
 endif()
@@ -249,7 +256,6 @@ include(cmake/Stx.cmake)
 set(STX_FONTPACK_TEST_FONT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
 set(STX_FONTPACK_INSTALL OFF)
 add_subdirectory(stx_fontpack)
-include(cmake/FuzzTargets.cmake)
 
 if(GUI_FORMS_ENABLE_MACOS_HOST AND NOT APPLE)
     message(FATAL_ERROR "GUI_FORMS_ENABLE_MACOS_HOST requires Apple AppKit")
@@ -295,6 +301,28 @@ if(WIN32)
         target_link_libraries(gui_forms_threading PRIVATE winpthread)
     endif()
 endif()
+
+# The allocator of GUI.Forms' own code (include/gui_forms/allocation/
+# library_memory/library_memory.hpp): the library seam over STXlib's
+# allocator and the teardown reserve, in a small static archive of its own,
+# so every GUI.Forms library that allocates through the seam links it
+# without the engine (Core, Audio, and a program that opts in with
+# gui_forms_use_library_allocator), and a program linking several of them
+# holds one copy. Position independent, since the C ABI library holds it.
+# Its declarations keep GUI_FORMS_API (gui_forms/export/
+# application_export.hpp), which adds nothing to a static archive on
+# Windows and default visibility on ELF and Mach-O, where the C ABI
+# library's export list keeps them local.
+add_library(gui_forms_memory STATIC
+    src/core/allocation/library_memory/library_memory.cpp)
+add_library(GUIForms::Memory ALIAS gui_forms_memory)
+set_target_properties(gui_forms_memory PROPERTIES
+    EXPORT_NAME Memory OUTPUT_NAME gui_forms_memory POSITION_INDEPENDENT_CODE ON VISIBILITY_INLINES_HIDDEN YES)
+target_include_directories(gui_forms_memory PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+target_compile_features(gui_forms_memory PUBLIC cxx_std_20)
+target_link_libraries(gui_forms_memory PRIVATE stxlib::boundary stxlib::state)
 
 
 # The archives the Application library holds
@@ -488,6 +516,9 @@ if(GUI_FORMS_STOCK_ICON_GENERATOR)
 else()
     add_executable(gui_forms_stock_icon_generator tools/stock_icon_generator/stock_icon_generator.cpp)
     target_compile_features(gui_forms_stock_icon_generator PRIVATE cxx_std_20)
+    # It reads the SVG folders and writes its output through STXlib's files
+    # (the shield).
+    target_link_libraries(gui_forms_stock_icon_generator PRIVATE stxlib::boundary stxlib::state)
     # Byte-identical to the Python oracle: no fused multiply-adds.
     if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
         target_compile_options(gui_forms_stock_icon_generator PRIVATE -ffp-contract=off)
@@ -515,6 +546,7 @@ add_custom_command(
 
 add_library(gui_forms_core STATIC
     src/core/application/application.cpp
+    src/core/host/session/session_directory.cpp
     src/core/build_profile/build_profile.cpp
     src/core/application/native_popup.cpp
     src/core/application/transient_window.cpp
@@ -567,7 +599,6 @@ add_library(gui_forms_core STATIC
     src/core/theme/part_painting/part_painting.cpp
     src/core/theme/owner_draw/owner_draw.cpp
     src/core/engine/types/engine_types.cpp
-    src/core/engine/engine_math/engine_math.cpp
     src/core/engine/authored_gradient/authored_gradient.cpp
     src/core/engine/engine_expression/engine_expression.cpp
     src/core/engine/primitive_registry/primitive_registry.cpp
@@ -649,6 +680,8 @@ add_library(gui_forms_core STATIC
     src/core/layout/block_flow_solver/block_flow_solver.cpp
     src/core/layout/positioning/positioning.cpp
     src/core/layout/diagnostics/layout_diagnostics.cpp
+    src/core/layout/viewport_fit/viewport_fit.cpp
+    src/core/types/scale_frame/scale_frame.cpp
     src/core/diagnostics/shadow_frames/shadow_frames.cpp
     src/core/diagnostics/blend_study/blend_study.cpp
     src/core/diagnostics/blend_study/count_display_blend.cpp
@@ -656,7 +689,9 @@ add_library(gui_forms_core STATIC
     src/core/metrics/metrics/metrics.cpp
     src/core/metrics/snapshot/metrics_snapshot.cpp
     src/core/visual_inspection/snapshot/visual_inspection_snapshot.cpp
+    src/core/model_inspection/model_inspection.cpp
     src/core/window/inspection/window_visual_inspection.cpp
+    src/core/window/viewport/window_viewport.cpp
     src/core/allocation/statistics/allocation_statistics.cpp
     src/core/resources/image_registry/image_registry.cpp
     src/core/resources/stock_icons/stock_icons.cpp
@@ -713,6 +748,7 @@ add_library(gui_forms_core STATIC
     src/core/form_language/form_loader/form_loader.cpp
     src/core/form_language/form_loader/form_window_loader.cpp
     src/core/form_language/form_editor/form_editor.cpp
+    src/core/form_language/form_export/form_export.cpp
     src/core/form_language/form_generator/form_generator.cpp
     src/core/form_language/form_schema_export/form_schema_export.cpp
     src/core/theme_language/selector/theme_selector.cpp
@@ -777,6 +813,7 @@ add_library(gui_forms_core STATIC
     src/core/thread_records/thread_records_end.cpp
     src/core/dispatcher/window_dispatcher/dispatcher_handle.cpp
     src/core/scheduler/frame_request_token/frame_request_token.cpp
+    src/core/scheduler/display_timing/display_timing.cpp
     src/core/scheduler/request/scheduled_frame_request.cpp
     src/core/surface_root/dispatcher/surface_root_dispatcher.cpp
     src/core/surface_root/surface_root.cpp
@@ -824,12 +861,15 @@ add_library(gui_forms_core STATIC
     src/core/window/command_route/window_command_route.cpp
     src/core/commands/command_route/command_route.cpp
 )
-target_link_libraries(gui_forms_core PUBLIC Threads::Threads GUIForms::Threading stx_zlib::stx_zlib stx_png::stx_png)
+target_link_libraries(gui_forms_core PUBLIC Threads::Threads GUIForms::Threading GUIForms::Memory stx_zlib::stx_zlib
+    stx_png::stx_png)
 if(TARGET gui_forms_stx_refresh)
     add_dependencies(gui_forms_core gui_forms_stx_refresh)
 endif()
-# The interpolation seam's private engine; no stx_conv type is public.
-target_link_libraries(gui_forms_core PRIVATE stx_conv::stx_conv)
+# The interpolation seam's private engine is stxlib::conv (in
+# stxlib::algorithms, linked below; gui_forms_skia's draw_image resampler
+# reaches it through gui_forms_text_engine); no stxlib::conv type is public.
+# stx_conv stays for the 3D scene's surfaces (gui_forms_plot_primitives).
 # rtf_conversion's reader and writer; no stx_rtf2md type is public.
 target_link_libraries(gui_forms_core PRIVATE stx_rtf2md::stx_rtf2md)
 # Hosted content's parent end (include/gui_forms/content/hosted): POSIX
@@ -946,13 +986,13 @@ endif()
 # runs are stxlib::textlayout's (until 2026-11-16 other libraries did this
 # work). Both are in stxlib::algorithms.
 add_library(gui_forms_text_engine STATIC
-    src/render/text/harfbuzz/harfbuzz_font_engine.cpp
-    src/render/text/harfbuzz/bounded_shape_workspace.cpp
-    src/render/text/harfbuzz/reusable_shape_workspace.cpp
+    src/render/text/shaping/text_shape_engine.cpp
+    src/render/text/shaping/bounded_shape_workspace.cpp
+    src/render/text/shaping/reusable_shape_workspace.cpp
     src/render/text/glyph_run/glyph_run_raster.cpp
 )
 target_include_directories(gui_forms_text_engine
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/text/harfbuzz
+    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/src/render/text/shaping
 )
 # The glyph-run rasterizer draws with STXlib's glyph face; PUBLIC because
 # its header carries face_profile_version beside retained coverage.
@@ -967,39 +1007,6 @@ endif()
 set_target_properties(gui_forms_text_engine PROPERTIES
     POSITION_INDEPENDENT_CODE ON)
 
-# Stage F's metrics differential (tools/font_metrics_differential): the
-# bundled engine's measurements of two faces, a GDI oracle on Windows, and
-# the comparison under a mapping's tolerance.
-add_library(gui_forms_font_metrics_differential STATIC
-    tools/font_metrics_differential/differential_inputs.cpp
-    tools/font_metrics_differential/engine_measurement.cpp
-    tools/font_metrics_differential/differential_compare.cpp
-    tools/font_metrics_differential/differential_report.cpp
-    tools/font_metrics_differential/metric_snapshot.cpp
-)
-if(WIN32)
-    target_sources(gui_forms_font_metrics_differential PRIVATE
-        tools/font_metrics_differential/gdi_measurement_windows.cpp)
-    target_link_libraries(gui_forms_font_metrics_differential PRIVATE gdi32)
-else()
-    target_sources(gui_forms_font_metrics_differential PRIVATE
-        tools/font_metrics_differential/gdi_measurement_unavailable.cpp)
-endif()
-target_include_directories(gui_forms_font_metrics_differential
-    PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/tools/font_metrics_differential)
-target_link_libraries(gui_forms_font_metrics_differential
-    PUBLIC gui_forms_core
-    PRIVATE gui_forms_text_engine stxlib::algorithms)
-add_executable(gui_forms_font_metrics_differential_tool
-    tools/font_metrics_differential/font_metrics_differential_main.cpp)
-# The program's import library (a Windows link writes one beside each
-# executable, named after its output) keeps the target's own name, so that it
-# never overwrites the library of the same output name.
-set_target_properties(gui_forms_font_metrics_differential_tool PROPERTIES
-    OUTPUT_NAME gui_forms_font_metrics_differential
-    ARCHIVE_OUTPUT_NAME gui_forms_font_metrics_differential_tool)
-target_link_libraries(gui_forms_font_metrics_differential_tool PRIVATE
-    gui_forms_font_metrics_differential)
 
 if(GUI_FORMS_BUILD_PREPARED_TEXT)
     target_sources(gui_forms_core PRIVATE
@@ -1110,11 +1117,12 @@ target_include_directories(gui_drawing_core PUBLIC
 target_include_directories(gui_drawing_core PRIVATE
     ${CMAKE_CURRENT_BINARY_DIR}/generated/font_substitution)
 target_compile_features(gui_drawing_core PUBLIC cxx_std_20)
-# Drawing paths take the engine's trigonometry (engine_math, built into
-# gui_forms_core; drawing_support.hpp), so every program that links the
-# drawing core links the core too. gui_forms_core builds no drawing source,
-# so the link is one way.
-target_link_libraries(gui_drawing_core PRIVATE gui_forms_core)
+# Drawing replay paints through the core's Painter (drawing_replay.cpp), so
+# every program that links the drawing core links the core too.
+# gui_forms_core builds no drawing source, so the link is one way. Drawing
+# paths take STXlib's trigonometry (stxlib/math.hpp; drawing_support.hpp),
+# in stxlib::algorithms.
+target_link_libraries(gui_drawing_core PRIVATE gui_forms_core stxlib::algorithms)
 # The public include directory it shares holds headers that include STXlib's
 # (stxlib/optional.hpp), so its users get STXlib's include directory too; the
 # link adds nothing, since gui_forms_core already links stxlib::boundary.
@@ -1208,6 +1216,9 @@ target_include_directories(gui_forms_plot_primitives PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_link_libraries(gui_forms_plot_primitives PUBLIC gui_forms_core)
+# The scales' log10 and powers and the colormaps' sRGB curve are STXlib's
+# (stxlib/math.hpp).
+target_link_libraries(gui_forms_plot_primitives PRIVATE stxlib::algorithms)
 # The 3D scene's private renderer and its CONV surfaces (D5); no stx type is
 # public.
 target_link_libraries(gui_forms_plot_primitives PRIVATE stx_raster3d::stx_raster3d stx_conv::stx_conv)
@@ -1219,6 +1230,9 @@ gui_forms_verify_effects(gui_forms_plot_primitives
 
 add_library(gui_forms_controls STATIC
     src/controls/basic/basic_control_rendering.cpp
+    src/controls/form_document_export/form_document_export.cpp
+    src/controls/form_documents/form_documents.cpp
+    src/controls/form_catalog/form_catalog.cpp
     src/controls/connected_controls/connected_controls.cpp
     src/controls/panel/panel.cpp
     src/controls/panel/group_box/group_box.cpp
@@ -1262,6 +1276,9 @@ add_library(gui_forms_controls STATIC
     src/controls/collections/choice_group.cpp
     src/controls/collections/command_bar.cpp
     src/controls/commands/command/command.cpp
+    src/controls/commands/command_directory/command_directory.cpp
+    src/controls/automation/marks/automation_marks.cpp
+    src/controls/automation/tools/automation_tools.cpp
     src/controls/commands/command_binding/command_binding.cpp
     src/controls/rules/rule/rule.cpp
     src/controls/rules/rule_set/rule_set.cpp
@@ -1277,6 +1294,7 @@ add_library(gui_forms_controls STATIC
     src/controls/tool_strip_container/tool_strip_container.cpp
     src/controls/binding_navigator/binding_navigator.cpp
     src/controls/ribbon/ribbon.cpp
+    src/controls/ribbon/ribbon_merge.cpp
     src/controls/ribbon/ribbon_contextual.cpp
     src/controls/ribbon/ribbon_application_menu.cpp
     src/controls/ribbon/ribbon_file_area.cpp
@@ -1303,8 +1321,10 @@ add_library(gui_forms_controls STATIC
     src/controls/data_grid_view/data_grid_view_cells.cpp
     src/controls/data_grid_view/data_grid_view_cells_region.cpp
     src/controls/task_dialog/task_dialog.cpp
+    src/controls/task_dialog/input_box.cpp
     src/controls/frame_chrome/frame_chrome.cpp
     src/controls/notify_icon/notify_icon.cpp
+    src/controls/toast_notification/toast_notification.cpp
     src/controls/file_dialog/file_dialog_support.cpp
     src/controls/file_dialog/file_dialog_types.cpp
     src/controls/open_file_dialog/open_file_dialog.cpp
@@ -1323,6 +1343,7 @@ add_library(gui_forms_controls STATIC
     src/controls/instruments/gauge_base/radial_gauge/radial_gauge.cpp
     src/controls/instruments/seven_segment_display/seven_segment_display.cpp
     src/controls/lookup_combo_box/lookup_combo_box.cpp
+    src/controls/dialog_presentation/dialog_presentation.cpp
     src/controls/modal_layer/modal_layer.cpp
     src/controls/step_indicator/step_indicator.cpp
     src/controls/wizard/wizard.cpp
@@ -1399,6 +1420,9 @@ add_library(gui_forms_controls STATIC
     src/controls/panel/domain_up_down/domain_up_down.cpp
     src/controls/panel/token_box/token_box.cpp
     src/controls/search_field/search_field.cpp
+    src/controls/button_text_box/button_text_box.cpp
+    src/controls/popup_container_box/popup_container_box.cpp
+    src/controls/checked_combo_box/checked_combo_box.cpp
     src/controls/panel/masked_text_box/masked_text_provider/masked_text_provider.cpp
     src/controls/panel/masked_text_box/masked_text_box.cpp
     src/controls/panel/numeric_up_down/numeric_up_down.cpp
@@ -1439,6 +1463,7 @@ add_library(gui_forms_controls STATIC
     src/controls/plots/plot_series_item/plot_series_item_custom.cpp
     src/controls/plots/plot_annotation_item/plot_annotation_item.cpp
     src/controls/plots/plot_view/plot_engine.cpp
+    src/controls/plots/pie_chart/pie_chart.cpp
     src/controls/plots/plot_view/plot_view.cpp
     src/controls/plots/plot_view/plot_view_live.cpp
     src/controls/plots/plot_view/plot_view_links.cpp
@@ -1583,6 +1608,12 @@ install(FILES cmake/GUIFormsForms.cmake DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmak
 include(cmake/GUIFormsThemes.cmake)
 install(FILES cmake/GUIFormsThemes.cmake cmake/GUIFormsThemeEmbed.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+# The ledgers an importer maps Windows Forms names through (controls,
+# members and the recorded behaviour differences), for tools built against
+# the SDK: the WinForms converter in gui_forms_tools generates its member
+# table from them.
+install(FILES manifests/controls.json manifests/members.json manifests/winforms-divergences.json
+        DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/ledgers)
 
 add_library(GUIForms::Core ALIAS gui_forms_core)
 add_library(GUIForms::Controls ALIAS gui_forms_controls)
@@ -1603,7 +1634,8 @@ endif()
 # their static archives links its archive too: it is installed beside them, and GUIFormsConfig
 # imports it as stx_skia::swizzle, the name GUIFormsTargets refers to.
 install(FILES $<TARGET_FILE:stx_skia::swizzle> DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(TARGETS gui_forms_threading gui_forms_core gui_forms_controls gui_drawing_core gui_forms_plot_primitives
+install(TARGETS gui_forms_threading gui_forms_memory gui_forms_core gui_forms_controls gui_drawing_core
+        gui_forms_plot_primitives
         EXPORT GUIFormsTargets
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -1886,6 +1918,13 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     find_library(GUI_FORMS_COREGRAPHICS CoreGraphics REQUIRED)
     find_library(GUI_FORMS_UNIFORMTYPEIDENTIFIERS UniformTypeIdentifiers REQUIRED)
     find_library(GUI_FORMS_COREFOUNDATION CoreFoundation REQUIRED)
+    # Desktop notifications (UNUserNotificationCenter), which a
+    # high-integrity build does not compile or link (cmake/HighIntegrity.cmake).
+    set(_gf_user_notifications "")
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
+        find_library(GUI_FORMS_USERNOTIFICATIONS UserNotifications REQUIRED)
+        set(_gf_user_notifications ${GUI_FORMS_USERNOTIFICATIONS})
+    endif()
     add_library(gui_forms_host_macos STATIC
         src/surface/macos/application/macos_host.mm
         src/surface/macos/application/macos_application_run.mm
@@ -1917,6 +1956,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
     # not read (cmake/HighIntegrity.cmake).
     if(NOT GUI_FORMS_HIGH_INTEGRITY)
         target_sources(gui_forms_host_macos PRIVATE src/surface/macos/locale/macos_locale.cpp)
+        target_sources(gui_forms_host_macos PRIVATE src/surface/macos/services/appkit_desktop_notifications.mm)
     endif()
     target_include_directories(gui_forms_host_macos PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/src/host/macos
@@ -1928,6 +1968,7 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
                 ${GUI_FORMS_COREGRAPHICS}
                 ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS}
                 ${GUI_FORMS_COREFOUNDATION}
+                ${_gf_user_notifications}
     )
 
     # The Application library (gui_forms_application_library above): the
@@ -1958,7 +1999,8 @@ if(GUI_FORMS_ENABLE_MACOS_HOST)
         list(APPEND _gf_application_archives gui_forms_text_engine)
     endif()
     set(GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES ${GUI_FORMS_APPKIT} ${GUI_FORMS_QUARTZCORE} ${GUI_FORMS_IOSURFACE}
-        ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION})
+        ${GUI_FORMS_COREGRAPHICS} ${GUI_FORMS_UNIFORMTYPEIDENTIFIERS} ${GUI_FORMS_COREFOUNDATION}
+        ${_gf_user_notifications})
     gui_forms_application_library(gui_forms_application
         ARCHIVES ${_gf_application_archives}
         LIBRARIES ${_gf_application_libraries} ${GUI_FORMS_APPLICATION_SYSTEM_LIBRARIES})
@@ -1987,6 +2029,7 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/surface/linux/application/x11_shm_present.cpp
         src/surface/linux/application/x11_present_direct.cpp
         src/host/linux/settings/xsettings_parse.cpp
+        src/host/linux/frame_sync/x11_frame_sync.cpp
         src/host/linux/locale/strftime_date_pattern.cpp
         src/host/linux/application/linux_input_rules.cpp
         src/surface/linux/settings/xsettings_watch.cpp
@@ -1996,6 +2039,8 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
         src/surface/linux/services/x11_tray_icons.cpp
         # XDND drops: not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
         $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/surface/linux/services/linux_drag_drop.cpp>
+        # Desktop notifications (D-Bus): not compiled in a high-integrity build.
+        $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/surface/linux/services/linux_desktop_notifications.cpp>
         src/surface/linux/services/linux_dialogs.cpp
         src/surface/linux/compositor/x11_compositor.cpp)
     # The environment's POSIX locale (LC_ALL, LC_TIME, LANG), which a
@@ -2020,9 +2065,12 @@ if(GUI_FORMS_ENABLE_LINUX_HOST)
     endif()
     # Audit G4/N67: MIT-SHM presentation where libXext is present; without
     # it every present uses XPutImage.
+    # The compositor's frame timings (_NET_WM_FRAME_TIMINGS) need XSync
+    # counters, also in libXext; without it the window offers no
+    # _NET_WM_SYNC_REQUEST and keeps Present's and RandR's timing.
     if(TARGET X11::Xext)
         target_link_libraries(gui_forms_host_linux PUBLIC X11::Xext)
-        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1)
+        target_compile_definitions(gui_forms_host_linux PRIVATE GUI_FORMS_HAVE_XSHM=1 GUI_FORMS_HAVE_XSYNC=1)
     endif()
     # The X11 direct presentation path (docs/user/presentation.md): MIT-SHM
     # pixmaps presented with the Present extension, where libXpresent and
@@ -2161,10 +2209,16 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
         src/surface/windows/accessibility/windows_text_automation.cpp
         src/surface/windows/services/windows_clipboard_image.cpp
         src/surface/windows/services/windows_notify_icons.cpp
+        src/surface/windows/services/windows_drag_drop.cpp
+        # Toast notifications: not compiled in a high-integrity build.
+        $<$<NOT:$<BOOL:${GUI_FORMS_HIGH_INTEGRITY}>>:src/surface/windows/services/windows_toast_notifications.cpp>
         src/surface/windows/locale/windows_date_pattern.cpp
         src/surface/windows/locale/windows_locale.cpp
         src/surface/windows/paint_endpoint/windows_compatibility_paint_endpoint.cpp
         src/surface/windows/compositor/windows_compositor.cpp
+        src/surface/windows/display/windows_vblank_clock.cpp
+        src/surface/windows/input/windows_direct_manipulation.cpp
+        src/host/windows/input/windows_manipulation_rules.cpp
     )
     target_include_directories(gui_forms_windows_host_objects PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/host/windows)
     target_compile_definitions(gui_forms_windows_host_objects PRIVATE ${GUI_FORMS_WINDOWS_DEFINITIONS})
@@ -2181,9 +2235,6 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     target_compile_definitions(gui_forms_host_windows PRIVATE
         ${GUI_FORMS_WINDOWS_DEFINITIONS}
     )
-    if(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
-        target_compile_definitions(gui_forms_host_windows PRIVATE GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT=1)
-    endif()
     if(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB)
         target_sources(gui_forms_host_windows PRIVATE
             $<TARGET_OBJECTS:gui_forms_dib_frame_store_objects>)
@@ -2231,12 +2282,45 @@ if(GUI_FORMS_ENABLE_WINDOWS_HOST)
     # is part of the C ABI library on Windows (one module, owner decision
     # 2026-11-15, "Fold it in"): cmake/CAbi.cmake compiles it with the
     # library's objects and exports its Win32 names.
-    add_executable(gui_forms_windows_probe
-        tools/windows_automation_probe.cpp
-    )
-    target_compile_definitions(gui_forms_windows_probe PRIVATE
-        ${GUI_FORMS_WINDOWS_DEFINITIONS}
-    )
+endif()
+
+# The automation core (src/controls/automation; stage G1) in the controls
+# library, and its run and MCP transport (src/runtime/automation; stage G2)
+# in the Application library of every desktop host.
+if(GUI_FORMS_MCP)
+    target_sources(gui_forms_controls PRIVATE
+        src/controls/automation/control/automation_control.cpp
+        src/controls/automation/core/automation_arguments.cpp
+        src/controls/automation/core/automation_outline.cpp
+        src/controls/automation/core/automation_input.cpp
+        src/controls/automation/core/automation_reads.cpp
+        src/controls/automation/core/automation_core.cpp
+        src/controls/automation/model_extensions/model_form_tools.cpp
+        src/controls/automation/model_extensions/model_inspect_sections.cpp
+        src/controls/automation/presenter/stock_presenter.cpp)
+    target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP=1)
+    if(GUI_FORMS_MCP_TEST_CONTROLS)
+        target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP_TEST_CONTROLS=1)
+    endif()
+    if(TARGET gui_forms_application AND NOT GUI_FORMS_HIGH_INTEGRITY)
+        target_sources(gui_forms_application PRIVATE
+            src/runtime/automation/automation_run.cpp
+            src/runtime/automation/automation_script.cpp
+            src/runtime/automation/mcp_transport.cpp)
+        target_compile_definitions(gui_forms_application PRIVATE GUI_FORMS_MCP_BUILT=1)
+        if(TARGET stxlib::mcp)
+            target_link_libraries(gui_forms_application PRIVATE stxlib::mcp)
+            target_compile_definitions(gui_forms_application PRIVATE GUI_FORMS_MCP_TRANSPORT=1)
+        else()
+            # MCP on with no transport would configure a program whose --mcp
+            # only reports that it has none (cp37: the stx package exported no
+            # stxlib::mcp, and no build said so). A build that wants no MCP
+            # turns GUI_FORMS_MCP off (high-integrity builds have it off).
+            message(FATAL_ERROR "GUI_FORMS_MCP is on but STXlib's stxlib::mcp target was not found; "
+                                "build stx with stxlib::mcp exported (stx cmake/Stxlib.cmake) or configure "
+                                "with -DGUI_FORMS_MCP=OFF")
+        endif()
+    endif()
 endif()
 
 # Every archive the Application library holds
@@ -2298,6 +2382,12 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         src/controls/gallery/pages/industrial-surfaces.cpp
         src/controls/gallery/pages/node-graphs.cpp
         src/controls/gallery/pages/composite-controls.cpp
+        src/controls/gallery/pages/lookups-and-pickers.cpp
+        src/controls/gallery/pages/media-and-motion.cpp
+        src/controls/gallery/pages/navigation-patterns.cpp
+        src/controls/gallery/pages/dashboard-pieces.cpp
+        src/controls/gallery/pages/workspaces-and-themes.cpp
+        src/controls/gallery/pages/ui-templates.cpp
     )
     add_library(gui_forms_gallery_model STATIC
         src/controls/gallery_controls.cpp
@@ -2308,6 +2398,25 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         demo/gallery_instrument.cpp
         demo/gallery_parts.cpp
     )
+    # The page header's Source button (src/controls/gallery/page_sources.hpp):
+    # the page builders, the shared page parts and the page documents,
+    # embedded at build time by cmake/GalleryPageSources.cmake into an
+    # include beside the generated forms; only gallery_pages.cpp reads it.
+    file(GLOB gui_forms_gallery_embedded_sources CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/controls/gallery/pages/*.cpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/controls/gallery/pages/demo_parts.hpp"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/pages/*.form"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/pages/templates/*.form"
+        "${CMAKE_CURRENT_SOURCE_DIR}/demo/gallery_form_pages.form")
+    set(gui_forms_gallery_page_sources_include "${CMAKE_CURRENT_BINARY_DIR}/gui_forms_forms/gallery_page_sources.inc")
+    add_custom_command(OUTPUT "${gui_forms_gallery_page_sources_include}"
+        COMMAND "${CMAKE_COMMAND}" "-DROOT=${CMAKE_CURRENT_SOURCE_DIR}"
+                "-DOUTPUT=${gui_forms_gallery_page_sources_include}"
+                -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GalleryPageSources.cmake"
+        DEPENDS ${gui_forms_gallery_embedded_sources} "${CMAKE_CURRENT_SOURCE_DIR}/cmake/GalleryPageSources.cmake"
+        COMMENT "Embedding the Gallery page sources for the Source button"
+        VERBATIM)
+    target_sources(gui_forms_gallery_model PRIVATE "${gui_forms_gallery_page_sources_include}")
     target_include_directories(gui_forms_gallery_model PUBLIC
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/demo>
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/src/controls>
@@ -2321,6 +2430,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
     # GUIForms::Application and a headless test with GUIForms::Controls, so a
     # process holds one engine (the SDK's linking rule).
     target_link_libraries(gui_forms_gallery_model PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+    # The timer page's easing calls STXlib's cosine (stxlib/math.hpp).
+    target_link_libraries(gui_forms_gallery_model PRIVATE stxlib::algorithms)
     # The lab and demonstration controls its pages show (audit F9).
     # Installed, the model names GUIForms::Lab (GUI_FORMS_INSTALL_LAB) and
     # GUIForms::DemoControls (installed beside it).
@@ -2473,6 +2584,20 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL OR GUI_FORMS_BUILD_GALLERY)
         COMPOSITES
             "demo/composites/toggle-pill.control,gui_forms::gallery::composites::TogglePill,toggle_pill_control.hpp"
             "demo/composites/card-with-action.control,gui_forms::gallery::composites::CardWithAction,card_with_action_control.hpp")
+    # The ui-templates page's four starting screens, one document class
+    # each, placed on the page whole.
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/templates/template-sign-in.form
+        CLASS TemplateSignInDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ui-templates.cpp)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/templates/template-settings.form
+        CLASS TemplateSettingsDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ui-templates.cpp)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/templates/template-record.form
+        CLASS TemplateRecordDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ui-templates.cpp)
+    gui_forms_add_form(gui_forms_gallery_model demo/pages/templates/template-dashboard.form
+        CLASS TemplateDashboardDocument NAMESPACE gui_forms::gallery::pages
+        USED_BY src/controls/gallery/pages/ui-templates.cpp)
     # The Gallery's project theme (owner rulings of 2026-11-04): the forms
     # name roles by class; the theme gives the roles their look.
     gui_forms_add_theme(gui_forms_gallery_model demo/themes/gallery CHECK
@@ -2603,6 +2728,34 @@ if(GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_process_control_model PUBLIC
         gui_forms_controls)
 
+    # The data-workbench demonstrator (owner, 2026-11-22; the DevExpress
+    # survey's grid takes): fifty thousand orders on a virtual DataGridView
+    # with a find panel, a column chooser, layouts, summaries and a CRM
+    # dashboard (demo/data_workbench/data_workbench.hpp).
+    add_library(gui_forms_data_workbench_model STATIC
+        demo/data_workbench/data_workbench.cpp
+    )
+    target_include_directories(gui_forms_data_workbench_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo/data_workbench
+    )
+    target_link_libraries(gui_forms_data_workbench_model PUBLIC
+        gui_forms_controls)
+
+    # The touch start demonstrator (owner, 2026-11-21; TC-touch): a panning
+    # surface of live tiles whose input runs through the touch seams
+    # (demo/touch_start/touch_start.hpp, touch_input.hpp).
+    add_library(gui_forms_touch_start_model STATIC
+        demo/touch_start/touch_input.cpp
+        demo/touch_start/touch_start.cpp
+    )
+    target_include_directories(gui_forms_touch_start_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo/touch_start
+    )
+    target_link_libraries(gui_forms_touch_start_model PUBLIC
+        gui_forms_controls)
+
     add_library(gui_forms_custom_chrome_lab_model STATIC
         demo/custom_chrome_lab.cpp
     )
@@ -2611,6 +2764,47 @@ if(GUI_FORMS_BUILD_GALLERY)
     )
     target_link_libraries(gui_forms_custom_chrome_lab_model PUBLIC
         gui_forms_controls gui_forms_demo_controls)
+
+    # The code-zoom demonstrator (owner, 2026-11-22): one of GUI.Forms' own
+    # C++ sources, embedded at build time and highlighted
+    # (stxlib/syntax.hpp), zoomed from a minimap to a few
+    # characters with every frame's text rasterized at its true size
+    # (demo/code_zoom/code_zoom.hpp). GUI_FORMS_CODE_ZOOM_SOURCE names the
+    # file, relative to this tree.
+    set(GUI_FORMS_CODE_ZOOM_SOURCE "src/controls/instruments/sparkline/sparkline.cpp" CACHE STRING
+        "The GUI.Forms source the code-zoom demonstrator shows, relative to the source tree")
+    set(_gf_code_zoom_embedded ${CMAKE_CURRENT_BINARY_DIR}/generated/code_zoom/code_zoom_embedded_source.inc)
+    add_custom_command(
+        OUTPUT ${_gf_code_zoom_embedded}
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_CURRENT_BINARY_DIR}/generated/code_zoom
+        COMMAND ${CMAKE_COMMAND}
+            -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/${GUI_FORMS_CODE_ZOOM_SOURCE}
+            -DNAME=${GUI_FORMS_CODE_ZOOM_SOURCE}
+            -DOUTPUT=${_gf_code_zoom_embedded}
+            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_text_file.cmake
+        DEPENDS
+            ${CMAKE_CURRENT_SOURCE_DIR}/${GUI_FORMS_CODE_ZOOM_SOURCE}
+            ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_text_file.cmake
+        COMMENT "Embedding the code-zoom demonstrator's source"
+        VERBATIM)
+    add_library(gui_forms_code_zoom_model STATIC
+        demo/code_zoom/zoom_model.cpp
+        demo/code_zoom/code_bench.cpp
+        demo/code_zoom/code_sheet.cpp
+        demo/code_zoom/code_zoom.cpp
+        ${_gf_code_zoom_embedded}
+    )
+    target_include_directories(gui_forms_code_zoom_model PUBLIC
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo
+        ${CMAKE_CURRENT_SOURCE_DIR}/demo/code_zoom
+    )
+    target_include_directories(gui_forms_code_zoom_model PRIVATE
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/code_zoom)
+    # The sheet's highlighter is stxlib::syntax (stxlib/syntax.hpp), which
+    # needs an STXlib pin that carries it (STXlib claude/wizardly-nobel-2fdd86
+    # fe53940 or later).
+    target_link_libraries(gui_forms_code_zoom_model PUBLIC
+        gui_forms_controls stxlib::algorithms)
 
     add_library(gui_forms_typography_scale_lab_model STATIC
         demo/typography_scale_lab.cpp
@@ -2697,6 +2891,46 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Process Control"
         )
 
+        add_executable(gui_forms_data_workbench MACOSX_BUNDLE
+            src/host/macos/data_workbench_main.mm
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_data_workbench PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_data_workbench PRIVATE
+            gui_forms_data_workbench_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_data_workbench PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Data Workbench"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.data-workbench"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Data Workbench"
+        )
+
+        # The touch start demonstrator; its headless capture draws through
+        # OffscreenRaster too.
+        add_executable(gui_forms_touch_start MACOSX_BUNDLE
+            src/host/macos/touch_start_main.mm
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_touch_start PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_touch_start PRIVATE
+            gui_forms_touch_start_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_touch_start PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Touch Start"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.touch-start"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Touch Start"
+        )
+
         add_executable(gui_forms_vsync_lab MACOSX_BUNDLE
             src/host/macos/vsync_lab_main.mm
             ${GUI_FORMS_PROGRAM_FONT_NOTICES}
@@ -2712,6 +2946,27 @@ if(GUI_FORMS_BUILD_GALLERY)
             MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
             MACOSX_BUNDLE_BUNDLE_VERSION "1"
             OUTPUT_NAME "GUI.Forms VSync + Waterfall Lab"
+        )
+
+        # The code-zoom demonstrator; --headless --capture and --bench draw
+        # through OffscreenRaster, as the Gallery's capture does.
+        add_executable(gui_forms_code_zoom MACOSX_BUNDLE
+            src/host/macos/code_zoom_main.mm
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+            ${GUI_FORMS_PROGRAM_FONT_NOTICES}
+        )
+        target_compile_options(gui_forms_code_zoom PRIVATE -fobjc-arc)
+        target_link_libraries(gui_forms_code_zoom PRIVATE
+            gui_forms_code_zoom_model
+            gui_forms_host_macos
+        )
+        set_target_properties(gui_forms_code_zoom PROPERTIES
+            MACOSX_BUNDLE_BUNDLE_NAME "GUI.Forms Code Zoom"
+            MACOSX_BUNDLE_GUI_IDENTIFIER "local.guiforms.code-zoom"
+            MACOSX_BUNDLE_SHORT_VERSION_STRING "${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}"
+            MACOSX_BUNDLE_BUNDLE_VERSION "1"
+            OUTPUT_NAME "GUI.Forms Code Zoom"
         )
 
         add_executable(gui_forms_visual_inspector_lab MACOSX_BUNDLE
@@ -2878,8 +3133,47 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "GUI.Forms Process Control"
         )
 
+        add_executable(gui_forms_code_zoom_windows
+            src/host/windows/code_zoom_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_code_zoom_windows PRIVATE
+            gui_forms_code_zoom_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_code_zoom_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Code Zoom"
+        )
+
+        add_executable(gui_forms_data_workbench_windows
+            src/host/windows/data_workbench_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_data_workbench_windows PRIVATE
+            gui_forms_data_workbench_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_data_workbench_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Data Workbench"
+        )
+
+        add_executable(gui_forms_touch_start_windows
+            src/host/windows/touch_start_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_touch_start_windows PRIVATE
+            gui_forms_touch_start_model
+            gui_forms_host_windows
+        )
+        set_target_properties(gui_forms_touch_start_windows PROPERTIES
+            OUTPUT_NAME "GUI.Forms Touch Start"
+        )
+
         # The Gallery under Application::run, so menus open in Popup
-        # windows (tools/menu_probe.py drives it).
+        # windows (gui_forms_tests tools/menu_probe.py drives it).
         # Application::run is built in (not the shared application
         # library), since the Gallery model links the static controls.
         add_executable(gui_forms_menu_probe_windows
@@ -2994,7 +3288,7 @@ if(GUI_FORMS_BUILD_GALLERY)
         # The Gallery and the labs carry GUI_FORMS_PROGRAM_FONT_NOTICES beside
         # them; the staging at the end of this file copies them.
         find_program(GUI_FORMS_WINDOWS_OBJDUMP
-            NAMES x86_64-w64-mingw32-objdump
+            NAMES llvm-objdump x86_64-w64-mingw32-objdump
             NO_CMAKE_FIND_ROOT_PATH
         )
         if(GUI_FORMS_WINDOWS_OBJDUMP)
@@ -3022,7 +3316,7 @@ if(GUI_FORMS_BUILD_GALLERY)
                         WINE_BINARY=${GUI_FORMS_WINE_EXECUTABLE}
                         ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_windows_wine_smoke.sh
                         ${CMAKE_CURRENT_BINARY_DIR}
-                    DEPENDS gui_forms_gallery_windows gui_forms_windows_probe
+                    DEPENDS gui_forms_gallery_windows
                     USES_TERMINAL
                     VERBATIM
                 )
@@ -3031,7 +3325,7 @@ if(GUI_FORMS_BUILD_GALLERY)
                         WINE_BINARY=${GUI_FORMS_WINE_EXECUTABLE}
                         ${CMAKE_CURRENT_SOURCE_DIR}/tools/run_windows_gallery_services_smoke.sh
                         ${CMAKE_CURRENT_BINARY_DIR}
-                    DEPENDS gui_forms_gallery_windows gui_forms_windows_probe
+                    DEPENDS gui_forms_gallery_windows
                     USES_TERMINAL
                     VERBATIM
                 )
@@ -3066,6 +3360,32 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "gui-forms-process-control"
         )
 
+        add_executable(gui_forms_data_workbench_linux
+            src/host/linux/data_workbench_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_data_workbench_linux PRIVATE
+            gui_forms_data_workbench_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_data_workbench_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-data-workbench"
+        )
+
+        add_executable(gui_forms_touch_start_linux
+            src/host/linux/touch_start_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_touch_start_linux PRIVATE
+            gui_forms_touch_start_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_touch_start_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-touch-start"
+        )
+
         add_executable(gui_forms_compositor_lab_linux
             src/host/linux/compositor_lab_main.cpp
         )
@@ -3077,6 +3397,19 @@ if(GUI_FORMS_BUILD_GALLERY)
             OUTPUT_NAME "gui-forms-compositor-lab"
         )
 
+        add_executable(gui_forms_code_zoom_linux
+            src/host/linux/code_zoom_main.cpp
+            src/runtime/offscreen/offscreen_raster_create.cpp
+            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>
+        )
+        target_link_libraries(gui_forms_code_zoom_linux PRIVATE
+            gui_forms_code_zoom_model
+            gui_forms_host_linux
+        )
+        set_target_properties(gui_forms_code_zoom_linux PROPERTIES
+            OUTPUT_NAME "gui-forms-code-zoom"
+        )
+
         # The X11 host reads its faces from the embedded pack; the font
         # licences are staged in fonts/ at the end of this file.
     endif()
@@ -3084,105 +3417,6 @@ if(GUI_FORMS_BUILD_GALLERY)
     include(demo/correspondence/correspondence.cmake)
 endif()
 
-if(GUI_FORMS_BUILD_TEXT_LAYOUT_PROBE)
-    add_executable(gui_forms_text_layout_probe benchmarks/text_layout_probe.cpp)
-    target_link_libraries(gui_forms_text_layout_probe PRIVATE gui_forms_text_engine)
-endif()
-
-if(GUI_FORMS_BUILD_LABEL_LAYOUT_PROBE)
-    add_executable(gui_forms_label_layout_probe benchmarks/label_layout_probe.cpp)
-    target_link_libraries(gui_forms_label_layout_probe PRIVATE gui_forms_controls gui_forms_text_engine)
-endif()
-
-if(GUI_FORMS_BUILD_TEXT_WORKER_PROBE)
-    find_package(Threads REQUIRED)
-    add_executable(gui_forms_text_worker_probe
-        benchmarks/text_worker_probe.cpp
-        src/render/text/worker_probe/worker_probe.cpp)
-    target_include_directories(gui_forms_text_worker_probe PRIVATE src/render/text/worker_probe)
-    target_link_libraries(gui_forms_text_worker_probe PRIVATE gui_forms_text_engine Threads::Threads)
-endif()
-
-if(GUI_FORMS_BUILD_TEXT_PAINT_PROBE)
-    find_package(Threads REQUIRED)
-    add_executable(gui_forms_text_paint_probe
-        benchmarks/text_paint_probe.cpp
-        src/render/text/paint_probe/paint_probe.cpp
-        src/render/text/worker_probe/worker_probe.cpp)
-    target_include_directories(gui_forms_text_paint_probe PRIVATE
-        src/render/text/paint_probe src/render/text/worker_probe)
-    target_link_libraries(gui_forms_text_paint_probe PRIVATE gui_forms_text_engine stxlib::algorithms Threads::Threads)
-endif()
-
-if(GUI_FORMS_BUILD_TEXT_ENGINE_BENCHMARK)
-    add_executable(gui_forms_text_engine_benchmark benchmarks/text_engine_benchmark.cpp)
-    target_link_libraries(gui_forms_text_engine_benchmark PRIVATE gui_forms_text_engine gui_forms_core)
-endif()
-
-if(GUI_FORMS_BUILD_DOCUMENT_VIEW_BENCHMARK)
-    add_executable(gui_forms_document_view_benchmark benchmarks/document_view_benchmark.cpp)
-    target_link_libraries(gui_forms_document_view_benchmark PRIVATE gui_forms_core)
-endif()
-
-# Phase E, E5: the Gallery painted through the CPU Skia adapter, for
-# .github/workflows/profile-linux.yml to sample (tools/profile_hot_paths.py).
-if(GUI_FORMS_BUILD_PAINT_PROFILE)
-    if(NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
-        message(FATAL_ERROR "The paint profile workload requires Skia and GUI_FORMS_BUILD_GALLERY")
-    endif()
-    add_executable(gui_forms_paint_profile_workload benchmarks/paint_profile_workload.cpp)
-    target_compile_definitions(gui_forms_paint_profile_workload PRIVATE
-        GUI_FORMS_PROFILE_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-    target_link_libraries(gui_forms_paint_profile_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
-endif()
-
-# The blend and opaque study (2026-11-16): the Gallery's blend counters and
-# frame times through the CPU Skia adapter, for tools/blend_study.py.
-if(GUI_FORMS_BUILD_BLEND_STUDY)
-    if(NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
-        message(FATAL_ERROR "The blend study workload requires Skia and GUI_FORMS_BUILD_GALLERY")
-    endif()
-    add_executable(gui_forms_blend_study_workload benchmarks/blend_study_workload.cpp)
-    target_compile_definitions(gui_forms_blend_study_workload PRIVATE
-        GUI_FORMS_BLEND_STUDY_FONT_DIRECTORY="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts")
-    target_link_libraries(gui_forms_blend_study_workload PRIVATE gui_forms_gallery_model gui_forms_skia)
-endif()
-
-# Stage C5: the cost of shadow frames, alone and over a window workload.
-# Built only when asked for.
-add_executable(gui_forms_shadow_frames_benchmark EXCLUDE_FROM_ALL benchmarks/shadow_frames_benchmark.cpp)
-target_link_libraries(gui_forms_shadow_frames_benchmark PRIVATE gui_forms_core)
-
-# IMGUI_IMPLOT_STUDY B.7: the plots package's costs (pyramid build, pan and
-# live frames, scatter thinning at a million points). Built only when asked
-# for; run in Release.
-add_executable(gui_forms_plot_performance_probe EXCLUDE_FROM_ALL benchmarks/plot_performance_probe.cpp)
-target_link_libraries(gui_forms_plot_performance_probe PRIVATE gui_forms_plot_primitives)
-
-# Audit addendum batch d: the per-operation cost of a window of several
-# thousand controls (attach, pointer, focus, layout, paint, inherited reads,
-# bulk clear). Built only when asked for; run in Release.
-add_executable(gui_forms_tree_cost_benchmark EXCLUDE_FROM_ALL benchmarks/tree_cost_benchmark.cpp)
-target_link_libraries(gui_forms_tree_cost_benchmark PRIVATE gui_forms_core)
-
-# APP_WINDOW_RULES_DESIGN K.2: the creation-cost gate (a bare window, a popup
-# and a generated form window; time and allocations against the committed
-# baseline benchmarks/creation/creation_baseline.txt). Built only when asked
-# for; run in Release on the M4.
-if(GUI_FORMS_BUILD_FORM_COMPILER)
-    add_executable(gui_forms_creation_benchmark EXCLUDE_FROM_ALL benchmarks/creation_benchmark.cpp)
-    target_link_libraries(gui_forms_creation_benchmark PRIVATE gui_forms_controls gui_forms_host_headless)
-    target_include_directories(gui_forms_creation_benchmark PRIVATE src/host/headless)
-    gui_forms_add_form(gui_forms_creation_benchmark benchmarks/creation/creation_form.form
-        CLASS CreationSettingsForm NAMESPACE form_generated)
-endif()
-
-# SK2: the time each host spends presenting a frame, which the native jobs
-# measure (.github/workflows/native-platform.yml). Built only when asked for.
-if(TARGET gui_forms_application)
-    add_executable(gui_forms_present_profile_workload EXCLUDE_FROM_ALL benchmarks/present_profile_workload.cpp)
-    target_link_libraries(gui_forms_present_profile_workload PRIVATE gui_forms_application)
-endif()
 
 # D2: the documentation's control previews, one PNG per stock specimen in the
 # windows-professional theme (tools/preview_capture/preview_capture.cpp), run
@@ -3193,124 +3427,6 @@ if(TARGET gui_forms_application AND GUI_FORMS_BUILD_GALLERY)
     target_link_libraries(gui_forms_preview_capture PRIVATE gui_forms_application)
 endif()
 
-if(GUI_FORMS_BUILD_BENCHMARKS)
-    if(NOT APPLE OR NOT TARGET gui_forms_skia OR NOT TARGET gui_forms_gallery_model)
-        message(FATAL_ERROR
-            "The renderer benchmark requires macOS, Skia, and the Gallery model")
-    endif()
-    add_executable(gui_forms_renderer_benchmark
-        benchmarks/renderer_benchmark.cpp
-    )
-    target_compile_definitions(gui_forms_renderer_benchmark PRIVATE
-        GUI_FORMS_BENCH_REGULAR_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids.ttf"
-        GUI_FORMS_BENCH_BOLD_FONT="${CMAKE_CURRENT_SOURCE_DIR}/assets/fonts/PortsmouthRapids-Bold.ttf"
-    )
-    target_link_libraries(gui_forms_renderer_benchmark PRIVATE
-        gui_forms_gallery_model
-        gui_forms_skia
-    )
-    add_custom_target(gui_forms_renderer_boundary_audit
-        COMMAND ${CMAKE_COMMAND}
-            -DCORE_LIBRARY=$<TARGET_FILE:gui_forms_core>
-            -DSKIA_ADAPTER=$<TARGET_FILE:gui_forms_skia>
-            -DBENCHMARK_BINARY=$<TARGET_FILE:gui_forms_renderer_benchmark>
-            -DPUBLIC_INCLUDE_DIRECTORY=${CMAKE_CURRENT_SOURCE_DIR}/include
-            -DSKIA_ARCHIVE=$<TARGET_FILE:stx_skia::stx_skia>
-            -DOUTPUT_FILE=${CMAKE_CURRENT_BINARY_DIR}/renderer-boundary-audit.txt
-            -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/check_renderer_boundaries.cmake
-        DEPENDS gui_forms_renderer_benchmark
-        VERBATIM
-    )
-endif()
-
-
-if(GUI_FORMS_BUILD_FUZZERS)
-    # The codec fuzzers compile stx sources, so they need the stx checkout.
-    if(GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
-        message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS needs the stx source (cmake/Stx.cmake fetches it)")
-    endif()
-    if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        message(FATAL_ERROR "GUI_FORMS_BUILD_FUZZERS currently requires Clang libFuzzer")
-    endif()
-    include(CheckCXXSourceCompiles)
-    set(CMAKE_REQUIRED_FLAGS "-fsanitize=fuzzer")
-    check_cxx_source_compiles(
-        "#include <cstddef>\nextern \"C\" int LLVMFuzzerTestOneInput(const unsigned char*, std::size_t) { return 0; }"
-        GUI_FORMS_HAS_LIBFUZZER_RUNTIME
-    )
-    unset(CMAKE_REQUIRED_FLAGS)
-    # The inflate and PNG decode harnesses are stx's (stx_zlib/fuzz, stx_png/fuzz).
-    set(stx_zlib_dir ${GUI_FORMS_STX_SOURCE_DIR}/stx_zlib)
-    set(stx_png_dir ${GUI_FORMS_STX_SOURCE_DIR}/stx_png)
-    gui_forms_add_libfuzzer_target(inflate
-        SOURCES ${stx_zlib_dir}/fuzz/inflate_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${stx_zlib_dir}/include
-        STANDALONE_DEFINITION STX_ZLIB_FUZZ_STANDALONE)
-    gui_forms_add_libfuzzer_target(inflate_protocol
-        SOURCES fuzz/inflate_protocol_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${stx_zlib_dir}/include)
-    gui_forms_add_libfuzzer_target(deflate
-        SOURCES fuzz/deflate_fuzz.cpp ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/deflate.cpp
-                ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${stx_zlib_dir}/include)
-    gui_forms_add_libfuzzer_target(png_decode
-        SOURCES ${stx_png_dir}/fuzz/png_decode_fuzz.cpp ${stx_png_dir}/src/decoder.cpp ${stx_png_dir}/src/encoder.cpp
-                ${stx_zlib_dir}/src/inflate.cpp ${stx_zlib_dir}/src/deflate.cpp ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${stx_png_dir}/include ${stx_zlib_dir}/include
-        STANDALONE_DEFINITION STX_PNG_FUZZ_STANDALONE)
-    gui_forms_add_libfuzzer_target(png_registry
-        SOURCES fuzz/png_registry_fuzz.cpp src/core/resources/image_registry/image_registry.cpp
-                ${stx_zlib_dir}/src/checksum.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include ${stx_zlib_dir}/include)
-
-    # The theme sheet tokenizer, parser and value reader (stage T3), from
-    # their own sources.
-    gui_forms_add_libfuzzer_target(theme_sheet
-        SOURCES
-            fuzz/theme_sheet_fuzz.cpp
-            src/core/theme_language/source_text/theme_source_text.cpp
-            src/core/theme_language/diagnostics/theme_diagnostics.cpp
-            src/core/theme_language/number/theme_number.cpp
-            src/core/theme_language/tokenizer/theme_tokenizer.cpp
-            src/core/theme_language/syntax_tree/theme_syntax_tree.cpp
-            src/core/theme_language/syntax_tree/theme_sheet_parser.cpp
-            src/core/theme_language/custom_properties/theme_custom_properties.cpp
-            src/core/theme_language/value/theme_value.cpp
-            src/core/theme_language/media/theme_media_query.cpp
-            src/core/engine/engine_expression/engine_expression.cpp
-            src/core/engine/theme_rules/colour_roles.cpp
-            src/core/anatomy/types/anatomy_types.cpp
-            src/core/schema/types/schema_types.cpp
-            src/core/xml/xml_characters/xml_characters.cpp
-            src/core/xml/types/xml_types.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-    # The layout XML reader (DK decision 43), built from its own sources so
-    # the sanitizers cover exactly the reader and writer.
-    gui_forms_add_libfuzzer_target(xml_reader
-        SOURCES fuzz/xml_reader_fuzz.cpp src/core/xml/types/xml_types.cpp src/core/xml/xml_characters/xml_characters.cpp
-                src/core/xml/xml_reader/xml_reader.cpp src/core/xml/xml_writer/xml_writer.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-    # The theme manifest's JSON reader (stage T3, P10), from its own source.
-    gui_forms_add_libfuzzer_target(json_reader
-        SOURCES fuzz/json_reader_fuzz.cpp src/core/json/json_reader/json_reader.cpp
-        INCLUDES ${CMAKE_CURRENT_SOURCE_DIR}/include)
-
-    # Whole subsystems, linked rather than rebuilt (audit N115, I3): the
-    # sanitizers reach into the libraries only when the tree is configured
-    # with them (cmake/FuzzTargets.cmake).
-    gui_forms_add_libfuzzer_target(theme_compile SOURCES fuzz/theme_compile_fuzz.cpp LIBRARIES gui_forms_controls)
-    gui_forms_add_libfuzzer_target(theme_manifest SOURCES fuzz/theme_manifest_fuzz.cpp LIBRARIES gui_forms_core)
-    gui_forms_add_libfuzzer_target(form_document SOURCES fuzz/form_document_fuzz.cpp LIBRARIES gui_forms_controls)
-    gui_forms_add_libfuzzer_target(dock_layout SOURCES fuzz/dock_layout_fuzz.cpp LIBRARIES gui_forms_core)
-    gui_forms_add_libfuzzer_target(clipboard_image SOURCES fuzz/clipboard_image_fuzz.cpp LIBRARIES gui_forms_core)
-    gui_forms_add_libfuzzer_target(rtf_import SOURCES fuzz/rtf_import_fuzz.cpp
-        LIBRARIES gui_forms_core stx_rtf2md::stx_rtf2md)
-    if(TARGET stx_vorbis::stx_vorbis_stb)
-        gui_forms_add_libfuzzer_target(vorbis SOURCES fuzz/vorbis_fuzz.cpp LIBRARIES stx_vorbis::stx_vorbis_stb)
-    endif()
-endif()
 
 # Installed consumers need the notices for the code incorporated in the library.
 if(GUI_FORMS_BUILD_AUDIO)
@@ -3323,7 +3439,7 @@ endif()
 # itself.
 
 if(TARGET gui_forms_application)
-    target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading)
+    target_link_libraries(gui_forms_application PUBLIC GUIForms::Threading GUIForms::Memory)
     # STXlib's state (cmake/Stx.cmake): a static archive since the one-module
     # decision, so the program holds the one allocator, identity issuer and
     # SIMD selection, which the engine's copy of STXlib's static code (the
@@ -3331,6 +3447,28 @@ if(TARGET gui_forms_application)
     # own STXlib code both reach.
     target_link_libraries(gui_forms_application PUBLIC stxlib::boundary stxlib::state)
 endif()
+# The opt-in whole-program allocator (include/gui_forms/allocation/
+# library_memory/library_memory.hpp; owner, 2026-11-22): a program GUI.Forms'
+# projects issue may put all its C++ allocations on STXlib's allocator by
+# compiling src/runtime/program_allocator/program_allocator_replacement.cpp
+# into itself. Never a default, and only for an executable: a shared library
+# or plugin would replace operator new for the process that loads it. The
+# installed package defines the same function (cmake/GUIFormsConfig.cmake.in)
+# over the installed copy of the source. The replacement uses the teardown
+# reserve of GUIForms::Memory, which the function links.
+set(GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/runtime/program_allocator/program_allocator_replacement.cpp")
+function(gui_forms_use_library_allocator target)
+    get_target_property(_gf_type ${target} TYPE)
+    if(NOT _gf_type STREQUAL "EXECUTABLE")
+        message(FATAL_ERROR "gui_forms_use_library_allocator: ${target} is a ${_gf_type}; only a program may "
+                            "replace operator new")
+    endif()
+    target_sources(${target} PRIVATE "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}")
+    target_link_libraries(${target} PRIVATE GUIForms::Memory stxlib::boundary stxlib::state)
+endfunction()
+install(FILES "${GUI_FORMS_PROGRAM_ALLOCATOR_SOURCE}" DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/program_allocator)
+
 # The text masks join the Application library's archives
 # (GUI_FORMS_APPLICATION_ARCHIVES) before the package reads them, so the
 # installed libgui_forms_application.a holds them.
@@ -3402,8 +3540,15 @@ endif()
 # MinGW-w64 CRT (add_link_options(-static) above). Their licences come from
 # the toolchain prefix, the directory above the compiler's bin (the CLANG64
 # tree); the LLVM exception does not require them for embedded runtime code,
-# and they are installed anyway. The MSVC target embeds Microsoft's runtime
-# objects instead, under the Visual Studio licence (Stage B, temporary).
+# and they are installed anyway. The own-runtime MSVC target embeds libc++,
+# whose licence tools/own_runtime.py copies into GUI_FORMS_LIBCXX_PREFIX,
+# and STXlib's runtime, whose notices the stx package installs.
+if(GUI_FORMS_MSVC_RUNTIME STREQUAL "OWN" AND EXISTS "${GUI_FORMS_LIBCXX_PREFIX}/LICENSE.TXT")
+    install(FILES "${GUI_FORMS_LIBCXX_PREFIX}/LICENSE.TXT" DESTINATION ${CMAKE_INSTALL_DATADIR}/licenses/GUIForms
+            RENAME libc++-LICENSE.txt)
+elseif(GUI_FORMS_MSVC_RUNTIME STREQUAL "OWN")
+    message(WARNING "No libc++ licence at ${GUI_FORMS_LIBCXX_PREFIX}/LICENSE.TXT; the installed SDK will lack libc++-LICENSE.txt")
+endif()
 if(MINGW)
     get_filename_component(_gf_toolchain_bin "${CMAKE_CXX_COMPILER}" DIRECTORY)
     get_filename_component(_gf_toolchain_prefix "${_gf_toolchain_bin}" DIRECTORY)
@@ -3432,7 +3577,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 
 
-
 # Programs that carry the font licences share one output directory, so one
 # fonts/ beside them holds the licences and the attribution
 # (GUI_FORMS_PROGRAM_FONT_NOTICES) for the Gallery and its labs, the
@@ -3449,6 +3593,8 @@ set(gui_forms_font_sources)
 foreach(gallery_program IN ITEMS
         gui_forms_gallery_windows
         gui_forms_process_control_windows
+        gui_forms_touch_start_windows
+        gui_forms_data_workbench_windows
         gui_forms_vsync_lab_windows
         gui_forms_visual_inspector_lab_windows
         gui_forms_layered_material_lab_windows
@@ -3458,9 +3604,13 @@ foreach(gallery_program IN ITEMS
         gui_forms_connected_controls_lab_windows
         gui_forms_seam_proximity_lab_windows
         gui_forms_correspondence_windows
+        gui_forms_code_zoom_windows
         gui_forms_gallery_linux
         gui_forms_process_control_linux
-        gui_forms_correspondence_linux)
+        gui_forms_touch_start_linux
+        gui_forms_data_workbench_linux
+        gui_forms_correspondence_linux
+        gui_forms_code_zoom_linux)
     if(TARGET ${gallery_program})
         list(APPEND gui_forms_font_programs ${gallery_program})
         list(APPEND gui_forms_font_sources ${GUI_FORMS_PROGRAM_FONT_NOTICES})
@@ -3518,28 +3668,6 @@ endforeach()
 
 # Every test carries one area label (cmake/TestAreas.cmake, tools/test_areas.json).
 
-# The focus labs (claude/perf-focus-labs, benchmarks/focus_labs): measurement programs,
-# not tests, so no CTest entry. Each checks its rearranged kernels against the library's
-# own for equal output, then times both. composite_lab compiles the compositor's own
-# translation unit; bake_lab links as gui_forms_engine_material_tests does, exec_lab as
-# gui_drawing_skia_tests does. Since the perf fold (cp29) the library carries the
-# rearrangements, so the ratios measure what is left.
-option(GUI_FORMS_BUILD_FOCUS_LABS "Build the benchmarks/focus_labs programs" OFF)
-if(GUI_FORMS_BUILD_FOCUS_LABS)
-    add_executable(focus_composite_lab benchmarks/focus_labs/composite_lab.cpp
-        src/core/text/composite/text_composite.cpp)
-    target_include_directories(focus_composite_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/include
-        ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/core/text/composite)
-    target_compile_features(focus_composite_lab PRIVATE cxx_std_20)
-    add_executable(focus_bake_lab benchmarks/focus_labs/bake_lab.cpp)
-    target_link_libraries(focus_bake_lab PRIVATE gui_forms_controls)
-    if(TARGET gui_drawing_skia)
-        add_executable(focus_exec_lab benchmarks/focus_labs/exec_lab.cpp
-            $<TARGET_OBJECTS:gui_forms_sealed_pages_objects>)
-        target_link_libraries(focus_exec_lab PRIVATE gui_drawing_skia gui_forms_core)
-        target_include_directories(focus_exec_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/tests)
-    endif()
-endif()
 
 # Floating-point contraction. Clang's default fuses a * b + c within an
 # expression where the target has a fused multiply-add, which arm64 always has
@@ -3558,9 +3686,10 @@ endif()
 # Gradient colours are the same either way: they interpolate in linear light
 # in integers (gui_forms/types/linear_light/linear_light.hpp).
 # A few sources keep contraction off in every build, listed with their reasons
-# after the loop below: engine_math, whose stated error bounds assume unfused
-# operations, and the value paths, whose results are numbers (parsed text,
-# layout lengths, theme values, motion samples), not pixels.
+# after the loop below: the value paths, whose results are numbers (parsed
+# text, layout lengths, theme values, motion samples), not pixels. The
+# transcendental functions are STXlib's (stxlib/math.hpp), compiled unfused
+# under STXlib's own flags whatever this option says.
 # A kernel that wants fusion spells it std::fma, so the choice is visible and
 # gives the same bits everywhere. The stx libraries (stx_zlib, stx_png,
 # stx_conv, stx_rtf2md, stx_vorbis) set -ffp-contract=off on their own targets
@@ -3613,8 +3742,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     endforeach()
     # Contraction off in every build, whatever GUI_FORMS_REFERENCE_ARITHMETIC
     # says (each source also carries the Clang pragma; GCC reads only the flag):
-    # - engine_math: its stated error bounds (engine_math.hpp) assume each
-    #   operation rounds on its own;
     # - engine_expression and theme_value: theme values and expressions, the
     #   same text giving the same number on every host;
     # - value_text: a ValueBar's typed value, parsed as the expression engine
@@ -3624,7 +3751,6 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU")
     # - theme_motion_lowering and motion_value: motion parameters and samples,
     #   whose settling decides when an animation ends.
     set_source_files_properties(
-        src/core/engine/engine_math/engine_math.cpp
         src/core/engine/engine_expression/engine_expression.cpp
         src/core/theme_language/value/theme_value.cpp
         src/controls/range_control/value_bar/value_text.cpp

@@ -1,0 +1,63 @@
+# The C ABI's gf_fonts_table (GF_TABLE_FONTS): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_fonts_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_fonts_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_fonts_table {"
+keys = { manifest = "gf_abi::fonts", abi = "GF_TABLE_FONTS" }
+thread = "ui"
+
+[checks]
+path = "src/abi/stable/ic/abi_fonts_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_fonts"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_fonts.cpp"]
+
+[[call]]
+name = "family_id"
+declarations = ["gf_status (GF_CALL* family_id)("]
+kind = "static"
+thread = "ui"
+parameters = { family = "uint32_t*" }
+requires = [
+  { holds = "not_null(family)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "family_id_family" },
+]
+fails = [
+  { failure = "not_found", when = "code: no bundled font family answers that name" },
+]
+
+[[call]]
+name = "family_name"
+declarations = ["gf_status (GF_CALL* family_name)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "not_found", when = "code: no bundled font family has that id" },
+]
+
+[[call]]
+name = "load_family"
+declarations = ["gf_status (GF_CALL* load_family)("]
+kind = "static"
+thread = "ui"
+parameters = { family = "uint32_t*", faces = "gf_app_font_face*", face_count = "uint64_t" }
+requires = [
+  { holds = "not_null(family) and (not_null(faces) or face_count == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "load_family_faces" },
+]
+fails = [
+  { failure = "invalid_argument", when = "code: load_family needs its faces and an output" },
+]
+
+[[call]]
+name = "unload_family"
+declarations = ["gf_status (GF_CALL* unload_family)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "not_found", when = "code: no loaded application font family has that id" },
+]

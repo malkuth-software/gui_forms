@@ -7,6 +7,8 @@
 #include "../panel_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "flags_value_editor_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -21,6 +23,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::flags_value_editor;
 
 using detail::PropertyEditorDropDownLayer;
 
@@ -200,7 +203,7 @@ void FlagsValueEditor::write_view(const decltype(descriptor)&, PropertyEnumDescr
         property.name = "value";
         property.kind = BindingValueKind::enumeration;
         property.enumeration =
-            std::make_shared<const PropertyEnumDescriptor>(incoming);
+            gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(incoming);
         const std::optional<BindingValue> normalized = convert_property_value(BindingValue{value_},
                                                         property);
         if (!normalized) {
@@ -211,7 +214,7 @@ void FlagsValueEditor::write_view(const decltype(descriptor)&, PropertyEnumDescr
     }
     descriptor_ = std::move(incoming);
     if (normalized_value) value_ = std::move(*normalized_value);
-    if (dropped_down_) {
+    if (presentation_.is_open()) {
         close_drop_down();
         open_drop_down();
     }
@@ -228,7 +231,7 @@ void FlagsValueEditor::write_view(const decltype(value)&, PropertyEnumValue inco
     property.name = "value";
     property.kind = BindingValueKind::enumeration;
     property.enumeration =
-        std::make_shared<const PropertyEnumDescriptor>(descriptor_);
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(descriptor_);
     const std::optional<BindingValue> normalized = convert_property_value(BindingValue{std::move(incoming)},
                                                     property);
     if (!normalized) {
@@ -243,19 +246,21 @@ void FlagsValueEditor::write_view(const decltype(value)&, PropertyEnumValue inco
 }
 
 bool FlagsValueEditor::read_view(const decltype(dropped_down)&) const {
-    return dropped_down_;
+    // Opening counts: a handler the open's focus move runs sees it shown,
+    // and its close is served.
+    return presentation_.is_shown();
 }
 
 void FlagsValueEditor::write_view(const decltype(dropped_down)&, bool incoming) {
     require_mutable();
-    if (incoming == dropped_down_) return;
+    if (incoming == presentation_.is_shown()) return;
     if (incoming) open_drop_down();
     else close_drop_down();
 }
 
 void FlagsValueEditor::prepare_write(const decltype(overlay_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 80.0 || incoming > 1024.0) {
+    if (!ic::admits_overlay_width(incoming)) {
         throw std::invalid_argument(
             "flags editor overlay width must be within [80, 1024]");
     }
@@ -263,38 +268,28 @@ void FlagsValueEditor::prepare_write(const decltype(overlay_width)&, double& inc
 
 // An open list reopens at the new width.
 void FlagsValueEditor::written(const decltype(overlay_width)&) {
-    if (dropped_down_) {
+    if (presentation_.is_open()) {
         close_drop_down();
         open_drop_down();
     }
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-namespace {
-// Clears an open-in-progress flag when it goes, also when the call that set
-// it throws.
-struct ClearOpeningOnExit final {
-    bool* flag{};
-    explicit ClearOpeningOnExit(bool* cleared) noexcept : flag(cleared) {}
-    ClearOpeningOnExit(const ClearOpeningOnExit&) = delete;
-    ClearOpeningOnExit& operator=(const ClearOpeningOnExit&) = delete;
-    ~ClearOpeningOnExit() { *flag = false; }
-};
-} // namespace
-
 void FlagsValueEditor::open_drop_down() {
-    if (dropped_down_ || opening_drop_down_ || !attached() || window() == nullptr) return;
+    // Opening, open or closing: the one presentation there is serves (a
+    // second layer would repeat this one's stable IDs).
+    if (!presentation_.is_closed() || !attached() || window() == nullptr) return;
     const Control::Ptr root = (*window()).root();
     if (!root) return;
     const Rect editor = absolute_bounds();
     const Size client = (*window()).client_size();
-    overlay_choice_indices_.clear();
+    DropDownOpening opening{};
     std::vector<std::string> items;
     for (std::size_t index = 0U; index < descriptor_.choices.size(); ++index) {
         const std::int64_t choice = descriptor_.choices[index].value;
         if (choice == 0 || (choice > 0 &&
             std::has_single_bit(static_cast<std::uint64_t>(choice)))) {
-            overlay_choice_indices_.push_back(index);
+            opening.choice_indices.push_back(index);
             items.push_back(display_label(descriptor_.choices[index].name));
         }
     }
@@ -317,85 +312,91 @@ void FlagsValueEditor::open_drop_down() {
     const double overlay_x = std::clamp(
         editor.x, 0.0, std::max(0.0, client.width - list_width));
     (*list).set_requested_bounds({overlay_x, y, list_width, height});
-    OverlayToken token = (*window()).open_overlay(shared_from_this(), layer);
+    opening.lease.overlay = (*window()).open_overlay(shared_from_this(), layer);
     const stxlib::Optional<Rect> face =
         drop_down_popup_face(*window(), editor, Size{overlay_width.read(), height}, editor.x);
     const bool lifted = face.present() && lift_.lift(*window(), list, (*face.value()));
     if (lifted) (*layer).focusable = true;
     else (*layer).add_child(list);
 
-    overlay_layer_ = layer;
-    overlay_list_ = list;
-    overlay_token_ = std::move(token);
+    opening.layer = layer;
+    opening.list = list;
     const std::weak_ptr<FlagsValueEditor> weak =
         std::static_pointer_cast<FlagsValueEditor>(shared_from_this());
-    overlay_check_ = (*list).item_check_state_changed().subscribe(
+    opening.check = (*list).item_check_state_changed().subscribe(
         *this,
         detail::WeakMemberCallback<
             void (FlagsValueEditor::*)(std::size_t, CheckState)>(
                 weak, &FlagsValueEditor::apply_overlay_choice));
-    overlay_dismissal_ = (*layer).dismissed().subscribe(
+    opening.dismissal = (*layer).dismissed().subscribe(
         *this,
         detail::WeakMemberCallback<void (FlagsValueEditor::*)()>(
             weak, &FlagsValueEditor::close_drop_down));
-    if (Event<>* closed = overlay_token_.closed_event()) {
-        overlay_revocation_ = (*closed).subscribe(
+    if (Event<>* closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed = (*closed).subscribe(
             *this,
             detail::WeakMemberCallback<void (FlagsValueEditor::*)()>(
                 weak, &FlagsValueEditor::on_overlay_revoked));
     }
     if (lifted) {
-        lift_closed_ = (*window()).popup_window_closed().subscribe(
+        opening.popup_closed = (*window()).popup_window_closed().subscribe(
             *this, detail::WeakMemberCallback<void (FlagsValueEditor::*)(std::size_t)>(
                 weak, &FlagsValueEditor::on_popup_window_closed));
     }
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
+    // The open is opening until the scope has begun: a handler reached from
+    // the focus move that asks to open again is served by this open.
+    // lifetime keeps the control across the handlers.
     const Control::Ptr lifetime = shared_from_this();
-    // An open is in progress until the scope has begun: a handler reached
-    // from the focus move that asks to open again is served by this open
-    // (a second layer would repeat this one's stable IDs). Cleared on every
-    // way out; lifetime keeps the control while the guard writes it.
-    opening_drop_down_ = true;
-    const ClearOpeningOnExit opening{&opening_drop_down_};
-    const std::uint64_t scope = (*window()).begin_focus_scope(layer, preferred_focus).value;
+    presentation_ = OverlayPresentation<DropDownOpening>::opening(std::move(opening));
+    // A refused scope (state hunt, scanner list A: a containing scope, the
+    // nesting limit) closes the drop-down again before the refusal leaves;
+    // one closed while opening publishes nothing.
+    FocusScopeId scope{};
+    try {
+        scope = (*window()).begin_focus_scope(layer, preferred_focus);
+    } catch (...) {
+        close_drop_down();
+        throw;
+    }
     // Beginning the scope moves focus into the drop-down and runs the
     // field's lost-focus and validation handlers before it returns; one may
     // close the drop-down (or close it and open another). The scope is kept
-    // only for this call's layer still open; otherwise it is ended and the
-    // control stays closed, having published nothing (A-gf-controls-08-F3).
+    // only for this call's opening still in progress; otherwise it is ended
+    // and this open publishes nothing (A-gf-controls-08-F3).
     if (!is_alive()) return;
-    if (overlay_layer_ != layer || overlay_scope_ != 0U) {
-        if (window() != nullptr && scope != 0U) {
-            static_cast<void>((*window()).end_focus_scope(FocusScopeId{scope}));
-        }
+    if (!presentation_.settle_open()) {
+        if (window() != nullptr && scope) static_cast<void>((*window()).end_focus_scope(scope));
         return;
     }
-    overlay_scope_ = scope;
-    dropped_down_ = true;
+    (*presentation_.open_state()).lease.scope = scope;
     synchronize_overlay();
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
 }
 
 void FlagsValueEditor::close_drop_down() {
-    if (!dropped_down_ && !overlay_layer_) return;
-    closing_overlay_ = true;
-    overlay_check_.disconnect();
-    overlay_dismissal_.disconnect();
-    lift_closed_.disconnect();
+    // Opening or open becomes closing: a handler the steps run can neither
+    // close nor open the list again until it is closed.
+    const bool changed = presentation_.is_open();
+    if (!presentation_.begin_closing()) return;
+    DropDownOpening& closing = *presentation_.closing_state();
+    closing.check.disconnect();
+    closing.dismissal.disconnect();
+    closing.popup_closed.disconnect();
     lift_.release();
-    if (window() != nullptr && overlay_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
+    // A refused end must not leave the drop-down closing for good: the
+    // window ends the scope with the overlay.
+    if (window() != nullptr && closing.lease.scope) {
+        try {
+            static_cast<void>((*window()).end_focus_scope(closing.lease.scope));
+        } catch (...) {
+        }
     }
-    overlay_scope_ = 0U;
-    overlay_token_.disconnect();
-    overlay_revocation_.disconnect();
-    overlay_list_.reset();
-    overlay_layer_.reset();
-    overlay_choice_indices_.clear();
-    const bool changed = dropped_down_;
-    dropped_down_ = false;
-    closing_overlay_ = false;
+    closing.lease.scope = {};
+    closing.lease.overlay.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    presentation_.finish_closing();
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
@@ -406,50 +407,54 @@ void FlagsValueEditor::on_popup_window_closed(const std::size_t slot) {
 }
 
 void FlagsValueEditor::on_overlay_revoked() {
-    if (closing_overlay_) return;
-    overlay_check_.disconnect();
-    overlay_dismissal_.disconnect();
-    overlay_revocation_.disconnect();
-    lift_closed_.disconnect();
+    const bool changed = presentation_.is_open();
+    if (!presentation_.begin_closing()) return;
+    DropDownOpening& closing = *presentation_.closing_state();
+    closing.check.disconnect();
+    closing.dismissal.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    closing.popup_closed.disconnect();
     lift_.release();
-    if (window() != nullptr && overlay_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(
-            FocusScopeId{overlay_scope_},
-            FocusScopeCloseReason::owner_unavailable));
+    if (window() != nullptr && closing.lease.scope) {
+        try {
+            static_cast<void>((*window()).end_focus_scope(
+                closing.lease.scope, FocusScopeCloseReason::owner_unavailable));
+        } catch (...) {
+        }
     }
-    overlay_scope_ = 0U;
-    overlay_list_.reset();
-    overlay_layer_.reset();
-    overlay_choice_indices_.clear();
-    const bool changed = dropped_down_;
-    dropped_down_ = false;
+    closing.lease.scope = {};
+    presentation_.finish_closing();
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
 
 void FlagsValueEditor::synchronize_overlay() {
-    if (!overlay_list_) return;
+    DropDownOpening* const shown = presentation_.shown_state();
+    if (shown == nullptr || !(*shown).list) return;
+    const std::shared_ptr<CheckedListBox> list = (*shown).list;
+    const std::vector<std::size_t> choice_indices = (*shown).choice_indices;
     synchronizing_overlay_ = true;
     const std::uint64_t bits = static_cast<std::uint64_t>(value_.value);
     for (std::size_t overlay_index = 0U;
-         overlay_index < overlay_choice_indices_.size(); ++overlay_index) {
+         overlay_index < choice_indices.size(); ++overlay_index) {
         const std::int64_t choice =
-            descriptor_.choices[overlay_choice_indices_[overlay_index]].value;
+            descriptor_.choices[choice_indices[overlay_index]].value;
         const bool checked = choice == 0
             ? value_.value == 0
             : (bits & static_cast<std::uint64_t>(choice)) ==
                   static_cast<std::uint64_t>(choice);
-        (*overlay_list_).set_item_checked(overlay_index, checked);
+        (*list).set_item_checked(overlay_index, checked);
     }
     synchronizing_overlay_ = false;
 }
 
 void FlagsValueEditor::apply_overlay_choice(std::size_t overlay_index,
                                            CheckState state) {
-    if (synchronizing_overlay_ || state == CheckState::indeterminate ||
-        overlay_index >= overlay_choice_indices_.size()) return;
+    const DropDownOpening* const shown = presentation_.shown_state();
+    if (synchronizing_overlay_ || state == CheckState::indeterminate || shown == nullptr ||
+        overlay_index >= (*shown).choice_indices.size()) return;
     const PropertyEnumChoice& choice =
-        descriptor_.choices[overlay_choice_indices_[overlay_index]];
+        descriptor_.choices[(*shown).choice_indices[overlay_index]];
     std::uint64_t bits = static_cast<std::uint64_t>(value_.value);
     if (choice.value == 0) {
         if (state == CheckState::checked) bits = 0U;
@@ -462,7 +467,7 @@ void FlagsValueEditor::apply_overlay_choice(std::size_t overlay_index,
     property.name = "value";
     property.kind = BindingValueKind::enumeration;
     property.enumeration =
-        std::make_shared<const PropertyEnumDescriptor>(descriptor_);
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(descriptor_);
     const std::optional<BindingValue> normalized = convert_property_value(
         BindingValue{static_cast<std::int64_t>(bits)}, property);
     if (!normalized) {
@@ -505,11 +510,11 @@ void FlagsValueEditor::on_paint(Painter& painter, Rect damage) {
     paint_part(painter, *this, divider);
     // The arrow flips and moves when the list is open, as the combo box's.
     const double center_x = bounds.width - button_width * 0.5;
-    const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
-    const double square_top = dropped_down_ ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
+    const double center_y = bounds.height * 0.5 + (presentation_.is_open() ? 2.0 : -1.0);
+    const double square_top = presentation_.is_open() ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
     PartPaint disclosure = drop_down;
     disclosure.role = PartRole::disclosure;
-    disclosure.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
+    disclosure.mark = presentation_.is_open() ? PartMark::arrow_up : PartMark::arrow_down;
     disclosure.bounds = {std::floor(center_x) - 4.0, square_top, 8.0, 8.0};
     disclosure.authored_foreground = ink;
     paint_part(painter, *this, disclosure);
@@ -525,7 +530,7 @@ void FlagsValueEditor::on_paint(Painter& painter, Rect damage) {
     paint_text_part_at(painter, *this, content,
                        {7.0, std::max(font.size, (bounds.height + font.size) * 0.5 - 1.0)},
                        std::max(0.0, divider_x - 11.0));
-    if (focused_ || dropped_down_) {
+    if (focused_ || presentation_.is_open()) {
         PartPaint ring;
         ring.family = ControlVisualRole::editor;
         ring.role = PartRole::focus;
@@ -538,7 +543,7 @@ void FlagsValueEditor::on_paint(Painter& painter, Rect damage) {
 
 void FlagsValueEditor::on_mouse_down(MouseEventArgs& arguments) {
     if (eligible_for_input() && arguments.button == PointerButton::primary) {
-        dropped_down = !dropped_down_;
+        dropped_down = !presentation_.is_open();
         arguments.handled = true;
     }
     Control::on_mouse_down(arguments);
@@ -552,14 +557,14 @@ void FlagsValueEditor::on_mouse_up(MouseEventArgs& arguments) {
 void FlagsValueEditor::on_key_down(KeyEventArgs& arguments) {
     Panel::on_key_down(arguments);
     if (arguments.handled || !focused_ || !enabled.read()) return;
-    if (arguments.physical_key == PhysicalKey::escape && dropped_down_) {
+    if (arguments.physical_key == PhysicalKey::escape && presentation_.is_open()) {
         close_drop_down();
         arguments.handled = true;
     } else if (arguments.physical_key == PhysicalKey::f4 ||
                arguments.physical_key == PhysicalKey::space ||
                (arguments.physical_key == PhysicalKey::down &&
                 has_modifier(arguments.modifiers, Modifier::alt))) {
-        dropped_down = !dropped_down_;
+        dropped_down = !presentation_.is_open();
         arguments.handled = true;
     }
 }
@@ -575,9 +580,9 @@ SemanticDescriptor FlagsValueEditor::semantic_descriptor() const {
     result.name = accessible_name.read();
     result.value = display_label(value_.name);
     result.description = accessible_description.read();
-    if (dropped_down_) result.states |= SemanticState::expanded;
+    if (presentation_.is_open()) result.states |= SemanticState::expanded;
     result.actions = {SemanticAction::focus,
-        dropped_down_ ? SemanticAction::collapse : SemanticAction::expand};
+        presentation_.is_open() ? SemanticAction::collapse : SemanticAction::expand};
     result.exposed = true;
     return result;
 }
@@ -596,17 +601,19 @@ bool FlagsValueEditor::on_semantic_action(SemanticAction action,
 }
 
 void FlagsValueEditor::on_detached_from_window() noexcept {
-    overlay_check_.disconnect();
-    lift_closed_.disconnect();
-    lift_.release();
-    overlay_dismissal_.disconnect();
-    overlay_revocation_.disconnect();
-    overlay_scope_ = 0U;
-    overlay_token_.disconnect();
-    overlay_list_.reset();
-    overlay_layer_.reset();
-    overlay_choice_indices_.clear();
-    dropped_down_ = false;
+    // The window is going: the list closes without a scope to end or a
+    // change to publish.
+    if (presentation_.begin_closing()) {
+        DropDownOpening& closing = *presentation_.closing_state();
+        closing.check.disconnect();
+        closing.popup_closed.disconnect();
+        lift_.release();
+        closing.dismissal.disconnect();
+        closing.lease.overlay_closed.disconnect();
+        closing.lease.scope = {};
+        closing.lease.overlay.disconnect();
+    }
+    presentation_.finish_closing();
     focused_ = false;
 }
 
@@ -699,7 +706,7 @@ FlagsValueEditor::Parts FlagsValueEditor::parts() const {
 
 AnatomyStateSet FlagsValueEditor::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
-    if (dropped_down_) {
+    if (presentation_.is_open()) {
         states.insert(AnatomyState::open);
     } else {
         states.insert(AnatomyState::closed);
@@ -851,5 +858,12 @@ std::span<const PropertyEntry> FlagsValueEditor::property_table() const noexcept
 }
 
 // property_codemod end FlagsValueEditor
+
+bool FlagsValueEditor::agrees_with_itself() const noexcept {
+    const DropDownOpening* const open = presentation_.open_state();
+    if (open != nullptr) return (*open).lease.overlay.connected() && (*open).layer && (*open).list;
+    if (!presentation_.is_closed()) return true;
+    return !lift_.lifted();
+}
 
 } // namespace gui_forms

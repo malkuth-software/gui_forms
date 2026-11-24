@@ -2,54 +2,281 @@ To the Holy One, blessed be He, from whom all good things come. We dedicate this
 
 # GUI.Forms
 
-GUI.Forms is a retained-mode, CPU-rendered, cross-platform GUI toolkit for
-C++20, in the Windows Forms tradition. You build a tree of controls once and
-change it imperatively; the toolkit works out exactly which layout, paint
-and hit-test work each change needs. A stable C ABI and C# bindings over it
-open the same controls to other languages.
+GUI.Forms is a C++20 toolkit for macOS, Windows and Linux. It includes a
+superset of Windows Forms' model of controls, properties and events, draws
+every control on the CPU, and opens to C, C# and Python through a C ABI.
 
 [![CI](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml/badge.svg)](https://github.com/malkuth-software/gui_forms/actions/workflows/native.yml) [![Docs](https://app.readthedocs.org/projects/gui-forms/badge/?version=latest)](https://gui-forms.readthedocs.io/) [![Release](https://img.shields.io/github/v/release/malkuth-software/gui_forms?display_name=tag)](https://github.com/malkuth-software/gui_forms/releases) [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE) ![C++20](https://img.shields.io/badge/C%2B%2B-20-00599C.svg) ![Platforms](https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey.svg)
 
+![The GUI.Forms Gallery on its Control spectrum page: buttons in four styles, check boxes, radio buttons and typography roles, with the page list on the left](docs/images/gallery-macos.png)
+
 <!-- numbers:start -->
-- **Status:** the package version is 0.6 (C ABI 1.6, host protocol 15,
-  drawing ABI 1.0). 1.0 is next: the library, its C ABI and its C#
-  bindings, declared once its stability conditions hold. See the
-  [release notes](https://gui-forms.readthedocs.io/en/latest/release/index.html)
-  and the [roadmap](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.html).
+**Version:** the package version is 1.0 (C ABI 1.7, host protocol 16,
+drawing ABI 1.0). See the
+[release notes](https://gui-forms.readthedocs.io/en/latest/release/index.html)
+and [what 1.0 promises](https://gui-forms.readthedocs.io/en/latest/dev/roadmap.html#conditions-for-10).
 <!-- numbers:end -->
-- **Rendering:** CPU only, by design, with no GPU backend. One
-  text engine (STXlib's font reader, shaper, hinter and text layout) with
-  bundled fonts draws the same string identically on every platform.
-- **Controls:** more than 140 stock controls (the Windows Forms set, a
-  ribbon, docking, data grids, plots and more), themes written in a
-  CSS-syntax theme language, form documents that generate typed window
-  classes, and native accessibility on every host.
 
-## Platforms
+## Design
 
-| Platform | Host | Notes |
-|---|---|---|
-| macOS 14+ | AppKit | Apple silicon (arm64) |
-| Windows 10+ | Win32 | x64; built with LLVM 22 under MSYS2 CLANG64 |
-| Linux | X11 | x64 and arm64; also runs under XWayland. Enable with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` |
+### Consistent by design
 
-## Quick start
+Every GUI.Forms window is one retained tree painted consistently across all
+hosts by our own rasterizing and rendering engines. There is little if any
+platform variation.
 
-Prerequisites are CMake 3.25+, Ninja, LLVM 22.1 and Python 3.12+. Follow
-[Install](https://gui-forms.readthedocs.io/en/latest/user/install.html) for
-each platform's preparation. Then build and install:
+Conversely, Qt and GTK hand text to each platform's font system, and Qt
+Quick, GTK 4 and Avalonia draw through the graphics driver, so a dialog can
+wrap differently on a customer's screen and a fault can belong to one driver
+alone.
+
+What you lay out and test on one machine is what every user sees, and a
+screenshot from any of your users with a GUI.Forms window is a faithful bug
+report.
+
+### Gracefully stateless fault control
+
+An expected failure returns as a value and leaves the program as it was. A
+defect stops the process where it began, and its report carries the frames
+that led there. Nothing carries on half changed.
+
+An exception is allowed to unfold across languages. One raised in native
+code and reaching a C# caller arrives as a `NativeException` whose stack
+trace holds the native frames it came through. Elsewhere an exception that
+meets a native boundary is undefined behaviour: Qt says so of its slots,
+.NET turns one into a crash or a bare `SEHException`, and a C library has no
+way to pass one on at all.
+
+Your program is either right or stopped, its reports name where the fault
+began on both sides of the boundary, and an event handler can clear a list,
+detach its control or close the window without regard for what the control
+was doing.
+
+### Speed
+
+Most code is slow because it keeps asking questions it already knows the
+answers to. Ours stopped asking. Every tight loop and core mechanism was
+stripped until nothing inside it decides anything; it only computes. Then
+the next wave stripped it again. Not one result changed along the way.
+
+STXlib's FFT was built the same way. Where size matters, it beats FFTW.
+
+You will never wait on GUI.Forms. You will forget it is there.
+
+### Trustworthy by design
+
+GUI.Forms is written in one house style: an orthodox, explicitly spelled
+subset of C++20 in which types, ownership, mutation and execution order are
+visible where they are used. Code written that way can be checked, and it
+is. Clang-based tools read it with full type information, applying the style
+semantically and carrying the whole codebase onto STXlib's own vocabulary
+types; further checks hold lifetimes, state machines and storage boundaries
+to the same rules.
+
+The work continues toward formal verification. Every stateful part declares
+its contract once, and its entry checks, its fuzzing and its proof
+obligations are generated from that declaration, with a deducer discharging
+what it can. The allocator's page protocol is proved for any number of
+threads, and STXlib's core routines carry machine-checked proofs. A program
+built in the high-integrity configuration holds only what it uses, and a
+reviewer can show that from the symbols in the finished binary.
+
+Other toolkits ask to be trusted. GUI.Forms is built so that its
+trustworthiness can be checked.
+
+### Model Context Protocol from the first version
+
+In recent years, since general machine intelligence proliferated, operating
+system and application providers have begun to proliferate MCP servers;
+control toolkits, however, mainly predated AI. In GUI.Forms it is part of
+the toolkit, so every program built on it speaks MCP from its first build,
+and needs no code of its own to achieve the minimum in instrumentation,
+accelerating development and use.
+
+Often, in other approaches, a model reaches a desktop program in one of two
+ways: someone writes and maintains an MCP server for that one program, or
+the model reads screenshots and accessibility trees and guesses where to
+click. Both have issues with brittle representation and a fragmented
+approach.
+
+A GUI.Forms program arrives with a coherent MCP stack. The model has
+first-order access to the controls, commands and states the program uses, so
+automation, testing and assistance come with every program and keep working
+as it changes.
+
+### Easy to theme
+
+Unlike Visual Studio's form editor contracts, GUI.Forms form specifications
+are easy to work with and straightforward, using XML with inline control
+trees and bindings, with an accompanying theme language that uses a subset
+of CSS level 3. Designers can restyle a program without touching its code,
+on the fly, and GUI.Forms comes with a handful of classic themes that are
+familiar to most users.
+
+```xml
+<form xmlns="urn:gui-forms:form:1" id="greeter.window"
+      text="GUI.Forms - first window" client-size="480 140">
+  <panel id="greeter.root">
+    <label id="greeter.status" text="Ready."
+           bounds="24 24 432 32" classes="status"/>
+    <button id="greeter.run" text="Run" bounds="24 72 120 36">
+      <bind property="command" to="run"/>
+    </button>
+  </panel>
+</form>
+```
+
+```css
+:root { ink-on-paper: #1d3557 on #ffffff; }
+
+.status {
+  color: role(ink-on-paper);
+  font-family: content;
+  font-size: 15px;
+  font-weight: 600;
+}
+```
+
+### Accessible and translatable
+
+Every stock control publishes its role, name, state and actions by default,
+through one semantic tree served to NSAccessibility, UI Automation and
+AT-SPI. A compiler plugin finds every string a program writes to a
+localizable property, in code as well as in forms, and right-to-left layout
+mirrors as Windows Forms' does.
+
+A GUI.Forms based program is accessible and ready to translate without extra
+work; the developer's effort starts only where the defaults are not enough.
+
+### WinForms compatible, Windows optional
+
+The vocabulary and design gently deviate from and supersede the familiar,
+professionally articulated design language that is Windows Forms. It keeps
+the control families, Dock and Anchor, tab order, mnemonics, validation,
+accept and cancel buttons, `Invoke`, `BindingSource`. Every Forms type is
+mapped to its counterpart, and where behaviour differs on purpose the guide
+says so.
+
+Windows Forms developers are at home on the first day, and their programs
+run on macOS and Linux too.
+
+### Dependency-free and adaptable
+
+STXlib, a standard library extending framework and wrapper, is a code
+membrane that stands between GUI.Forms and everything outside it: the host's
+C library, the C++ runtime, threads, files, math and the allocator. It runs
+beside glibc, musl, FreeBSD's libc and the Windows UCRT and behaves the same
+over each; it supplies the atomic helpers a compiler would otherwise take
+from its runtime, and its own math gives the same bits on every processor.
+Fonts, shaping, hinting, PNG and zlib are first-party.
+
+Programs written on GUI.Forms can make use of it or use their own libraries
+without friction. The contribution from GUI.Forms, conversely, is guaranteed
+to run on the machines you intend, and depends only on its own stack, which
+is formulated from best-practice components like Clang.
+
+### Strong ABI support
+
+- **C**: function tables negotiated through one exported function,
+  fixed-width types, a status from every call. Within a major version a
+  table only grows at its end, and an audit rejects any break. A conformance
+  kit runs the ABI's checks in your own tests.
+- **C++20**: the library itself, as static archives through CMake.
+- **C#**: `GuiForms.Interop`, and `GuiForms.Forms` with Windows Forms'
+  protected `On*` hooks as virtuals.
+- **Python**: [PyGUIForms](https://github.com/malkuth-software/pyguiforms),
+  pure Python over the C ABI, CPython 3.10 or later.
+
+### Compact by design
+
+- GUI.Forms links statically, from archives built with every function and
+  datum in a section of its own.
+- The linker keeps only what the program reaches, with link-time
+  optimisation and dead stripping on every platform.
+- The C++ runtime is linked in and pinned, so nothing has to be installed
+  beside the program.
+- A feature the program never calls is not in the binary.
+
+### Allocators and threading, the GUI.Forms way
+
+We considered the speed and reliability of threading and allocator methods
+to be the most important part of any framework that purports to offer
+reliability. We set out to achieve this without leaning on the 21st-century
+crutch that has become "convert everything to Rust". We followed by adapting
+best principles and sourcing the best work we could find. We deviated from
+designs we considered good, but imperfect, to approach perfection and
+excellence. Our motto is *sic semper eximius*.
+
+We took inspiration from only the brightest and greatest engineers, and
+rather than simply copy their work, adapted the lessons from it and put the
+work into proving our results correct, in everything we did.
+
+Our designs eliminate unrequited ceremony, redundant accounting and
+epistemically deficient paradigms. At the same time, we unlock performance
+gains by tight coding, atomic behaviour and principled staging. Our
+allocator is faster than mimalloc. It is also correct. To the best of our
+ability, we developed methodologies to prove its threading model and design
+error-free, directed-graph style. Short of rewriting it in another language,
+we believe we have a high-integrity allocator. Our atomic threader is fast
+and tight, and inherits from the best designs in the world.
+
+Your code may have bugs in it, and bugs that will remain hidden for decades.
+We got tired of the number of bugs hidden in Windows. This is part of our
+motivation for doing it this way: because computers should be allowed to be
+correct. By design, your bugs will not become ours.
+
+### Wholly MIT by design
+
+GUI.Forms 1.0, STXlib and PyGUIForms are MIT licensed. What they carry from
+elsewhere keeps its notice, and every notice is permissive: Skia's BSD
+licence, the FreeType licence for part of the hinter, the fonts' OFL, and
+LLVM's Apache licence for the C++ library. Each is listed in
+[THIRD_PARTY_NOTICES.md](https://github.com/malkuth-software/gui_forms/blob/main/THIRD_PARTY_NOTICES.md).
+
+### Where the designs come from
+
+The programming model is inspired by Windows Forms. The CPU renderer extends
+Skia's. The font reader is inspired by ttf-parser and Skrifa, and the hinter
+extends Skrifa's auto-hinter, itself after FreeType's. The allocator is
+inspired by mimalloc, with TLSF for its free runs. Each has an ancestry in
+the named libraries but does not resemble them, is faster than the
+frameworks it derives from, and by design is less likely to facilitate bugs
+of any kind in use.
+## Get it
+
+- **Programs:** every release on the
+  [Releases page](https://github.com/malkuth-software/gui_forms/releases/latest)
+  carries the Gallery (every stock control, page by page), Explore and
+  Correspondence for macOS arm64, Windows x64 and Linux x64 and arm64, with
+  `SHA256SUMS.txt`. Builds are not code-signed: see
+  [Download](https://gui-forms.readthedocs.io/en/latest/user/download.html)
+  for opening them on each platform.
+- **SDK:** the same release carries the source SDK,
+  `gui-forms-sdk-<version>-source.tar.gz`, which you build and install for
+  your platform.
+- **New project:** [`malkuth-software/template_harness`](https://github.com/malkuth-software/template_harness)
+  starts an application on the SDK with the pinned toolchain.
+
+## Build it
+
+Prerequisites are CMake 3.25+, Ninja, LLVM 22.1 and Python 3.12+ (on
+Windows, LLVM 22's clang and lld; `tools/own_runtime.py` builds the C and
+C++ runtime).
+[Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
+covers each platform's preparation. Then:
 
 ```sh
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release     -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake
 cmake --build build --parallel
 cmake --install build --prefix ~/gui-forms-sdk
 ```
 
-The tests live in
+On Linux add `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. The tests live in
 [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
-which builds them against the test cache this repository's CI publishes
-for each commit (`tools/test_cache.py`), so a test edit never recompiles the
-toolkit.
+which builds them against the test cache this repository's CI publishes for
+each commit, so a test change never recompiles the toolkit.
+
+## Your first window
 
 A minimal program against the installed SDK:
 
@@ -57,7 +284,7 @@ A minimal program against the installed SDK:
 ```cmake
 cmake_minimum_required(VERSION 3.25)
 project(hello LANGUAGES CXX)
-find_package(GUIForms 0.6 CONFIG REQUIRED)
+find_package(GUIForms 1.0 CONFIG REQUIRED)
 add_executable(hello main.cpp)
 target_link_libraries(hello PRIVATE GUIForms::Application)
 ```
@@ -85,21 +312,54 @@ int main() {
 ```
 
 [Your first window](https://gui-forms.readthedocs.io/en/latest/user/first-window.html)
-goes further: a form document, a model and an event handler.
+builds the recommended shape: a form document that generates a typed window
+class, a model it binds, a theme package and an event handler.
+[Consume the SDK](https://gui-forms.readthedocs.io/en/latest/user/consume-the-sdk.html)
+lists the CMake components.
+
+## Other languages
+
+| Language | How | Where |
+|---|---|---|
+| C | The C ABI library, `GUIForms::CAbi` (`gui_forms_abi1.dll`, `libgui_forms_abi.so.1`, `libgui_forms_abi.1.dylib`), self-contained, with the drawing ABI | [`include/gui_forms/c/`](include/gui_forms/c/) |
+| C# | `GuiForms.Interop` over the C ABI, and `GuiForms.Forms`, whose classes expose Windows Forms' protected `On*` hooks as virtuals; .NET 10 | [`bindings/csharp/`](bindings/csharp/) |
+| Python | [PyGUIForms](https://github.com/malkuth-software/pyguiforms): pure Python over the C ABI with `ctypes`, CPython 3.10 or later, one wheel per platform built from this repository's CI artifacts (not yet on PyPI) | [malkuth-software/pyguiforms](https://github.com/malkuth-software/pyguiforms) |
+
+A process uses either the C ABI library or the statically linked C++
+engine, never both.
+
+## Platforms
+
+| Platform | Host | Notes |
+|---|---|---|
+| macOS 14+ | AppKit | Apple silicon (arm64) |
+| Windows 10+ | Win32 | x64 (x86_64-pc-windows-msvc); LLVM 22 with STXlib's own runtime, no MinGW |
+| Linux | X11 | x64 and arm64; also runs under XWayland. Enable with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON` |
+
+Only 64-bit targets are supported. There is no Wayland-native host; Wayland
+sessions run the X11 host through XWayland. What each host can and cannot
+do is reported at run time and listed in
+[Hosts and capabilities](https://gui-forms.readthedocs.io/en/latest/user/hosts-and-capabilities.html).
+
+## Built with GUI.Forms
+
+- [Plan Paint](https://github.com/malkuth-software/plan-paint): a paint
+  program with the Windows 7 and 10 Paint ribbon.
+- [PlaySuite](https://github.com/malkuth-software/games): a collection of
+  games in one application, each game a folder.
+- [SwiftEdit](https://github.com/malkuth-software/swiftedit): a plain-text
+  editor with traditional menus and its own dialogs.
+- [Pocket Library](https://github.com/falseywinchnet/books): a reading
+  room of 746 books, built on the same shell as PlaySuite.
+- In this repository: the Gallery, Explore and Correspondence
+  ([`demo/`](demo/), [`file_manager_demoboard/`](file_manager_demoboard/)).
 
 ## Learn more
 
 - **Documentation:** [gui-forms.readthedocs.io](https://gui-forms.readthedocs.io/),
   with the user guide, the controls by function and the API reference.
-- **Template:** [`malkuth-software/template_harness`](https://github.com/malkuth-software/template_harness)
-  starts a new application on the SDK.
 - **Examples:** [`examples/reference/`](examples/reference/) is a complete
   consumer, built against the installed SDK in CI.
-- **Gallery:** the control Gallery ([`demo/`](demo/)) shows every stock
-  control. Download it with the Explore and Correspondence previews from
-  the [latest release](https://github.com/malkuth-software/gui_forms/releases/latest).
-
-![GUI.Forms Gallery on macOS](docs/images/gallery-macos.png)
 
 <details>
 <summary>Stock controls</summary>

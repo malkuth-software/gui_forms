@@ -10,6 +10,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "menu_strip_ic_checks.hpp"
 
 #include <vector>
 #include <string>
@@ -25,6 +26,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::menu_strip;
 
 using menu_detail::menu_display_text;
 using menu_detail::validate_specs;
@@ -161,6 +163,9 @@ void MenuStrip::on_overlay_item_invoked(
 void MenuStrip::on_overlay_open_changed(bool open_state) {
     if (open_state || switching_ || active_index_.absent()) return;
     active_index_.reset();
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(open_changed_, active_index_);
 }
@@ -231,7 +236,7 @@ void MenuStrip::write_view(const decltype(selected_item_id)&, std::string incomi
 
 void MenuStrip::prepare_write(const decltype(item_padding)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 4.0 || incoming > 64.0) {
+    if (!ic::admits_item_padding(incoming)) {
         throw std::invalid_argument(
             "MenuStrip item padding must be finite and between 4 and 64");
     }
@@ -267,14 +272,13 @@ bool MenuStrip::open(const std::size_t index, const MenuOpenMode mode) {
     hot_index_.set(index);
     (*overlay_).set_items(std::move(menu));
     const std::vector<Rect> bounds = item_bounds();
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     // The drop-down hangs from the item's reading-start corner: its left
     // edge, or its right edge right to left (the menu then hangs leftward).
     const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
     const double anchor_x = right_to_left ? bounds[index].x + bounds[index].width : bounds[index].x;
     (*overlay_).show(shared_from_this(),
-                 {absolute.x + anchor_x,
-                  absolute.y + bounds[index].y + bounds[index].height - 1.0}, mode);
+                 frame_to_outer(local_frame, Point{anchor_x, bounds[index].y + bounds[index].height - 1.0}), mode);
     switching_ = false;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(open_changed_, active_index_);
@@ -354,9 +358,10 @@ std::vector<Rect> MenuStrip::item_bounds() const {
 }
 
 stxlib::Optional<std::size_t> MenuStrip::index_at(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
+    const Rect absolute = frame_to_outer(local_frame, client_rectangle());
     if (!absolute.contains(window_point)) return stxlib::Optional<std::size_t>::none();
-    const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point local = frame_to_inner(local_frame, window_point);
     const std::vector<Rect> bounds = item_bounds();
     for (std::size_t index = 0; index < bounds.size(); ++index) {
         if (items_[index].visible && bounds[index].contains(local)) return stxlib::Optional<std::size_t>::of(index);
@@ -675,7 +680,7 @@ SemanticDescriptor MenuStrip::semantic_descriptor() const {
 std::vector<SemanticNode> MenuStrip::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
     nodes.reserve(items_.size());
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::vector<Rect> bounds = item_bounds();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!items_[index].visible) continue;
@@ -686,8 +691,7 @@ std::vector<SemanticNode> MenuStrip::semantic_virtual_children() const {
         node.name = use_mnemonic.read()
             ? menu_display_text(items_[index].text) : items_[index].text;
         if (use_mnemonic.read()) node.access_key = mnemonic_access_key(items_[index].text);
-        node.bounds = {absolute.x + bounds[index].x, absolute.y + bounds[index].y,
-                       bounds[index].width, bounds[index].height};
+        node.bounds = frame_to_outer(local_frame, bounds[index]);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (effectively_enabled() && items_[index].enabled) {
             node.states |= SemanticState::enabled;
@@ -712,7 +716,7 @@ std::vector<SemanticNode> MenuStrip::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.role = SemanticRole::button;
         node.name = std::string(frame_button_labels[index]);
-        node.bounds = {absolute.x + button.x, absolute.y + button.y, button.width, button.height};
+        node.bounds = frame_to_outer(local_frame, button);
         node.states = SemanticState::visible;
         if (effectively_enabled()) {
             node.states |= SemanticState::enabled;

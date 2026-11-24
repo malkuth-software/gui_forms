@@ -12,8 +12,10 @@
 
 #include "gui_forms/composites/composite_control/composite_control.hpp"
 #include "gui_forms/schema.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../../../core/control_language/composite_definition/composite_definition.hpp"
+#include "../ic/abi_custom_controls_ic_checks.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -36,7 +38,6 @@ constexpr SlotIdentity create_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 3U};
 constexpr SlotIdentity perform_composite_slot{GF_TABLE_CUSTOM_CONTROLS, 4U};
 constexpr SlotIdentity composite_child_slot{GF_TABLE_CUSTOM_CONTROLS, 5U};
 
-constexpr std::uint32_t spec_size_1_0 = 80U;
 constexpr std::uint32_t callbacks_size_1_0 = 48U;
 constexpr std::uint32_t property_size_1_0 = 96U;
 constexpr std::uint32_t paint_target_size_1_0 = 72U;
@@ -144,7 +145,7 @@ gf_status read_property(const gf_custom_property& property, const std::vector<Cu
                     "an ENUMERATION property names its enumeration and choices; another kind has none");
     }
     if (enumeration) {
-        descriptor.enumeration = std::make_shared<const PropertyEnumDescriptor>(std::move(*enumeration));
+        descriptor.enumeration = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(std::move(*enumeration));
     }
     descriptor.writable = (property.flags & GF_CUSTOM_PROPERTY_READ_ONLY) == 0U;
     if (property.default_value != nullptr) {
@@ -208,7 +209,8 @@ gf_status read_spec(const gf_custom_control_spec& spec, std::vector<CustomProper
 // enter_ui bound the thread for this call once *entered_ui is set.
 gf_status custom_controls_create_body(const gf_custom_control_spec* spec, gf_utf8_view stable_id, gf_object* object,
                                       bool* entered_ui) {
-    if (spec == nullptr || object == nullptr || (*spec).struct_size < spec_size_1_0) {
+    if (!ic_custom_controls::admits_create_outputs(spec, object) ||
+        !ic_custom_controls::admits_create_spec_size((*spec).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_slot,
                     "create needs a gf_custom_control_spec of at least the 1.0 size and an object output");
     }
@@ -270,14 +272,14 @@ gf_status custom_controls_create_body(const gf_custom_control_spec* spec, gf_utf
     // without calling release, and the caller still owns its context
     // (A-gf-abi-03-F6).
     if ((*spec).base == GF_CUSTOM_BASE_USER_CONTROL) {
-        const std::shared_ptr<CustomControl<UserControl>> made = std::make_shared<CustomControl<UserControl>>(
+        const std::shared_ptr<CustomControl<UserControl>> made = gui_forms::detail::make_library_shared<CustomControl<UserControl>>(
             StableId(std::string(id_text)), callbacks, layout, definitions, focusable);
         const gf_object identity = registry().add_reference(made);
         (*made).arm_release();
         *object = identity;
     } else {
         const std::shared_ptr<CustomControl<ScrollableControl>> made =
-            std::make_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks, layout,
+            gui_forms::detail::make_library_shared<CustomControl<ScrollableControl>>(StableId(std::string(id_text)), callbacks, layout,
                                                                definitions, focusable);
         const gf_object identity = registry().add_reference(made);
         (*made).arm_release();
@@ -405,7 +407,7 @@ gf_status load_definition(const gf_composite_spec& spec, gf_object& definition) 
     const std::uint64_t listing = record_loaded_composite(loaded.definition);
     std::shared_ptr<CompositeDefinitionHandle> handle;
     try {
-        handle = std::make_shared<CompositeDefinitionHandle>(loaded.definition, listing);
+        handle = gui_forms::detail::make_library_shared<CompositeDefinitionHandle>(loaded.definition, listing);
     } catch (...) {
         forget_loaded_composite(listing);
         throw;
@@ -469,7 +471,7 @@ gf_status make_composite(gf_object definition, gf_utf8_view stable_id, gf_object
 
 gf_status custom_controls_create_composite_body(gf_object definition, gf_utf8_view stable_id,
                                                 gf_object* object) {
-    if (object == nullptr) {
+    if (!ic_custom_controls::admits_create_composite_object(object)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, create_composite_slot, "create_composite needs an object output");
     }
     const gf_status made = make_composite(definition, stable_id, *object);
@@ -543,7 +545,7 @@ gf_status find_child(gf_object control, gf_utf8_view local_id, gf_object& child)
 
 gf_status custom_controls_composite_child_body(gf_object control, gf_utf8_view local_id,
                                                gf_object* child) {
-    if (child == nullptr) {
+    if (!ic_custom_controls::admits_composite_child_child(child)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, composite_child_slot, "composite_child needs a child output");
     }
     const gf_status found = find_child(control, local_id, *child);

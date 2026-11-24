@@ -16,6 +16,8 @@ namespace gui_forms {
 // Retained viewport over an owned GUI.Drawing bitmap. Applications own tools,
 // document history, and selection state; RasterCanvas owns presentation,
 // coordinate transforms, resource synchronization, and local invalidation.
+// ic: gui_forms::RasterCanvas: generated from include/gui_forms/controls/raster_canvas.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API RasterCanvas : public Control, public RasterCanvasCapabilities<RasterCanvas> {
 public:
     explicit RasterCanvas(StableId stable_id);
@@ -27,6 +29,13 @@ public:
     // (declare_paint_follows_view) and the view is exact (pan_copies_exactly);
     // otherwise, and for a change of zoom, the canvas is repainted.
     void set_view(double zoom, gui_drawing::PointF origin);
+    // The whole bitmap in view (stage VA, section 8): the visible-area
+    // guarantee's contain computation (place_viewport_content) of the
+    // bitmap into the client rectangle under this canvas's viewport_fit
+    // (media: no floor, centred by default), its scale kept within the zoom
+    // bounds [1/64, 256], then set_view. Nothing without a bitmap or with
+    // an empty client rectangle.
+    void view_whole_bitmap();
 
     void set_transparency_colors(Color first, Color second);
 
@@ -46,6 +55,8 @@ public:
     [[nodiscard]] gui_drawing::RectF visible_bitmap_bounds() const;
 
     void on_paint(Painter& painter, Rect local_damage) override;
+    // Media (stage VA, section 8): its contain has no floor but its fit's.
+    [[nodiscard]] bool shows_media_content() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members (see Control::Parts).
@@ -140,6 +151,8 @@ private:
     void written(const decltype(transparency_grid)& cell);
     void prepare_write(const decltype(canvas_background)& cell, Color& incoming);
     void written(const decltype(canvas_background)& cell);
+    // ic: Requires finite(incoming) and (incoming == 0 or (incoming >= 2 and incoming <= 128)), else failure
+    // ic: invalid_argument, unchanged.
     void prepare_write(const decltype(transparency_cell_size)& cell, double& incoming);
     void written(const decltype(transparency_cell_size)& cell);
     // property_codemod end RasterCanvas

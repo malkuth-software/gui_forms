@@ -10,6 +10,7 @@
 #include "gui_forms/host/types/host_locale/host_locale.hpp"
 #include "gui_forms/host/types/host_services_snapshot/host_services_snapshot.hpp"
 #include "gui_forms/host/types/host_session_snapshot/host_session_snapshot.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 #include "gui_forms/types.hpp"
 #include "gui_forms/window/presentation/input_settings.hpp"
 
@@ -477,6 +478,38 @@ struct GUI_FORMS_API HostTrayIconEvent final {
     HostTrayIconAction action{HostTrayIconAction::click};
 };
 
+// A drag to other programs (capability typed_drag_source,
+// HostServices::start_drag): what the drag carries and the effects the
+// destination may choose. Each item becomes the platform's own format: a
+// file list its file references (CF_HDROP, file URLs), text its Unicode
+// text, and bytes the format its media type names ("image/png" the
+// platform's PNG type). The same bounds as an inbound drag hold: 1 to
+// DragLimits::maximum_items items within the total, UTF-8 throughout, no
+// NUL. A file list names paths the platform can resolve (full paths).
+struct GUI_FORMS_API HostDragSourceRequest final {
+    std::vector<DragDataItem> items;
+    DragEffect allowed_effects{DragEffect::copy};
+};
+
+// A started drag's identity, when `status` is accepted (zero otherwise).
+// The drag's end arrives later as a HostDragSourceEnd with this identity.
+struct GUI_FORMS_API HostDragSourceResult final {
+    HostServiceStatus status;
+    std::uint64_t session_id{};
+};
+
+// How a drag to other programs ended (HostServices::drag_source_ended),
+// raised once per started drag on the UI thread. `performed_effect` is
+// the effect the destination took, one of the request's allowed effects,
+// or none when the drag was cancelled (Escape, released over nothing, or
+// refused by the destination). The program removes its own copy only on
+// `move`; a Windows shell destination that moves files itself (an
+// optimized move) reports none, as it has already removed them.
+struct GUI_FORMS_API HostDragSourceEnd final {
+    std::uint64_t session_id{};
+    DragEffect performed_effect{DragEffect::none};
+};
+
 enum class HostTrayNotificationIcon : std::uint8_t { none, information, warning, error };
 
 // Notification text from a tray icon: a title of at most 63 bytes and text
@@ -513,6 +546,65 @@ struct GUI_FORMS_API HostTrayMenuResult final {
 // image when none does. `images` must not be empty.
 [[nodiscard]] GUI_FORMS_API std::size_t select_tray_icon_image(std::span<const HostImage> images,
                                                  std::uint32_t wanted_side) noexcept;
+
+// Desktop notifications (capability desktop_notifications): a notification
+// the platform's own notification service shows outside the application's
+// windows, kept in its notification list where it has one: macOS's
+// UNUserNotificationCenter, Windows' toast notifications and the
+// freedesktop notification service (org.freedesktop.Notifications). No tray
+// icon is needed. A notification is named by the identity
+// HostServices::show_desktop_notification returns; no native handle enters
+// the portable contract.
+struct GUI_FORMS_API HostDesktopNotificationId final {
+    std::uint64_t value{};
+
+    [[nodiscard]] bool valid() const noexcept { return value != 0U; }
+    friend bool operator==(HostDesktopNotificationId left, HostDesktopNotificationId right) noexcept {
+        const bool equal = left.value == right.value;
+        return equal;
+    }
+    friend bool operator!=(HostDesktopNotificationId left, HostDesktopNotificationId right) noexcept {
+        const bool different = !(left == right);
+        return different;
+    }
+};
+
+// How much a notification asks for attention. `low` and `normal` map to the
+// platform's ordinary notification (the freedesktop urgency hint 0 or 1);
+// `critical` to its insistent one where it has one: the freedesktop urgency
+// hint 2, Windows' urgent scenario and macOS's time-sensitive interruption
+// level (which the application's entitlement must allow).
+enum class HostDesktopNotificationUrgency : std::uint8_t { low, normal, critical };
+
+// A notification: a title of at most 255 bytes and text of 1 to 1023 bytes
+// of UTF-8, without NUL. `silent` asks the platform not to play its sound.
+struct GUI_FORMS_API HostDesktopNotificationRequest final {
+    std::string title;
+    std::string text;
+    HostDesktopNotificationUrgency urgency{HostDesktopNotificationUrgency::normal};
+    bool silent{};
+};
+
+struct GUI_FORMS_API HostDesktopNotificationResult final {
+    HostServiceStatus status;
+    HostDesktopNotificationId notification_id{};
+};
+
+// What became of a shown notification, reported once, on the UI thread:
+// the user activated it (clicked its body), dismissed it or let it expire,
+// or the platform refused it after accepting the request (the user turned
+// the application's notifications off, or the service failed). A
+// notification the application withdrew reports nothing.
+enum class HostDesktopNotificationAction : std::uint8_t {
+    activated,
+    dismissed,
+    failed,
+};
+
+struct GUI_FORMS_API HostDesktopNotificationEvent final {
+    HostDesktopNotificationId notification_id{};
+    HostDesktopNotificationAction action{HostDesktopNotificationAction::activated};
+};
 
 struct GUI_FORMS_API HostModalTransition final {
     std::uint64_t request_id{};
@@ -557,6 +649,15 @@ struct GUI_FORMS_API HostResizeEvent final {
 
 struct GUI_FORMS_API HostScaleEvent final {
     double scale{1.0};
+};
+
+// The edges of the client area the host or the device hides, in logical
+// units (stage VA; capability safe_insets, host protocol version 16):
+// reported after attach and whenever they change. The window's root slot
+// keeps clear of them (SurfaceRoot::set_safe_insets). Refused as
+// invalid_geometry unless valid_safe_insets holds.
+struct GUI_FORMS_API HostSafeInsetsEvent final {
+    SafeInsets insets{};
 };
 
 struct GUI_FORMS_API HostActivationEvent final {
@@ -734,7 +835,9 @@ using HostEventPayload = std::variant<
     HostContextRequestEvent,
     HostHoverEvent,
     HostWindowStateEvent,
-    HostRelativeMotionEvent>;
+    HostRelativeMotionEvent,
+    GestureEvent,
+    HostSafeInsetsEvent>;
 
 struct GUI_FORMS_API HostEvent final {
     std::uint64_t sequence{};

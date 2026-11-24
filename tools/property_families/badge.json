@@ -72,7 +72,7 @@
       "hooks": "generated",
       "hand": [],
       "prepare": [
-        "if (incoming == 0U) throw std::invalid_argument(\"Badge maximum must be at least 1\");"
+        "if (!ic::admits_maximum(incoming)) throw std::invalid_argument(\"Badge maximum must be at least 1\");"
       ],
       "sample": "std::uint32_t{9U}"
     },

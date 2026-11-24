@@ -26,6 +26,8 @@ std::string HostSessionSnapshot::to_json() const {
            << ",\"modal_input_suppressions\":" << modal_input_suppressions
            << ",\"drag_events\":" << drag_events
            << ",\"drag_drops\":" << drag_drops
+           << ",\"model_input_events\":" << model_input_events
+           << ",\"user_input_held\":" << user_input_held
            << ",\"modal_depth\":" << modal_depth
            << ",\"attached\":" << (attached ? "true" : "false")
            << ",\"active\":" << (active ? "true" : "false")

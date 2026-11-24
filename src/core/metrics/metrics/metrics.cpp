@@ -284,6 +284,21 @@ void Metrics::record_layout_arrange_refusal(std::string_view arranged, std::stri
     std::fflush(stderr);
 }
 
+void Metrics::record_overflow(OverflowAnswer answer, bool answered) noexcept {
+    bool carried_out = answered;
+    switch (answer) {
+    case OverflowAnswer::scroll: ++values_.overflow_scrolled; break;
+    case OverflowAnswer::contain: ++values_.overflow_contained; break;
+    case OverflowAnswer::cover: ++values_.overflow_covered; break;
+    case OverflowAnswer::clip: ++values_.overflow_clipped; break;
+    default:
+        // Not an answer of the enumeration: counted only as unanswered.
+        carried_out = false;
+        break;
+    }
+    if (!carried_out) ++values_.overflow_unanswered;
+}
+
 void Metrics::record_stale_image_refusals(std::string_view operation, std::uint64_t image,
                                           std::uint64_t refusals) noexcept {
     if (refusals == 0U) return;

@@ -11,6 +11,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "tree_list_view_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -23,6 +24,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::tree_list_view;
 namespace {
 
 // View geometry in logical units at text scale 1. The scroll bar extent is
@@ -30,6 +32,9 @@ namespace {
 constexpr double edge_inset = 2.0;
 constexpr double cell_padding = 4.0;
 constexpr double expander_gap = 2.0;
+// The check box's side and the inset of its mark, as ListView's.
+constexpr double check_size = 13.0;
+constexpr double check_mark_inset = 3.0;
 constexpr double minimum_row_height = 18.0;
 constexpr double row_text_padding = 6.0;
 constexpr double cell_text_padding = 6.0;
@@ -43,6 +48,12 @@ constexpr std::size_t maximum_image_key_bytes = 256U;
 
 // The "no node" and "no row" value of the structure arrays.
 constexpr std::size_t no_index = std::numeric_limits<std::size_t>::max();
+
+bool valid_check_state(CheckState state) noexcept {
+    const bool valid = state == CheckState::unchecked || state == CheckState::checked ||
+                       state == CheckState::indeterminate;
+    return valid;
+}
 
 // Whole rows of `extent` that fit in `available`, at least one.
 std::size_t fitting_rows(double available, double extent) noexcept {
@@ -691,6 +702,9 @@ void TreeListView::set_nodes(std::vector<TreeListNode> nodes) {
                 "TreeListView nodes require stable IDs following the StableId segment rule, valid UTF-8 and bounded "
                 "image keys");
         }
+        if (!valid_check_state(node.check_state)) {
+            throw std::invalid_argument("TreeListView node check state is outside CheckState");
+        }
         const bool first_is_root = index != 0U || node.depth == 0U;
         const bool one_level_deeper = index == 0U || node.depth <= nodes[index - 1U].depth + 1U;
         if (!first_is_root || !one_level_deeper) {
@@ -805,6 +819,114 @@ void TreeListView::expand_subtree(std::string_view node_id) {
     rebuild_rows();
     invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     publish_expansions(changes);
+}
+
+// -- check boxes -------------------------------------------------------------------
+
+CheckState TreeListView::check_state(std::string_view node_id) const {
+    if (row_source_) {
+        const stxlib::Optional<std::size_t> row = row_of(node_id);
+        if (row.absent()) throw std::out_of_range("TreeListView check state names an unknown node");
+        TreeListNode scratch;
+        const CheckState state = row_node(*row.value(), scratch).check_state;
+        return state;
+    }
+    const std::size_t index = require_index(node_id, "TreeListView check state names an unknown node");
+    return nodes_[index].check_state;
+}
+
+void TreeListView::set_check_state(std::string_view node_id, CheckState state) {
+    require_mutable();
+    if (!valid_check_state(state)) throw std::invalid_argument("TreeListView check state is outside CheckState");
+    if (row_source_) {
+        const stxlib::Optional<std::size_t> row = row_of(node_id);
+        if (row.absent()) throw std::out_of_range("TreeListView check state names an unknown node");
+        set_virtual_row_check_state(*row.value(), state);
+        return;
+    }
+    const std::size_t index = require_index(node_id, "TreeListView check state names an unknown node");
+    if (cascading_checks.read() && state == CheckState::indeterminate) {
+        throw std::invalid_argument("TreeListView derives indeterminate from the children while cascading_checks");
+    }
+    std::vector<TreeListCheckChange> changes;
+    apply_check_state(index, state, changes);
+    if (changes.empty()) return;
+    invalidate(Dirty::paint | Dirty::semantics);
+    publish_checks(changes);
+}
+
+// The node first, then its subtree (in model order the run of deeper nodes
+// after it), then its ancestors, each from its children as they now stand.
+void TreeListView::apply_check_state(std::size_t index, CheckState state, std::vector<TreeListCheckChange>& changes) {
+    if (nodes_[index].check_state != state) {
+        nodes_[index].check_state = state;
+        changes.push_back({nodes_[index].stable_id, state});
+    }
+    if (!cascading_checks.read()) return;
+    const std::size_t depth = nodes_[index].depth;
+    for (std::size_t node = index + 1U; node < nodes_.size() && nodes_[node].depth > depth; ++node) {
+        if (nodes_[node].check_state == state) continue;
+        nodes_[node].check_state = state;
+        changes.push_back({nodes_[node].stable_id, state});
+    }
+    for (std::size_t ancestor = parent_[index]; ancestor != no_index; ancestor = parent_[ancestor]) {
+        const CheckState derived = derived_check_state(ancestor);
+        if (nodes_[ancestor].check_state == derived) continue;
+        nodes_[ancestor].check_state = derived;
+        changes.push_back({nodes_[ancestor].stable_id, derived});
+    }
+}
+
+// Checked or unchecked when every child is, otherwise indeterminate; a node
+// without children keeps its own state.
+CheckState TreeListView::derived_check_state(std::size_t index) const noexcept {
+    const std::size_t first = child_begin_[index + 1U];
+    const std::size_t end = child_begin_[index + 2U];
+    if (first == end) return nodes_[index].check_state;
+    const CheckState leading = nodes_[children_[first]].check_state;
+    std::size_t agreeing = 0U;
+    for (std::size_t child = first; child < end; ++child) {
+        if (nodes_[children_[child]].check_state == leading) ++agreeing;
+    }
+    const bool uniform = agreeing == end - first && leading != CheckState::indeterminate;
+    return uniform ? leading : CheckState::indeterminate;
+}
+
+void TreeListView::publish_checks(std::span<const TreeListCheckChange> changes) {
+    for (const TreeListCheckChange& change : changes) {
+        if (!is_alive()) return;
+        publish_change(check_state_changed_, change);
+    }
+}
+
+// Virtual mode: the source sets the state; the view only repaints and
+// reports the row's node.
+void TreeListView::set_virtual_row_check_state(std::size_t row, CheckState state) {
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
+    if (!node.enabled || node.check_state == state) return;
+    const std::string node_id = node.stable_id;
+    if (!(*row_source_).set_row_check_state(row, state)) return;
+    invalidate(Dirty::paint | Dirty::semantics);
+    const TreeListCheckChange change{node_id, state};
+    publish_change(check_state_changed_, change);
+}
+
+void TreeListView::toggle_row_check(std::size_t row) {
+    if (row >= shown_count()) return;
+    TreeListNode scratch;
+    const TreeListNode& node = row_node(row, scratch);
+    if (!node.enabled) return;
+    const CheckState next = node.check_state == CheckState::checked ? CheckState::unchecked : CheckState::checked;
+    if (row_source_) {
+        set_virtual_row_check_state(row, next);
+        return;
+    }
+    std::vector<TreeListCheckChange> changes;
+    apply_check_state(visible_[row], next, changes);
+    if (changes.empty()) return;
+    invalidate(Dirty::paint | Dirty::semantics);
+    publish_checks(changes);
 }
 
 // -- rows, scrolling and selection ---------------------------------------------
@@ -1207,6 +1329,16 @@ TreeListView::RowParts TreeListView::row_parts(const Layout& placed, std::size_t
     Rect expander{};
     if (row_can_expand(row, node)) expander = {x, std::floor(middle - side * 0.5), side, side};
     x += side + expander_gap * scale;
+    Rect check_well{};
+    Rect check{};
+    if (check_boxes.read()) {
+        const double box = std::min(check_size * scale, bounds.height);
+        const double inset = check_mark_inset * scale;
+        check_well = {x, std::floor(middle - box * 0.5), box, box};
+        check = {check_well.x + inset, check_well.y + inset, std::max(0.0, box - inset * 2.0),
+                 std::max(0.0, box - inset * 2.0)};
+        x += box + cell_padding * scale;
+    }
     Rect icon{};
     if (image_list.read()) {
         const Size image = icon_size();
@@ -1219,6 +1351,8 @@ TreeListView::RowParts TreeListView::row_parts(const Layout& placed, std::size_t
     parts.row = PartGeometry::from_bounds(Rect::intersection(bounds, clip));
     parts.row_face = parts.row;
     parts.expander = PartGeometry::from_bounds(Rect::intersection(expander, inner_clip));
+    parts.check_well = PartGeometry::from_bounds(Rect::intersection(check_well, inner_clip));
+    parts.check = PartGeometry::from_bounds(Rect::intersection(check, inner_clip));
     parts.icon = PartGeometry::from_bounds(Rect::intersection(icon, inner_clip));
     parts.text = PartGeometry::from_bounds(Rect::intersection(text, inner_clip));
     parts.row_focus = parts.row_face;
@@ -1274,6 +1408,10 @@ AnatomyStateSet TreeListView::row_states(std::size_t row) const {
     if (current) states.insert(AnatomyState::current);
     if (row_can_expand(row, node)) states.insert(node.expanded ? AnatomyState::open : AnatomyState::closed);
     if (!node.enabled || !effectively_enabled()) states.insert(AnatomyState::disabled);
+    if (check_boxes.read() && node.check_state == CheckState::checked) states.insert(AnatomyState::checked);
+    if (check_boxes.read() && node.check_state == CheckState::indeterminate) {
+        states.insert(AnatomyState::indeterminate);
+    }
     const Window* const host = attached_window();
     if (focused_ && current && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
@@ -1440,6 +1578,24 @@ void TreeListView::paint_row(Painter& painter, const Layout& placed, std::size_t
         paint_shown(painter, placed, part);
         part.mark = PartMark::none;
     }
+    if (parts.check_well.present) {
+        // The check box is the choice family's well and indicator, as
+        // ListView's and CheckedListBox's; an unchecked box shows no mark.
+        part.family = ControlVisualRole::choice;
+        part.role = PartRole::well;
+        part.bounds = parts.check_well.bounds;
+        paint_shown(painter, placed, part);
+        const bool checked = states.contains(AnatomyState::checked);
+        const bool indeterminate = states.contains(AnatomyState::indeterminate);
+        if (checked || indeterminate) {
+            part.role = PartRole::indicator;
+            part.bounds = parts.check.bounds;
+            part.mark = checked ? PartMark::check : PartMark::indeterminate;
+            paint_shown(painter, placed, part);
+            part.mark = PartMark::none;
+        }
+        part.family = ControlVisualRole::selection;
+    }
     if (parts.icon.present && !node.image_key.empty()) {
         const Window* const host = attached_window();
         const double density = host != nullptr ? (*host).scale() : 1.0;
@@ -1568,13 +1724,14 @@ TreeListView::Hit TreeListView::hit_test(const Layout& placed, Point local) cons
     hit.zone = HitZone::row;
     const RowParts parts = row_parts(placed, row, placed.viewport);
     if (parts.expander.present && parts.expander.bounds.contains(local)) hit.zone = HitZone::expander;
+    if (parts.check_well.present && parts.check_well.bounds.contains(local)) hit.zone = HitZone::check_box;
     return hit;
 }
 
 std::optional<std::string> TreeListView::node_id_at(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Layout placed = layout();
-    const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point drawn = frame_to_inner(local_frame, window_point);
     const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
     const Hit hit = hit_test(placed, local);
     if (hit.zone != HitZone::row && hit.zone != HitZone::expander) return std::nullopt;
@@ -1614,8 +1771,8 @@ std::size_t TreeListView::drop_position(const Layout& placed, std::size_t column
 
 void TreeListView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Point drawn{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point drawn = frame_to_inner(local_frame, event.position);
     // In reading order from here on (right to left, the drawn view mirrors);
     // the two values are copied, since the kept layout is remade later.
     const Rect frame = layout().well;
@@ -1687,7 +1844,8 @@ void TreeListView::handle_pointer(PointerEvent& event) {
     }
     const Hit hit = hit_test(placed, local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
-        const bool on_row = hit.zone == HitZone::row || hit.zone == HitZone::expander;
+        const bool on_row =
+            hit.zone == HitZone::row || hit.zone == HitZone::expander || hit.zone == HitZone::check_box;
         const stxlib::Optional<std::size_t> next_row = on_row ? stxlib::Optional<std::size_t>::of(hit.index) : stxlib::Optional<std::size_t>::none();
         const stxlib::Optional<std::size_t> next_column =
             hit.zone == HitZone::header ? stxlib::Optional<std::size_t>::of(hit.index) : stxlib::Optional<std::size_t>::none();
@@ -1724,7 +1882,9 @@ void TreeListView::handle_pointer(PointerEvent& event) {
     if (event.button == PointerButton::secondary) {
         // A secondary press selects the row under it (context menus are the
         // application's).
-        if (target.zone == HitZone::row || target.zone == HitZone::expander) choose_row(target.index);
+        const bool on_row =
+            target.zone == HitZone::row || target.zone == HitZone::expander || target.zone == HitZone::check_box;
+        if (on_row) choose_row(target.index);
         return;
     }
     // A press on no zone only takes focus.
@@ -1745,6 +1905,9 @@ void TreeListView::handle_pointer(PointerEvent& event) {
         TreeListNode scratch;
         const bool expanded = row_node(target.index, scratch).expanded;
         toggle_row(target.index, !expanded);
+    } else if (target.zone == HitZone::check_box) {
+        // The check box toggles without selecting, as TreeView's does.
+        toggle_row_check(target.index);
     } else if (target.zone == HitZone::row) {
         if (event.click_count >= 2U) {
             choose_row(target.index);
@@ -1903,7 +2066,13 @@ void TreeListView::handle_key(KeyEvent& event) {
         return;
     }
     if (key == PhysicalKey::space) {
-        choose_row(from);
+        // Space toggles the current node's check box when the rows show
+        // them, as ListView's does; otherwise it selects.
+        if (check_boxes.read() && has_current) {
+            toggle_row_check(from);
+        } else {
+            choose_row(from);
+        }
         event.handled = true;
         return;
     }
@@ -2039,7 +2208,7 @@ SemanticDescriptor TreeListView::semantic_descriptor() const {
 std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
     std::vector<SemanticNode> children{};
     const Layout placed = layout();
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::string view_id(stable_id().value());
     const bool enabled = effectively_enabled();
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
@@ -2056,7 +2225,7 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
         node.name = columns_[column].text;
         if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::ascending) node.value = "ascending";
         if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == TreeListSortOrder::descending) node.value = "descending";
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | enabled_state;
         node.actions = {SemanticAction::press};
         children.push_back(std::move(node));
@@ -2086,12 +2255,17 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
             node.position_in_set.set(sibling_position_[index] + 1U);
             node.set_size.set(child_begin_[slot + 1U] - child_begin_[slot]);
         }
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (enabled && item.enabled) node.states |= SemanticState::enabled;
         if (selected == stxlib::Optional<std::size_t>::of(row)) node.states |= SemanticState::selected;
         if (focused_ && current == stxlib::Optional<std::size_t>::of(row)) node.states |= SemanticState::focused;
         if (expandable && item.expanded) node.states |= SemanticState::expanded;
+        if (check_boxes.read()) {
+            node.states |= SemanticState::checkable;
+            if (item.check_state == CheckState::checked) node.states |= SemanticState::checked;
+            if (item.check_state == CheckState::indeterminate) node.states |= SemanticState::mixed;
+        }
         node.actions = {SemanticAction::focus, SemanticAction::select, SemanticAction::press};
         if (expandable) {
             node.actions.push_back(item.expanded ? SemanticAction::collapse : SemanticAction::expand);
@@ -2107,7 +2281,7 @@ std::vector<SemanticNode> TreeListView::semantic_virtual_children() const {
 void TreeListView::append_row_cells(const Layout& placed, std::size_t row, SemanticNode& row_semantics) const {
     TreeListNode scratch;
     const TreeListNode& item = row_node(row, scratch);
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect line = row_bounds(placed, row);
     const bool enabled = effectively_enabled() && item.enabled;
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
@@ -2125,7 +2299,7 @@ void TreeListView::append_row_cells(const Layout& placed, std::size_t row, Seman
         cell.value = std::string(column_text(item, column));
         cell.row_index.set(row + 1U);
         cell.column_index.set(column_position_[column] + 1U);
-        cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        cell.bounds = frame_to_outer(local_frame, bounds);
         cell.states = SemanticState::visible | enabled_state;
         row_semantics.children.push_back(std::move(cell));
     }
@@ -2164,6 +2338,10 @@ bool TreeListView::on_semantic_child_action(std::string_view id, SemanticAction 
         invalidate(Dirty::paint | Dirty::semantics);
     } else if (action == SemanticAction::select) {
         choose_row(*current.value());
+    } else if (check_boxes.read()) {
+        // Press toggles a row's check box, as on ListView's check-list items.
+        place_current(*current.value());
+        toggle_row_check(*current.value());
     } else {
         activate_row(*current.value());
     }
@@ -2194,13 +2372,17 @@ constexpr std::array<PartField<TreeListView::Parts>, 7> tree_list_view_part_fiel
      .member = &TreeListView::Parts::focus},
 }};
 
-constexpr std::array<PartField<TreeListView::RowParts>, 6> tree_list_view_row_part_fields{{
+constexpr std::array<PartField<TreeListView::RowParts>, 8> tree_list_view_row_part_fields{{
     {.declaration = {.name = "row", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::row},
     {.declaration = {.name = "row_face", .role = PartRole::face, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::row_face},
     {.declaration = {.name = "expander", .role = PartRole::disclosure, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::expander},
+    {.declaration = {.name = "check_well", .role = PartRole::well, .composed_from = {}, .states = {}},
+     .member = &TreeListView::RowParts::check_well},
+    {.declaration = {.name = "check", .role = PartRole::indicator, .composed_from = {}, .states = {}},
+     .member = &TreeListView::RowParts::check},
     {.declaration = {.name = "icon", .role = PartRole::icon, .composed_from = {}, .states = {}},
      .member = &TreeListView::RowParts::icon},
     {.declaration = {.name = "text", .role = PartRole::content, .composed_from = {}, .states = {}},
@@ -2209,7 +2391,7 @@ constexpr std::array<PartField<TreeListView::RowParts>, 6> tree_list_view_row_pa
      .member = &TreeListView::RowParts::row_focus},
 }};
 
-constexpr std::array<StateField<TreeListView::RowStates>, 7> tree_list_view_row_state_fields{{
+constexpr std::array<StateField<TreeListView::RowStates>, 9> tree_list_view_row_state_fields{{
     {.state = AnatomyState::selected, .member = &TreeListView::RowStates::selected},
     {.state = AnatomyState::hot, .member = &TreeListView::RowStates::hot},
     {.state = AnatomyState::current, .member = &TreeListView::RowStates::current},
@@ -2217,6 +2399,8 @@ constexpr std::array<StateField<TreeListView::RowStates>, 7> tree_list_view_row_
     {.state = AnatomyState::closed, .member = &TreeListView::RowStates::closed},
     {.state = AnatomyState::disabled, .member = &TreeListView::RowStates::disabled},
     {.state = AnatomyState::focus_visible, .member = &TreeListView::RowStates::focus_visible},
+    {.state = AnatomyState::checked, .member = &TreeListView::RowStates::checked},
+    {.state = AnatomyState::indeterminate, .member = &TreeListView::RowStates::indeterminate},
 }};
 
 constexpr std::array<PartField<TreeListView::CellParts>, 2> tree_list_view_cell_part_fields{{
@@ -2256,9 +2440,9 @@ constexpr std::array<CustomStateDeclaration, 2> tree_list_view_column_custom_sta
 }};
 
 constexpr std::array<PartDeclaration, 7> tree_list_view_parts = part_declarations(tree_list_view_part_fields);
-constexpr std::array<PartDeclaration, 6> tree_list_view_row_parts =
+constexpr std::array<PartDeclaration, 8> tree_list_view_row_parts =
     part_declarations(tree_list_view_row_part_fields);
-constexpr std::array<AnatomyState, 7> tree_list_view_row_states =
+constexpr std::array<AnatomyState, 9> tree_list_view_row_states =
     state_declarations(tree_list_view_row_state_fields);
 constexpr std::array<PartDeclaration, 2> tree_list_view_cell_parts =
     part_declarations(tree_list_view_cell_part_fields);
@@ -2492,13 +2676,14 @@ std::vector<TreeListView::Column> TreeListView::realized_columns() const {
 namespace {
 
 // The events TreeListView adds to those of Control, in declaration order.
-constexpr std::array<InteractionDeclaration, 6> tree_list_view_interactions{{
+constexpr std::array<InteractionDeclaration, 7> tree_list_view_interactions{{
     {.name = "selection_changed", .payload = "TreeListSelectionChange", .mutable_payload = false},
     {.name = "expansion_changed", .payload = "TreeListExpansionChange", .mutable_payload = false},
     {.name = "item_activated", .payload = "TreeListActivation", .mutable_payload = false},
     {.name = "sort_changed", .payload = "TreeListSortChange", .mutable_payload = false},
     {.name = "column_width_changed", .payload = "TreeListColumnWidthChange", .mutable_payload = false},
     {.name = "column_moved", .payload = "TreeListColumnMove", .mutable_payload = false},
+    {.name = "check_state_changed", .payload = "TreeListCheckChange", .mutable_payload = false},
 }};
 
 } // namespace
@@ -2571,9 +2756,75 @@ std::optional<std::string> TreeListView::read_view(const decltype(selected_id)&)
 
 // property_codemod begin TreeListView (tools/property_families/tree_list_view.json; generated, do not edit)
 
+namespace {
+
+PropertyDescriptor tree_list_view_check_boxes_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "check_boxes";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Appearance";
+    descriptor.description = "Whether each row shows its node's check box.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_tree_list_view_check_boxes() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        tree_list_view_check_boxes_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+PropertyDescriptor tree_list_view_cascading_checks_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "cascading_checks";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Behavior";
+    descriptor.description = "Whether a check cascades to the node's subtree and ancestors.";
+    descriptor.default_value = BindingValue{true};
+    descriptor.invalidation_effects = Dirty::none;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_tree_list_view_cascading_checks() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        tree_list_view_cascading_checks_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, TreeListView::tree_list_view_property_count>& TreeListView::tree_list_view_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 2U> own{{
+        {"check_boxes", &describe_tree_list_view_check_boxes,
+         &read_cell_entry<TreeListView, decltype(&TreeListView::check_boxes), &TreeListView::check_boxes>,
+         &write_cell_entry<TreeListView, decltype(&TreeListView::check_boxes), &TreeListView::check_boxes>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"cascading_checks", &describe_tree_list_view_cascading_checks,
+         &read_cell_entry<TreeListView, decltype(&TreeListView::cascading_checks), &TreeListView::cascading_checks>,
+         &write_cell_entry<TreeListView, decltype(&TreeListView::cascading_checks), &TreeListView::cascading_checks>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "TreeListView's property table names a property twice");
+    static const std::array<PropertyEntry, tree_list_view_property_count> entries =
+        join_property_tables(Control::control_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> TreeListView::property_table() const noexcept {
+    const std::array<PropertyEntry, tree_list_view_property_count>& entries = tree_list_view_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
 void TreeListView::prepare_write(const decltype(indentation)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < minimum_indentation || incoming > maximum_indentation) {
+    if (!ic::admits_indentation(incoming)) {
         throw std::invalid_argument("TreeListView indentation is outside the indentation bounds");
     }
 }
@@ -2594,6 +2845,22 @@ void TreeListView::written(const decltype(font)&) {
 }
 
 void TreeListView::on_font_changed() {}
+
+void TreeListView::prepare_write(const decltype(check_boxes)&, bool&) {
+    require_mutable();
+}
+
+void TreeListView::written(const decltype(check_boxes)&) {
+    invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
+void TreeListView::prepare_write(const decltype(cascading_checks)&, bool&) {
+    require_mutable();
+}
+
+void TreeListView::written(const decltype(cascading_checks)&) {
+    invalidate(Dirty::none);
+}
 
 // property_codemod end TreeListView
 

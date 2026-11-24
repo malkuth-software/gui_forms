@@ -6,6 +6,7 @@
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/docking/dock_layout/dock_layout.hpp"
 #include "gui_forms/docking/types/dock_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "docking-workspace_form.hpp"
 #include <optional>
@@ -114,7 +115,9 @@ private:
         std::shared_ptr<Panel> content = make_control<Panel>(StableId("gallery.docking.content." + creation.panel.value));
         std::shared_ptr<Label> copy =
             label("gallery.docking.copy." + creation.panel.value, title, 11.0, 400, "ink");
-        (*copy).set_requested_bounds({8.0, 8.0, 160.0, 22.0});
+        // As wide as the field, so the copy fits the narrowest pane (118 at
+        // the page's first size) and the panel has nothing to contain.
+        (*copy).set_requested_bounds({8.0, 8.0, 100.0, 22.0});
         (*content).add_child(copy);
         std::shared_ptr<TextBox> field = make_control<TextBox>(StableId("gallery.docking.field." + creation.panel.value));
         (*field).accessible_name = title;
@@ -211,7 +214,7 @@ private:
 };
 
 void add_docking_workspace(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<DockingWorkspacePage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<DockingWorkspacePage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

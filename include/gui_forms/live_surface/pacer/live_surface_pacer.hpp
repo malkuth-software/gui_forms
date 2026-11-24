@@ -2,11 +2,12 @@
 
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/live_surface/types/live_surface_types.hpp"
+#include "gui_forms/scheduler/display_timing/display_timing.hpp"
 
 #include <atomic>
 #include <cstdint>
 #include <memory>
-#include <stop_token>
+#include <stxlib/stop_token.hpp>
 
 namespace gui_forms {
 
@@ -42,6 +43,17 @@ struct GUI_FORMS_API LivePacingResult final {
     std::uint64_t missed_frames{};
 };
 
+// The live display timing a presenter reports for a window that holds
+// `timing` (SurfaceRoot::display_timing), at `now`: the display's own timing
+// as display_phased, a measured, nominal or fixed rate as phased_timer, each
+// with its period and the latest presentation at or before `now` as the
+// vertical blank; nothing (source none: the pacer's 60 Hz fallback, frames
+// for the time they are made) for assumed timing. Hosts report it with each
+// presentation (LiveSurface::notify_presented), so a producer paces to the
+// same frame source as the window's own motion.
+[[nodiscard]] GUI_FORMS_API LiveDisplayTiming live_display_timing(const DisplayTiming& timing,
+                                                                  FrameTime now) noexcept;
+
 // One producer's presentation clock (design note section 8, decision 7):
 // paces a producer to the display through its presenter's reports
 // (LiveSurface::notify_presented) and never to a free-running sleep, and
@@ -68,7 +80,7 @@ public:
     // Blocks until plan would answer frame or deadline, or `stop` fires;
     // one wait per frame on the surface's condition, never a fixed sleep.
     // While idle it waits only for `stop` and arm().
-    [[nodiscard]] LivePacingResult wait_for_frame(const std::stop_token& stop);
+    [[nodiscard]] LivePacingResult wait_for_frame(const stxlib::StopToken& stop);
     // A producer with nothing armed and nothing dirty: plan answers pending
     // with no wake time and wait_for_frame waits for arm() or stop. Any
     // thread may arm(); it wakes a waiting producer.

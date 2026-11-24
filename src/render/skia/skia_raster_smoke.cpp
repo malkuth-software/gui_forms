@@ -1,8 +1,9 @@
 #include "skia_raster.hpp"
 #include "gui_forms/paint_framebuffer.hpp"
 #include "gui_forms/resources/image_registry/image_registry.hpp"
-#include "../text/harfbuzz/bundled_face_loader.hpp"
+#include "../text/shaping/bundled_face_loader.hpp"
 #include "stx_zlib/checksum.hpp"
+#include "../../platform/library_files.hpp"
 #if defined(_WIN32)
 #include "../../surface/windows/fonts/sealed_pages_windows.hpp"
 #else
@@ -15,12 +16,18 @@
 #include <cstdint>
 #include <cstdio>
 #include <filesystem>
+#include <limits>
 #include <memory>
-#include <fstream>
 #include <span>
 #include <string>
 #include <string_view>
 #include <vector>
+
+#include <stxlib/buffer.hpp>
+#include <stxlib/files.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 
 namespace {
 
@@ -38,15 +45,15 @@ void write_u32(std::span<std::byte> destination, std::uint32_t value) {
     destination[3] = static_cast<std::byte>(value);
 }
 
+// The file's bytes, empty when it cannot be read or is empty.
 std::vector<std::byte> read_file(const char* path) {
-    std::ifstream stream(path, std::ios::binary | std::ios::ate);
-    if (!stream) return {};
-    const std::streamsize length = stream.tellg();
-    if (length <= 0) return {};
-    std::vector<std::byte> bytes(static_cast<std::size_t>(length));
-    stream.seekg(0);
-    stream.read(reinterpret_cast<char*>(bytes.data()), length);
-    return stream ? bytes : std::vector<std::byte>{};
+    const stxlib::OperationResult<stxlib::Buffer<stxlib::Byte>> read =
+        gui_forms::platform::read_whole_file(std::filesystem::path(path), std::numeric_limits<std::size_t>::max());
+    if (read.failed()) return {};
+    const stxlib::View<stxlib::Byte> view = (*read.value()).view();
+    const std::byte* const first = reinterpret_cast<const std::byte*>(view.data());
+    std::vector<std::byte> bytes(first, first + view.count());
+    return bytes;
 }
 
 std::size_t ink_pixels(const std::uint8_t* pixels, std::size_t row_bytes,
@@ -74,14 +81,16 @@ const std::uint8_t* pixel_at(const std::uint8_t* pixels, std::size_t row_bytes,
 // file, and leaves the raster able to register a readable file afterwards.
 bool unreadable_font_files_are_refused() {
     gui_forms::render::SkiaRaster raster;
-    const std::filesystem::path empty_path =
-        std::filesystem::temp_directory_path() / "gui_forms_skia_smoke_empty_font.ttf";
+    const std::filesystem::path temporary = gui_forms::platform::temporary_directory();
+    if (temporary.empty()) return false;
+    const std::filesystem::path empty_path = temporary / "gui_forms_skia_smoke_empty_font.ttf";
     {
-        std::ofstream empty_file(empty_path, std::ios::binary | std::ios::trunc);
-        if (!empty_file) return false;
+        stxlib::OperationResult<stxlib::File> empty_file =
+            gui_forms::platform::open_file(empty_path, stxlib::FileMode::replace);
+        if (empty_file.failed()) return false;
     }
     const std::string empty_name = empty_path.string();
-    const std::string directory_name = std::filesystem::temp_directory_path().string();
+    const std::string directory_name = temporary.string();
     const bool refused_null = !raster.register_typeface_file(gui_forms::FontRole::control, 400, false, nullptr);
     const bool refused_missing =
         !raster.register_typeface_file(gui_forms::FontRole::control, 400, false, "/gui-forms-missing-font.otf");
@@ -89,22 +98,18 @@ bool unreadable_font_files_are_refused() {
         !raster.register_typeface_file(gui_forms::FontRole::control, 400, false, directory_name.c_str());
     const bool refused_empty =
         !raster.register_fallback_typeface_file(400, false, empty_name.c_str());
-    std::error_code removal_error;
-    std::filesystem::remove(empty_path, removal_error);
+    static_cast<void>(gui_forms::platform::remove_file(empty_path));
     const bool accepted_readable =
         raster.register_typeface_file(gui_forms::FontRole::control, 400, false, GUI_FORMS_TEST_CONTROL_FONT);
     // The path is UTF-8, so a copy under a non-ASCII name must register too.
     const std::filesystem::path utf8_path =
-        std::filesystem::temp_directory_path() / std::u8string_view(u8"gui_forms_skia_smoke_\u00e9t\u00e9.ttf");
-    std::error_code copy_error;
-    std::filesystem::copy_file(GUI_FORMS_TEST_CONTROL_FONT, utf8_path,
-                               std::filesystem::copy_options::overwrite_existing, copy_error);
-    if (copy_error) return false;
+        temporary / std::u8string_view(u8"gui_forms_skia_smoke_\u00e9t\u00e9.ttf");
+    if (!gui_forms::platform::copy_file_replacing(GUI_FORMS_TEST_CONTROL_FONT, utf8_path)) return false;
     const std::u8string utf8_name = utf8_path.u8string();
     const std::string utf8_bytes(reinterpret_cast<const char*>(utf8_name.data()), utf8_name.size());
     const bool accepted_utf8 =
         raster.register_fallback_typeface_file(400, false, utf8_bytes.c_str());
-    std::filesystem::remove(utf8_path, removal_error);
+    static_cast<void>(gui_forms::platform::remove_file(utf8_path));
     return refused_null && refused_missing && refused_directory && refused_empty &&
         accepted_readable && accepted_utf8;
 }

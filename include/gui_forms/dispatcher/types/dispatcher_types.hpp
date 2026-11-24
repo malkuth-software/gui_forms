@@ -16,6 +16,16 @@ enum class DispatchInvokeResult : std::uint8_t {
     window_gone,
 };
 
+// What a WindowDispatcher handle is bound to (IC3, the handle's public
+// state query, WindowDispatcher::state): no window (a default-constructed
+// handle), a window still accepting work, or a window that is gone (its host
+// shut the dispatcher down or its destructor began). gone is final.
+enum class WindowDispatcherState : std::uint8_t {
+    unbound,
+    accepting,
+    gone,
+};
+
 enum class DispatchOperationState : std::uint8_t {
     invalid,
     pending,

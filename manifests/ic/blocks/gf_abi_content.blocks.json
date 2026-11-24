@@ -1,0 +1,3525 @@
+{
+  "schema": 1,
+  "component": "gf_abi::content",
+  "declaration": "include/gui_forms/c/gf_abi_content.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.content.open_content.alive",
+      "mode": "legal",
+      "call": "open_content",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: open_content needs an output",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "A surface that is not a content_surface gives GF_STATUS_WRONG_HANDLE_KIND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_content_sink",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.content.open_content.disposing",
+      "mode": "legal",
+      "call": "open_content",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: open_content needs an output",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "A surface that is not a content_surface gives GF_STATUS_WRONG_HANDLE_KIND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_content_sink",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.content.open_content.disposed",
+      "mode": "legal",
+      "call": "open_content",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: open_content needs an output",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "A surface that is not a content_surface gives GF_STATUS_WRONG_HANDLE_KIND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_content_sink",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.content.close_content.alive",
+      "mode": "legal",
+      "call": "close_content",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.close_content.disposing",
+      "mode": "legal",
+      "call": "close_content",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.close_content.disposed",
+      "mode": "legal",
+      "call": "close_content",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.start_program.alive",
+      "mode": "legal",
+      "call": "start_program",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a gf_content_program needs struct_size of at least 40 and opaque 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.start_program.disposing",
+      "mode": "legal",
+      "call": "start_program",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a gf_content_program needs struct_size of at least 40 and opaque 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.start_program.disposed",
+      "mode": "legal",
+      "call": "start_program",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a gf_content_program needs struct_size of at least 40 and opaque 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.start_hosted.alive",
+      "mode": "legal",
+      "call": "start_hosted",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for an executable that is not an absolute path or a slot size over the limit.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: a hosted program takes at most GF_HOSTED_MAXIMUM_ARGUMENTS arguments",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: hosted content is not available on this platform (GF_HOST_CAPABILITY_HOSTED_CONTENT)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.start_hosted.disposing",
+      "mode": "legal",
+      "call": "start_hosted",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for an executable that is not an absolute path or a slot size over the limit.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: a hosted program takes at most GF_HOSTED_MAXIMUM_ARGUMENTS arguments",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: hosted content is not available on this platform (GF_HOST_CAPABILITY_HOSTED_CONTENT)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.start_hosted.disposed",
+      "mode": "legal",
+      "call": "start_hosted",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for an executable that is not an absolute path or a slot size over the limit.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: a hosted program takes at most GF_HOSTED_MAXIMUM_ARGUMENTS arguments",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: hosted content is not available on this platform (GF_HOST_CAPABILITY_HOSTED_CONTENT)",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.terminate.alive",
+      "mode": "legal",
+      "call": "terminate",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.terminate.disposing",
+      "mode": "legal",
+      "call": "terminate",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.terminate.disposed",
+      "mode": "legal",
+      "call": "terminate",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_termination_grace.alive",
+      "mode": "legal",
+      "call": "set_termination_grace",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_termination_grace.disposing",
+      "mode": "legal",
+      "call": "set_termination_grace",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_termination_grace.disposed",
+      "mode": "legal",
+      "call": "set_termination_grace",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_stale_interval.alive",
+      "mode": "legal",
+      "call": "set_stale_interval",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a time is at most GF_CONTENT_MAXIMUM_WAIT_MS milliseconds",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_stale_interval.disposing",
+      "mode": "legal",
+      "call": "set_stale_interval",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a time is at most GF_CONTENT_MAXIMUM_WAIT_MS milliseconds",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_stale_interval.disposed",
+      "mode": "legal",
+      "call": "set_stale_interval",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a time is at most GF_CONTENT_MAXIMUM_WAIT_MS milliseconds",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.status.alive",
+      "mode": "legal",
+      "call": "status",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: status needs an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.status.disposing",
+      "mode": "legal",
+      "call": "status",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: status needs an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.status.disposed",
+      "mode": "legal",
+      "call": "status",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: status needs an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.failure.alive",
+      "mode": "legal",
+      "call": "failure",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.failure.disposing",
+      "mode": "legal",
+      "call": "failure",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.failure.disposed",
+      "mode": "legal",
+      "call": "failure",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.statistics.alive",
+      "mode": "legal",
+      "call": "statistics",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "statistics",
+          "type": "gf_content_statistics*",
+          "bounded_by": [
+            "not_null(statistics)"
+          ]
+        },
+        {
+          "name": "statistics_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "statistics_size >= statistics_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(statistics)",
+        "statistics_size >= statistics_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "statistics_statistics",
+        "statistics_statistics_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.statistics.disposing",
+      "mode": "legal",
+      "call": "statistics",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "statistics",
+          "type": "gf_content_statistics*",
+          "bounded_by": [
+            "not_null(statistics)"
+          ]
+        },
+        {
+          "name": "statistics_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "statistics_size >= statistics_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(statistics)",
+        "statistics_size >= statistics_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "statistics_statistics",
+        "statistics_statistics_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.statistics.disposed",
+      "mode": "legal",
+      "call": "statistics",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "statistics",
+          "type": "gf_content_statistics*",
+          "bounded_by": [
+            "not_null(statistics)"
+          ]
+        },
+        {
+          "name": "statistics_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "statistics_size >= statistics_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(statistics)",
+        "statistics_size >= statistics_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "statistics_statistics",
+        "statistics_statistics_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.statistics.misuse.statistics_statistics",
+      "mode": "misuse",
+      "call": "statistics",
+      "violates": "not_null(statistics)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.statistics.misuse.statistics_statistics_size",
+      "mode": "misuse",
+      "call": "statistics",
+      "violates": "statistics_size >= statistics_size_1_4",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.request.alive",
+      "mode": "legal",
+      "call": "request",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "request",
+          "type": "gf_content_request*",
+          "bounded_by": [
+            "not_null(request)"
+          ]
+        },
+        {
+          "name": "request_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "request_size >= request_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(request)",
+        "request_size >= request_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "request_request",
+        "request_request_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.request.disposing",
+      "mode": "legal",
+      "call": "request",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "request",
+          "type": "gf_content_request*",
+          "bounded_by": [
+            "not_null(request)"
+          ]
+        },
+        {
+          "name": "request_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "request_size >= request_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(request)",
+        "request_size >= request_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "request_request",
+        "request_request_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.request.disposed",
+      "mode": "legal",
+      "call": "request",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "request",
+          "type": "gf_content_request*",
+          "bounded_by": [
+            "not_null(request)"
+          ]
+        },
+        {
+          "name": "request_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "request_size >= request_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(request)",
+        "request_size >= request_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "request_request",
+        "request_request_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.request.misuse.request_request",
+      "mode": "misuse",
+      "call": "request",
+      "violates": "not_null(request)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.request.misuse.request_request_size",
+      "mode": "misuse",
+      "call": "request",
+      "violates": "request_size >= request_size_1_4",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.set_status_caption.alive",
+      "mode": "legal",
+      "call": "set_status_caption",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an unknown gf_content_status",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_status_caption.disposing",
+      "mode": "legal",
+      "call": "set_status_caption",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an unknown gf_content_status",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_status_caption.disposed",
+      "mode": "legal",
+      "call": "set_status_caption",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: an unknown gf_content_status",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_semantics.alive",
+      "mode": "legal",
+      "call": "set_semantics",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT when it is not UTF-8 or too long (nothing changes then).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_semantics.disposing",
+      "mode": "legal",
+      "call": "set_semantics",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT when it is not UTF-8 or too long (nothing changes then).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.set_semantics.disposed",
+      "mode": "legal",
+      "call": "set_semantics",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT when it is not UTF-8 or too long (nothing changes then).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.program_running.alive",
+      "mode": "legal",
+      "call": "program_running",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "running",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(running)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(running)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.program_running.disposing",
+      "mode": "legal",
+      "call": "program_running",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "running",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(running)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(running)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.program_running.disposed",
+      "mode": "legal",
+      "call": "program_running",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "running",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(running)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(running)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.program_running.misuse.program_running_running",
+      "mode": "misuse",
+      "call": "program_running",
+      "violates": "not_null(running)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.hosted_input.alive",
+      "mode": "legal",
+      "call": "hosted_input",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "report",
+          "type": "gf_hosted_input_report*",
+          "bounded_by": [
+            "not_null(report)"
+          ]
+        },
+        {
+          "name": "report_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "report_size >= hosted_input_report_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(report)",
+        "report_size >= hosted_input_report_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "hosted_input_report",
+        "hosted_input_report_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.hosted_input.disposing",
+      "mode": "legal",
+      "call": "hosted_input",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "report",
+          "type": "gf_hosted_input_report*",
+          "bounded_by": [
+            "not_null(report)"
+          ]
+        },
+        {
+          "name": "report_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "report_size >= hosted_input_report_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(report)",
+        "report_size >= hosted_input_report_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "hosted_input_report",
+        "hosted_input_report_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.hosted_input.disposed",
+      "mode": "legal",
+      "call": "hosted_input",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "report",
+          "type": "gf_hosted_input_report*",
+          "bounded_by": [
+            "not_null(report)"
+          ]
+        },
+        {
+          "name": "report_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "report_size >= hosted_input_report_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(report)",
+        "report_size >= hosted_input_report_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "hosted_input_report",
+        "hosted_input_report_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.hosted_input.misuse.hosted_input_report",
+      "mode": "misuse",
+      "call": "hosted_input",
+      "violates": "not_null(report)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.hosted_input.misuse.hosted_input_report_size",
+      "mode": "misuse",
+      "call": "hosted_input",
+      "violates": "report_size >= hosted_input_report_size_1_4",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.hosted_support",
+      "mode": "legal",
+      "call": "hosted_support",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "support",
+          "type": "gf_hosted_support*",
+          "bounded_by": [
+            "not_null(support)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(support)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.hosted_support.misuse.hosted_support_support",
+      "mode": "misuse",
+      "call": "hosted_support",
+      "violates": "not_null(support)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.sink_publish",
+      "mode": "legal",
+      "call": "sink_publish",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a gf_content_frame needs struct_size of at least 64, reserved zero, opaque 0 or 1 and a ",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.sink_heartbeat",
+      "mode": "legal",
+      "call": "sink_heartbeat",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.sink_publish_semantics",
+      "mode": "legal",
+      "call": "sink_publish_semantics",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "outcome",
+          "type": "gf_content_semantics_result*",
+          "bounded_by": [
+            "not_null(outcome)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(outcome)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.sink_publish_semantics.misuse.sink_publish_semantics_outcome",
+      "mode": "misuse",
+      "call": "sink_publish_semantics",
+      "violates": "not_null(outcome)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.sink_request",
+      "mode": "legal",
+      "call": "sink_request",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "request",
+          "type": "gf_content_request*",
+          "bounded_by": [
+            "not_null(request)"
+          ]
+        },
+        {
+          "name": "request_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "request_size >= request_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(request)",
+        "request_size >= request_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "sink_request_request",
+        "sink_request_request_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.sink_request.misuse.sink_request_request",
+      "mode": "misuse",
+      "call": "sink_request",
+      "violates": "not_null(request)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.sink_request.misuse.sink_request_request_size",
+      "mode": "misuse",
+      "call": "sink_request",
+      "violates": "request_size >= request_size_1_4",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.sink_wait_for_request",
+      "mode": "legal",
+      "call": "sink_wait_for_request",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "request",
+          "type": "gf_content_request*",
+          "bounded_by": [
+            "not_null(request)"
+          ]
+        },
+        {
+          "name": "request_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "request_size >= request_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(request)",
+        "request_size >= request_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "sink_wait_for_request_request",
+        "sink_wait_for_request_request_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.sink_wait_for_request.misuse.sink_wait_for_request_request",
+      "mode": "misuse",
+      "call": "sink_wait_for_request",
+      "violates": "not_null(request)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.sink_wait_for_request.misuse.sink_wait_for_request_request_size",
+      "mode": "misuse",
+      "call": "sink_wait_for_request",
+      "violates": "request_size >= request_size_1_4",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.sink_state",
+      "mode": "legal",
+      "call": "sink_state",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: sink_state needs both outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.sink_statistics",
+      "mode": "legal",
+      "call": "sink_statistics",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "statistics",
+          "type": "gf_content_statistics*",
+          "bounded_by": [
+            "not_null(statistics)"
+          ]
+        },
+        {
+          "name": "statistics_size",
+          "type": "uint32_t",
+          "bounded_by": [
+            "statistics_size >= statistics_size_1_4"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(statistics)",
+        "statistics_size >= statistics_size_1_4"
+      ],
+      "fails": [],
+      "returns": {},
+      "refusal_order": [
+        "sink_statistics_statistics",
+        "sink_statistics_statistics_size"
+      ]
+    },
+    {
+      "name": "gf_abi.content.sink_statistics.misuse.sink_statistics_statistics",
+      "mode": "misuse",
+      "call": "sink_statistics",
+      "violates": "not_null(statistics)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.sink_statistics.misuse.sink_statistics_statistics_size",
+      "mode": "misuse",
+      "call": "sink_statistics",
+      "violates": "statistics_size >= statistics_size_1_4",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.sink_release",
+      "mode": "legal",
+      "call": "sink_release",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.program_sink",
+      "mode": "legal",
+      "call": "program_sink",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: program_sink needs an output",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "Elsewhere GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_content_sink",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.content.program_fail",
+      "mode": "legal",
+      "call": "program_fail",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_state",
+          "when": "Elsewhere GF_STATUS_INVALID_STATE.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_text_revision.alive",
+      "mode": "legal",
+      "call": "editor_text_revision",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "revision",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(revision)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(revision)"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "A content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_text_revision.disposing",
+      "mode": "legal",
+      "call": "editor_text_revision",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "revision",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(revision)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(revision)"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "A content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_text_revision.disposed",
+      "mode": "legal",
+      "call": "editor_text_revision",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "revision",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(revision)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(revision)"
+      ],
+      "fails": [
+        {
+          "failure": "wrong_handle_kind",
+          "when": "A content_text_editor only, else GF_STATUS_WRONG_HANDLE_KIND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_text_revision.misuse.editor_text_revision_revision",
+      "mode": "misuse",
+      "call": "editor_text_revision",
+      "violates": "not_null(revision)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.editor_text.alive",
+      "mode": "legal",
+      "call": "editor_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_text.disposing",
+      "mode": "legal",
+      "call": "editor_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_text.disposed",
+      "mode": "legal",
+      "call": "editor_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_text.alive",
+      "mode": "legal",
+      "call": "editor_set_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_text.disposing",
+      "mode": "legal",
+      "call": "editor_set_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_text.disposed",
+      "mode": "legal",
+      "call": "editor_set_text",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_submit_layout.alive",
+      "mode": "legal",
+      "call": "editor_submit_layout",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a gf_content_text_layout needs struct_size of at least 64, reserved zero and a result",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_submit_layout.disposing",
+      "mode": "legal",
+      "call": "editor_submit_layout",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a gf_content_text_layout needs struct_size of at least 64, reserved zero and a result",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_submit_layout.disposed",
+      "mode": "legal",
+      "call": "editor_submit_layout",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a gf_content_text_layout needs struct_size of at least 64, reserved zero and a result",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_layout_current.alive",
+      "mode": "legal",
+      "call": "editor_layout_current",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "current",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(current)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(current)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_layout_current.disposing",
+      "mode": "legal",
+      "call": "editor_layout_current",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "current",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(current)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(current)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_layout_current.disposed",
+      "mode": "legal",
+      "call": "editor_layout_current",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "current",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(current)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(current)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_layout_current.misuse.editor_layout_current_current",
+      "mode": "misuse",
+      "call": "editor_layout_current",
+      "violates": "not_null(current)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.editor_open_frames.alive",
+      "mode": "legal",
+      "call": "editor_open_frames",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "sink",
+          "type": "gf_content_sink*",
+          "bounded_by": [
+            "not_null(sink)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(sink)"
+      ],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_content_sink",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.content.editor_open_frames.disposing",
+      "mode": "legal",
+      "call": "editor_open_frames",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "sink",
+          "type": "gf_content_sink*",
+          "bounded_by": [
+            "not_null(sink)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(sink)"
+      ],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_content_sink",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.content.editor_open_frames.disposed",
+      "mode": "legal",
+      "call": "editor_open_frames",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "sink",
+          "type": "gf_content_sink*",
+          "bounded_by": [
+            "not_null(sink)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(sink)"
+      ],
+      "fails": [
+        {
+          "failure": "limit_exceeded",
+          "when": "code: GF_CONTENT_MAXIMUM_SINKS sinks are held; release one first",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_content_sink",
+        "owns": "caller"
+      }
+    },
+    {
+      "name": "gf_abi.content.editor_open_frames.misuse.editor_open_frames_sink",
+      "mode": "misuse",
+      "call": "editor_open_frames",
+      "violates": "not_null(sink)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.editor_caret_rectangle.alive",
+      "mode": "legal",
+      "call": "editor_caret_rectangle",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_caret_rectangle needs both outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_caret_rectangle.disposing",
+      "mode": "legal",
+      "call": "editor_caret_rectangle",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_caret_rectangle needs both outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_caret_rectangle.disposed",
+      "mode": "legal",
+      "call": "editor_caret_rectangle",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_caret_rectangle needs both outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_selection_rectangles.alive",
+      "mode": "legal",
+      "call": "editor_selection_rectangles",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_logical_rect*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selection's boxes from the current layout, in order: required receives their number; a buffer of fewer than that many gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_selection_rectangles.disposing",
+      "mode": "legal",
+      "call": "editor_selection_rectangles",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_logical_rect*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selection's boxes from the current layout, in order: required receives their number; a buffer of fewer than that many gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_selection_rectangles.disposed",
+      "mode": "legal",
+      "call": "editor_selection_rectangles",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_logical_rect*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selection's boxes from the current layout, in order: required receives their number; a buffer of fewer than that many gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_selection_rectangles.misuse.editor_selection_rectangles_buffer",
+      "mode": "misuse",
+      "call": "editor_selection_rectangles",
+      "violates": "not_null(required) and (not_null(buffer) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.editor_position_at.alive",
+      "mode": "legal",
+      "call": "editor_position_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(offset)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_position_at.disposing",
+      "mode": "legal",
+      "call": "editor_position_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(offset)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_position_at.disposed",
+      "mode": "legal",
+      "call": "editor_position_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "offset",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(offset)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(offset)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_position_at.misuse.editor_position_at_offset",
+      "mode": "misuse",
+      "call": "editor_position_at",
+      "violates": "not_null(offset)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.editor_set_draws_selection.alive",
+      "mode": "legal",
+      "call": "editor_set_draws_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_draws_selection.disposing",
+      "mode": "legal",
+      "call": "editor_set_draws_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_draws_selection.disposed",
+      "mode": "legal",
+      "call": "editor_set_draws_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_multiline.alive",
+      "mode": "legal",
+      "call": "editor_set_multiline",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_multiline.disposing",
+      "mode": "legal",
+      "call": "editor_set_multiline",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_multiline.disposed",
+      "mode": "legal",
+      "call": "editor_set_multiline",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_read_only.alive",
+      "mode": "legal",
+      "call": "editor_set_read_only",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_read_only.disposing",
+      "mode": "legal",
+      "call": "editor_set_read_only",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_read_only.disposed",
+      "mode": "legal",
+      "call": "editor_set_read_only",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_accepts_tab.alive",
+      "mode": "legal",
+      "call": "editor_set_accepts_tab",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_accepts_tab.disposing",
+      "mode": "legal",
+      "call": "editor_set_accepts_tab",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_set_accepts_tab.disposed",
+      "mode": "legal",
+      "call": "editor_set_accepts_tab",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a flag is 0 or 1",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_replace_selection.alive",
+      "mode": "legal",
+      "call": "editor_replace_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "applied",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(applied)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(applied)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for text that is not UTF-8.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_replace_selection.disposing",
+      "mode": "legal",
+      "call": "editor_replace_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "applied",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(applied)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(applied)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for text that is not UTF-8.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_replace_selection.disposed",
+      "mode": "legal",
+      "call": "editor_replace_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "applied",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(applied)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(applied)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for text that is not UTF-8.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_replace_selection.misuse.editor_replace_selection_applied",
+      "mode": "misuse",
+      "call": "editor_replace_selection",
+      "violates": "not_null(applied)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.editor_delete_selection.alive",
+      "mode": "legal",
+      "call": "editor_delete_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "applied",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(applied)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(applied)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_delete_selection.disposing",
+      "mode": "legal",
+      "call": "editor_delete_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "applied",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(applied)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(applied)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_delete_selection.disposed",
+      "mode": "legal",
+      "call": "editor_delete_selection",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "applied",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(applied)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(applied)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_delete_selection.misuse.editor_delete_selection_applied",
+      "mode": "misuse",
+      "call": "editor_delete_selection",
+      "violates": "not_null(applied)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.editor_composition_range.alive",
+      "mode": "legal",
+      "call": "editor_composition_range",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_composition_range needs all three outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_composition_range.disposing",
+      "mode": "legal",
+      "call": "editor_composition_range",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_composition_range needs all three outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_composition_range.disposed",
+      "mode": "legal",
+      "call": "editor_composition_range",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_composition_range needs all three outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_caret_quad.alive",
+      "mode": "legal",
+      "call": "editor_caret_quad",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_caret_quad needs both outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_caret_quad.disposing",
+      "mode": "legal",
+      "call": "editor_caret_quad",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_caret_quad needs both outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_caret_quad.disposed",
+      "mode": "legal",
+      "call": "editor_caret_quad",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: editor_caret_quad needs both outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_selection_quads.alive",
+      "mode": "legal",
+      "call": "editor_selection_quads",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_content_quad*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selection's, and the composition's, boxes as mapped quads, in order, as editor_selection_rectangles: required receives their number; a buffer of fewer gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_selection_quads.disposing",
+      "mode": "legal",
+      "call": "editor_selection_quads",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_content_quad*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selection's, and the composition's, boxes as mapped quads, in order, as editor_selection_rectangles: required receives their number; a buffer of fewer gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_selection_quads.disposed",
+      "mode": "legal",
+      "call": "editor_selection_quads",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_content_quad*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "The selection's, and the composition's, boxes as mapped quads, in order, as editor_selection_rectangles: required receives their number; a buffer of fewer gives GF_STATUS_BUFFER_TOO_SMALL and writes nothing.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_selection_quads.misuse.editor_selection_quads_buffer",
+      "mode": "misuse",
+      "call": "editor_selection_quads",
+      "violates": "not_null(required) and (not_null(buffer) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.content.editor_composition_quads.alive",
+      "mode": "legal",
+      "call": "editor_composition_quads",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "alive"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_content_quad*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the buffer holds fewer quads than there are",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_composition_quads.disposing",
+      "mode": "legal",
+      "call": "editor_composition_quads",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposing",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposing"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_content_quad*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the buffer holds fewer quads than there are",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_composition_quads.disposed",
+      "mode": "legal",
+      "call": "editor_composition_quads",
+      "kind": "member",
+      "thread": "ui",
+      "state": "disposed",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::content",
+          "state": "disposed"
+        },
+        {
+          "name": "required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "buffer",
+          "type": "gf_content_quad*",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        },
+        {
+          "name": "capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(required) and (not_null(buffer) or capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(required) and (not_null(buffer) or capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "code: the buffer holds fewer quads than there are",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.content.editor_composition_quads.misuse.editor_composition_quads_buffer",
+      "mode": "misuse",
+      "call": "editor_composition_quads",
+      "violates": "not_null(required) and (not_null(buffer) or capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

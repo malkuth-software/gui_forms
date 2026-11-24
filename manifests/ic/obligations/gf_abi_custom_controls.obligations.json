@@ -1,0 +1,106 @@
+{
+  "schema": 1,
+  "component": "gf_abi::custom_controls",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_custom_controls.ic.toml",
+    "sha256": "5fde52d8dfce089c87e7b73f53e8b18bda01607ee7e0c06154748df1773dadb0"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.custom_controls.create.requires.create_outputs",
+      "kind": "entry-check",
+      "statement": "create runs only when not_null(spec) and not_null(object); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_custom_controls::admits_create_outputs, called in src/abi/stable/tables/abi_custom_controls.cpp"
+    },
+    {
+      "id": "gf_abi.custom_controls.create.refusal.create_outputs",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(spec) and not_null(object), create changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.create.requires.create_spec_size",
+      "kind": "entry-check",
+      "statement": "create runs only when spec_size >= spec_size_1_0; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_custom_controls::admits_create_spec_size, called in src/abi/stable/tables/abi_custom_controls.cpp"
+    },
+    {
+      "id": "gf_abi.custom_controls.create.refusal.create_spec_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless spec_size >= spec_size_1_0, create changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.create.order",
+      "kind": "refusal-order",
+      "statement": "When several of create's refusals apply, the first of create_outputs, then create_spec_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.create_composite.requires.create_composite_object",
+      "kind": "entry-check",
+      "statement": "create_composite runs only when not_null(object); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_custom_controls::admits_create_composite_object, called in src/abi/stable/tables/abi_custom_controls.cpp"
+    },
+    {
+      "id": "gf_abi.custom_controls.create_composite.refusal.create_composite_object",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(object), create_composite changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.composite_child.requires.composite_child_child",
+      "kind": "entry-check",
+      "statement": "composite_child runs only when not_null(child); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_custom_controls::admits_composite_child_child, called in src/abi/stable/tables/abi_custom_controls.cpp"
+    },
+    {
+      "id": "gf_abi.custom_controls.composite_child.refusal.composite_child_child",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(child), composite_child changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.custom_controls.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

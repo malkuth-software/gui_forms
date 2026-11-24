@@ -190,9 +190,8 @@ private:
         std::size_t count{};
     };
 
-    void rebuild_contents();
-    void rebuild_index();
     void refresh_bookmark_list();
+    [[nodiscard]] bool reassert_navigation_visibility();
     void close_chooser();
     void focus_child(const Control::Ptr& child);
     [[nodiscard]] bool book_holds_focus() const;

@@ -1,16 +1,17 @@
 #include "gui_forms/content/operation/content_operation.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../channel/content_channel.hpp"
 
+#include <stxlib/clocks.hpp>
 #include <stxlib/error.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/stop_token.hpp>
 #include <stxlib/threads.hpp>
 
 #include <algorithm>
 #include <atomic>
-#include <condition_variable>
 #include <exception>
-#include <mutex>
 #include <new>
 #include <stdexcept>
 #include <system_error>
@@ -30,8 +31,8 @@ struct ContentWorkerShared final {
     std::unique_ptr<ContentProgram> program{};
     ContentFrameSink sink{};
     std::shared_ptr<ContentChannel> channel{};
-    mutable std::mutex mutex{};
-    std::condition_variable finished{};
+    mutable stxlib::Mutex mutex{};
+    stxlib::ConditionVariable finished{};
     bool done{};
     bool abandoned{};
     // abandon() moved the thread's start block under abandoned_worker_root
@@ -74,6 +75,12 @@ namespace {
 
 using detail::ContentWorkerStart;
 
+// stop's wait predicate, under the worker's mutex: the thread set done.
+bool worker_done(const void* const context) noexcept {
+    const detail::ContentWorkerShared& shared = *static_cast<const detail::ContentWorkerShared*>(context);
+    return shared.done;
+}
+
 // Threads abandoned and still running, process-wide. A constant-initialized
 // atomic of a trivial type: no destructor runs at exit, so an abandoned
 // thread that ends during static destruction may still decrement it.
@@ -89,7 +96,7 @@ std::atomic<std::uint64_t> abandoned_worker_count{0U};
 // rather than lost memory. The vector and its mutex live in the leaked
 // object, so threads that end during static destruction still find them.
 struct AbandonedWorkerRoot final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     std::vector<std::unique_ptr<ContentWorkerStart>> starts{};
 };
 
@@ -103,7 +110,7 @@ AbandonedWorkerRoot& abandoned_worker_root() {
 // freed here.
 bool keep_abandoned_start(ContentWorkerStart* start) noexcept {
     AbandonedWorkerRoot& root = abandoned_worker_root();
-    const std::scoped_lock lock(root.mutex);
+    const stxlib::ScopedLock lock(root.mutex);
     try {
         root.starts.reserve(root.starts.size() + 1U);
     } catch (...) {
@@ -127,7 +134,7 @@ void release_abandoned_start(const ContentWorkerStart* start) noexcept {
     std::unique_ptr<ContentWorkerStart> released{};
     {
         AbandonedWorkerRoot& root = abandoned_worker_root();
-        const std::scoped_lock lock(root.mutex);
+        const stxlib::ScopedLock lock(root.mutex);
         const std::vector<std::unique_ptr<ContentWorkerStart>>::iterator found =
             std::find_if(root.starts.begin(), root.starts.end(), SameStart{start});
         if (found != root.starts.end()) {
@@ -167,7 +174,7 @@ void run_content_worker(ContentWorkerStart* start) noexcept {
     bool abandoned = false;
     bool start_in_root = false;
     {
-        const std::scoped_lock lock(shared.mutex);
+        const stxlib::ScopedLock lock(shared.mutex);
         shared.done = true;
         abandoned = shared.abandoned;
         start_in_root = shared.start_in_root;
@@ -244,8 +251,8 @@ std::uint64_t abandoned_content_workers() noexcept {
 
 ContentContext::ContentContext(ContentFrameSink sink) noexcept : sink_(std::move(sink)) {}
 
-std::stop_token ContentContext::stop_token() const noexcept {
-    std::stop_token token = sink_.stop_token();
+stxlib::StopToken ContentContext::stop_token() const noexcept {
+    stxlib::StopToken token = sink_.stop_token();
     return token;
 }
 
@@ -263,7 +270,7 @@ ContentWorker::ContentWorker(std::unique_ptr<ContentProgram> program, ContentFra
     if (!program) throw std::invalid_argument("ContentWorker needs a program");
     std::shared_ptr<detail::ContentChannel> channel = detail::ContentSinkAccess::channel(sink);
     if (!channel) throw std::invalid_argument("ContentWorker needs an open sink");
-    shared_ = std::make_shared<detail::ContentWorkerShared>();
+    shared_ = gui_forms::detail::make_library_shared<detail::ContentWorkerShared>();
     (*shared_).program = std::move(program);
     (*shared_).sink = std::move(sink);
     (*shared_).channel = std::move(channel);
@@ -297,7 +304,7 @@ void ContentWorker::request_stop() noexcept {
 
 bool ContentWorker::done() const noexcept {
     if (!shared_) return true;
-    const std::scoped_lock lock((*shared_).mutex);
+    const stxlib::ScopedLock lock((*shared_).mutex);
     const bool result = (*shared_).done;
     return result;
 }
@@ -315,7 +322,7 @@ bool ContentWorker::join_if_done() noexcept {
 void ContentWorker::abandon() noexcept {
     if (!shared_ || !thread_ || !(*thread_).joinable) return;
     {
-        const std::scoped_lock lock((*shared_).mutex);
+        const stxlib::ScopedLock lock((*shared_).mutex);
         if (!(*shared_).done) {
             (*shared_).abandoned = true;
             (*shared_).state = ContentWorkerState::abandoned;
@@ -342,13 +349,10 @@ ContentWorkerState ContentWorker::stop(std::chrono::milliseconds grace) noexcept
     if (thread_ && (*thread_).joinable) {
         const std::chrono::milliseconds bounded =
             std::clamp(grace, std::chrono::milliseconds(0), maximum_content_termination_grace);
-        const std::chrono::steady_clock::time_point deadline = std::chrono::steady_clock::now() + bounded;
         {
-            std::unique_lock<std::mutex> lock((*shared_).mutex);
-            while (!(*shared_).done) {
-                const std::cv_status status = (*shared_).finished.wait_until(lock, deadline);
-                if (status == std::cv_status::timeout) break;
-            }
+            stxlib::ScopedLock lock((*shared_).mutex);
+            static_cast<void>((*shared_).finished.wait_for(lock, &worker_done, shared_.get(),
+                                                           stxlib::Duration::milliseconds(bounded.count())));
         }
         if (!join_if_done()) abandon();
     }
@@ -358,14 +362,14 @@ ContentWorkerState ContentWorker::stop(std::chrono::milliseconds grace) noexcept
 
 ContentWorkerState ContentWorker::state() const noexcept {
     if (!shared_) return ContentWorkerState::finished;
-    const std::scoped_lock lock((*shared_).mutex);
+    const stxlib::ScopedLock lock((*shared_).mutex);
     const ContentWorkerState result = (*shared_).state;
     return result;
 }
 
 std::string ContentWorker::failure() const {
     if (!shared_) return std::string{};
-    const std::scoped_lock lock((*shared_).mutex);
+    const stxlib::ScopedLock lock((*shared_).mutex);
     std::string result = (*shared_).failure;
     return result;
 }

@@ -12,16 +12,21 @@
 #include "../../../core/application/splashscreen_surface.hpp"
 #include "../../posix/fonts/sealed_pages_posix.hpp"
 #include "../../../core/resources/fonts/bundled_font_set.hpp"
+#include "../../../host/linux/frame_sync/x11_frame_sync.hpp"
 #include "../locale/posix_locale.hpp"
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text/types/text_types.hpp"
-#include <thread>
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include <X11/XKBlib.h>
 #include <X11/Xatom.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <X11/extensions/Xfixes.h>
 #include <X11/extensions/shapeconst.h>
+#if defined(GUI_FORMS_HAVE_XSYNC)
+#include <X11/extensions/sync.h>
+#endif
+#include <stxlib/threads.hpp>
 #if defined(GUI_FORMS_HAVE_XRANDR)
 #include <X11/extensions/Xrandr.h>
 #endif
@@ -39,13 +44,13 @@
 #include <cstring>
 #include <fcntl.h>
 #include <filesystem>
-#include <fstream>
 #include <iostream>
 #include <limits>
 #include <optional>
 #include <poll.h>
 #include <span>
 #include <stdexcept>
+#include <time.h>
 #include <unistd.h>
 
 namespace gui_forms::host::linux_detail {
@@ -70,9 +75,9 @@ bool superseded_motion(Display *display, const XEvent &event) {
 }
 struct WindowTitle final {
   std::weak_ptr<NativeWindow> owner{};
-  const std::thread::id thread{std::this_thread::get_id()};
+  const stxlib::ThreadIdentity thread{stxlib::current_thread()};
   HostServiceStatus operator()(const std::string_view text) const {
-    if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+    if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
     const std::shared_ptr<NativeWindow> window = owner.lock();
     if (!window || (*window).closed) return {HostServiceError::after_shutdown};
     try {
@@ -159,9 +164,9 @@ bool window_state_fixed(NativeWindow& window) {
 // ConfigureNotify, which resizes the model on a later event.
 struct WindowClientSize final {
   std::weak_ptr<NativeWindow> owner{};
-  const std::thread::id thread{std::this_thread::get_id()};
+  const stxlib::ThreadIdentity thread{stxlib::current_thread()};
   HostServiceStatus operator()(const Size client_size) const {
-    if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+    if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
     const std::shared_ptr<NativeWindow> window = owner.lock();
     if (!window || (*window).closed) return {HostServiceError::after_shutdown};
     try {
@@ -644,7 +649,11 @@ bool present_raster_rectangles(NativeWindow& window, const std::span<const Rect>
   window.copy_path.present_alpha = window.present_alpha;
   window.copy_path.copied = &copied;
   if (window.direct_path != nullptr) (*window.direct_path).present_alpha = window.present_alpha;
+  // The extended sync counter odd while the frame is sent and even after,
+  // so the compositor times it (NativeWindow::begin_frame_sync).
+  window.begin_frame_sync();
   const presentation::PresentReport report = presenter.present(frame);
+  window.end_frame_sync();
   window.copy_path.copied = nullptr;
   if (report.path == presentation::PresentPath::direct) {
     copied.device_pixels += report.pixels;
@@ -964,7 +973,7 @@ void Wake::operator()() const noexcept {
 }
 void ActionQueue::post(Action action) {
   {
-    const std::lock_guard<std::mutex> guard(mutex);
+    const stxlib::ScopedLock guard(mutex);
     pending.push_back(std::move(action));
   }
   wake();
@@ -986,7 +995,7 @@ Runtime::Runtime() {
   if (display == nullptr)
     throw std::runtime_error("Cannot open the X11 display");
   try {
-    wake_channel = std::make_shared<WakePipe>();
+    wake_channel = gui_forms::detail::make_library_shared<WakePipe>();
   } catch (...) {
     XCloseDisplay(display);
     display = nullptr;
@@ -1003,7 +1012,7 @@ Runtime::Runtime() {
     fcntl(wake_pipe[i], F_SETFL, fcntl(wake_pipe[i], F_GETFL) | O_NONBLOCK);
     fcntl(wake_pipe[i], F_SETFD, FD_CLOEXEC);
   }
-  actions = std::make_shared<ActionQueue>();
+  actions = gui_forms::detail::make_library_shared<ActionQueue>();
   (*actions).wake = Wake{wake_channel};
   XSetLocaleModifiers("");
   input_method = XOpenIM(display, nullptr, nullptr, nullptr);
@@ -1059,16 +1068,37 @@ Runtime::Runtime() {
 #endif
   // The Present extension, for the X11 direct path's idle notices.
   present_opcode = x11_present_opcode(display);
+#if defined(GUI_FORMS_HAVE_XSYNC)
+  // XSync counters, for the compositor's frame timings
+  // (NativeWindow::create_frame_sync).
+  int sync_event_base = 0;
+  int sync_error_base = 0;
+  if (XSyncQueryExtension(display, &sync_event_base, &sync_error_base)) {
+    int sync_major = 0;
+    int sync_minor = 0;
+    xsync_available = XSyncInitialize(display, &sync_major, &sync_minor) != False;
+  }
+#endif
 #if defined(GUI_FORMS_HAVE_XI2)
-  // XI 2.0 raw motion, for relative pointer mode (Services).
+  // XI 2.0 raw motion, for relative pointer mode (Services), and, where
+  // the build's libXi knows them and the server answers 2.4 or later, the
+  // touchpad gesture events (Xorg 21.1 with libinput 1.19 sends them).
   int xi_event = 0;
   int xi_error = 0;
   int opcode = 0;
   if (XQueryExtension(display, "XInputExtension", &opcode, &xi_event, &xi_error)) {
     int major = 2;
+#if defined(XI_GesturePinchBegin)
+    int minor = 4;
+#else
     int minor = 0;
-    if (XIQueryVersion(display, &major, &minor) == Success && major >= 2)
+#endif
+    if (XIQueryVersion(display, &major, &minor) == Success && major >= 2) {
       xi_opcode = opcode;
+#if defined(XI_GesturePinchBegin)
+      xi_gestures = major > 2 || minor >= 4;
+#endif
+    }
   }
 #endif
   // The monitors, at the desktop's scale, before any window opens on one.
@@ -1088,6 +1118,9 @@ Runtime::~Runtime() {
   for (std::size_t i = 0; i < windows.size(); ++i)
     (*windows[i]).close(HostCloseReason::application, true);
   windows.clear();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  drag_held_windows.clear();
+#endif
   compositor.reset();
   input_settings.reset();
   actions.reset();
@@ -1145,7 +1178,7 @@ std::shared_ptr<NativeWindow> Runtime::add(LinuxApplicationWindow entry,
                                            HostWindowId window_id,
                                            bool initial) {
   const std::shared_ptr<NativeWindow> window =
-      std::make_shared<NativeWindow>(*this, std::move(entry));
+      gui_forms::detail::make_library_shared<NativeWindow>(*this, std::move(entry));
   (*window).window_id = window_id;
   (*window).initial = initial;
   windows.push_back(window);
@@ -1179,6 +1212,10 @@ void Runtime::report_activation() {
     (*windowing).report_application_active(any);
 }
 void Runtime::reclaim() {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // The run loop's turn is over: no drag's frame holds these windows now.
+  drag_held_windows.clear();
+#endif
   for (std::size_t i = windows.size(); i > 0; --i) {
     const NativeWindow &window = *windows[i - 1];
     if (window.initial || !window.closed)
@@ -1244,6 +1281,20 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
                    PointerMotionMask | ButtonPressMask | ButtonReleaseMask |
                    KeyPressMask | KeyReleaseMask | EnterWindowMask |
                    LeaveWindowMask | PropertyChangeMask);
+#if defined(GUI_FORMS_HAVE_XI2) && defined(XI_GesturePinchBegin)
+  // The touchpad pinch, from every master pointer (XI 2.4).
+  if (runtime.xi_gestures) {
+    std::array<unsigned char, XIMaskLen(XI_LASTEVENT)> bits{};
+    XISetMask(bits.data(), XI_GesturePinchBegin);
+    XISetMask(bits.data(), XI_GesturePinchUpdate);
+    XISetMask(bits.data(), XI_GesturePinchEnd);
+    XIEventMask gesture_mask{};
+    gesture_mask.deviceid = XIAllMasterDevices;
+    gesture_mask.mask_len = XIMaskLen(XI_LASTEVENT);
+    gesture_mask.mask = bits.data();
+    XISelectEvents(runtime.display, xid, &gesture_mask, 1);
+  }
+#endif
   XStoreName(runtime.display, xid, entry.options.title.c_str());
   XClassHint identity{};
   identity.res_name = const_cast<char *>(entry.options.title.c_str());
@@ -1258,8 +1309,11 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
       runtime.atom("UTF8_STRING"), 8, PropModeReplace,
       reinterpret_cast<const unsigned char *>(entry.options.title.data()),
       static_cast<int>(entry.options.title.size()));
-  Atom protocols[] = {runtime.atom("WM_DELETE_WINDOW")};
-  XSetWMProtocols(runtime.display, xid, protocols, 1);
+  // _NET_WM_SYNC_REQUEST where the window has its sync counters: the
+  // compositor then times its frames (create_frame_sync).
+  Atom protocols[] = {runtime.atom("WM_DELETE_WINDOW"), runtime.atom("_NET_WM_SYNC_REQUEST")};
+  const int protocol_count = create_frame_sync() ? 2 : 1;
+  XSetWMProtocols(runtime.display, xid, protocols, protocol_count);
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
   // Not announced in a high-integrity build (cmake/HighIntegrity.cmake):
   // nothing is dropped from another program.
@@ -1362,6 +1416,7 @@ NativeWindow::~NativeWindow() {
   (*entry.model).set_framebuffer_painter(nullptr);
   if (session)
     (*session).shutdown();
+  destroy_frame_sync();
   if (input != nullptr)
     XDestroyIC(input);
   if (gc != nullptr)
@@ -1635,6 +1690,20 @@ void NativeWindow::close(HostCloseReason reason, bool force) {
   if (entry.options.closed)
     entry.options.closed();
 }
+void NativeWindow::pinch_event(LinuxPinchStage stage, bool cancelled, Point device_position,
+                               double absolute_scale, double delta_angle_clockwise,
+                               Point device_delta, unsigned modifier_state, Time time) {
+  // The pinch state follows the server's gesture even while the window is
+  // disabled by a modal window, which drops the event, as pointer input.
+  const Point position{device_position.x / scale, device_position.y / scale};
+  const Point delta{device_delta.x / scale, device_delta.y / scale};
+  GestureEvent gesture = next_pinch_event(pinch, stage, cancelled, position, absolute_scale,
+                                          delta_angle_clockwise, delta, modifiers(modifier_state),
+                                          runtime.server_time_nanoseconds(time));
+  if (modal)
+    return;
+  static_cast<void>(dispatch(std::move(gesture)));
+}
 void NativeWindow::event(XEvent &event) {
   if (closed)
     return;
@@ -1683,7 +1752,9 @@ void NativeWindow::event(XEvent &event) {
         damage.add({0, 0, size.width, size.height});
       }
     }
-    // A move onto a monitor of another scale re-rasters there.
+    // A move onto a monitor of another scale re-rasters there, and the
+    // monitor's refresh rate is read again at the next update.
+    nominal_rate_read = false;
     apply_scale(scale_here());
     if (closed)
       return;
@@ -1714,6 +1785,8 @@ void NativeWindow::event(XEvent &event) {
     close(HostCloseReason::user);
     return;
   }
+  if (event.type == ClientMessage && frame_sync_message(event.xclient))
+    return;
   if (event.type == PropertyNotify &&
       event.xproperty.atom == runtime.atom("_NET_WM_STATE")) {
     // Minimized (iconified) windows carry _NET_WM_STATE_HIDDEN (EWMH).
@@ -1900,9 +1973,14 @@ void NativeWindow::update() {
   if (closed)
     return;
   static_cast<void>((*entry.model).drain_posted_work());
+  if (!nominal_rate_read)
+    report_nominal_rate();
   static_cast<void>(
       (*entry.model).poll_frame_schedule(std::chrono::steady_clock::now()));
-  if (accessibility && !closed) { (*accessibility).update(); }
+  // A timer's handler may close the window.
+  if (closed)
+    return;
+  if (accessibility) { (*accessibility).update(); }
   // Gather before taking damage: a new frame beneath an overlay damages the
   // overlay's share (#69), and that damage is taken with the rest.
   const bool regions_taken = gather_live_frames();
@@ -2135,6 +2213,7 @@ bool NativeWindow::gather_live_frames() {
 // Frame sequence, compose (stage DP). Inside begin_frame and before retained
 // painting, so anything retained over a frame is painted after it.
 void NativeWindow::compose_live_frames() {
+  live_reported.clear();
   for (std::size_t index = 0; index < live_regions.size(); ++index) {
     const Rect region = live_regions[index];
     if (region.empty()) continue;
@@ -2145,11 +2224,28 @@ void NativeWindow::compose_live_frames() {
     raster.restore();
     if (drawn) {
       (*entry.model).note_live_surface_presented(live_updates[index], region);
+      report_live_shown(live_frame_sources[index]);
       continue;
     }
     // Retained painting draws the surface's latest frame there instead.
     live_regions[index] = {};
     damage.add(region);
+  }
+}
+
+// Reports a live frame the compose showed to its surface, once per source
+// per tick, with the window's display timing (Window::
+// report_live_surface_shown): the surface's producer paces to the window's
+// frame source.
+void NativeWindow::report_live_shown(const std::size_t source) {
+  if (source >= live_frames.size() || !live_frames[source]) return;
+  if (live_reported.size() < live_frames.size()) live_reported.resize(live_frames.size(), false);
+  if (live_reported[source]) return;
+  live_reported[source] = true;
+  for (std::size_t index = 0; index < live_updates.size(); ++index) {
+    if (live_frame_sources[index] != source || !live_updates[index].surface) continue;
+    (*entry.model).report_live_surface_shown(*live_updates[index].surface, live_frames[source].generation());
+    return;
   }
 }
 
@@ -2237,6 +2333,9 @@ void Runtime::dispatch(XEvent &event) {
 #if defined(GUI_FORMS_HAVE_XRANDR)
   if (randr_event_base >= 0 && event.type == randr_event_base + RRScreenChangeNotify) {
     XRRUpdateConfiguration(&event);
+    // Modes may have changed: every window reads its monitor's rate again.
+    for (std::size_t i = 0; i < windows.size(); ++i)
+      (*windows[i]).nominal_rate_read = false;
     report_displays();
     return;
   }
@@ -2254,6 +2353,16 @@ void Runtime::dispatch(XEvent &event) {
     return;
   }
   if (event.type == SelectionClear) {
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Losing XdndSelection ends a drag's offer, never the clipboard.
+    if (event.xselectionclear.selection == atom("XdndSelection")) {
+      drag_offer_owner = 0;
+      drag_offer.clear();
+      return;
+    }
+#endif
+    if (event.xselectionclear.selection != atom("CLIPBOARD"))
+      return;
     clipboard_owner = 0;
     clipboard_text.clear();
     clipboard_image = {};
@@ -2306,19 +2415,43 @@ void Runtime::dispatch(XEvent &event) {
           if ((*receiving[i]).services)
             (*(*receiving[i]).services).relative_raw_motion(unaccelerated, accelerated, timestamp);
       }
+#if defined(XI_GesturePinchBegin)
+      // XI 2.4 touchpad pinch, to the window it was selected on.
+      if (event.xcookie.evtype == XI_GesturePinchBegin || event.xcookie.evtype == XI_GesturePinchUpdate ||
+          event.xcookie.evtype == XI_GesturePinchEnd) {
+        const XIGesturePinchEvent &pinch = *static_cast<const XIGesturePinchEvent *>(event.xcookie.data);
+        const LinuxPinchStage stage = event.xcookie.evtype == XI_GesturePinchBegin ? LinuxPinchStage::begin
+                                      : event.xcookie.evtype == XI_GesturePinchEnd ? LinuxPinchStage::end
+                                                                                   : LinuxPinchStage::update;
+        const bool cancelled = (pinch.flags & XIGesturePinchEventCancelled) != 0;
+        const std::vector<std::shared_ptr<NativeWindow>> receiving = windows;
+        for (std::size_t i = 0; i < receiving.size(); ++i)
+          if ((*receiving[i]).xid == pinch.event) {
+            (*receiving[i]).pinch_event(stage, cancelled, Point{pinch.event_x, pinch.event_y}, pinch.scale,
+                                        pinch.delta_angle, Point{pinch.delta_x, pinch.delta_y},
+                                        static_cast<unsigned>(pinch.mods.effective), pinch.time);
+            break;
+          }
+      }
+#endif
       XFreeEventData(display, &event.xcookie);
     }
     return;
   }
 #endif
   // A Present idle notice frees one of a window's direct pixmaps for
-  // writing (x11_present_direct.hpp).
+  // writing (x11_present_direct.hpp); a completion stamps the display's
+  // timing (NativeWindow::present_completed).
   X11PresentEvent present_event{};
   if (read_x11_present_event(display, present_opcode, event, present_event)) {
     for (std::size_t i = 0; i < windows.size(); ++i) {
       NativeWindow &receiving = *windows[i];
-      if (receiving.xid == present_event.window && receiving.direct_path != nullptr)
+      if (receiving.xid != present_event.window)
+        continue;
+      if (present_event.idle && receiving.direct_path != nullptr)
         (*receiving.direct_path).idle(present_event.pixmap, present_event.serial);
+      if (present_event.complete)
+        receiving.present_completed(present_event.ust, present_event.msc);
     }
     return;
   }
@@ -2353,18 +2486,13 @@ void Runtime::end_session() {
   for (std::size_t i = snapshot.size(); i > 0; --i)
     (*snapshot[i - 1]).close(HostCloseReason::session_end, true);
 }
-void Runtime::step(int maximum_wait) {
+bool Runtime::run_woken_work() {
   char bytes[128];
   while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
   }
-  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
-    session_end_signalled = 0;
-    end_session();
-    return;
-  }
   std::deque<Action> queued;
   {
-    const std::lock_guard<std::mutex> guard((*actions).mutex);
+    const stxlib::ScopedLock guard((*actions).mutex);
     queued.swap((*actions).pending);
   }
   for (std::size_t i = 0; i < queued.size(); ++i) {
@@ -2373,28 +2501,13 @@ void Runtime::step(int maximum_wait) {
       (*window).action(queued[i].kind);
   }
   accessibility_dispatch();
-  bool dispatched = !queued.empty();
-  // A bounded turn (audit N68): events left over stay queued, and the
-  // check at the end returns without waiting so the next turn takes them.
-  const std::chrono::steady_clock::time_point turn_start = std::chrono::steady_clock::now();
-  std::size_t turn_events = 0U;
-  while (XPending(display) > 0) {
-    dispatched = true;
-    XEvent event{};
-    XNextEvent(display, &event);
-    if (superseded_motion(display, event))
-      continue;
-    // One X event is the native callback of this loop: application code
-    // runs under it, so it goes through the fail-fast boundary.
-    gui_forms::detail::call_failing_fast("linux.x11_event", &Runtime::dispatch, *this, event);
-    turn_events = turn_events + 1U;
-    if (turn_events >= turn_event_limit)
-      break;
-    if (std::chrono::steady_clock::now() - turn_start >= turn_time_limit)
-      break;
-  }
+  const bool ran = !queued.empty();
+  return ran;
+}
+RunWait Runtime::service_windows(int maximum_wait) {
+  RunWait result{maximum_wait, false};
+  int &wait = result.milliseconds;
   const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
-  int wait = maximum_wait;
   const std::chrono::steady_clock::time_point now =
       std::chrono::steady_clock::now();
   for (std::size_t i = transfers.size(); i > 0; --i) {
@@ -2446,16 +2559,50 @@ void Runtime::step(int maximum_wait) {
     }
   }
   XFlush(display);
-  bool active = false;
   for (std::size_t i = 0; i < snapshot.size(); ++i)
     if (!(*snapshot[i]).closed)
-      active = true;
-  if (!active)
+      result.active = true;
+  return result;
+}
+void Runtime::wait_for_work(int milliseconds) {
+  accessibility_wait(ConnectionNumber(display), wake_pipe[0], milliseconds);
+}
+void Runtime::step(int maximum_wait) {
+  if ((terminate_installed || hangup_installed) && session_end_signalled != 0) {
+    char bytes[128];
+    while (::read(wake_pipe[0], bytes, sizeof(bytes)) > 0) {
+    }
+    session_end_signalled = 0;
+    end_session();
+    return;
+  }
+  bool dispatched = run_woken_work();
+  // A bounded turn (audit N68): events left over stay queued, and the
+  // check at the end returns without waiting so the next turn takes them.
+  const std::chrono::steady_clock::time_point turn_start = std::chrono::steady_clock::now();
+  std::size_t turn_events = 0U;
+  while (XPending(display) > 0) {
+    dispatched = true;
+    XEvent event{};
+    XNextEvent(display, &event);
+    if (superseded_motion(display, event))
+      continue;
+    // One X event is the native callback of this loop: application code
+    // runs under it, so it goes through the fail-fast boundary.
+    gui_forms::detail::call_failing_fast("linux.x11_event", &Runtime::dispatch, *this, event);
+    turn_events = turn_events + 1U;
+    if (turn_events >= turn_event_limit)
+      break;
+    if (std::chrono::steady_clock::now() - turn_start >= turn_time_limit)
+      break;
+  }
+  const RunWait serviced = service_windows(maximum_wait);
+  if (!serviced.active)
     return;
   // Closing callbacks can enqueue more work; the pipe keeps that work visible.
-  if (dispatched || XPending(display) > 0 || wait == 0)
+  if (dispatched || XPending(display) > 0 || serviced.milliseconds == 0)
     return;
-  accessibility_wait(ConnectionNumber(display), wake_pipe[0], wait);
+  wait_for_work(serviced.milliseconds);
 }
 HostDialogResult NativeWindow::dialog(const HostDialogRequest &request) {
   return retained_dialog(*this, request);
@@ -2565,6 +2712,183 @@ HostServiceStatus NativeWindow::request_frame(Rect content) {
   XFlush(runtime.display);
   return {};
 }
+void NativeWindow::present_completed(std::uint64_t ust, std::uint64_t msc) {
+  if (closed)
+    return;
+  // ust is CLOCK_MONOTONIC time: its age now carries it to the steady clock.
+  timespec monotonic{};
+  if (clock_gettime(CLOCK_MONOTONIC, &monotonic) != 0)
+    return;
+  const FrameTime steady_now = FrameClock::now();
+  const std::int64_t now_microseconds =
+      static_cast<std::int64_t>(monotonic.tv_sec) * 1'000'000 + static_cast<std::int64_t>(monotonic.tv_nsec) / 1'000;
+  const std::int64_t age_microseconds = now_microseconds - static_cast<std::int64_t>(ust);
+  const FrameTime shown =
+      steady_now - std::chrono::duration_cast<FrameInterval>(std::chrono::microseconds(age_microseconds));
+  const stxlib::Optional<DisplayTiming> timing = refresh_timing.take(shown, msc);
+  const DisplayTiming *const reported = timing.value();
+  if (reported != nullptr)
+    static_cast<void>((*entry.model).set_display_timing(*reported));
+}
+void NativeWindow::report_nominal_rate() {
+  nominal_rate_read = true;
+  int x{}, y{};
+  ::Window child{};
+  if (!XTranslateCoordinates(runtime.display, xid, DefaultRootWindow(runtime.display), 0, 0, &x, &y, &child))
+    return;
+  const FrameInterval period = x11_refresh_period_at(runtime.display, x + device_width / 2, y + device_height / 2);
+  if (period <= FrameInterval::zero())
+    return;
+  const DisplayTiming held = (*entry.model).display_timing();
+  // Present's stamps time the display itself: a nominal rate within a
+  // hundredth of theirs leaves them; another rate means another display,
+  // whose stamps start again.
+  const FrameInterval difference =
+      period > held.refresh_period ? period - held.refresh_period : held.refresh_period - period;
+  const bool same_rate = difference * 100 <= held.refresh_period;
+  if (held.source == DisplayTimingSource::display && same_rate)
+    return;
+  refresh_timing.reset();
+  const FrameTime phase = held.paced() ? held.presentation_phase : FrameClock::now();
+  const DisplayTiming nominal = DisplayTiming::reported(DisplayTimingSource::nominal, period, phase);
+  static_cast<void>((*entry.model).set_display_timing(nominal));
+}
+namespace {
+
+// CLOCK_MONOTONIC now in microseconds; 0 when the clock cannot be read.
+[[nodiscard]] std::uint64_t monotonic_microseconds_now() noexcept {
+  timespec monotonic{};
+  if (clock_gettime(CLOCK_MONOTONIC, &monotonic) != 0)
+    return 0U;
+  const std::uint64_t result = static_cast<std::uint64_t>(monotonic.tv_sec) * 1'000'000U +
+                               static_cast<std::uint64_t>(monotonic.tv_nsec) / 1'000U;
+  return result;
+}
+
+} // namespace
+bool NativeWindow::create_frame_sync() {
+#if defined(GUI_FORMS_HAVE_XSYNC)
+  if (!runtime.xsync_available || xid == 0)
+    return false;
+  XSyncValue zero{};
+  XSyncIntToValue(&zero, 0);
+  const XSyncCounter basic = XSyncCreateCounter(runtime.display, zero);
+  const XSyncCounter extended = XSyncCreateCounter(runtime.display, zero);
+  if (basic == None || extended == None) {
+    if (basic != None)
+      XSyncDestroyCounter(runtime.display, basic);
+    if (extended != None)
+      XSyncDestroyCounter(runtime.display, extended);
+    return false;
+  }
+  sync_basic_counter = basic;
+  sync_extended_counter = extended;
+  // The basic counter first, then the extended one (wm-spec).
+  const unsigned long counters[] = {static_cast<unsigned long>(basic), static_cast<unsigned long>(extended)};
+  XChangeProperty(runtime.display, xid, runtime.atom("_NET_WM_SYNC_REQUEST_COUNTER"), XA_CARDINAL, 32,
+                  PropModeReplace, reinterpret_cast<const unsigned char *>(counters), 2);
+  return true;
+#else
+  return false;
+#endif
+}
+void NativeWindow::destroy_frame_sync() noexcept {
+#if defined(GUI_FORMS_HAVE_XSYNC)
+  if (sync_basic_counter != 0)
+    XSyncDestroyCounter(runtime.display, static_cast<XSyncCounter>(sync_basic_counter));
+  if (sync_extended_counter != 0)
+    XSyncDestroyCounter(runtime.display, static_cast<XSyncCounter>(sync_extended_counter));
+#endif
+  sync_basic_counter = 0;
+  sync_extended_counter = 0;
+}
+void NativeWindow::set_sync_counter(XID counter, std::uint64_t value) noexcept {
+#if defined(GUI_FORMS_HAVE_XSYNC)
+  if (counter == 0)
+    return;
+  XSyncValue sync_value{};
+  XSyncIntsToValue(&sync_value, static_cast<unsigned int>(value & 0xffffffffULL),
+                   static_cast<int>(value >> 32U));
+  XSyncSetCounter(runtime.display, static_cast<XSyncCounter>(counter), sync_value);
+#else
+  static_cast<void>(counter);
+  static_cast<void>(value);
+#endif
+}
+void NativeWindow::begin_frame_sync() noexcept {
+  if (sync_extended_counter == 0)
+    return;
+  const stxlib::Optional<std::uint64_t> begun = frame_sync.begin_frame();
+  if (begun.present())
+    set_sync_counter(sync_extended_counter, *begun.value());
+}
+void NativeWindow::end_frame_sync() noexcept {
+  if (sync_extended_counter == 0)
+    return;
+  const stxlib::Optional<std::uint64_t> ended = frame_sync.end_frame();
+  if (ended.present())
+    set_sync_counter(sync_extended_counter, *ended.value());
+  // A resize's basic request is answered by the frame drawn after it.
+  const stxlib::Optional<std::uint64_t> answer = frame_sync.take_basic_answer();
+  if (answer.present())
+    set_sync_counter(sync_basic_counter, *answer.value());
+  XFlush(runtime.display);
+}
+bool NativeWindow::frame_sync_message(const XClientMessageEvent &message) {
+  if (sync_extended_counter == 0 || message.format != 32)
+    return false;
+  const long *const data = message.data.l;
+  if (message.message_type == runtime.atom("WM_PROTOCOLS") &&
+      static_cast<Atom>(data[0]) == runtime.atom("_NET_WM_SYNC_REQUEST")) {
+    frame_sync.take_sync_request(x11_frame_sync_value(data[2], data[3]), data[4] != 0);
+    return true;
+  }
+  if (message.message_type == runtime.atom("_NET_WM_FRAME_DRAWN")) {
+    const std::uint64_t counter = x11_frame_sync_value(data[0], data[1]);
+    const std::uint64_t drawn = x11_frame_sync_value(data[2], data[3]);
+    // Kept for the frame's timings message, which gives its presentation
+    // as an offset from this.
+    drawn_frames[drawn_frame_next] = DrawnFrame{counter, drawn};
+    drawn_frame_next = (drawn_frame_next + 1U) % drawn_frames.size();
+    // A compositor that sends no timings still stamps each frame it drew:
+    // the estimator measures the display from those stamps.
+    if (!frame_timings_seen && !closed) {
+      const std::uint64_t now_microseconds = monotonic_microseconds_now();
+      if (now_microseconds != 0U) {
+        const FrameTime stamp = x11_monotonic_to_frame_time(drawn, now_microseconds, FrameClock::now());
+        static_cast<void>((*entry.model).note_presentation_completed(stamp));
+      }
+    }
+    return true;
+  }
+  if (message.message_type == runtime.atom("_NET_WM_FRAME_TIMINGS")) {
+    const std::uint64_t counter = x11_frame_sync_value(data[0], data[1]);
+    for (std::size_t index = 0; index < drawn_frames.size(); ++index) {
+      if (drawn_frames[index].counter != counter || drawn_frames[index].drawn_microseconds == 0U)
+        continue;
+      X11FrameTimings timings;
+      timings.drawn_microseconds = drawn_frames[index].drawn_microseconds;
+      timings.presentation_offset_microseconds = static_cast<std::int32_t>(data[2]);
+      timings.refresh_interval_microseconds = static_cast<std::uint32_t>(data[3]);
+      const std::uint64_t now_microseconds = monotonic_microseconds_now();
+      if (now_microseconds == 0U || closed)
+        break;
+      const stxlib::Optional<DisplayTiming> timing =
+          x11_frame_timings_display_timing(timings, now_microseconds, FrameClock::now());
+      if (timing.absent())
+        break;
+      frame_timings_seen = true;
+      // Present's own stamps time the display already: the compositor's
+      // timing fills in where they are absent (the copy path).
+      if ((*entry.model).display_timing().source != DisplayTimingSource::display ||
+          (*timing.value()).source == DisplayTimingSource::display)
+        static_cast<void>((*entry.model).set_display_timing(*timing.value()));
+      break;
+    }
+    return true;
+  }
+  return false;
+}
 double NativeWindow::scale_here() const {
   int x{}, y{};
   ::Window child{};
@@ -2667,6 +2991,8 @@ HostCapabilities linux_capabilities() {
               HostCapability::clipboard | HostCapability::clipboard_images |
               HostCapability::dialogs | HostCapability::sound_cues |
               HostCapability::typed_drag_destination |
+              // XDND both ways (linux_drag_drop.cpp).
+              HostCapability::typed_drag_source |
               HostCapability::runtime_windows | HostCapability::window_frames |
               HostCapability::screen_pointer | HostCapability::window_at_point |
               HostCapability::window_ordering |
@@ -2718,7 +3044,7 @@ HostCapabilities linux_capabilities() {
 int run_linux_application(std::vector<LinuxApplicationWindow> windows,
                           LinuxApplicationOptions application) {
   const std::shared_ptr<linux_detail::RunOpenState> open_state =
-      std::make_shared<linux_detail::RunOpenState>();
+      gui_forms::detail::make_library_shared<linux_detail::RunOpenState>();
   try {
     // The run holds the bundled font set, so windows opened and closed during it share one
     // copy of each face.

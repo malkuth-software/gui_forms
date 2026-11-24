@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "notices-and-badges_form.hpp"
 
@@ -97,7 +98,7 @@ void NoticesAndBadgesPage::on_show_toast() {
 
 void add_notices_and_badges(const std::shared_ptr<Surface>& page,
                             const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<NoticesAndBadgesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<NoticesAndBadgesPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

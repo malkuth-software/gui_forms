@@ -1,0 +1,531 @@
+{
+  "schema": 1,
+  "component": "gf_abi::content",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_content.ic.toml",
+    "sha256": "9c57606bca46d74da1a9800eb365d3dd5d40f0702812e9b079897a8c7c5bf05a"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.content.statistics.requires.statistics_statistics",
+      "kind": "entry-check",
+      "statement": "statistics runs only when not_null(statistics); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_statistics_statistics, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.statistics.refusal.statistics_statistics",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(statistics), statistics changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.statistics.requires.statistics_statistics_size",
+      "kind": "entry-check",
+      "statement": "statistics runs only when statistics_size >= statistics_size_1_4; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_statistics_statistics_size, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.statistics.refusal.statistics_statistics_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless statistics_size >= statistics_size_1_4, statistics changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.statistics.order",
+      "kind": "refusal-order",
+      "statement": "When several of statistics's refusals apply, the first of statistics_statistics, then statistics_statistics_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.request.requires.request_request",
+      "kind": "entry-check",
+      "statement": "request runs only when not_null(request); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_request_request, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.request.refusal.request_request",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(request), request changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.request.requires.request_request_size",
+      "kind": "entry-check",
+      "statement": "request runs only when request_size >= request_size_1_4; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_request_request_size, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.request.refusal.request_request_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless request_size >= request_size_1_4, request changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.request.order",
+      "kind": "refusal-order",
+      "statement": "When several of request's refusals apply, the first of request_request, then request_request_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.program_running.requires.program_running_running",
+      "kind": "entry-check",
+      "statement": "program_running runs only when not_null(running); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_program_running_running, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.program_running.refusal.program_running_running",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(running), program_running changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.hosted_input.requires.hosted_input_report",
+      "kind": "entry-check",
+      "statement": "hosted_input runs only when not_null(report); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_hosted_input_report, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.hosted_input.refusal.hosted_input_report",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(report), hosted_input changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.hosted_input.requires.hosted_input_report_size",
+      "kind": "entry-check",
+      "statement": "hosted_input runs only when report_size >= hosted_input_report_size_1_4; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_hosted_input_report_size, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.hosted_input.refusal.hosted_input_report_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless report_size >= hosted_input_report_size_1_4, hosted_input changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.hosted_input.order",
+      "kind": "refusal-order",
+      "statement": "When several of hosted_input's refusals apply, the first of hosted_input_report, then hosted_input_report_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.hosted_support.requires.hosted_support_support",
+      "kind": "entry-check",
+      "statement": "hosted_support runs only when not_null(support); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_hosted_support_support, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.hosted_support.refusal.hosted_support_support",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(support), hosted_support changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_publish_semantics.requires.sink_publish_semantics_outcome",
+      "kind": "entry-check",
+      "statement": "sink_publish_semantics runs only when not_null(outcome); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_publish_semantics_outcome, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.sink_publish_semantics.refusal.sink_publish_semantics_outcome",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(outcome), sink_publish_semantics changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_request.requires.sink_request_request",
+      "kind": "entry-check",
+      "statement": "sink_request runs only when not_null(request); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_request_request, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.sink_request.refusal.sink_request_request",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(request), sink_request changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_request.requires.sink_request_request_size",
+      "kind": "entry-check",
+      "statement": "sink_request runs only when request_size >= request_size_1_4; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_request_request_size, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.sink_request.refusal.sink_request_request_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless request_size >= request_size_1_4, sink_request changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_request.order",
+      "kind": "refusal-order",
+      "statement": "When several of sink_request's refusals apply, the first of sink_request_request, then sink_request_request_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_wait_for_request.requires.sink_wait_for_request_request",
+      "kind": "entry-check",
+      "statement": "sink_wait_for_request runs only when not_null(request); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_wait_for_request_request, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.sink_wait_for_request.refusal.sink_wait_for_request_request",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(request), sink_wait_for_request changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_wait_for_request.requires.sink_wait_for_request_request_size",
+      "kind": "entry-check",
+      "statement": "sink_wait_for_request runs only when request_size >= request_size_1_4; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_wait_for_request_request_size, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.sink_wait_for_request.refusal.sink_wait_for_request_request_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless request_size >= request_size_1_4, sink_wait_for_request changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_wait_for_request.order",
+      "kind": "refusal-order",
+      "statement": "When several of sink_wait_for_request's refusals apply, the first of sink_wait_for_request_request, then sink_wait_for_request_request_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_statistics.requires.sink_statistics_statistics",
+      "kind": "entry-check",
+      "statement": "sink_statistics runs only when not_null(statistics); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_statistics_statistics, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.sink_statistics.refusal.sink_statistics_statistics",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(statistics), sink_statistics changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_statistics.requires.sink_statistics_statistics_size",
+      "kind": "entry-check",
+      "statement": "sink_statistics runs only when statistics_size >= statistics_size_1_4; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_sink_statistics_statistics_size, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.sink_statistics.refusal.sink_statistics_statistics_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless statistics_size >= statistics_size_1_4, sink_statistics changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.sink_statistics.order",
+      "kind": "refusal-order",
+      "statement": "When several of sink_statistics's refusals apply, the first of sink_statistics_statistics, then sink_statistics_statistics_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_text_revision.requires.editor_text_revision_revision",
+      "kind": "entry-check",
+      "statement": "editor_text_revision runs only when not_null(revision); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_text_revision_revision, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_text_revision.refusal.editor_text_revision_revision",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(revision), editor_text_revision changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_layout_current.requires.editor_layout_current_current",
+      "kind": "entry-check",
+      "statement": "editor_layout_current runs only when not_null(current); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_layout_current_current, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_layout_current.refusal.editor_layout_current_current",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(current), editor_layout_current changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_open_frames.requires.editor_open_frames_sink",
+      "kind": "entry-check",
+      "statement": "editor_open_frames runs only when not_null(sink); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_open_frames_sink, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_open_frames.refusal.editor_open_frames_sink",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(sink), editor_open_frames changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_selection_rectangles.requires.editor_selection_rectangles_buffer",
+      "kind": "entry-check",
+      "statement": "editor_selection_rectangles runs only when not_null(required) and (not_null(buffer) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_selection_rectangles_buffer, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_selection_rectangles.refusal.editor_selection_rectangles_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(required) and (not_null(buffer) or capacity == 0), editor_selection_rectangles changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_position_at.requires.editor_position_at_offset",
+      "kind": "entry-check",
+      "statement": "editor_position_at runs only when not_null(offset); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_position_at_offset, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_position_at.refusal.editor_position_at_offset",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(offset), editor_position_at changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_replace_selection.requires.editor_replace_selection_applied",
+      "kind": "entry-check",
+      "statement": "editor_replace_selection runs only when not_null(applied); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_replace_selection_applied, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_replace_selection.refusal.editor_replace_selection_applied",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(applied), editor_replace_selection changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_delete_selection.requires.editor_delete_selection_applied",
+      "kind": "entry-check",
+      "statement": "editor_delete_selection runs only when not_null(applied); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_delete_selection_applied, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_delete_selection.refusal.editor_delete_selection_applied",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(applied), editor_delete_selection changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_selection_quads.requires.editor_selection_quads_buffer",
+      "kind": "entry-check",
+      "statement": "editor_selection_quads runs only when not_null(required) and (not_null(buffer) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_selection_quads_buffer, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_selection_quads.refusal.editor_selection_quads_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(required) and (not_null(buffer) or capacity == 0), editor_selection_quads changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.editor_composition_quads.requires.editor_composition_quads_buffer",
+      "kind": "entry-check",
+      "statement": "editor_composition_quads runs only when not_null(required) and (not_null(buffer) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_content::admits_editor_composition_quads_buffer, called in src/abi/stable/tables/abi_content.cpp"
+    },
+    {
+      "id": "gf_abi.content.editor_composition_quads.refusal.editor_composition_quads_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(required) and (not_null(buffer) or capacity == 0), editor_composition_quads changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.content.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

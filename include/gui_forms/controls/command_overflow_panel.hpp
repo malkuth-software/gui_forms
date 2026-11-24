@@ -102,6 +102,8 @@ struct GroupSpecCapability {
 // and the overflow actuator's effective availability. Command authority and
 // overlay item composition remain with the consumer and can use the stable IDs
 // published by layout_snapshot().
+// ic: gui_forms::CommandOverflowPanel: generated from include/gui_forms/controls/command_overflow_panel.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API CommandOverflowPanel final : public ContainerControl,
                                    public GroupSpecCapability<CommandOverflowPanel>, public CommandOverflowPanelCapabilities<CommandOverflowPanel> {
 public:
@@ -160,6 +162,7 @@ public:
 private:
     friend struct CommandOverflowGroupGapCapability<CommandOverflowPanel>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= 0 and incoming <= 256, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(group_gap)& cell, double& incoming);
     void written(const decltype(group_gap)& cell);
     // property_codemod end CommandOverflowPanel

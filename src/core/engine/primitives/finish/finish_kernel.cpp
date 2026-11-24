@@ -1,6 +1,6 @@
 #include "finish_kernel.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <algorithm>
 #include <array>
@@ -8,8 +8,8 @@
 #include <cstddef>
 #include <cstdint>
 
-// Identical bytes on every host: no fused multiply-add (see engine_math.cpp
-// and finish_kernel.hpp). The reference (JavaScript) never fuses.
+// Identical bytes on every host: no fused multiply-add (see
+// finish_kernel.hpp). The reference (JavaScript) never fuses.
 // Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
 // 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
 // "Floating-point contraction").
@@ -405,7 +405,7 @@ std::size_t paint_rows(const FinishFill& fill, double scale, FinishRect surface,
 // function of its position, the scale and the fill alone: no scratch.
 //
 // Where the study called libm (e^x, ln x, cosine and sine, the Fresnel
-// power, hypot) the port calls engine_math, whole powers by squaring and
+// power, hypot) the port calls STXlib's math, whole powers by squaring and
 // square roots, which give the same bits on every host. The JavaScript
 // reference calls Math.exp and Math.log, whose last bits vary between
 // engines, so the glint's bytes are held to this kernel's own recorded
@@ -505,13 +505,13 @@ struct GlintDensity final {
 std::int32_t poisson(double lambda, double u, double u2) noexcept {
     if (!(lambda > 0.0)) return 0;
     if (lambda > 24.0) {
-        const double radius = std::sqrt(-2.0 * engine_logarithm(std::max(u, 1e-12)));
-        const double z = radius * engine_sine_cosine(glint_turn * u2).cosine;
+        const double radius = std::sqrt(-2.0 * stxlib::math::log(std::max(u, 1e-12)));
+        const double z = radius * stxlib::math::cos(glint_turn * u2);
         const double n = std::floor(lambda + std::sqrt(lambda) * z + 0.5);
         const std::int32_t count = n > 0.0 ? static_cast<std::int32_t>(n) : 0;
         return count;
     }
-    double p = engine_exponential(-lambda);
+    double p = stxlib::math::exp(-lambda);
     double f = p;
     std::int32_t n = 0;
     while (u > f && n < 64) {
@@ -554,7 +554,7 @@ GlintDensity sub_pixel_density(const GlintState& state, double x, double y, doub
             const double cy = iy + j;
             const double sx = (cx + 0.5) * w;
             const double sy = (cy + 0.5) * w;
-            const double pdf = engine_exponential(-(sx * sx + sy * sy) / state.sigma2) / (glint_pi * state.sigma2);
+            const double pdf = stxlib::math::exp(-(sx * sx + sy * sy) / state.sigma2) / (glint_pi * state.sigma2);
             const double lambda = facets * pdf * state.tau_area;
             const std::uint32_t key = bin_key(cx, cy);
             const double u = hash_unit(xi ^ key, yi + key, state.seed);
@@ -656,14 +656,16 @@ GlintDensity cell_density(const GlintState& state, double x, double y, double si
     }
     const double u1 = std::max(1e-9, hash_at(bx, by, s + 12.0));
     const double u2 = hash_at(bx, by, s + 13.0);
-    const double r = std::sqrt(state.sigma2 * -engine_logarithm(u1));
-    const EngineSineCosine turned = engine_sine_cosine(glint_turn * u2);
-    const double dx = hx - r * turned.cosine;
-    const double dy = hy - r * turned.sine;
+    const double r = std::sqrt(state.sigma2 * -stxlib::math::log(u1));
+    double turned_sine = 0.0;
+    double turned_cosine = 0.0;
+    stxlib::math::sincos(glint_turn * u2, turned_sine, turned_cosine);
+    const double dx = hx - r * turned_cosine;
+    const double dy = hy - r * turned_sine;
     const double seam = std::sqrt(second) - std::sqrt(best);
     const double edge = seam < 0.08 ? 0.6 + 5.0 * seam : 1.0;
     const double tau = state.constants.tau;
-    const double value = engine_exponential(-(dx * dx + dy * dy) / (tau * tau)) / state.tau_area * edge;
+    const double value = stxlib::math::exp(-(dx * dx + dy * dy) / (tau * tau)) / state.tau_area * edge;
     const GlintDensity density{value, hash_at(bx, by, s + 14.0)};
     return density;
 }
@@ -683,7 +685,7 @@ Linear rainbow(double h) noexcept {
 // A soft shoulder, so that glints saturate toward white rather than clip.
 double glint_tone(double v) noexcept {
     if (v < 0.8) return v;
-    const double toned = 0.8 + 0.2 * (1.0 - engine_exponential(-(v - 0.8) * 5.0));
+    const double toned = 0.8 + 0.2 * (1.0 - stxlib::math::exp(-(v - 0.8) * 5.0));
     return toned;
 }
 
@@ -737,7 +739,7 @@ void shade_glint(const GlintState& state, double x, double y, double k, double g
     double spec_paint = 0.0;
     if (film > 0.0) {
         const double a2 = constants.film_alpha * constants.film_alpha;
-        const double lobe = engine_exponential(-(hx * hx + hy * hy) / a2) / (glint_pi * a2) / (cos2 * cos2);
+        const double lobe = stxlib::math::exp(-(hx * hx + hy * hy) / a2) / (glint_pi * a2) / (cos2 * cos2);
         const double f_paint = 0.04 + 0.96 * fresnel;
         spec_paint = lobe * f_paint / (4.0 * vuz) * state.specular * film;
     }

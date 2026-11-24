@@ -52,6 +52,9 @@ gui_forms::ModalLayer
       **content** : ``Control::Ptr``, read-only
          The content while shown, else null.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the layer's state agrees with itself (state hunt, 2026-11-23): closed, it has no child and no fade; shown, its content is its only child and its overlay is in the window. For tests and diagnostics.
+
       **result** : ``stxlib::Optional<DialogResult>``, read-only
          The result of the last closing, or none before the first.
 
@@ -135,6 +138,10 @@ gui_forms::ModalLayer
    .. cpp:function:: Control::Ptr content() const noexcept
 
       The content while shown, else null.
+
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the layer's state agrees with itself (state hunt, 2026-11-23): closed, it has no child and no fade; shown, its content is its only child and its overlay is in the window. For tests and diagnostics.
 
    .. cpp:function:: stxlib::Optional<DialogResult> result() const noexcept
 
@@ -228,7 +235,7 @@ gui_forms::ModalLayer
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 4 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 3 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -241,12 +248,16 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
      - Status
    * - property
      - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``close_on_escape``
      - unclassified (untested)
    * - property
      - GUI.Forms-only
      - ``content``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``is_shown``

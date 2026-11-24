@@ -3,7 +3,7 @@
 // draws anything, then draws through the minimal primitives (fill_rect,
 // draw_line, the rounded fills and clips), with fixed-size storage only.
 #include "gui_forms/types.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "painter_support.hpp"
 #include "../paint_marks/grid_lines.hpp"
 
@@ -328,10 +328,14 @@ void Painter::fill_conic_gradient(Rect rect, Point center, double start_degrees,
     for (unsigned index = 0U; index < wedges; ++index) {
         const double first_angle = (start_degrees + static_cast<double>(index) * wedge_degrees) * degrees_to_radians;
         const double second_angle = first_angle + wedge_degrees * degrees_to_radians;
-        const EngineSineCosine first = engine_sine_cosine(first_angle);
-        const EngineSineCosine second = engine_sine_cosine(second_angle);
-        wedge = {center, Point{center.x + radius * first.cosine, center.y + radius * first.sine},
-                 Point{center.x + radius * second.cosine, center.y + radius * second.sine}};
+        double first_sine = 0.0;
+        double first_cosine = 0.0;
+        stxlib::math::sincos(first_angle, first_sine, first_cosine);
+        double second_sine = 0.0;
+        double second_cosine = 0.0;
+        stxlib::math::sincos(second_angle, second_sine, second_cosine);
+        wedge = {center, Point{center.x + radius * first_cosine, center.y + radius * first_sine},
+                 Point{center.x + radius * second_cosine, center.y + radius * second_sine}};
         const double offset = (static_cast<double>(index) + 0.5) / static_cast<double>(wedges);
         scan_fill_polygon(*this, wedge, detail::sample_gradient(stops, offset), PolygonFillRule::nonzero);
     }

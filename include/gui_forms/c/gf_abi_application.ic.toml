@@ -1,0 +1,61 @@
+# The C ABI's gf_application_table (GF_TABLE_APPLICATION): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_application_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_application_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_application_table {"
+keys = { manifest = "gf_abi::application", abi = "GF_TABLE_APPLICATION" }
+thread = "ui"
+
+[checks]
+path = "src/abi/stable/ic/abi_application_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_application"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_application.cpp"]
+
+[[call]]
+name = "create"
+declarations = ["gf_status (GF_CALL* create)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for an unknown base or source, a non-zero reserved field, or packages null with a non-zero count." },
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE, making nothing and leaving the findings, while an application is current or while the library holds objects made without one;" },
+]
+
+[[call]]
+name = "close"
+declarations = ["gf_status (GF_CALL* close)("]
+kind = "static"
+thread = "ui"
+parameters = { windows_alive = "uint64_t*" }
+requires = [
+  { holds = "not_null(windows_alive)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "close_windows_alive" },
+]
+fails = [
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE, changing nothing, while any is; once closed, the theme is the built-in one again (as themes.reset), windows made afterwards use the process default and create may make another application." },
+]
+
+[[call]]
+name = "state"
+declarations = ["gf_status (GF_CALL* state)("]
+kind = "static"
+thread = "ui"
+parameters = { state = "gf_application_state*" }
+requires = [
+  { holds = "not_null(state)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "state_state" },
+]
+
+[[call]]
+name = "set_program_identity"
+declarations = ["gf_status (GF_CALL* set_program_identity)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT for a null or short record, a non-zero reserved field, text that is not UTF-8 or a website that is neither empty nor an https:// address." },
+]

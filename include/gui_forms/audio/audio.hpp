@@ -5,7 +5,7 @@
 #include <filesystem>
 #include <memory>
 #include <span>
-#include <stop_token>
+#include <stxlib/stop_token.hpp>
 #include <vector>
 #ifdef GUI_FORMS_AUDIO_LOOP_TRANSPORT
 #include "gui_forms/audio/loop_transport/loop_transport.hpp"
@@ -41,7 +41,7 @@ public:
     // reads, pages and <=4096-frame decode calls and before publication; foreign
     // codec open/decode calls and the serialized open wait cannot be interrupted.
     [[nodiscard]] static AudioClipResult load_ogg(const FilePath& path,
-                                  std::stop_token cancellation = {});
+                                  stxlib::StopToken cancellation = {});
     // Preferred cancellation form; borrows the flag until this call returns.
     [[nodiscard]] static AudioClipResult load_ogg(const FilePath& path,
                                   const CancellationFlag& cancellation);

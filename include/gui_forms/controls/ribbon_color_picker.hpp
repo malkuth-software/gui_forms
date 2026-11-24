@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/commands/color_command/color_command.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/control.hpp"
@@ -64,7 +65,11 @@ public:
     // keyboard starts on the current colour.
     bool open_palette(MenuOpenMode mode = MenuOpenMode::keyboard);
     void close_palette() noexcept;
-    [[nodiscard]] bool palette_open() const noexcept { return palette_open_; }
+    [[nodiscard]] bool palette_open() const noexcept { return presentation_.is_shown(); }
+    // Whether the palette state agrees with itself (state hunt, 2026-11-23):
+    // open, its overlay is in the window; closed, nothing is lifted into a
+    // Popup. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // The palette's content control (its parts are in its local
     // coordinates), null before the first opening.
     [[nodiscard]] Control::Ptr palette_overlay() const noexcept;
@@ -177,6 +182,8 @@ private:
     bool palette_semantic_action(std::string_view stable_id, SemanticAction action);
     void on_layer_dismissed(OverlayDismissReason reason);
     void on_overlay_revoked();
+    [[nodiscard]] FocusScopeId begin_palette_scope(Window& host, const AnchoredOverlayPlacement& placement);
+    void abandon_opening() noexcept;
     // The host closed a Popup window: the picker's closes the palette.
     void on_popup_window_closed(std::size_t slot);
 
@@ -188,21 +195,18 @@ private:
     Zone pressed_{Zone::none};
     bool focused_{};
 
-    // The palette overlay: its content and layer (made on first opening), the
-    // lease and focus scope while open, and the entry under the pointer and
-    // the keyboard's entry in it.
+    // The palette overlay: its content and layer (made on first opening and
+    // kept), the presentation (the lease, its revocation subscription, the
+    // focus scope and the lifted Popup's closing subscription while open),
+    // and the entry under the pointer and the keyboard's entry in it.
     std::shared_ptr<RibbonColorPalette> palette_overlay_{};
     std::shared_ptr<AnchoredOverlayLayer> layer_{};
-    OverlayToken overlay_{};
-    FocusScopeId scope_{};
     SubscriptionToken layer_dismissed_{};
-    SubscriptionToken overlay_revoked_{};
+    AnchoredPresentation presentation_{};
     // The palette's Popup while it shows outside the owner's layer (owner,
     // 2026-11-08: pickers are Popups before 0.5); the layer then has no
     // content and takes the owner's outside clicks.
     PopupLift lift_;
-    SubscriptionToken lift_closed_{};
-    bool palette_open_{};
     bool palette_focused_{};
     stxlib::Optional<std::size_t> hot_entry_{};
     stxlib::Optional<std::size_t> focus_entry_{};

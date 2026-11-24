@@ -7,6 +7,7 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
 #include "gui_forms/controls/drawing_surface.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -340,7 +341,7 @@ void LiveSurfacesPage::refresh_status(const std::string_view event, const Rect d
 
 void add_live_surfaces(const std::shared_ptr<Surface>& page,
                        const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<LiveSurfacesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<LiveSurfacesPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

@@ -5,6 +5,7 @@
 #include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/help/help_page/help_page.hpp"
 #include "gui_forms/window/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -115,7 +116,7 @@ struct HelpKeyCallback final {
 // --- HelpBookWindow -----------------------------------------------------------------------
 
 HelpBookWindow::HelpBookWindow(std::string stable_id)
-    : stable_id_(std::move(stable_id)), state_(std::make_shared<detail::HelpBookWindowState>()) {}
+    : stable_id_(std::move(stable_id)), state_(gui_forms::detail::make_library_shared<detail::HelpBookWindowState>()) {}
 
 HelpBookWindow::~HelpBookWindow() { close(); }
 
@@ -259,7 +260,7 @@ const HelpBookCompileResult& HelpBookSystem::compile() {
     collect_declared_topics(topics);
     put_declared_topics(catalog_.built_in());
     compiled_ = compile_helpbook_section(catalog_, skeleton, topics, options_.compile);
-    section_ = std::make_shared<const HelpBookSection>(compiled_.section);
+    section_ = gui_forms::detail::make_library_shared<const HelpBookSection>(compiled_.section);
     compiled_revision_ = catalog_.revision();
     compiled_once_ = true;
     external_section_ = false;
@@ -310,8 +311,10 @@ void HelpBookSystem::attach(Window& window, ApplicationWindowHandle handle, std:
 }
 
 void HelpBookSystem::detach(Window& window) noexcept {
-    if (pick_window_ == &window) cancel_help_mode();
-    const Control::Ptr anchor = popup_layer_ ? (*popup_layer_).anchor() : Control::Ptr{};
+    const PickShown* const pick = pick_presentation_.shown_state();
+    if (pick != nullptr && (*pick).window == &window) cancel_help_mode();
+    const PopupShown* const popup = popup_presentation_.open_state();
+    const Control::Ptr anchor = popup != nullptr && (*popup).layer ? (*(*popup).layer).anchor() : Control::Ptr{};
     if (anchor && (*anchor).attached_window() == &window) close_popup();
     for (std::size_t index = 0U; index < attachments_.size(); ++index) {
         if (attachments_[index].window != &window) continue;
@@ -511,6 +514,8 @@ bool HelpBookSystem::show_card_for(const Control::Ptr& subject, const Control::P
 
 bool HelpBookSystem::open_popup(HelpPageModel page, const Control::Ptr& anchor) {
     close_popup();
+    // A popup still closing is not replaced until it has closed.
+    if (!popup_presentation_.is_closed()) return false;
     retired_layer_.reset();
     retired_book_.reset();
     Window* const window = (*anchor).attached_window();
@@ -534,13 +539,16 @@ bool HelpBookSystem::open_popup(HelpPageModel page, const Control::Ptr& anchor) 
     on((*layer).dismiss_requested(), *this, &HelpBookSystem::on_popup_dismissed);
     on((*book).close_requested(), *this, &HelpBookSystem::on_popup_close);
     on((*book).link_activated(), *this, &HelpBookSystem::on_popup_link);
-    popup_token_ = (*window).open_overlay(anchor, layer);
-    if (!popup_token_.connected()) {
+    PopupShown shown{};
+    shown.overlay = (*window).open_overlay(anchor, layer);
+    if (!shown.overlay.connected()) {
         (*layer).clear_content();
         return false;
     }
-    popup_layer_ = layer;
-    popup_book_ = book;
+    shown.layer = layer;
+    shown.book = book;
+    // No focus scope: the popup is open as soon as it is shown.
+    popup_presentation_ = OverlayPresentation<PopupShown>::open(std::move(shown));
     // Now the book can lay text out: size the paper to the page.
     const double content = (*book).layout_for_print(std::max(0.0, options_.popup_width - popup_text_inset));
     placement.preferred_size.height =
@@ -551,17 +559,29 @@ bool HelpBookSystem::open_popup(HelpPageModel page, const Control::Ptr& anchor) 
     return true;
 }
 
+// The layer and book stay alive (retired) past a close from inside their
+// own event. A close or open asked meanwhile is refused.
 void HelpBookSystem::close_popup() noexcept {
-    popup_token_.disconnect();
-    if (popup_layer_) {
-        retired_layer_ = std::move(popup_layer_);
-        retired_book_ = std::move(popup_book_);
-        popup_layer_.reset();
-        popup_book_.reset();
+    if (!popup_presentation_.begin_closing()) return;
+    PopupShown& closing = *popup_presentation_.closing_state();
+    closing.overlay.disconnect();
+    if (closing.layer) {
+        retired_layer_ = std::move(closing.layer);
+        retired_book_ = std::move(closing.book);
     }
+    popup_presentation_.finish_closing();
 }
 
-bool HelpBookSystem::popup_open() const noexcept { return popup_token_.connected(); }
+bool HelpBookSystem::popup_open() const noexcept {
+    const PopupShown* const shown = popup_presentation_.open_state();
+    return shown != nullptr && (*shown).overlay.connected();
+}
+
+std::shared_ptr<HelpBook> HelpBookSystem::popup_book() const noexcept {
+    const PopupShown* const shown = popup_presentation_.open_state();
+    if (shown == nullptr) return {};
+    return (*shown).book;
+}
 
 void HelpBookSystem::on_popup_link(HelpLinkActivation& activation) {
     if (activation.kind == HelpLinkKind::external) {
@@ -590,32 +610,94 @@ bool HelpBookSystem::enter_help_mode(Window& window) {
     close_popup();
     const Control::Ptr root = window.root();
     if (!root) return false;
+    if (!pick_presentation_.is_closed()) return false;
     retired_pick_.reset();
     std::shared_ptr<detail::HelpPickLayer> layer =
         make_control<detail::HelpPickLayer>(StableId(options_.stable_id + ".pick"), *this, window);
     const Size client = window.client_size();
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    pick_token_ = window.open_overlay(root, layer);
-    if (!pick_token_.connected()) return false;
-    pick_layer_ = layer;
-    pick_window_ = &window;
-    pick_scope_ = window.begin_focus_scope(layer, layer);
+    PickShown opening{};
+    opening.lease.overlay = window.open_overlay(root, layer);
+    if (!opening.lease.overlay.connected()) return false;
+    // The window may take the layer back itself (its root hidden, the
+    // window closing): help mode then ends without touching the window
+    // again (state hunt S6: the scope and the raw window pointer outlived
+    // the overlay, and the next cancel ended a scope on a window that may
+    // be gone).
+    if (Event<>* const closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed =
+            (*closed).subscribe(Delegate<>::bind<HelpBookSystem, &HelpBookSystem::on_pick_revoked>(*this));
+    }
+    opening.layer = layer;
+    opening.window = &window;
+    pick_presentation_ = OverlayPresentation<PickShown>::opening(std::move(opening));
+    // Beginning the scope runs focus handlers; one may cancel help mode,
+    // and then the scope begun here is ended here. A refused scope (a
+    // containing scope, the nesting limit) ends help mode before the
+    // refusal leaves.
+    FocusScopeId scope{};
+    try {
+        scope = window.begin_focus_scope(layer, layer);
+    } catch (...) {
+        cancel_help_mode();
+        throw;
+    }
+    if (!pick_presentation_.settle_open()) {
+        if (scope) static_cast<void>(window.end_focus_scope(scope));
+        return false;
+    }
+    (*pick_presentation_.open_state()).lease.scope = scope;
     ++counters_.help_mode_entries;
     return true;
 }
 
+// The pick layer stays alive (retired) past a cancel from inside its own
+// event. A cancel or entry asked meanwhile is refused.
 void HelpBookSystem::cancel_help_mode() noexcept {
-    if (pick_window_ != nullptr && pick_scope_) {
-        static_cast<void>((*pick_window_).end_focus_scope(pick_scope_));
+    if (!pick_presentation_.begin_closing()) return;
+    PickShown& closing = *pick_presentation_.closing_state();
+    if (closing.window != nullptr && closing.lease.scope) {
+        try {
+            static_cast<void>((*closing.window).end_focus_scope(closing.lease.scope));
+        } catch (...) {
+        }
     }
-    pick_scope_ = FocusScopeId{};
-    pick_token_.disconnect();
-    if (pick_layer_) retired_pick_ = std::move(pick_layer_);
-    pick_layer_.reset();
-    pick_window_ = nullptr;
+    closing.lease.scope = FocusScopeId{};
+    closing.lease.overlay_closed.disconnect();
+    closing.lease.overlay.disconnect();
+    if (closing.layer) retired_pick_ = std::move(closing.layer);
+    pick_presentation_.finish_closing();
 }
 
-bool HelpBookSystem::help_mode_active() const noexcept { return pick_token_.connected(); }
+// The window took the pick layer back: its scope went with the overlay, and
+// the window is not touched again (it may be closing).
+void HelpBookSystem::on_pick_revoked() {
+    if (!pick_presentation_.begin_closing()) return;
+    PickShown& closing = *pick_presentation_.closing_state();
+    closing.lease.scope = FocusScopeId{};
+    closing.window = nullptr;
+    closing.lease.overlay_closed.disconnect();
+    if (closing.layer) retired_pick_ = std::move(closing.layer);
+    pick_presentation_.finish_closing();
+}
+
+bool HelpBookSystem::agrees_with_itself() const noexcept {
+    // Help mode held: a layer, a window, and while shown its overlay is in
+    // that window. The popup held: a layer and a book.
+    const PickShown* const pick = pick_presentation_.held_state();
+    if (pick != nullptr) {
+        if (!(*pick).layer || (*pick).window == nullptr) return false;
+        if (pick_presentation_.is_shown() && !(*pick).lease.overlay.connected()) return false;
+    }
+    const PopupShown* const popup = popup_presentation_.held_state();
+    if (popup != nullptr && !(*popup).layer) return false;
+    return true;
+}
+
+bool HelpBookSystem::help_mode_active() const noexcept {
+    const PickShown* const shown = pick_presentation_.shown_state();
+    return shown != nullptr && (*shown).lease.overlay.connected();
+}
 
 void HelpBookSystem::on_pick(Window& window, Point position) {
     cancel_help_mode();

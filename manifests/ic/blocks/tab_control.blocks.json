@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::TabControl",
+  "declaration": "include/gui_forms/controls/tab_control.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.tabcontrol.item_size_write",
+      "mode": "legal",
+      "call": "item_size",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::TabControl"
+        },
+        {
+          "name": "incoming",
+          "type": "Size",
+          "bounded_by": [
+            "finite(incoming.width) and finite(incoming.height) and incoming.width >= 24 and incoming.height >= 18 and incoming.width <= item_extent_most and incoming.height <= item_extent_most"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming.width) and finite(incoming.height) and incoming.width >= 24 and incoming.height >= 18 and incoming.width <= item_extent_most and incoming.height <= item_extent_most"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.tabcontrol.item_size_write.misuse.item_size",
+      "mode": "misuse",
+      "call": "item_size",
+      "violates": "finite(incoming.width) and finite(incoming.height) and incoming.width >= 24 and incoming.height >= 18 and incoming.width <= item_extent_most and incoming.height <= item_extent_most",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

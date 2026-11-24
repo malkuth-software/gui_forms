@@ -36,7 +36,7 @@ from ci_build_steps import (BUILT_EVERYTHING, BUILT_NOTHING, BUILT_SELECTED, DEB
                             DEBUG_INFO_VARIABLE, SANITIZER_FLAGS, SANITIZER_LINK_FLAGS, build_record_path,
                             configure_tree, debug_info_mode, run, sanitizer_options, write_build_record)
 from toolkit_configure import (HOST_OPTION_NAMES, host_options, prepare_host, stx_options,  # noqa: F401
-                               toolkit_options)
+                               toolchain_options, toolkit_options)
 
 ROOT: Path = Path(__file__).resolve().parents[2]
 
@@ -44,10 +44,11 @@ ROOT: Path = Path(__file__).resolve().parents[2]
 def check_windows_sdk_imports(sdk: Path) -> None:
     """Fail when an installed SDK DLL imports a compiler runtime DLL.
 
-    Every Windows binary links the LLVM runtimes and winpthreads statically
-    (CMakeLists.txt), so an installed DLL imports Windows system DLLs and
-    GUI.Forms' own DLLs only; the forbidden names are package_programs.py's.
-    Prints each DLL's non-system imports.
+    Every Windows binary links libc++ and STXlib's runtime statically
+    (cmake/llvm22-windows-msvc-own.cmake), so a DLL imports Windows system
+    DLLs, ucrtbase.dll and GUI.Forms' own DLLs only; the forbidden names
+    (Microsoft, GCC and LLVM runtimes, the api-ms-win-crt forwarders) are
+    package_programs.py's. Prints each DLL's non-system imports.
     """
     from package_programs import WINDOWS_FORBIDDEN_RUNTIME_DLL, WINDOWS_SYSTEM_DLLS
     objdump: str | None = shutil.which('objdump') or shutil.which('llvm-objdump')
@@ -55,7 +56,7 @@ def check_windows_sdk_imports(sdk: Path) -> None:
         raise RuntimeError('objdump (or llvm-objdump) is needed to check the installed DLLs')
     dlls: list[Path] = sorted(sdk.rglob('*.dll'))
     if not dlls:
-        raise RuntimeError('the installed SDK has no DLL under ' + str(sdk))
+        raise RuntimeError('no DLL under ' + str(sdk))
     dll: Path
     for dll in dlls:
         listing: str = subprocess.run([objdump, '-p', str(dll)], check=True, capture_output=True,
@@ -65,10 +66,10 @@ def check_windows_sdk_imports(sdk: Path) -> None:
         name: str
         for name in names:
             key: str = name.lower()
+            if WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name):
+                raise RuntimeError(f'{dll.name} imports the runtime {name}')
             if key in WINDOWS_SYSTEM_DLLS or key.startswith(('api-ms-win-', 'ext-ms-win-')):
                 continue
-            if WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(name):
-                raise RuntimeError(f'installed {dll.name} imports the compiler runtime {name}')
             own.append(name)
         print(f'installed {dll.relative_to(sdk)}: imports {", ".join(own) if own else "system DLLs only"}', flush=True)
 
@@ -295,7 +296,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         examples: Path = build / 'installed-reference-examples'
         run('cmake', '-S', ROOT / 'gui_forms/examples/reference', '-B', examples,
             '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release', f'-DCMAKE_PREFIX_PATH={sdk}',
-            '-DCMAKE_TOOLCHAIN_FILE=' + str(ROOT / 'gui_forms/cmake/llvm22.cmake'))
+            *toolchain_options(ROOT / 'gui_forms'))
         run('cmake', '--build', examples, '--parallel', jobs)
         run('ctest', '--test-dir', examples, '--output-on-failure')
     if install_only or test_cache is None:
@@ -324,7 +325,7 @@ def build_high_integrity(host: str, build: Path, jobs: int, clipboard_text: bool
     configure: list[str] = [
         'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
         '-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib',
-        '-DCMAKE_TOOLCHAIN_FILE=' + str(ROOT / 'gui_forms/cmake/llvm22.cmake'),
+        *toolchain_options(ROOT / 'gui_forms'),
         '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', '-DGUI_FORMS_HIGH_INTEGRITY=ON', '-DGUI_FORMS_TEST_CACHE=ON',
         f'-DGUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT={allowance}',
         *host_options(host),

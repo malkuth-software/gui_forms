@@ -15,7 +15,6 @@ int main(int argc, char** argv) {
     options.minimum_size = {1080.0, 680.0};
     options.print_metrics_on_close = true;
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     return gui_forms::host::run_windows(gui_forms::vsync_lab::make_vsync_lab(),
                                         std::move(options));
 }

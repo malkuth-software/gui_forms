@@ -9,7 +9,7 @@ gui_forms::Component
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: Component
+.. cpp:class:: Component : public LibraryAllocated
 
    ``#include <gui_forms/component/component/component.hpp>`` (:src:`source <include/gui_forms/component/component/component.hpp>`)
 
@@ -228,7 +228,7 @@ gui_forms::Component
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Component``. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 10 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Component``. Members declared here and by the counterpart: 11 supported, 0 deferred, 0 excluded, 9 unclassified; 11 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -278,7 +278,7 @@ Counterpart: ``Component``. Members declared here and by the counterpart: 10 sup
    * - property
      - GUI.Forms-only
      - ``component_state``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``interactions``

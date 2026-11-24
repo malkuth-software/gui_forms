@@ -19,9 +19,9 @@ authoring files keep the words authors write: a `.control` document declares
 `payload="boolean"`, and the form schema (`gui_forms_add_form_schema`) and the
 control lock file list it that way.
 
-Every control also has these properties: `accessible_description`, `accessible_name`, `active_border`, `active_border_alternate_color`, `active_border_color`, `active_border_corner_radius`, `active_border_frequency`, `active_border_motion`, `active_border_offset`, `active_border_width`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `dock`, `enabled`, `focusable`, `fore_color`, `help`, `help_line`, `hit_test_transparent`, `justify_self`, `keywords`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `right_to_left`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
+Every control also has these properties: `accessible_description`, `accessible_name`, `active_border`, `active_border_alternate_color`, `active_border_color`, `active_border_corner_radius`, `active_border_frequency`, `active_border_motion`, `active_border_offset`, `active_border_width`, `align_self`, `allow_drop`, `anchor`, `auto_scroll_offset`, `auto_size`, `auto_size_mode`, `back_color`, `bounds`, `causes_validation`, `classes`, `cursor`, `design_size`, `dock`, `enabled`, `focusable`, `fore_color`, `help`, `help_line`, `hit_test_transparent`, `justify_self`, `keywords`, `layout_direction`, `margin`, `maximum_size`, `minimum_size`, `name`, `padding`, `right_to_left`, `tab_index`, `tab_stop`, `tool_tip_text`, `visible`.
 
-Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `right_to_left_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `theme_sheet_compiled`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`, `relative_pointer`, `relative_pointer_ended`.
+Every control also raises these interactions: `name_changed`, `visible_changed`, `enabled_changed`, `right_to_left_changed`, `auto_size_changed`, `causes_validation_changed`, `validating`, `validated`, `theme_sheet_compiled`, `tool_tip_text_changed`, `initialization_completed`, `pointer_observed`, `pointer_preview_observed`, `mouse_down`, `mouse_up`, `mouse_move`, `mouse_wheel`, `mouse_enter`, `mouse_hover`, `mouse_leave`, `mouse_capture_changed`, `click`, `mouse_click`, `double_click`, `mouse_double_click`, `context_menu_requested`, `focus_observed`, `arranged_bounds_changed`, `help_requested`, `preview_key_down`, `key_down`, `key_press`, `key_up`, `relative_pointer`, `relative_pointer_ended`, `gesture`.
 
 ## Vocabulary
 
@@ -300,6 +300,34 @@ Properties beyond every control's: `busy` (boolean), `placeholder_text` (text), 
 | `search_requested` | `std::string` |
 | `cleared` | none |
 
+## `button_text_box` (ButtonTextBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `content` | content | `text_box` |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `button`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `button` | face |  |  |
+| `button_glyph` | glyph |  |  |
+| `button_label` | label |  |  |
+
+Item states: `hot`, `pressed`, `disabled`.
+
+Properties beyond every control's: `placeholder_text` (text), `read_only` (boolean), `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `text_changed` | `std::string` |
+| `button_clicked` | `EditButtonClick` |
+
 ## `masked_text_box` (MaskedTextBox, control)
 
 | Part | Role | Reuses | Own states |
@@ -434,7 +462,7 @@ Interactions beyond every control's: none.
 
 States: `normal`, `enabled`, `disabled`. Application-defined: `on`, `error`, `pinpoint`, `fault`.
 
-Properties beyond every control's: `lamp_color` (color), `lamp_style` (enumeration), `light_planes` (text), `state` (enumeration), `text` (text).
+Properties beyond every control's: `lamp_color` (color), `lamp_sparkle` (boolean), `lamp_style` (enumeration), `light_planes` (text), `state` (enumeration), `text` (text).
 
 Interactions beyond every control's: none.
 
@@ -633,6 +661,35 @@ Properties beyond every control's: `crosshair` (boolean), `live` (boolean), `sho
 | `legend_toggled` | `std::size_t` |
 | `handle_moved` | `PlotHandleMove` |
 | `handle_committed` | `PlotHandleMove` |
+
+## `pie_chart` (PieChart, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `plot` | plot |  |  |
+| `legend` | legend |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `enabled`, `disabled`, `focused`, `focus_visible`.
+
+Item system `slice`:
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `slice` | series |  |  |
+| `slice_label` | label |  |  |
+| `legend_swatch` | well |  |  |
+| `legend_label` | legend_entry |  |  |
+
+Item states: `hot`, `selected`, `focus_visible`, `disabled`.
+
+Properties beyond every control's: `doughnut_radius` (number), `label_style` (enumeration), `legend_visible` (boolean), `start_angle` (number).
+
+| Interaction | Payload |
+|---|---|
+| `selection_changed` | `PieSliceSelection` |
+| `slice_activated` | `PieSliceActivation` |
 
 ## `plot3d_view` (Plot3DView, control)
 
@@ -1016,11 +1073,13 @@ Item system `row`:
 | `row` | region |  |  |
 | `row_face` | face |  |  |
 | `expander` | disclosure |  |  |
+| `check_well` | well |  |  |
+| `check` | indicator |  |  |
 | `icon` | icon |  |  |
 | `text` | content |  |  |
 | `row_focus` | focus |  |  |
 
-Item states: `selected`, `hot`, `current`, `open`, `closed`, `disabled`, `focus_visible`.
+Item states: `selected`, `hot`, `current`, `open`, `closed`, `disabled`, `focus_visible`, `checked`, `indeterminate`.
 
 Item system `cell`:
 
@@ -1043,7 +1102,7 @@ Item system `column`:
 
 Item states: `hot`, `pressed`, `captured`. Application-defined: `sorted_ascending`, `sorted_descending`.
 
-Properties beyond every control's: none.
+Properties beyond every control's: `cascading_checks` (boolean), `check_boxes` (boolean).
 
 | Interaction | Payload |
 |---|---|
@@ -1053,6 +1112,7 @@ Properties beyond every control's: none.
 | `sort_changed` | `TreeListSortChange` |
 | `column_width_changed` | `TreeListColumnWidthChange` |
 | `column_moved` | `TreeListColumnMove` |
+| `check_state_changed` | `TreeListCheckChange` |
 
 ## `virtual_rows_view` (VirtualRowsView, control)
 
@@ -1834,7 +1894,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `design_size` (size), `font` (font), `text` (text), `wheel_scrolls` (boolean).
+Properties beyond every control's: `aspect` (enumeration), `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `font` (font), `text` (text), `wheel_scrolls` (boolean).
 
 | Interaction | Payload |
 |---|---|
@@ -2485,7 +2545,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
-Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `design_size` (size), `wheel_scrolls` (boolean).
+Properties beyond every control's: `aspect` (enumeration), `auto_scroll` (boolean), `auto_scroll_margin` (size), `auto_scroll_min_size` (size), `auto_scroll_position` (point), `border_style` (enumeration), `wheel_scrolls` (boolean).
 
 | Interaction | Payload |
 |---|---|
@@ -3261,6 +3321,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `icon_image` | icon |  |  |
 | `heading` | label | `label` |  |
 | `text` | content | `label` |  |
+| `input` | well | `text_box` |  |
 | `progress` | track | `progress_bar` |  |
 | `radio_group` | region | `radio_button` |  |
 | `expander_glyph` | disclosure |  | open |
@@ -3517,6 +3578,47 @@ Properties beyond every control's: `display_column` (unsigned_integer), `max_dro
 | `selected_key_changed` | `std::string` |
 | `drop_down_changed` | `bool` |
 
+## `popup_container_box` (PopupContainerBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `label` | content |  |  |
+| `actuator` | actuator |  |  |
+| `glyph` | disclosure |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`, `pressed`.
+
+Properties beyond every control's: `text` (text).
+
+| Interaction | Payload |
+|---|---|
+| `popup_opened` | none |
+| `popup_closed` | `PopupClosed` |
+| `text_changed` | `std::string` |
+
+## `checked_combo_box` (CheckedComboBox, control)
+
+| Part | Role | Reuses | Own states |
+|---|---|---|---|
+| `region` | region |  |  |
+| `well` | well |  |  |
+| `label` | content |  |  |
+| `actuator` | actuator |  |  |
+| `glyph` | disclosure |  |  |
+| `focus` | focus |  |  |
+
+States: `normal`, `hot`, `enabled`, `disabled`, `focused`, `focus_visible`, `open`, `closed`, `pressed`.
+
+Properties beyond every control's: `max_drop_down_items` (unsigned_integer), `placeholder_text` (text), `separator` (text).
+
+| Interaction | Payload |
+|---|---|
+| `item_check_changed` | `CheckedComboItemChange` |
+| `drop_down_changed` | `bool` |
+
 ## `about_dialog` (AboutDialog, component)
 
 | Interaction | Payload |
@@ -3718,6 +3820,14 @@ Interactions: none.
 | `balloon_tip_clicked` | none |
 | `balloon_tip_closed` | none |
 | `menu_item_invoked` | `MenuItemInvocation` |
+
+## `toast_notification` (ToastNotification, component)
+
+| Interaction | Payload |
+|---|---|
+| `activated` | none |
+| `dismissed` | none |
+| `failed` | none |
 
 ## `open_file_dialog` (OpenFileDialog, component)
 

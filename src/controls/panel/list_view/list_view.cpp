@@ -12,6 +12,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -180,7 +181,7 @@ std::string sub_item_identity(std::string_view item_id, std::string_view column_
 // enumerations' declaration order (list_view_values.hpp).
 std::shared_ptr<const PropertyEnumDescriptor> list_view_view_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "list_view_view",
             {{"details", 0}, {"list", 1}, {"small_icon", 2}, {"large_icon", 3}, {"tile", 4}},
             false});
@@ -189,14 +190,14 @@ std::shared_ptr<const PropertyEnumDescriptor> list_view_view_enum() {
 
 std::shared_ptr<const PropertyEnumDescriptor> list_view_activation_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "list_view_activation", {{"standard", 0}, {"one_click", 1}, {"two_click", 2}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> list_view_header_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "list_view_header_style", {{"clickable", 0}, {"nonclickable", 1}, {"none", 2}}, false});
     return value;
 }
@@ -2153,15 +2154,15 @@ void ListView::reveal_cut_off_text(const Layout& placed, const Hit& hit, Point l
         conceal_cut_off_text();
         return;
     }
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const double row_left = text_cell.x - reveal_lead;
     detail::CutOffText revealed{};
     revealed.key = std::to_string(hit.index) + "#" + std::to_string(column);
     const Rect row_reading{row_left, cell.y, std::max(0.0, row_right - row_left), cell.height};
     const Rect row_shown = details_detail::shown_rect(row_reading, placed.well, placed.mirrored);
     const Rect cell_shown = details_detail::shown_rect(text_cell, placed.well, placed.mirrored);
-    revealed.row = {absolute.x + row_shown.x, absolute.y + row_shown.y, row_shown.width, row_shown.height};
-    revealed.cell = {absolute.x + cell_shown.x, absolute.y + cell_shown.y, cell_shown.width, cell_shown.height};
+    revealed.row = frame_to_outer(local_frame, row_shown);
+    revealed.cell = frame_to_outer(local_frame, cell_shown);
     revealed.text = std::string(text);
     revealed.font = text_font(font.read());
     revealed.paint = detail::RevealPaint{.family = ControlVisualRole::selection, .states = states};
@@ -2218,8 +2219,8 @@ void ListView::clear_insertion_mark() noexcept {
 stxlib::Optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window_point) const {
     const Layout placed = layout();
     if (placed.shown_count == 0U || placed.viewport.empty()) return stxlib::Optional<ListViewInsertionMark>::none();
-    const Rect absolute = absolute_bounds();
-    const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point drawn = frame_to_inner(local_frame, window_point);
     const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
     // The point is clamped into the viewport, so that a drag past an edge
     // names the nearest item there.
@@ -2260,9 +2261,9 @@ stxlib::Optional<ListViewInsertionMark> ListView::insertion_mark_at(Point window
 }
 
 stxlib::Optional<std::size_t> ListView::item_index_at(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Layout placed = layout();
-    const Point drawn{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point drawn = frame_to_inner(local_frame, window_point);
     const Point local = details_detail::reading_point(drawn, placed.well, placed.mirrored);
     const Hit hit = hit_test(placed, local);
     if (hit.zone != HitZone::item && hit.zone != HitZone::check) return stxlib::Optional<std::size_t>::none();
@@ -2288,8 +2289,8 @@ void ListView::request_column_click(std::size_t column) {
 
 void ListView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Point drawn{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point drawn = frame_to_inner(local_frame, event.position);
     // In reading order from here on (right to left, the drawn view mirrors).
     // The two values are copied: the kept layout is remade by later calls.
     const Rect frame = layout().well;
@@ -2956,7 +2957,7 @@ SemanticDescriptor ListView::semantic_descriptor() const {
 std::vector<SemanticNode> ListView::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
     const Layout placed = layout();
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::string list_id(stable_id().value());
     const bool enabled = effectively_enabled();
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
@@ -2975,7 +2976,7 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
         node.name = columns_[column].text;
         if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == ListViewSortOrder::ascending) node.value = "ascending";
         if (sort_column_ == stxlib::Optional<std::size_t>::of(column) && sort_order_ == ListViewSortOrder::descending) node.value = "descending";
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | enabled_state;
         if (header_style.read() == ListViewHeaderStyle::clickable) node.actions = {SemanticAction::press};
         nodes.push_back(std::move(node));
@@ -3012,7 +3013,7 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
                 node.set_size.set(record.count);
             }
         }
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | SemanticState::focusable | enabled_state;
         if (selected_[index] != 0U) node.states |= SemanticState::selected;
         if (focused_ && focused_index_ == stxlib::Optional<std::size_t>::of(index)) node.states |= SemanticState::focused;
@@ -3044,8 +3045,7 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
             group_node.role = SemanticRole::group;
             group_node.name = group_header(record.group);
             const Rect drawn_extent = details_detail::shown_rect(extent, placed.well, placed.mirrored);
-            group_node.bounds = {absolute.x + drawn_extent.x, absolute.y + drawn_extent.y, drawn_extent.width,
-                                 drawn_extent.height};
+            group_node.bounds = frame_to_outer(local_frame, drawn_extent);
             group_node.states = SemanticState::visible | enabled_state;
         }
         group_node.children.push_back(std::move(node));
@@ -3059,7 +3059,7 @@ std::vector<SemanticNode> ListView::semantic_virtual_children() const {
 // item's text. A cell has no actions of its own; its row takes them.
 void ListView::append_row_cells(const Layout& placed, std::size_t index, const ListViewItem& item,
                                 SemanticNode& row_node) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect line = item_bounds(placed, index);
     const bool enabled = effectively_enabled();
     const SemanticState enabled_state = enabled ? SemanticState::enabled : SemanticState::none;
@@ -3077,7 +3077,7 @@ void ListView::append_row_cells(const Layout& placed, std::size_t index, const L
         cell.value = std::string(column_text(item, column));
         cell.row_index.set(position_of(placed, index) + 1U);
         cell.column_index.set(column + 1U);
-        cell.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        cell.bounds = frame_to_outer(local_frame, bounds);
         cell.states = SemanticState::visible | enabled_state;
         row_node.children.push_back(std::move(cell));
     }
@@ -3767,7 +3767,7 @@ BindingValue PropertyValueTraits<ListViewView>::to_binding(ListViewView value) {
     descriptor.enumeration = list_view_view_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -3786,7 +3786,7 @@ BindingValue PropertyValueTraits<ListViewActivation>::to_binding(ListViewActivat
     descriptor.enumeration = list_view_activation_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -3805,7 +3805,7 @@ BindingValue PropertyValueTraits<ListViewHeaderStyle>::to_binding(ListViewHeader
     descriptor.enumeration = list_view_header_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

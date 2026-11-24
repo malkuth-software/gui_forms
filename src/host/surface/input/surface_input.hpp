@@ -13,16 +13,16 @@
 // futex) holds the lock only briefly.
 
 #include "gui_forms/events/input_events/input_events.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 #include "gui_forms/types.hpp"
 
 #include <chrono>
-#include <condition_variable>
 #include <cstddef>
 #include <cstdint>
 #include <deque>
-#include <mutex>
 #include <optional>
 #include <string>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::host::surface_detail {
@@ -45,6 +45,10 @@ enum class SurfaceInputKind : std::uint8_t {
     clipboard,
     // The surface's logical size (`extent`) and device scale (`scale`).
     resize,
+    // The edges of the surface the host or the device hides (`insets`,
+    // logical units; stage VA): on the web, the part of the canvas outside
+    // the browser's visual viewport.
+    safe_insets,
     // The surface gained (`down` true) or lost the keyboard.
     focus,
     // The surface was hidden (`down` true) or shown again.
@@ -105,6 +109,7 @@ struct SurfaceInputRecord final {
     SurfaceWheelUnit wheel_unit{SurfaceWheelUnit::lines};
     Size extent{};
     double scale{1.0};
+    SafeInsets insets{};
     double time{};
     std::uint64_t request{};
     SurfaceDialogOutcome outcome{SurfaceDialogOutcome::cancelled};
@@ -123,8 +128,18 @@ public:
     // state stuck (A-gf-host-02-F14); the queue stays bounded.
     static constexpr std::size_t maximum_control_records = 4U * maximum_records;
 
+    // Whether records of `kind` carry a level of the host's state rather
+    // than an event: presented, focus, visibility, activation, resize,
+    // safe_insets and close. Only the latest of each matters, and losing it
+    // leaves the manager's copy stuck (composing paused, a window open), so
+    // they are never refused (hunt r48 C38).
+    [[nodiscard]] static bool carries_level(SurfaceInputKind kind) noexcept;
+
     // Appends `record` and wakes the manager's thread. Returns false, keeping
-    // nothing, when the queue is full for its kind.
+    // nothing, when the queue is full for its kind. A level record
+    // (carries_level) is always kept: when the queue is full, the oldest
+    // queued record of its kind is removed first, and when there is none it
+    // is appended past the bound (at most one per level kind, seven in all).
     bool post(SurfaceInputRecord record);
     // Wakes the manager's thread without a record (a model's wake handler).
     void wake() noexcept;
@@ -138,8 +153,11 @@ public:
     [[nodiscard]] std::uint64_t dropped() const;
 
 private:
-    mutable std::mutex mutex_;
-    std::condition_variable ready_;
+    // take's wait predicate, under the mutex: a record or a wake.
+    [[nodiscard]] static bool record_or_wake(const void* context) noexcept;
+
+    mutable stxlib::Mutex mutex_;
+    stxlib::ConditionVariable ready_;
     std::deque<SurfaceInputRecord> records_;
     bool woken_{};
     std::uint64_t dropped_{};

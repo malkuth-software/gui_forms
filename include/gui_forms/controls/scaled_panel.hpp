@@ -19,6 +19,16 @@ public:
     [[nodiscard]] stxlib::Optional<Rect> design_bounds(const Control& child) const;
     void arrange(Rect final_bounds) override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
+    // Its children are mapped from its design space (Control::design_size,
+    // 1 x 1 while that is zero) to its arranged size, so its design content
+    // always fills its viewport: an explicit stretch, recorded (stage VA,
+    // decision 10). `aspect` chooses a stretch per axis (the default) or a
+    // uniform scale that keeps the design's proportions, aligned by
+    // viewport_fit's alignment. Reports the smaller axis ratio; none while
+    // design_size is zero or it has no extent.
+    [[nodiscard]] stxlib::Optional<double> applied_viewport_scale() const noexcept override;
+    // True: the stretch above is this control's own mapping (decision 10).
+    [[nodiscard]] bool scales_design_space() const noexcept override;
 
 private:
     using SlotMap = std::unordered_map<std::uint64_t, Rect>;
@@ -32,10 +42,10 @@ public:
     [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
 
 private:
-    friend struct ScaledPanelDesignSizeCapability<ScaledPanel>;
+    friend struct ScaledPanelAspectCapability<ScaledPanel>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
-    void prepare_write(const decltype(design_size)& cell, Size& incoming);
-    void written(const decltype(design_size)& cell);
+    void prepare_write(const decltype(aspect)& cell, ScaledAspect& incoming);
+    void written(const decltype(aspect)& cell);
     // property_codemod end ScaledPanel
 };
 

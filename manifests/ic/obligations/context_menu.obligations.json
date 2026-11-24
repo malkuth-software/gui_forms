@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ContextMenu",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/components/context_menu/context_menu.ic.toml",
+    "sha256": "9f906c4e18ddb821b7f83c5d2dfa9f828576a0ce604426ab29f2789257149973"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.contextmenu.preferred_width_write.requires.preferred_width",
+      "kind": "entry-check",
+      "statement": "preferred_width runs only when finite(incoming) and incoming >= 120 and incoming <= 1024; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::context_menu::admits_preferred_width, called in src/controls/menu/context_menu/context_menu.cpp"
+    },
+    {
+      "id": "gui_forms.contextmenu.preferred_width_write.refusal.preferred_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 120 and incoming <= 1024, preferred_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

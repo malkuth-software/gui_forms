@@ -258,6 +258,16 @@ struct GUI_FORMS_API PropertyDescriptor final {
 [[nodiscard]] GUI_FORMS_API std::optional<BindingValue> convert_property_value(
     const BindingValue& value, const PropertyDescriptor& descriptor);
 
+namespace detail {
+// A retained enumerator outside its property's enumeration, found where a
+// property's read converts it (the property tables' enumeration getters).
+// Every write is checked against the same enumeration, so such a value can
+// only come from corrupted storage: a defect. It fails fast, naming the
+// enumeration, instead of the read throwing on every later call while the
+// control goes on half alive (bit-flip run 7, F3).
+[[noreturn]] GUI_FORMS_API void fail_retained_enumerator(const PropertyDescriptor& descriptor) noexcept;
+} // namespace detail
+
 // A custom retained control registers these executable definitions once
 // during construction. Binding never uses C++ RTTI, native handles, or managed
 // reflection: name resolution yields explicit typed get/set/change behavior.

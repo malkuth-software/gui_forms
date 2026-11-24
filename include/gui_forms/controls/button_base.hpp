@@ -36,6 +36,8 @@ enum class ChoiceIndicatorStyle : std::uint8_t {
     lamp,
 };
 
+// ic: gui_forms::ButtonBase: generated from include/gui_forms/controls/button_base.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ButtonBase : public Control, public ButtonBaseCapabilities<ButtonBase> {
 public:
     explicit ButtonBase(StableId stable_id, std::string initial_text = {});
@@ -315,12 +317,14 @@ private:
     void written(const decltype(font)& cell);
     void prepare_write(const decltype(content_padding)& cell, Insets& incoming);
     void written(const decltype(content_padding)& cell);
+    // ic: Requires finite(incoming) and 4 * incoming >= 3 and incoming <= 3, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(text_line_spacing)& cell, double& incoming);
     void written(const decltype(text_line_spacing)& cell);
     void prepare_write(const decltype(image_alignment)& cell, ContentAlignment& incoming);
     void written(const decltype(image_alignment)& cell);
     void prepare_write(const decltype(text_image_relation)& cell, TextImageRelation& incoming);
     void written(const decltype(text_image_relation)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(image_gap)& cell, double& incoming);
     void written(const decltype(image_gap)& cell);
     void prepare_write(const decltype(use_mnemonic)& cell, bool& incoming);

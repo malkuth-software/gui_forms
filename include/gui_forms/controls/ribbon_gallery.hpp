@@ -1,6 +1,7 @@
 #pragma once
 
 #include "gui_forms/export/application_export.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/commands/gallery_command/gallery_command.hpp"
 #include "gui_forms/control.hpp"
@@ -103,7 +104,9 @@ public:
     // The first line shown: an item row, or in the drop-down form also a
     // category caption.
     [[nodiscard]] std::size_t first_visible_line() const noexcept { return first_line_; }
-    [[nodiscard]] std::size_t line_count() const noexcept { return lines_.size(); }
+    // Derived from the items, columns and form, not read from the laid-out
+    // lines (state hunt: the lines are a cache).
+    [[nodiscard]] std::size_t line_count() const noexcept;
     void scroll_to_line(std::size_t line);
     [[nodiscard]] bool can_scroll_up() const noexcept { return first_line_ > 0U; }
     [[nodiscard]] bool can_scroll_down() const noexcept;
@@ -116,7 +119,11 @@ public:
     bool open_overlay(const Control::Ptr& anchor);
     // Cancels any preview, then closes the overlay and returns focus.
     void close_overlay();
-    [[nodiscard]] bool overlay_open() const noexcept { return overlay_open_; }
+    [[nodiscard]] bool overlay_open() const noexcept { return presentation_.is_shown(); }
+    // Whether the gallery's overlay state agrees with itself (state hunt,
+    // 2026-11-23): open, its overlay is in the window; closed, it is not in
+    // its layer or a Popup. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // In-ribbon form: opens the full gallery (the more button). Returns false
     // for the drop-down form or when it cannot open.
     bool show_more();
@@ -248,6 +255,13 @@ private:
 
     [[nodiscard]] std::size_t active_columns() const noexcept;
     void rebuild_lines();
+    // How many lines the display order lays out in: rebuild_lines' count,
+    // computed without the lines.
+    [[nodiscard]] std::size_t derived_line_count() const noexcept;
+    // Whether lines_ (a cache of the order, columns and form) still lays out
+    // the display order: its count, each line's first position and size,
+    // and the first line shown.
+    [[nodiscard]] bool lines_agree() const noexcept;
     void model_changed();
     [[nodiscard]] Geometry geometry() const;
     [[nodiscard]] std::size_t visible_line_end(const Geometry& layout) const noexcept;
@@ -286,6 +300,7 @@ private:
     // The host closed a Popup window: the picker's closes the overlay.
     void on_popup_window_closed(std::size_t slot);
     void release_lift() noexcept;
+    void abandon_opening() noexcept;
     void release_layer_content() noexcept;
     void on_more_open_changed(bool open);
     [[nodiscard]] bool navigate(std::uint32_t key);
@@ -324,21 +339,19 @@ private:
     FrameRequestToken dwell_timer_{};
 
     // Overlay state of a drop-down gallery: the layer it sits in while open
-    // (owned by the gallery; the layer holds the gallery as its content only
-    // while open), its overlay lease and focus scope.
+    // (owned by the gallery and kept; the layer holds the gallery as its
+    // content only while open), and the presentation, which holds the
+    // overlay lease, its revocation subscription, the focus scope and the
+    // lifted Popup's closing subscription while open.
     std::shared_ptr<AnchoredOverlayLayer> layer_{};
-    OverlayToken overlay_{};
-    FocusScopeId scope_{};
     SubscriptionToken layer_dismissed_{};
-    SubscriptionToken overlay_revoked_{};
+    AnchoredPresentation presentation_{};
     // A drop-down gallery's picker Popup while it shows outside the owner's
     // layer (owner, 2026-11-08: drop-downs are Popups before 0.5). The
     // Popup's frame holds the gallery then, so release_lift on every close
     // and on disposal breaks that hold; the emptied layer stays in the owner
     // and keeps the focus scope.
     PopupLift lift_;
-    SubscriptionToken lift_closed_{};
-    bool overlay_open_{};
     // The full gallery an in-ribbon gallery's more button opens.
     std::shared_ptr<RibbonGallery> more_gallery_{};
     SubscriptionToken more_open_changed_{};

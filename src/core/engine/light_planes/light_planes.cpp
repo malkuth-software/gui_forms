@@ -1,20 +1,25 @@
 #include "gui_forms/engine/light_planes/light_planes.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../primitives/finish/finish_kernel.hpp"
+#include "../../../platform/library_files.hpp"
 
 #include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
-#include <fstream>
-#include <iterator>
 #include <limits>
 #include <string>
+#include <stxlib/buffer.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 #include <utility>
 
-// Identical bytes on every host: no fused multiply-add (engine_math.cpp).
+// Identical bytes on every host: no fused multiply-add.
 // Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
 // 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
 // "Floating-point contraction").
@@ -256,7 +261,7 @@ bool complete(const LightPlanes& planes) noexcept {
 double decoded_channel(std::uint8_t encoded) noexcept {
     const double value = static_cast<double>(encoded) / 255.0;
     if (value <= 0.04045) return value / 12.92;
-    const double linear = engine_power((value + 0.055) / 1.055, 2.4);
+    const double linear = stxlib::math::pow((value + 0.055) / 1.055, 2.4);
     return linear;
 }
 
@@ -269,7 +274,7 @@ bool same_drive(LampDrive a, LampDrive b) noexcept {
 bool same_settings(const LightComposite& a, const LightComposite& b) noexcept {
     const bool same = a.room == b.room && a.exposure == b.exposure && a.press_mix == b.press_mix &&
                       a.filter.red == b.filter.red && a.filter.green == b.filter.green &&
-                      a.filter.blue == b.filter.blue && a.shape == b.shape;
+                      a.filter.blue == b.filter.blue && a.shape == b.shape && same_lamp_glints(a.glints, b.glints);
     return same;
 }
 
@@ -290,9 +295,9 @@ Toned toned_at(const LightPlanes& planes, double bx, double by, std::span<const 
     const double cover = light.coverage < 0.0 ? 0.0 : (light.coverage > 1.0 ? 1.0 : light.coverage);
     const double inverse = cover > 1e-6 ? 1.0 / cover : 0.0;
     const double exposure = settings.exposure;
-    const Toned toned{1.0 - engine_exponential(-(light.red * inverse) * exposure),
-                      1.0 - engine_exponential(-(light.green * inverse) * exposure),
-                      1.0 - engine_exponential(-(light.blue * inverse) * exposure)};
+    const Toned toned{1.0 - stxlib::math::exp(-(light.red * inverse) * exposure),
+                      1.0 - stxlib::math::exp(-(light.green * inverse) * exposure),
+                      1.0 - stxlib::math::exp(-(light.blue * inverse) * exposure)};
     return toned;
 }
 
@@ -343,6 +348,22 @@ void composite_dot(const LightPlanes& planes, std::span<const LampDrive> drives,
     const double bake_centre_y = static_cast<double>(planes.height) * 0.5;
     const LampDrive halo_drive = drives.empty() ? LampDrive{} : drives[0];
     const double spread = pinpoint_halo_spread * radius * radius;
+    // The sparkle's glints: their light (the drive's colour whitened, at
+    // its power, at most 1), centres in pixels from the dot's centre and
+    // the core's spread.
+    const double glint_power = clamped_unit(halo_drive.power) * lamp_sparkle_gain;
+    const double brightest =
+        std::max({halo_drive.colour.red, halo_drive.colour.green, halo_drive.colour.blue, 1e-9});
+    const LampColour glint_light{0.5 + 0.5 * halo_drive.colour.red / brightest,
+                                 0.5 + 0.5 * halo_drive.colour.green / brightest,
+                                 0.5 + 0.5 * halo_drive.colour.blue / brightest};
+    const double glint_spread = std::max(lamp_sparkle_least_spread, lamp_sparkle_spread_share * radius);
+    const double glint_spread2 = 2.0 * glint_spread * glint_spread;
+    bool sparkling = false;
+    for (const LampGlint& glint : settings.glints) {
+        if (glint.strength > 0.0) sparkling = true;
+    }
+    sparkling = sparkling && glint_power > 0.0;
     for (std::int64_t y = y0; y < y1; ++y) {
         const std::size_t row_start = static_cast<std::size_t>(y) * destination.row_bytes;
         std::uint8_t* pixel =
@@ -366,6 +387,25 @@ void composite_dot(const LightPlanes& planes, std::span<const LampDrive> drives,
                         blue = blue + toned.blue / 9.0;
                     }
                 }
+                if (sparkling) {
+                    // Each glint: a soft core with a faint cross through it,
+                    // as a point of light catches in a facet.
+                    double glow = 0.0;
+                    for (const LampGlint& glint : settings.glints) {
+                        if (!(glint.strength > 0.0)) continue;
+                        const double gx = ox - glint.x * radius;
+                        const double gy = oy - glint.y * radius;
+                        const double core = stxlib::math::exp(-(gx * gx + gy * gy) / glint_spread2);
+                        const double across = stxlib::math::exp(-(gy * gy) / (0.25 * glint_spread2)) *
+                                              stxlib::math::exp(-std::abs(gx) / (3.0 * glint_spread));
+                        const double down = stxlib::math::exp(-(gx * gx) / (0.25 * glint_spread2)) *
+                                            stxlib::math::exp(-std::abs(gy) / (3.0 * glint_spread));
+                        glow = glow + glint.strength * (core + 0.35 * (across + down));
+                    }
+                    red = clamped_unit(red + glow * glint_power * glint_light.red);
+                    green = clamped_unit(green + glow * glint_power * glint_light.green);
+                    blue = clamped_unit(blue + glow * glint_power * glint_light.blue);
+                }
             }
             // What lies under the jewel: the rim (a dark layer) or the halo
             // (the lamp's light), each premultiplied, then the jewel over it.
@@ -375,7 +415,7 @@ void composite_dot(const LightPlanes& planes, std::span<const LampDrive> drives,
             double under_alpha = 0.0;
             if (pinpoint) {
                 const double beyond = std::max(0.0, d - radius * pinpoint_halo_start);
-                const double halo = spread > 0.0 ? pinpoint_halo_strength * engine_exponential(-(beyond * beyond) / spread) : 0.0;
+                const double halo = spread > 0.0 ? pinpoint_halo_strength * stxlib::math::exp(-(beyond * beyond) / spread) : 0.0;
                 const double power = halo_drive.power * halo;
                 under_red = clamped_unit(power * halo_drive.colour.red * settings.filter.red);
                 under_green = clamped_unit(power * halo_drive.colour.green * settings.filter.green);
@@ -518,9 +558,9 @@ std::size_t composite_light_planes(const LightPlanes& up, const LightPlanes& dow
             if (pressed) light = mix(light, sample(down, column, row, drives, settings.room, settings.filter), press);
             const double cover = light.coverage < 0.0 ? 0.0 : (light.coverage > 1.0 ? 1.0 : light.coverage);
             const double inverse = cover > 1e-6 ? 1.0 / cover : 0.0;
-            const double red = 1.0 - engine_exponential(-(light.red * inverse) * exposure);
-            const double green = 1.0 - engine_exponential(-(light.green * inverse) * exposure);
-            const double blue = 1.0 - engine_exponential(-(light.blue * inverse) * exposure);
+            const double red = 1.0 - stxlib::math::exp(-(light.red * inverse) * exposure);
+            const double green = 1.0 - stxlib::math::exp(-(light.green * inverse) * exposure);
+            const double blue = 1.0 - stxlib::math::exp(-(light.blue * inverse) * exposure);
             const std::uint32_t alpha = static_cast<std::uint32_t>(std::floor(cover * 255.0 + 0.5));
             // The finishes' sRGB table: the study's, identical in panel_lamps.html.
             pixel[0] = premultiplied(engine_primitives::encode_linear(blue), alpha);
@@ -586,7 +626,7 @@ double fault_event(std::uint32_t seed, std::uint64_t slot, double seconds) noexc
     const double constant = dropout ? 0.03 + 0.12 * fault_unit(seed, slot, 4U) : 0.02 + 0.04 * fault_unit(seed, slot, 4U);
     const double caught = dropout ? 0.40 + 0.40 * fault_unit(seed, slot, 5U) : low;
     const double since = seconds - (start + hold);
-    const double recovered = 1.0 - (1.0 - caught) * engine_exponential(-since / constant);
+    const double recovered = 1.0 - (1.0 - caught) * stxlib::math::exp(-since / constant);
     return recovered;
 }
 
@@ -602,6 +642,61 @@ double lamp_fault_flicker(double seconds, std::uint32_t seed, bool reduced_motio
     const double before = slot > 0U ? fault_event(seed, slot - 1U, seconds) : 1.0;
     const double power = std::min(here, before);
     return power;
+}
+
+namespace {
+
+// The glint stream `stream` holds in `slot`, at `seconds`: none (strength
+// 0) when the slot has none or it is not lit now.
+LampGlint sparkle_glint(std::uint32_t seed, std::uint32_t stream, std::uint64_t slot, double slot_start,
+                        double seconds) noexcept {
+    const std::uint32_t stream_seed = seed ^ (0x51ed27a5U * (stream + 1U));
+    LampGlint none{};
+    if (fault_unit(stream_seed, slot, 10U) >= 0.55) return none;
+    const double room = lamp_sparkle_slot_seconds - lamp_sparkle_glint_seconds;
+    const double start = slot_start + room * fault_unit(stream_seed, slot, 11U);
+    const double into = seconds - start;
+    if (!(into > 0.0 && into < lamp_sparkle_glint_seconds)) return none;
+    double swell = 0.0;
+    double swell_cosine = 0.0;
+    stxlib::math::sincos(3.141592653589793 * into / lamp_sparkle_glint_seconds, swell, swell_cosine);
+    const double facet = std::floor(8.0 * fault_unit(stream_seed, slot, 12U));
+    const double angle = (facet + 0.5) * (3.141592653589793 / 4.0);
+    const double out = 0.3 + 0.4 * fault_unit(stream_seed, slot, 13U);
+    double direction_sine = 0.0;
+    double direction_cosine = 0.0;
+    stxlib::math::sincos(angle, direction_sine, direction_cosine);
+    const LampGlint glint{out * direction_cosine, out * direction_sine,
+                          swell * swell * (0.6 + 0.4 * fault_unit(stream_seed, slot, 14U))};
+    return glint;
+}
+
+} // namespace
+
+bool same_lamp_glints(const LampGlints& left, const LampGlints& right) noexcept {
+    for (std::size_t index = 0U; index < left.size(); ++index) {
+        const bool same = left[index].x == right[index].x && left[index].y == right[index].y &&
+                          left[index].strength == right[index].strength;
+        if (!same) return false;
+    }
+    return true;
+}
+
+LampGlints lamp_sparkle_glints(std::uint32_t seed, double seconds) noexcept {
+    LampGlints glints{};
+    // As old a sparkle as a fault (lamp_fault_flicker) stays steady.
+    if (!std::isfinite(seconds) || !(seconds > 0.0) || !(seconds < 1.0e15)) return glints;
+    for (std::uint32_t stream = 0U; stream < static_cast<std::uint32_t>(lamp_sparkle_streams); ++stream) {
+        // Each later stream's slots begin a share of a slot later.
+        const double offset = lamp_sparkle_slot_seconds * static_cast<double>(stream) /
+                              static_cast<double>(lamp_sparkle_streams);
+        const double shifted = seconds - offset;
+        if (shifted < 0.0) continue;
+        const std::uint64_t slot = static_cast<std::uint64_t>(shifted / lamp_sparkle_slot_seconds);
+        const double slot_start = offset + static_cast<double>(slot) * lamp_sparkle_slot_seconds;
+        glints[stream] = sparkle_glint(seed, stream, slot, slot_start, seconds);
+    }
+    return glints;
 }
 
 bool lamp_settled(double seconds) noexcept {
@@ -642,11 +737,20 @@ LampColour lamp_colour_from_srgb(Color colour) noexcept {
 std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_ptr<const LightPlanes>& planes,
                                                               LampDrive drive, const LightComposite& settings,
                                                               DeviceExtent extent, DeviceScale scale) {
+    const std::shared_ptr<const PartRaster> result = composite(planes, planes, drive, settings, extent, scale);
+    return result;
+}
+
+std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_ptr<const LightPlanes>& planes,
+                                                              const std::shared_ptr<const LightPlanes>& down,
+                                                              LampDrive drive, const LightComposite& settings,
+                                                              DeviceExtent extent, DeviceScale scale) {
     if (!planes || extent.width == 0U || extent.height == 0U) {
         release();
         return nullptr;
     }
-    const bool kept = raster_ && planes_ == planes && same_drive(drive_, drive) &&
+    const std::shared_ptr<const LightPlanes>& pressed = down ? down : planes;
+    const bool kept = raster_ && planes_ == planes && down_ == pressed && same_drive(drive_, drive) &&
                       same_settings(settings_, settings) && (*raster_).extent() == extent &&
                       (*raster_).scale() == scale;
     if (kept) return raster_;
@@ -659,9 +763,10 @@ std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_
     std::array<LampDrive, maximum_light_plane_lamps> drives{};
     drives.fill(drive);
     const LightPlaneRect rect{0, 0, static_cast<std::int64_t>(extent.width), static_cast<std::int64_t>(extent.height)};
-    static_cast<void>(composite_light_planes(*planes, *planes, drives, settings, rect, (*made).view()));
+    static_cast<void>(composite_light_planes(*planes, *pressed, drives, settings, rect, (*made).view()));
     (*made).record_opacity();
     planes_ = planes;
+    down_ = pressed;
     raster_ = made;
     drive_ = drive;
     settings_ = settings;
@@ -671,6 +776,7 @@ std::shared_ptr<const PartRaster> LightPlaneRaster::composite(const std::shared_
 
 void LightPlaneRaster::release() noexcept {
     planes_.reset();
+    down_.reset();
     raster_.reset();
 }
 
@@ -687,11 +793,15 @@ LightPlaneCache::LightPlaneCache(std::filesystem::path directory) : directory_(s
 
 namespace {
 
-// The whole file at `path`, or nothing when it cannot be opened.
+// The whole file at `path`, or nothing when it cannot be read (STXlib's
+// read_file, unbounded as the stream read was).
 bool read_file(const std::filesystem::path& path, std::vector<char>& text) {
-    std::ifstream file(path, std::ios::binary);
-    if (!file) return false;
-    text.assign(std::istreambuf_iterator<char>(file), std::istreambuf_iterator<char>());
+    const stxlib::OperationResult<stxlib::Buffer<stxlib::Byte>> read =
+        platform::read_whole_file(path, std::numeric_limits<std::size_t>::max());
+    if (read.failed()) return false;
+    const stxlib::View<stxlib::Byte> bytes = (*read.value()).view();
+    const char* const first = reinterpret_cast<const char*>(bytes.data());
+    text.assign(first, first + bytes.count());
     return true;
 }
 
@@ -705,7 +815,7 @@ std::shared_ptr<const LightPlanes> LightPlaneCache::lend(std::string_view name) 
     CachedBake bake{};
     bake.name = std::string(name);
     reads_ = reads_ + 1U;
-    std::shared_ptr<LightPlanes> planes = std::make_shared<LightPlanes>();
+    std::shared_ptr<LightPlanes> planes = gui_forms::detail::make_library_shared<LightPlanes>();
     std::vector<char> text{};
     // The directory's float planes, then its store, then the shipped store.
     if (!directory_.empty() && read_file(directory_ / (bake.name + ".f32"), text)) {

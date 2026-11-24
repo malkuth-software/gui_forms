@@ -348,6 +348,31 @@ addToLibrary({
     postResize() {
       const box = GFWeb.canvas.getBoundingClientRect();
       _gf_web_post_resize(Math.max(1, box.width), Math.max(1, box.height), window.devicePixelRatio || 1);
+      GFWeb.postSafeInsets();
+    },
+
+    // The visible-area guarantee (stage VA): the part of the canvas the
+    // browser does not show, as safe insets. The visual viewport is the
+    // part of the page on screen (after pinch zoom, an on-screen keyboard
+    // or a toolbar over the page); a canvas placed partly outside it, or
+    // partly scrolled away, has those edges hidden. Both boxes are in CSS
+    // pixels of the layout viewport.
+    postSafeInsets() {
+      const box = GFWeb.canvas.getBoundingClientRect();
+      const view = window.visualViewport;
+      const viewLeft = view ? view.offsetLeft : 0;
+      const viewTop = view ? view.offsetTop : 0;
+      const viewWidth = view ? view.width : window.innerWidth;
+      const viewHeight = view ? view.height : window.innerHeight;
+      const clamp = (value, limit) => Math.min(Math.max(0, value), limit);
+      const left = clamp(viewLeft - box.left, box.width);
+      const top = clamp(viewTop - box.top, box.height);
+      const right = clamp(box.right - (viewLeft + viewWidth), box.width);
+      const bottom = clamp(box.bottom - (viewTop + viewHeight), box.height);
+      const key = left + ',' + top + ',' + right + ',' + bottom;
+      if (key === GFWeb.lastSafeInsets) return;
+      GFWeb.lastSafeInsets = key;
+      _gf_web_post_safe_insets(left, top, right, bottom);
     },
 
     watchScale() {
@@ -506,6 +531,13 @@ addToLibrary({
       } else {
         window.addEventListener('resize', () => GFWeb.postResize());
       }
+      // What the browser shows of the canvas changes with the visual
+      // viewport (zoom, keyboard, toolbars) and with page scrolling.
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', () => GFWeb.postSafeInsets());
+        window.visualViewport.addEventListener('scroll', () => GFWeb.postSafeInsets());
+      }
+      window.addEventListener('scroll', () => GFWeb.postSafeInsets(), { passive: true });
       GFWeb.watchScale();
       document.addEventListener('visibilitychange', () => {
         _gf_web_post_visibility(document.hidden ? 1 : 0);

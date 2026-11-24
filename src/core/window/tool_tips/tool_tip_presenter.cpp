@@ -355,6 +355,8 @@ void ToolTipPresenter::prebake(const ToolTipSubject& subject) {
     pending.key.font = bake_lines_.font;
     pending.key.shadow = shadow;
     pending.key.scale = scale;
+    pending.key.theme = (*root).theme_ptr();
+    pending.key.text_scale = (*transient_bubble_).effective_text_scale();
     pending_bake_ = std::move(pending);
 }
 
@@ -814,6 +816,18 @@ std::string ToolTipPresenter::item_id() const {
     const Showing* showing = std::get_if<Showing>(&state_);
     if (showing == nullptr) return {};
     return (*showing).subject.item_id;
+}
+
+ShownSplash ToolTipPresenter::shown_splash() const {
+    ShownSplash shown{};
+    if (!transient_ || !(*transient_).connected() || !(*transient_).shown()) return shown;
+    const std::optional<Rect> desktop = (*transient_).desktop_frame();
+    if (!desktop.has_value()) return shown;
+    const std::optional<Rect> placed = client_placement(SurfaceApplicationAccess::application_window(window_), *desktop);
+    if (!placed.has_value()) return shown;
+    shown.model = (*transient_).model();
+    shown.bounds = *placed;
+    return shown;
 }
 
 std::string ToolTipPresenter::text() const {

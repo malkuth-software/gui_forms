@@ -6,6 +6,7 @@
 #include "../container_layout_utilities.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "command_overflow_panel_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -22,6 +23,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::command_overflow_panel;
 namespace {
 
 using namespace container_layout_detail;
@@ -558,7 +560,7 @@ std::span<const PropertyEntry> CommandOverflowPanel::property_table() const noex
 
 void CommandOverflowPanel::prepare_write(const decltype(group_gap)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument("CommandOverflowPanel gap must be finite and between zero and 256");
+    if (!ic::admits_group_gap(incoming)) throw std::invalid_argument("CommandOverflowPanel gap must be finite and between zero and 256");
 }
 
 void CommandOverflowPanel::written(const decltype(group_gap)&) {

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/component.hpp"
 #include "gui_forms/components/file_dialog_types/file_dialog_types.hpp"
@@ -8,6 +9,7 @@
 #include "gui_forms/host/services/host_services.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/components/open_file_dialog/open_file_dialog_capabilities/open_file_dialog_capabilities.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstddef>
 #include <memory>
@@ -37,10 +39,8 @@ public:
     ~OpenFileDialog() override;
 
     // The host filters parsed from filter.
-    [[nodiscard]] std::span<const HostFileDialogFilter> filters() const& noexcept {
-        return std::span<const HostFileDialogFilter>(filters_.data(), filters_.size());
-    }
-    std::span<const HostFileDialogFilter> filters() const&& = delete;
+    [[nodiscard]] BorrowedSpan<HostFileDialogFilter> filters() const& noexcept { return detail::lend_view(filters_); }
+    BorrowedSpan<HostFileDialogFilter> filters() const&& = delete;
 
     // Every chosen path, in the host's order.
     [[nodiscard]] std::span<const std::string> file_names() const& noexcept {
@@ -82,11 +82,11 @@ private:
 
     [[nodiscard]] HostOpenFileDialogRequest request() const;
 
-    std::vector<HostFileDialogFilter> filters_{};
+    detail::LendingVector<HostFileDialogFilter> filters_{};
     std::vector<std::string> file_names_{};
     HostServiceStatus status_{};
     bool showing_{};
-    std::shared_ptr<Presence> presence_{std::make_shared<Presence>()};
+    std::shared_ptr<Presence> presence_{gui_forms::detail::make_library_shared<Presence>()};
     Event<FileDialogOk&> file_ok_{};
     // property_codemod begin OpenFileDialog (tools/property_families/open_file_dialog.json; generated, do not edit)
 private:

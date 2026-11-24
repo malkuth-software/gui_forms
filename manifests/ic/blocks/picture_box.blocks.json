@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::PictureBox",
+  "declaration": "include/gui_forms/controls/picture_box.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.picturebox.image_opacity_write",
+      "mode": "legal",
+      "call": "image_opacity",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::PictureBox"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 0 and incoming <= 1"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 0 and incoming <= 1"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.picturebox.image_opacity_write.misuse.image_opacity",
+      "mode": "misuse",
+      "call": "image_opacity",
+      "violates": "finite(incoming) and incoming >= 0 and incoming <= 1",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

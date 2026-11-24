@@ -13,11 +13,11 @@
 #include <cstddef>
 #include <cstdint>
 #include <limits>
-#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -51,7 +51,7 @@ constexpr gf_binding_provider_flags known_flags = GF_BINDING_PROVIDER_SORTS | GF
 // may come from any thread, so the map is used under its mutex; a link
 // found is copied out and used after the lock is released.
 struct ProviderRegistry final {
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     std::unordered_map<std::uint64_t, BindingProviderLink> links;
 };
 
@@ -404,13 +404,13 @@ bool AbiBindingProvider::apply_filter(const BindingFilter& filter) {
 
 void AbiBindingProvider::attach(const BindingProviderLink& link) {
     ProviderRegistry& registry = provider_registry();
-    const std::lock_guard<std::mutex> lock(registry.mutex);
+    const stxlib::ScopedLock lock(registry.mutex);
     registry.links.insert_or_assign(id_, link);
 }
 
 void AbiBindingProvider::detach() noexcept {
     ProviderRegistry& registry = provider_registry();
-    const std::lock_guard<std::mutex> lock(registry.mutex);
+    const stxlib::ScopedLock lock(registry.mutex);
     static_cast<void>(registry.links.erase(id_));
 }
 
@@ -423,7 +423,7 @@ gf_status notify_binding_provider(std::uint64_t id, const BindingNotification& n
     BindingProviderLink link;
     {
         ProviderRegistry& registry = provider_registry();
-        const std::lock_guard<std::mutex> lock(registry.mutex);
+        const stxlib::ScopedLock lock(registry.mutex);
         const std::unordered_map<std::uint64_t, BindingProviderLink>::const_iterator found = registry.links.find(id);
         if (found == registry.links.end()) {
             return fail(GF_STATUS_REMOVED, slot, "no source holds the provider");

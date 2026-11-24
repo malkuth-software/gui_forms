@@ -39,14 +39,16 @@
         "registry": false
       },
       "prepare": [
-        "if (incoming != 0U && incoming >= steps_.size()) throw std::invalid_argument(\"StepIndicator current step is past the last step\");"
+        "if (!ic::admits_current_step(incoming, steps_.size())) throw std::invalid_argument(\"StepIndicator current step is past the last step\");"
       ],
       "sample": "std::uint32_t{1U}"
     }
   ],
   "test": {
     "type": "StepIndicator",
-    "configure": ["(*control).set_steps({\"First\", \"Second\"});"],
+    "configure": [
+      "(*control).set_steps({\"First\", \"Second\"});"
+    ],
     "include": "gui_forms/controls/step_indicator.hpp"
   }
 }

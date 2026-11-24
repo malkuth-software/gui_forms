@@ -26,7 +26,7 @@ GUI.Forms documentation
 `Releases <https://github.com/malkuth-software/gui_forms/releases>`_
 
 **What's new**:
-:doc:`Unreleased (towards 1.0) <release/unreleased>` |
+:doc:`Unreleased (1.0) <release/unreleased>` |
 :doc:`0.5, the ABI and API seal <release/0.5>` |
 :doc:`Roadmap <dev/roadmap>`
 

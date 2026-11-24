@@ -2,6 +2,7 @@
 #include "../panel_anatomy.hpp"
 #include "../../label/horizontal_alignment_property.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "form_layout_ic_checks.hpp"
 
 #include <algorithm>
 #include <cstdint>
@@ -12,6 +13,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::form_layout;
 
 namespace {
 
@@ -315,7 +317,7 @@ std::span<const PropertyEntry> FormLayout::property_table() const noexcept {
 
 void FormLayout::prepare_write(const decltype(caption_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 4096.0) {
+    if (!ic::admits_caption_width(incoming)) {
         throw std::invalid_argument("FormLayout caption width must be within [0, 4096]");
     }
 }
@@ -326,7 +328,7 @@ void FormLayout::written(const decltype(caption_width)&) {
 
 void FormLayout::prepare_write(const decltype(row_spacing)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) {
+    if (!ic::admits_row_spacing(incoming)) {
         throw std::invalid_argument("FormLayout row spacing must be within [0, 256]");
     }
 }
@@ -337,7 +339,7 @@ void FormLayout::written(const decltype(row_spacing)&) {
 
 void FormLayout::prepare_write(const decltype(column_spacing)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) {
+    if (!ic::admits_column_spacing(incoming)) {
         throw std::invalid_argument("FormLayout column spacing must be within [0, 256]");
     }
 }

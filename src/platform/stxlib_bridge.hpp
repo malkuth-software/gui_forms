@@ -9,8 +9,11 @@
 // All of it is header-only. A view converted either way borrows exactly
 // what its source borrows; nothing here extends a lifetime. Text from
 // STXlib is validated UTF-8 already and converts losslessly; text into
-// STXlib is validated (validated_text). Paths and durations join when A2's
-// G7 (after 1.0) needs them.
+// STXlib is validated (validated_text). Paths convert by the host's own
+// name (stxlib_path, standard_path: the shield, 2026-11-22, which moved
+// GUI.Forms' file operations onto stxlib/files.hpp while FilePath stays
+// std::filesystem::path in the public API); durations join when A2's G7
+// (after 1.0) needs them.
 //
 // The owned forms (D15 V0) convert by named copies, never implicitly:
 // - into STXlib (stxlib_text_copy, stxlib_vector_copy) the copy is STXlib's
@@ -25,6 +28,7 @@
 // absent.
 
 #include <stxlib/optional.hpp>
+#include <stxlib/path.hpp>
 #include <stxlib/result.hpp>
 #include <stxlib/text.hpp>
 #include <stxlib/text_view.hpp>
@@ -34,6 +38,7 @@
 
 #include <array>
 #include <cstddef>
+#include <filesystem>
 #include <optional>
 #include <span>
 #include <string>
@@ -184,6 +189,53 @@ template <typename Value>
     }
     const std::optional<Value> result(*held);
     return result;
+}
+
+// -- paths ---------------------------------------------------------------------
+
+// A standard path as STXlib's, through the host's own name, which both carry
+// losslessly (path.hpp): on POSIX hosts the native bytes
+// (Path::from_posix_name), on Windows the native UTF-16 units
+// (Path::from_windows_name). Fails as those do (a NUL, a reserved ':') or
+// with out_of_memory. An empty path converts to "." (Path's empty form), so
+// a caller that refuses an empty path checks it first. The Windows copy of
+// the units is the standard library's and throws std::bad_alloc.
+[[nodiscard]] inline stxlib::OperationResult<stxlib::Path> stxlib_path(const std::filesystem::path& path) {
+#if defined(_WIN32)
+    const std::u16string units = path.u16string();
+    stxlib::OperationResult<stxlib::Path> result = stxlib::Path::from_windows_name(
+        reinterpret_cast<const stxlib::u16*>(units.data()), static_cast<stxlib::usize>(units.size()));
+    return result;
+#else
+    const std::string& bytes = path.native();
+    stxlib::OperationResult<stxlib::Path> result =
+        stxlib::Path::from_posix_name(bytes.data(), static_cast<stxlib::usize>(bytes.size()));
+    return result;
+#endif
+}
+
+// An STXlib path as a standard one, through the host's name: empty when the
+// host cannot spell it (posix_name's not_representable) or STXlib's copy
+// cannot be allocated. The standard copy throws std::bad_alloc.
+[[nodiscard]] inline std::filesystem::path standard_path(const stxlib::Path& path) {
+#if defined(_WIN32)
+    const stxlib::OperationResult<stxlib::Buffer<stxlib::u16>> name = path.windows_name();
+    if (name.failed()) return std::filesystem::path{};
+    const stxlib::Buffer<stxlib::u16>& units = *name.value();
+    // The buffer ends in a NUL unit, which the path does not hold.
+    const std::u16string text(reinterpret_cast<const char16_t*>(units.view().data()),
+                              static_cast<std::size_t>(units.count()) - 1U);
+    std::filesystem::path result(text);
+    return result;
+#else
+    const stxlib::OperationResult<stxlib::Buffer<char>> name = path.posix_name();
+    if (name.failed()) return std::filesystem::path{};
+    const stxlib::Buffer<char>& bytes = *name.value();
+    // The buffer ends in a NUL, which the path does not hold.
+    const std::string text(bytes.view().data(), static_cast<std::size_t>(bytes.count()) - 1U);
+    std::filesystem::path result(text);
+    return result;
+#endif
 }
 
 } // namespace gui_forms::platform

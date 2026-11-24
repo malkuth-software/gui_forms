@@ -737,8 +737,8 @@ MonthCalendar::Zone MonthCalendar::zone_at(Point local, DateTimeValue& date) con
 
 void MonthCalendar::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     if (event.action == PointerAction::leave) {
         hot_zone_ = Zone::none;
         if (!dragging_) hot_date_.reset();
@@ -807,6 +807,9 @@ void MonthCalendar::end_broken_press() {
 // drag has already ended; any other loss ends it here (A-gf-controls-08-F4).
 void MonthCalendar::on_mouse_capture_changed() {
     Control::on_mouse_capture_changed();
+    // The raiser ran the application's handlers, which may have disposed
+    // the calendar: nothing is changed then (end_broken_press invalidates).
+    if (!is_alive()) return;
     if (dragging_ || pressed_zone_ != Zone::none) end_broken_press();
 }
 
@@ -917,7 +920,7 @@ SemanticDescriptor MonthCalendar::semantic_descriptor() const {
 
 std::vector<SemanticNode> MonthCalendar::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Parts control = control_parts();
     const std::string prefix(stable_id().value());
     const std::array<int, 2> directions{-1, 1};
@@ -928,7 +931,7 @@ std::vector<SemanticNode> MonthCalendar::semantic_virtual_children() const {
         node.role = SemanticRole::button;
         node.name = direction < 0 ? "Previous month" : "Next month";
         const Rect bounds = direction < 0 ? control.previous_arrow.bounds : control.next_arrow.bounds;
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (can_scroll(direction) && effectively_enabled()) {
             node.states |= SemanticState::enabled;
@@ -949,7 +952,7 @@ std::vector<SemanticNode> MonthCalendar::semantic_virtual_children() const {
             node.role = SemanticRole::date_cell;
             node.name = date_time_detail::format_date_time(date, effective_format_provider().long_date_pattern, effective_format_provider());
             node.value = iso_date(date);
-            node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+            node.bounds = frame_to_outer(local_frame, bounds);
             node.states = SemanticState::visible | SemanticState::focusable;
             if (!states.contains(AnatomyState::disabled) && effectively_enabled()) {
                 node.states |= SemanticState::enabled;

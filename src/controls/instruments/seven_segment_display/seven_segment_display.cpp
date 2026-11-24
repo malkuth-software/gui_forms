@@ -3,6 +3,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "seven_segment_display_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -13,6 +14,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::seven_segment_display;
 namespace {
 
 // The segment bits of segment_glyphs: bit 0 is a (top), clockwise to bit 5, f
@@ -462,7 +464,7 @@ void SevenSegmentDisplay::written(const decltype(text)&) {
 
 void SevenSegmentDisplay::prepare_write(const decltype(digit_count)&, std::uint32_t& incoming) {
     require_mutable();
-    if (incoming > 64U) throw std::invalid_argument("SevenSegmentDisplay digit count must be at most 64");
+    if (!ic::admits_digit_count(incoming)) throw std::invalid_argument("SevenSegmentDisplay digit count must be at most 64");
 }
 
 void SevenSegmentDisplay::written(const decltype(digit_count)&) {

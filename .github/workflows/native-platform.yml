@@ -332,6 +332,28 @@ jobs:
       - name: Restore content-checked objects without reusing test results
         if: steps.seed.outputs.seeded == 'true'
         run: python template_harness/harness/ci_promote.py restore-seed
+      # Windows builds x86_64-pc-windows-msvc on STXlib's own runtime
+      # (owner, 2026-11-24: no MinGW, Visual C++ tools or Windows SDK; cmake/
+      # llvm22-windows-msvc-own.cmake). The MSYS2 CLANG64 package above gives
+      # only the compiler binaries (clang, lld) and the shell; tools/
+      # own_runtime.py builds static libc++ 22.1.8 and STXlib's C and Windows
+      # runtime from the STXlib commit stx pins, and sets the toolchain's
+      # three locations in the environment. Cached per pin and recipe.
+      - uses: actions/cache/restore@v4
+        id: own-runtime
+        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && runner.os == 'Windows' && inputs.cold_build != true
+        with:
+          path: .ci/own-runtime
+          key: gui-own-runtime-v1-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/tools/own_runtime.py', 'gui_forms/cmake/llvm22-windows-msvc.cmake', 'gui_forms/cmake/llvm22-windows-msvc-own.cmake') }}
+      - name: Build STXlib's own runtime and libc++ for the Windows target
+        id: own-runtime-build
+        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && runner.os == 'Windows'
+        run: python gui_forms/tools/own_runtime.py build --out .ci/own-runtime --jobs 4 --github-env
+      - uses: actions/cache/save@v4
+        if: steps.own-runtime-build.outcome == 'success' && steps.own-runtime.outputs.cache-hit != 'true' && github.event_name != 'merge_group' && inputs.cold_build != true
+        with:
+          path: .ci/own-runtime
+          key: ${{ steps.own-runtime.outputs.cache-primary-key }}
       # The stx package (cmake/Stx.cmake, cmake/stx_package/): stx_skia, the
       # stx libraries and STXlib (no third-party sources since 2026-11-16),
       # built once per stx commit, recipe,
@@ -344,7 +366,7 @@ jobs:
         if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && inputs.cold_build != true
         with:
           path: .ci/stx-package
-          key: gui-stx-package-v1-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
+          key: gui-stx-package-v1-${{ inputs.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/cmake/llvm22-windows-msvc.cmake', 'gui_forms/cmake/llvm22-windows-msvc-own.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       # The library, its install and smoke check, and the test cache
       # malkuth-software/gui_forms_tests builds against (tools/ci_build.py
       # --test-cache; tools/test_cache.py). The tests run there, not here.
@@ -384,31 +406,6 @@ jobs:
       - name: Report the build's phases
         if: always() && steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true'
         run: python gui_forms/tools/ninja_phases.py .build/native-${{ inputs.platform }}/gui-forms --title "native-${{ inputs.platform }} build" --out "$GITHUB_STEP_SUMMARY" ${{ inputs.platform == 'windows-x64' && '--samples .ci/windows-resources.tsv' || '' }}
-      # SK2: the time each host spends presenting a frame
-      # (benchmarks/present_profile_workload.cpp), in the configuration the
-      # toolkit step built. Its values are evidence, never a gate; a workload
-      # that cannot run fails the job, because a broken measurement is a defect.
-      - name: Measure present time per frame
-        if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
-        run: |
-          build=.build/native-${{ inputs.platform }}/gui-forms
-          result=.ci/present-${{ inputs.platform }}.json
-          cmake --build "$build" --target gui_forms_present_profile_workload --parallel 4
-          mkdir -p .ci
-          if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" "$build/gui_forms_present_profile_workload" "$result"
-          else
-            "$build/gui_forms_present_profile_workload" "$result"
-          fi
-          cat "$result" >> "$GITHUB_STEP_SUMMARY"
-      - uses: actions/upload-artifact@v4
-        if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
-        with:
-          name: present-${{ inputs.platform }}
-          path: .ci/present-${{ inputs.platform }}.json
-          include-hidden-files: true
-          overwrite: true
-          retention-days: 90
       - name: Prove one compression and PNG implementation in the link map
         if: steps.promotion.outputs.reused != 'true' && (steps.reuse.outputs.reused != 'true')
         run: |
@@ -416,8 +413,18 @@ jobs:
           # the stx libraries, STXlib) among them: no C zlib, FreeType gzip or libpng
           # may remain (Z-stage I5, decision 3A).
           build=.build/native-${{ inputs.platform }}
-          archives=$(find "$build/gui-forms" .ci/stx-package -name '*.a' -not -path '*/_deps/*' -not -name '*.dll.a')
+          # Windows (x86_64-pc-windows-msvc) names its archives .lib.
+          archives=$(find "$build/gui-forms" .ci/stx-package \( -name '*.a' -o -name '*.lib' \) -not -path '*/_deps/*' -not -name '*.dll.a')
           python gui_forms/tools/audit_link_map.py --forbid-foreign $archives
+      # The no-MinGW switch's evidence (tools/own_runtime.py evidence): the
+      # compiler's #include search list is libc++, clang's resource headers,
+      # STXlib's C library and Windows API headers and nothing else; no link
+      # map (GUI_FORMS_LINK_MAP, on in CI) names a MinGW, Visual C++ or
+      # Windows SDK file; and every DLL the tree built, the C ABI DLL among
+      # them, imports Windows system DLLs and ucrtbase.dll only.
+      - name: Prove the Windows build read only the own runtime
+        if: steps.promotion.outputs.reused != 'true' && steps.reuse.outputs.reused != 'true' && runner.os == 'Windows'
+        run: python gui_forms/tools/own_runtime.py evidence --build .build/native-${{ inputs.platform }}/gui-forms --dlls .build/native-${{ inputs.platform }}/gui-forms
       # A pull request installs no SDK (above); the merge group audits it.
       - name: Audit installed macOS binary minimums
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true') && github.event_name != 'pull_request'

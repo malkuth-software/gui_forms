@@ -13,7 +13,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <thread>
 #include <vector>
 
 #include <stxlib/optional.hpp>

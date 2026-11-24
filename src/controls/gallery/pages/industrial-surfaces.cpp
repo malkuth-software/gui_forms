@@ -10,6 +10,7 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <cstddef>
@@ -193,7 +194,7 @@ void IndustrialSurfacesPage::on_theme_changed(bool on) {
 }
 
 void add_industrial_surfaces(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<IndustrialSurfacesPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<IndustrialSurfacesPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

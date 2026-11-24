@@ -1,0 +1,197 @@
+{
+  "family": "PieChart",
+  "step": "devexpress-takes",
+  "declaring": "PieChart",
+  "header": "include/gui_forms/controls/pie_chart.hpp",
+  "source": "src/controls/plots/pie_chart/pie_chart.cpp",
+  "capabilities_header": "include/gui_forms/controls/pie_chart_capabilities.hpp",
+  "base": "Control",
+  "shared": [
+    "FontCapability"
+  ],
+  "includes": [
+    "gui_forms/controls/pie_chart_values.hpp"
+  ],
+  "not_properties": [
+    {
+      "name": "slices",
+      "reason": "up to maximum_slices records edited in place (set_slice_value); a cell would copy them on every edit"
+    },
+    {
+      "name": "selected_id",
+      "reason": "a borrowed view of the selected slice; set_selected_id validates the ID and raises selection_changed"
+    }
+  ],
+  "test": {
+    "type": "PieChart",
+    "include": "gui_forms/controls/pie_chart.hpp"
+  },
+  "properties": [
+    {
+      "name": "doughnut_radius",
+      "capability": "PieChartDoughnutRadius",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "The hole's radius as a percentage of the pie's (Windows Forms' DoughnutRadius), from 0 (a pie) to maximum_doughnut_radius; outside throws std::invalid_argument.",
+      "getter": "doughnut_radius",
+      "setter": "set_doughnut_radius",
+      "clear": null,
+      "field": "doughnut_radius_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Appearance",
+        "description": "The hole's radius as a percentage of the pie's; 0 draws a pie.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "effects": null,
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > maximum_doughnut_radius) {",
+        "    throw std::invalid_argument(\"PieChart doughnut_radius must be from 0 to 90\");",
+        "}"
+      ],
+      "sample": "60.0"
+    },
+    {
+      "name": "start_angle",
+      "capability": "PieChartStartAngle",
+      "value": "double",
+      "initial": "0.0",
+      "comment": "Where the first slice starts, in degrees clockwise from the top (Windows Forms' PieStartAngle), from 0 to below 360; outside throws std::invalid_argument.",
+      "getter": "start_angle",
+      "setter": "set_start_angle",
+      "clear": null,
+      "field": "start_angle_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "number",
+        "category": "Appearance",
+        "description": "Where the first slice starts, in degrees clockwise from the top.",
+        "default": "BindingValue{0.0}",
+        "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "effects": null,
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming >= 360.0) {",
+        "    throw std::invalid_argument(\"PieChart start_angle must be from 0 to below 360\");",
+        "}"
+      ],
+      "sample": "90.0"
+    },
+    {
+      "name": "label_style",
+      "capability": "PieChartLabelStyle",
+      "value": "PieChartLabelStyle",
+      "initial": "PieChartLabelStyle::inside",
+      "comment": "Where each slice's share is written (Windows Forms' PieLabelStyle).",
+      "getter": "label_style",
+      "setter": "set_label_style",
+      "clear": null,
+      "field": "label_style_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "enumeration",
+        "category": "Appearance",
+        "description": "Where each slice's share is written.",
+        "default": "BindingValue{PropertyEnumValue{\"pie_chart_label_style\", \"inside\", 0}}",
+        "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": "pie_chart_label_style_enum()",
+        "reset": null,
+        "registry": false
+      },
+      "effects": null,
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (incoming != PieChartLabelStyle::inside && incoming != PieChartLabelStyle::outside &&",
+        "    incoming != PieChartLabelStyle::disabled) {",
+        "    throw std::invalid_argument(\"PieChart label_style is outside PieChartLabelStyle\");",
+        "}"
+      ],
+      "sample": "PieChartLabelStyle::outside"
+    },
+    {
+      "name": "legend_visible",
+      "capability": "PieChartLegendVisible",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether the legend beside the pie lists the slices with their colours.",
+      "getter": "legend_visible",
+      "setter": "set_legend_visible",
+      "clear": null,
+      "field": "legend_visible_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether the legend lists the slices.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "effects": null,
+      "hooks": "generated",
+      "hand": []
+    },
+    {
+      "name": "font",
+      "capability": "Font",
+      "value": "FontSpec",
+      "initial": "FontRole::content, 10.5, 400, false",
+      "comment": "The font of the slice labels and the legend.",
+      "getter": "font",
+      "setter": "set_font",
+      "clear": null,
+      "field": "font_",
+      "event": null,
+      "on_changed": true,
+      "localizable": null,
+      "table": null,
+      "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+      "hooks": "generated",
+      "hand": [],
+      "prepare": [
+        "if (!valid_font_spec(incoming)) throw std::invalid_argument(\"PieChart font specification is invalid\");",
+        "set_font_from_code(true);"
+      ],
+      "sample": "FontSpec{FontRole::content, 12.0, 700, false}"
+    }
+  ]
+}

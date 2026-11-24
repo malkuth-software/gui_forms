@@ -76,7 +76,8 @@ void finish_run(MacRunEnd& end);
     gui_forms::host::MacApplicationRun* _run;
     gui_forms::HostWindowId _windowId;
     // The reason the closed event reports: user for every native close,
-    // application when the run destroys the window, quit or session_end
+    // application when the run destroys the window or the program's close
+    // request closes it (requestCloseForApplication:), quit or session_end
     // when a quit request closes it (closeForTermination:reason:).
     HostCloseReason _closeReason;
     // The content area's top-left corner on the screen (AppKit screen
@@ -95,6 +96,11 @@ void finish_run(MacRunEnd& end);
            window:(gui_forms::HostWindowId)window;
 // Closes without asking the closing handler (HostWindowing::destroy_window).
 - (void)closeWindowForApplication:(NSWindow*)window;
+// The program's close request (ApplicationWindowHandle::request_close):
+// asks the closing handler with reason application and, when it agrees,
+// hides a hide-on-close window or closes the window, as the close box does
+// with reason user (windowShouldClose:).
+- (void)requestCloseForApplication:(NSWindow*)window;
 // Records where `window`'s content area is, so that its next move is
 // reported (called when the window is made, after setDelegate:).
 - (void)rememberFrameOriginOf:(NSWindow*)window;

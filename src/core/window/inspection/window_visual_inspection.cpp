@@ -212,9 +212,8 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
             visual, current.ancestor_clip);
         const Rect window_visible = Rect::intersection(visual, window_clip);
         const Rect viewport = (*control).child_viewport_rectangle();
-        const Rect absolute_viewport{absolute.x + viewport.x,
-                                     absolute.y + viewport.y,
-                                     viewport.width, viewport.height};
+        const ScaleFrame frame = local_frame_of(*control);
+        const Rect absolute_viewport = frame_to_outer(frame, viewport);
         const Rect child_clip = Rect::intersection(
             current.ancestor_clip, absolute_viewport);
 
@@ -247,6 +246,14 @@ VisualInspectionSnapshot SurfaceRoot::visual_inspection_snapshot(
             inspected.layout.fully_clipped = effective_clip.empty();
             inspected.layout.ancestor_clip_count = current.ancestor_clip_count;
             inspected.layout.transaction = (*control).layout_transaction_state();
+            inspected.layout.effective_scale = frame.scale;
+            inspected.layout.content_frame = (*control).content_frame_;
+            for (stxlib::usize record = 0U; record < overflow_records_.count(); ++record) {
+                if (overflow_records_[record].owner != (*control).runtime_id_) continue;
+                // Diagnostic: a record the snapshot cannot hold is left out.
+                const stxlib::OperationStatus kept = inspected.layout.overflows.push_copy(overflow_records_[record]);
+                static_cast<void>(kept);
+            }
 
             inspected.state.visible = (*control).visible.read();
             inspected.state.layout_collapsed =

@@ -23,7 +23,6 @@
 // (gui_forms/engine/effect_canvas/effect_canvas.hpp) and its parent's view.
 
 #include "gui_forms/export/application_export.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
 #include "gui_forms/types/geometry/geometry.hpp"
 #include "gui_forms/types/paint_types/paint_types.hpp"
 
@@ -232,12 +231,12 @@ GUI_FORMS_EFFECT_VOCABULARY(10, 0)
     return eased;
 }
 
-// The sine of x radians (engine_sine_cosine: the same bits on every host).
+// The sine of x radians: STXlib's sine (stxlib/math.hpp), the same bits on
+// every host, defined out of line (effect_canvas.cpp) so an effect's own
+// translation unit needs no STXlib header. NaN for |x| above 2^32 and for
+// infinities and NaN, as STXlib's sine.
 GUI_FORMS_EFFECT_VOCABULARY(40, 0)
-[[nodiscard]] inline double effect_sine(double x) noexcept {
-    const EngineSineCosine both = engine_sine_cosine(x);
-    return both.sine;
-}
+[[nodiscard]] GUI_FORMS_API double effect_sine(double x) noexcept;
 
 // A colour with its alpha scaled by `factor`, clamped to [0, 1].
 GUI_FORMS_EFFECT_VOCABULARY(6, 0)

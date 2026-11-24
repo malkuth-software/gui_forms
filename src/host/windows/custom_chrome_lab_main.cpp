@@ -17,7 +17,6 @@ int main(int argc, char** argv) {
     // standard native title bar; Win32 full-client caption composition remains
     // explicitly unavailable rather than replacing caption controls with paint.
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     return gui_forms::host::run_windows(
         gui_forms::custom_chrome_lab::make_custom_chrome_lab(),
         std::move(options));

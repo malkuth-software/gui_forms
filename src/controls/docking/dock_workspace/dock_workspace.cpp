@@ -6,6 +6,7 @@
 #include "gui_forms/text/types/text_types.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -153,7 +154,7 @@ void DockWorkspace::on_dispose() noexcept {
 // list cannot be copied (no memory) is unbound without being told.
 void DockWorkspace::release_sites() noexcept {
     layout_token_.disconnect();
-    revert_menu_merge();
+    revert_merges();
     Window* const presented = area_link_.bound_window();
     if (presented != nullptr) (*presented).unbind_document_area(area_link_);
     detach_windows();
@@ -897,7 +898,7 @@ bool DockWorkspace::attach_windows(ApplicationWindowHandle main_window, std::str
     if (!capabilities.supports(HostCapability::runtime_windows)) return false;
     main_window_ = std::move(main_window);
     main_window_id_ = std::move(main_stable_id);
-    liaison_ = std::make_shared<WindowLiaison>();
+    liaison_ = gui_forms::detail::make_library_shared<WindowLiaison>();
     (*liaison_).workspace = this;
     Window* const main = main_model();
     if (main == nullptr || layout_.state().floating_sites.empty()) return true;
@@ -1360,8 +1361,8 @@ stxlib::Optional<Point> DockWorkspace::desktop_origin(const DockSite& site) cons
     if (!handle.active()) return stxlib::Optional<Point>::none();
     const HostWindowFrameResult frame = handle.frame();
     if (!frame.status.accepted()) return stxlib::Optional<Point>::none();
-    const Rect absolute = site.absolute_bounds();
-    const Point origin{frame.frame.content.x + absolute.x, frame.frame.content.y + absolute.y};
+    const Point placed = site.point_to_window(Point{});
+    const Point origin{frame.frame.content.x + placed.x, frame.frame.content.y + placed.y};
     return stxlib::Optional<Point>::of(origin);
 }
 

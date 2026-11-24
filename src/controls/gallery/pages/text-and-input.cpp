@@ -1,5 +1,6 @@
 #include "pages.hpp"
 #include "gui_forms/controls/auto_complete.hpp"
+#include "gui_forms/controls/button_text_box.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/combo_box_values.hpp"
 #include "gui_forms/controls/command_bar.hpp"
@@ -11,6 +12,7 @@
 #include "gui_forms/controls/rich_text_box.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/token_box.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "text-and-input_form.hpp"
 
@@ -310,6 +312,7 @@ public:
         build_tokens();
         build_rich_text();
         build_search();
+        build_buttons();
         build_content_editor();
         refresh_state();
     }
@@ -457,6 +460,35 @@ private:
         (*content_status_).text = report;
     }
 
+    // The folder field has a browse button and a clear button at its
+    // trailing end; each click reports to the status line, and browse
+    // fills in a folder as a chooser would.
+    void build_buttons() {
+        ButtonTextBox& field = *document_.gallery_text_buttons_field;
+        EditButton browse;
+        browse.stable_id = "browse";
+        browse.kind = EditButtonKind::ellipsis;
+        browse.caption = "Browse";
+        browse.description = "Choose a folder";
+        EditButton clear;
+        clear.stable_id = "clear";
+        clear.kind = EditButtonKind::close;
+        clear.caption = "Clear";
+        field.set_buttons({browse, clear});
+        on(field.button_clicked(), *this, &TextAndInputPage::folder_button_clicked);
+    }
+
+    void folder_button_clicked(const EditButtonClick& click) {
+        ButtonTextBox& field = *document_.gallery_text_buttons_field;
+        if (click.button_id == "browse") {
+            field.text = "Documents/Harbour";
+            (*document_.gallery_text_buttons_status).text = "Browse clicked · the folder is Documents/Harbour";
+            return;
+        }
+        field.text = std::string{};
+        (*document_.gallery_text_buttons_status).text = "Clear clicked · the folder is empty";
+    }
+
     void search_requested(const std::string& query) {
         if (query.empty()) {
             (*document_.gallery_text_search_status).text = "Showing everything";
@@ -570,7 +602,7 @@ private:
 
 void add_text_input(const std::shared_ptr<Surface>& page,
                     const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<TextAndInputPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<TextAndInputPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

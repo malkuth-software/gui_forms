@@ -12,7 +12,6 @@
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <vector>
 
 #include <stxlib/optional.hpp>
@@ -156,6 +155,12 @@ struct GUI_FORMS_API HostPopupPlacement final {
 // top edge. The size never changes.
 [[nodiscard]] GUI_FORMS_API Rect clamp_to_work_area(Rect outer, Rect work_area) noexcept;
 
+// The visible-area guarantee for windows (stage VA, decision 7): `outer`
+// made no wider and no taller than `work_area`, then moved the least
+// distance that puts it inside (clamp_to_work_area). A rectangle that
+// already fits only moves.
+[[nodiscard]] GUI_FORMS_API Rect fit_to_work_area(Rect outer, Rect work_area) noexcept;
+
 // What an adapter tells the windowing seam about a window it is about to
 // create. `stable_id` is borrowed for the call.
 struct GUI_FORMS_API HostWindowDescription final {
@@ -229,6 +234,14 @@ struct GUI_FORMS_API HostWindowingSnapshot final {
     std::uint64_t policy_shows{};
     std::uint64_t follow_moves{};
     std::uint64_t clamped_follow_moves{};
+    // The visible-area guarantee (stage VA, decision 7): reported frames of
+    // primary, standard and tool windows larger than the work area of their
+    // monitor (and not covering its whole frame, as a full-screen window
+    // does) for which a smaller frame was requested, and those the window
+    // kept because the request was refused or did not take (a minimum size
+    // larger than the work area).
+    std::uint64_t size_clamped_frames{};
+    std::uint64_t unfit_frames{};
     bool application_active{true};
     bool started{};
     bool shutdown{};
@@ -490,6 +503,12 @@ private:
         // while the primary has moved since then is the platform carrying
         // it, not the user.
         stxlib::Optional<Point> followed_origin{};
+        // The client rectangle fit_frame_to_work_area last requested for an
+        // oversized frame; none once a reported frame fits.
+        stxlib::Optional<Rect> size_clamp_request{};
+        // window_created has run: the native window exists and is wired to
+        // its model, so a frame change reaches the model.
+        bool created{};
     };
 
     void apply_visibility(WindowRecord& entry);
@@ -500,6 +519,13 @@ private:
     static void remember_policy_target(WindowRecord& follower, Point origin) noexcept;
     // Takes a follower's offset from a move of its own (report_frame).
     void learn_offset(WindowRecord& follower);
+    // When the adapter has created the window (window_created) and after
+    // each frame reported since (report_frame): asks for a frame that fits the
+    // work area of the window's monitor when the reported one is larger
+    // (stage VA, decision 7). The request names the frame it asked for, so
+    // a report that keeps the oversized frame after that request counts
+    // the window as unfit and asks nothing more until its size changes.
+    void fit_frame_to_work_area(HostWindowId window);
     // The admission rules of admit(), without its thread, shutdown,
     // capability and count checks.
     [[nodiscard]] bool admission_valid(const HostWindowDescription& description) const noexcept;
@@ -522,6 +548,8 @@ private:
     // run_modal calls under way, at most maximum_modal_depth.
     std::size_t modal_depth_{};
     Event<const HostWindowFrameEvent&> frame_changed_;
+    // The monitor table fit_frame_to_work_area reads, its storage reused.
+    HostMonitorResult fit_monitors_{};
 };
 
 } // namespace gui_forms

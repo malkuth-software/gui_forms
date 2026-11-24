@@ -6,6 +6,7 @@
 #include "gui_forms/engine/effect_registry/effect_registry.hpp"
 #include "gui_forms/controls/list_box.hpp"
 #include "gui_forms/controls/scaled_group_box.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <optional>
 #include <stdexcept>
@@ -416,7 +417,7 @@ void ThemeSettingsPage::on_restore() {
 
 void add_theme_settings(const std::shared_ptr<Surface>& page,
                         const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<ThemeSettingsPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<ThemeSettingsPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

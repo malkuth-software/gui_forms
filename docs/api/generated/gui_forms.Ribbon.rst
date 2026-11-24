@@ -122,6 +122,9 @@ gui_forms::Ribbon
       **tab_sets** : ``std::span<const RibbonTabSetSpec>``, read-only
          The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
+      **merge_source** : ``std::shared_ptr<Ribbon>``, read-only
+         The ribbon whose tabs are merged here (:cpp:func:`merge <gui_forms::Ribbon::merge>`), or null.
+
       **ladder_step** : ``stxlib::Optional<std::size_t>``, read-only
          The selected tab's ladder entry the plane shows, or none while it is
          hidden or minimized.
@@ -178,6 +181,9 @@ gui_forms::Ribbon
 
       **menu_open** : ``bool``, read-only
          Whether the application menu (either form) or a command's menu is open.
+
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the ribbon's state agrees with itself (state hunt, 2026-11-23): its records have the shape of its tabs, its tab indices are in range, and each overlay it holds open is in the window. For tests and diagnostics.
 
       **overlay_group** : ``std::optional<std::string>``, read-only
          The ID of the group whose overlay is open, or none.
@@ -248,6 +254,10 @@ gui_forms::Ribbon
         - A set's :cpp:enum:`RibbonTabSetAvailability <gui_forms::RibbonTabSetAvailability>`.
       * - :cpp:func:`tab_set_accent <gui_forms::Ribbon::tab_set_accent>`
         - The :cpp:class:`AccentIndex <gui_forms::AccentIndex>` a shown set is tinted with, or none while it is hidden.
+      * - :cpp:func:`merge <gui_forms::Ribbon::merge>`
+        - Moves another ribbon's tabs into this one, as an MDI child's ribbon merges into the main window's: a core tab whose text matches one here (ASCII case-insensitive, mnemonic marks ignored) adds its groups after that tab's, other core tabs follow this ribbon's, and contextual sets follow with their availability.
+      * - :cpp:func:`revert_merge <gui_forms::Ribbon::revert_merge>`
+        - Restores this ribbon's own tabs and the source's tabs and availability.
       * - :cpp:func:`tab_shown <gui_forms::Ribbon::tab_shown>`
         - Whether a tab shows now, by its modes and its set's availability.
       * - :cpp:func:`group_layouts <gui_forms::Ribbon::group_layouts>`
@@ -567,6 +577,10 @@ gui_forms::Ribbon
 
       The contextual tab sets (:cpp:class:`RibbonTabSetSpec <gui_forms::RibbonTabSetSpec>`: ID and caption).
 
+   .. cpp:function:: std::shared_ptr<Ribbon> merge_source() const
+
+      The ribbon whose tabs are merged here (:cpp:func:`merge <gui_forms::Ribbon::merge>`), or null.
+
    .. cpp:function:: stxlib::Optional<std::size_t> ladder_step() const
 
       The selected tab's ladder entry the plane shows, or none while it is
@@ -647,6 +661,10 @@ gui_forms::Ribbon
    .. cpp:function:: bool menu_open() const noexcept
 
       Whether the application menu (either form) or a command's menu is open.
+
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the ribbon's state agrees with itself (state hunt, 2026-11-23): its records have the shape of its tabs, its tab indices are in range, and each overlay it holds open is in the window. For tests and diagnostics.
 
    .. cpp:function:: std::optional<std::string> overlay_group() const
 
@@ -733,6 +751,23 @@ gui_forms::Ribbon
 
       The :cpp:class:`AccentIndex <gui_forms::AccentIndex>` a shown set is tinted with, or none while it is hidden.
       Throws ``std::out_of_range`` for an unknown set.
+
+   .. cpp:function:: bool merge(Ribbon& source)
+
+      Moves another ribbon's tabs into this one, as an MDI child's ribbon
+      merges into the main window's: a core tab whose text matches one here
+      (ASCII case-insensitive, mnemonic marks ignored) adds its groups after
+      that tab's, other core tabs follow this ribbon's, and contextual sets
+      follow with their availability. The source has no tabs until
+      :cpp:func:`revert_merge <gui_forms::Ribbon::revert_merge>`. Returns false, changing nothing, when the source has no
+      tabs or holds a merge, or the merged tabs would be invalid; a second
+      merge reverts the first. While a merge is held :cpp:func:`set_tabs <gui_forms::Ribbon::set_tabs>` throws
+      ``std::logic_error``.
+
+   .. cpp:function:: bool revert_merge()
+
+      Restores this ribbon's own tabs and the source's tabs and availability.
+      Returns whether a merge was held.
 
    .. cpp:function:: bool tab_shown(std::size_t tab) const
 
@@ -943,7 +978,7 @@ gui_forms::Ribbon
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 46 supported, 0 deferred, 0 excluded, 5 unclassified; 51 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 50 supported, 0 deferred, 0 excluded, 5 unclassified; 55 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -954,6 +989,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``application_menu``
@@ -981,6 +1020,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
    * - property
      - GUI.Forms-only
      - ``menu_open``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``merge_source``
      - supported
    * - property
      - GUI.Forms-only
@@ -1108,6 +1151,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
      - supported
    * - method
      - GUI.Forms-only
+     - ``merge``
+     - supported
+   * - method
+     - GUI.Forms-only
      - ``numeric_up_down``
      - supported
    * - method
@@ -1117,6 +1164,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 46 s
    * - method
      - GUI.Forms-only
      - ``request_help``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``revert_merge``
      - supported
    * - method
      - GUI.Forms-only

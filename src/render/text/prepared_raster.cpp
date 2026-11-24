@@ -4,6 +4,7 @@
 
 #include <stxlib/glyph_face.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 #include <stxlib/types.hpp>
 #include <stxlib/view.hpp>
 
@@ -252,7 +253,7 @@ PreparedTextStatus rasterize_prepared_text(const PreparedTextLayout& layout, con
         charge_faces(*storage, faces);
         if (painted != PreparedTextStatus::success) return painted;
         detail::PreparedAuthorityState& authority = *(*storage).authority_state;
-        std::lock_guard<std::mutex> publication_lock(authority.mutex);
+        const stxlib::ScopedLock publication_lock(authority.mutex);
         if (!detail::prepared_authority_current_locked(*storage, expected)) return PreparedTextStatus::stale;
         detail::PreparedTextAccess::mask(output) = std::move(candidate);
         return PreparedTextStatus::success;

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/allocation/counted_allocator/counted_allocator.hpp"
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/window/update_scope/update_scope.hpp"
@@ -22,6 +23,7 @@
 #include "gui_forms/window/band/window_band.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/layout/diagnostics/layout_diagnostics.hpp"
+#include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
 #include "gui_forms/resources.hpp"
 #include "gui_forms/scheduler.hpp"
 #include "gui_forms/window/presentation/presentation_types.hpp"
@@ -44,7 +46,6 @@
 #include <span>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <unordered_map>
 #include <unordered_set>
 #include <utility>
@@ -52,6 +53,8 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/vector.hpp>
+#include <stxlib/view.hpp>
 
 namespace gui_forms {
 
@@ -503,7 +506,10 @@ private:
     std::weak_ptr<detail::WindowLifetime> lifetime_;
 };
 
-class GUI_FORMS_API SurfaceRoot {
+// LibraryAllocated (allocation/library_memory): every window, and every
+// class derived from it, takes its storage from GUI.Forms' allocator
+// whoever creates it, and its delete releases it there.
+class GUI_FORMS_API SurfaceRoot : public LibraryAllocated {
 public:
     SurfaceRoot(const SurfaceRoot&) = delete;
     SurfaceRoot& operator=(const SurfaceRoot&) = delete;
@@ -574,9 +580,10 @@ public:
     // window (attaching a repeated one is refused). Changes nothing.
     [[nodiscard]] ControlLookup control(std::string_view stable_id) const;
     [[nodiscard]] Size client_size() const noexcept { return client_size_; }
-    // The root slot (stage B, B.2a): the client rectangle less the window's
-    // outer band (Window::declare_band) and, inside it, the chrome insets,
-    // in client coordinates. The layout pass measures the root at its size
+    // The root slot (stage B, B.2a): the client rectangle less, on each
+    // edge, the larger of the window's outer band (Window::declare_band) and
+    // its safe inset (safe_insets, stage VA), and, inside that, the chrome
+    // insets, in client coordinates. The layout pass measures the root at its size
     // and arranges it there, and a resize marks what it reaches through it;
     // damage and clipping stay in the whole client area. The inset band is
     // the window's own (chrome hit-testing, frame drag): no control is
@@ -593,6 +600,26 @@ public:
     // area and marks the root to be arranged again, and measured again on
     // an axis whose slot extent changed. Root thread.
     void set_chrome_insets(Insets insets);
+    // The visible-area guarantee (stage VA). The edges of the client area
+    // the host or the device hides (SafeInsets), zero until the host reports
+    // any. The root slot keeps clear of them; drawing and hit testing still
+    // cover the whole client area.
+    [[nodiscard]] SafeInsets safe_insets() const noexcept { return safe_insets_; }
+    // The host adapter's report of the safe insets (a headless or test host
+    // may report its own): std::invalid_argument, changing nothing, unless
+    // valid_safe_insets holds; otherwise damages the client area and marks
+    // the root to be arranged again, as set_chrome_insets does. Root thread.
+    void set_safe_insets(SafeInsets insets);
+    // The client rectangle less, on each edge, the larger of the outer band
+    // and the safe inset: the part of the client area content may count on
+    // being seen, in client coordinates. Empty on an axis they cover.
+    [[nodiscard]] Rect visible_client_rectangle() const noexcept;
+    // The frame the window places its root through (stage VA): the
+    // identity, or, while the root is larger than its slot and its
+    // viewport_fit answers contain or cover, that answer carried out (the
+    // root's arranged bounds into the slot). Control::window_frame and every
+    // walk compose it above the root.
+    [[nodiscard]] ScaleFrame root_frame() const noexcept { return root_frame_; }
     [[nodiscard]] double scale() const noexcept { return scale_; }
     // The settings in force: the window's own (presentation_base) with its
     // overrides applied.
@@ -1053,6 +1080,44 @@ public:
     void cancel_frame_requests();
     void set_occluded(bool occluded, FrameTime transition_time);
     [[nodiscard]] bool occluded() const noexcept { return occluded_; }
+    // The display timing this window's frames are paced to (DisplayTiming;
+    // design note frame-source): what its host last reported, or a test's
+    // fixed rate; DisplayTiming::assumed() until either.
+    [[nodiscard]] DisplayTiming display_timing() const noexcept { return display_timing_; }
+    // Called by the host on the window's thread whenever the display's
+    // timing is known or changes (a display link's tick, a move to another
+    // display), and by tests, benches and offscreen hosts with
+    // DisplayTiming::fixed_rate. Returns false, changing nothing, when the
+    // timing is not valid (DisplayTiming::valid). Otherwise it is stored
+    // (an assumed report as DisplayTiming::assumed() itself; a paced
+    // report whose period is within a thousandth of the held paced one
+    // keeps the held period, so a display link's per-tick measurement does
+    // not re-derive every interval), and each
+    // display-paced request (the motion clock's, the animation timers')
+    // takes the new refresh period and moves its deadline to the nearest
+    // point of the new grid, unless it lies within an eighth of a period of
+    // it: a report that restates the phase, with a display link's jitter,
+    // moves nothing. A moved deadline calls the schedule wake seam. Throws
+    // std::logic_error off the window's thread.
+    [[nodiscard]] bool set_display_timing(const DisplayTiming& timing);
+    // Whether this window wants frames at its display's rate now: a
+    // display-paced request is connected (motion moves, or an animation
+    // timer ticks) and the window is not occluded. A host keeps its display
+    // link running while this holds and may pause it once it does not; it is
+    // false whenever the window is at rest.
+    [[nodiscard]] bool wants_display_frames() const noexcept;
+    // Called by a host whose system reports no display timing, on the
+    // window's thread, with the time each presentation completed (a copy
+    // presenter's flush, a vertical-blank waiter's wake). The completions
+    // feed a DisplayTimingEstimator; once it reports, the measured timing is
+    // set (set_display_timing) while the window's timing is assumed, nominal
+    // or measured, so a display or fixed timing is never overridden. Returns
+    // whether a timing was set. Throws std::logic_error off the window's
+    // thread.
+    bool note_presentation_completed(FrameTime completed);
+    // Forgets the completions noted so far (the window moved to another
+    // display); the timing held stays until the next measured report.
+    void reset_presentation_estimate() noexcept;
     // Host adapters also install a paint wake seam. Retained invalidation may
     // originate from another Window's callback, so relying only on the host
     // currently dispatching input can strand valid dirty state indefinitely.
@@ -1489,6 +1554,21 @@ public:
     // result.
     bool dispatch_pointer(PointerEvent event);
     bool dispatch_key(KeyEvent event);
+    // A touchpad gesture (gesture_events.hpp gives the routing): to the
+    // captured control, else the control its gesture began over (the
+    // latch), else the control under `event.position`; then its ancestors,
+    // until one handles it. Returns whether one did. Nothing else is
+    // derived from an unhandled gesture. During a paint, as dispatch_pointer.
+    bool dispatch_gesture(GestureEvent event);
+    // Whether the window wants touchpad gestures: set here (an explicit
+    // opt-in), or by a control in its tree that asked with
+    // Control::set_gesture_input. A host whose gesture source changes other
+    // input engages it only while this holds (the Windows host's
+    // DirectManipulation, which also takes the two-finger pan); every other
+    // window keeps the platform's plain wheel path. Hosts whose gestures
+    // add events without changing others (macOS, X11) report them always.
+    void set_gesture_input(bool requested) noexcept;
+    [[nodiscard]] bool gesture_input_requested() const noexcept;
     // A context-menu request (owner's mouse-event rule): from the host's
     // HostContextRequestEvent, or a test. A pointer request goes to the
     // control under `position` (window coordinates; the captured control
@@ -1557,6 +1637,30 @@ public:
     [[nodiscard]] std::span<const LayoutDiagnostic> layout_diagnostics() const&& = delete;
     [[nodiscard]] std::uint64_t dropped_layout_diagnostics() const noexcept { return dropped_layout_diagnostics_; }
     void clear_layout_diagnostics() noexcept;
+    // The overflows this window knows of now (stage VA), one record per
+    // viewport owner and kind of overflow, in the order they appeared: at
+    // most maximum_overflow_records, later ones counted in
+    // dropped_overflow_records(). Each layout flush checks the owners it
+    // arranged and their parents, and the root against its slot: a record
+    // is added when an overflow appears (LayoutDiagnosticCode::
+    // content_overflow is recorded and MetricsSnapshot::overflow_* count
+    // it), replaced when its answer, cause or applied scale changes
+    // (recorded and counted again), updated silently when only its extents
+    // change, and removed when the content fits again, or its owner is
+    // hidden, collapsed or leaves the window. The view is valid until the
+    // next layout flush. UI thread.
+    [[nodiscard]] stxlib::View<OverflowRecord> overflow_records() const& noexcept {
+        const stxlib::View<OverflowRecord> records = overflow_records_.view();
+        return records;
+    }
+    [[nodiscard]] stxlib::View<OverflowRecord> overflow_records() const&& = delete;
+    [[nodiscard]] std::uint64_t dropped_overflow_records() const noexcept { return dropped_overflow_records_; }
+    // The records whose answer is not carried out. The guarantee's evidence:
+    // a window whose every overflow is answered reports zero.
+    [[nodiscard]] std::size_t unanswered_overflow_count() const noexcept;
+    // The control a record names, while it is attached to this window;
+    // empty otherwise.
+    [[nodiscard]] Control::Ptr overflow_owner(const OverflowRecord& record) const;
     // The control table (property-capabilities study, decision 6), for
     // inspection: each attached control's slot, the controls touched since
     // the last settle and the containers' resize registrations. Borrowed
@@ -1719,14 +1823,38 @@ private:
         Component& owner, FrameInterval interval, FrameTime first_deadline,
         std::function<void(FrameTime)> callback);
     // Called by the motion clock: its single frame request, first due at
-    // `first_deadline` and then every motion_frame_interval. Each frame
-    // calls the clock's advance; the clock disconnects the request when
-    // nothing moves. Throws std::length_error at the request limit.
+    // `first_deadline` and then every motion_frame_interval; with paced
+    // display timing, first due at the first refresh after one period before
+    // `first_deadline` and then every refresh. Each frame calls the clock's
+    // advance with the frame's presentation time; the clock disconnects the
+    // request when nothing moves. Throws std::length_error at the request
+    // limit.
     [[nodiscard]] FrameRequestToken request_motion_frames(FrameTime first_deadline);
     // Called by the motion clock while only ambient effects run (E7): its
-    // request's next frame is due at `deadline`, the earliest effect's,
-    // rather than one motion_frame_interval after the last.
+    // request's next frame is due at `deadline`, the earliest effect's
+    // (rounded up to the display's grid when the timing is paced), rather
+    // than one period after the last.
     void set_motion_frame_deadline(FrameTime deadline) noexcept;
+    // Called by AnimationTimer: a UI timer paced to the display. Its period
+    // is display_paced_interval(`requested`), its first tick the first point
+    // of that period's grid (phased to the display) after now, and its
+    // callback receives each frame's presentation time. Throws as
+    // schedule_ui_timer does.
+    [[nodiscard]] FrameRequestToken schedule_animation_frames(Component& owner, FrameInterval requested,
+                                                              std::function<void(FrameTime)> callback);
+    // The period a display-paced timer asking for `requested` ticks at: zero
+    // asks for every refresh; an interval of at least one refresh rounds to
+    // the nearest whole number of refreshes, so that animations of different
+    // speeds share frames; a shorter one is one refresh when the timing is
+    // paced and is kept, paced by its owner's paints, when it is assumed.
+    [[nodiscard]] FrameInterval display_paced_interval(FrameInterval requested) const noexcept;
+    // The motion clock's period: the refresh period when paced, else
+    // motion_frame_interval.
+    [[nodiscard]] FrameInterval motion_frame_period() const noexcept;
+    // The time a frame drawn at `now` is shown (next_presentation), never
+    // before the last one handed to a frame: `now` while the timing is
+    // assumed.
+    [[nodiscard]] FrameTime presentation_time_for(FrameTime now) const noexcept;
     // Posts `outcome` to `answer` through this root's dispatcher; a target
     // released by then receives nothing.
     void deliver_request_answer(const std::weak_ptr<SurfaceRequestAnswer>& answer,
@@ -1844,10 +1972,17 @@ private:
     // the preview handler for preview_handled, else null.
     void trace_press(const PointerEvent& event, const Control* target, const Control* handled_by,
                      PressOutcome outcome);
+    // Reports a routed event to the automation's route observer
+    // (src/core/host/session/session_directory.hpp), when one is installed.
+    void report_route(bool pointer, std::uint8_t action, std::uint32_t code, Point position,
+                      const Control* target, bool handled) const noexcept;
     // The latched control for a wheel event of an ongoing scroll gesture,
     // releasing the latch at the gesture's end (wheel_latch_); null to route
     // by hit test.
     [[nodiscard]] Control::Ptr wheel_latch_target(const PointerEvent& event);
+    // The target of a gesture event: the captured control, else the latch
+    // (a smart_magnify and a began event replace it), else the hit test.
+    [[nodiscard]] Control::Ptr gesture_target(const GestureEvent& event);
     // The route's target phase: the raiser of the event's action
     // (on_mouse_down, on_mouse_up, on_mouse_move or on_mouse_wheel) on
     // `target`, whose handled comes back into `event`; returns the
@@ -2337,7 +2472,7 @@ private:
     void append_drag_announcements(SemanticSnapshot& snapshot) const;
     using DeferredInput = std::variant<
         PointerEvent, KeyEvent, TextInputEvent, DragEvent,
-        DeferredSemanticInput, HostRelativeMotionEvent>;
+        DeferredSemanticInput, HostRelativeMotionEvent, GestureEvent>;
     [[nodiscard]] bool defer_input(DeferredInput input);
     void schedule_deferred_input_drain() noexcept;
     void drain_deferred_input();
@@ -2350,7 +2485,8 @@ private:
     // (effect_reach_above), accumulated down the walk in `parent_reach`,
     // the reach above and at `parent`.
     void add_subtree_damage(const Control::Ptr& control);
-    void add_descendant_damage(const Control& parent, Point parent_origin, Rect covered, double parent_reach);
+    void add_descendant_damage(const Control& parent, const ScaleFrame& parent_frame, Rect covered,
+                               double parent_reach);
     void ensure_layout(bool read_barrier);
     // The bodies of the frame entries (shadow frames, ShadowFrameCall): each
     // entry opens its frame, calls its body and marks the frame returned.
@@ -2389,10 +2525,10 @@ private:
     [[nodiscard]] Control::Ptr drop_target_at(Point position);
     [[nodiscard]] DragDispatchResult route_drag(const Control::Ptr& target,
                                                 DragEvent event);
-    // `parent_origin` is the window position of `control`'s parent's
-    // origin (parent_origin_of), passed down the descent so that no level
+    // `parent_frame` is the frame `control`'s parent places its children
+    // through (parent_frame_of), passed down the descent so that no level
     // walks its ancestors (audit N83).
-    [[nodiscard]] Control::Ptr hit_test_recursive(const Control::Ptr& control, Point parent_origin,
+    [[nodiscard]] Control::Ptr hit_test_recursive(const Control::Ptr& control, const ScaleFrame& parent_frame,
                                                   Point window_position) const;
     // Paints the window's backplane into one painted rectangle of the
     // candidate, in a copy group when the window starts clear.
@@ -2419,7 +2555,7 @@ private:
     // leaves every device pixel of `damage` opaque (its opaque cover hint),
     // looking in `control`'s subtree as paint_recursive(control) paints it.
     // When there is one, appends the path to it, `control` first.
-    [[nodiscard]] bool find_paint_cover(const Control::Ptr& control, Point parent_origin, Rect damage,
+    [[nodiscard]] bool find_paint_cover(const Control::Ptr& control, const ScaleFrame& parent_frame, Rect damage,
                                         PaintPlane plane, std::vector<Control::Ptr>& path) const;
     // Paints `damage` in `plane` as paint_recursive(path.front()) would,
     // from path.back() on: what it paints before path.back() lies beneath
@@ -2440,7 +2576,7 @@ private:
     // `control`'s child viewport in window coordinates.
     [[nodiscard]] Rect absolute_child_viewport_of(const Control& control) const;
     void paint_recursive(const Control::Ptr& control,
-                         Point parent_origin,
+                         const ScaleFrame& parent_frame,
                          Painter& painter,
                          Rect window_damage,
                          PaintPlane plane,
@@ -2484,6 +2620,51 @@ private:
     // resolution to its parent is remembered and not recorded.
     void note_containing_block(const Control& child, const Control& ancestor);
     void record_layout_diagnostic(LayoutDiagnostic diagnostic);
+    // The visible-area guarantee's checks (stage VA; window_viewport.cpp).
+    // queue_viewport_check lists `owner` for this flush's check, once per
+    // flush (Control::viewport_check_pass_); an owner the list has no room
+    // for is not checked this flush. check_viewports runs after the
+    // layout passes: it checks each listed owner still attached here, the
+    // root against its slot when the root was arranged, then drops the
+    // records of owners that left. check_viewport_owner compares one
+    // owner's children and design size with its viewport and updates its
+    // records. None calls application code but the owners' const noexcept
+    // queries (child_viewport_rectangle, content_scrolls,
+    // applied_viewport_scale). A record that cannot be stored for want of
+    // memory is counted in dropped_overflow_records.
+    enum class OverflowScope : std::uint8_t {
+        // The owner's children against its child viewport.
+        children,
+        // The owner's design size against its child viewport.
+        design,
+        // The root control against the window's root slot.
+        root_slot,
+    };
+    void queue_viewport_check(Control& owner);
+    void check_viewports();
+    void check_viewport_owner(const Control::Ptr& owner);
+    void check_root_slot();
+    // Carry out a contain or cover (window_viewport.cpp): set `owner`'s
+    // content frame, or the root frame, to `frame` (the identity ends one).
+    // A change damages where the children were and settles paint, hit
+    // testing, semantics and accessibility on the subtree, so each control
+    // records again at its new scale, and lists the framed owners below for
+    // this flush's check again (requeue_framed_descendants), their floors
+    // being measured against the scale above them.
+    void set_content_frame(const Control::Ptr& owner, const ScaleFrame& frame);
+    void set_root_frame(const ScaleFrame& frame);
+    void requeue_framed_descendants(Control& owner);
+    // The rectangle the root is laid out in: the root slot, or, for a root
+    // with a design size whose answer is a contain or cover, that size at
+    // the slot's origin (stage VA): the root frame then scales it into the
+    // slot.
+    [[nodiscard]] Rect root_layout_rectangle() const;
+    // Adds, replaces or updates the record of (`owner`, `scope`) with
+    // `record` (overflowing), or removes it (`overflowing` false).
+    void update_overflow_record(const Control::Ptr& owner, OverflowScope scope, bool overflowing,
+                                const OverflowRecord& record);
+    void remove_overflow_record(std::size_t index) noexcept;
+    void prune_overflow_records() noexcept;
     // Whether `control` may not be arranged now: true while the layout pass
     // is arranging (arrange and on_layout) a control other than `control`,
     // after recording arrange_outside_slot and counting it in
@@ -2504,10 +2685,15 @@ private:
     // commit_layout_requests_recursive does over the whole tree; keeps the
     // others listed.
     void commit_layout_requests() noexcept;
-    // The window position of `control`'s parent's origin, which a descent
-    // from the root passes down to `control` (audit N83); the origin for a
-    // control without a parent.
-    [[nodiscard]] Point parent_origin_of(const Control& control) const;
+    // The frame `control`'s parent places its children through, into
+    // window coordinates, which a descent from the root passes down to
+    // `control` (audit N83): each ancestor's position and content frame
+    // (stage VA), and root_frame_ above the root. For an overlay root or a
+    // control without a parent, the identity.
+    [[nodiscard]] ScaleFrame parent_frame_of(const Control& control) const;
+    // `control`'s window frame (Control::window_frame): parent_frame_of and
+    // its position.
+    [[nodiscard]] ScaleFrame local_frame_of(const Control& control) const;
     [[nodiscard]] Dirty recompute_subtree_dirty(const Control::Ptr& control) noexcept;
     // Recomputes `first`'s subtree flags from its own flags and its
     // children's subtree flags, then each ancestor's, stopping at the first
@@ -2526,6 +2712,8 @@ private:
     // Keeps display_cache_entries_ as `control`'s chunk changes from
     // `had_chunk` to what it holds now.
     void note_display_chunk_change(const Control& control, bool had_chunk) noexcept;
+    // Keeps gesture_input_controls_ as `control`'s gesture_input_ changes.
+    void note_gesture_input_change(const Control& control) noexcept;
     void compact_frame_requests() noexcept;
     [[nodiscard]] Rect absolute_bounds_of(const Control& control) const;
     // Whether `control` and every ancestor have been arranged (non-empty
@@ -2570,6 +2758,12 @@ private:
     // Zero unless the window's chrome takes a band of the client area
     // (root_slot).
     Insets chrome_insets_{};
+    // The host's safe insets (set_safe_insets; stage VA); zero until reported.
+    SafeInsets safe_insets_{};
+    // The frame the window places its root through (stage VA): the
+    // identity, or the contain or cover of a root larger than its slot
+    // (check_root_slot). parent_frame_of composes it above the root.
+    ScaleFrame root_frame_{};
     // The window outer band (Window::declare_band; gui_forms/window/band/
     // window_band.hpp). Only a Window declares one, so a sub-surface's
     // stays undeclared and reserves nothing.
@@ -2793,6 +2987,13 @@ private:
     // WheelPhase): its later events, momentum included, go to it while it
     // is eligible. Observed; empty between gestures.
     Control::WeakPtr wheel_latch_;
+    // The control the current touchpad gesture began over (dispatch_gesture),
+    // as wheel_latch_ for scrolling. Observed; empty between gestures.
+    Control::WeakPtr gesture_latch_;
+    // The window's own gesture opt-in, and how many attached controls asked
+    // (gesture_input_requested).
+    bool gesture_input_{};
+    std::uint64_t gesture_input_controls_{};
     // The input state (detail::InteractionState), made by the first pointer
     // or key event; the clock it reads, borrowed (null for the steady
     // clock); and the wake for a pending hover.
@@ -2868,6 +3069,13 @@ private:
     // while the overlay is on, so the card shows the figures as of the last
     // paint. The line storage is the overlay's and is reused.
     void fill_overlay_counters();
+    // Writes the overflow outlines (stage VA, section 10) into the overlay
+    // from the overflow records, as fill_overlay_counters does the card:
+    // each unanswered overflow's owner in red, each clipped one in amber,
+    // at its child viewport (the root slot for the root's). The outline
+    // storage is reused (overflow_outline_scratch_).
+    void fill_overlay_overflows();
+    stxlib::Vector<OverflowOutline> overflow_outline_scratch_{};
     std::unique_ptr<InvalidationOverlay> invalidation_overlay_{};
     stxlib::Optional<bool> invalidation_overlay_setting_{};
     std::uint64_t invalidation_overlay_generation_{};
@@ -3073,6 +3281,20 @@ private:
     std::uint64_t containing_block_subtree_arranges_{};
     std::vector<LayoutDiagnostic> layout_diagnostics_{};
     std::uint64_t dropped_layout_diagnostics_{};
+    // The visible-area guarantee (stage VA). The owners queued for this
+    // flush's check (observing references, cleared after it, capacity
+    // kept); the flush's check sequence, advanced at each flush, which
+    // Control::viewport_check_pass_ compares with (zero is never a flush's);
+    // the records now and, at the same index, whose and which kind each is.
+    struct OverflowRecordKey final {
+        Control::WeakPtr owner{};
+        OverflowScope scope{OverflowScope::children};
+    };
+    stxlib::Vector<Control::WeakPtr> viewport_checks_{};
+    std::uint64_t viewport_check_sequence_{};
+    stxlib::Vector<OverflowRecord> overflow_records_{};
+    stxlib::Vector<OverflowRecordKey> overflow_record_keys_{};
+    std::uint64_t dropped_overflow_records_{};
     bool in_paint_{};
     // Holds in_paint_ for an offscreen capture's recording and replay
     // (capture_window, capture_control, snapshot_control), as paint holds
@@ -3144,6 +3366,14 @@ private:
     bool in_lifecycle_notification_{};
     bool second_layout_pass_requested_{};
     bool occluded_{};
+    // The display timing frames are paced to (set_display_timing), and the
+    // latest presentation time a poll handed to its frames, which the next
+    // never precedes.
+    DisplayTiming display_timing_{};
+    // Measures the timing from noted presentation completions
+    // (note_presentation_completed).
+    DisplayTimingEstimator presentation_estimator_{};
+    FrameTime last_presentation_time_{};
     std::function<void()> paint_wake_handler_;
     bool paint_wake_pending_{};
     std::function<void()> schedule_wake_handler_;

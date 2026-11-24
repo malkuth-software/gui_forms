@@ -48,6 +48,8 @@ struct GUI_FORMS_API TreeExpansionChange final {
 // A retained, flat-model tree. Only visible rows are painted and published as
 // semantic children; item identity and expansion state remain stable while
 // descendants are unrealized.
+// ic: gui_forms::TreeView: generated from include/gui_forms/controls/tree_view.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API TreeView final : public Panel, public TreeViewCapabilities<TreeView> {
 public:
     explicit TreeView(StableId stable_id);
@@ -215,8 +217,10 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void write_view(const decltype(selected_id)& cell, std::string incoming);
     [[nodiscard]] std::string read_view(const decltype(selected_id)& cell) const;
+    // ic: Requires finite(incoming) and incoming >= 14 and incoming <= 256, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(item_height)& cell, double& incoming);
     void written(const decltype(item_height)& cell);
+    // ic: Requires finite(incoming) and incoming >= 8 and incoming <= 96, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(indentation)& cell, double& incoming);
     void written(const decltype(indentation)& cell);
     void prepare_write(const decltype(show_expanders)& cell, bool& incoming);

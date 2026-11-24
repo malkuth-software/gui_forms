@@ -5,13 +5,12 @@
 // What is counted: the allocations GUI.Forms makes through its counted
 // paths, and nothing else. Each counted path names its subsystem
 // (AllocationSubsystem) and allocates through detail::CountedAllocator
-// (allocation/counted_allocator), which calls the global operator new and
-// operator delete with matched sizes and alignment and counts each call. The
-// library does not replace or hook the global operator new, so the
-// allocations of the program, of the standard library's own containers
-// elsewhere in GUI.Forms, of Skia, of STXlib's own allocator (apart from the
-// glyph faces below) and of the host toolkits are not counted. A figure here is never the process total: read
-// a process figure from the platform for that.
+// (allocation/counted_allocator), which takes its storage from the library
+// seam (allocation/library_memory) and counts each call. Nothing else is
+// counted: the program's own allocations, GUI.Forms' other allocations,
+// Skia's, the rest of STXlib's (apart from the glyph faces below) and the
+// host toolkits'. A figure here is never the process total: read a process
+// figure from the platform for that.
 //
 // The counted paths today:
 // - image_resources: the bytes an ImageRegistry holds for each image (a PNG
@@ -43,8 +42,8 @@
 //   difference and a fall as one release, and release what they hold when
 //   they go.
 //
-// Bytes are the bytes asked of operator new, without the allocator's own
-// overhead or rounding. A release is counted by the thread that releases,
+// Bytes are the bytes asked of the allocator, without its own overhead or
+// rounding. A release is counted by the thread that releases,
 // with the bytes the allocation asked for.
 //
 // Threads: every counter is kept twice, process-wide (relaxed atomics,
@@ -63,7 +62,6 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
-#include <thread>
 
 namespace gui_forms {
 

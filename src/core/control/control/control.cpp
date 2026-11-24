@@ -1,6 +1,6 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/surface_material/paint_group_effect/paint_group_effect.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/component/failures/component_failures.hpp"
 
@@ -25,6 +25,9 @@
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/theme/theme_overrides/theme_overrides.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "control_ic_checks.hpp"
+#include "../../failure/fail_fast.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -36,8 +39,10 @@
 #include <limits>
 #include <new>
 #include <stdexcept>
+#include <string_view>
 
 namespace gui_forms {
+namespace ic = detail::ic::control;
 
 namespace {
 
@@ -65,10 +70,10 @@ Dirty fold_subtree_regions(Control& control) noexcept {
 
 [[nodiscard]] Point rotate_owner_decoration_point(
     Point point, Rect box, double degrees) noexcept {
-    // The engine's deterministic sine and cosine, exact at quarter turns.
-    const EngineSineCosine turn = engine_sine_cosine_degrees(degrees);
-    const double cosine = turn.cosine;
-    const double sine = turn.sine;
+    // STXlib's deterministic sine and cosine, exact at quarter turns.
+    double sine = 0.0;
+    double cosine = 0.0;
+    stxlib::math::sincosd(degrees, sine, cosine);
     const Point center{box.x + box.width * 0.5, box.y + box.height * 0.5};
     const double x = point.x - center.x;
     const double y = point.y - center.y;
@@ -152,7 +157,7 @@ void draw_owner_decoration_edge(
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> dock_style_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "dock_style",
             {{"none", 0}, {"top", 1}, {"bottom", 2}, {"left", 3},
@@ -162,7 +167,7 @@ std::shared_ptr<const PropertyEnumDescriptor> dock_style_property_enum_impl() {
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> self_alignment_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "self_alignment",
             {{"automatic", 0}, {"start", 1}, {"center", 2}, {"end", 3},
@@ -172,7 +177,7 @@ std::shared_ptr<const PropertyEnumDescriptor> self_alignment_property_enum_impl(
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> anchor_styles_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "anchor_styles",
             {{"none", 0}, {"top", 1}, {"bottom", 2}, {"left", 4},
@@ -182,7 +187,7 @@ std::shared_ptr<const PropertyEnumDescriptor> anchor_styles_property_enum_impl()
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> auto_size_mode_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "auto_size_mode",
             {{"grow_and_shrink", 0}, {"grow_only", 1}},
@@ -191,7 +196,7 @@ std::shared_ptr<const PropertyEnumDescriptor> auto_size_mode_property_enum_impl(
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> layout_direction_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "layout_direction",
             {{"inherit", 0}, {"left_to_right", 1}, {"right_to_left", 2}},
@@ -201,12 +206,23 @@ std::shared_ptr<const PropertyEnumDescriptor> layout_direction_property_enum_imp
 
 // Windows Forms' RightToLeft choices at its own values (RightToLeft).
 std::shared_ptr<const PropertyEnumDescriptor> right_to_left_property_enum_impl() {
-    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const gui_forms::PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{
             "right_to_left",
             {{"no", 0}, {"yes", 1}, {"inherit", 2}},
             false});
     return value;
+}
+
+// A container of the control's retained state whose size no write can make
+// (its header corrupted): the defect report, naming what was read.
+[[noreturn]] void fail_impossible_retained_size(std::string_view what) noexcept {
+    std::array<char, 192> text{};
+    constexpr std::string_view lead = "retained container size is impossible (corrupted storage): ";
+    char* cursor = std::copy(lead.begin(), lead.end(), text.data());
+    const std::size_t room = static_cast<std::size_t>(text.data() + text.size() - cursor);
+    cursor = std::copy_n(what.begin(), std::min(room, what.size()), cursor);
+    detail::fail_fast("control.retained_size", std::string_view(text.data(), static_cast<std::size_t>(cursor - text.data())));
 }
 
 BindingValue current_enum_property_value_impl(
@@ -216,10 +232,7 @@ BindingValue current_enum_property_value_impl(
     descriptor.kind = BindingValueKind::enumeration;
     descriptor.enumeration = std::move(enumeration);
     const std::optional<BindingValue> normalized = convert_property_value(BindingValue{value}, descriptor);
-    if (!normalized) {
-        throw std::logic_error(
-            "GUI.Forms retained enum state is outside its property schema");
-    }
+    if (!normalized) detail::fail_retained_enumerator(descriptor);
     return *normalized;
 }
 
@@ -315,7 +328,7 @@ Rect mirror_horizontally(Rect bounds, Rect frame) noexcept {
 // underlying value plus one.
 std::shared_ptr<const PropertyEnumDescriptor> cursor_kind_property_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "cursor_kind",
             {{"inherit", 0}, {"arrow", 1}, {"text", 2}, {"hand", 3}, {"crosshair", 4},
              {"resize_horizontal", 5}, {"resize_vertical", 6}, {"wait", 7}, {"forbidden", 8},
@@ -494,7 +507,7 @@ void Control::set_back_color_property_value(const BindingValue& value) {
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> Control::active_border_motion_property_enum() {
-    static const std::shared_ptr<const PropertyEnumDescriptor> value = std::make_shared<const PropertyEnumDescriptor>(
+    static const std::shared_ptr<const PropertyEnumDescriptor> value = gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
         PropertyEnumDescriptor{"active_border_motion", {{"steady", 0}, {"flashing", 1}, {"cycling", 2}}, false});
     return value;
 }
@@ -859,6 +872,18 @@ PropertyDescriptor Control::registered_descriptor(RegisteredProperty property) {
         maximum_size.invalidation_effects = invalidation::bounds;
         maximum_size.bindable = false;
         return maximum_size;
+    }
+    case RegisteredProperty::design_size: {
+        PropertyDescriptor design_size;
+        design_size.name = "design_size";
+        design_size.kind = BindingValueKind::size;
+        design_size.category = "Layout";
+        design_size.description =
+            "The extent the control's content is designed at; zero is the content's own extent.";
+        design_size.default_value = BindingValue{Size{}};
+        design_size.invalidation_effects = invalidation::bounds;
+        design_size.bindable = false;
+        return design_size;
     }
     case RegisteredProperty::margin: {
         PropertyDescriptor margin;
@@ -1358,6 +1383,8 @@ const std::array<PropertyEntry, Control::control_property_count>& Control::contr
          &write_registered<RegisteredProperty::minimum_size>, nullptr, nullptr, nullptr, nullptr},
         {"maximum_size", &describe_registered<RegisteredProperty::maximum_size>, &read_registered<RegisteredProperty::maximum_size>,
          &write_registered<RegisteredProperty::maximum_size>, nullptr, nullptr, nullptr, nullptr},
+        {"design_size", &describe_registered<RegisteredProperty::design_size>, &read_registered<RegisteredProperty::design_size>,
+         &write_registered<RegisteredProperty::design_size>, nullptr, nullptr, nullptr, nullptr},
         {"margin", &describe_registered<RegisteredProperty::margin>, &read_registered<RegisteredProperty::margin>,
          &write_registered<RegisteredProperty::margin>, nullptr, nullptr, nullptr, nullptr},
         {"padding", &describe_registered<RegisteredProperty::padding>, &read_registered<RegisteredProperty::padding>,
@@ -2346,7 +2373,21 @@ bool descriptor_name_less(const PropertyDescriptor& left, const PropertyDescript
 
 std::vector<PropertyDescriptor> Control::property_descriptors() const {
     // The registry's descriptors, then the table's that no registration
-    // replaces, in registered-name order (the registry's own order).
+    // replaces, in registered-name order (the registry's own order). The
+    // registry and the descriptors are the library's own retained state:
+    // a length_error while copying them is a size no write can make (a
+    // corrupted container or string header), a defect, so it fails fast
+    // instead of the whole list throwing on every later call (bit-flip
+    // run 7, F2).
+    try {
+        std::vector<PropertyDescriptor> result = collect_property_descriptors();
+        return result;
+    } catch (const std::length_error&) {
+        fail_impossible_retained_size("the property registry");
+    }
+}
+
+std::vector<PropertyDescriptor> Control::collect_property_descriptors() const {
     const std::span<const PropertyEntry> table = property_table();
     std::vector<PropertyDescriptor> result;
     result.reserve(bindable_properties_.size() + table.size());
@@ -2446,8 +2487,16 @@ std::optional<BindingValue> Control::property_value(std::string_view name) const
     if (found == bindable_properties_.end()) {
         const PropertyEntry* const entry = gui_forms::find_property_entry(*this, canonical);
         if (entry == nullptr) return std::nullopt;
-        std::optional<BindingValue> table_value = read_property_entry(*this, *entry);
-        return table_value;
+        // A table entry reads the library's own retained state. Its read
+        // throws length_error only for a stored size no write can make (a
+        // container header with a flipped bit): a defect, which fails fast
+        // instead of throwing on every later read (bit-flip run 7, F2).
+        try {
+            std::optional<BindingValue> table_value = read_property_entry(*this, *entry);
+            return table_value;
+        } catch (const std::length_error&) {
+            fail_impossible_retained_size(canonical);
+        }
     }
     if (!(*found).second.descriptor.readable || !(*found).second.get) return std::nullopt;
     const PropertyRegistration::Getter getter = (*found).second.get;
@@ -3245,6 +3294,11 @@ void Control::written(const decltype(name)&) {
 
 void Control::prepare_write(const decltype(visible)&, bool&) {
     require_mutable();
+    // Every write, an equal one too, makes the inherited values be derived
+    // again: a write of the value the control holds then repairs a cached
+    // copy that disagrees with it (bit-flip run 7, F4), where the equal
+    // write itself stops at the compare.
+    advance_inherited_generation();
 }
 
 void Control::written(const decltype(visible)&) {
@@ -3268,6 +3322,11 @@ void Control::on_visible_changed() {
 
 void Control::prepare_write(const decltype(enabled)&, bool&) {
     require_mutable();
+    // Every write, an equal one too, makes the inherited values be derived
+    // again: a write of the value the control holds then repairs a cached
+    // copy that disagrees with it (bit-flip run 7, F4), where the equal
+    // write itself stops at the compare.
+    advance_inherited_generation();
 }
 
 void Control::written(const decltype(enabled)&) {
@@ -3387,10 +3446,7 @@ void Control::on_fore_color_changed() {}
 
 void Control::prepare_write(const decltype(minimum_size)&, Size& value) {
     require_mutable();
-    const Size maximum = maximum_size.read();
-    if (!std::isfinite(value.width) || !std::isfinite(value.height) || value.width < 0.0 || value.height < 0.0 ||
-        (maximum.width > 0.0 && value.width > maximum.width) ||
-        (maximum.height > 0.0 && value.height > maximum.height)) {
+    if (!ic::admits_minimum_size(value, maximum_size.read())) {
         throw std::invalid_argument("GUI.Forms minimum size is invalid");
     }
 }
@@ -3409,10 +3465,7 @@ void Control::written(const decltype(minimum_size)&) {
 
 void Control::prepare_write(const decltype(maximum_size)&, Size& value) {
     require_mutable();
-    const Size minimum = minimum_size.read();
-    if (!std::isfinite(value.width) || !std::isfinite(value.height) || value.width < 0.0 || value.height < 0.0 ||
-        (value.width > 0.0 && value.width < minimum.width) ||
-        (value.height > 0.0 && value.height < minimum.height)) {
+    if (!ic::admits_maximum_size(value, minimum_size.read())) {
         throw std::invalid_argument("GUI.Forms maximum size is invalid");
     }
 }
@@ -3427,6 +3480,33 @@ void Control::written(const decltype(maximum_size)&) {
     } else {
         invalidate(invalidation::bounds);
     }
+}
+
+void Control::prepare_write(const decltype(viewport_fit)&, ViewportFit& value) {
+    require_mutable();
+    if (!valid_viewport_fit(value)) {
+        throw std::invalid_argument("GUI.Forms viewport fit is invalid (valid_viewport_fit)");
+    }
+}
+
+// A new answer or new bounds change how the window answers an overflow of
+// this control's viewport: it is arranged again, and the pass checks it.
+void Control::written(const decltype(viewport_fit)&) {
+    invalidate(invalidation::bounds);
+}
+
+void Control::prepare_write(const decltype(design_size)&, Size& value) {
+    require_mutable();
+    const bool finite = std::isfinite(value.width) && std::isfinite(value.height);
+    const bool both_zero = value.width == 0.0 && value.height == 0.0;
+    const bool both_positive = value.width > 0.0 && value.height > 0.0;
+    if (!finite || !(both_zero || both_positive)) {
+        throw std::invalid_argument("GUI.Forms design size must be finite, and zero or positive on both sides");
+    }
+}
+
+void Control::written(const decltype(design_size)&) {
+    invalidate(invalidation::bounds);
 }
 
 void Control::prepare_write(const decltype(margin)&, Insets& value) {
@@ -3763,16 +3843,28 @@ Dirty Control::subtree_dirty() const {
 }
 
 Rect Control::absolute_bounds() const {
+    const ScaleFrame frame = window_frame();
+    const Rect local{0.0, 0.0, arranged_bounds_.width, arranged_bounds_.height};
+    const Rect result = frame_to_outer(frame, local);
+    return result;
+}
+
+ScaleFrame Control::window_frame() const {
     if (surface_root_) {
         detail::SurfaceTreeAccess::ensure_layout(*surface_root_, true);
-        return detail::SurfaceTreeAccess::absolute_bounds_of(*surface_root_, *this);
+        const ScaleFrame placed = detail::SurfaceTreeAccess::local_frame_of(*surface_root_, *this);
+        return placed;
     }
-    Rect result = arranged_bounds_;
+    // Detached: the positions and content frames up the chain, as the
+    // window composes them (SurfaceRoot::local_frame_of), with no root
+    // frame above.
+    ScaleFrame frame{Point{arranged_bounds_.x, arranged_bounds_.y}, 1.0};
     for (const Control* ancestor = parent_link_; ancestor != nullptr; ancestor = (*ancestor).parent_link_) {
-        result.x += (*ancestor).arranged_bounds_.x;
-        result.y += (*ancestor).arranged_bounds_.y;
+        const ScaleFrame placed{Point{(*ancestor).arranged_bounds_.x, (*ancestor).arranged_bounds_.y}, 1.0};
+        const ScaleFrame ancestor_frame = compose_frames(placed, (*ancestor).content_frame_);
+        frame = compose_frames(ancestor_frame, frame);
     }
-    return result;
+    return frame;
 }
 
 MouseEventArgs Control::mouse_event_arguments(const PointerEvent& event) const {
@@ -3780,9 +3872,8 @@ MouseEventArgs Control::mouse_event_arguments(const PointerEvent& event) const {
         const MouseEventArgs routed = (*surface_root_).mouse_event_arguments(*this, event);
         return routed;
     }
-    const Rect bounds = absolute_bounds();
-    const Point origin{bounds.x, bounds.y};
-    const MouseEventArgs detached = gui_forms::mouse_event_arguments(event, origin, event.click_count);
+    const ScaleFrame frame = window_frame();
+    const MouseEventArgs detached = gui_forms::mouse_event_arguments(event, frame, event.click_count);
     return detached;
 }
 
@@ -3791,31 +3882,32 @@ PointerLocation Control::pointer_location() const {
     // Detached, or in a window that has seen no pointer event: all zero.
     if (surface_root_ == nullptr || !detail::SurfaceTreeAccess::pointer_seen(*surface_root_)) return location;
     location = (*surface_root_).pointer_location();
-    const Rect bounds = absolute_bounds();
-    location.location = Point{location.window_position.x - bounds.x, location.window_position.y - bounds.y};
+    location.location = point_from_window(location.window_position);
     return location;
 }
 
 Point Control::point_to_window(Point local) const {
-    const Rect absolute = absolute_bounds();
-    return {absolute.x + local.x, absolute.y + local.y};
+    const ScaleFrame frame = window_frame();
+    const Point placed = frame_to_outer(frame, local);
+    return placed;
 }
 
 Point Control::point_from_window(Point window_point) const {
-    const Rect absolute = absolute_bounds();
-    return {window_point.x - absolute.x, window_point.y - absolute.y};
+    const ScaleFrame frame = window_frame();
+    const Point local = frame_to_inner(frame, window_point);
+    return local;
 }
 
 Rect Control::rectangle_to_window(Rect local) const {
-    const Point origin = point_to_window({local.x, local.y});
-    return {origin.x, origin.y, local.width, local.height};
+    const ScaleFrame frame = window_frame();
+    const Rect placed = frame_to_outer(frame, local);
+    return placed;
 }
 
 Rect Control::rectangle_from_window(Rect window_rectangle) const {
-    const Point origin = point_from_window(
-        {window_rectangle.x, window_rectangle.y});
-    return {origin.x, origin.y, window_rectangle.width,
-            window_rectangle.height};
+    const ScaleFrame frame = window_frame();
+    const Rect local = frame_to_inner(frame, window_rectangle);
+    return local;
 }
 
 bool Control::contains(const Control& candidate) const noexcept {
@@ -4128,7 +4220,12 @@ CursorKind Control::effective_cursor() const noexcept {
 
 const Control::InheritedValues& Control::inherited_values() const noexcept {
     const std::uint64_t now = current_inherited_generation();
-    if (inherited_.generation == now) return inherited_;
+    // The kept values are a copy, so they are used only while current and
+    // while they claim no more than the control's own facts allow: kept
+    // visible or enabled with the control's own fact false is a stale or
+    // corrupted copy, and the values are derived again (bit-flip run 7, F4).
+    const bool claims_allowed = (!inherited_.visible || visible.read()) && (!inherited_.enabled || enabled.read());
+    if (inherited_.generation == now && claims_allowed) return inherited_;
     InheritedValues computed{};
     computed.theme_override = theme_override_.get();
     computed.back_color = back_color.read();
@@ -4220,8 +4317,7 @@ bool Control::has_relative_pointer() const noexcept {
 bool Control::warp_pointer(Point position) {
     require_mutable();
     if (!has_relative_pointer()) return false;
-    const Rect bounds = absolute_bounds();
-    const Point in_window{position.x + bounds.x, position.y + bounds.y};
+    const Point in_window = point_to_window(position);
     const bool warped = (*surface_root_).warp_pointer(in_window);
     return warped;
 }
@@ -4625,6 +4721,29 @@ bool Control::measures_children_in_arrange() const noexcept { return false; }
 
 bool Control::sizes_unrequested_extents_from_content() const noexcept { return false; }
 
+bool Control::content_scrolls() const noexcept { return false; }
+
+bool Control::shows_media_content() const noexcept { return false; }
+
+bool Control::scales_design_space() const noexcept { return false; }
+
+stxlib::Optional<double> Control::applied_viewport_scale() const noexcept {
+    return stxlib::Optional<double>::none();
+}
+
+Rect Control::content_layout_rectangle() const noexcept {
+    const Rect viewport = child_viewport_rectangle();
+    const Size design = design_size.read();
+    const bool designed = design.width > 0.0 && design.height > 0.0;
+    const OverflowAnswer answer = viewport_fit.read().answer;
+    const bool scales = answer == OverflowAnswer::contain || answer == OverflowAnswer::cover;
+    if (!designed || !scales || content_scrolls() || scales_design_space() || applied_viewport_scale().present()) {
+        return viewport;
+    }
+    const Rect designed_viewport{viewport.x, viewport.y, design.width, design.height};
+    return designed_viewport;
+}
+
 LayoutDirection Control::effective_layout_direction() const noexcept {
     return resolved_direction_;
 }
@@ -4641,7 +4760,11 @@ void Control::arrange(Rect final_bounds) {
 
     const std::vector<Ptr> retained = snapshot_layout_children();
 
-    const Rect viewport = child_viewport_rectangle();
+    // The children are laid out in the child viewport, or, while this
+    // control contains or covers content of a design size, in that size at
+    // the viewport's origin: the window's content frame scales it into the
+    // viewport (stage VA).
+    const Rect viewport = content_layout_rectangle();
     const Rect client{
         viewport.x + padding.read().left,
         viewport.y + padding.read().top,
@@ -5125,6 +5248,16 @@ void Control::on_mouse_move(MouseEventArgs& arguments) {
 
 void Control::on_mouse_wheel(MouseEventArgs& arguments) {
     if (mouse_events_) (*mouse_events_).mouse_wheel.emit(arguments);
+}
+
+void Control::set_gesture_input(bool requested) noexcept {
+    if (gesture_input_ == requested) return;
+    gesture_input_ = requested;
+    if (surface_root_ != nullptr) detail::SurfaceTreeAccess::note_gesture_input_change(*surface_root_, *this);
+}
+
+void Control::on_gesture(GestureEventArgs& arguments) {
+    if (mouse_events_) (*mouse_events_).gesture.emit(arguments);
 }
 
 void Control::on_mouse_enter() {
@@ -5643,6 +5776,7 @@ void Control::disconnect_control_events() noexcept {
         mouse.double_click.disconnect_all();
         mouse.mouse_double_click.disconnect_all();
         mouse.context_menu_requested.disconnect_all();
+        mouse.gesture.disconnect_all();
     }
     if (key_events_) {
         KeyEvents& keys = *key_events_;
@@ -5660,7 +5794,7 @@ void Control::disconnect_control_events() noexcept {
 namespace {
 
 // The events Control adds to those of Component, in declaration order.
-constexpr std::array<InteractionDeclaration, 35> control_interactions{{
+constexpr std::array<InteractionDeclaration, 36> control_interactions{{
     {.name = "name_changed", .payload = "std::string", .mutable_payload = false},
     {.name = "visible_changed", .payload = "bool", .mutable_payload = false},
     {.name = "enabled_changed", .payload = "bool", .mutable_payload = false},
@@ -5696,6 +5830,7 @@ constexpr std::array<InteractionDeclaration, 35> control_interactions{{
     {.name = "key_up", .payload = "KeyEventArgs", .mutable_payload = true},
     {.name = "relative_pointer", .payload = "RelativePointerEventArgs", .mutable_payload = true},
     {.name = "relative_pointer_ended", .payload = "RelativePointerEnded", .mutable_payload = false},
+    {.name = "gesture", .payload = "GestureEventArgs", .mutable_payload = false},
 }};
 
 } // namespace

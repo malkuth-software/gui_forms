@@ -10,7 +10,7 @@
 #include <string>
 #include <string_view>
 
-// Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
+// Identical bytes on every host: no fused multiply-add.
 // Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
 // 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
 // "Floating-point contraction").

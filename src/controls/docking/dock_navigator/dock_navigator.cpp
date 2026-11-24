@@ -1,5 +1,6 @@
 #include "gui_forms/controls/dock_navigator.hpp"
 
+#include "../../panel/details_columns.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -7,13 +8,18 @@
 #include <stxlib/optional.hpp>
 #include <algorithm>
 #include <array>
+#include <cmath>
 #include <stdexcept>
+#include <string>
 #include <utility>
 
 namespace gui_forms {
 namespace {
 
-// Geometry in logical units at text scale 1.
+// Geometry in logical units at text scale 1. A column is 200 units at
+// least and widens to its heading and its widest title, within the space
+// the navigator is offered; a title still wider is shortened with an
+// ellipsis.
 constexpr double navigator_padding = 8.0;
 constexpr double column_width = 200.0;
 constexpr double column_gap = 8.0;
@@ -173,10 +179,25 @@ Rect DockNavigator::entry_label_bounds(Rect row) const {
     return label;
 }
 
-Size DockNavigator::measure(Size) {
+Size DockNavigator::measure(Size available) {
     const double scale = effective_text_scale();
     const std::size_t rows = std::max<std::size_t>(1U, std::max(tools_.size(), documents_.size()));
-    const double width = (navigator_padding * 2.0 + column_width * 2.0 + column_gap) * scale;
+    const FontSpec heading = heading_font();
+    const FontSpec row = row_font();
+    double column = column_width * scale;
+    const std::array<std::string_view, 2> headings{tool_heading_text, document_heading_text};
+    for (const std::string_view text : headings) {
+        column = std::max(column, measure_text_extent_utf8(text, heading).logical_size.width);
+    }
+    const std::array<DockNavigatorList, 2> lists{DockNavigatorList::tools, DockNavigatorList::documents};
+    for (const DockNavigatorList list : lists) {
+        for (const DockNavigatorEntry& entry : list_entries(list)) {
+            const double title = measure_text_extent_utf8(entry.title, row).logical_size.width;
+            column = std::max(column, title + label_inset * 2.0 * scale);
+        }
+    }
+    double width = (navigator_padding * 2.0 + column_gap) * scale + column * 2.0;
+    if (std::isfinite(available.width) && available.width > 0.0) width = std::min(width, available.width);
     const double height =
         (navigator_padding * 2.0 + heading_height + heading_gap) * scale + static_cast<double>(rows) * row_height * scale;
     const Size wanted{width, height};
@@ -198,8 +219,9 @@ AnatomyStateSet DockNavigator::row_states(DockNavigatorList list, std::size_t in
 
 // -- paint ---------------------------------------------------------------------
 
-// Paints from the entries and the current row: no allocation per row (a
-// row's label is its entry's title, borrowed for the call).
+// Paints from the entries and the current row: a row's label is its
+// entry's title, shortened with an ellipsis into one reused buffer when its
+// column is too narrow.
 void DockNavigator::on_paint(Painter& painter, Rect) {
     const Rect surface = client_rectangle();
     const Layout placed = layout_for(Size{surface.width, surface.height});
@@ -218,6 +240,8 @@ void DockNavigator::on_paint(Painter& painter, Rect) {
     paint_part(painter, *this, part);
     part.font = row_font();
     part.family = ControlVisualRole::menu_item;
+    // One buffer for the titles a narrow column shortens.
+    std::string title;
     const std::array<DockNavigatorList, 2> lists{DockNavigatorList::tools, DockNavigatorList::documents};
     for (const DockNavigatorList list : lists) {
         const std::vector<DockNavigatorEntry>& held = list_entries(list);
@@ -230,7 +254,8 @@ void DockNavigator::on_paint(Painter& painter, Rect) {
             paint_part(painter, *this, part);
             part.role = PartRole::label;
             part.bounds = entry_label_bounds(row);
-            part.text = lend_paint_text(held[index].title);
+            details_detail::elide_to_width(painter, held[index].title, part.font, part.bounds.width, title);
+            part.text = lend_paint_text(title);
             paint_part(painter, *this, part);
         }
     }

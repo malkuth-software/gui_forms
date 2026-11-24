@@ -18,6 +18,7 @@
 #include "gui_forms/components/error_provider/error_provider.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/dock_site.hpp"
@@ -30,6 +31,7 @@
 #include "gui_forms/feedback/semantic_feedback/semantic_feedback.hpp"
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <cstdint>
@@ -76,7 +78,7 @@ using WindowMaker = Component::Ptr (*)(Window& window);
 
 template <typename Type>
 Component::Ptr make_on_window(Window& window) {
-    Component::Ptr made = std::make_shared<Type>(window);
+    Component::Ptr made = gui_forms::detail::make_library_shared<Type>(window);
     return made;
 }
 
@@ -85,7 +87,7 @@ struct WindowRecipe final {
     WindowMaker make = nullptr;
 };
 
-constexpr std::array<WindowRecipe, 11> window_recipes{{
+constexpr std::array<WindowRecipe, 12> window_recipes{{
     {"background_worker", &make_on_window<BackgroundWorker>},
     {"binding_context", &make_on_window<BindingContext>},
     {"binding_source", &make_on_window<BindingSource>},
@@ -96,6 +98,7 @@ constexpr std::array<WindowRecipe, 11> window_recipes{{
     {"ribbon_tool_tip", &make_on_window<RibbonToolTip>},
     {"semantic_feedback", &make_on_window<SemanticFeedback>},
     {"timer", &make_on_window<Timer>},
+    {"toast_notification", &make_on_window<ToastNotification>},
     {"tool_tip", &make_on_window<ToolTip>},
 }};
 
@@ -181,7 +184,7 @@ gf_status make_extension(const CreateRequest& request, SlotIdentity slot, Compon
     if (owned != GF_STATUS_OK) {
         return owned;
     }
-    made = std::make_shared<Extension>(command);
+    made = gui_forms::detail::make_library_shared<Extension>(command);
     return GF_STATUS_OK;
 }
 

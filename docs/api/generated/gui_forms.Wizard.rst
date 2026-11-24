@@ -301,7 +301,7 @@ gui_forms::Wizard
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 13 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 13 supported, 0 deferred, 0 excluded, 12 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -331,7 +331,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 12 s
    * - property
      - GUI.Forms-only
      - ``cancel_button``
-     - unclassified (untested)
+     - supported
    * - property
      - GUI.Forms-only
      - ``cancel_text``

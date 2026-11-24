@@ -1,4 +1,5 @@
 #include "headless_application.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/application/application_state.hpp"
 
 #include <stxlib/optional.hpp>
@@ -459,7 +460,7 @@ HostServiceStatus HeadlessWindowing::hide_impl(HostWindowId window) {
 
 HeadlessApplication::HeadlessApplication(std::vector<ApplicationWindow> windows,
                                          HostCapabilities capabilities)
-    : run_(std::make_shared<detail::ApplicationRunState>()),
+    : run_(gui_forms::detail::make_library_shared<detail::ApplicationRunState>()),
       windowing_(*this, std::move(capabilities)) {
     const ApplicationResult validation = Application::validate(windows);
     if (!validation.accepted()) {
@@ -672,7 +673,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     }
     windowing_.report_frame(window.id, windowing_.native_frame(window.id));
 
-    window.state = std::make_shared<detail::ApplicationWindowState>();
+    window.state = gui_forms::detail::make_library_shared<detail::ApplicationWindowState>();
     detail::ApplicationWindowState& state = *window.state;
     state.stable_id = window.stable_id;
     state.run = run_;
@@ -742,16 +743,23 @@ void HeadlessApplication::simulate_user_frame(HostWindowId window, Rect content)
 }
 
 void HeadlessApplication::request_close(HostWindowId window) {
-    simulate_user_close(window);
+    close_requested(window, HostCloseReason::application);
 }
 
 void HeadlessApplication::simulate_user_close(HostWindowId window) {
+    close_requested(window, HostCloseReason::user);
+}
+
+// A close request, the user's (simulate_user_close) or the program's
+// (request_close), as the native hosts ask one: the closing handler hears
+// reason, and an allowed close reports it as the closed event's.
+void HeadlessApplication::close_requested(HostWindowId window, HostCloseReason reason) {
     WindowEntry* found = entry(window);
     if (found == nullptr) return;
     // A window under a modal one refuses the user's close, as a disabled
     // native window does.
     if (windowing_.input_blocked(window)) return;
-    HostCloseRequest request{HostCloseReason::user, false, (*found).options.hide_on_close};
+    HostCloseRequest request{reason, false, (*found).options.hide_on_close};
     if ((*found).options.closing) (*found).options.closing(request);
     found = entry(window);
     if (found == nullptr) return;
@@ -766,7 +774,7 @@ void HeadlessApplication::simulate_user_close(HostWindowId window) {
         return;
     }
     if (window != windowing_.primary()) {
-        close(*found, HostCloseReason::user);
+        close(*found, reason);
         return;
     }
     // Closing the primary window ends the run: every other window closes
@@ -776,7 +784,7 @@ void HeadlessApplication::simulate_user_close(HostWindowId window) {
         if (!other.closed && other.id != window) close(other, HostCloseReason::application);
     }
     WindowEntry* primary = entry(window);
-    if (primary != nullptr) close(*primary, HostCloseReason::user);
+    if (primary != nullptr) close(*primary, reason);
 }
 
 bool HeadlessApplication::simulate_session_end() {

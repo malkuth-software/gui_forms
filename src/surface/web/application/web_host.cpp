@@ -4,6 +4,7 @@
 #include "../../../host/web/fonts/sealed_pages_web.hpp"
 #include "../../../host/offscreen_font_lookup.hpp"
 #include "gui_forms/platform/web_host.hpp"
+#include "../../../platform/library_files.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -11,7 +12,6 @@
 #include <cstdlib>
 #include <filesystem>
 #include <string>
-#include <system_error>
 #include <variant>
 
 #if defined(__EMSCRIPTEN__)
@@ -49,8 +49,7 @@ std::filesystem::path web_fonts_directory() {
         override_path != nullptr && override_path[0] != '\0' ? std::filesystem::path(override_path)
                                                              : std::filesystem::path("/gui_forms/fonts");
 #endif
-    std::error_code error;
-    if (!std::filesystem::is_directory(directory, error)) directory.clear();
+    if (!platform::names_directory(directory)) directory.clear();
     return directory;
 }
 
@@ -148,9 +147,7 @@ HostServiceStatus WebSurfaceHost::start_dialog(const HostDialogRequest& request,
     if (const HostSaveFileDialogRequest* save = std::get_if<HostSaveFileDialogRequest>(&request.payload)) {
         const std::string name = web_save_name(*save);
         const std::filesystem::path directory = std::filesystem::path("/web/save") / std::to_string(ticket);
-        std::error_code error;
-        std::filesystem::create_directories(directory, error);
-        if (error) return {HostServiceError::backend_failure};
+        if (!platform::create_directories(directory)) return {HostServiceError::backend_failure};
         const std::string path = (directory / name).string();
         const std::string accept = web_accept_list((*save).filters);
         gf_web_js_save_file(number, path.c_str(), name.c_str(), accept.c_str());
@@ -189,7 +186,9 @@ HostCapabilities web_capabilities() {
                 HostCapability::runtime_windows | HostCapability::window_frames |
                 HostCapability::screen_pointer | HostCapability::window_at_point |
                 HostCapability::window_ordering | HostCapability::transparent_windows |
-                HostCapability::compositor_notifications | HostCapability::transient_surfaces,
+                HostCapability::compositor_notifications | HostCapability::transient_surfaces |
+                // The canvas outside the browser's visual viewport (stage VA).
+                HostCapability::safe_insets,
             pc_key_map()};
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
     // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).

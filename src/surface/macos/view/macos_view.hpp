@@ -84,6 +84,9 @@ NS_ASSUME_NONNULL_BEGIN
     // The full-screen state the session last accepted (notifyWindowState).
     BOOL _windowStateReported;
     BOOL _reportedFullScreen;
+    // The safe insets the session last accepted (notifySafeInsets; stage VA).
+    BOOL _safeInsetsReported;
+    gui_forms::SafeInsets _reportedSafeInsets;
     std::vector<LiveSurfacePresentation> _pendingLivePresentations;
     // Objective-C++ constructs these vectors empty with the view. Reuse storage
     // across ticks; immutable leases survive producer reconfiguration until
@@ -217,6 +220,12 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)notifyFrameMoved;
 - (void)notifyScaleChanged;
 - (void)notifyWindowState;
+// Reports the client area's safe insets (HostSafeInsetsEvent; stage VA):
+// in full screen on macOS 12 and later the screen's safe area (the notch
+// and rounded corners, in points), zero otherwise. Called after attach,
+// with each full-screen change, resize and display change; an unchanged
+// report is not sent again, and a refused one is tried again at the next.
+- (void)notifySafeInsets;
 - (void)notifyDisplaysChanged;
 - (void)screenParametersChanged:(NSNotification*)notification;
 // Stage T5: the accessibility display options changed (reduce
@@ -262,6 +271,8 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)armWakeTimer;
 - (void)startDisplayLinkIfNeeded;
 - (void)stopDisplayLink;
+- (void)restDisplayLink;
+- (void)reportDisplayTiming;
 - (void)setDisplayTraceEnabled:(BOOL)enabled;
 - (MacDisplayLinkTrace)displayTraceSnapshot;
 - (void)answerDisplayLinkTick;
@@ -363,6 +374,11 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)answerRightMouseDragged:(NSEvent*)event;
 - (void)answerOtherMouseDragged:(NSEvent*)event;
 - (void)answerScrollWheel:(NSEvent*)event;
+// The touchpad gestures (gesture_events.hpp): a pinch, a two-finger turn
+// and a two-finger double tap, each dispatched as a GestureEvent.
+- (void)answerMagnifyWithEvent:(NSEvent*)event;
+- (void)answerRotateWithEvent:(NSEvent*)event;
+- (void)answerSmartMagnifyWithEvent:(NSEvent*)event;
 - (void)answerKeyDown:(NSEvent*)event;
 - (void)answerKeyUp:(NSEvent*)event;
 - (void)answerFlagsChanged:(NSEvent*)event;

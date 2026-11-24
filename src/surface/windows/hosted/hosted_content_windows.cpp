@@ -60,7 +60,10 @@
 #endif
 
 #include "gui_forms/content/hosted/hosted_content.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
+#include <stxlib/stop_token.hpp>
+#include <stxlib/threads.hpp>
 #include <windows.h>
 
 #include <algorithm>
@@ -71,11 +74,9 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <mutex>
 #include <optional>
 #include <span>
 #include <stdexcept>
-#include <stop_token>
 #include <string>
 #include <string_view>
 #include <utility>
@@ -93,7 +94,7 @@ namespace detail {
 // carrying out (whole messages, in order), untouched while `writing`;
 // `backlog` holds the whole messages queued behind it.
 struct HostedInputState final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     HANDLE channel{};
     HANDLE write_event{};
     OVERLAPPED write_overlapped{};
@@ -293,13 +294,13 @@ bool enqueue_locked(detail::HostedInputState& state, std::span<const std::byte> 
 
 // Moves the writes along without waiting. False when the channel is broken.
 bool pump_writes(detail::HostedInputState& state) {
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const bool healthy = finish_write_locked(state);
     return healthy;
 }
 
 bool write_in_flight(detail::HostedInputState& state) {
-    const std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const bool writing = state.writing;
     return writing;
 }
@@ -808,15 +809,12 @@ void spawn_child(const LaunchPlan& plan, std::uint64_t slot_bytes, HANDLE channe
 }
 
 // Sets the stop event when the surface asks the program to stop, so the
-// worker's wait returns at once.
-class WakeOnStop final {
-public:
-    explicit WakeOnStop(HANDLE event) noexcept : event_(event) {}
-    void operator()() const noexcept { static_cast<void>(SetEvent(event_)); }
-
-private:
-    HANDLE event_{};
-};
+// worker's wait returns at once: a StopCallback's function, whose
+// `context` is the event's HANDLE.
+void wake_on_stop(void* const context) noexcept {
+    const HANDLE event = *static_cast<const HANDLE*>(context);
+    static_cast<void>(SetEvent(event));
+}
 
 // The running program, on the content worker's thread.
 class WindowsHostedProgram final : public ContentProgram {
@@ -864,7 +862,7 @@ struct ChildGuard final {
 };
 
 void WindowsHostedProgram::connect_input(HANDLE channel, HANDLE write_event) {
-    const std::scoped_lock lock((*input_).mutex);
+    const stxlib::ScopedLock lock((*input_).mutex);
     (*input_).channel = channel;
     (*input_).write_event = write_event;
     (*input_).writing = false;
@@ -873,7 +871,7 @@ void WindowsHostedProgram::connect_input(HANDLE channel, HANDLE write_event) {
 }
 
 void WindowsHostedProgram::disconnect_input() noexcept {
-    const std::scoped_lock lock((*input_).mutex);
+    const stxlib::ScopedLock lock((*input_).mutex);
     cancel_write_locked(*input_);
     (*input_).channel = nullptr;
     (*input_).write_event = nullptr;
@@ -887,7 +885,7 @@ bool WindowsHostedProgram::queue_control(HostedMessageKind kind, std::span<const
     append_hosted_message(outgoing_, kind, payload);
     bool stalled = false;
     {
-        const std::scoped_lock lock((*input_).mutex);
+        const stxlib::ScopedLock lock((*input_).mutex);
         const bool queued = enqueue_locked(*input_, outgoing_, false);
         stalled = !queued && (*input_).channel != nullptr &&
                   (*input_).backlog.size() > hosted_input_backlog_hard_limit;
@@ -1049,7 +1047,9 @@ void WindowsHostedProgram::run(ContentContext& context) {
     };
     const InputGuard input_guard{*this};
     ChannelReader reader(parent_end.get(), read_event.get());
-    const std::stop_callback<WakeOnStop> wake(context.stop_token(), WakeOnStop(stop_event.get()));
+    // Declared before the callback that borrows it.
+    HANDLE wake_event = stop_event.get();
+    const stxlib::StopCallback wake(context.stop_token(), &wake_on_stop, &wake_event);
 
     HostedMessageReader messages(true);
     HostedMessage message{};
@@ -1136,7 +1136,7 @@ bool HostedInput::send(HostedMessageKind kind, std::span<const std::byte> payloa
     append_hosted_message(message, kind, payload);
     bool queued = false;
     {
-        const std::scoped_lock lock((*state_).mutex);
+        const stxlib::ScopedLock lock((*state_).mutex);
         if ((*state_).connected.load(std::memory_order_acquire)) queued = enqueue_locked(*state_, message, droppable);
     }
     if (!queued) (*state_).dropped.fetch_add(1U, std::memory_order_relaxed);
@@ -1221,7 +1221,7 @@ HostedContent make_hosted_content(HostedContentOptions options) {
     options.start_timeout = std::min(options.start_timeout, hosted_maximum_timeout);
     options.stop_grace = std::min(options.stop_grace, hosted_maximum_timeout);
     LaunchPlan plan = plan_launch(options);
-    std::shared_ptr<detail::HostedInputState> state = std::make_shared<detail::HostedInputState>();
+    std::shared_ptr<detail::HostedInputState> state = gui_forms::detail::make_library_shared<detail::HostedInputState>();
     HostedContent made{};
     made.program = std::make_unique<WindowsHostedProgram>(std::move(options), std::move(plan), state);
     made.input = HostedInput(std::move(state));

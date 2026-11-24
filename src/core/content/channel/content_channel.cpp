@@ -1,8 +1,11 @@
 #include "content_channel.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <chrono>
 #include <cstring>
 #include <functional>
+#include <stxlib/stop_token.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -35,7 +38,7 @@ void post_content_notice(ContentChannel& channel) {
     WindowDispatcher dispatcher{};
     std::weak_ptr<ContentChannelListener> listener{};
     {
-        const std::scoped_lock lock(channel.semantics_mutex);
+        const stxlib::ScopedLock lock(channel.semantics_mutex);
         if (channel.notice_pending || channel.listener.expired()) return;
         channel.notice_pending = true;
         dispatcher = channel.notice_dispatcher;
@@ -51,7 +54,7 @@ void post_content_notice(ContentChannel& channel) {
 // or the stop under the lock and is about to wait cannot miss it.
 void wake_request_waiters(const ContentChannel& channel) noexcept {
     {
-        const std::scoped_lock lock(channel.request_mutex);
+        const stxlib::ScopedLock lock(channel.request_mutex);
     }
     channel.request_changed.notify_all();
 }
@@ -68,7 +71,11 @@ std::shared_ptr<ContentChannel> make_content_channel(ContentPixelSize size, bool
     description.opaque = opaque;
     std::shared_ptr<LiveSurface> surface = LiveSurface::create(description);
     if (!surface) return {};
-    std::shared_ptr<ContentChannel> channel = std::make_shared<ContentChannel>(std::move(surface));
+    // The stop state is STXlib's allocation: refused as the surface is.
+    stxlib::OperationResult<stxlib::StopSource> stop = stxlib::StopSource::create();
+    if (stop.failed()) return {};
+    std::shared_ptr<ContentChannel> channel = gui_forms::detail::make_library_shared<ContentChannel>(std::move(surface));
+    (*channel).stop = static_cast<stxlib::OperationResult<stxlib::StopSource>&&>(stop).take_value();
     // The first publication of any size reshapes the buffers: until then the
     // surface holds no frame, so its placeholder size is not a promise.
     (*channel).published_size = ContentPixelSize{};
@@ -81,7 +88,7 @@ namespace {
 // this publication is the channel's first, so the caller posts the notice
 // after the lock (no lock is held while another is taken).
 ContentPublishResult publish_validated(ContentChannel& channel, const ContentFrame& frame, bool& first_frame) {
-    const std::scoped_lock lock(channel.publish_mutex);
+    const stxlib::ScopedLock lock(channel.publish_mutex);
     LiveSurface& surface = *channel.surface;
     const ContentPixelSize size{frame.width, frame.height};
     const LiveSurfaceSnapshot before = surface.snapshot();
@@ -191,7 +198,7 @@ ContentSemanticsResult publish_content_semantics(ContentChannel& channel, Conten
         return validity;
     }
     {
-        const std::scoped_lock lock(channel.semantics_mutex);
+        const stxlib::ScopedLock lock(channel.semantics_mutex);
         channel.semantics = std::move(semantics);
         ++channel.semantics_generation;
     }
@@ -213,7 +220,7 @@ void request_content_stop(ContentChannel& channel) noexcept {
 bool set_content_request(ContentChannel& channel, ContentPixelSize size, double scale) noexcept {
     bool changed = false;
     {
-        const std::scoped_lock lock(channel.request_mutex);
+        const stxlib::ScopedLock lock(channel.request_mutex);
         if (!(channel.request.size == size) || channel.request.scale != scale) {
             channel.request.size = size;
             channel.request.scale = scale;
@@ -227,14 +234,14 @@ bool set_content_request(ContentChannel& channel, ContentPixelSize size, double 
 
 void set_content_listener(ContentChannel& channel, WindowDispatcher dispatcher,
                           std::weak_ptr<ContentChannelListener> listener) {
-    const std::scoped_lock lock(channel.semantics_mutex);
+    const stxlib::ScopedLock lock(channel.semantics_mutex);
     channel.notice_dispatcher = std::move(dispatcher);
     channel.listener = std::move(listener);
     channel.notice_pending = false;
 }
 
 bool take_content_semantics(ContentChannel& channel, std::uint64_t& seen_generation, ContentSemantics& semantics) {
-    const std::scoped_lock lock(channel.semantics_mutex);
+    const stxlib::ScopedLock lock(channel.semantics_mutex);
     channel.notice_pending = false;
     if (channel.semantics_generation == seen_generation) return false;
     seen_generation = channel.semantics_generation;

@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ProgressRing",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/progress_ring.ic.toml",
+    "sha256": "f8b0631bf1ad7ee580a3bb5af114b696c1cdbd126998f0093ebd796922c03321"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.progressring.value_write.requires.value",
+      "kind": "entry-check",
+      "statement": "value runs only when finite(incoming); otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::progress_ring::admits_value, called in src/controls/progress_ring/progress_ring.cpp"
+    },
+    {
+      "id": "gui_forms.progressring.value_write.refusal.value",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming), value changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.progressring.maximum_write.requires.maximum",
+      "kind": "entry-check",
+      "statement": "maximum runs only when finite(incoming) and incoming > 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::progress_ring::admits_maximum, called in src/controls/progress_ring/progress_ring.cpp"
+    },
+    {
+      "id": "gui_forms.progressring.maximum_write.refusal.maximum",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming > 0, maximum changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

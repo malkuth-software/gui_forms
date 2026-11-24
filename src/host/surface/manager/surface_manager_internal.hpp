@@ -34,10 +34,9 @@
 #include <deque>
 #include <filesystem>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <string>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::host::surface_detail {
@@ -87,7 +86,7 @@ struct Action final {
 struct ActionQueue final {
     explicit ActionQueue(SurfaceInputQueue& wakes) : input(&wakes) {}
     SurfaceInputQueue* input;
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     std::deque<Action> pending;
     void post(Action action);
 };
@@ -260,6 +259,11 @@ public:
     void apply_content(Rect content);
     // A new surface scale: the whole window re-rasters.
     void apply_scale(double next);
+    // Reports the part of the surface's safe insets this window's client
+    // area lies in (HostSafeInsetsEvent; stage VA): each edge's inset less
+    // the client area's distance from that surface edge, never negative and
+    // never more than the client extent. Sent when it changes.
+    void report_safe_insets();
     void set_visible(bool shown);
     void set_active(bool active);
     // The title strip's boxes follow the desk's state.
@@ -283,6 +287,9 @@ public:
     // The client area in surface logical units, and the surface's scale.
     Rect content{};
     double scale{1.0};
+    // The safe insets the session last accepted (report_safe_insets).
+    SafeInsets reported_safe_insets{};
+    bool safe_insets_reported{};
     bool closed{};
     bool visible{};
     bool active{};
@@ -323,6 +330,8 @@ public:
     // The live frames, as the X11 host keeps them (linux_host_internal.hpp).
     std::vector<LiveSurfacePresentation> live_updates;
     std::vector<LiveSurfaceFrame> live_frames;
+    // The sources this tick reported shown (report_live_shown).
+    std::vector<bool> live_reported;
     std::vector<std::size_t> live_frame_sources;
     std::vector<Rect> live_regions;
     std::vector<std::uint64_t> live_frame_pixels;
@@ -337,6 +346,7 @@ public:
 private:
     bool gather_live_frames();
     void compose_live_frames();
+    void report_live_shown(std::size_t source);
     bool report_presented(const stxlib::Optional<PaintReceipt>& receipt, std::uint64_t elapsed, PresentedArea copied);
     void paint(DamageRegion& screen, bool regions_taken);
 };
@@ -436,9 +446,11 @@ public:
     std::shared_ptr<ActionQueue> actions;
     std::unique_ptr<SurfaceWindowing> windowing;
     std::vector<std::shared_ptr<NativeWindow>> windows;
-    // The surface: its logical size and device scale.
+    // The surface: its logical size and device scale, and the edges the
+    // host hides (stage VA; zero until a host reports any).
     Size extent{1.0, 1.0};
     double scale{1.0};
+    SafeInsets safe_insets{};
     bool host_focused{true};
     bool host_hidden{};
     // The clipboard copy (Services::read_clipboard_text_impl).
@@ -478,6 +490,7 @@ private:
     void handle_key(const SurfaceInputRecord& record);
     void handle_text(const SurfaceInputRecord& record, bool composition);
     void handle_resize(const SurfaceInputRecord& record);
+    void handle_safe_insets(const SurfaceInputRecord& record);
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     void handle_drop(const SurfaceInputRecord& record);
@@ -564,7 +577,7 @@ HostDialogResult host_dialog(NativeWindow& owner, const HostDialogRequest& reque
 
 // The run's open operation (SurfaceOpenWindow), as RunOpen on Linux.
 struct RunOpenState final {
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     SurfaceWindowing* windowing{};
 };
 struct RunOpen final {

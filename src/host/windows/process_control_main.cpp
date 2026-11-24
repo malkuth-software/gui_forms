@@ -20,7 +20,6 @@ int main(int argc, char** argv) {
     options.initial_size = gui_forms::process_control::window_size;
     options.minimum_size = gui_forms::process_control::window_size;
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     std::unique_ptr<gui_forms::Window> window = gui_forms::process_control::make_process_control();
     if (!gui_forms::process_control::apply_process_control_staging(*program, *window)) return 2;
     if ((*program).headless) return gui_forms::process_control::run_headless_process_control(*program, *window);

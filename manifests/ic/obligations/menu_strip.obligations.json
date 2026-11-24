@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::MenuStrip",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/menu_strip.ic.toml",
+    "sha256": "041fa7bd002b201a421ca71d0599efc346f408724a9170bae64bc195771843a4"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.menustrip.item_padding_write.requires.item_padding",
+      "kind": "entry-check",
+      "statement": "item_padding runs only when finite(incoming) and incoming >= 4 and incoming <= 64; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::menu_strip::admits_item_padding, called in src/controls/menu/menu_strip/menu_strip.cpp"
+    },
+    {
+      "id": "gui_forms.menustrip.item_padding_write.refusal.item_padding",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 4 and incoming <= 64, item_padding changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

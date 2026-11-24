@@ -3,23 +3,31 @@
 #include "gui_forms/window.hpp"
 #include "../../failure/fail_fast.hpp"
 #include "../../surface_root/access/surface_host_access.hpp"
+#include "drag_items.hpp"
+#include "host_session_ic_checks.hpp"
+#include "session_directory.hpp"
 
 #include <algorithm>
 #include <cmath>
 #include <array>
 #include <sstream>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <unordered_set>
 
 namespace gui_forms {
 namespace {
+namespace ic = detail::ic::host_session;
+
+// The geometry rules are HostSession::dispatch's clauses (host_session.ic.toml).
 bool valid_size(Size size) noexcept {
-    return std::isfinite(size.width) && std::isfinite(size.height) &&
-           size.width > 0.0 && size.height > 0.0;
+    const bool valid = ic::admits_dispatch_size(size.width, size.height);
+    return valid;
 }
 
 bool valid_scale(double scale) noexcept {
-    return std::isfinite(scale) && scale > 0.0;
+    const bool valid = ic::admits_dispatch_scale(scale);
+    return valid;
 }
 
 bool valid_monitor_rectangle(Rect rectangle) noexcept {
@@ -99,23 +107,94 @@ bool valid_monitor_set(const std::vector<HostMonitor>& monitors) {
 }
 
 bool valid_drag_event(const DragEvent& event) noexcept {
-    constexpr std::uint8_t known_effects =
-        static_cast<std::uint8_t>(DragEffect::copy) |
-        static_cast<std::uint8_t>(DragEffect::move) |
-        static_cast<std::uint8_t>(DragEffect::link);
-    const std::uint8_t effects = static_cast<std::uint8_t>(event.allowed_effects);
     if (event.session_id == 0 || !std::isfinite(event.position.x) ||
-        !std::isfinite(event.position.y) || (effects & ~known_effects) != 0 ||
-        event.accepted_effect != DragEffect::none ||
-        event.items.size() > DragLimits::maximum_items) {
+        !std::isfinite(event.position.y) ||
+        !detail::known_drag_effects(event.allowed_effects) ||
+        event.accepted_effect != DragEffect::none) {
         return false;
     }
     if (event.action != DragAction::leave &&
         (event.items.empty() || event.allowed_effects == DragEffect::none)) {
         return false;
     }
+    const bool valid = detail::valid_drag_items(event.items);
+    return valid;
+}
+
+// What a host event is refused with in lifecycle `phase` (none when it is
+// admitted): before attach only an attach or shutdown, once attached no
+// second attach, after close authorization only the close, shutdown or a
+// passive deactivation or occlusion, once closed only shutdown, and nothing
+// after shutdown.
+// Whether a context-request or hover report names a finite position and a
+// known origin; every other payload passes.
+bool valid_pointer_report(const HostEventPayload& payload) noexcept {
+    if (const HostContextRequestEvent* request = std::get_if<HostContextRequestEvent>(&payload)) {
+        const bool origin = (*request).origin == ContextRequestOrigin::pointer ||
+                            (*request).origin == ContextRequestOrigin::keyboard;
+        return origin && std::isfinite((*request).position.x) && std::isfinite((*request).position.y);
+    }
+    if (const HostHoverEvent* hover = std::get_if<HostHoverEvent>(&payload)) {
+        return std::isfinite((*hover).position.x) && std::isfinite((*hover).position.y);
+    }
+    if (const GestureEvent* gesture = std::get_if<GestureEvent>(&payload)) {
+        return valid_gesture_event(*gesture);
+    }
+    if (const HostRelativeMotionEvent* motion = std::get_if<HostRelativeMotionEvent>(&payload)) {
+        const bool delta = std::isfinite((*motion).delta.x) && std::isfinite((*motion).delta.y);
+        const Point* const at = (*motion).position.value();
+        const bool position = at == nullptr || (std::isfinite((*at).x) && std::isfinite((*at).y));
+        return delta && position;
+    }
+    return true;
+}
+
+bool valid_input_settings(const HostInputSettingsEvent& input) noexcept {
+    const bool interval = input.double_click_milliseconds != 0U &&
+                          input.double_click_milliseconds <= maximum_double_click_milliseconds;
+    const bool origin = input.double_click_origin == SettingOrigin::default_value ||
+                        input.double_click_origin == SettingOrigin::host;
+    return interval && origin && valid_pointer_settings(input.pointer) && valid_caret_settings(input.caret);
+}
+
+// The lifecycle matrix is HostSession::dispatch's dispatch_lifecycle clause
+// (host_session.ic.toml); shutdown is the call's outside state.
+HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool shutdown,
+                                    bool closed, bool passive_terminal) noexcept {
+    switch (phase) {
+    case HostLifecyclePhase::constructed:
+    case HostLifecyclePhase::attached:
+    case HostLifecyclePhase::close_authorized:
+    case HostLifecyclePhase::closed:
+        if (!ic::admits_dispatch_lifecycle(attach, shutdown, closed, passive_terminal, phase)) {
+            return HostDispatchError::invalid_lifecycle;
+        }
+        return HostDispatchError::none;
+    case HostLifecyclePhase::shutdown:
+        return HostDispatchError::after_shutdown;
+    }
+    // A phase outside the enumeration admits nothing.
+    return HostDispatchError::invalid_lifecycle;
+}
+} // namespace
+
+namespace detail {
+
+bool known_drag_effects(DragEffect effects) noexcept {
+    constexpr std::uint8_t known =
+        static_cast<std::uint8_t>(DragEffect::copy) |
+        static_cast<std::uint8_t>(DragEffect::move) |
+        static_cast<std::uint8_t>(DragEffect::link);
+    const std::uint8_t bits = static_cast<std::uint8_t>(effects);
+    return (bits & ~known) == 0;
+}
+
+bool valid_drag_items(const std::vector<DragDataItem>& items) noexcept {
+    if (items.size() > DragLimits::maximum_items) {
+        return false;
+    }
     std::size_t total = 0;
-    for (const DragDataItem& item : event.items) {
+    for (const DragDataItem& item : items) {
         bool valid = false;
         if (const DragTextData* data = std::get_if<DragTextData>(&item)) {
             valid = (*data).text_utf8.size() <=
@@ -152,68 +231,17 @@ bool valid_drag_event(const DragEvent& event) noexcept {
     return true;
 }
 
-// What a host event is refused with in lifecycle `phase` (none when it is
-// admitted): before attach only an attach or shutdown, once attached no
-// second attach, after close authorization only the close, shutdown or a
-// passive deactivation or occlusion, once closed only shutdown, and nothing
-// after shutdown.
-// Whether a context-request or hover report names a finite position and a
-// known origin; every other payload passes.
-bool valid_pointer_report(const HostEventPayload& payload) noexcept {
-    if (const HostContextRequestEvent* request = std::get_if<HostContextRequestEvent>(&payload)) {
-        const bool origin = (*request).origin == ContextRequestOrigin::pointer ||
-                            (*request).origin == ContextRequestOrigin::keyboard;
-        return origin && std::isfinite((*request).position.x) && std::isfinite((*request).position.y);
-    }
-    if (const HostHoverEvent* hover = std::get_if<HostHoverEvent>(&payload)) {
-        return std::isfinite((*hover).position.x) && std::isfinite((*hover).position.y);
-    }
-    if (const HostRelativeMotionEvent* motion = std::get_if<HostRelativeMotionEvent>(&payload)) {
-        const bool delta = std::isfinite((*motion).delta.x) && std::isfinite((*motion).delta.y);
-        const Point* const at = (*motion).position.value();
-        const bool position = at == nullptr || (std::isfinite((*at).x) && std::isfinite((*at).y));
-        return delta && position;
-    }
-    return true;
-}
-
-bool valid_input_settings(const HostInputSettingsEvent& input) noexcept {
-    const bool interval = input.double_click_milliseconds != 0U &&
-                          input.double_click_milliseconds <= maximum_double_click_milliseconds;
-    const bool origin = input.double_click_origin == SettingOrigin::default_value ||
-                        input.double_click_origin == SettingOrigin::host;
-    return interval && origin && valid_pointer_settings(input.pointer) && valid_caret_settings(input.caret);
-}
-
-HostDispatchError lifecycle_refusal(HostLifecyclePhase phase, bool attach, bool shutdown,
-                                    bool closed, bool passive_terminal) noexcept {
-    switch (phase) {
-    case HostLifecyclePhase::constructed:
-        if (!attach && !shutdown) return HostDispatchError::invalid_lifecycle;
-        return HostDispatchError::none;
-    case HostLifecyclePhase::attached:
-        if (attach) return HostDispatchError::invalid_lifecycle;
-        return HostDispatchError::none;
-    case HostLifecyclePhase::close_authorized:
-        if (!closed && !shutdown && !passive_terminal) return HostDispatchError::invalid_lifecycle;
-        return HostDispatchError::none;
-    case HostLifecyclePhase::closed:
-        if (!shutdown) return HostDispatchError::invalid_lifecycle;
-        return HostDispatchError::none;
-    case HostLifecyclePhase::shutdown:
-        return HostDispatchError::after_shutdown;
-    }
-    // A phase outside the enumeration admits nothing.
-    return HostDispatchError::invalid_lifecycle;
-}
-} // namespace
+} // namespace detail
 HostSession::HostSession(Window& window,
                          HostCapabilities capabilities,
                          HostServices* services)
-    : window_(window.window_ref()), services_(services), ui_thread_(std::this_thread::get_id()) {
+    : window_(window.window_ref()), services_(services), ui_thread_(stxlib::current_thread()) {
     snapshot_.capabilities = std::move(capabilities);
     // The window's non-opaque declaration is fixed from here (stage T5).
     detail::SurfaceHostAccess::mark_session_bound(window);
+    // The automation core finds the session of a window here
+    // (session_directory.hpp); forgotten in shutdown and the destructor.
+    detail::note_window_session(window, *this);
     if (services_ != nullptr) {
         if (window.host_services() != nullptr && window.host_services() != services_) {
             throw std::logic_error("GUI.Forms Window already has an active host service seam");
@@ -245,6 +273,7 @@ HostSession::HostSession(Window& window,
 
 HostSession::~HostSession() {
     shutdown();
+    detail::forget_window_session(*this);
 }
 
 void HostSession::observe_pointer_capture(
@@ -279,7 +308,7 @@ void HostSession::DispatchVisitor::operator()(
         (*window).set_scale(payload.scale);
         update.close();
         (*session).snapshot_.attached = true;
-        (*session).snapshot_.phase = HostLifecyclePhase::attached;
+        (*session).set_phase(HostLifecyclePhase::attached);
     } else if constexpr (std::is_same_v<Payload, HostResizeEvent>) {
         (*window).resize(payload.client_size);
     } else if constexpr (std::is_same_v<Payload, HostScaleEvent>) {
@@ -354,10 +383,10 @@ void HostSession::DispatchVisitor::operator()(
         // authorizes the close, whatever the observers answered or changed
         // in the payload during notification.
         if (!payload.cancel && !hide_on_accept && !session_end && !asked_only) {
-            (*session).snapshot_.phase = HostLifecyclePhase::close_authorized;
+            (*session).set_phase(HostLifecyclePhase::close_authorized);
         }
     } else if constexpr (std::is_same_v<Payload, HostClosedEvent>) {
-        (*session).snapshot_.phase = HostLifecyclePhase::closed;
+        (*session).set_phase(HostLifecyclePhase::closed);
         (*window).host_close_reason_.set(payload.reason);
         (*session).snapshot_.attached = false;
         (*session).snapshot_.closed = true;
@@ -399,22 +428,29 @@ void HostSession::DispatchVisitor::operator()(
         if (payload.timestamp_nanoseconds == 0U) payload.timestamp_nanoseconds = (*event).timestamp_nanoseconds;
         ++(*session).snapshot_.relative_motion_events;
         (*result).handled = (*window).dispatch_relative_motion(payload);
+    } else if constexpr (std::is_same_v<Payload, GestureEvent>) {
+        if (payload.timestamp_nanoseconds == 0U) payload.timestamp_nanoseconds = (*event).timestamp_nanoseconds;
+        ++(*session).snapshot_.gesture_events;
+        (*result).handled = (*window).dispatch_gesture(std::move(payload));
     } else if constexpr (std::is_same_v<Payload, HostWindowStateEvent>) {
         // Full screen first: a band that hides there gives up its
         // reservation before the corners' strips are damaged.
         (*window).report_full_screen(payload.full_screen);
         (*window).apply_corner_preference();
+    } else if constexpr (std::is_same_v<Payload, HostSafeInsetsEvent>) {
+        // Validated with the geometry above (stage VA).
+        (*window).set_safe_insets(payload.insets);
     }
 }
 
 HostDispatchResult HostSession::dispatch(HostEvent event) {
     HostDispatchResult result;
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         result.error = HostDispatchError::wrong_thread;
         return result;
-    } else if (event.sequence == 0) {
+    } else if (!ic::admits_dispatch_sequence(event.sequence)) {
         result.error = HostDispatchError::sequence_zero;
-    } else if (event.sequence <= snapshot_.last_sequence) {
+    } else if (!ic::admits_dispatch_order(event.sequence, snapshot_.last_sequence)) {
         result.error = HostDispatchError::non_monotonic_sequence;
     } else if (!snapshot_.shutdown && window_.get() == nullptr) {
         // The window was destroyed first: the session ends with it.
@@ -443,7 +479,68 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         observed_.emit(event, result);
         return result;
     }
+    result = admit(event, InputOrigin::user);
+    return result;
+}
 
+namespace {
+// The payloads a model may send through dispatch_model_input: the user's
+// own kinds of input, without drags (a model drags with pointer moves) and
+// relative motion (a mode a program asks of the host).
+bool model_input_payload(const HostEventPayload& payload) noexcept {
+    const bool admitted = std::holds_alternative<PointerEvent>(payload) ||
+                          std::holds_alternative<KeyEvent>(payload) ||
+                          std::holds_alternative<TextInputEvent>(payload) ||
+                          std::holds_alternative<HostHoverEvent>(payload) ||
+                          std::holds_alternative<HostContextRequestEvent>(payload);
+    return admitted;
+}
+
+// Whether a payload is the user's input, which a modal window and the user
+// input gate hold back.
+bool input_payload(const HostEventPayload& payload) noexcept {
+    const bool input = std::holds_alternative<PointerEvent>(payload) ||
+                       std::holds_alternative<KeyEvent>(payload) ||
+                       std::holds_alternative<TextInputEvent>(payload) ||
+                       std::holds_alternative<DragEvent>(payload) ||
+                       std::holds_alternative<HostContextRequestEvent>(payload) ||
+                       std::holds_alternative<HostHoverEvent>(payload) ||
+                       std::holds_alternative<HostRelativeMotionEvent>(payload) ||
+                       std::holds_alternative<GestureEvent>(payload);
+    return input;
+}
+} // namespace
+
+HostDispatchResult HostSession::dispatch_model_input(HostEventPayload payload, std::uint64_t timestamp_nanoseconds) {
+    HostDispatchResult result;
+    if (stxlib::current_thread() != ui_thread_) {
+        result.error = HostDispatchError::wrong_thread;
+        return result;
+    }
+    // Sequence zero: the model's events take no place in the host's
+    // sequence, and observers see them as the model's.
+    HostEvent event{0U, timestamp_nanoseconds, std::move(payload)};
+    if (!model_input_payload(event.payload)) {
+        result.error = HostDispatchError::invalid_payload;
+    } else if (!snapshot_.shutdown && window_.get() == nullptr) {
+        end_without_window();
+        result.error = HostDispatchError::after_shutdown;
+    } else if (snapshot_.shutdown) {
+        result.error = HostDispatchError::after_shutdown;
+    } else {
+        result.error = lifecycle_refusal(snapshot_.phase, false, false, false, false);
+    }
+    if (!result.accepted()) {
+        ++snapshot_.events_rejected;
+        observed_.emit(event, result);
+        return result;
+    }
+    result = admit(event, InputOrigin::model);
+    return result;
+}
+
+HostDispatchResult HostSession::admit(HostEvent& event, InputOrigin origin) {
+    HostDispatchResult result;
     bool invalid_geometry = false;
     if (const HostAttachEvent* attach =
             std::get_if<HostAttachEvent>(&event.payload)) {
@@ -458,6 +555,9 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
     } else if (const HostDisplayEvent* display =
                    std::get_if<HostDisplayEvent>(&event.payload)) {
         invalid_geometry = !valid_monitor_set((*display).monitors);
+    } else if (const HostSafeInsetsEvent* safe =
+                   std::get_if<HostSafeInsetsEvent>(&event.payload)) {
+        invalid_geometry = !valid_safe_insets((*safe).insets);
     }
     if (invalid_geometry) {
         result.error = HostDispatchError::invalid_geometry;
@@ -507,18 +607,25 @@ HostDispatchResult HostSession::dispatch(HostEvent event) {
         return result;
     }
 
-    snapshot_.last_sequence = event.sequence;
+    if (origin == InputOrigin::user) {
+        snapshot_.last_sequence = event.sequence;
+    } else {
+        ++snapshot_.model_input_events;
+    }
     ++snapshot_.events_accepted;
-    const bool modal_input = snapshot_.modal_depth != 0 &&
-        (std::holds_alternative<PointerEvent>(event.payload) ||
-         std::holds_alternative<KeyEvent>(event.payload) ||
-         std::holds_alternative<TextInputEvent>(event.payload) ||
-         std::holds_alternative<DragEvent>(event.payload) ||
-         std::holds_alternative<HostContextRequestEvent>(event.payload) ||
-         std::holds_alternative<HostHoverEvent>(event.payload) ||
-         std::holds_alternative<HostRelativeMotionEvent>(event.payload));
+    const bool input = input_payload(event.payload);
+    const bool modal_input = snapshot_.modal_depth != 0 && input;
     if (modal_input) {
         ++snapshot_.modal_input_suppressions;
+        observed_.emit(event, result);
+        return result;
+    }
+    // A model holds the interface (model.directed or suspend_input): the
+    // user's input is counted and dropped, never the model's. The window is
+    // alive here (dispatch and dispatch_model_input saw it).
+    Window* const gated = window_.get();
+    if (origin == InputOrigin::user && input && gated != nullptr && detail::user_input_held(*gated)) {
+        ++snapshot_.user_input_held;
         observed_.emit(event, result);
         return result;
     }
@@ -559,7 +666,7 @@ void HostSession::deliver(HostEvent& event, HostDispatchResult& result) {
 }
 
 void HostSession::shutdown() noexcept {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) {
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_) {
         return;
     }
     snapshot_.active = false;
@@ -580,11 +687,13 @@ void HostSession::shutdown() noexcept {
         capture_observation_.disconnect();
         modal_observation_.disconnect();
     }
+    detail::forget_window_session(*this);
     snapshot_.shutdown = true;
-    snapshot_.phase = HostLifecyclePhase::shutdown;
+    set_phase(HostLifecyclePhase::shutdown);
 }
 
 void HostSession::end_without_window() noexcept {
+    detail::forget_window_session(*this);
     snapshot_.active = false;
     snapshot_.attached = false;
     snapshot_.occluded = false;
@@ -592,6 +701,16 @@ void HostSession::end_without_window() noexcept {
     modal_observation_.disconnect();
     snapshot_.shutdown = true;
     snapshot_.phase = HostLifecyclePhase::shutdown;
+}
+
+void HostSession::set_phase(HostLifecyclePhase phase) noexcept {
+    snapshot_.phase = phase;
+    // The window, when it is still alive, reports the same phase
+    // (Window::host_lifecycle_phase); a window destroyed first is not read.
+    Window* const window = window_.get();
+    if (window != nullptr) {
+        (*window).host_phase_ = phase;
+    }
 }
 
 HostSessionSnapshot HostSession::snapshot() const {

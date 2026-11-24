@@ -1,9 +1,11 @@
 #include "gui_forms/controls/button.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "../../basic/basic_control_rendering.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "button_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -17,12 +19,13 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::button;
 
 namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> visual_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "button_visual_style", {{"standard", 0}, {"flat", 1}, {"accent", 2}, {"command", 3}}, false});
     return value;
 }
@@ -169,7 +172,7 @@ double Button::danger_glow_level(FrameInterval since) noexcept {
     const double turns = seconds / period;
     const double phase = (turns - std::floor(turns)) * 2.0 * 3.14159265358979323846;
     // A raised cosine: 1 at the start of each period, the floor half way.
-    const double rise = 0.5 + 0.5 * engine_sine_cosine(phase).cosine;
+    const double rise = 0.5 + 0.5 * stxlib::math::cos(phase);
     const double level = danger_glow_floor + (1.0 - danger_glow_floor) * rise;
     return level;
 }
@@ -391,7 +394,7 @@ BindingValue PropertyValueTraits<ButtonVisualStyle>::to_binding(ButtonVisualStyl
     descriptor.enumeration = visual_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -439,7 +442,7 @@ void Button::written(const decltype(visual_style)&) {
 
 void Button::prepare_write(const decltype(flat_border_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument("button flat border width must be finite and nonnegative");
+    if (!ic::admits_flat_border_width(incoming)) throw std::invalid_argument("button flat border width must be finite and nonnegative");
 }
 
 void Button::written(const decltype(flat_border_width)&) {

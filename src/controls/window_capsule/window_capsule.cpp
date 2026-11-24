@@ -372,7 +372,7 @@ SemanticDescriptor WindowCapsule::semantic_descriptor() const {
 std::vector<SemanticNode> WindowCapsule::semantic_virtual_children() const {
     std::vector<SemanticNode> children{};
     children.reserve(3U);
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const bool enabled = effectively_enabled();
     const bool closing = look_.arm == WindowCapsuleArm::close;
     const std::array<WindowCapsuleSection, 3> sections{WindowCapsuleSection::left, WindowCapsuleSection::help,
@@ -386,7 +386,7 @@ std::vector<SemanticNode> WindowCapsule::semantic_virtual_children() const {
         node.role = SemanticRole::button;
         node.name = closing ? std::string("Close") : std::string(names[index]);
         const Rect shown = section_bounds(sections[index]);
-        node.bounds = {absolute.x + shown.x, absolute.y + shown.y, shown.width, shown.height};
+        node.bounds = frame_to_outer(local_frame, shown);
         node.states = SemanticState::visible;
         if (enabled && interactive_) node.states |= SemanticState::enabled;
         node.actions = {SemanticAction::press};

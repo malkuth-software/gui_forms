@@ -10,6 +10,7 @@
 #include "gui_forms/text.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -28,14 +29,14 @@ namespace {
 // Static storage; any thread may read them.
 std::shared_ptr<const PropertyEnumDescriptor> combo_box_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "combo_box_style", {{"drop_down_list", 0}, {"drop_down", 1}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> combo_box_filter_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "combo_box_filter", {{"none", 0}, {"prefix", 1}, {"substring", 2}}, false});
     return value;
 }
@@ -43,7 +44,7 @@ std::shared_ptr<const PropertyEnumDescriptor> combo_box_filter_enum() {
 } // namespace
 
 ComboBox::ComboBox(StableId stable_id) : ListControl(std::move(stable_id)) {
-    list_items_source_ = std::make_shared<AutoCompleteStringCollection>();
+    list_items_source_ = gui_forms::detail::make_library_shared<AutoCompleteStringCollection>();
     set_paint_plane(PaintPlane::control);
     border_style = BorderStyle::sunken;
     focusable = true;
@@ -276,8 +277,10 @@ double ComboBox::drop_down_height(std::size_t rows) const {
 }
 
 void ComboBox::show_rows() {
-    if (!overlay_list_) return;
-    DropDownList& list = static_cast<DropDownList&>(*overlay_list_);
+    DropDownOpening* const shown = drop_down();
+    if (shown == nullptr || !(*shown).list) return;
+    const std::shared_ptr<Panel> shown_layer = (*shown).layer;
+    DropDownList& list = static_cast<DropDownList&>(*(*shown).list);
     std::vector<std::string> texts;
     texts.reserve(rows_.size());
     for (const std::size_t item : rows_) texts.push_back(items[item]);
@@ -300,8 +303,8 @@ void ComboBox::show_rows() {
     }
     synchronizing_list_ = false;
     list.synchronize_scroll();
-    if (editor_ && overlay_layer_ && window() != nullptr) {
-        AnchoredOverlayLayer& layer = static_cast<AnchoredOverlayLayer&>(*overlay_layer_);
+    if (editor_ && shown_layer && window() != nullptr) {
+        AnchoredOverlayLayer& layer = static_cast<AnchoredOverlayLayer&>(*shown_layer);
         AnchoredOverlayPlacement placement = layer.placement.read();
         placement.preferred_size.height = drop_down_height(rows_.size());
         layer.placement = placement;
@@ -315,7 +318,7 @@ void ComboBox::show_rows() {
 }
 
 void ComboBox::refresh_open_rows(std::string_view pattern) {
-    if (!overlay_list_) return;
+    if (drop_down() == nullptr) return;
     compute_rows(pattern);
     if (rows_.empty()) {
         close_drop_down();
@@ -379,7 +382,7 @@ void ComboBox::editor_text_changed(const std::string& typed_text) {
     if (!is_alive() || programmatic_text_ || drop_down_filter.read() == ComboBoxFilter::none) return;
     // Typing searches: the list opens on the matching items, narrows and
     // widens with the text, and closes when nothing matches.
-    if (dropped_down_) {
+    if (presentation_.is_open()) {
         refresh_open_rows(typed_text);
     } else {
         open_drop_down(typed_text);
@@ -389,7 +392,7 @@ void ComboBox::editor_text_changed(const std::string& typed_text) {
 void ComboBox::editor_focus_changed(bool focused) {
     focused_ = focused;
     // The drop_down style's list holds no focus: it closes with the field's.
-    if (!focused && dropped_down_) close_drop_down();
+    if (!focused && presentation_.is_open()) close_drop_down();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -408,15 +411,17 @@ void ComboBox::match_editor_text() {
     if (selected_index_ == found) return;
     selected_index_ = found;
     static_cast<void>(record_selected_index(selected_index_));
-    if (overlay_list_) {
+    DropDownOpening* const shown = drop_down();
+    if (shown != nullptr && (*shown).list) {
         // Moving the list's row must not show the item's text over the
         // text the user is typing.
+        const std::shared_ptr<ListBox> list = (*shown).list;
         synchronizing_list_ = true;
         const stxlib::Optional<std::size_t> row = row_of_item(found);
         if (row.present()) {
-            (*overlay_list_).select_index(*row.value());
+            (*list).select_index(*row.value());
         } else {
-            (*overlay_list_).clear_selection();
+            (*list).clear_selection();
         }
         synchronizing_list_ = false;
     }
@@ -520,11 +525,13 @@ void ComboBox::write_view(const decltype(selected_index)&, stxlib::Optional<std:
     if (selected_index_ == incoming) return;
     selected_index_ = incoming;
     static_cast<void>(record_selected_index(selected_index_));
-    if (overlay_list_) {
+    DropDownOpening* const shown = drop_down();
+    if (shown != nullptr && (*shown).list) {
+        const std::shared_ptr<ListBox> list = (*shown).list;
         synchronizing_list_ = true;
         const stxlib::Optional<std::size_t> row = row_of_item(incoming);
-        if (row.present()) (*overlay_list_).select_index(*row.value());
-        else (*overlay_list_).clear_selection();
+        if (row.present()) (*list).select_index(*row.value());
+        else (*list).clear_selection();
         synchronizing_list_ = false;
     }
     invalidate(Dirty::paint | Dirty::semantics);
@@ -561,7 +568,7 @@ void ComboBox::prepare_write(const decltype(maximum_drop_down_items)&, std::size
 
 // An open list reopens at the new height on the same filter.
 void ComboBox::written(const decltype(maximum_drop_down_items)&) {
-    if (dropped_down_) {
+    if (presentation_.is_open()) {
         const std::string pattern = filter_pattern_;
         close_drop_down();
         open_drop_down(pattern);
@@ -579,25 +586,29 @@ void ComboBox::prepare_write(const decltype(font)&, FontSpec& incoming) {
 
 void ComboBox::written(const decltype(font)&) {
     if (editor_) (*editor_).font = font.read();
-    if (overlay_list_) (*overlay_list_).font = font.read();
+    DropDownOpening* const shown = drop_down();
+    if (shown != nullptr && (*shown).list) (*(*shown).list).font = font.read();
     invalidate(Dirty::measure | Dirty::paint | Dirty::semantics);
     on_font_changed();
 }
 
 bool ComboBox::read_view(const decltype(dropped_down)&) const {
-    return dropped_down_;
+    // Opening counts: a handler the open's focus move runs sees it shown,
+    // and its close is served.
+    return presentation_.is_shown();
 }
 
 // Opened by the button, a key or the program, the list shows every item.
 void ComboBox::write_view(const decltype(dropped_down)&, bool incoming) {
     require_mutable();
-    if (incoming == dropped_down_) return;
+    if (incoming == presentation_.is_shown()) return;
     if (incoming) open_drop_down({});
     else close_drop_down();
 }
 
 void ComboBox::open_drop_down(std::string_view pattern) {
-    if (dropped_down_ || !attached() || window() == nullptr || items.read().empty()) return;
+    // Opening, open or closing: the one presentation there is serves.
+    if (!presentation_.is_closed() || !attached() || window() == nullptr || items.read().empty()) return;
     compute_rows(pattern);
     if (rows_.empty()) return;
     const Control::Ptr owner = (*window()).root();
@@ -631,38 +642,58 @@ void ComboBox::open_drop_down(std::string_view pattern) {
     if (selected_index_.present()) {
         (*list).select_index(*selected_index_.value());
     }
-    OverlayToken overlay_token = (*window()).open_overlay(shared_from_this(), layer);
+    DropDownOpening opening{};
+    opening.lease.overlay = (*window()).open_overlay(shared_from_this(), layer);
     // In a Popup the list may reach past the owner onto the desktop; the
     // layer stays in the owner, takes outside clicks and holds the focus
     // scope while the Popup has the keys.
     const stxlib::Optional<Rect> face =
         drop_down_popup_face(*window(), combo, Size{requested_width, overlay_height}, combo.x);
-    const bool lifted = face.present() && lift_list(list, (*face.value()), PopupLiftInput::forwarded);
+    const bool lifted =
+        face.present() && lift_list(list, (*face.value()), PopupLiftInput::forwarded, opening.popup_closed);
     if (lifted) (*layer).focusable = true;
     else (*layer).add_child(list);
 
-    overlay_layer_ = layer;
-    overlay_list_ = list;
-    overlay_token_ = std::move(overlay_token);
-    overlay_selection_ = (*list).selection_changed().subscribe(
+    opening.layer = layer;
+    opening.list = list;
+    opening.selection = (*list).selection_changed().subscribe(
         *this, detail::WeakMemberCallback<
             void (ComboBox::*)(const ListSelectionChange&)>(
                 weak, &ComboBox::overlay_selection_changed));
-    overlay_activation_ = (*list).item_activated().subscribe(
+    opening.activation = (*list).item_activated().subscribe(
         *this, detail::WeakMemberCallback<
             void (ComboBox::*)(std::size_t)>(
                 weak, &ComboBox::commit_overlay_selection));
-    overlay_dismissal_ = (*layer).dismissed().subscribe(
+    opening.dismissal = (*layer).dismissed().subscribe(
         *this, detail::WeakMemberCallback<void (ComboBox::*)()>(
             weak, &ComboBox::close_drop_down));
-    if (Event<>* closed = overlay_token_.closed_event()) {
-        overlay_revocation_ = (*closed).subscribe(
+    if (Event<>* closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed = (*closed).subscribe(
             *this, detail::WeakMemberCallback<void (ComboBox::*)()>(
                 weak, &ComboBox::on_overlay_revoked));
     }
+    presentation_ = OverlayPresentation<DropDownOpening>::opening(std::move(opening));
     const Control::Ptr preferred_focus = lifted ? Control::Ptr(layer) : Control::Ptr(list);
-    overlay_scope_ = (*window()).begin_focus_scope(layer, preferred_focus).value;
-    dropped_down_ = true;
+    // Beginning the scope moves the focus and runs the field's lost-focus
+    // and validation handlers; one may close the list, and then the scope
+    // begun here is ended here and nothing is published. `lifetime` keeps
+    // the control across them.
+    const Control::Ptr lifetime = shared_from_this();
+    // A refused scope (state hunt, scanner list A: a containing scope, the
+    // nesting limit) closes the list again before the refusal leaves; a
+    // list closed while opening publishes nothing.
+    FocusScopeId started{};
+    try {
+        started = (*window()).begin_focus_scope(layer, preferred_focus);
+    } catch (...) {
+        close_drop_down();
+        throw;
+    }
+    if (!is_alive() || !presentation_.settle_open()) {
+        if (started && window() != nullptr) static_cast<void>((*window()).end_focus_scope(started));
+        return;
+    }
+    (*presentation_.open_state()).lease.scope = started;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
 }
@@ -684,49 +715,54 @@ void ComboBox::open_field_list(double width, double height) {
     (*field_list).focusable = false;
     (*field_list).set_paint_plane(PaintPlane::overlay);
     (*field_list).font = font.read();
-    OverlayToken field_token = (*window()).open_overlay(shared_from_this(), anchored);
+    DropDownOpening opening{};
+    opening.lease.overlay = (*window()).open_overlay(shared_from_this(), anchored);
     // The editor keeps the keys and drives the list wherever it shows.
     const Rect combo = absolute_bounds();
     const stxlib::Optional<Rect> face = drop_down_popup_face(*window(), combo, Size{width, height}, combo.x);
-    const bool lifted = face.present() && lift_list(field_list, (*face.value()), PopupLiftInput::kept_by_owner);
+    const bool lifted =
+        face.present() && lift_list(field_list, (*face.value()), PopupLiftInput::kept_by_owner, opening.popup_closed);
     if (!lifted) (*anchored).set_content(field_list);
-    overlay_layer_ = anchored;
-    overlay_list_ = field_list;
-    overlay_token_ = std::move(field_token);
+    opening.layer = anchored;
+    opening.list = field_list;
+    // No focus scope: the list is open as soon as it is shown.
+    presentation_ = OverlayPresentation<DropDownOpening>::open(std::move(opening));
     show_rows();
-    overlay_selection_ = (*field_list).selection_changed().subscribe(
+    DropDownOpening* const shown = presentation_.open_state();
+    if (shown == nullptr) return;
+    (*shown).selection = (*field_list).selection_changed().subscribe(
         *this, detail::WeakMemberCallback<
             void (ComboBox::*)(const ListSelectionChange&)>(
                 weak, &ComboBox::overlay_selection_changed));
-    overlay_activation_ = (*field_list).item_activated().subscribe(
+    (*shown).activation = (*field_list).item_activated().subscribe(
         *this, detail::WeakMemberCallback<
             void (ComboBox::*)(std::size_t)>(
                 weak, &ComboBox::commit_overlay_selection));
-    overlay_dismissal_ = (*anchored).dismiss_requested().subscribe(
+    (*shown).dismissal = (*anchored).dismiss_requested().subscribe(
         *this, detail::WeakMemberCallback<void (ComboBox::*)(OverlayDismissReason)>(
             weak, &ComboBox::on_anchored_dismissal));
-    if (Event<>* closed = overlay_token_.closed_event()) {
-        overlay_revocation_ = (*closed).subscribe(
+    if (Event<>* closed = (*shown).lease.overlay.closed_event()) {
+        (*shown).lease.overlay_closed = (*closed).subscribe(
             *this, detail::WeakMemberCallback<void (ComboBox::*)()>(
                 weak, &ComboBox::on_overlay_revoked));
     }
-    dropped_down_ = true;
     invalidate(Dirty::paint | Dirty::semantics);
     publish_change(drop_down_changed_, true);
 }
 
-bool ComboBox::lift_list(const std::shared_ptr<ListBox>& list, const Rect face, const PopupLiftInput input) {
+bool ComboBox::lift_list(const std::shared_ptr<ListBox>& list, const Rect face, const PopupLiftInput input,
+                         SubscriptionToken& popup_closed) {
     if (window() == nullptr) return false;
     if (!lift_.lift(*window(), list, face, input)) return false;
     const std::weak_ptr<ComboBox> weak = std::static_pointer_cast<ComboBox>(shared_from_this());
-    lift_closed_ = (*window()).popup_window_closed().subscribe(
+    popup_closed = (*window()).popup_window_closed().subscribe(
         *this, detail::WeakMemberCallback<void (ComboBox::*)(std::size_t)>(
             weak, &ComboBox::on_popup_window_closed));
     return true;
 }
 
+// The Popup's closing subscription is the presentation's, ended with it.
 void ComboBox::release_lift() noexcept {
-    lift_closed_.disconnect();
     lift_.release();
 }
 
@@ -742,44 +778,52 @@ void ComboBox::clear_rows() noexcept {
 }
 
 void ComboBox::close_drop_down() {
-    if (!dropped_down_ && !overlay_layer_) return;
-    closing_overlay_ = true;
-    overlay_selection_.disconnect();
-    overlay_activation_.disconnect();
-    overlay_dismissal_.disconnect();
+    // Opening or open becomes closing: a handler the steps run can neither
+    // close nor open the list again until it is closed.
+    const bool changed = presentation_.is_open();
+    if (!presentation_.begin_closing()) return;
+    DropDownOpening& closing = *presentation_.closing_state();
+    closing.selection.disconnect();
+    closing.activation.disconnect();
+    closing.dismissal.disconnect();
+    closing.popup_closed.disconnect();
     release_lift();
-    if (window() != nullptr && overlay_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_}));
+    // A refused end must not leave the list closing for good: the window
+    // ends the scope with the overlay.
+    if (window() != nullptr && closing.lease.scope) {
+        try {
+            static_cast<void>((*window()).end_focus_scope(closing.lease.scope));
+        } catch (...) {
+        }
     }
-    overlay_scope_ = 0U;
-    overlay_token_.disconnect();
-    overlay_revocation_.disconnect();
-    overlay_list_.reset();
-    overlay_layer_.reset();
-    const bool changed = dropped_down_;
-    dropped_down_ = false;
-    closing_overlay_ = false;
+    closing.lease.scope = {};
+    closing.lease.overlay.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    presentation_.finish_closing();
     clear_rows();
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
 }
 
 void ComboBox::on_overlay_revoked() {
-    if (closing_overlay_) return;
-    overlay_selection_.disconnect();
-    overlay_activation_.disconnect();
-    overlay_dismissal_.disconnect();
-    overlay_revocation_.disconnect();
+    const bool changed = presentation_.is_open();
+    if (!presentation_.begin_closing()) return;
+    DropDownOpening& closing = *presentation_.closing_state();
+    closing.selection.disconnect();
+    closing.activation.disconnect();
+    closing.dismissal.disconnect();
+    closing.lease.overlay_closed.disconnect();
+    closing.popup_closed.disconnect();
     release_lift();
-    if (window() != nullptr && overlay_scope_ != 0U) {
-        static_cast<void>((*window()).end_focus_scope(FocusScopeId{overlay_scope_},
-                                                     FocusScopeCloseReason::owner_unavailable));
+    if (window() != nullptr && closing.lease.scope) {
+        try {
+            static_cast<void>((*window()).end_focus_scope(closing.lease.scope,
+                                                         FocusScopeCloseReason::owner_unavailable));
+        } catch (...) {
+        }
     }
-    overlay_scope_ = 0U;
-    overlay_list_.reset();
-    overlay_layer_.reset();
-    const bool changed = dropped_down_;
-    dropped_down_ = false;
+    closing.lease.scope = {};
+    presentation_.finish_closing();
     clear_rows();
     invalidate(Dirty::paint | Dirty::semantics);
     if (changed) publish_change(drop_down_changed_, false);
@@ -841,12 +885,12 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     // arrow mark draws half its square's side in rows, so the square is 8
     // units, placed to put the rows where the published disclosure is.
     const double center_x = bounds.width - button_width * 0.5;
-    const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
-    const double square_top = dropped_down_ ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
+    const double center_y = bounds.height * 0.5 + (presentation_.is_open() ? 2.0 : -1.0);
+    const double square_top = presentation_.is_open() ? std::floor(center_y) - 3.0 : std::floor(center_y) - 4.0;
     PartPaint disclosure;
     disclosure.family = ControlVisualRole::choice;
     disclosure.role = PartRole::disclosure;
-    disclosure.mark = dropped_down_ ? PartMark::arrow_up : PartMark::arrow_down;
+    disclosure.mark = presentation_.is_open() ? PartMark::arrow_up : PartMark::arrow_down;
     disclosure.bounds = {std::floor(center_x) - 4.0, square_top, 8.0, 8.0};
     if (mirrored) disclosure.bounds = horizontally_mirrored(disclosure.bounds, bounds);
     disclosure.states = states;
@@ -880,7 +924,7 @@ void ComboBox::on_paint(Painter& painter, Rect) {
     content.authored_foreground = text_ink;
     content.key.set(PartKey{"content", {}, {}});
     paint_part(painter, *this, content);
-    if (focused_ || dropped_down_) {
+    if (focused_ || presentation_.is_open()) {
         PartPaint ring;
         ring.family = ControlVisualRole::editor;
         ring.role = PartRole::focus;
@@ -912,7 +956,7 @@ void ComboBox::on_mouse_down(MouseEventArgs& arguments) {
     if (eligible_for_input() && arguments.button == PointerButton::primary) {
         Window* const host = window();
         if (editor_ && host != nullptr) static_cast<void>((*host).request_focus(editor_));
-        dropped_down = !dropped_down_;
+        dropped_down = !presentation_.is_open();
         arguments.handled = true;
     }
     Control::on_mouse_down(arguments);
@@ -926,7 +970,7 @@ void ComboBox::on_mouse_up(MouseEventArgs& arguments) {
 void ComboBox::on_key_down(KeyEventArgs& arguments) {
     ListControl::on_key_down(arguments);
     if (arguments.handled || !focused_ || !enabled.read()) return;
-    if (arguments.physical_key == PhysicalKey::escape && dropped_down_) {
+    if (arguments.physical_key == PhysicalKey::escape && presentation_.is_open()) {
         close_drop_down();
         arguments.handled = true;
         return;
@@ -934,11 +978,11 @@ void ComboBox::on_key_down(KeyEventArgs& arguments) {
     if (arguments.physical_key == PhysicalKey::f4 ||
         (arguments.physical_key == PhysicalKey::down && includes(arguments.modifiers, Modifier::alt)) ||
         arguments.physical_key == PhysicalKey::space) {
-        dropped_down = !dropped_down_;
+        dropped_down = !presentation_.is_open();
         arguments.handled = true;
         return;
     }
-    if (!dropped_down_ && step_selection(arguments.physical_key)) {
+    if (!presentation_.is_open() && step_selection(arguments.physical_key)) {
         arguments.handled = true;
     }
 }
@@ -951,7 +995,7 @@ void ComboBox::on_key_preview(KeyEvent& event) {
     const bool alt = includes(event.modifiers, Modifier::alt);
     if (key == PhysicalKey::f4 || (key == PhysicalKey::down && alt)) {
         // Opening the list closes the editor's suggestions.
-        dropped_down = !dropped_down_;
+        dropped_down = !presentation_.is_open();
         event.handled = true;
         return;
     }
@@ -960,7 +1004,7 @@ void ComboBox::on_key_preview(KeyEvent& event) {
     if (key == PhysicalKey::up || key == PhysicalKey::down) {
         // Up and Down choose the previous or next item: of the open list's
         // rows, or of all the items while it is closed.
-        if (dropped_down_) {
+        if (presentation_.is_open()) {
             static_cast<void>(step_row(key));
         } else {
             static_cast<void>(step_selection(key));
@@ -968,7 +1012,7 @@ void ComboBox::on_key_preview(KeyEvent& event) {
         event.handled = true;
         return;
     }
-    if (dropped_down_ && (key == PhysicalKey::enter || key == PhysicalKey::escape)) {
+    if (presentation_.is_open() && (key == PhysicalKey::enter || key == PhysicalKey::escape)) {
         close_drop_down();
         event.handled = true;
     }
@@ -989,9 +1033,9 @@ SemanticDescriptor ComboBox::semantic_descriptor() const {
     descriptor.value = text.read();
     descriptor.description = accessible_description.read().empty()
         ? placeholder_text.read() : accessible_description.read();
-    if (dropped_down_) descriptor.states |= SemanticState::expanded;
+    if (presentation_.is_open()) descriptor.states |= SemanticState::expanded;
     descriptor.actions = {SemanticAction::focus,
-        dropped_down_ ? SemanticAction::collapse : SemanticAction::expand};
+        presentation_.is_open() ? SemanticAction::collapse : SemanticAction::expand};
     if (editor_) {
         // The editor is part of the field, published through it, as
         // DomainUpDown's is.
@@ -1025,16 +1069,20 @@ bool ComboBox::on_semantic_action(SemanticAction action, std::string_view value)
 }
 
 void ComboBox::on_detached_from_window() noexcept {
-    overlay_selection_.disconnect();
-    overlay_activation_.disconnect();
-    overlay_dismissal_.disconnect();
-    overlay_revocation_.disconnect();
-    release_lift();
-    overlay_scope_ = 0U;
-    overlay_token_.disconnect();
-    overlay_list_.reset();
-    overlay_layer_.reset();
-    dropped_down_ = false;
+    // The window is going: the list closes without a scope to end or a
+    // change to publish.
+    if (presentation_.begin_closing()) {
+        DropDownOpening& closing = *presentation_.closing_state();
+        closing.selection.disconnect();
+        closing.activation.disconnect();
+        closing.dismissal.disconnect();
+        closing.lease.overlay_closed.disconnect();
+        closing.popup_closed.disconnect();
+        release_lift();
+        closing.lease.scope = {};
+        closing.lease.overlay.disconnect();
+    }
+    presentation_.finish_closing();
     focused_ = false;
     clear_rows();
 }
@@ -1128,8 +1176,8 @@ void ComboBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
                        std::max(0.0, bounds.height - 2.0)};
     // The 7 x 4 arrow, which flips and moves when the list is open.
     const double center_x = bounds.width - button_width * 0.5;
-    const double center_y = bounds.height * 0.5 + (dropped_down_ ? 2.0 : -1.0);
-    const double arrow_top = dropped_down_ ? std::floor(center_y) - 2.0
+    const double center_y = bounds.height * 0.5 + (presentation_.is_open() ? 2.0 : -1.0);
+    const double arrow_top = presentation_.is_open() ? std::floor(center_y) - 2.0
                                            : std::floor(center_y) - 1.0;
     const Rect arrow{std::floor(center_x) - 3.0, arrow_top, 7.0, 4.0};
     // Mirrored as on_paint mirrors them.
@@ -1144,7 +1192,7 @@ void ComboBox::publish_part_geometry(std::span<PartGeometry> geometry) const {
 
 AnatomyStateSet ComboBox::anatomy_states() const {
     AnatomyStateSet states = ScrollableControl::anatomy_states();
-    if (dropped_down_) {
+    if (presentation_.is_open()) {
         states.insert(AnatomyState::open);
     } else {
         states.insert(AnatomyState::closed);
@@ -1307,7 +1355,7 @@ BindingValue PropertyValueTraits<ComboBoxStyle>::to_binding(ComboBoxStyle value)
     descriptor.enumeration = combo_box_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1326,7 +1374,7 @@ BindingValue PropertyValueTraits<ComboBoxFilter>::to_binding(ComboBoxFilter valu
     descriptor.enumeration = combo_box_filter_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1403,5 +1451,12 @@ void ComboBox::on_font_changed() {}
 void ComboBox::on_drop_down_style_changed() {}
 
 // property_codemod end ComboBox
+
+bool ComboBox::agrees_with_itself() const noexcept {
+    const DropDownOpening* const open = presentation_.open_state();
+    if (open != nullptr) return (*open).lease.overlay.connected() && (*open).layer && (*open).list;
+    if (!presentation_.is_closed()) return true;
+    return !lift_.lifted();
+}
 
 } // namespace gui_forms

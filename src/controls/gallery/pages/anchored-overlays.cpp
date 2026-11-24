@@ -3,6 +3,7 @@
 #include "gui_forms/controls/anchored_overlay_placement.hpp"
 #include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/text_box.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "anchored-overlays_form.hpp"
 
@@ -208,7 +209,7 @@ private:
 
 void add_anchored_overlays(const std::shared_ptr<Surface>& page,
                          const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<AnchoredOverlaysPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<AnchoredOverlaysPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

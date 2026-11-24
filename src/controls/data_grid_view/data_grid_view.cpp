@@ -16,6 +16,7 @@
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/surface_root/sub_surface/sub_surface_host.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -3412,7 +3413,7 @@ bool DataGridView::open_choices() {
         const std::string& item = columns_[at.column].items[index];
         std::string identity = prefix + std::to_string(index);
         if (index == choice_commands_.size()) {
-            choice_commands_.push_back(std::make_shared<Command>(identity, item));
+            choice_commands_.push_back(gui_forms::detail::make_library_shared<Command>(identity, item));
         }
         Command& command = *choice_commands_[index];
         command.set_text(item);
@@ -3422,7 +3423,7 @@ bool DataGridView::open_choices() {
     (*choices_).set_items(std::move(menu));
     const GridLayout layout = grid_layout();
     const Rect bounds = cell_bounds(at.row, at.column, layout);
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     editing_ = true;
     edit_kind_ = EditKind::choice;
     edit_invalid_ = false;
@@ -3432,7 +3433,7 @@ bool DataGridView::open_choices() {
     editing_control_showing_.emit(showing);
     if (!is_alive() || !editing_ || edit_kind_ != EditKind::choice || !current_ || !(*current_ == key)) return false;
     (*choices_).preferred_width = std::max(bounds.width, 120.0);
-    (*choices_).show(shared_from_this(), {absolute.x + bounds.x, absolute.y + bounds.y + bounds.height},
+    (*choices_).show(shared_from_this(), frame_to_outer(local_frame, Point{bounds.x, bounds.y + bounds.height}),
                      MenuOpenMode::keyboard);
     if (!(*choices_).is_open()) {
         editing_ = false;
@@ -3474,6 +3475,9 @@ void DataGridView::on_choices_open_changed(bool open) {
     const std::optional<CellKey> cell = current_;
     editing_ = false;
     edit_kind_ = EditKind::none;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
     const DataGridViewCellEvent ended = cell ? cell_event(*cell) : DataGridViewCellEvent{};
     cell_end_edit_.emit(ended);
@@ -5037,7 +5041,8 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
     // returns the nodes gathered so far, as paint stops, rather than read
     // through stale indices and the column reference (A-gf-controls-02-F10).
     const std::uint64_t revision = structure_revision_;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
+    const Rect absolute = frame_to_outer(local_frame, client_rectangle());
     const GridLayout layout = grid_layout();
     const bool focus_within = focused_ || editing_;
     // Frozen columns and rows first, then the scrolling ones.
@@ -5053,8 +5058,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             node.column_index.set(display + 1U);
             node.name = columns_[column].header_text.empty() ? columns_[column].name : columns_[column].header_text;
             if (show_cell_tool_tips.read()) node.tool_tip = columns_[column].tool_tip_text;
-            node.bounds = {absolute.x + placed.column_header.bounds.x, absolute.y + placed.column_header.bounds.y,
-                           placed.column_header.bounds.width, placed.column_header.bounds.height};
+            node.bounds = frame_to_outer(local_frame, placed.column_header.bounds);
             node.states = SemanticState::visible | SemanticState::enabled;
             if (column_in_selection(column)) node.states |= SemanticState::selected;
             node.actions = {SemanticAction::press};
@@ -5079,8 +5083,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
         if (!row_node.description.empty()) row_node.states |= SemanticState::invalid;
         const Rect row_bounds{layout.client.x, layout.data.y + row_offset(position, layout), layout.client.width,
                               row_heights().height(position) * layout.scale};
-        row_node.bounds = {absolute.x + row_bounds.x, absolute.y + row_bounds.y, row_bounds.width,
-                           row_bounds.height};
+        row_node.bounds = frame_to_outer(local_frame, row_bounds);
         row_node.states |= SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
         if (is_row_selected(row)) row_node.states |= SemanticState::selected;
         if (row_read_only(row) || read_only.read()) row_node.states |= SemanticState::read_only;
@@ -5096,8 +5099,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             header.role = SemanticRole::row_header;
             header.row_index.set(position + 1U);
             header.name = row_node.name;
-            header.bounds = {absolute.x + placed_row.row_header.bounds.x, absolute.y + placed_row.row_header.bounds.y,
-                             placed_row.row_header.bounds.width, placed_row.row_header.bounds.height};
+            header.bounds = frame_to_outer(local_frame, placed_row.row_header.bounds);
             header.states = SemanticState::visible | SemanticState::enabled;
             header.actions = {SemanticAction::press};
             if (placed_row.row_error.present && !row_node.description.empty()) {
@@ -5117,8 +5119,7 @@ std::vector<SemanticNode> DataGridView::semantic_virtual_children() const {
             cell.value = cell_text(row, column);
             cell.row_index.set(position + 1U);
             cell.column_index.set(display + 1U);
-            cell.bounds = {absolute.x + placed.cell.bounds.x, absolute.y + placed.cell.bounds.y,
-                           placed.cell.bounds.width, placed.cell.bounds.height};
+            cell.bounds = frame_to_outer(local_frame, placed.cell.bounds);
             cell.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
             if (is_cell_selected(row, column)) cell.states |= SemanticState::selected;
             const bool current = is_current_cell(row, column);
@@ -5309,7 +5310,7 @@ namespace {
 // selection_mode table entry. Static storage; any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> data_grid_view_selection_mode_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "data_grid_view_selection_mode",
             {{"cell_select", 0},
              {"full_row_select", 1},
@@ -5415,7 +5416,7 @@ BindingValue PropertyValueTraits<DataGridViewSelectionMode>::to_binding(DataGrid
     descriptor.enumeration = data_grid_view_selection_mode_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

@@ -1,4 +1,5 @@
 #include "windows_accessibility.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/failure/fail_fast.hpp"
 
 #include "windows_automation.hpp"
@@ -818,7 +819,7 @@ HRESULT STDMETHODCALLTYPE MsaaElement::put_accValue(VARIANT child, BSTR value) {
 
 } // namespace
 
-WindowsAccessibility::WindowsAccessibility() : source_(std::make_shared<SemanticSource>()) {}
+WindowsAccessibility::WindowsAccessibility() : source_(gui_forms::detail::make_library_shared<SemanticSource>()) {}
 
 WindowsAccessibility::~WindowsAccessibility() { detach(); }
 
@@ -838,6 +839,13 @@ void WindowsAccessibility::detach() noexcept {
     source.model.reset();
     source.hwnd = nullptr;
     source.release_trees();
+    // What was observed and announced for this window goes with it, so a
+    // later attach starts as a first one does.
+    source.observed = false;
+    source.automation_observed = false;
+    source.generation = 0U;
+    source.focus = 0U;
+    source.announced_ids.clear();
 }
 
 LRESULT WindowsAccessibility::object(WPARAM parameter) noexcept {

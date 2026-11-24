@@ -5,7 +5,7 @@
 Input and semantics
 ===================
 
-Pointer, keyboard, text and drag event records, the public drag client, and the semantic tree published to accessibility and automation.
+Pointer, keyboard, text and drag event records, the public drag client, the semantic tree published to accessibility and automation, and a program's own model tools.
 
 Types
 -----
@@ -58,6 +58,10 @@ Types
      - The tracker's counters (AGENTS.md: structured instrumentation).
    * - :cpp:class:`DragValue <gui_forms::DragValue>`
      - A value: clamp(origin_value + scale * travel along ``axis``, minimum, maximum), rounded to ``step`` above minimum when step is positive.
+   * - :cpp:class:`GestureEvent <gui_forms::GestureEvent>`
+     - One gesture event as the host reports it and the window routes it.
+   * - :cpp:class:`GestureEventArgs <gui_forms::GestureEventArgs>`
+     - One gesture event as a control's on_gesture and its gesture subscribers see it: the GestureEvent's fields, the focal point in the control's own coordinates (location) and the window's (window_position).
    * - :cpp:class:`KeyBinding <gui_forms::KeyBinding>`
      - The chords that invoke one command: at most two (Ctrl+F6 and its macOS equivalent, say).
    * - :cpp:class:`KeyBindings <gui_forms::KeyBindings>`
@@ -74,6 +78,16 @@ Types
      - Windows Forms' KeyPressEventArgs for committed text input: text is what the input produced (UTF-8; one character for a typed key, several for a committed composition or a paste the host sends as text), key_char its one Unicode scalar value when it holds exactly one, else zero.
    * - :cpp:class:`KeyStateChange <gui_forms::KeyStateChange>`
      - A physical key going down or up, raw: raised once per press and once per release (never for an auto-repeat), before any route can consume the key and whatever control has the focus, so that a game can keep key state without text input or focus in the way.
+   * - :cpp:class:`ModelInspectRequest <gui_forms::automation::ModelInspectRequest>`
+     - One inspect section's request, borrowed for the handler's run: the window, and the node and control a target named (null for none).
+   * - :cpp:class:`ModelInspectText <gui_forms::automation::ModelInspectText>`
+     - The text an inspect section appends to, borrowed for its run.
+   * - :cpp:class:`ModelToolCall <gui_forms::automation::ModelToolCall>`
+     - One call of a tool, borrowed for the handler's run.
+   * - :cpp:class:`ModelToolReply <gui_forms::automation::ModelToolReply>`
+     - The reply a handler fills, borrowed for its run: text, structured content and images, or one failure.
+   * - :cpp:class:`ModelToolSpec <gui_forms::automation::ModelToolSpec>`
+     - A tool's declaration.
    * - :cpp:class:`MouseEventArgs <gui_forms::MouseEventArgs>`
      - One mouse event as WinForms' MouseEventArgs gives it, with the routed pointer event's own fields.
    * - :cpp:class:`PhysicalKey <gui_forms::PhysicalKey>`
@@ -666,6 +680,84 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: GestureEvent final
+
+   ``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+   One gesture event as the host reports it and the window routes it. position is the focal point in window logical units; scale, rotation_degrees and translation are the change since the previous event of the gesture (header comment). phase (EventPhase) and handled are the route's, as PointerEvent's. timestamp_nanoseconds is FrameClock nanoseconds, as PointerEvent's; zero is stamped at dispatch.
+
+   .. cpp:member:: GestureKind kind
+
+      Default: ``{GestureKind::magnify}``.
+
+   .. cpp:member:: GesturePhase gesture_phase
+
+      Default: ``{GesturePhase::changed}``.
+
+   .. cpp:member:: Point position
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double rotation_degrees
+
+   .. cpp:member:: Point translation
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: EventPhase phase
+
+      Default: ``{EventPhase::target}``.
+
+   .. cpp:member:: bool handled
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: GestureEventArgs final
+
+   ``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+   One gesture event as a control's on_gesture and its gesture subscribers see it: the GestureEvent's fields, the focal point in the control's own coordinates (location) and the window's (window_position). A raiser that sets handled ends the route at that control: no further ancestor sees the event (the subscribers still run when the raiser calls its base).
+
+   .. cpp:member:: GestureKind kind
+
+      Default: ``{GestureKind::magnify}``.
+
+   .. cpp:member:: GesturePhase gesture_phase
+
+      Default: ``{GesturePhase::changed}``.
+
+   .. cpp:member:: Point location
+
+   .. cpp:member:: Point window_position
+
+   .. cpp:member:: double scale
+
+      Default: ``{1.0}``.
+
+   .. cpp:member:: double rotation_degrees
+
+   .. cpp:member:: Point translation
+
+   .. cpp:member:: Modifier modifiers
+
+      Default: ``{Modifier::none}``.
+
+   .. cpp:member:: EventPhase phase
+
+      Default: ``{EventPhase::target}``.
+
+   .. cpp:member:: bool handled
+
+   .. cpp:member:: std::uint64_t timestamp_nanoseconds
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: KeyBinding final
 
    ``#include <gui_forms/events/key_commands/key_commands.hpp>`` (:src:`source <include/gui_forms/events/key_commands/key_commands.hpp>`)
@@ -859,6 +951,140 @@ Types
    .. cpp:member:: bool down
 
    .. cpp:member:: bool released_by_deactivation
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:struct:: ModelInspectRequest final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   One inspect section's request, borrowed for the handler's run: the window, and the node and control a target named (null for none).
+
+   .. cpp:member:: Window* window
+
+   .. cpp:member:: const SemanticNode* node
+
+   .. cpp:member:: Control* control
+
+   .. cpp:member:: const char* arguments_json
+
+   .. cpp:member:: std::size_t arguments_bytes
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:class:: ModelInspectText final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   The text an inspect section appends to, borrowed for its run.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit ModelInspectText(ModelInspectTextState& state) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool append(const char* utf8, std::size_t bytes)
+
+      Appends UTF-8 text; false (appending nothing) for text that is not UTF-8. inspect cuts a section at 64 KiB.
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:struct:: ModelToolCall final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   One call of a tool, borrowed for the handler's run.
+
+   .. cpp:member:: const char* arguments_json
+
+      The arguments: one JSON object, UTF-8, not NUL-terminated.
+
+   .. cpp:member:: std::size_t arguments_bytes
+
+   .. cpp:member:: const char* client_name
+
+      Who is calling, as the client states it (not verified); NUL-terminated and possibly empty.
+
+   .. cpp:member:: const char* model_name
+
+   .. cpp:member:: Window* window
+
+      The window the call names (its "window" argument, else the active one) for a UI tool; null for a ModelToolThread::any tool.
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:class:: ModelToolReply final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   The reply a handler fills, borrowed for its run: text, structured content and images, or one failure. A reply left empty succeeds with no text; after fail, the rest is ignored.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit ModelToolReply(ModelToolReplyState& state) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: bool text(const char* utf8, std::size_t bytes)
+
+      Appends UTF-8 text; false (appending nothing) for text that is not UTF-8 or would pass 4 MiB.
+
+   .. cpp:function:: bool structured(const char* json, std::size_t bytes)
+
+      Sets the structured content: one JSON object matching the tool's declared output; false for anything else.
+
+   .. cpp:function:: bool image(const unsigned char* bytes, std::size_t count, const char* mime_type)
+
+      Adds an image (PNG unless mime_type names another image type); false for no bytes, more than 16 MiB, or a mime type outside the image types.
+
+   .. cpp:function:: void fail(ModelToolError error, const char* message, const char* hint)
+
+      Fails the call with error, a message and a hint (each NUL-terminated, may be null).
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:struct:: ModelToolSpec final
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   A tool's declaration. The texts are UTF-8, NUL-terminated and copied by register_model_tool.
+
+   .. cpp:member:: const char* name
+
+      1 to 64 bytes of ASCII letters, digits, '_', '-' and '.', starting with a letter; unique among the program's tools and the built-in ones.
+
+   .. cpp:member:: const char* title
+
+      A short title for a client's list; may be null.
+
+   .. cpp:member:: const char* description
+
+      What the tool does, for the model: at most 4096 bytes.
+
+   .. cpp:member:: const char* input_schema
+
+      The arguments' JSON Schema, one object of at most 16384 bytes; null or empty takes any object.
+
+   .. cpp:member:: ModelToolAccess access
+
+      Default: ``{ModelToolAccess::read_only}``.
+
+   .. cpp:member:: bool destructive
+
+      Every call changes something the user cannot take back: the first call of the launch asks the user (study 10).
+
+   .. cpp:member:: ModelToolThread thread
+
+      Must be ui for an acting tool. Default: ``{ModelToolThread::ui}``.
+
+   .. cpp:member:: bool settles
+
+      An acting UI tool that settles runs as an act (posted, then waited on until the window is idle, with a diff in its reply).
 
 .. cpp:namespace:: gui_forms
 
@@ -1563,6 +1789,12 @@ Types
 
    .. cpp:member:: Rect bounds
 
+      In window coordinates, as the node is seen: under a contain or cover above it, the scaled rectangle (stage VA).
+
+   .. cpp:member:: double effective_scale
+
+      The scale the node is seen at (its control's Control::window_frame scale): 1 outside every contain or cover; below 1 its targets are that much smaller than authored (stage VA, section 9). Default: ``{1.0}``.
+
    .. cpp:member:: SemanticState states
 
       Default: ``{SemanticState::none}``.
@@ -1880,6 +2112,38 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: GestureKind
+
+   ``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+   .. cpp:enumerator:: magnify
+
+   .. cpp:enumerator:: rotate
+
+   .. cpp:enumerator:: smart_magnify
+
+   .. cpp:enumerator:: swipe
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: GesturePhase
+
+   ``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+   .. cpp:enumerator:: began
+
+   .. cpp:enumerator:: changed
+
+   .. cpp:enumerator:: ended
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: momentum
+
+   .. cpp:enumerator:: momentum_ended
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: KeyAction
 
    ``#include <gui_forms/events/input_events/input_events.hpp>`` (:src:`source <include/gui_forms/events/input_events/input_events.hpp>`)
@@ -1927,6 +2191,86 @@ Enumerations
    .. cpp:enumerator:: move_panel
 
    .. cpp:enumerator:: count
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:enum-class:: ModelToolAccess
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   .. cpp:enumerator:: read_only
+
+   .. cpp:enumerator:: acting
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:enum-class:: ModelToolError
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   .. cpp:enumerator:: not_found
+
+   .. cpp:enumerator:: stale_identity
+
+   .. cpp:enumerator:: ambiguous
+
+   .. cpp:enumerator:: disabled
+
+   .. cpp:enumerator:: not_visible
+
+   .. cpp:enumerator:: unsupported_action
+
+   .. cpp:enumerator:: dialog_open
+
+   .. cpp:enumerator:: needs_user
+
+   .. cpp:enumerator:: user_took_control
+
+   .. cpp:enumerator:: declined
+
+   .. cpp:enumerator:: protected_content
+
+   .. cpp:enumerator:: timeout
+
+   .. cpp:enumerator:: not_in_this_build
+
+   .. cpp:enumerator:: invalid_arguments
+
+   .. cpp:enumerator:: unknown_tool
+
+   .. cpp:enumerator:: window_gone
+
+   .. cpp:enumerator:: cancelled
+
+   .. cpp:enumerator:: busy
+
+   .. cpp:enumerator:: internal
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:enum-class:: ModelToolRegistration
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   .. cpp:enumerator:: added
+
+   .. cpp:enumerator:: invalid_name
+
+   .. cpp:enumerator:: duplicate
+
+   .. cpp:enumerator:: full
+
+   .. cpp:enumerator:: invalid_spec
+
+.. cpp:namespace:: gui_forms::automation
+
+.. cpp:enum-class:: ModelToolThread
+
+   ``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+   .. cpp:enumerator:: ui
+
+   .. cpp:enumerator:: any
 
 .. cpp:namespace:: gui_forms
 
@@ -2301,6 +2645,94 @@ Enumerations
 Functions, constants and aliases
 --------------------------------
 
+.. cpp:namespace:: gui_forms::automation
+
+``#include <gui_forms/automation/marks/automation_marks.hpp>`` (:src:`source <include/gui_forms/automation/marks/automation_marks.hpp>`)
+
+.. cpp:function:: bool mcp_capability_built() noexcept
+
+   Whether this build has the MCP capability (the GUI_FORMS_MCP build option, on by default).
+
+.. cpp:function:: void set_model_drivable(Window& window, bool drivable)
+
+   A dialog (or any window) a model may drive while it is open (study 9.2): the installer's setup dialog is the example. Without the mark a model is refused control while a dialog is open (dialog_open). The mark lasts as long as the window.
+
+.. cpp:function:: bool model_drivable(const Window& window) noexcept
+
+.. cpp:function:: void set_window_destructive(Window& window, bool destructive)
+
+   Every act in ``window`` is destructive: the first one of a launch asks the user once (study 10).
+
+.. cpp:function:: bool window_destructive(const Window& window) noexcept
+
+.. cpp:function:: bool set_action_destructive(const char* stable_id, SemanticAction action, bool destructive)
+
+   ``action`` on the node with stable identity ``stable_id`` (a control's or a virtual child's) is destructive. A Command marks itself with Command::set_destructive. False for an identity that is null, empty or not UTF-8, marking nothing.
+
+.. cpp:function:: bool action_destructive(const char* stable_id, SemanticAction action) noexcept
+
+.. cpp:function:: bool set_command_hidden_from_model(const char* stable_id, bool hidden)
+
+   The command with stable identity ``stable_id`` is not offered to a model as a tool, and invoke_command refuses it as not_found (study 7.2: "A program can hide any of them").
+
+.. cpp:function:: bool command_hidden_from_model(const char* stable_id) noexcept
+
+.. cpp:function:: bool require_user_step(const char* stable_id, const char* what_user_must_do)
+
+   A step inside an instrumented dialog that needs the user (study 9.3): a security approval, an administrator password, a licence. While it is pending, a model acting on the node ``stable_id`` is answered needs_user with ``what_user_must_do``, and the interface shows the step to the user. The program completes it once the user has done it; a model's wait on it then reports it done. False for invalid text, changing nothing.
+
+.. cpp:function:: void complete_user_step(const char* stable_id)
+
+.. cpp:function:: bool user_step_pending(const char* stable_id) noexcept
+
+.. cpp:function:: void set_clipboard_readable_by_model(bool readable) noexcept
+
+   Whether a model may read the clipboard (ruling 24); off by default.
+
+.. cpp:function:: bool clipboard_readable_by_model() noexcept
+
+.. cpp:function:: bool set_mcp_identity(const char* identity)
+
+   The program's MCP identity (study 4.3): app.<vendor>.<appname> by default, made from the program identity's vendor and product (set_program_identity). A program may set its own: 3 to 128 bytes of lowercase ASCII letters, digits, '.', '-' and '_', starting with a letter, with at least one '.'. False, keeping the identity, for anything else.
+
+.. cpp:function:: const char* mcp_identity_override() noexcept
+
+   The identity set, or empty when none was. Static storage, valid until the next set_mcp_identity.
+
+.. cpp:function:: void take_mcp_arguments(int& argc, char** argv) noexcept
+
+   Removes the automation's launch arguments from a program's argv before the program reads it (study 4.2): --mcp, --model-directed and --mcp-script <file>. argv's pointers move down and argc shrinks; argv [argc] stays null. The library reads the process's own arguments, so a program that never calls this still gets MCP; one that parses argv calls it first so the arguments do not reach its parser.
+
+.. cpp:namespace:: gui_forms::automation
+
+``#include <gui_forms/automation/tools/model_tools.hpp>`` (:src:`source <include/gui_forms/automation/tools/model_tools.hpp>`)
+
+.. cpp:function:: const char* model_tool_error_name(ModelToolError error) noexcept
+
+   The code's name as the model sees it ("not_found", "protected", ...). Static storage.
+
+.. cpp:function:: const char* model_tool_registration_name(ModelToolRegistration registration) noexcept
+
+   Static storage.
+
+.. cpp:function:: ModelToolRegistration register_model_tool(const ModelToolSpec& spec, ModelToolHandler handler, void* context)
+
+   Declares a tool. In a build without the automation (high-integrity, or GUI_FORMS_MCP off) the tool is recorded and never served.
+
+.. cpp:function:: bool unregister_model_tool(const char* name)
+
+   Withdraws the tool ``name``; false when none has it.
+
+.. cpp:function:: ModelToolRegistration register_model_inspect_section(const char* name, const char* description, ModelInspectHandler handler, void* context)
+
+   Declares an inspect section ``name`` (inspect's ``what``), described for the model. UI thread handlers only: inspect runs on the UI thread. The texts are NUL-terminated and copied.
+
+.. cpp:function:: bool unregister_model_inspect_section(const char* name)
+
+.. cpp:type:: ModelToolHandler = void (*)(void* context, const ModelToolCall& call, ModelToolReply& reply)
+
+.. cpp:type:: ModelInspectHandler = void (*)(void* context, const ModelInspectRequest& request, ModelInspectText& text)
+
 .. cpp:namespace:: gui_forms
 
 ``#include <gui_forms/drag/drag_tracker/drag_tracker.hpp>`` (:src:`source <include/gui_forms/drag/drag_tracker/drag_tracker.hpp>`)
@@ -2336,6 +2768,22 @@ Functions, constants and aliases
 .. cpp:var:: constexpr double default_drag_scroll_speed
 
    Value: ``1200.0``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/events/gesture_events/gesture_events.hpp>`` (:src:`source <include/gui_forms/events/gesture_events/gesture_events.hpp>`)
+
+.. cpp:function:: inline GestureEventArgs gesture_event_arguments(const GestureEvent& event, Point control_origin) noexcept
+
+   The GestureEventArgs ``event`` carries on a control whose absolute bounds start at ``control_origin`` (window coordinates). The caller copies handled back.
+
+.. cpp:function:: inline bool valid_gesture_event(const GestureEvent& event) noexcept
+
+   Whether ``event`` is one a host may report: a known kind and phase, a finite focal point, rotation and translation, and a finite scale above zero. The session refuses any other with invalid_payload.
+
+.. cpp:function:: constexpr bool gesture_phase_final(GesturePhase phase) noexcept
+
+   Whether ``phase`` certainly ends its gesture: the window releases the gesture's latch after it. ended does not, as momentum may follow it; the next began replaces the latch.
 
 .. cpp:namespace:: gui_forms
 
@@ -2391,9 +2839,13 @@ Functions, constants and aliases
 
    The routed pointer event a MouseEventArgs carries, for code that takes the routed form (a gesture engine, ScrollableControl's bar and wheel handling): the window position, the action, the button and the rest, with click_count from clicks. The caller copies handled back.
 
+.. cpp:function:: inline MouseEventArgs mouse_event_arguments(const PointerEvent& event, const ScaleFrame& control_frame, std::uint32_t press_clicks) noexcept
+
+   The MouseEventArgs a routed pointer event carries on a control whose window frame is ``control_frame`` (Control::window_frame): the record the window hands the mouse raisers. location is the event's position in the control's local coordinates (mapped back through the frame, so a handler sees unscaled coordinates under a contain), window_position the event's position; clicks is ``press_clicks`` for a press or release (the window passes the count the host reported for the press, which a release carries) and zero otherwise; the button, wheel delta, modifiers, action, wheel unit, wheel phase, timestamp, pointer identity, phase and handled are the event's, and suppress_click is false. The window builds its raisers' arguments with this, so the routed and raiser forms cannot drift apart; Control:: mouse_event_arguments fills the origin and click count for a handler of the routed form. The caller copies handled (and a release's suppress_click) back.
+
 .. cpp:function:: inline MouseEventArgs mouse_event_arguments(const PointerEvent& event, Point control_origin, std::uint32_t press_clicks) noexcept
 
-   The MouseEventArgs a routed pointer event carries on a control whose absolute bounds start at ``control_origin`` (window coordinates): the record the window hands the mouse raisers. location is the event's position less control_origin, window_position the event's position; clicks is ``press_clicks`` for a press or release (the window passes the count the host reported for the press, which a release carries) and zero otherwise; the button, wheel delta, modifiers, action, wheel unit, wheel phase, timestamp, pointer identity, phase and handled are the event's, and suppress_click is false. The window builds its raisers' arguments with this, so the routed and raiser forms cannot drift apart; Control:: mouse_event_arguments fills the origin and click count for a handler of the routed form. The caller copies handled (and a release's suppress_click) back.
+   The same for a control at ``control_origin`` at scale 1: its frame is that translation alone.
 
 .. cpp:namespace:: gui_forms
 

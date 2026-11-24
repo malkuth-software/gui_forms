@@ -1,6 +1,7 @@
 #include "text_mask_state.hpp"
 #include <cmath>
 #include <cstring>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 bool TextMaskLease::has_value() const noexcept { const bool valid = bool(storage_); return valid; }
@@ -56,8 +57,8 @@ bool valid_mask_utf8(const std::string_view text) noexcept {
 }
 }
 
-void require_mask_executor(const std::thread::id executor) {
-    if (executor != std::this_thread::get_id()) throw std::logic_error("Text mask control on wrong executor");
+void require_mask_executor(const stxlib::ThreadIdentity executor) {
+    if (executor != stxlib::current_thread()) throw std::logic_error("Text mask control on wrong executor");
 }
 std::uint64_t next_mask_identity() {
     std::uint64_t current = mask_identity.load(std::memory_order_relaxed);

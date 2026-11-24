@@ -4,6 +4,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
+#include "color_value_editor_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -14,6 +15,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::color_value_editor;
 
 ColorValueEditor::ColorValueEditor(StableId stable_id, Color initial_value)
     : Panel(std::move(stable_id)), value_(initial_value) {
@@ -149,7 +151,7 @@ void ColorValueEditor::accept_colour(Color incoming) {
         (*editor_).set_visual_status(ControlVisualStatus::normal);
         synchronizing_ = false;
     }
-    if (picker_open_ && picker_ && (*picker_).value.read() != value_) {
+    if (presentation_.is_shown() && picker_ && (*picker_).value.read() != value_) {
         synchronizing_ = true;
         (*picker_).value = value_;
         synchronizing_ = false;
@@ -170,7 +172,7 @@ Rect ColorValueEditor::swatch_bounds() const noexcept {
 bool ColorValueEditor::open_picker() {
     require_mutable();
     Window* const window = attached_window();
-    if (picker_open_ || window == nullptr || !effectively_enabled()) return false;
+    if (!presentation_.is_closed() || window == nullptr || !effectively_enabled()) return false;
     const Control::Ptr self = shared_from_this();
     AnchoredOverlayPlacement placement;
     placement.horizontal_alignment = OverlayHorizontalAlignment::start;
@@ -194,30 +196,51 @@ bool ColorValueEditor::open_picker() {
     synchronizing_ = false;
     const Size client = (*window).client_size();
     (*layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    overlay_ = (*window).open_overlay(self, layer_);
-    picker_open_ = true;
-    if (Event<>* closed = overlay_.closed_event()) {
-        overlay_revoked_ =
+    AnchoredOpening opening{};
+    opening.lease.overlay = (*window).open_overlay(self, layer_);
+    if (Event<>* closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed =
             (*closed).subscribe(*this, Delegate<>::bind<ColorValueEditor, &ColorValueEditor::on_overlay_revoked>(*this));
     }
-    scope_ = (*window).begin_focus_scope(layer_, picker_);
+    presentation_ = AnchoredPresentation::opening(std::move(opening));
+    // Beginning the scope runs focus and validation handlers; one may close
+    // the picker, and then the scope begun here is ended here. A refused
+    // scope (state hunt N3: a containing scope, the nesting limit) closes
+    // the picker again before the refusal leaves, so a failed open leaves
+    // nothing shown.
+    FocusScopeId started{};
+    try {
+        started = (*window).begin_focus_scope(layer_, picker_);
+    } catch (...) {
+        close_picker();
+        throw;
+    }
+    if (!presentation_.settle_open()) {
+        Window* const still = attached_window();
+        if (started && still != nullptr) static_cast<void>((*still).end_focus_scope(started));
+        return true;
+    }
+    (*presentation_.open_state()).lease.scope = started;
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
 
 void ColorValueEditor::close_picker() noexcept {
-    if (!picker_open_) return;
-    picker_open_ = false;
+    // Closing from here on: a handler the steps run can neither close nor
+    // open the picker again until it is closed.
+    if (!presentation_.begin_closing()) return;
+    OverlayLease& closing = (*presentation_.closing_state()).lease;
     Window* const window = attached_window();
-    if (window != nullptr && scope_) {
+    if (window != nullptr && closing.scope) {
         try {
-            static_cast<void>((*window).end_focus_scope(scope_));
+            static_cast<void>((*window).end_focus_scope(closing.scope));
         } catch (...) {
         }
     }
-    scope_ = {};
-    overlay_revoked_.disconnect();
-    overlay_.disconnect();
+    closing.scope = {};
+    closing.overlay_closed.disconnect();
+    closing.overlay.disconnect();
+    presentation_.finish_closing();
     if (!is_alive()) return;
     try {
         invalidate(Dirty::paint | Dirty::semantics);
@@ -226,7 +249,7 @@ void ColorValueEditor::close_picker() noexcept {
 }
 
 void ColorValueEditor::on_picker_changed(Color colour) {
-    if (synchronizing_ || !picker_open_) return;
+    if (synchronizing_ || !presentation_.is_shown()) return;
     accept_colour(colour);
 }
 
@@ -237,16 +260,14 @@ void ColorValueEditor::on_layer_dismissed(OverlayDismissReason) {
 // The window closed the overlay (it closed, or the editor left it): the
 // lease and scope are gone with it.
 void ColorValueEditor::on_overlay_revoked() {
-    if (!picker_open_) return;
-    picker_open_ = false;
-    scope_ = {};
-    overlay_revoked_.disconnect();
+    if (!presentation_.is_shown()) return;
+    presentation_.finish_closing();
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
 void ColorValueEditor::on_mouse_down(MouseEventArgs& arguments) {
     if (arguments.button == PointerButton::primary && swatch_bounds().contains(arguments.location)) {
-        if (picker_open_) {
+        if (presentation_.is_shown()) {
             close_picker();
         } else {
             static_cast<void>(open_picker());
@@ -452,7 +473,7 @@ void ColorValueEditor::append_interactions(std::vector<InteractionDeclaration>& 
 
 void ColorValueEditor::prepare_write(const decltype(swatch_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 12.0 || incoming > 96.0) {
+    if (!ic::admits_swatch_width(incoming)) {
         throw std::invalid_argument("color editor swatch width must be within [12, 96]");
     }
 }

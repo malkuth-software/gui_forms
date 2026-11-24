@@ -2,6 +2,7 @@
 
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <span>
@@ -312,7 +313,7 @@ SemanticDescriptor DataGridViewCells::semantic_descriptor() const {
 }
 
 Control::Ptr DataGridViewCellsContent::build_root() {
-    cells_ = std::make_shared<DataGridViewCells>(stable_id_);
+    cells_ = gui_forms::detail::make_library_shared<DataGridViewCells>(stable_id_);
     Control::Ptr root = cells_;
     return root;
 }

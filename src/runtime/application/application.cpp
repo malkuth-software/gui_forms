@@ -1,6 +1,10 @@
 #include "gui_forms/application.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../core/application/application_state.hpp"
 #include "../../core/application/splashscreen_surface.hpp"
+#if defined(GUI_FORMS_MCP_BUILT)
+#include "../automation/automation_run.hpp"
+#endif
 
 #include <atomic>
 #include <optional>
@@ -233,8 +237,8 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
                          const std::shared_ptr<CallbackFailure>& failure,
                          const std::shared_ptr<detail::ApplicationRunState>& run) {
     const bool primary = detail::primary_window_entry(source);
-    const std::shared_ptr<WindowBridge> bridge = std::make_shared<WindowBridge>();
-    (*bridge).state = std::make_shared<detail::ApplicationWindowState>();
+    const std::shared_ptr<WindowBridge> bridge = gui_forms::detail::make_library_shared<WindowBridge>();
+    (*bridge).state = gui_forms::detail::make_library_shared<detail::ApplicationWindowState>();
     (*bridge).failure = failure;
     (*bridge).model = source.model.get();
     (*bridge).options = std::move(source.options);
@@ -447,14 +451,19 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
     if (shut_down.load()) return {ApplicationError::after_shutdown};
     ApplicationResult result = validate(windows);
     if (!result.accepted()) return result;
+#if defined(GUI_FORMS_MCP_BUILT)
+    // The automation (src/runtime/automation): with --mcp or --mcp-script it
+    // joins every window as it becomes ready, and ends after the windowing.
+    const automation::AutomationRunScope automation_scope{};
+#endif
     // Before any native window exists (stage T5).
     for (ApplicationWindow& entry : windows) {
         if (entry.options.non_opaque) static_cast<void>((*entry.model).declare_non_opaque());
     }
     BridgeScope bridges{};
-    const std::shared_ptr<CallbackFailure> failure = std::make_shared<CallbackFailure>();
+    const std::shared_ptr<CallbackFailure> failure = gui_forms::detail::make_library_shared<CallbackFailure>();
     const std::shared_ptr<detail::ApplicationRunState> run_state =
-        std::make_shared<detail::ApplicationRunState>();
+        gui_forms::detail::make_library_shared<detail::ApplicationRunState>();
     (*run_state).key_bindings = key_bindings_;
 #if defined(GUI_FORMS_APPLICATION_MACOS)
     std::vector<host::MacApplicationWindow> native{};

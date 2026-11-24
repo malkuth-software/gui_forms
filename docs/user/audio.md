@@ -18,8 +18,8 @@ find_package(GUIForms CONFIG REQUIRED COMPONENTS Audio)
 target_link_libraries(my_app PRIVATE GUIForms::Audio)
 ```
 
-`GUIForms::Audio` is a static library that links `GUIForms::Threading` and
-nothing from the retained engine, so an adapter library can use it beside
+`GUIForms::Audio` is a static library that links `GUIForms::Threading`,
+`GUIForms::Memory` and nothing from the retained engine, so an adapter library can use it beside
 `GUIForms::Application` (see [Consuming the SDK](consume-the-sdk.md)). The
 public header is `<gui_forms/audio/audio.hpp>`; every type is listed in the
 [Audio reference](../api/library.audio.rst).

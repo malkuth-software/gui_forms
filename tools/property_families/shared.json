@@ -16,6 +16,12 @@
       "value_header": "gui_forms/controls/label_values.hpp",
       "enumeration": "label_detail::horizontal_alignment_enum()",
       "enumeration_header": "src/controls/label/horizontal_alignment_property.hpp"
+    },
+    {
+      "value": "ScaledAspect",
+      "value_header": "gui_forms/controls/scaled_layout_values.hpp",
+      "enumeration": "scaled_layout_detail::scaled_aspect_enum()",
+      "enumeration_header": "src/controls/scrollable_control/container_control/scaled_aspect_property.hpp"
     }
   ],
   "properties": [

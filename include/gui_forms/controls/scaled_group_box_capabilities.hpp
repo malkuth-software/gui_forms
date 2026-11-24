@@ -1,6 +1,8 @@
 #pragma once
 
 #include "gui_forms/binding/property_cell/property_cell.hpp"
+#include "gui_forms/controls/shared_property_enums.hpp"
+#include "gui_forms/controls/scaled_layout_values.hpp"
 #include "gui_forms/types.hpp"
 
 #include <cstdint>
@@ -24,21 +26,21 @@ namespace gui_forms {
 // have no hook, and a subclass subscribes to their change events instead). A read is
 // `(*control).x.read()`.
 
-// The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.
+// How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
 template <typename Declaring>
-struct ScaledGroupBoxDesignSizeCapability {
-    PropertyCell<Size, ScaledGroupBoxDesignSizeCapability<Declaring>> design_size{Size{1.0, 1.0}};
+struct ScaledGroupBoxAspectCapability {
+    PropertyCell<ScaledAspect, ScaledGroupBoxAspectCapability<Declaring>> aspect{ScaledAspect::stretch};
 
-    static void assign(ScaledGroupBoxDesignSizeCapability& capability, Size incoming) {
+    static void assign(ScaledGroupBoxAspectCapability& capability, ScaledAspect incoming) {
         Declaring& control = static_cast<Declaring&>(capability);
-        control.prepare_write(std::as_const(capability.design_size), incoming);
-        if (!capability.design_size.replace(std::move(incoming))) return;
-        control.written(std::as_const(capability.design_size));
+        control.prepare_write(std::as_const(capability.aspect), incoming);
+        if (!capability.aspect.replace(std::move(incoming))) return;
+        control.written(std::as_const(capability.aspect));
     }
 };
 
 // Every ScaledGroupBox capability, in the order the declaring class takes them.
 template <typename Declaring>
-struct ScaledGroupBoxCapabilities : public ScaledGroupBoxDesignSizeCapability<Declaring> {};
+struct ScaledGroupBoxCapabilities : public ScaledGroupBoxAspectCapability<Declaring> {};
 
 } // namespace gui_forms

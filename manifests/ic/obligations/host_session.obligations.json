@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "component": "gui_forms::HostSession",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/host/session/host_session.ic.toml",
+    "sha256": "d8460724918205dc2537ce86094a55b378cc24033cb78114a095088297039f37"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.hostsession.dispatch.requires.dispatch_sequence",
+      "kind": "entry-check",
+      "statement": "dispatch runs only when sequence != 0; otherwise returns HostDispatchError::sequence_zero, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::host_session::admits_dispatch_sequence, called in src/core/host/session/host_session.cpp"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.refusal.dispatch_sequence",
+      "kind": "refusal-leaves",
+      "statement": "Unless sequence != 0, dispatch changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.requires.dispatch_order",
+      "kind": "entry-check",
+      "statement": "dispatch runs only when sequence > last_sequence; otherwise returns HostDispatchError::non_monotonic_sequence, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::host_session::admits_dispatch_order, called in src/core/host/session/host_session.cpp"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.refusal.dispatch_order",
+      "kind": "refusal-leaves",
+      "statement": "Unless sequence > last_sequence, dispatch changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.requires.dispatch_lifecycle",
+      "kind": "entry-check",
+      "statement": "dispatch runs only when (phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0); otherwise returns HostDispatchError::invalid_lifecycle, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::host_session::admits_dispatch_lifecycle, called in src/core/host/session/host_session.cpp"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.refusal.dispatch_lifecycle",
+      "kind": "refusal-leaves",
+      "statement": "Unless (phase != phase_constructed or attach != 0 or shutdown != 0) and (phase != phase_attached or attach == 0) and (phase != phase_close_authorized or closed != 0 or shutdown != 0 or passive_terminal != 0) and (phase != phase_closed or shutdown != 0), dispatch changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.requires.dispatch_size",
+      "kind": "entry-check",
+      "statement": "dispatch runs only when finite(width) and finite(height) and width > 0 and height > 0; otherwise returns HostDispatchError::invalid_geometry, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::host_session::admits_dispatch_size, called in src/core/host/session/host_session.cpp"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.refusal.dispatch_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(width) and finite(height) and width > 0 and height > 0, dispatch changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.requires.dispatch_scale",
+      "kind": "entry-check",
+      "statement": "dispatch runs only when finite(scale) and scale > 0; otherwise returns HostDispatchError::invalid_geometry, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::host_session::admits_dispatch_scale, called in src/core/host/session/host_session.cpp"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.refusal.dispatch_scale",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(scale) and scale > 0, dispatch changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.order",
+      "kind": "refusal-order",
+      "statement": "When several of dispatch's refusals apply, the first of dispatch_sequence, then dispatch_order, then the state refusal, then dispatch_lifecycle, then dispatch_size, then dispatch_scale is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch.outside.shutdown",
+      "kind": "typestate-refusal",
+      "statement": "dispatch in shutdown: returns HostDispatchError::after_shutdown, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.shutdown.moves",
+      "kind": "transition",
+      "statement": "shutdown succeeding in any state leaves the object in shutdown.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.hostsession.dispatch_transitions",
+      "kind": "stated",
+      "statement": "An accepted attach moves constructed to attached; a closing event that is not cancelled, hidden, a session end or a query moves attached to close_authorized; an accepted closed event moves to closed; shutdown, or a dispatch after the window was destroyed, moves to shutdown. Window::host_lifecycle_phase reports the same phase while the window lives (HostSession::set_phase writes both).",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "method": "inspection of HostSession::DispatchVisitor and set_phase; the hosts' lifecycle tests"
+    }
+  ]
+}

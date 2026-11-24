@@ -1,0 +1,54 @@
+# The C ABI's gf_classes_table (GF_TABLE_CLASSES): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_classes_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_classes_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi_classes.h"
+anchor = "typedef struct gf_classes_table {"
+keys = { manifest = "gf_abi::classes", abi = "GF_TABLE_CLASSES" }
+thread = "ui"
+
+[checks]
+path = "src/abi/stable/ic/abi_classes_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_classes"
+includes = ["gui_forms/c/gf_abi.h", "gui_forms/c/gf_abi_classes.h"]
+used_in = ["src/abi/stable/tables/abi_classes.cpp"]
+
+[[call]]
+name = "create"
+declarations = ["gf_status (GF_CALL* create)("]
+kind = "static"
+thread = "ui"
+parameters = { object = "gf_object*", table = "gf_class_header*" }
+returns = { type = "gf_object", owns = "caller" }
+requires = [
+  { holds = "not_null(object)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_object" },
+  { holds = "not_null(table)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "create_table" },
+]
+refusal_order = ["create_object", "create_table"]
+fails = [
+  { failure = "invalid_argument", when = "A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re" },
+  { failure = "not_found", when = "A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re" },
+  { failure = "unsupported_capability", when = "code: this class is not made from a stable id alone; it has no class table object yet" },
+  { failure = "unsupported_version", when = "A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re" },
+]
+
+[[call]]
+name = "base_raiser"
+declarations = ["gf_status (GF_CALL* base_raiser)("]
+kind = "static"
+thread = "any"
+fails = [
+  { failure = "invalid_argument", when = "code: a base function needs an event" },
+  { failure = "not_found", when = "An unknown class or entry gives GF_STATUS_NOT_FOUND." },
+]
+
+[[obligation]]
+id = "base_raiser_object_kind"
+statement = "The base function that base_raiser gives refuses, when it is called, an object not made from a class table or whose class chain lacks the entry's segment, with GF_STATUS_WRONG_HANDLE_KIND; base_raiser itself takes no object, so the refusal is the raiser's, not the slot's."
+method = "inspection of the raiser's entry check (src/abi/stable/classes/abi_class_bridge.cpp)"
+premises = []

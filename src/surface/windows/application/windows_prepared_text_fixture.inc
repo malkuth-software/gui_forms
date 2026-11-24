@@ -109,7 +109,7 @@ struct PreparedHostFixture final {
                 std::unique_ptr<PreparedTextSession> session{};
                 const PreparedTextStatus opened = service.open_session(bank, nullptr, session);
                 prepared_test::require(opened == PreparedTextStatus::success, "prepared fixture session");
-                std::shared_ptr<PreparedFixtureControl> control = std::make_shared<PreparedFixtureControl>();
+                std::shared_ptr<PreparedFixtureControl> control = gui_forms::detail::make_library_shared<PreparedFixtureControl>();
                 std::unique_ptr<Window> model = std::make_unique<Window>(control, Size{160, 64});
                 WindowsHostOptions options{};
                 options.quit_thread_on_close = false;

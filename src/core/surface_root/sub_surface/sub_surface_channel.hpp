@@ -1,14 +1,14 @@
 #pragma once
 
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../../dispatcher/state/dispatcher_state.hpp"
 
-#include <condition_variable>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <string>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 #include <stxlib/optional.hpp>
@@ -27,10 +27,10 @@ struct SubSurfaceInputRecord final {
 // wake handler takes it); neither side posts or calls into a SurfaceRoot
 // while holding it.
 struct SubSurfaceChannel final {
-    std::mutex mutex;
+    stxlib::Mutex mutex;
     // Signalled on a new configuration, a stop request, and every dispatch
     // or paint wake of the sub-surface.
-    std::condition_variable wake;
+    stxlib::ConditionVariable wake;
     // The newest configuration not yet applied.
     std::optional<SubSurfaceConfiguration> pending{};
     // Input not yet dispatched, in posting order. The loop swaps the whole
@@ -74,7 +74,7 @@ struct SubSurfaceChannel final {
     // The sub-surface thread's synchronous invokes, revoked by stop() before
     // it joins (detail::RevocableInvokes). Made with the channel, named by
     // the thread at its start; guarded by its own leaf mutex, not `mutex`.
-    std::shared_ptr<RevocableInvokes> revocable_invokes{std::make_shared<RevocableInvokes>()};
+    std::shared_ptr<RevocableInvokes> revocable_invokes{gui_forms::detail::make_library_shared<RevocableInvokes>()};
     // A dispatch or paint wake arrived since the loop last looked.
     bool signalled{};
     SubSurfaceState state{SubSurfaceState::starting};
@@ -92,7 +92,7 @@ public:
     explicit SignalSubSurfaceChannel(std::shared_ptr<SubSurfaceChannel> channel) noexcept
         : channel_(std::move(channel)) {}
     void operator()() const {
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         (*channel_).signalled = true;
         (*channel_).wake.notify_one();
     }

@@ -70,7 +70,7 @@
       "hooks": "generated",
       "written_effects": "Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument(\"button flat border width must be finite and nonnegative\");"
+        "if (!ic::admits_flat_border_width(incoming)) throw std::invalid_argument(\"button flat border width must be finite and nonnegative\");"
       ],
       "sample": "2.0"
     },

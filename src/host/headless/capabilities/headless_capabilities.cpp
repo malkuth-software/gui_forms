@@ -20,6 +20,9 @@ HostCapabilities headless_capabilities() {
                 HostCapability::clipboard |
                 HostCapability::clipboard_images |
                 HostCapability::typed_drag_destination |
+                // The reference host simulates a drag to other programs:
+                // tests end it (HeadlessHostServices::finish_drag_source).
+                HostCapability::typed_drag_source |
                 HostCapability::dialogs |
                 HostCapability::sound_cues |
                 HostCapability::notification_area |
@@ -55,6 +58,10 @@ HostCapabilities headless_capabilities() {
                 // The reference host records each address it is asked to
                 // open (HeadlessHostServices::opened_urls) and opens none.
                 HostCapability::open_url |
+                // The reference host keeps each desktop notification it is
+                // asked to show (HeadlessHostServices::desktop_notification)
+                // and shows none; tests report what the user did.
+                HostCapability::desktop_notifications |
                 // Hosted content is real: the platform's process
                 // implementation runs under the reference host too.
                 HostCapability::hosted_content,

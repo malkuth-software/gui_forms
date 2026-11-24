@@ -70,7 +70,7 @@ gui_forms::Worker
    context are visible to the creating thread once :cpp:func:`join <gui_forms::Worker::join>` has returned.
 
    A worker cannot be copied or moved. Workers run on system pthreads on macOS
-   and Linux and on MSYS2 winpthreads on Windows, through the shared
+   and Linux and on Win32 threads (STXlib's threads) on Windows, through the shared
    ``GUIForms::Threading`` library.
 
    .. rubric:: Examples

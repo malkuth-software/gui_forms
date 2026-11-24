@@ -481,6 +481,17 @@ inline constexpr std::size_t maximum_queued_patterns = 32U;
 // side). A paint takes the tiles held and queues the rest; idle frames
 // paint them (EnginePartTable::generate_finish_tiles).
 inline constexpr std::uint32_t finish_tile_side = 128U;
+// The world pixels a tile's raster carries beyond its square on every side
+// (owner, 2026-11-22: a grid showed where tiles met): its raster is
+// finish_tile_raster_side pixels square, its first pixel world pixel
+// (c * side - apron, r * side - apron), and neighbours overlap by twice the
+// apron. Drawn in order, each tile covers the edge of the one before with
+// the same world pixels, so a tile edge that is not composited whole (a
+// raster resampled at another scale, whose edge pixels read transparent
+// texels beyond it; an antialiased edge between device pixels; a corner
+// rounded to the other pixel) never shows the surface beneath.
+inline constexpr std::uint32_t finish_tile_apron = 2U;
+inline constexpr std::uint32_t finish_tile_raster_side = finish_tile_side + 2U * finish_tile_apron;
 struct GUI_FORMS_API FinishTileKey final {
     FinishFill finish{};
     double display_scale{1.0};
@@ -492,11 +503,11 @@ struct GUI_FORMS_API FinishTileKey final {
                left.scale == right.scale && left.column == right.column && left.row == right.row;
     }
 };
-// The most bytes of finish tiles one window keeps: 512 tiles of 64 KiB,
-// a 2900-pixel square of one layer. The least recently used tile is
-// evicted first, never one the latest paint used: a tile that finds no
-// room is not held (counted as a refusal) and its place stays bare. A
-// proposed default.
+// The most bytes of finish tiles one window keeps: about 480 tiles of 68
+// KiB (finish_tile_raster_side squared), a 2800-pixel square of one
+// layer. The least recently used tile is evicted first, never one the
+// latest paint used: a tile that finds no room is not held (counted as a
+// refusal) and its place stays bare. A proposed default.
 inline constexpr std::size_t finish_tile_budget_bytes = 32U * 1024U * 1024U;
 // The most finish tiles queued for idle frames at once; a tile that does
 // not fit is queued again when a paint next asks for it.

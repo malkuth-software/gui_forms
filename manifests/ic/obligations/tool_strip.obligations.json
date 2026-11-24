@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ToolStrip",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/tool_strip.ic.toml",
+    "sha256": "fd80a784df4a2392ed95fadf606509b7dfbad8ed8d28982c9fbc6926a2960afa"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.toolstrip.end_reserve_write.requires.end_reserve",
+      "kind": "entry-check",
+      "statement": "end_reserve runs only when finite(incoming) and incoming >= 0 and incoming <= 64; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::tool_strip::admits_end_reserve, called in src/controls/tool_strip/tool_strip.cpp"
+    },
+    {
+      "id": "gui_forms.toolstrip.end_reserve_write.refusal.end_reserve",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0 and incoming <= 64, end_reserve changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

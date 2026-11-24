@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Component",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/component/component/component.ic.toml",
+    "sha256": "592e506ed1ed81307af575332212216194014240c99831efcfec380048e33ab8"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.component.dispose.moves",
+      "kind": "transition",
+      "statement": "dispose succeeding in any state leaves the object in disposed.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.component.own_revocable.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "own_revocable in disposing: returns null, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.component.own_revocable.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "own_revocable in disposed: returns null, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.component.own_subscription.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "own_subscription in disposing: returns null, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.component.own_subscription.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "own_subscription in disposed: returns null, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.component.dispose_once",
+      "kind": "stated",
+      "statement": "dispose from alive moves to disposing, revokes the owned work, runs on_dispose and moves to disposed; from disposing (a re-entrant dispose inside on_dispose) or disposed it changes nothing. own_revocable and own_subscription outside alive disconnect what they were given at once (the outside refusal null: nothing is owned).",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "method": "inspection of Component::dispose, own_revocable and own_subscription (component.cpp)"
+    }
+  ]
+}

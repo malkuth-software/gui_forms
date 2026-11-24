@@ -8,6 +8,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -28,7 +29,7 @@ namespace {
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_state_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "indicator_lamp_state", {{"off", 0}, {"on", 1}, {"error", 2}, {"fault", 3}}, false});
     return value;
 }
@@ -37,7 +38,7 @@ std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_state_enum() {
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> indicator_lamp_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(
             PropertyEnumDescriptor{"indicator_lamp_style", {{"lens", 0}, {"pinpoint", 1}}, false});
     return value;
 }
@@ -167,6 +168,65 @@ bool IndicatorLamp::changing() const noexcept {
     return running;
 }
 
+bool IndicatorLamp::sparkling() const noexcept {
+    const bool running = sparkle_timer_.started();
+    return running;
+}
+
+bool IndicatorLamp::sparkle_runs() const noexcept {
+    const IndicatorLampState shown = state.read();
+    const bool lit_steadily = lit(shown) && shown != IndicatorLampState::fault;
+    const bool runs = lamp_sparkle.read() && lit_steadily && attached_window() != nullptr && !reduced_motion();
+    return runs;
+}
+
+std::uint32_t IndicatorLamp::sparkle_seed() const noexcept {
+    const std::uint32_t seed = fault_seed() ^ 0x5a17c1e5U;
+    return seed;
+}
+
+void IndicatorLamp::update_sparkle() {
+    if (!sparkle_runs()) {
+        const bool shown =
+            sparkle_timer_.started() || !engine_light::same_lamp_glints(glints_, engine_light::LampGlints{});
+        sparkle_timer_.stop();
+        sparkle_since_.reset();
+        glints_ = engine_light::LampGlints{};
+        if (shown) invalidate(Dirty::paint);
+        return;
+    }
+    if (sparkle_timer_.started()) return;
+    const std::shared_ptr<IndicatorLamp> self = std::dynamic_pointer_cast<IndicatorLamp>(shared_from_this());
+    if (!self) return;
+    sparkle_since_.reset();
+    sparkle_timer_.start(*this, sparkle_interval, SparkleTick{self});
+}
+
+AnimationTickResult IndicatorLamp::advance_sparkle(FrameTime now) {
+    if (!sparkle_runs()) {
+        // Steady from here (reduced motion turned on, say); a later change
+        // of state starts the sparkle again.
+        update_sparkle();
+        return AnimationTickResult::damaged;
+    }
+    if (sparkle_since_.absent()) sparkle_since_.set(now);
+    const FrameTime started = sparkle_since_.value_or(now);
+    const double seconds = std::chrono::duration<double>(now - started).count();
+    const engine_light::LampGlints glints = engine_light::lamp_sparkle_glints(sparkle_seed(), seconds);
+    // Between glints nothing changes and nothing is repainted.
+    if (engine_light::same_lamp_glints(glints, glints_)) return AnimationTickResult::unchanged;
+    glints_ = glints;
+    invalidate(Dirty::paint);
+    return AnimationTickResult::damaged;
+}
+
+AnimationTickResult IndicatorLamp::SparkleTick::operator()(FrameTime now) const {
+    const std::shared_ptr<IndicatorLamp> live = lamp.lock();
+    if (!live) return AnimationTickResult::unchanged;
+    const AnimationTickResult result = (*live).advance_sparkle(now);
+    return result;
+}
+
 std::shared_ptr<const engine_light::LightPlanes> IndicatorLamp::shown_bake() const {
     // A pinpoint is the jewel lamp's light (owner, 2026-11-21: the same
     // light model as the jewel lamps), its bake named or else the shipped
@@ -284,6 +344,7 @@ Size IndicatorLamp::measure(Size available) {
 
 void IndicatorLamp::on_paint(Painter& painter, Rect) {
     change_timer_.note_painted();
+    sparkle_timer_.note_painted();
     std::shared_ptr<const engine_light::LightPlanes> bake = shown_bake();
     const Placement placed = placement(bake.get());
     const AnatomyStateSet states = with_style_state(base_anatomy_states(), lamp_style.read());
@@ -364,6 +425,8 @@ void IndicatorLamp::paint_baked_lens(Painter& painter, const Placement& placed, 
     if (jewel) settings.filter = engine_light::jewel_filter(colour);
     const double gain = jewel ? engine_light::jewel_lamp_power : 1.0;
     const double power = lit_now ? std::min(1.0, power_) * gain : 0.0;
+    // A sparkling jewel's glints (lamp_sparkle); a bake shown whole has none.
+    if (jewel && lit_now) settings.glints = glints_;
     lens.light_planes.set(PartLightPlanes{.planes = std::move(bake),
                                         .drive = engine_light::LampDrive{colour, power},
                                         .settings = settings,
@@ -433,7 +496,7 @@ void IndicatorLamp::begin_change() {
     if (on) power_ = engine_light::lamp_power(true, 0.0, false);
     const std::shared_ptr<IndicatorLamp> self = std::dynamic_pointer_cast<IndicatorLamp>(shared_from_this());
     if (!self) return;
-    change_timer_.start(*this, display_frame_interval, ChangeTick{self});
+    change_timer_.start_every_frame(*this, ChangeTick{self});
 }
 
 AnimationTickResult IndicatorLamp::advance(FrameTime now) {
@@ -465,9 +528,17 @@ AnimationTickResult IndicatorLamp::ChangeTick::operator()(FrameTime now) const {
     return result;
 }
 
+void IndicatorLamp::on_attached_to_window() {
+    Control::on_attached_to_window();
+    update_sparkle();
+}
+
 void IndicatorLamp::on_detached_from_window() noexcept {
     Control::on_detached_from_window();
     change_timer_.stop();
+    sparkle_timer_.stop();
+    sparkle_since_.reset();
+    glints_ = engine_light::LampGlints{};
     baked_lens_.release();
     // A lamp warming or cooling while away shows its end state when shown
     // again.
@@ -483,7 +554,17 @@ void IndicatorLamp::prepare_write(const decltype(state)&, IndicatorLampState& in
 
 void IndicatorLamp::written(const decltype(state)&) {
     begin_change();
+    update_sparkle();
     invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void IndicatorLamp::prepare_write(const decltype(lamp_sparkle)&, bool&) {
+    require_mutable();
+}
+
+void IndicatorLamp::written(const decltype(lamp_sparkle)&) {
+    update_sparkle();
+    invalidate(Dirty::paint);
 }
 
 // property_codemod begin IndicatorLamp (tools/property_families/indicator_lamp.json; generated, do not edit)
@@ -583,6 +664,24 @@ const PropertyDescriptor& describe_indicator_lamp_lamp_style() {
     return descriptor;
 }
 
+PropertyDescriptor indicator_lamp_lamp_sparkle_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "lamp_sparkle";
+    descriptor.kind = BindingValueKind::boolean;
+    descriptor.category = "Appearance";
+    descriptor.description = "Whether the lit jewel sparkles now and then in its facets.";
+    descriptor.default_value = BindingValue{false};
+    descriptor.invalidation_effects = Dirty::paint;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_indicator_lamp_lamp_sparkle() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        indicator_lamp_lamp_sparkle_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
 } // namespace
 
 PropertyType PropertyValueTraits<IndicatorLampState>::type() {
@@ -595,7 +694,7 @@ BindingValue PropertyValueTraits<IndicatorLampState>::to_binding(IndicatorLampSt
     descriptor.enumeration = indicator_lamp_state_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -614,7 +713,7 @@ BindingValue PropertyValueTraits<IndicatorLampStyle>::to_binding(IndicatorLampSt
     descriptor.enumeration = indicator_lamp_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -624,7 +723,7 @@ IndicatorLampStyle PropertyValueTraits<IndicatorLampStyle>::from_binding(const B
 }
 
 const std::array<PropertyEntry, IndicatorLamp::indicator_lamp_property_count>& IndicatorLamp::indicator_lamp_property_entries() noexcept {
-    static constexpr std::array<PropertyEntry, 5U> own{{
+    static constexpr std::array<PropertyEntry, 6U> own{{
         {"state", &describe_indicator_lamp_state,
          &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::state), &IndicatorLamp::state>,
          &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::state), &IndicatorLamp::state>,
@@ -648,6 +747,11 @@ const std::array<PropertyEntry, IndicatorLamp::indicator_lamp_property_count>& I
         {"lamp_style", &describe_indicator_lamp_lamp_style,
          &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_style), &IndicatorLamp::lamp_style>,
          &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_style), &IndicatorLamp::lamp_style>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+        {"lamp_sparkle", &describe_indicator_lamp_lamp_sparkle,
+         &read_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_sparkle), &IndicatorLamp::lamp_sparkle>,
+         &write_cell_entry<IndicatorLamp, decltype(&IndicatorLamp::lamp_sparkle), &IndicatorLamp::lamp_sparkle>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};

@@ -7,7 +7,9 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/engine/motion_clock/motion_clock.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../basic/number_text.hpp"
+#include "progress_ring_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -18,6 +20,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::progress_ring;
 namespace {
 
 constexpr double natural_side = 32.0;
@@ -26,7 +29,7 @@ constexpr double natural_side = 32.0;
 // any thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> progress_ring_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "progress_ring_style", {{"theme", 0}, {"dots", 1}, {"arc", 2}}, false});
     return value;
 }
@@ -393,7 +396,7 @@ BindingValue PropertyValueTraits<ProgressRingStyle>::to_binding(ProgressRingStyl
     descriptor.enumeration = progress_ring_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -438,7 +441,7 @@ std::span<const PropertyEntry> ProgressRing::property_table() const noexcept {
 
 void ProgressRing::prepare_write(const decltype(value)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming)) throw std::invalid_argument("ProgressRing value must be finite");
+    if (!ic::admits_value(incoming)) throw std::invalid_argument("ProgressRing value must be finite");
 }
 
 void ProgressRing::written(const decltype(value)&) {
@@ -447,7 +450,7 @@ void ProgressRing::written(const decltype(value)&) {
 
 void ProgressRing::prepare_write(const decltype(maximum)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming <= 0.0) {
+    if (!ic::admits_maximum(incoming)) {
         throw std::invalid_argument("ProgressRing maximum must be finite and greater than zero");
     }
 }

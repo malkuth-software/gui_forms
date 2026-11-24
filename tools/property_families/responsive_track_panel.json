@@ -73,7 +73,7 @@
       },
       "hooks": "generated",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument(\"ResponsiveTrackPanel gap must be finite and between zero and 256\");"
+        "if (!ic::admits_track_gap(incoming)) throw std::invalid_argument(\"ResponsiveTrackPanel gap must be finite and between zero and 256\");"
       ],
       "sample": "8.0"
     }

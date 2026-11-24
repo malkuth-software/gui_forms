@@ -1,5 +1,5 @@
 #include "gui_forms/controls/link_router.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -855,8 +855,8 @@ void LinkRouter::flatten(const LinkRouterOptions& options) {
             const WorldPoint before = points_[first + index - 1U];
             const WorldPoint corner = points_[first + index];
             const WorldPoint after = points_[first + index + 1U];
-            const double in_length = engine_hypotenuse(corner.x - before.x, corner.y - before.y);
-            const double out_length = engine_hypotenuse(after.x - corner.x, after.y - corner.y);
+            const double in_length = stxlib::math::hypot(corner.x - before.x, corner.y - before.y);
+            const double out_length = stxlib::math::hypot(after.x - corner.x, after.y - corner.y);
             if (in_length <= 0.0 || out_length <= 0.0) continue;
             // Half of each leg at most, so neighbouring corners never overlap.
             const double radius = std::min(options.corner_radius, std::min(in_length, out_length) * 0.5);
@@ -871,7 +871,7 @@ void LinkRouter::flatten(const LinkRouterOptions& options) {
             // the tolerance.
             const double second_x = entry.x - 2.0 * corner.x + exit.x;
             const double second_y = entry.y - 2.0 * corner.y + exit.y;
-            const double magnitude = engine_hypotenuse(second_x, second_y);
+            const double magnitude = stxlib::math::hypot(second_x, second_y);
             double wanted = std::ceil(std::sqrt(magnitude / (4.0 * options.flatten_tolerance)));
             wanted = std::max(1.0, std::min(wanted, static_cast<double>(maximum_corner_steps)));
             const std::uint32_t steps = static_cast<std::uint32_t>(wanted);

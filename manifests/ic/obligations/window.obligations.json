@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Window",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/window/window.ic.toml",
+    "sha256": "90b7da62e06b3b32fe698f7faf437490535682d23c28b34266da347a73c03579"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": []
+}

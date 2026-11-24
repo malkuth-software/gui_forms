@@ -144,6 +144,16 @@ void add_composite_controls(const std::shared_ptr<Surface>& page, const std::sha
 void add_controls_inspection(const std::shared_ptr<Surface>& page,
                              const std::shared_ptr<PageContext>& context);
 
+// lookups-and-pickers, media-and-motion, navigation-patterns,
+// dashboard-pieces, workspaces-and-themes and ui-templates: the DevExpress
+// "demo only" compositions (demo_parts.hpp holds their shared parts).
+void add_lookups_and_pickers(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
+void add_media_and_motion(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
+void add_navigation_patterns(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
+void add_dashboard_pieces(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
+void add_workspaces_and_themes(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
+void add_ui_templates(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
+
 // Fills the body `page` of one page, reading and extending the shell's
 // `context` (the status line, timers, providers, the Gallery's model).
 using PageBuilder = void (*)(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context);
@@ -157,7 +167,7 @@ struct PageBuilderEntry final {
 // (demo/gallery_page_specs.hpp, which places it in the navigation) and one
 // row here; the shell refuses a page with neither a form page nor a row
 // (std::logic_error at construction).
-inline constexpr std::array<PageBuilderEntry, 38> page_builders{{
+inline constexpr std::array<PageBuilderEntry, 44> page_builders{{
     {"control-spectrum", &add_control_spectrum},
     {"ranges-and-progress", &add_ranges},
     {"containers-and-focus", &add_containers},
@@ -196,6 +206,12 @@ inline constexpr std::array<PageBuilderEntry, 38> page_builders{{
     {"node-graphs", &add_node_graphs},
     {"composite-controls", &add_composite_controls},
     {"controls-inspection", &add_controls_inspection},
+    {"lookups-and-pickers", &add_lookups_and_pickers},
+    {"media-and-motion", &add_media_and_motion},
+    {"navigation-patterns", &add_navigation_patterns},
+    {"dashboard-pieces", &add_dashboard_pieces},
+    {"workspaces-and-themes", &add_workspaces_and_themes},
+    {"ui-templates", &add_ui_templates},
 }};
 
 } // namespace gui_forms::gallery::pages

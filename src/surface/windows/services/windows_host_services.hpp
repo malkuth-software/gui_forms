@@ -10,6 +10,12 @@ public:
     ~WindowsHostServices() override { shutdown(); }
 
     void bind_owner(HWND owner, Window& model) { owner_ = owner; cursor_model_ = model.window_ref(); }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // WM_DESTROY of the owner window: a drag from it, running in
+    // DoDragDrop's loop, ends cancelled at OLE's next QueryContinueDrag, and
+    // no later drag starts.
+    void source_window_destroyed() noexcept { source_window_destroyed_ = true; }
+#endif
     // WM_HELP at the owner window: a help request of the open message box,
     // if one is open. F1 held down tells the key from the Help button.
     bool publish_message_help() {
@@ -158,8 +164,29 @@ protected:
         return (*notify_icons_).show_menu(icon_id, request);
     }
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Desktop notifications as toasts: one WindowsToastNotifications,
+    // created with the first, whose message window reports the toasts'
+    // events through forward_notification_event on the UI thread.
+    HostServiceStatus show_desktop_notification_impl(HostDesktopNotificationId notification_id,
+                                                     const HostDesktopNotificationRequest& request) override {
+        if (!toasts_) {
+            toasts_ = std::make_unique<gui_forms::host::detail::WindowsToastNotifications>(
+                Delegate<const HostDesktopNotificationEvent&>::bind<
+                    WindowsHostServices, &WindowsHostServices::forward_notification_event>(*this));
+        }
+        return (*toasts_).show(notification_id, request);
+    }
+    void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept override {
+        if (toasts_) (*toasts_).withdraw(notification_id);
+    }
+#endif
+
     void shutdown_impl() noexcept override {
         notify_icons_.reset();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        toasts_.reset();
+#endif
         for (const CursorEntry& entry : cursors_) {
             if (GetCursor() == entry.native) apply_system_cursor(CursorKind::arrow);
             DestroyCursor(entry.native);
@@ -397,6 +424,21 @@ protected:
         return gui_forms::host::detail::read_windows_clipboard_image(owner_);
     }
 
+    // A drag to other programs (windows_drag_drop.hpp): DoDragDrop runs its
+    // modal loop here, so the drag ends, and is reported, before this
+    // returns. The window's own drop target takes part like any other.
+    // A window destroyed during its drag (WM_DESTROY, source_window_destroyed)
+    // ends the drag cancelled; these services outlive it (the run releases a
+    // window's state only at the end of an outermost loop turn).
+    HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest& request) override {
+        if (source_window_destroyed_) return {HostServiceError::backend_failure};
+        const gui_forms::host::detail::WindowsDragOutcome outcome =
+            gui_forms::host::detail::run_windows_drag(request, source_window_destroyed_);
+        if (!outcome.status.accepted()) return outcome.status;
+        publish_drag_source_end(HostDragSourceEnd{session_id, outcome.performed_effect});
+        return {};
+    }
+
     HostServiceStatus write_clipboard_image_impl(HostImageView image) override {
         return gui_forms::host::detail::write_windows_clipboard_image(owner_, image);
     }
@@ -474,6 +516,9 @@ private:
     }
 
     void forward_tray_event(const HostTrayIconEvent& event) { publish_tray_icon_event(event); }
+    void forward_notification_event(const HostDesktopNotificationEvent& event) {
+        publish_desktop_notification_event(event);
+    }
 
     struct CursorEntry final {
         CursorImagesPtr images;
@@ -681,10 +726,17 @@ private:
     }
 
     HWND owner_{};
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The owner window was destroyed (source_window_destroyed).
+    bool source_window_destroyed_{};
+#endif
     // The owner window's model, observed: null once it is destroyed, and
     // then every cursor call reports stale_window and touches nothing.
     WindowRef cursor_model_;
     std::unique_ptr<gui_forms::host::detail::WindowsNotifyIcons> notify_icons_;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    std::unique_ptr<gui_forms::host::detail::WindowsToastNotifications> toasts_;
+#endif
     std::array<COLORREF, 16> custom_colors_{};
     // The open message box's request identity; zero while none is open.
     std::uint64_t message_help_request_{};

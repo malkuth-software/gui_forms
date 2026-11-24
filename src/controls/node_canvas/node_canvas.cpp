@@ -5,7 +5,7 @@
 // Input is in node_canvas_input.cpp and painting in node_canvas_paint.cpp.
 
 #include "gui_forms/controls/node_canvas.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include "node_canvas_detail.hpp"
 
@@ -87,7 +87,7 @@ constexpr std::array<InteractionDeclaration, 6> node_canvas_interactions{{
 }
 
 [[nodiscard]] double distance_between(Point left, Point right) noexcept {
-    const double distance = engine_hypotenuse(left.x - right.x, left.y - right.y);
+    const double distance = stxlib::math::hypot(left.x - right.x, left.y - right.y);
     return distance;
 }
 
@@ -1204,7 +1204,7 @@ SemanticDescriptor NodeCanvas::semantic_descriptor() const {
 
 std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
     std::vector<SemanticNode> children{};
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const bool enabled = effectively_enabled();
     if (graph_ != nullptr) {
         const NodeGraph& graph = *graph_;
@@ -1239,7 +1239,7 @@ std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
             item.name.append(", ");
             item.name.append(node.kind);
             const Rect shown = view_.rect_to_view(node.bounds);
-            item.bounds = Rect{absolute.x + shown.x, absolute.y + shown.y, shown.width, shown.height};
+            item.bounds = frame_to_outer(local_frame, shown);
             item.states = SemanticState::visible | SemanticState::focusable;
             if (enabled) item.states |= SemanticState::enabled;
             if (slot < selected_flags_.size() && selected_flags_[slot] != 0U) item.states |= SemanticState::selected;
@@ -1269,8 +1269,8 @@ std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
                 if (record.lamp == PortLamp::on) child.value = "on";
                 if (record.lamp == PortLamp::error) child.value = "error";
                 const Point anchor = view_.to_view(port_world(node, record));
-                child.bounds = Rect{absolute.x + anchor.x - port_hit_radius, absolute.y + anchor.y - port_hit_radius,
-                                    2.0 * port_hit_radius, 2.0 * port_hit_radius};
+                child.bounds = frame_to_outer(local_frame, Rect{anchor.x - port_hit_radius, anchor.y - port_hit_radius,
+                                                                  2.0 * port_hit_radius, 2.0 * port_hit_radius});
                 child.position_in_set.set(port + 1U);
                 child.set_size.set(node.ports.size());
                 child.states = SemanticState::visible;
@@ -1291,7 +1291,7 @@ std::vector<SemanticNode> NodeCanvas::semantic_virtual_children() const {
     announcements.role = SemanticRole::live_region;
     announcements.name = announcement_;
     const Rect client = client_rectangle();
-    announcements.bounds = Rect{absolute.x + client.x, absolute.y + client.y, client.width, client.height};
+    announcements.bounds = frame_to_outer(local_frame, client);
     announcements.states = SemanticState::visible;
     if (enabled) announcements.states |= SemanticState::enabled;
     children.push_back(std::move(announcements));

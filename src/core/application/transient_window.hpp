@@ -60,6 +60,10 @@ public:
 
     [[nodiscard]] bool connected() const noexcept;
     [[nodiscard]] bool shown() const noexcept { return shown_; }
+    // Where the host has the window now (its content rectangle in desktop
+    // logical units) while it shows; none otherwise or when the host does
+    // not report it.
+    [[nodiscard]] std::optional<Rect> desktop_frame() const;
     // The window's model while it is open, else null.
     [[nodiscard]] Window* model() const noexcept;
     [[nodiscard]] HostWindowId id() const noexcept;

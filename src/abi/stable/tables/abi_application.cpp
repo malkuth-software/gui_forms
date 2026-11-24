@@ -16,6 +16,7 @@
 
 #include "../engine/abi_engine.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_application_ic_checks.hpp"
 
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
@@ -196,7 +197,7 @@ gf_status GF_CALL application_create(const gf_application_config* config, gf_the
 }
 
 gf_status application_close_body(std::uint64_t* windows_alive) {
-    if (windows_alive == nullptr) {
+    if (!ic_application::admits_close_windows_alive(windows_alive)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, close_slot, "close needs a window count output");
     }
     const gf_status entered = registry().enter_ui(close_slot, false);
@@ -228,7 +229,7 @@ gf_status GF_CALL application_close(std::uint64_t* windows_alive) noexcept {
 }
 
 gf_status application_state_body(gf_application_state* state) {
-    if (state == nullptr) {
+    if (!ic_application::admits_state_state(state)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, state_slot, "state needs an output");
     }
     const gf_status entered = registry().enter_ui(state_slot, false);

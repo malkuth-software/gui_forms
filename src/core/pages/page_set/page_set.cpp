@@ -1,6 +1,7 @@
 #include "gui_forms/pages/page_set/page_set.hpp"
 
 #include "gui_forms/control/stable_id/stable_id.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <cstddef>
@@ -56,7 +57,7 @@ private:
 };
 
 PageSet::PageSet(PageSetOptions options)
-    : options_(options), alive_(std::make_shared<bool>(true)) {
+    : options_(options), alive_(gui_forms::detail::make_library_shared<bool>(true)) {
     if (options_.capacity == 0U || options_.capacity > PageSetLimits::maximum_capacity) {
         throw std::invalid_argument(
             "PageSet capacity must be from 1 to PageSetLimits::maximum_capacity");
@@ -289,8 +290,17 @@ PageEditStatus PageSet::extract_page(const PageId& id, StoredPage& out) {
     }
     const std::size_t position = (*found.value()).value;
     const bool was_selected = selected_ == id;
+    if (was_selected && !pending_.selection_changed) {
+        // The origin the report names is copied before the page leaves, and
+        // the selection is dropped with it (neither step throws): an
+        // allocation that fails while the fallback is chosen leaves no
+        // selection, never one naming the removed page.
+        pending_.selection_origin = selected_;
+        pending_.selection_changed = true;
+    }
     out = extract_entry(position);
     if (was_selected) {
+        selected_.reset();
         const std::optional<PageId> fallback = fallback_selection(position);
         change_selection(fallback, PageSelectionCause::fallback);
     }

@@ -1,3 +1,0 @@
-/* forms: diagnostic.E403 */
-button { primitive: bulge; animation: k 1s linear infinite; animation-frame-rate: 31 }
-@keyframes k { from { opacity: 0 } to { opacity: 1 } }

@@ -41,6 +41,7 @@ typedef struct gf_kit {
     gf_classes_table classes;
     gf_content_table content;
     gf_list_view_table list_view;
+    gf_automation_table automation;
     /* Loaded by the custom part where the library has it (Windows). */
     gf_windows_paint_endpoint_table windows_paint_endpoint;
 } gf_kit;
@@ -117,6 +118,10 @@ void gf_kit_content_effect(gf_kit* kit);
 /* The window outer band and shaping (since 1.3), on a window that has not
  * run. */
 void gf_kit_band(gf_kit* kit);
+/* The visible-area guarantee (since 1.7): the controls table's viewport fit
+ * and the windows table's overflow records, unanswered count and safe
+ * insets, on a window that has not run. */
+void gf_kit_viewport(gf_kit* kit);
 void gf_kit_window_events(gf_kit* kit);
 void gf_kit_themes(gf_kit* kit);
 void gf_kit_proxies(gf_kit* kit);
@@ -140,6 +145,7 @@ void gf_kit_data_grid(gf_kit* kit);
  * (GF_TABLE_LIST_VIEW, since 1.4), its properties and its events, on a
  * created window's root. */
 void gf_kit_list_view(gf_kit* kit);
+void gf_kit_automation(gf_kit* kit);
 /* A dock workspace's panels and layout (GF_TABLE_DOCKING), with no window
  * running. */
 void gf_kit_docking(gf_kit* kit);

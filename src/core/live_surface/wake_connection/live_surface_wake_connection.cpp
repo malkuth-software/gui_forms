@@ -3,7 +3,7 @@
 #include "../state/live_surface_state.hpp"
 
 #include <algorithm>
-#include <mutex>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
@@ -49,7 +49,7 @@ void LiveSurfaceWakeConnection::disconnect() noexcept {
     if (!wake_) return;
     (*wake_).connected.store(false, std::memory_order_release);
     if (const std::shared_ptr<gui_forms::detail::LiveSurfaceState> state = state_.lock()) {
-        std::scoped_lock lock((*state).mutex);
+        const stxlib::ScopedLock lock((*state).mutex);
         std::erase_if((*state).wakes,
                       DisconnectedOrMatchingWake{(*wake_).sequence});
         std::erase_if((*state).presented_wakes,

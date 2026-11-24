@@ -1,9 +1,11 @@
 #include "pages.hpp"
 #include "gui_forms/controls/dial.hpp"
 #include "gui_forms/controls/linear_gauge.hpp"
+#include "gui_forms/controls/pie_chart.hpp"
 #include "gui_forms/controls/radial_gauge.hpp"
 #include "gui_forms/controls/range_control_values.hpp"
 #include "gui_forms/controls/seven_segment_display.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "instruments_form.hpp"
 
@@ -14,6 +16,8 @@
 #include <optional>
 #include <sstream>
 #include <string>
+#include <utility>
+#include <vector>
 #include <stxlib/optional.hpp>
 
 namespace gui_forms::gallery::pages {
@@ -22,7 +26,8 @@ namespace gui_forms::gallery::pages {
 // demo/pages/instruments.form describes, and their behaviour. It sets the
 // gauges' ranges, readings and alarm limits (the limits are not form
 // properties), lets the Ghost segments check box turn the unlit segments
-// on and off, and drives the linked readout and gauge from the dial.
+// on and off, drives the linked readout and gauge from the dial, and gives
+// the two charts their slices (slices are records, not form properties).
 class InstrumentsPage final : public gui_forms::Component {
 public:
     explicit InstrumentsPage(const std::shared_ptr<Surface>& body);
@@ -31,6 +36,7 @@ private:
     void mount_document(const std::shared_ptr<Surface>& body);
     void on_ghosts_changed(bool ghosts);
     void on_dial_changed(double value);
+    void fill_charts();
 
     // Owns the document's controls; the shell's page body holds them too
     // once mount_document() has moved them there.
@@ -66,11 +72,31 @@ InstrumentsPage::InstrumentsPage(const std::shared_ptr<Surface>& body) {
     on(dial.value_changed(), *this, &InstrumentsPage::on_dial_changed);
     on_dial_changed(dial.value.read());
     on((*document_.gallery_instruments_ghosts).checked_changed(), *this, &InstrumentsPage::on_ghosts_changed);
+    fill_charts();
+}
+
+// Fixed slices: a disk's usage, and a music library by genre with one slice
+// in an authored colour.
+void InstrumentsPage::fill_charts() {
+    std::vector<PieSlice> usage;
+    usage.push_back({.stable_id = "documents", .label = "Documents", .value = 120.0, .color = {}});
+    usage.push_back({.stable_id = "pictures", .label = "Pictures", .value = 86.0, .color = {}});
+    usage.push_back({.stable_id = "applications", .label = "Applications", .value = 64.0, .color = {}});
+    usage.push_back({.stable_id = "system", .label = "System", .value = 22.0, .color = {}});
+    usage.push_back({.stable_id = "free", .label = "Free", .value = 8.0, .color = {}});
+    (*document_.gallery_instruments_pie).set_slices(std::move(usage));
+    std::vector<PieSlice> genres;
+    genres.push_back({.stable_id = "jazz", .label = "Jazz", .value = 340.0, .color = {}});
+    genres.push_back({.stable_id = "classical", .label = "Classical", .value = 275.0, .color = {}});
+    genres.push_back({.stable_id = "electronic", .label = "Electronic", .value = 190.0, .color = {}});
+    genres.push_back({.stable_id = "folk", .label = "Folk", .value = 95.0,
+                      .color = stxlib::Optional<Color>::of(Color::rgba(196, 140, 64))});
+    (*document_.gallery_instruments_doughnut).set_slices(std::move(genres));
 }
 
 void InstrumentsPage::mount_document(const std::shared_ptr<Surface>& body) {
     // The document's root is a declared boundary only: its children move
-    // into the shell's page body, a design surface of the same 1000 x 660
+    // into the shell's page body, a design surface of the same 1000 x 960
     // size, where each is placed by its bounds in design coordinates. The
     // copy of the child list keeps the iteration valid while the root
     // shrinks.
@@ -102,7 +128,7 @@ void InstrumentsPage::on_dial_changed(double value) {
 }
 
 void add_instruments(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<InstrumentsPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<InstrumentsPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

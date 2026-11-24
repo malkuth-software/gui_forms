@@ -679,7 +679,7 @@ Types
 
    .. cpp:function:: const ContentFrameSink& sink() const noexcept
 
-   .. cpp:function:: std::stop_token stop_token() const noexcept
+   .. cpp:function:: stxlib::StopToken stop_token() const noexcept
 
       Fires when the surface asks the program to stop (terminate, close, leaving the window, the surface's destruction).
 
@@ -748,7 +748,7 @@ Types
 
    .. cpp:function:: bool revoked() const noexcept
 
-   .. cpp:function:: std::stop_token stop_token() const noexcept
+   .. cpp:function:: stxlib::StopToken stop_token() const noexcept
 
       The cooperative stop of the content's operation: fires when the surface asks the content to stop (ContentSurface::terminate, its destruction, a ContentWorker's stop). Content polls it or waits on it; GUI.Forms never stops a thread any other way. An empty sink's token never fires.
 
@@ -2549,7 +2549,7 @@ Types
 
       The display time a frame produced now would be shown for (the frame_time plan would answer), without deciding anything: a producer's motion ticks on it before it knows whether it will paint. ``now`` without display timing or for an empty pacer.
 
-   .. cpp:function:: LivePacingResult wait_for_frame(const std::stop_token& stop)
+   .. cpp:function:: LivePacingResult wait_for_frame(const stxlib::StopToken& stop)
 
       Blocks until plan would answer frame or deadline, or ``stop`` fires; one wait per frame on the surface's condition, never a fixed sleep. While idle it waits only for ``stop`` and arm().
 
@@ -4661,6 +4661,14 @@ Functions, constants and aliases
 .. cpp:function:: RecorderRasterResult execute_recorder(const GraphicsRecorder& recorder, Bitmap& target, std::uint64_t first_command) noexcept
 
    Draws ``recorder``'s commands from ``first_command`` on into ``target``, in place, on the calling thread, which must own both objects. The caller keeps both alive for the call; nothing is retained after it. ``target`` may borrow the caller's pixels (Bitmap::borrow), which are then written directly, with no copy. What a failure leaves: for a bitmap owning its pixels the commands are checked first and a refusal leaves it untouched; a borrowed bitmap, or a failure during drawing, keeps the commands before the failing one drawn (commands_executed counts them). Fonts the commands name are resolved and registered on this thread first, as recorder_execute does; no gdr_initialize call is needed. Never throws.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/live_surface/pacer/live_surface_pacer.hpp>`` (:src:`source <include/gui_forms/live_surface/pacer/live_surface_pacer.hpp>`)
+
+.. cpp:function:: LiveDisplayTiming live_display_timing(const DisplayTiming& timing, FrameTime now) noexcept
+
+   The live display timing a presenter reports for a window that holds ``timing`` (SurfaceRoot::display_timing), at ``now``: the display's own timing as display_phased, a measured, nominal or fixed rate as phased_timer, each with its period and the latest presentation at or before ``now`` as the vertical blank; nothing (source none: the pacer's 60 Hz fallback, frames for the time they are made) for assumed timing. Hosts report it with each presentation (LiveSurface::notify_presented), so a producer paces to the same frame source as the window's own motion.
 
 .. cpp:namespace:: gui_forms
 

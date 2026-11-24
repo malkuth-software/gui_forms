@@ -225,7 +225,9 @@ void ToolTipBubble::on_paint(Painter& painter, Rect) {
         current.font = lines_.font;
         current.shadow = shadow_;
         current.scale = (*root).scale();
-        if (current == baked_key_) {
+        current.theme = (*root).theme_ptr();
+        current.text_scale = effective_text_scale();
+        if (current.theme != nullptr && current == baked_key_) {
             const Insets outsets = visual_outsets();
             painter.draw_part_raster(baked, Point{-outsets.left, -outsets.top}, 1.0);
             return;

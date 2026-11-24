@@ -1,18 +1,16 @@
 // The Gallery run as an application (Application::run), so that its menus,
 // drop-downs and pickers open in warm Popup windows as a program's do: the
 // single-window Gallery runner has no application run and shows them as
-// overlays. A development probe for tools/menu_probe.py, which drives it
-// through the automation channel on a private desktop and captures the
-// owner with its Popups composed (capture-composite). It opts in to the
-// automation environment (accept_automation_environment), so the variable
-// below turns the channel on.
+// overlays. A development probe for gui_forms_tests tools/menu_probe.py, which
+// drives it with an automation script (--mcp-script, the library's MCP automation)
+// and captures the owner with its Popups composed:
 //
-//   GUI_FORMS_WINDOWS_AUTOMATION=1 GUI_FORMS_WINDOWS_SCALE=2 \
-//       gui_forms_menu_probe_windows [page]
+//   GUI_FORMS_WINDOWS_SCALE=2 gui_forms_menu_probe_windows [page] --mcp-script probe.jsonl
 //
-// `page` is a Gallery page id, commands-and-menus by default.
+// `page` is a Gallery page id, commands-and-menus by default; the
+// automation's arguments are the library's and are skipped here.
 #include "gallery.hpp"
-#include "gui_forms/platform/windows_host.hpp"
+#include "gui_forms/automation/marks/automation_marks.hpp"
 
 #include <cstdio>
 #include <memory>
@@ -20,7 +18,7 @@
 #include <utility>
 
 int main(int argc, char** argv) {
-    gui_forms::host::accept_automation_environment();
+    gui_forms::automation::take_mcp_arguments(argc, argv);
     const std::unique_ptr<gui_forms::Application> application = gui_forms::gallery::create_gallery_application();
     const std::string page = argc > 1 ? std::string(argv[1]) : std::string("commands-and-menus");
     std::unique_ptr<gui_forms::Window> window = gui_forms::gallery::make_gallery();

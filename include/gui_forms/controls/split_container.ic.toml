@@ -1,0 +1,57 @@
+# SplitContainer's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/split_container.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/scrollable_control/container_control/split_container/split_container_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "SplitContainer"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/split_container.hpp"
+anchor = "class GUI_FORMS_API SplitContainer final : public ContainerControl, public SplitContainerCapabilities<SplitContainer> {"
+thread = "ui"
+
+[terms]
+first_maximum_bound = "double"
+second_maximum_bound = "double"
+
+[checks]
+path = "src/controls/scrollable_control/container_control/split_container/split_container_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::split_container"
+includes = ["gui_forms/controls/split_container.hpp"]
+used_in = ["src/controls/scrollable_control/container_control/split_container/split_container.cpp"]
+
+[[call]]
+name = "keyboard_increment"
+id = "keyboard_increment_write"
+declarations = ["void prepare_write(const decltype(keyboard_increment)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming > 0", refuses = "failure:invalid_argument", check = "keyboard_increment" },
+]
+
+[[call]]
+name = "first_minimum"
+id = "first_minimum_write"
+declarations = ["void prepare_write(const decltype(first_minimum)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0", refuses = "failure:invalid_argument", check = "first_minimum_extent" },
+  { holds = "incoming <= first_maximum_bound", refuses = "failure:invalid_argument", check = "first_minimum_order" },
+]
+refusal_order = ["first_minimum_extent", "first_minimum_order"]
+
+[[call]]
+name = "second_minimum"
+id = "second_minimum_write"
+declarations = ["void prepare_write(const decltype(second_minimum)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0", refuses = "failure:invalid_argument", check = "second_minimum_extent" },
+  { holds = "incoming <= second_maximum_bound", refuses = "failure:invalid_argument", check = "second_minimum_order" },
+]
+refusal_order = ["second_minimum_extent", "second_minimum_order"]

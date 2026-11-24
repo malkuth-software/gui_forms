@@ -3,12 +3,12 @@
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+#include <stxlib/threads.hpp>
 #include <windows.h>
 
 #include <cstddef>
 #include <cstdint>
 #include <span>
-#include <thread>
 
 namespace gui_forms::host::detail {
 
@@ -89,7 +89,7 @@ private:
     Surface front_{};
     Surface candidate_{};
     DibFrameKey key_{};
-    std::thread::id executor_{};
+    stxlib::ThreadIdentity executor_{};
     DibFrameFault fault_{DibFrameFault::none};
     bool active_{};
     bool closed_{};

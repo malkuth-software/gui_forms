@@ -11,11 +11,13 @@
 #include "../schema/abi_schema.hpp"
 #include "../values/abi_values.hpp"
 #include "../windows/abi_window_handle.hpp"
+#include "../ic/abi_windows_ic_checks.hpp"
 
 #include "gui_forms/application.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/band/window_band.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 
 #include <stxlib/optional.hpp>
@@ -54,6 +56,7 @@ constexpr SlotIdentity content_rect_slot{GF_TABLE_WINDOWS, 16U};
 constexpr SlotIdentity shaping_slot{GF_TABLE_WINDOWS, 17U};
 constexpr SlotIdentity pointer_location_slot{GF_TABLE_WINDOWS, 18U};
 constexpr SlotIdentity show_business_card_slot{GF_TABLE_WINDOWS, 19U};
+constexpr SlotIdentity lifecycle_slot{GF_TABLE_WINDOWS, 31U};
 
 // The 1.5 sizes of the band and shaping records.
 constexpr std::uint32_t band_options_size_1_5 = 56U;
@@ -605,7 +608,7 @@ gf_status prepare_owned(gf_object root, const gf_owned_window_options* options, 
             return fail(GF_STATUS_INVALID_STATE, slot, "another open window has the root's stable id");
         }
     }
-    std::shared_ptr<OwnedWindow> made = std::make_shared<OwnedWindow>();
+    std::shared_ptr<OwnedWindow> made = gui_forms::detail::make_library_shared<OwnedWindow>();
     (*made).root = root;
     (*made).control = control;
     (*made).stable_id = stable_id;
@@ -776,7 +779,7 @@ gf_status create_window(gf_object root, gf_object* made) {
     }
     const ApplicationWindowOptions defaults{};
     std::unique_ptr<Window> window = make_run_window(control, defaults.initial_size);
-    const Component::Ptr handle = std::make_shared<WindowHandle>(std::move(window), control);
+    const Component::Ptr handle = gui_forms::detail::make_library_shared<WindowHandle>(std::move(window), control);
     *made = registry().add_reference(handle);
     return GF_STATUS_OK;
 }
@@ -800,7 +803,7 @@ std::vector<InteractionDeclaration> window_interactions() {
 }
 
 gf_status windows_interaction_count_body(std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_windows::admits_interaction_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, interaction_count_slot, "interaction_count needs a count output");
     }
     const std::vector<InteractionDeclaration> interactions = window_interactions();
@@ -1490,6 +1493,44 @@ gf_status GF_CALL windows_shaping(gf_object window, gf_window_shaping* report) n
     return call_slot(shaping_slot, windows_shaping_body, window, report);
 }
 
+// Since 1.7: where a window from create stands. The handle owns its window
+// until a run takes it, observes it during the run, and holds neither once
+// the run has ended or the handle was disposed.
+gf_window_lifecycle window_lifecycle_of(const WindowHandle& handle) noexcept {
+    if (handle.owns_window() && handle.is_alive()) {
+        return GF_WINDOW_LIFECYCLE_CREATED;
+    }
+    if (handle.window() != nullptr && handle.is_alive()) {
+        return GF_WINDOW_LIFECYCLE_RUNNING;
+    }
+    return GF_WINDOW_LIFECYCLE_ENDED;
+}
+
+gf_status windows_lifecycle_body(gf_object window, gf_window_lifecycle* lifecycle) {
+    if (!ic_windows::admits_lifecycle_lifecycle(lifecycle)) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, lifecycle_slot, "lifecycle needs an output");
+    }
+    const gf_status entered = registry().enter_ui(lifecycle_slot, false);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    Component::Ptr object;
+    const gf_status found = registry().find_component(window, lifecycle_slot, object);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    const std::shared_ptr<WindowHandle> handle = std::dynamic_pointer_cast<WindowHandle>(object);
+    if (handle == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, lifecycle_slot, "lifecycle takes a window from create");
+    }
+    *lifecycle = window_lifecycle_of(*handle);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL windows_lifecycle(gf_object window, gf_window_lifecycle* lifecycle) noexcept {
+    return call_slot(lifecycle_slot, windows_lifecycle_body, window, lifecycle);
+}
+
 constexpr gf_windows_table table{
     .struct_size = sizeof(gf_windows_table),
     .abi_minor = GF_ABI_MINOR,
@@ -1524,6 +1565,10 @@ constexpr gf_windows_table table{
     .mdi_children_minimized_anchor_bottom = &windows_mdi_children_minimized_anchor_bottom,
     .set_main_menu_strip = &windows_set_main_menu_strip,
     .main_menu_strip = &windows_main_menu_strip,
+    .overflow_records = &windows_overflow_records,
+    .unanswered_overflow_count = &windows_unanswered_overflow_count,
+    .safe_insets = &windows_safe_insets,
+    .lifecycle = &windows_lifecycle,
 };
 
 } // namespace

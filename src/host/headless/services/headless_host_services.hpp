@@ -42,6 +42,24 @@ public:
     void simulate_tray_icon_event(HostTrayIconEvent event);
     // The choice the next show_tray_menu returns; empty dismisses the menu.
     void queue_tray_menu_choice(std::string chosen_id);
+    // Desktop notifications, kept as requested while they are in the
+    // simulated platform's list (until withdrawn), so tests can read what
+    // an application asked to show. Every show and withdrawal appends a
+    // line to desktop_notification_trace(): "notification show id=<n>
+    // urgency=<low|normal|critical> silent=<0|1> title=<title> text=<text>"
+    // and "notification withdraw id=<n>".
+    [[nodiscard]] const HostDesktopNotificationRequest* desktop_notification(
+        HostDesktopNotificationId notification_id) const noexcept;
+    [[nodiscard]] const std::string& desktop_notification_trace() const& noexcept {
+        return desktop_notification_trace_;
+    }
+    const std::string& desktop_notification_trace() const&& = delete;
+    // Reports what the user did to a notification, as the platform would;
+    // dropped for identities that are not live.
+    void simulate_desktop_notification_event(HostDesktopNotificationEvent event);
+    // The next show fails with backend_failure, as a service that refused
+    // the request would.
+    void fail_next_desktop_notification() noexcept { fail_next_desktop_notification_ = true; }
     // The simulated native window's backdrop: what apply_window_backdrop
     // last applied (opaque until then). Every application, accepted or
     // failed, appends "backdrop=<name> accepted=<0|1>" and a newline to
@@ -85,6 +103,20 @@ public:
     // The addresses open_url accepted, oldest first; nothing is opened.
     [[nodiscard]] const std::vector<std::string>& opened_urls() const& noexcept { return opened_urls_; }
     const std::vector<std::string>& opened_urls() const&& = delete;
+    // The simulated drag to other programs: start_drag_impl keeps the
+    // request (drag_source_request, empty until a drag starts) and the
+    // drag runs until the test ends it with the effect a destination took
+    // (none for a cancelled drag), as the platform's end would. A test
+    // that drives a self-drag dispatches the request's items to the window
+    // as DragEvents between the two. The next start fails with
+    // backend_failure after fail_next_drag_source, as a platform with no
+    // button held would.
+    [[nodiscard]] const std::optional<HostDragSourceRequest>& drag_source_request() const& noexcept {
+        return drag_source_request_;
+    }
+    const std::optional<HostDragSourceRequest>& drag_source_request() const&& = delete;
+    void finish_drag_source(DragEffect performed_effect);
+    void fail_next_drag_source() noexcept { fail_next_drag_source_ = true; }
 
 protected:
     [[nodiscard]] HostMonitorResult query_monitors_impl() override;
@@ -96,6 +128,8 @@ protected:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
     [[nodiscard]] HostServiceStatus open_url_impl(std::string_view url_utf8) override;
+    [[nodiscard]] HostServiceStatus start_drag_impl(std::uint64_t session_id,
+                                                    const HostDragSourceRequest& request) override;
 #endif
 #if !defined(GUI_FORMS_HIGH_INTEGRITY) || defined(GUI_FORMS_HIGH_INTEGRITY_ALLOW_CLIPBOARD_TEXT)
     [[nodiscard]] HostClipboardTextResult read_clipboard_text_impl() override;
@@ -105,6 +139,9 @@ protected:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     [[nodiscard]] HostClipboardImageResult read_clipboard_image_impl() override;
     [[nodiscard]] HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+    [[nodiscard]] HostServiceStatus show_desktop_notification_impl(
+        HostDesktopNotificationId notification_id, const HostDesktopNotificationRequest& request) override;
+    void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept override;
 #endif
     [[nodiscard]] HostDialogResult show_dialog_impl(
         const HostDialogRequest& request) override;
@@ -130,10 +167,17 @@ private:
         HostTrayIconId id{};
         HostTrayIconRequest request;
     };
+    struct DesktopNotification final {
+        HostDesktopNotificationId id{};
+        HostDesktopNotificationRequest request;
+    };
     std::vector<HostMonitor> monitors_;
     HostRelativePointerRequest relative_pointer_request_{};
     std::optional<Point> last_pointer_warp_{};
     std::vector<std::string> opened_urls_{};
+    std::optional<HostDragSourceRequest> drag_source_request_{};
+    std::uint64_t drag_source_session_{};
+    bool fail_next_drag_source_{};
     // The clipboard's image; absent while it holds none.
     std::optional<HostImage> clipboard_image_;
     std::string clipboard_text_;
@@ -146,6 +190,10 @@ private:
     std::vector<TrayIcon> tray_icons_;
     std::deque<std::string> tray_menu_choices_;
     std::string tray_trace_;
+    // In the simulated platform's list, oldest first.
+    std::vector<DesktopNotification> desktop_notifications_;
+    std::string desktop_notification_trace_;
+    bool fail_next_desktop_notification_{};
     WindowBackdrop native_backdrop_{WindowBackdrop::opaque};
     std::string backdrop_trace_;
     bool fail_next_backdrop_{};

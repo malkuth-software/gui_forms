@@ -253,7 +253,7 @@ void SplitterGrip::update_transition_registration() {
     if (!transition_active_ || window() == nullptr) return;
     const std::shared_ptr<SplitterGrip> self =
         std::static_pointer_cast<SplitterGrip>(shared_from_this());
-    transition_frames_.start(*this, display_frame_interval, TransitionTick{self});
+    transition_frames_.start_every_frame(*this, TransitionTick{self});
 }
 
 AnimationTickResult SplitterGrip::TransitionTick::operator()(FrameTime now) const {

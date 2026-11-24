@@ -1,0 +1,88 @@
+{
+  "schema": 1,
+  "component": "gui_forms::TrackBar",
+  "declaration": "include/gui_forms/controls/track_bar.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.trackbar.tick_frequency_write",
+      "mode": "legal",
+      "call": "tick_frequency",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::TrackBar"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming > 0"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.trackbar.tick_frequency_write.misuse.tick_frequency",
+      "mode": "misuse",
+      "call": "tick_frequency",
+      "violates": "finite(incoming) and incoming > 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.trackbar.thumb_extent_write",
+      "mode": "legal",
+      "call": "thumb_extent",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::TrackBar"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 0 and incoming <= 64"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 0 and incoming <= 64"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.trackbar.thumb_extent_write.misuse.thumb_extent",
+      "mode": "misuse",
+      "call": "thumb_extent",
+      "violates": "finite(incoming) and incoming >= 0 and incoming <= 64",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

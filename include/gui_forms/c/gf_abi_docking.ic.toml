@@ -1,0 +1,332 @@
+# The C ABI's gf_docking_table (GF_TABLE_DOCKING): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_docking_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_docking_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_docking_table {"
+keys = { manifest = "gf_abi::docking", abi = "GF_TABLE_DOCKING" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[constants]
+frame_memory_size_1_6 = { value = "56", type = "uint32_t" }
+location_size_1_1 = { value = "40", type = "uint32_t" }
+
+[checks]
+path = "src/abi/stable/ic/abi_docking_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_docking"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_docking.cpp"]
+
+[[call]]
+name = "register_panel"
+declarations = ["gf_status (GF_CALL* register_panel)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "The id is a stable id ('.'-separated segments of lowercase ASCII letters and digits joined by single '-') and must be new: another spelling, or an id registered before, gives GF_STATUS_INVALID_ARGUMENT." },
+]
+
+[[call]]
+name = "set_panel_content"
+declarations = ["gf_status (GF_CALL* set_panel_content)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "While the workspace holds content it made for the panel (shown, or hidden since), another control gives GF_STATUS_INVALID_STATE; close the panel first." },
+  { failure = "not_found", when = "code: no panel of that id is registered" },
+]
+
+[[call]]
+name = "set_panel_title"
+declarations = ["gf_status (GF_CALL* set_panel_title)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "not_found", when = "code: no panel of that id is registered" },
+]
+
+[[call]]
+name = "apply_edit"
+declarations = ["gf_status (GF_CALL* apply_edit)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: an edit record has at least the 1.1 size and reserved zero" },
+  { failure = "invalid_state", when = "A refused edit gives GF_STATUS_INVALID_STATE, leaves the layout unchanged and writes the reason into refusal (may be null); an applied one writes GF_DOCK_REFUSAL_NONE." },
+  { failure = "not_found", when = "code: no panel of that id is registered" },
+]
+
+[[call]]
+name = "locate"
+declarations = ["gf_status (GF_CALL* locate)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { location = "gf_dock_location*", location_size = "uint32_t" }
+requires = [
+  { holds = "not_null(location)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "locate_location" },
+  { holds = "location_size >= location_size_1_1", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "locate_location_size" },
+]
+refusal_order = ["locate_location", "locate_location_size", "outside"]
+fails = [
+  { failure = "not_found", when = "code: no panel of that id is registered" },
+]
+
+[[call]]
+name = "save_layout"
+declarations = ["gf_status (GF_CALL* save_layout)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "buffer_too_small", when = "The layout as XML (C++ DockLayout::write_xml) into the caller's buffer; required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL." },
+]
+
+[[call]]
+name = "load_layout"
+declarations = ["gf_status (GF_CALL* load_layout)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "Malformed or refused XML gives GF_STATUS_INVALID_ARGUMENT and leaves the layout unchanged." },
+]
+
+[[call]]
+name = "activate_panel"
+declarations = ["gf_status (GF_CALL* activate_panel)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE when it is not placed." },
+  { failure = "not_found", when = "code: no panel of that id is registered" },
+]
+
+[[call]]
+name = "attach_windows"
+declarations = ["gf_status (GF_CALL* attach_windows)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_state", when = "GF_STATUS_INVALID_STATE while no window is running or before it is ready; again once bound is GF_STATUS_OK." },
+  { failure = "unsupported_capability", when = "code: the host has no runtime windows, or the workspace refused the window" },
+]
+
+[[call]]
+name = "document_area"
+declarations = ["gf_status (GF_CALL* document_area)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { node = "uint32_t*" }
+requires = [
+  { holds = "not_null(node)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "document_area_node" },
+]
+refusal_order = ["document_area_node", "outside"]
+
+[[call]]
+name = "panel_at"
+declarations = ["gf_status (GF_CALL* panel_at)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_NOT_FOUND past the stack's panels; another node than a stack gives GF_STATUS_INVALID_ARGUMENT." },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the stack's panels; another node than a stack gives GF_STATUS_INVALID_ARGUMENT." },
+]
+
+[[call]]
+name = "floating_sites"
+declarations = ["gf_status (GF_CALL* floating_sites)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { count = "uint64_t*", sites = "uint32_t*", capacity = "uint64_t" }
+requires = [
+  { holds = "not_null(count) and (not_null(sites) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "floating_sites_sites" },
+]
+refusal_order = ["floating_sites_sites", "outside"]
+fails = [
+  { failure = "buffer_too_small", when = "The floating sites' numbers, in the layout's order, into sites (capacity entries); count receives how many there are, also with GF_STATUS_BUFFER_TOO_SMALL." },
+]
+
+[[call]]
+name = "floating_site"
+declarations = ["gf_status (GF_CALL* floating_site)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: floating_site needs its outputs" },
+  { failure = "not_found", when = "code: no floating site of that number" },
+]
+
+[[call]]
+name = "update_panel"
+declarations = ["gf_status (GF_CALL* update_panel)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "An unregistered id gives GF_STATUS_NOT_FOUND; another kind than it was registered with gives GF_STATUS_INVALID_ARGUMENT." },
+  { failure = "invalid_state", when = "code: the workspace refused the descriptor" },
+  { failure = "not_found", when = "An unregistered id gives GF_STATUS_NOT_FOUND; another kind than it was registered with gives GF_STATUS_INVALID_ARGUMENT." },
+]
+
+[[call]]
+name = "set_options"
+declarations = ["gf_status (GF_CALL* set_options)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: an options record has at least the 1.1 size, known flags and reserved zero" },
+]
+
+[[call]]
+name = "set_floating_window_visibility"
+declarations = ["gf_status (GF_CALL* set_floating_window_visibility)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: a visibility is WORKSPACE, SHOWN or POLICY" },
+  { failure = "not_found", when = "An unknown site gives GF_STATUS_NOT_FOUND." },
+]
+
+[[call]]
+name = "document_presentation"
+declarations = ["gf_status (GF_CALL* document_presentation)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { presentation = "gf_dock_document_presentation*" }
+requires = [
+  { holds = "not_null(presentation)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "document_presentation_presentation" },
+]
+refusal_order = ["document_presentation_presentation", "outside"]
+
+[[call]]
+name = "arrange_frames"
+declarations = ["gf_status (GF_CALL* arrange_frames)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: an arrangement is CASCADE, TILE_HORIZONTAL, TILE_VERTICAL or ARRANGE_ICONS" },
+  { failure = "invalid_state", when = "A refused arrangement gives GF_STATUS_INVALID_STATE and writes the reason into refusal (may be null), as apply_edit." },
+]
+
+[[call]]
+name = "frame_memory"
+declarations = ["gf_status (GF_CALL* frame_memory)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { frame = "gf_dock_frame_memory*", frame_size = "uint32_t" }
+requires = [
+  { holds = "not_null(frame)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "frame_memory_frame" },
+  { holds = "frame_size >= frame_memory_size_1_6", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "frame_memory_frame_size" },
+]
+refusal_order = ["frame_memory_frame", "frame_memory_frame_size", "outside"]
+fails = [
+  { failure = "not_found", when = "code: no panel of that id is registered" },
+]
+
+[[call]]
+name = "set_frame_icons_at_bottom"
+declarations = ["gf_status (GF_CALL* set_frame_icons_at_bottom)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "invalid_argument", when = "code: bottom is 0 or 1" },
+]
+
+[[call]]
+name = "area_document_count"
+declarations = ["gf_status (GF_CALL* area_document_count)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "area_document_count_count" },
+]
+refusal_order = ["area_document_count_count", "outside"]
+
+[[call]]
+name = "area_document_at"
+declarations = ["gf_status (GF_CALL* area_document_at)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "buffer_too_small", when = "The id of the document at index in the area, in tree and tab order, into the caller's buffer; required receives its size, also with GF_STATUS_BUFFER_TOO_SMALL." },
+  { failure = "not_found", when = "GF_STATUS_NOT_FOUND past the end." },
+]
+
+[[call]]
+name = "area_active_document"
+declarations = ["gf_status (GF_CALL* area_active_document)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+
+[[call]]
+name = "set_panel_menu_strip"
+declarations = ["gf_status (GF_CALL* set_panel_menu_strip)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"
+fails = [
+  { failure = "not_found", when = "code: no panel of that id is registered" },
+  { failure = "wrong_handle_kind", when = "Another object than a menu strip gives GF_STATUS_WRONG_HANDLE_KIND." },
+]
+
+[[call]]
+name = "merged_document"
+declarations = ["gf_status (GF_CALL* merged_document)("]
+kind = "member"
+thread = "ui"
+in = ["alive"]
+outside = "value:GF_STATUS_DISPOSED"

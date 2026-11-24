@@ -1,6 +1,8 @@
 #include "../support/drawing_support.hpp"
 
-DrawingObject::DrawingObject() : owner_thread_(std::this_thread::get_id()) {}
+#include <stxlib/threads.hpp>
+
+DrawingObject::DrawingObject() : owner_thread_(stxlib::current_thread()) {}
 DrawingObject::~DrawingObject() = default;
 
 void DrawingObject::dispose() {
@@ -22,7 +24,7 @@ bool DrawingObject::is_disposed() const {
 }
 
 void DrawingObject::verify_access() const {
-    if (std::this_thread::get_id() != owner_thread_) {
+    if (stxlib::current_thread() != owner_thread_) {
         throw std::logic_error("GUI.Drawing object accessed from a non-owner thread");
     }
 }
@@ -35,7 +37,7 @@ void DrawingObject::require_alive() const {
 }
 
 void DrawingObject::handoff_to_current_thread() {
-    owner_thread_ = std::this_thread::get_id();
+    owner_thread_ = stxlib::current_thread();
 }
 
 void DrawingObject::on_dispose() noexcept {}

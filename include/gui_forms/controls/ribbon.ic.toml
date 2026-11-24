@@ -1,0 +1,29 @@
+# Ribbon's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/ribbon.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/ribbon/ribbon_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "Ribbon"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/ribbon.hpp"
+anchor = "class GUI_FORMS_API Ribbon final : public Control, public RibbonCapabilities<Ribbon> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/ribbon/ribbon_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::ribbon"
+includes = ["gui_forms/controls/ribbon.hpp"]
+used_in = ["src/controls/ribbon/ribbon.cpp"]
+
+[[call]]
+name = "document_minimum_height"
+id = "document_minimum_height_write"
+declarations = ["void prepare_write(const decltype(document_minimum_height)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0", refuses = "failure:invalid_argument", check = "document_minimum_height" },
+]

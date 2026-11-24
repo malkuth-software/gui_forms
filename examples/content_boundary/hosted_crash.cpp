@@ -23,6 +23,8 @@
 #include <gui_forms/controls/panel.hpp>
 #include <gui_forms/event.hpp>
 #include <gui_forms/window/window.hpp>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 
 #include <chrono>
 #include <cstdint>
@@ -31,7 +33,6 @@
 #include <memory>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <utility>
 
 namespace gf = gui_forms;
@@ -127,7 +128,7 @@ bool run_until(gf::Window& window, gf::ContentSurface& surface, gf::Button& coun
         surface.check_watchdog(gf::FrameClock::now());
         static_cast<void>(count.perform_click());
         if (done(shell)) return true;
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(5));
     }
     report_surface(surface, shell);
     return false;

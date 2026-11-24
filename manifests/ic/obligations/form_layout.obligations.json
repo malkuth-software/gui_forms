@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "component": "gui_forms::FormLayout",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/form_layout.ic.toml",
+    "sha256": "72ea0ea5762ac9e3ef455559563db6ad169c98fa67c4eb3d65e805d2a46b8397"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.formlayout.caption_width_write.requires.caption_width",
+      "kind": "entry-check",
+      "statement": "caption_width runs only when finite(incoming) and incoming >= 0 and incoming <= 4096; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::form_layout::admits_caption_width, called in src/controls/panel/form_layout/form_layout.cpp"
+    },
+    {
+      "id": "gui_forms.formlayout.caption_width_write.refusal.caption_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0 and incoming <= 4096, caption_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.formlayout.row_spacing_write.requires.row_spacing",
+      "kind": "entry-check",
+      "statement": "row_spacing runs only when finite(incoming) and incoming >= 0 and incoming <= 256; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::form_layout::admits_row_spacing, called in src/controls/panel/form_layout/form_layout.cpp"
+    },
+    {
+      "id": "gui_forms.formlayout.row_spacing_write.refusal.row_spacing",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0 and incoming <= 256, row_spacing changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.formlayout.column_spacing_write.requires.column_spacing",
+      "kind": "entry-check",
+      "statement": "column_spacing runs only when finite(incoming) and incoming >= 0 and incoming <= 256; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::form_layout::admits_column_spacing, called in src/controls/panel/form_layout/form_layout.cpp"
+    },
+    {
+      "id": "gui_forms.formlayout.column_spacing_write.refusal.column_spacing",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0 and incoming <= 256, column_spacing changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

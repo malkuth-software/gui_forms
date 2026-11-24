@@ -6,6 +6,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../platform/stxlib_bridge.hpp"
 
 #include <stxlib/optional.hpp>
@@ -50,7 +51,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> text_block_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "text_alignment",
             {{"start", 0}, {"end", 1}, {"left", 2}, {"right", 3}, {"center", 4}},
             false});
@@ -516,7 +517,7 @@ BindingValue PropertyValueTraits<TextAlignment>::to_binding(TextAlignment value)
     descriptor.enumeration = text_block_alignment_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 

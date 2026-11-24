@@ -1,21 +1,23 @@
 #include "../state/dispatcher_state.hpp"
+#include "window_dispatcher_ic_checks.hpp"
 
 #include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 
-#include <mutex>
 #include <stdexcept>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms {
 
 namespace {
 
+namespace ic = detail::ic::window_dispatcher;
+
 // Whether the window still accepts work: its dispatcher has not been shut
 // down and its teardown has not begun.
 bool accepting_work(detail::DispatcherState& state) {
-    std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     const bool accepting = state.accepting && !state.closing;
     return accepting;
 }
@@ -23,7 +25,7 @@ bool accepting_work(detail::DispatcherState& state) {
 // Counts one inline Invoke, as Window::invoke does, when the window still
 // accepts work; returns false, counting nothing, when it does not.
 bool record_inline_invoke(detail::DispatcherState& state) {
-    std::scoped_lock lock(state.mutex);
+    const stxlib::ScopedLock lock(state.mutex);
     if (!state.accepting || state.closing) return false;
     ++state.synchronous_invocations;
     ++state.inline_invocations;
@@ -36,19 +38,19 @@ WindowDispatcher::WindowDispatcher(std::shared_ptr<detail::DispatcherState> stat
     : state_(std::move(state)) {}
 
 DispatchOperation WindowDispatcher::begin_invoke(std::function<void()> callback) const {
-    if (!state_) throw std::logic_error("GUI.Forms WindowDispatcher is bound to no window");
+    if (!ic::admits_bound(state_ != nullptr)) throw std::logic_error("GUI.Forms WindowDispatcher is bound to no window");
     DispatchOperation operation =
         detail::post_dispatch(state_, {}, false, std::move(callback), false, true);
     return operation;
 }
 
 DispatchInvokeResult WindowDispatcher::invoke(std::function<void()> callback) const {
-    if (!state_) throw std::logic_error("GUI.Forms WindowDispatcher is bound to no window");
+    if (!ic::admits_bound(state_ != nullptr)) throw std::logic_error("GUI.Forms WindowDispatcher is bound to no window");
     if (!callback) throw std::invalid_argument("GUI.Forms Invoke requires a callback");
     // On the UI thread the window cannot close during the call except from
     // inside the callback, so a window accepting work at the check is alive
     // when the callback starts.
-    if (std::this_thread::get_id() == (*state_).ui_thread) {
+    if (stxlib::current_thread() == (*state_).ui_thread) {
         if (!record_inline_invoke(*state_)) return DispatchInvokeResult::window_gone;
         callback();
         return DispatchInvokeResult::completed;
@@ -69,6 +71,12 @@ bool WindowDispatcher::window_alive() const noexcept {
     if (!state_) return false;
     const bool alive = accepting_work(*state_);
     return alive;
+}
+
+WindowDispatcherState WindowDispatcher::state() const noexcept {
+    if (!ic::admits_bound(state_ != nullptr)) return WindowDispatcherState::unbound;
+    if (accepting_work(*state_)) return WindowDispatcherState::accepting;
+    return WindowDispatcherState::gone;
 }
 
 WindowDispatcher SurfaceRoot::dispatcher() const {

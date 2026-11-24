@@ -1,0 +1,409 @@
+{
+  "schema": 1,
+  "component": "gf_abi::themes",
+  "declaration": "include/gui_forms/c/gf_abi_themes.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.themes.load",
+      "mode": "legal",
+      "call": "load",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a theme package needs a record of at least the 1.0 size with reserved zero",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE when a control's inline style does not compile against the new theme: nothing changes then either.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: a theme package holds at most 256 files",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.reset",
+      "mode": "legal",
+      "call": "reset",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.install",
+      "mode": "legal",
+      "call": "install",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a theme package needs a record of at least the 1.0 size with reserved zero",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "code: a theme package holds at most 256 files",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.remove",
+      "mode": "legal",
+      "call": "remove",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "removed",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(removed)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(removed)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.remove.misuse.remove_removed",
+      "mode": "misuse",
+      "call": "remove",
+      "violates": "not_null(removed)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.themes.diagnostic_at",
+      "mode": "legal",
+      "call": "diagnostic_at",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: no finding has that index",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.diagnostic_text",
+      "mode": "legal",
+      "call": "diagnostic_text",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: unknown diagnostic text",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.theme_id",
+      "mode": "legal",
+      "call": "theme_id",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.publish_value",
+      "mode": "legal",
+      "call": "publish_value",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "Publishes a named value for themes to read (var(--name)). name is 1 to 64 lowercase ASCII letters, digits, hyphens and underscores, starting with a letter, and value is finite, else GF_STATUS_INVALID_ARGUMENT.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A name once published stays admitted to later loads, withdrawn or not; at most GF_THEME_MAXIMUM_PUBLISHED_VALUES names (GF_STATUS_LIMIT_EXCEEDED).",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.withdraw_value",
+      "mode": "legal",
+      "call": "withdraw_value",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a published name is 1 to 64 lowercase letters, digits, hyphens and underscores, ",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.published_value",
+      "mode": "legal",
+      "call": "published_value",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: value and present are outputs",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.load_image",
+      "mode": "legal",
+      "call": "load_image",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(image) and (not_null(bytes) or size == 0)"
+          ]
+        },
+        {
+          "name": "bytes",
+          "type": "uint8_t*",
+          "bounded_by": [
+            "not_null(image) and (not_null(bytes) or size == 0)"
+          ]
+        },
+        {
+          "name": "size",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(image) and (not_null(bytes) or size == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(image) and (not_null(bytes) or size == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A file that is not a valid PNG gives GF_STATUS_INVALID_ARGUMENT, one past the registry's limits GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A file that is not a valid PNG gives GF_STATUS_INVALID_ARGUMENT, one past the registry's limits GF_STATUS_LIMIT_EXCEEDED; nothing is admitted then.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.load_image.misuse.load_image_bytes",
+      "mode": "misuse",
+      "call": "load_image",
+      "violates": "not_null(image) and (not_null(bytes) or size == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.themes.remove_image",
+      "mode": "legal",
+      "call": "remove_image",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_NOT_FOUND for an id the registry does not hold.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.load_pixels",
+      "mode": "legal",
+      "call": "load_pixels",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "Fails with GF_STATUS_LIMIT_EXCEEDED past the registry's limits, else GF_STATUS_INVALID_ARGUMENT, leaving image unwritten.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "Fails with GF_STATUS_LIMIT_EXCEEDED past the registry's limits, else GF_STATUS_INVALID_ARGUMENT, leaving image unwritten.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.load_sheet",
+      "mode": "legal",
+      "call": "load_sheet",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a view with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "GF_STATUS_INVALID_ARGUMENT for a view with a size and no data, GF_STATUS_LIMIT_EXCEEDED past the bound.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.set_user_theme_policy",
+      "mode": "legal",
+      "call": "set_user_theme_policy",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT for an unknown policy.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "GF_STATUS_INVALID_STATE once a window shares the resources;",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.theme_request",
+      "mode": "legal",
+      "call": "theme_request",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "outcome",
+          "type": "gf_theme_request_outcome*",
+          "bounded_by": [
+            "not_null(outcome)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(outcome)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.themes.theme_request.misuse.theme_request_outcome",
+      "mode": "misuse",
+      "call": "theme_request",
+      "violates": "not_null(outcome)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

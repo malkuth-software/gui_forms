@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ProgressBar",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/progress_bar.ic.toml",
+    "sha256": "b14c539e7476eaa5d37c5114f8c6e445c5c9652478d678dbaabe2d9e3c686000"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.progressbar.stripe_width_write.requires.stripe_width",
+      "kind": "entry-check",
+      "statement": "stripe_width runs only when finite(incoming) and incoming >= 2 and incoming <= 32; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::progress_bar::admits_stripe_width, called in src/controls/range_control/progress_bar/progress_bar.cpp"
+    },
+    {
+      "id": "gui_forms.progressbar.stripe_width_write.refusal.stripe_width",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 2 and incoming <= 32, stripe_width changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

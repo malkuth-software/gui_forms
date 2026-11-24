@@ -14,7 +14,6 @@ int main(int argc, char** argv) {
     options.initial_size = {1450.0, 894.0};
     options.minimum_size = {150.0, 194.0};
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     return gui_forms::host::run_windows(
         gui_forms::responsive_tracks_lab::make_responsive_tracks_lab(),
         std::move(options));

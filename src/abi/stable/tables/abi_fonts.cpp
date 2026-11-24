@@ -19,10 +19,12 @@
 
 #include "../failure/abi_failure.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_fonts_ic_checks.hpp"
 
 #include "gui_forms/drawing/font_substitution/font_substitution.hpp"
 #include "gui_forms/typography/app_fonts/app_fonts.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -30,9 +32,9 @@
 #include <cstdint>
 #include <cstdio>
 #include <memory>
-#include <mutex>
 #include <span>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -53,7 +55,7 @@ static_assert(GF_APP_FONT_MAXIMUM_FACES == maximum_app_font_faces);
 static_assert(GF_APP_FONT_MAXIMUM_BYTES == maximum_app_font_bytes);
 
 gf_status fonts_family_id_body(gf_utf8_view name, std::uint32_t* family) {
-    if (family == nullptr) {
+    if (!ic_fonts::admits_family_id_family(family)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, family_id_slot, "family_id needs an output");
     }
     std::string_view text;
@@ -112,7 +114,7 @@ gf_status GF_CALL fonts_family_name(std::uint32_t family, char* buffer, std::uin
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // The application families load_family gave and unload_family has not taken back.
 struct HeldAppFonts final {
-    std::mutex lock{};
+    stxlib::Mutex lock{};
     std::vector<AppFontFamily> families{};
 };
 
@@ -169,7 +171,7 @@ gf_status refuse_load(const AppFontLoad& loaded) {
 
 gf_status fonts_load_family_body(gf_utf8_view name, const gf_app_font_face* faces, std::uint64_t face_count,
                                  std::uint32_t* family) {
-    if (family == nullptr || (faces == nullptr && face_count != 0U)) {
+    if (!ic_fonts::admits_load_family_faces(family, faces, face_count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, load_family_slot, "load_family needs its faces and an output");
     }
     std::string_view text;
@@ -208,7 +210,7 @@ gf_status fonts_load_family_body(gf_utf8_view name, const gf_app_font_face* face
         const std::byte* const first = reinterpret_cast<const std::byte*>(face.bytes.data);
         const std::size_t size = static_cast<std::size_t>(face.bytes.size);
         AppFontFace& target = copied[index];
-        target.bytes = std::make_shared<const std::vector<std::byte>>(first, first + size);
+        target.bytes = gui_forms::detail::make_library_shared<const std::vector<std::byte>>(first, first + size);
         target.weight = static_cast<std::uint16_t>(face.weight);
         target.italic = face.italic == 1U;
     }
@@ -220,7 +222,7 @@ gf_status fonts_load_family_body(gf_utf8_view name, const gf_app_font_face* face
     const FontFamilyId id = loaded.family.id();
     HeldAppFonts& held = held_app_fonts();
     {
-        const std::lock_guard<std::mutex> guard(held.lock);
+        const stxlib::ScopedLock guard(held.lock);
         held.families.push_back(std::move(loaded.family));
     }
     *family = static_cast<std::uint32_t>(id.value);
@@ -245,7 +247,7 @@ gf_status fonts_unload_family_body(std::uint32_t family, std::uint32_t* deferred
     AppFontFamily taken{};
     if (family <= 0xFFFFU && app_font_family_number(id)) {
         HeldAppFonts& held = held_app_fonts();
-        const std::lock_guard<std::mutex> guard(held.lock);
+        const stxlib::ScopedLock guard(held.lock);
         const std::vector<AppFontFamily>::iterator found =
             std::find_if(held.families.begin(), held.families.end(), HoldsFamily{id});
         if (found != held.families.end()) {

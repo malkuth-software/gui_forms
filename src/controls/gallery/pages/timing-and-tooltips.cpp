@@ -4,10 +4,13 @@
 #include "gui_forms/controls/scaled_panel.hpp"
 #include "gui_forms/controls/track_bar.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "timing-and-tooltips_form.hpp"
 
 #include <array>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::gallery::pages {
@@ -145,7 +148,7 @@ void TimingPage::count_in_background(BackgroundWorkerTask& task) {
             return;
         }
         task.report_progress(percent);
-        std::this_thread::sleep_for(std::chrono::milliseconds(60));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(60));
     }
     task.set_result(BindingValue{std::string("Counted to 100")});
 }
@@ -154,7 +157,7 @@ void TimingPage::on_run_work() {
     Window* const window = (*run_button_).attached_window();
     if (window == nullptr) return;
     if (!worker_) {
-        worker_ = std::make_shared<BackgroundWorker>(*window);
+        worker_ = gui_forms::detail::make_library_shared<BackgroundWorker>(*window);
         (*worker_).set_worker_reports_progress(true);
         (*worker_).set_worker_supports_cancellation(true);
         (*worker_).set_do_work(
@@ -218,7 +221,7 @@ void TimingPage::on_interval_changed(const double milliseconds) {
 
 void add_timing_and_tooltips(const std::shared_ptr<Surface>& page,
                              const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<TimingPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<TimingPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

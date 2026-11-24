@@ -1,5 +1,5 @@
 #include "gui_forms/controls/progress_bar.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include "../range_control_rendering.hpp"
 #include "gui_forms/controls/progress_bar_effects.hpp"
@@ -9,7 +9,9 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
+#include "progress_bar_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +21,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::progress_bar;
 using namespace range_control_detail;
 
 namespace {
@@ -28,7 +31,7 @@ namespace {
 // read it.
 std::shared_ptr<const PropertyEnumDescriptor> progress_bar_visual_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "progress_bar_visual_style",
             {{"blocks", 0}, {"continuous", 1}, {"marquee", 2}, {"pulse", 3}, {"marching_stripes", 4},
              {"laser_etch", 5}},
@@ -65,10 +68,12 @@ StripeSpan stripe_span(const Rect& interior, bool vertical) noexcept {
 // the thickness, positive when it leans back (the default).
 double stripe_slant(const ControlStripePattern& pattern, double thickness) noexcept {
     const double angle = pattern.angle_degrees.value_or(default_stripe_angle);
-    // tan(angle) as the engine's deterministic sine over cosine; an angle
+    // tan(angle) as STXlib's deterministic sine over cosine; an angle
     // on a quarter turn has no finite tangent and gives no slant.
-    const EngineSineCosine turn = engine_sine_cosine_degrees(angle);
-    const double reach = turn.cosine == 0.0 ? 0.0 : turn.sine / turn.cosine * thickness;
+    double turn_sine = 0.0;
+    double turn_cosine = 0.0;
+    stxlib::math::sincosd(angle, turn_sine, turn_cosine);
+    const double reach = turn_cosine == 0.0 ? 0.0 : turn_sine / turn_cosine * thickness;
     const bool backward = pattern.lean.value_or(StripeSense::backward) == StripeSense::backward;
     const double slant = backward ? reach : -reach;
     return slant;
@@ -128,7 +133,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> effect_input_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "effect_input_kind", {{"none", 0}, {"pointer", 1}, {"pointer_and_keys", 2}}, false});
     return value;
 }
@@ -249,12 +254,13 @@ void ProgressBar::written(const decltype(effect_input)&) {
     invalidate(Dirty::paint);
 }
 
-// The effect's input: the part is the bar's bounds, whose origin is the
-// bar's absolute origin. The move that enters the bar marks the pointer
-// inside.
+// The effect's input: the part is the bar's bounds, in the bar's own
+// coordinates, and so is the pointer (through its window frame, stage VA).
+// The move that enters the bar marks the pointer inside.
 void ProgressBar::note_effect_pointer(const PointerEvent& event) {
-    const Rect absolute = absolute_bounds();
-    if (effect_instance_.note_pointer(event, Point{absolute.x, absolute.y})) invalidate(animated_extent());
+    PointerEvent local_event = event;
+    local_event.position = point_from_window(event.position);
+    if (effect_instance_.note_pointer(local_event, Point{})) invalidate(animated_extent());
 }
 
 void ProgressBar::on_mouse_down(MouseEventArgs& arguments) {
@@ -1030,7 +1036,7 @@ BindingValue PropertyValueTraits<ProgressBarVisualStyle>::to_binding(ProgressBar
     descriptor.enumeration = progress_bar_visual_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1049,7 +1055,7 @@ BindingValue PropertyValueTraits<EffectInputKind>::to_binding(EffectInputKind va
     descriptor.enumeration = effect_input_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1095,7 +1101,7 @@ std::span<const PropertyEntry> ProgressBar::property_table() const noexcept {
 void ProgressBar::prepare_write(const decltype(stripe_width)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "progress stripe width must be finite");
-    if (incoming < 2.0 || incoming > 32.0) throw std::invalid_argument("progress stripe width must be between 2 and 32 pixels");
+    if (!ic::admits_stripe_width(incoming)) throw std::invalid_argument("progress stripe width must be between 2 and 32 pixels");
 }
 
 void ProgressBar::written(const decltype(stripe_width)&) {

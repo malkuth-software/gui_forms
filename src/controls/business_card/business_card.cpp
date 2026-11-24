@@ -1,5 +1,5 @@
 #include "gui_forms/components/business_card/business_card.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 
 #include "card_turn.hpp"
 
@@ -22,13 +22,12 @@
 #include <cstdint>
 #include <cstring>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -251,7 +250,7 @@ std::string_view printed_website(const ProgramIdentity& identity) noexcept {
 // destroyed window revokes its overlay, which closes the layer).
 struct ShownCard final {
     const Window* window{nullptr};
-    std::thread::id thread{};
+    stxlib::ThreadIdentity thread{};
     std::shared_ptr<ModalLayer> layer{};
     std::shared_ptr<BusinessCard> card{};
 };
@@ -260,7 +259,7 @@ struct ShownCard final {
 // held while a control runs (show, close or an event), since a handler may
 // call back in.
 struct ShownCards final {
-    std::mutex lock{};
+    stxlib::Mutex lock{};
     std::vector<ShownCard> records{};
 };
 
@@ -286,7 +285,7 @@ public:
 
 // The index of `window`'s record made on this thread, or records.size().
 std::size_t find_record(const std::vector<ShownCard>& records, const Window* window) noexcept {
-    const std::thread::id self = std::this_thread::get_id();
+    const stxlib::ThreadIdentity self = stxlib::current_thread();
     for (std::size_t index = 0U; index < records.size(); ++index) {
         if (records[index].window == window && records[index].thread == self) return index;
     }
@@ -298,7 +297,7 @@ std::size_t find_record(const std::vector<ShownCard>& records, const Window* win
 // Nothing moves while a card handler runs on this thread.
 void sweep_records(std::vector<ShownCard>& records, const Window* keep, std::vector<ShownCard>& released) {
     if (card_handlers_running != 0U) return;
-    const std::thread::id self = std::this_thread::get_id();
+    const stxlib::ThreadIdentity self = stxlib::current_thread();
     std::size_t kept = 0U;
     for (std::size_t index = 0U; index < records.size(); ++index) {
         ShownCard& record = records[index];
@@ -318,7 +317,7 @@ void sweep_records(std::vector<ShownCard>& records, const Window* keep, std::vec
 // caller holds them while they run), or empty.
 ShownCard copy_record(const Window* window) {
     ShownCards& cards = shown_cards();
-    const std::lock_guard<std::mutex> held(cards.lock);
+    const stxlib::ScopedLock held(cards.lock);
     const std::size_t index = find_record(cards.records, window);
     if (index == cards.records.size()) return ShownCard{};
     ShownCard copy{};
@@ -806,9 +805,11 @@ Rect BusinessCard::remark_room() const noexcept {
     const SurfaceRoot* const root = attached_surface_root();
     if (root == nullptr) return client_rectangle();
     const Size client = (*root).client_size();
-    const Rect absolute = absolute_bounds();
-    const Rect room{remark_margin - absolute.x, remark_margin - absolute.y,
-                    std::max(0.0, client.width - remark_margin * 2.0), std::max(0.0, client.height - remark_margin * 2.0)};
+    // The window's client area less the margin, in this card's coordinates
+    // (through its window frame, stage VA).
+    const Rect window_room{remark_margin, remark_margin, std::max(0.0, client.width - remark_margin * 2.0),
+                           std::max(0.0, client.height - remark_margin * 2.0)};
+    const Rect room = rectangle_from_window(window_room);
     return room;
 }
 
@@ -816,10 +817,13 @@ Insets BusinessCard::visual_outsets() const noexcept {
     const SurfaceRoot* const root = attached_surface_root();
     if (presentation_ != BusinessCardPresentation::hand || root == nullptr) return Control::visual_outsets();
     const Size client = (*root).client_size();
-    const Rect absolute = absolute_bounds();
-    const Insets outsets{std::max(0.0, absolute.x), std::max(0.0, absolute.y),
-                         std::max(0.0, client.width - absolute.right()),
-                         std::max(0.0, client.height - absolute.bottom())};
+    // The window's client area in this card's coordinates: the outsets
+    // reach its edges.
+    const Rect window_area = rectangle_from_window(Rect{0.0, 0.0, client.width, client.height});
+    const Rect own = client_rectangle();
+    const Insets outsets{std::max(0.0, own.x - window_area.x), std::max(0.0, own.y - window_area.y),
+                         std::max(0.0, window_area.right() - own.right()),
+                         std::max(0.0, window_area.bottom() - own.bottom())};
     return outsets;
 }
 
@@ -928,9 +932,11 @@ void BusinessCard::say_remark(FrameTime now) {
     for (std::uint32_t attempt = 0U; attempt < remark_placement_attempts; ++attempt) {
         const double angle = 2.0 * pi * unit_random(remark_seed_);
         const double reach = placed.card.width * (0.58 + 0.12 * unit_random(remark_seed_));
-        const EngineSineCosine turn = engine_sine_cosine(angle);
-        const Rect box{centre_x + turn.cosine * reach - width * 0.5,
-                       centre_y + turn.sine * reach * 0.62 - height * 0.5, width, height};
+        double turn_sine = 0.0;
+        double turn_cosine = 0.0;
+        stxlib::math::sincos(angle, turn_sine, turn_cosine);
+        const Rect box{centre_x + turn_cosine * reach - width * 0.5,
+                       centre_y + turn_sine * reach * 0.62 - height * 0.5, width, height};
         const bool inside = box.x >= room.x && box.y >= room.y && box.right() <= room.right() &&
                             box.bottom() <= room.bottom();
         if (!inside || overlaps(box, card)) continue;
@@ -1031,7 +1037,7 @@ void BusinessCard::on_mouse_move(MouseEventArgs& arguments) {
     const bool hand = presentation_ == BusinessCardPresentation::hand;
     if (hand && press_target_ != PressTarget::none) {
         const Point at = arguments.location;
-        const double moved = engine_hypotenuse(at.x - drag_origin_.x, at.y - drag_origin_.y);
+        const double moved = stxlib::math::hypot(at.x - drag_origin_.x, at.y - drag_origin_.y);
         if (!dragging_ && moved > drag_threshold) {
             begin_turn_gesture();
             if (turn_available()) {
@@ -1243,7 +1249,9 @@ stxlib::Optional<double> BusinessCard::heading_band_bottom() const noexcept {
     const SurfaceRoot* const mine = attached_surface_root();
     const SurfaceRoot* const theirs = (*band).attached_surface_root();
     if (mine == nullptr || mine != theirs) return stxlib::Optional<double>::none();
-    const double bottom = (*band).absolute_bounds().bottom() - absolute_bounds().y;
+    // The band's bottom edge in this card's coordinates.
+    const double band_bottom = (*band).absolute_bounds().bottom();
+    const double bottom = point_from_window(Point{0.0, band_bottom}).y;
     return stxlib::Optional<double>::of(bottom);
 }
 
@@ -1368,7 +1376,7 @@ bool show_business_card(Window& window) {
     std::vector<ShownCard> released{};
     ShownCard record{};
     {
-        const std::lock_guard<std::mutex> held(cards.lock);
+        const stxlib::ScopedLock held(cards.lock);
         sweep_records(cards.records, &window, released);
         const std::size_t index = find_record(cards.records, &window);
         if (index != cards.records.size()) {
@@ -1384,7 +1392,7 @@ bool show_business_card(Window& window) {
     const bool made = record.card == nullptr;
     if (made) {
         record.window = &window;
-        record.thread = std::this_thread::get_id();
+        record.thread = stxlib::current_thread();
         record.layer = make_control<ModalLayer>(StableId("gui-forms.business-card.layer"));
         record.card = make_control<BusinessCard>(StableId("gui-forms.business-card"), BusinessCardPresentation::hand);
         BusinessCardShowing::prepare(*record.layer, *record.card);
@@ -1393,7 +1401,7 @@ bool show_business_card(Window& window) {
     const bool shown = (*record.layer).show(owner, record.card);
     if (!shown) return false;
     if (made) {
-        const std::lock_guard<std::mutex> held(cards.lock);
+        const stxlib::ScopedLock held(cards.lock);
         cards.records.push_back(std::move(record));
     }
     return true;

@@ -1,6 +1,7 @@
 #include "prepared_window_batch.hpp"
 #include <limits>
 #include <new>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::detail {
 struct PreparedWindowBatchAccess final {
@@ -19,7 +20,7 @@ namespace {
 PreparedTextStatus current_locked(const PreparedWindowBatchAuthority& authority,
                                  const PreparedWindowKey& expected) noexcept {
     if (authority.closing) return PreparedTextStatus::closing;
-    if (authority.executor != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if (authority.executor != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     if (!authority.desired || !same_prepared_window_key(*authority.desired, expected))
         return PreparedTextStatus::stale;
     return PreparedTextStatus::success;
@@ -27,9 +28,9 @@ PreparedTextStatus current_locked(const PreparedWindowBatchAuthority& authority,
 }
 PreparedTextStatus desire_prepared_window(PreparedWindowBatchAuthority& authority,
                                          const PreparedWindowKey& key) {
-    std::lock_guard<std::mutex> lock(authority.mutex);
+    const stxlib::ScopedLock lock(authority.mutex);
     if (authority.closing) return PreparedTextStatus::closing;
-    if (authority.executor != std::this_thread::get_id()) return PreparedTextStatus::wrong_executor;
+    if (authority.executor != stxlib::current_thread()) return PreparedTextStatus::wrong_executor;
     if (!key.controller_instance || !key.projection_generation || !key.authority.session || !key.authority.epoch)
         return PreparedTextStatus::invalid_input;
     const PreparedTextStatus valid = validate_prepared_key(key.text);
@@ -60,7 +61,7 @@ PreparedTextStatus admit_prepared_window(const PreparedWindowKey& expected,
     if ((*fonts).identity != expected.text.font_set || (*fonts).generation != expected.text.font_generation)
         return PreparedTextStatus::incompatible_font;
     {
-        std::lock_guard<std::mutex> lock((*authority).mutex);
+        const stxlib::ScopedLock lock((*authority).mutex);
         const PreparedTextStatus current = current_locked(*authority, expected);
         if (current != PreparedTextStatus::success) return current;
     }
@@ -89,13 +90,13 @@ PreparedTextStatus admit_prepared_window(const PreparedWindowKey& expected,
         (*next).rows = std::move(rows);
         (*next).row_count = data.paragraph_count;
         (*next).requested_bytes = bytes;
-        std::lock_guard<std::mutex> authority_lock((*authority).mutex);
+        const stxlib::ScopedLock authority_lock((*authority).mutex);
         const PreparedTextStatus current = current_locked(*authority, expected);
         if (current != PreparedTextStatus::success) return current;
         {
             // Lock order is authority, then ledger. Reservation acquisition
             // above holds only ledger; no callback or allocation occurs here.
-            std::lock_guard<std::mutex> ledger_lock((*ledger).mutex);
+            const stxlib::ScopedLock ledger_lock((*ledger).mutex);
             if ((*ledger).closing) return PreparedTextStatus::closing;
             PreparedWindowBatchAccess::transfer(input, *next);
         }
@@ -109,10 +110,10 @@ PreparedTextStatus admit_prepared_window(const PreparedWindowKey& expected,
 }
 bool prepared_window_batch_current(const PreparedWindowBatchStorage& batch) {
     if (!batch.authority || !batch.ledger) return false;
-    std::lock_guard<std::mutex> authority_lock((*batch.authority).mutex);
+    const stxlib::ScopedLock authority_lock((*batch.authority).mutex);
     const PreparedTextStatus current = current_locked(*batch.authority, batch.key);
     if (current != PreparedTextStatus::success) return false;
-    std::lock_guard<std::mutex> ledger_lock((*batch.ledger).mutex);
+    const stxlib::ScopedLock ledger_lock((*batch.ledger).mutex);
     const bool live = !(*batch.ledger).closing;
     return live;
 }
@@ -126,8 +127,8 @@ PreparedTextStatus prepared_window_worker_current_locked(const PreparedWindowBat
 }
 PreparedTextStatus prepared_window_worker_current(const PreparedWindowBatchStorage& batch) {
     if (!batch.authority || !batch.ledger) return PreparedTextStatus::invalid_input;
-    std::lock_guard<std::mutex> authority_lock((*batch.authority).mutex);
-    std::lock_guard<std::mutex> ledger_lock((*batch.ledger).mutex);
+    const stxlib::ScopedLock authority_lock((*batch.authority).mutex);
+    const stxlib::ScopedLock ledger_lock((*batch.ledger).mutex);
     const PreparedTextStatus status = prepared_window_worker_current_locked(batch);
     return status;
 }

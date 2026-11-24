@@ -37,6 +37,11 @@ public:
         std::string_view row_id) const;
     void set_header_content(Control::Ptr content, double height);
     [[nodiscard]] Control::Ptr header_content() const noexcept;
+    // Whether the list's state agrees with itself (state hunt, 2026-11-23):
+    // one row record per row of the groups, in order, each editor and reset
+    // button a child of the list, and the header a child. For tests and
+    // diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
 
     [[nodiscard]] double content_height() const noexcept;
 
@@ -57,9 +62,15 @@ public:
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
+    // True: its rows lie in a scrolled space of its own (scroll_offset), so
+    // an overflow scrolls them rather than scaling them (stage VA).
+    [[nodiscard]] bool content_scrolls() const noexcept override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] std::vector<SemanticNode> semantic_virtual_children() const override;
+    // The names shortened with an ellipsis, each with its full name as its
+    // tooltip (as Windows Forms' PropertyGrid shows it).
+    [[nodiscard]] std::vector<SemanticNode> tool_tip_items() const override;
     bool on_semantic_child_action(std::string_view stable_id,
                                   SemanticAction action,
                                   std::string_view value) override;

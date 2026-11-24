@@ -19,6 +19,7 @@
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/theme_compiler/theme_compiler.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstddef>
 #include <cstdint>
@@ -144,7 +145,7 @@ private:
     std::unique_ptr<Application> application_{};
     // Shared with a theme request held by the resources until their first
     // window.
-    std::shared_ptr<ThemeLibrary> library_{std::make_shared<ThemeLibrary>()};
+    std::shared_ptr<ThemeLibrary> library_{gui_forms::detail::make_library_shared<ThemeLibrary>()};
     // Copies of the schema's anatomies, which name static storage.
     std::vector<ControlAnatomy> controls_{};
     bool controls_built_ = false;

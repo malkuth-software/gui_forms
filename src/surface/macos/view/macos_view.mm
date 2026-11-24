@@ -8,6 +8,9 @@
 #include "../application/macos_bundled_fonts.hpp"
 #include "../application/macos_main_work.hpp"
 #include "../application/macos_values.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../services/appkit_drag_release.hpp"
+#endif
 
 // Main-queue work without Objective-C blocks (house style section 9, owner
 // decision V2-1). Each posting allocates one named context on the heap and
@@ -223,6 +226,15 @@ void run_view_other_mouse_dragged(GUIFormsView* object, NSEvent* event) {
 }
 void run_view_scroll_wheel(GUIFormsView* object, NSEvent* event) {
     [object answerScrollWheel:event];
+}
+void run_view_magnify(GUIFormsView* object, NSEvent* event) {
+    [object answerMagnifyWithEvent:event];
+}
+void run_view_rotate(GUIFormsView* object, NSEvent* event) {
+    [object answerRotateWithEvent:event];
+}
+void run_view_smart_magnify(GUIFormsView* object, NSEvent* event) {
+    [object answerSmartMagnifyWithEvent:event];
 }
 void run_view_key_down(GUIFormsView* object, NSEvent* event) {
     [object answerKeyDown:event];
@@ -522,6 +534,11 @@ void link_view_categories() noexcept {
 }
 - (void)notifyClosedWithReason:(HostCloseReason)reason {
     if (_hostAttached == NO) return;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A drag from this window ends cancelled before the window reports its
+    // close; AppKit's session then touches nothing of the closed window.
+    if (_hostServices != nullptr) gui_forms::host::detail::macos_drag_source_window_closed(*_hostServices);
+#endif
     static_cast<void>([self dispatchHostPayload:HostClosedEvent{reason}
                                timestampNanoseconds:host_now_nanoseconds()]);
 }
@@ -632,7 +649,30 @@ void link_view_categories() noexcept {
     if (!reported.accepted()) return;
     _windowStateReported = YES;
     _reportedFullScreen = fullScreen;
+    [self notifySafeInsets];
     [self collectDamage];
+}
+
+- (void)notifySafeInsets {
+    if (_hostAttached == NO || self.window == nil) return;
+    gui_forms::SafeInsets insets{};
+    const BOOL fullScreen = ([self.window styleMask] & NSWindowStyleMaskFullScreen) != 0 ? YES : NO;
+    NSScreen* const screen = self.window.screen;
+    if (fullScreen == YES && screen != nil) {
+        if (@available(macOS 12.0, *)) {
+            // In full screen the content view covers the screen, so the
+            // screen's safe area is the client area's, in points.
+            const NSEdgeInsets edges = screen.safeAreaInsets;
+            insets = gui_forms::SafeInsets{static_cast<double>(edges.left), static_cast<double>(edges.top),
+                                           static_cast<double>(edges.right), static_cast<double>(edges.bottom)};
+        }
+    }
+    if (_safeInsetsReported == YES && _reportedSafeInsets == insets) return;
+    const HostDispatchResult reported = [self dispatchHostPayload:gui_forms::HostSafeInsetsEvent{insets}
+                                              timestampNanoseconds:host_now_nanoseconds()];
+    if (!reported.accepted()) return;
+    _safeInsetsReported = YES;
+    _reportedSafeInsets = insets;
 }
 
 - (NSRect)accessibilityFrame {
@@ -650,6 +690,7 @@ void link_view_categories() noexcept {
     static_cast<void>([self dispatchHostPayload:
         HostDisplayEvent{std::move(monitors.monitors)}
                                timestampNanoseconds:host_now_nanoseconds()]);
+    [self notifySafeInsets];
 }
 
 - (void)screenParametersChanged:(NSNotification*)notification {
@@ -824,6 +865,7 @@ void link_view_categories() noexcept {
         static_cast<void>([self dispatchHostPayload:
             HostResizeEvent{GFSize{newSize.width, newSize.height}}
                                    timestampNanoseconds:host_now_nanoseconds()]);
+        [self notifySafeInsets];
         [self collectDamage];
     }
 }
@@ -992,6 +1034,19 @@ void link_view_categories() noexcept {
 
 - (void)scrollWheel:(NSEvent*)event {
     gui_forms::detail::call_failing_fast("macos.view.scrollWheel:", &run_view_scroll_wheel, self, event);
+}
+
+- (void)magnifyWithEvent:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.magnifyWithEvent:", &run_view_magnify, self, event);
+}
+
+- (void)rotateWithEvent:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.rotateWithEvent:", &run_view_rotate, self, event);
+}
+
+- (void)smartMagnifyWithEvent:(NSEvent*)event {
+    gui_forms::detail::call_failing_fast("macos.view.smartMagnifyWithEvent:", &run_view_smart_magnify, self,
+                                         event);
 }
 
 - (void)keyDown:(NSEvent*)event {

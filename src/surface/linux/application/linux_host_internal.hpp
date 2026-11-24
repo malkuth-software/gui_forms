@@ -6,27 +6,32 @@
 #include "../../../render/skia/raster/skia_raster.hpp"
 #include "../../../render/skia/raster/skia_splash_bake.hpp"
 #include "../services/x11_tray_icons.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../services/linux_desktop_notifications.hpp"
+#endif
 #include "../compositor/x11_compositor.hpp"
 #include "../settings/xsettings_watch.hpp"
+#include "../../../host/linux/application/linux_input_rules.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
 #include "gui_forms/host/windowing/desktop_coordinates.hpp"
 #include "gui_forms/host/windowing/first_frame_show.hpp"
 #include "gui_forms/platform/linux_host.hpp"
+#include "gui_forms/scheduler/display_timing/display_timing.hpp"
+#include "../../../host/linux/frame_sync/x11_frame_sync.hpp"
 #include <X11/Xlib.h>
 #include <signal.h>
 #include <array>
 #include <atomic>
 #include <chrono>
 #include <deque>
-#include <mutex>
 #include <memory>
 #include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <cmath>
+#include <stxlib/threads.hpp>
 #include <vector>
 
 namespace gui_forms::host::linux_detail {
@@ -121,6 +126,62 @@ private:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 DragFileListData local_files(const std::vector<std::byte>& data);
+// The XDND source (linux_drag_drop.cpp). Not compiled in a high-integrity
+// build (cmake/HighIntegrity.cmake).
+//
+// A local path as a file URI: "file://" and the path's bytes, each byte
+// outside RFC 3986's unreserved set and '/' percent-encoded, so local_files
+// reads it back unchanged.
+[[nodiscard]] std::string xdnd_file_uri(std::string_view path);
+// A file list as text/uri-list: one file URI a line, each line ended by
+// CR LF.
+[[nodiscard]] std::vector<std::byte> xdnd_uri_list(const DragFileListData& files);
+// The effect a drag asks for under the modifier `state` (an X key-button
+// mask): Shift and Control together link, Shift moves, Control copies,
+// as GTK and Qt do; with neither, or when the asked effect is not allowed,
+// the first allowed of copy, move and link.
+[[nodiscard]] DragEffect xdnd_requested_effect(unsigned state, DragEffect allowed) noexcept;
+// How a drag from the program ended: the effect the destination took
+// (none when cancelled), the failure that kept it from starting, and the
+// button release that ended it, which the window receives after the end is
+// reported (the drag's pointer grab took it from the window).
+struct XdndDragOutcome final {
+  HostServiceStatus status;
+  DragEffect performed_effect{DragEffect::none};
+  std::optional<XEvent> release;
+};
+// Runs a drag of `request` (validated by HostServices::start_drag) from
+// `window` until it ends: XdndSelection owned with the request's targets,
+// the pointer and keyboard grabbed, XdndEnter, XdndPosition and XdndLeave
+// sent to the XDND-aware window under the pointer (through its XdndProxy),
+// XdndStatus honoured, XdndDrop on the release of the buttons held at the
+// start and XdndFinished awaited for at most 5 seconds; Escape cancels.
+// Other events are dispatched as the run loop would, so the program's own
+// windows take part as destinations and selection requests are answered.
+// backend_failure when no button is held or the grab or the selection is
+// refused. UI thread.
+[[nodiscard]] XdndDragOutcome run_xdnd_drag(NativeWindow &window, const HostDragSourceRequest &request);
+// Where a drag from the program starts: the buttons held (an X button mask,
+// not empty), the pointer's root position and the key-button state.
+struct XdndDragStart final {
+  unsigned buttons{};
+  int root_x{};
+  int root_y{};
+  unsigned state{};
+};
+// run_xdnd_drag after the pointer query, from `start` (a test drives it
+// without a held button). The window is held to the end of the run loop's
+// turn (Runtime::drag_held_windows); when it closes during the drag, which
+// a timer or queued action can do, the drag is cancelled: XdndLeave to the
+// target, XdndSelection and the grabs given up, the effect none.
+[[nodiscard]] XdndDragOutcome run_xdnd_drag_from(NativeWindow &window, const HostDragSourceRequest &request,
+                                                 const XdndDragStart &start);
+// One turn of the program's own work under a drag (run_xdnd_drag's loop):
+// the queued actions and accessibility work, then every window's timers,
+// frames and paint (Runtime::service_windows). Returns how long the loop
+// may wait for its next event: the earliest window deadline, bounded by
+// `maximum_wait` (negative for no bound). UI thread.
+[[nodiscard]] int xdnd_drag_turn(Runtime &runtime, int maximum_wait);
 #endif
 // A present's source: the raster's premultiplied BGRA8 pixels, row_bytes
 // apart, and the window's alpha mask, presented when present_alpha (a
@@ -230,6 +291,15 @@ protected:
   HostClipboardImageResult read_clipboard_image_impl() override;
   HostClipboardFilesResult read_clipboard_files_impl() override;
   HostServiceStatus write_clipboard_image_impl(HostImageView image) override;
+  // A drag to other programs (run_xdnd_drag): the drag ends, and is
+  // reported, before this returns; then the window receives the release.
+  // A window closed during its drag reports it cancelled (effect none).
+  HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest &request) override;
+  // Desktop notifications through the freedesktop notification service
+  // (LinuxDesktopNotifications), created with the first.
+  HostServiceStatus show_desktop_notification_impl(HostDesktopNotificationId notification_id,
+                                                   const HostDesktopNotificationRequest &request) override;
+  void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept override;
 #endif
   HostDialogResult show_dialog_impl(const HostDialogRequest &request) override;
   HostServiceStatus play_sound_cue_impl(const HostSoundCueRequest &) override;
@@ -246,6 +316,9 @@ private:
     ::Cursor native;
   };
   void forward_tray_event(const HostTrayIconEvent &event) { publish_tray_icon_event(event); }
+  void forward_notification_event(const HostDesktopNotificationEvent &event) {
+    publish_desktop_notification_event(event);
+  }
   // Gives the pointer back: ungrabbed, shown, raw motion deselected, the
   // confine window destroyed. Cannot fail in a way that keeps it.
   void release_relative_pointer() noexcept;
@@ -261,6 +334,10 @@ private:
   int lock_y_{};
   // Created with the first icon.
   std::unique_ptr<X11TrayIcons> tray_;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // Created with the first desktop notification.
+  std::unique_ptr<LinuxDesktopNotifications> notifications_;
+#endif
 };
 // The run's wake pipe (A-gf-host-01-F8): both ends, closed when the last
 // holder goes. The Runtime and every Wake copy (the model's wake handlers,
@@ -286,7 +363,7 @@ struct Action final {
   ActionKind kind;
 };
 struct ActionQueue final {
-  std::mutex mutex;
+  stxlib::Mutex mutex;
   std::deque<Action> pending;
   Wake wake;
   void post(Action action);
@@ -307,6 +384,31 @@ public:
   void ready();
   void event(XEvent &event);
   void update();
+  // A frame presented through the direct path was shown at `ust`
+  // (microseconds of CLOCK_MONOTONIC) on refresh `msc`: the display's
+  // timing it gives reaches the model (set_display_timing).
+  void present_completed(std::uint64_t ust, std::uint64_t msc);
+  // Reads the nominal refresh rate of the monitor under the window
+  // (x11_refresh_period_at) and reports it as nominal timing, unless the
+  // model already holds the display's own timing at that rate.
+  void report_nominal_rate();
+  // The compositor's frame synchronisation (src/host/linux/frame_sync):
+  // creates the basic and extended XSync counters and names them in
+  // _NET_WM_SYNC_REQUEST_COUNTER where the server has XSync; false (and
+  // _NET_WM_SYNC_REQUEST stays out of WM_PROTOCOLS) otherwise.
+  bool create_frame_sync();
+  void destroy_frame_sync() noexcept;
+  void set_sync_counter(XID counter, std::uint64_t value) noexcept;
+  // Around each present: the extended counter odd, then even, and a
+  // resize's basic request answered once the frame is sent.
+  void begin_frame_sync() noexcept;
+  void end_frame_sync() noexcept;
+  // _NET_WM_SYNC_REQUEST, _NET_WM_FRAME_DRAWN and _NET_WM_FRAME_TIMINGS:
+  // the frame timings reach the model as display timing
+  // (set_display_timing); a compositor that sends only drawn stamps feeds
+  // the estimator (note_presentation_completed). False for any other
+  // message.
+  bool frame_sync_message(const XClientMessageEvent &message);
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
   // XDND drops (linux_drag_drop.cpp): not compiled in a high-integrity build.
   bool drag_message(const XClientMessageEvent &message);
@@ -334,12 +436,18 @@ public:
   // Compose: draws each gathered frame into the raster under its region. A
   // fragment that fails to draw falls back to retained painting.
   void compose_live_frames();
+  void report_live_shown(std::size_t source);
   // Reports one present that copied `copied`: the live frames' share as live
   // frames, the rest as the retained present (when `receipt` is set), the
   // duration split by pixels. Returns whether the window accepted the receipt.
   bool report_presented(const stxlib::Optional<PaintReceipt>& receipt, std::uint64_t elapsed,
                         PresentedArea copied);
   HostDispatchResult dispatch(HostEventPayload payload);
+  // One touchpad pinch event (XI 2.4, Runtime::dispatch), its values in
+  // device pixels as the server reports them: dispatched as a GestureEvent.
+  void pinch_event(LinuxPinchStage stage, bool cancelled, Point device_position,
+                   double absolute_scale, double delta_angle_clockwise, Point device_delta,
+                   unsigned modifier_state, Time time);
   // Reports the compositor's state to this window (stage T5, C4): after
   // attach, and on each XFixes notification about _NET_WM_CM_S<screen>. A
   // reading that differs from the window's last report only by its
@@ -516,6 +624,9 @@ public:
   std::uint64_t sequence{};
   // The last press, for the computed click count (linux_input_rules.hpp).
   LinuxClickHistory click_history{};
+  // The touchpad pinch in progress (XI 2.4 gesture events): its scale since
+  // it began, for the per-event ratio (linux_input_rules.hpp).
+  LinuxPinchState pinch{};
   std::vector<char> presentation;
   // A present's rectangles in device pixels (the logical damage times the
   // window's scale), reused across presents.
@@ -533,6 +644,26 @@ public:
   // null while the presentation policy leaves it off. Receives the
   // window's PresentIdleNotify events (Runtime::dispatch).
   X11PresentPath *direct_path{};
+  // The display's timing from the direct path's completions (Present's ust
+  // and msc; present_completed), and whether the nominal rate of the
+  // monitor under the window was read since the window last moved or the
+  // screens changed (report_nominal_rate).
+  RefreshCounterTiming refresh_timing;
+  bool nominal_rate_read{};
+  // The sync counters (zero without XSync or before they are made), the
+  // values they are set to, the drawn times of the last few frames by
+  // counter value (a timings message gives its presentation as an offset
+  // from its frame's), and whether any timings message gave a timing.
+  struct DrawnFrame final {
+    std::uint64_t counter{};
+    std::uint64_t drawn_microseconds{};
+  };
+  XID sync_basic_counter{};
+  XID sync_extended_counter{};
+  X11FrameSyncCounter frame_sync;
+  std::array<DrawnFrame, 8> drawn_frames{};
+  std::size_t drawn_frame_next{};
+  bool frame_timings_seen{};
   // The presentation policy turned host scroll on (set with the shim).
   bool host_scroll_policy{};
   std::vector<presentation::PresentRect> present_rects;
@@ -553,6 +684,8 @@ public:
   // composes it or nothing changed.
   std::vector<LiveSurfacePresentation> live_updates;
   std::vector<LiveSurfaceFrame> live_frames;
+  // The sources this tick reported shown (report_live_shown).
+  std::vector<bool> live_reported;
   std::vector<std::size_t> live_frame_sources;
   std::vector<Rect> live_regions;
   std::vector<std::uint64_t> live_frame_pixels;
@@ -577,6 +710,12 @@ struct SelectionTransfer final {
   std::size_t offset{};
   std::chrono::steady_clock::time_point deadline;
 };
+// How long a loop may wait after a turn, in milliseconds (negative: no
+// bound), and whether any window is still open (Runtime::service_windows).
+struct RunWait final {
+  int milliseconds{-1};
+  bool active{};
+};
 class Runtime final {
 public:
   Runtime();
@@ -588,6 +727,21 @@ public:
                                     HostWindowId window_id = {},
                                     bool initial = true);
   void step(int maximum_wait = -1);
+  // The parts of a turn a nested loop (the XDND source's drag) repeats so
+  // the program keeps running under it.
+  //
+  // Empties the wake pipe and runs the queued window actions and the
+  // accessibility bus's work; true when an action ran.
+  bool run_woken_work();
+  // Updates every window (its timers, frames, first show and paint) and
+  // returns how long the loop may then wait: the earliest of
+  // `maximum_wait` (negative for no bound), the selection transfers'
+  // deadlines, each window's next wake, first show deadline, live clock and
+  // overlay fade; and whether any window is still open.
+  RunWait service_windows(int maximum_wait);
+  // Waits at most `milliseconds` (negative: no bound) for an X event, the
+  // wake pipe or the accessibility bus.
+  void wait_for_work(int milliseconds);
   // Releases runtime windows that closed, between loop turns.
   void reclaim();
   // Reports application activation to the windowing after a turn's events:
@@ -632,8 +786,16 @@ public:
   // pointer mode is not offered (Services drops relative_pointer and
   // raw_pointer_motion).
   int xi_opcode{-1};
+  // Whether the server speaks XI 2.4 and the build's libXi defines its
+  // gesture events: each window then selects the touchpad pinch
+  // (XI_GesturePinchBegin/Update/End). Otherwise no gesture is reported
+  // (an older server sends a pinch as nothing, never as wheel events).
+  bool xi_gestures{false};
   // The Present extension's opcode (x11_present_direct.hpp); -1 without it.
   int present_opcode{-1};
+  // The server offers XSync (GUI_FORMS_HAVE_XSYNC): windows make their
+  // frame sync counters (NativeWindow::create_frame_sync).
+  bool xsync_available{};
   // The server's 32-bit millisecond time of an event, unwrapped and mapped
   // onto the steady clock (HostEventClock): PointerEvent and
   // HostRelativeMotionEvent timestamps. UI thread.
@@ -683,6 +845,31 @@ public:
   std::vector<SelectionTransfer> transfers;
   void selection_property(const XPropertyEvent &event);
   void selection_request(const XSelectionRequestEvent &request);
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+  // One target a drag from the program offers on XdndSelection, and its
+  // bytes.
+  struct DragOfferTarget final {
+    Atom target{};
+    std::vector<std::byte> bytes;
+  };
+  // The window owning XdndSelection for a running drag (0 when none) and
+  // what it offers; set and cleared by run_xdnd_drag.
+  ::Window drag_offer_owner{};
+  std::vector<DragOfferTarget> drag_offer;
+  // The offered bytes for `target`, or nullptr when it is not offered.
+  [[nodiscard]] const std::vector<std::byte> *drag_offer_bytes(Atom target) const noexcept;
+  // The windows drags from the program started from, held until the run
+  // loop's turn ends (reclaim) so a handler that closes a source window
+  // during its drag (whose loop runs the program's timers and actions) frees
+  // nothing the drag or its services still use.
+  std::vector<std::shared_ptr<NativeWindow>> drag_held_windows;
+#endif
+
+private:
+  // Writes `bytes` to the requestor's `property` for `request` (by INCR
+  // above 64 KiB); false when the transfer table is full or the requestor
+  // is gone, and the request is refused.
+  bool write_selection_reply(const XSelectionRequestEvent &request, Atom property, std::vector<std::byte> bytes);
 };
 HostDialogResult retained_dialog(NativeWindow &owner,
                                  const HostDialogRequest &request);
@@ -692,10 +879,16 @@ HostDialogResult retained_dialog(NativeWindow &owner,
 // Every scale is the desktop's (Runtime::desktop_scale, from Xft.dpi). Device
 // units. UI thread.
 void query_x11_monitors(const Runtime &runtime, HostMonitorResult &result);
+// The nominal refresh period of the RandR mode of the first enabled CRTC
+// containing root point (`x`, `y`) in X pixels (design note frame-source,
+// section 3): the mode's pixel clock over the pixels a refresh scans. Zero
+// without RandR, outside every CRTC, or for a rate outside 1 to 1000 Hz.
+// UI thread.
+[[nodiscard]] FrameInterval x11_refresh_period_at(Display *display, int x, int y);
 // The run's open operation (LinuxOpenWindow). Only the UI thread reaches the
 // windowing, and only while the run lives.
 struct RunOpenState final {
-  const std::thread::id thread{std::this_thread::get_id()};
+  const stxlib::ThreadIdentity thread{stxlib::current_thread()};
   X11Windowing *windowing{};
 };
 struct RunOpen final {

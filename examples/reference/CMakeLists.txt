@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.25)
 project(GUIFormsOwnedEventsReference LANGUAGES C CXX)
 
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS Controls)
+find_package(GUIForms 1.0 CONFIG REQUIRED COMPONENTS Controls)
 
 # Each program's window is a form document (forms/), generated at build time
 # into a gui_forms::Window subclass; a model header beside the program names
@@ -32,7 +32,9 @@ foreach(example_name IN ITEMS bound_values window_rules shared_state collection_
     add_executable(${example_name} ${example_name}.cpp)
     target_compile_features(${example_name} PRIVATE cxx_std_20)
     if(example_name STREQUAL "cooperative_worker")
-        target_link_libraries(${example_name} PRIVATE GUIForms::Threading)
+        # Its waits yield through STXlib (stxlib::yield_thread), which the
+        # Threading package brings.
+        target_link_libraries(${example_name} PRIVATE GUIForms::Threading stxlib::boundary)
     else()
         target_link_libraries(${example_name} PRIVATE GUIForms::Controls)
     endif()
@@ -138,7 +140,7 @@ elseif(gallery_page_forms)
 endif()
 
 # The C ABI from C11: the CAbi component alone, no C++ target.
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS CAbi)
+find_package(GUIForms 1.0 CONFIG REQUIRED COMPONENTS CAbi)
 add_executable(c_abi_consumer c_abi_consumer.c)
 set_target_properties(c_abi_consumer PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON NO_SYSTEM_FROM_IMPORTED TRUE)
 target_link_libraries(c_abi_consumer PRIVATE GUIForms::CAbi)
@@ -147,7 +149,7 @@ set_tests_properties(c_abi_consumer PROPERTIES TIMEOUT 15 PASS_REGULAR_EXPRESSIO
 
 # The conformance kit as a product's test runs it (CAbiConformance). The
 # installed examples run headless in CI, so without the window checks.
-find_package(GUIForms 0.6 CONFIG REQUIRED COMPONENTS CAbiConformance)
+find_package(GUIForms 1.0 CONFIG REQUIRED COMPONENTS CAbiConformance)
 add_executable(c_abi_conformance c_abi_conformance.c)
 set_target_properties(c_abi_conformance PROPERTIES C_STANDARD 11 C_STANDARD_REQUIRED ON NO_SYSTEM_FROM_IMPORTED TRUE)
 target_link_libraries(c_abi_conformance PRIVATE GUIForms::CAbiConformance)
@@ -167,8 +169,10 @@ endif()
 
 if(TARGET GUIForms::Audio)
     add_library(audio_adapter STATIC audio_worker.cpp)
-    target_compile_features(audio_adapter PRIVATE cxx_std_20)
-    target_link_libraries(audio_adapter PRIVATE GUIForms::Audio)
+    # PUBLIC: audio_worker.hpp names std::filesystem, so its users compile
+    # C++17 or later too (clang's default for x86_64-pc-windows-msvc is C++14).
+    target_compile_features(audio_adapter PUBLIC cxx_std_20)
+    target_link_libraries(audio_adapter PRIVATE GUIForms::Audio stxlib::boundary)
     set_target_properties(audio_adapter PROPERTIES NO_SYSTEM_FROM_IMPORTED TRUE)
     add_executable(ogg_worker ogg_worker.cpp)
     target_link_libraries(ogg_worker PRIVATE audio_adapter)

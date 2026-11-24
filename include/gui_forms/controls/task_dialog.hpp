@@ -3,12 +3,12 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/control.hpp"
+#include "gui_forms/controls/dialog_presentation.hpp"
 #include "gui_forms/controls/task_dialog_capabilities.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/native_popup/native_popup.hpp"
 
-#include <stxlib/optional.hpp>
 #include <cstddef>
 #include <cstdint>
 #include <memory>
@@ -18,6 +18,9 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
 
 class Button;
@@ -25,6 +28,7 @@ class CheckBox;
 class Label;
 class ProgressBar;
 class RadioButton;
+class TextBox;
 
 // The standard icons of a task dialog page (Windows Forms' TaskDialogIcon),
 // drawn from the stock icon set in its solid style: information-circle,
@@ -92,6 +96,16 @@ struct GUI_FORMS_API TaskDialogProgressBar final {
 
 // One page (Windows Forms' TaskDialogPage). Empty strings leave their part
 // out: no caption row, heading, text, verification check box or footnote.
+// A text field on a page, under its text (the input box's editor): the
+// text it starts with, the placeholder its empty field shows, and its
+// maximum length in bytes (0 for no limit). The field takes focus first
+// and Enter in it clicks the default button.
+struct GUI_FORMS_API TaskDialogInput final {
+    std::string text{};
+    std::string placeholder{};
+    std::size_t maximum_length{};
+};
+
 // A page without buttons gets an OK button. `default_button` names the
 // button Enter clicks and that takes focus first; empty names the first.
 // With `allow_cancel`, Escape closes the dialog as its cancel button would.
@@ -111,6 +125,9 @@ struct GUI_FORMS_API TaskDialogPage final {
     std::string footnote{};
     TaskDialogIcon footnote_icon{TaskDialogIcon::none};
     stxlib::Optional<TaskDialogProgressBar> progress_bar{};
+    // std::optional, as for the expander: stxlib::Optional of a record with
+    // strings is move-only, and pages are copied.
+    std::optional<TaskDialogInput> input{};
     bool allow_cancel{};
 };
 
@@ -123,11 +140,13 @@ struct GUI_FORMS_API TaskDialogButtonClick final {
 
 // How a dialog closed: the button that closed it (the cancel button's ID, or
 // "cancel", for Escape and a dialog revoked by its window), and the state of
-// the verification check box and the radio buttons at that moment.
+// the verification check box, the radio buttons and the text field (empty
+// without one) at that moment.
 struct GUI_FORMS_API TaskDialogResult final {
     std::string button_id{};
     bool verification_checked{};
     std::string radio_button_id{};
+    std::string input_text{};
 };
 
 // A message dialog with a heading, text, an icon, command buttons, radio
@@ -165,12 +184,12 @@ public:
     // Where the shown panel went: native while it is in a popup window,
     // else overlay (or none when it is not shown).
     [[nodiscard]] NativePopupSurface presented_surface() const noexcept;
-    [[nodiscard]] bool shown() const noexcept { return shown_; }
+    [[nodiscard]] bool shown() const noexcept { return presentation_.shown(); }
     // Closes the dialog as if `button_id` had been clicked, without raising
     // button_clicked. Does nothing when it is not shown.
     void close(std::string_view button_id);
     // The result of the last close, or none before the first.
-    [[nodiscard]] const std::optional<TaskDialogResult>& result() const noexcept { return result_; }
+    [[nodiscard]] const std::optional<TaskDialogResult>& result() const noexcept;
 
     // The checked radio button's ID, or empty.
     [[nodiscard]] std::string checked_radio_button() const;
@@ -186,14 +205,22 @@ public:
     [[nodiscard]] Event<>& navigated() noexcept { return navigated_; }
     [[nodiscard]] Event<bool>& expanded_changed() noexcept { return expanded_changed_; }
     [[nodiscard]] Event<bool>& verification_changed() noexcept { return verification_changed_; }
-    [[nodiscard]] Event<const std::string&>& radio_button_changed() noexcept { return radio_button_changed_; }
+    [[nodiscard]] Event<const std::string&>& radio_button_changed() noexcept;
 
     // The children for each part of the current page, or null.
     [[nodiscard]] std::shared_ptr<Button> button(std::string_view button_id) const;
     [[nodiscard]] std::shared_ptr<RadioButton> radio_button(std::string_view radio_id) const;
-    [[nodiscard]] std::shared_ptr<CheckBox> verification_check_box() const noexcept { return verification_; }
-    [[nodiscard]] std::shared_ptr<Button> expander_button() const noexcept { return expander_button_; }
-    [[nodiscard]] std::shared_ptr<ProgressBar> progress_bar() const noexcept { return progress_; }
+    // Whether the dialog's state agrees with itself (state hunt, 2026-11-23):
+    // its page describes exactly the child controls it has, and shown, it
+    // is in its presentation's layer or popup root; closed, it has no
+    // parent. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
+    [[nodiscard]] std::shared_ptr<CheckBox> verification_check_box() const noexcept;
+    [[nodiscard]] std::shared_ptr<Button> expander_button() const noexcept;
+    [[nodiscard]] std::shared_ptr<ProgressBar> progress_bar() const noexcept;
+    [[nodiscard]] std::shared_ptr<TextBox> input_box() const noexcept;
+    // The text field's text, or empty for a page without one.
+    [[nodiscard]] std::string input_text() const;
 
     [[nodiscard]] Size measure(Size available) override;
     void arrange(Rect final_bounds) override;
@@ -213,6 +240,7 @@ public:
         PartGeometry icon_image;
         PartGeometry heading;
         PartGeometry text;
+        PartGeometry input;
         PartGeometry progress;
         PartGeometry radio_group;
         PartGeometry expander_glyph;
@@ -235,72 +263,47 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    // Defined in task_dialog.cpp.
     // Where every part and child sits, from one pass over a width.
-    struct Layout final {
-        Parts parts{};
-        // Child slots, in the order of buttons_ and radios_.
-        std::vector<Rect> buttons{};
-        std::vector<Rect> radios{};
-        double height{};
-    };
+    struct Layout;
 
     [[nodiscard]] Layout layout(double width) const;
     [[nodiscard]] double preferred_width(Size available) const noexcept;
     void rebuild_children();
-    // Adds a word-wrapped, top-aligned Label child named <stable_id><suffix>
-    // showing `text` in `font`: the heading, text, expanded text and
-    // footnote paragraphs.
-    [[nodiscard]] std::shared_ptr<Label> make_paragraph(std::string_view suffix, const std::string& text,
-                                                        FontSpec font);
     void clear_children_of_page() noexcept;
     void on_child_button(ButtonBase& sender);
     void on_expander(ButtonBase& sender);
     void on_verification(bool checked);
     void on_radio(bool checked);
     void on_overlay_revoked();
-    void finish(std::string button_id);
-    [[nodiscard]] std::string cancel_button_id() const;
-    [[nodiscard]] std::string default_button_id() const;
-    [[nodiscard]] stxlib::Optional<std::size_t> button_index(std::string_view button_id) const noexcept;
+    void abandon_show() noexcept;
     void paint_icon(Painter& painter, TaskDialogIcon icon, const PartGeometry& place) const;
 
     TaskDialogPage page_{};
-    std::vector<std::shared_ptr<Button>> buttons_{};
-    std::vector<std::shared_ptr<RadioButton>> radios_{};
-    std::shared_ptr<Label> heading_{};
-    std::shared_ptr<Label> text_{};
-    std::shared_ptr<Label> expanded_text_{};
-    std::shared_ptr<Label> footnote_{};
-    std::shared_ptr<CheckBox> verification_{};
-    std::shared_ptr<Button> expander_button_{};
-    std::shared_ptr<ProgressBar> progress_{};
-    std::vector<SubscriptionToken> child_tokens_{};
-    // The modal layer the dialog sits in while shown, and its overlay lease
-    // and focus scope in the owner's window.
-    Control::Ptr layer_{};
-    OverlayToken overlay_{};
-    SubscriptionToken overlay_revoked_{};
-    FocusScopeId scope_{};
-    // The native popup window the panel is in (DialogSurface::native_popup):
-    // its root holds the dialog, so closing detaches the dialog at once
-    // even though the window itself is released later.
+    // The private state, defined in task_dialog.cpp.
+    struct State;
+    [[nodiscard]] static stxlib::Unique<State> make_state();
+    stxlib::Unique<State> state_{make_state()};
     DialogSurface surface_{DialogSurface::overlay};
-    Control::Ptr native_root_{};
-    NativePopupToken native_{};
-    SubscriptionToken native_closed_{};
-    // Moves the shown dialog from the layer into a native popup window;
-    // false (the dialog back in the layer) when the run cannot open one.
-    bool open_native(Window& host, const Control::Ptr& owner);
-    bool shown_{};
+    // Closed, or shown over the owner's window: as an overlay in the modal
+    // layer, or in a native popup window (DialogSurface::native_popup)
+    // whose root holds the dialog, so closing detaches the dialog at once
+    // even though the window itself is released later. The layer, its
+    // overlay lease, the revocation subscriptions and the focus scope in
+    // the owner's window live in the state.
+    DialogPresentation presentation_{};
+    // Moves the dialog, in `owner_half`'s layer, into a native popup window.
+    // Returns the native presentation, or the overlay one (the dialog back
+    // in the layer) when the run cannot open a popup window.
+    [[nodiscard]] DialogPresentation present_natively(Window& host, const Control::Ptr& owner,
+                                                      PresentationLayer owner_half);
     bool synchronizing_{};
-    std::optional<TaskDialogResult> result_{};
     FontSpec font_{FontRole::content, 11.0, 400, false};
     Event<TaskDialogButtonClick&> button_clicked_{};
     Event<const TaskDialogResult&> closed_{};
     Event<> navigated_{};
     Event<bool> expanded_changed_{};
     Event<bool> verification_changed_{};
-    Event<const std::string&> radio_button_changed_{};
     // property_codemod begin TaskDialog (tools/property_families/task_dialog.json; generated, do not edit)
 private:
     friend struct TaskDialogExpandedCapability<TaskDialog>;

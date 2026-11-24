@@ -3,6 +3,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <bit>
@@ -32,7 +33,7 @@ std::shared_ptr<Binding> ControlBindingsCollection::add(
 std::shared_ptr<Binding> ControlBindingsCollection::add(
     std::string property_name, std::shared_ptr<BindingSource> source,
     std::string data_member, BindingOptions options) {
-    std::shared_ptr<gui_forms::Binding> binding = std::make_shared<Binding>(
+    std::shared_ptr<gui_forms::Binding> binding = gui_forms::detail::make_library_shared<Binding>(
         *target_, std::move(property_name), std::move(source),
         std::move(data_member), std::move(options));
     add(binding);

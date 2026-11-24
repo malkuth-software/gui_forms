@@ -1044,9 +1044,9 @@ void TextBox::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) {
         return;
     }
-    const Rect absolute = absolute_bounds();
-    const double local_x = event.position.x - absolute.x;
-    const double local_y = event.position.y - absolute.y;
+    const Point local = point_from_window(event.position);
+    const double local_x = local.x;
+    const double local_y = local.y;
     if (multiline.read() && auto_scroll.read() && (!selecting_ || event.action == PointerAction::wheel)) {
         ensure_multiline_layout();
         scroll_pointer(event);
@@ -1066,18 +1066,28 @@ void TextBox::handle_pointer(PointerEvent& event) {
     }
     if (event.action == PointerAction::down &&
         event.button == PointerButton::primary) {
+        const Control::Ptr lifetime = shared_from_this();
+        event.handled = true;
         if (window() != nullptr) {
-            static_cast<void>((*window()).request_focus(shared_from_this()));
+            static_cast<void>((*window()).request_focus(lifetime));
         }
+        // The focus handlers may detach or dispose the box: nothing below
+        // runs on a box that left its window (`lifetime` keeps it until the
+        // press is done).
+        if (!is_alive() || window() == nullptr) return;
         // Placing the caret ends a completion and keeps the text.
         end_auto_complete(false);
         const Utf8Offset position = multiline.read() ? multiline_position_at(local_x, local_y) : position_at(local_x);
         const bool extend = includes(event.modifiers, Modifier::shift);
         set_selection(extend ? TextSelection{(*editing_).selection().anchor, position}
                              : TextSelection{position, position});
-        selecting_ = true;
+        // The selection drag starts with the capture and only if it was
+        // taken: a refused capture, or handlers that drop the box, leave no
+        // drag waiting for a release that may never come.
+        if (!is_alive() || window() == nullptr) return;
         set_pointer_capture(true);
-        event.handled = true;
+        if (!is_alive()) return;
+        selecting_ = has_pointer_capture();
     } else if (event.action == PointerAction::move && selecting_ &&
                has_pointer_capture()) {
         const Utf8Offset position = multiline.read() ? multiline_position_at(local_x, local_y) : position_at(local_x);
@@ -1768,7 +1778,7 @@ const std::array<PropertyEntry, TextBox::text_box_property_count>& TextBox::text
          &read_cell_entry<TextBox, decltype(&TextBox::read_only), &TextBox::read_only>,
          &write_cell_entry<TextBox, decltype(&TextBox::read_only), &TextBox::read_only>,
          nullptr, nullptr, nullptr,
-         nullptr},
+         &connect_event_entry<TextBox, decltype(&TextBox::read_only_changed_), &TextBox::read_only_changed_>},
         {"multiline", &describe_text_box_multiline,
          &read_cell_entry<TextBox, decltype(&TextBox::multiline), &TextBox::multiline>,
          &write_cell_entry<TextBox, decltype(&TextBox::multiline), &TextBox::multiline>,
@@ -1799,7 +1809,9 @@ void TextBox::written(const decltype(placeholder_text)&) {
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
-void TextBox::on_read_only_changed() {}
+void TextBox::on_read_only_changed() {
+    publish_change(read_only_changed_, (*editing_).read_only());
+}
 
 void TextBox::on_multiline_changed() {}
 

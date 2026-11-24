@@ -272,7 +272,7 @@ gui_forms::SearchField
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 6 supported, 0 deferred, 0 excluded, 6 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 5 unclassified; 12 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -330,4 +330,4 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 6 su
    * - method
      - GUI.Forms-only
      - ``search_now``
-     - unclassified (untested)
+     - supported

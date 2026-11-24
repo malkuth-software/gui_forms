@@ -7,11 +7,13 @@
 // binding's destruction then frees the identity and releases the callback.
 
 #include "abi_tables.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../custom/abi_composite.hpp"
 #include "../events/abi_event_catalog.hpp"
 #include "../events/abi_interactions.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_events_ic_checks.hpp"
 
 
 #include <algorithm>
@@ -92,7 +94,7 @@ namespace {
 // The shared body of subscribe and subscribe_property.
 gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* callback,
                        gf_subscription* subscription, bool property, SlotIdentity slot) {
-    if (subscription == nullptr) {
+    if (!ic_events::admits_subscription_output(subscription)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, slot, "subscribing needs a subscription output");
     }
     gf_callback copy{};
@@ -134,7 +136,7 @@ gf_status subscribe_to(gf_object source, gf_utf8_view name, const gf_callback* c
     std::shared_ptr<SubscriptionBinding> binding;
     SubscriptionToken token;
     try {
-        binding = std::make_shared<SubscriptionBinding>(copy, reserved, component.get(), std::string(name_text));
+        binding = gui_forms::detail::make_library_shared<SubscriptionBinding>(copy, reserved, component.get(), std::string(name_text));
         if (property) {
             token = (*control).subscribe_property_changed(name_text, *control, PlainForwarder{binding});
         } else {

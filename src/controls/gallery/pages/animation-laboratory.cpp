@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "animation-laboratory_form.hpp"
 
@@ -86,7 +87,7 @@ void AnimationPage::on_reduced_changed(const bool reduced) {
 
 void add_animation(const std::shared_ptr<Surface>& page,
                    const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<AnimationPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<AnimationPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

@@ -2,6 +2,8 @@
 #include "../container_layout_utilities.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "flow_layout_panel_compat_ic_checks.hpp"
 
 #include <algorithm>
 #include <cmath>
@@ -12,6 +14,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::flow_layout_panel_compat;
 
 using namespace container_layout_detail;
 
@@ -45,14 +48,14 @@ void write_flow_break(Component& container, const Control& child, const BindingV
 
 std::shared_ptr<const PropertyEnumDescriptor> flow_direction_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "flow_direction", {{"left_to_right", 0}, {"right_to_left", 1}, {"top_down", 2}, {"bottom_up", 3}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> main_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "flow_main_alignment",
             {{"start", 0}, {"center", 1}, {"end", 2}, {"space_between", 3}, {"space_around", 4}, {"space_evenly", 5}},
             false});
@@ -61,7 +64,7 @@ std::shared_ptr<const PropertyEnumDescriptor> main_alignment_enum() {
 
 std::shared_ptr<const PropertyEnumDescriptor> cross_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "flow_cross_alignment", {{"start", 0}, {"center", 1}, {"end", 2}, {"stretch", 3}}, false});
     return value;
 }
@@ -594,7 +597,7 @@ BindingValue PropertyValueTraits<FlowDirection>::to_binding(FlowDirection value)
     descriptor.enumeration = flow_direction_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -613,7 +616,7 @@ BindingValue PropertyValueTraits<FlowMainAlignment>::to_binding(FlowMainAlignmen
     descriptor.enumeration = main_alignment_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -632,7 +635,7 @@ BindingValue PropertyValueTraits<FlowCrossAlignment>::to_binding(FlowCrossAlignm
     descriptor.enumeration = cross_alignment_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -698,7 +701,7 @@ void FlowLayoutPanelCompat::written(const decltype(wrap_contents)&) {
 
 void FlowLayoutPanelCompat::prepare_write(const decltype(item_spacing)&, Size& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument("FlowLayoutPanelCompat item spacing must be finite and between zero and 256");
+    if (!ic::admits_item_spacing(incoming)) throw std::invalid_argument("FlowLayoutPanelCompat item spacing must be finite and between zero and 256");
 }
 
 void FlowLayoutPanelCompat::written(const decltype(item_spacing)&) {

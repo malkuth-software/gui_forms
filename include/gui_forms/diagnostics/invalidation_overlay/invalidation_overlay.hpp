@@ -35,6 +35,9 @@
 #include <string_view>
 #include <vector>
 
+#include <stxlib/vector.hpp>
+#include <stxlib/view.hpp>
+
 namespace gui_forms {
 
 // What caused an area to be presented again.
@@ -139,6 +142,29 @@ struct GUI_FORMS_API DevicePixelRect final {
     }
 };
 
+// How an overflowing viewport owner's overflow stands (stage VA, section
+// 10): the overlay outlines an unanswered one in red and a clipped one in
+// amber. Answered scrolls, contains and covers are not outlined.
+enum class OverflowOutlineKind : std::uint8_t {
+    // Red, solid: the owner's answer is not carried out.
+    unanswered,
+    // Amber, dashed: the owner cuts its content (OverflowAnswer::clip).
+    clipped,
+};
+
+// One overflowing owner's outline: its child viewport (or, for the root,
+// the root slot) in window logical units. Steady: drawn at full opacity
+// while the overflow lasts, never fading.
+struct GUI_FORMS_API OverflowOutline final {
+    Rect bounds{};
+    OverflowOutlineKind kind{OverflowOutlineKind::unanswered};
+};
+
+[[nodiscard]] GUI_FORMS_API InvalidationOutlineStyle overflow_outline_style(OverflowOutlineKind kind) noexcept;
+
+// The overflow outlines a window keeps at once; later ones are not shown.
+inline constexpr std::size_t maximum_overflow_outlines = 256U;
+
 // A window's live outlines. Owned by the window (SurfaceRoot), on its UI
 // thread; the host reads it there to composite.
 class GUI_FORMS_API InvalidationOverlay final {
@@ -163,6 +189,16 @@ public:
         return std::span<const std::string>(counters_.data(), counter_count_);
     }
     std::span<const std::string> counters() const&& = delete;
+    // Replaces the overflow outlines (the window fills them from its
+    // overflow records after each paint; stage VA): the first
+    // maximum_overflow_outlines of `outlines`. The storage is reused, so a
+    // steady set allocates nothing after the first.
+    void set_overflow_outlines(stxlib::View<OverflowOutline> outlines);
+    [[nodiscard]] stxlib::View<OverflowOutline> overflow_outlines() const& noexcept {
+        const stxlib::View<OverflowOutline> outlines = overflow_outlines_.view();
+        return outlines;
+    }
+    stxlib::View<OverflowOutline> overflow_outlines() const&& = delete;
     // Oldest first.
     [[nodiscard]] std::span<const InvalidationOutline> outlines() const& noexcept {
         return std::span<const InvalidationOutline>(outlines_.data(), outlines_.size());
@@ -174,9 +210,9 @@ public:
     }
     // The device rectangles the overlay draws on at `scale` in a client of
     // `width` by `height` device pixels, into `regions` (replacing its
-    // contents): each outline's four stroke bands and its label, the
-    // legend while any outline shows, and the counters card at the top left
-    // while it has lines. A host presents these again from its
+    // contents): each outline's four stroke bands and its label, each
+    // overflow outline's four bands, the legend while any outline shows,
+    // and the counters card at the top left while it has lines. A host presents these again from its
     // raster when the overlay changes, so that a faded outline leaves
     // nothing behind.
     void fill_regions(double scale, std::uint32_t width, std::uint32_t height,
@@ -194,6 +230,7 @@ private:
     // The counters card: counter_count_ live lines of the fixed array.
     std::array<std::string, maximum_overlay_counter_lines> counters_{};
     std::size_t counter_count_{};
+    stxlib::Vector<OverflowOutline> overflow_outlines_{};
 };
 
 } // namespace gui_forms

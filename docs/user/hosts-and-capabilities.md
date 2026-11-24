@@ -29,7 +29,7 @@ whole record for logs.
 | `pointer_capture` | synchronous capture routed to one control | yes | yes | yes |
 | `cursor` | portable cursor kinds applied natively | yes | yes | yes |
 | `clipboard`, `clipboard_images` | bounded UTF-8 text and premultiplied BGRA8 images | yes | yes | yes |
-| `typed_drag_destination` | inbound text, file-list and media-typed drops | yes | no | yes |
+| `typed_drag_destination` | inbound text, file-list and media-typed drops | yes | yes | yes |
 | `dialogs` | the five portable common-dialog request/result families | yes | yes | yes |
 | `sound_cues` | system alert sounds | yes | yes | yes |
 | `frame_capture` | encode the presented framebuffer as PNG | yes | yes | yes |
@@ -39,7 +39,7 @@ whole record for logs.
 | `menus` | native menu-bar publication | no | no | no |
 | `font_discovery` | host font enumeration | no, by design | no, by design | no, by design |
 | `accessibility` | native accessibility publication of the semantic tree, verified by client tests | yes | yes | yes |
-| `typed_drag_source` | outbound drag initiation | no | no | no |
+| `typed_drag_source` | drags to other programs (`HostServices::start_drag`) | yes | yes | yes |
 | `runtime_windows` | owned windows opened and destroyed while the application runs | yes | yes | yes |
 | `window_frames` | window frames read and requested in desktop logical units, with a report for every move and resize | yes | yes | yes (the window manager decides) |
 | `screen_pointer` | the pointer's desktop position | yes | yes | yes |
@@ -62,6 +62,8 @@ whole record for logs.
 | `host_scroll` | a scroll copy moves the pixels already presented and only the exposed band is copied (C: `GF_HOST_CAPABILITY_HOST_SCROLL`) | no | with `GUI_FORMS_PRESENT=scroll` (`ScrollWindowEx`; refused under a child window or the invalidation overlay) | with `GUI_FORMS_PRESENT=scroll` (`XCopyArea`, while a compositing manager runs) |
 | `open_url` | a web or mail address (`https://`, `http://`, `mailto:`) opened in the user's own browser or mail program (`HostServices::open_url`; the business card's website; C: `GF_HOST_CAPABILITY_OPEN_URL`) | yes (NSWorkspace) | yes (`ShellExecuteW`) | yes (`xdg-open`, found when the address is opened) |
 | `reference_presentation` | the host is GUI.Forms' own window manager, the reference behaviour for the others (C: `GF_HOST_CAPABILITY_REFERENCE_PRESENTATION`) | no | no | no |
+| `desktop_notifications` | a notification shown by the platform's notification service outside the application's windows, with activation, dismissal and refusal reported (`ToastNotification`, `HostServices::show_desktop_notification`; C: `GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS`; compiled out of high-integrity builds) | in a signed application bundle (`UNUserNotificationCenter`, after the user's permission) | for a packaged process or one with an explicit AppUserModelID (toasts) | where the session bus has `org.freedesktop.Notifications` |
+| `safe_insets` | the edges of the client area the host or the device hides (`HostSafeInsetsEvent`, protocol version 16; `SurfaceRoot::safe_insets`, the root slot keeps clear of them; C: `GF_HOST_CAPABILITY_SAFE_INSETS`, since 1.7). The browser host reports the part of the canvas outside the visual viewport | yes (the screen's safe area in full screen, macOS 12 and later) | no | no |
 
 The table reflects the bits each adapter currently advertises; read
 `Application::capabilities()` rather than this page in code.
@@ -277,6 +279,32 @@ is delivered by every native host (Windows `WM_MOUSEHWHEEL`, macOS
 `NSApplicationDidChangeScreenParametersNotification`, X11 on RandR's screen
 change notification where the build has libXrandr.
 
+## Drag and drop with other programs
+
+A drop from another program reaches the window as `DragEvent`s
+(`typed_drag_destination`): enter, over, then drop or leave, each carrying
+the drag's items as `DragFileListData`, `DragTextData` and `DragBinaryData`,
+and the effects the source allows. The window answers with one effect
+(copy, move or link) or none, and the platform shows it.
+
+| Host | Destination | Formats read | Source |
+|---|---|---|---|
+| macOS | the window's view (`NSDraggingDestination`) | file URLs, string, `public.data` | `NSDraggingSource`, items written as file URLs, strings and pasteboard types |
+| Windows | `RegisterDragDrop` (`IDropTarget`) | `CF_HDROP`, `CF_UNICODETEXT`, `PNG` | `DoDragDrop` (`IDropSource`, `IDataObject` offering `CF_HDROP`, `CF_UNICODETEXT` and media types) |
+| Linux X11 | XDND (versions up to 5) | `text/uri-list` (local files) | XDND versions 3 to 5: `XdndSelection` offering `text/uri-list`, `UTF8_STRING`, `text/plain;charset=utf-8` and media types; `XdndStatus` and `XdndFinished` honoured |
+
+`HostServices::start_drag` starts a drag from the program
+(`typed_drag_source`), called while a pointer press or a move with a button
+held is being handled. Its end arrives once through `drag_source_ended`, with
+the effect the destination took (none when cancelled); the program removes
+its own copy only on `move`. On Windows and X11 the drag runs a modal loop and
+ends before `start_drag` returns; on macOS it ends later, from the run loop.
+The platform takes the button's release; on macOS and X11 the window receives
+it right after the end is reported. The
+program's own windows are destinations too, so a drag can be dropped back
+into the window it started from. A high-integrity build compiles none of this
+and reports neither capability.
+
 ## Keyboard-command defaults
 
 Some keys differ by platform convention: closing a document is Ctrl+F4 on
@@ -334,23 +362,15 @@ Windows (Win32)
   (`GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY`) reads face files, from the
   directory `GUI_FORMS_FONT_DIR` names or the checkout's `assets/fonts`. If
   the pack does not open, the renderer name says so and no text metrics
-  provider is installed. An opt-in `WM_COPYDATA`
-  automation channel, off unless the host options set `automation_enabled`
-  (the gallery sets it from `--automation`), addresses controls by stable
-  ID; it accepts commands of at most 4096 bytes with the prefix
-  `GUI.Forms.Automation/1`. A program run through the portable
-  `Application::run`, whose options cannot ask for it, turns it on only by
-  opting in: it calls `host::accept_automation_environment()`
-  (`gui_forms/platform/windows_host.hpp`) before running, and then
-  `GUI_FORMS_WINDOWS_AUTOMATION=1` in the process environment turns the
-  channel on in every window. Without that call the variable is ignored, so
-  the environment alone opens no program; a build configured with
-  `GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT=OFF` ignores it even after the
-  call. The menu probe and the application tests opt in; a shipped program
-  does not. Security note: while it is on,
-  any process on the same desktop can drive the window and ask for a capture
-  written to a path it names, so ship with it off. It is a test channel;
-  automation is to move to an MCP integration rather than grow here.
+  provider is installed. Automation is the library's MCP integration, the
+  same on every host: a program launched with `--mcp` serves MCP on its
+  standard input and output (only the process that started it can drive
+  it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
+  A program declares its own model tools and inspect sections beside the
+  built-in ones with `register_model_tool` and
+  `register_model_inspect_section` (`gui_forms/automation/tools/model_tools.hpp`;
+  in C, `GF_TABLE_AUTOMATION`; in C#, `GuiForms.Interop.ModelTools`).
+  The Windows `WM_COPYDATA` channel that came before is retired.
   MSAA publication is implemented through `IAccessible`, and UI Automation
   through providers for `UiaRootObjectId` (AutomationId is the stable ID;
   Invoke, Toggle, Value, RangeValue, ExpandCollapse, SelectionItem and
@@ -369,12 +389,15 @@ Windows (Win32)
   reaches the focused control as composing text, which the control shows
   and each update replaces, and its result string as committed input; the
   system's own composition window is turned off and its candidate window is
-  placed below the caret. TSF is not used. OLE drag/drop and native menu publication are not implemented.
+  placed below the caret. TSF is not used. Drag and drop with other programs is
+  OLE's: the window is a drop target (`RegisterDragDrop`, with the shell's
+  drag image helper), and `start_drag` runs `DoDragDrop`. Native menu
+  publication is not implemented.
 
 Linux (X11)
 : `src/surface/linux/`, built with `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Xlib
   window and event handling, Xcursor cursors, X11 clipboard selections,
-  XDND drag destinations, and native ATK/AT-SPI accessibility publication.
+  XDND drag and drop both ways, and native ATK/AT-SPI accessibility publication.
   The publication is checked from an AT-SPI client's side in the CI of
   `malkuth-software/gui_forms_tests`:
   `gui_forms_linux_accessibility_tests` drives a small fixture, and

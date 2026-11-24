@@ -1,0 +1,126 @@
+{
+  "schema": 1,
+  "component": "gui_forms::NumericUpDown",
+  "declaration": "include/gui_forms/controls/numeric_up_down.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.numericupdown.minimum_write",
+      "mode": "legal",
+      "call": "minimum",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::NumericUpDown"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming)"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.numericupdown.minimum_write.misuse.minimum",
+      "mode": "misuse",
+      "call": "minimum",
+      "violates": "finite(incoming)",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.numericupdown.maximum_write",
+      "mode": "legal",
+      "call": "maximum",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::NumericUpDown"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming)"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming)"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.numericupdown.maximum_write.misuse.maximum",
+      "mode": "misuse",
+      "call": "maximum",
+      "violates": "finite(incoming)",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gui_forms.numericupdown.increment_write",
+      "mode": "legal",
+      "call": "increment",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::NumericUpDown"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming > 0"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming > 0"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.numericupdown.increment_write.misuse.increment",
+      "mode": "misuse",
+      "call": "increment",
+      "violates": "finite(incoming) and incoming > 0",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

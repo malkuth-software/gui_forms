@@ -1,4 +1,5 @@
 #include "prepared_skia_frame.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "include/core/SkCanvas.h"
 #include "include/core/SkColorSpace.h"
@@ -6,10 +7,13 @@
 #include "include/core/SkPaint.h"
 #include "include/core/SkPixmap.h"
 
+#include <array>
 #include <cmath>
+#include <cstddef>
 #include <cstring>
 #include <new>
 #include <optional>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms::render {
 namespace {
@@ -22,9 +26,32 @@ void release_mask_image(const void* const, void* const context) {
     (*(*retained)).released.store(true, std::memory_order_release);
     delete retained;
 }
+// Holds up to 64 authorities' mutexes, taken in order and released in the
+// reverse order when it goes, as an array of held locks would be.
+class HeldAuthorityLocks final {
+public:
+    HeldAuthorityLocks() noexcept = default;
+    ~HeldAuthorityLocks() {
+        for (std::size_t index = count_; index > 0U; --index) (*held_[index - 1U]).unlock();
+    }
+    HeldAuthorityLocks(const HeldAuthorityLocks&) = delete;
+    HeldAuthorityLocks& operator=(const HeldAuthorityLocks&) = delete;
+    HeldAuthorityLocks(HeldAuthorityLocks&&) = delete;
+    HeldAuthorityLocks& operator=(HeldAuthorityLocks&&) = delete;
+
+    void take(stxlib::Mutex& mutex) noexcept {
+        mutex.lock();
+        held_[count_] = &mutex;
+        ++count_;
+    }
+
+private:
+    std::array<stxlib::Mutex*, 64> held_{};
+    std::size_t count_{};
+};
 }
 sk_sp<SkImage> PreparedSkiaFrame::make_mask_image(GrayTextMask& mask) {
-    const std::shared_ptr<MaskImageOwner> owner = std::make_shared<MaskImageOwner>();
+    const std::shared_ptr<MaskImageOwner> owner = gui_forms::detail::make_library_shared<MaskImageOwner>();
     (*owner).mask = std::move(mask);
     const GrayTextMask& source = (*owner).mask;
     const SkImageInfo info = SkImageInfo::Make(static_cast<int>(source.width()), static_cast<int>(source.height()),
@@ -90,7 +117,7 @@ SkCanvas* PreparedSkiaFrame::canvas() const noexcept {
     return result;
 }
 PreparedTextStatus PreparedSkiaFrame::begin(const Size size, const double scale, DamageRegion& damage) {
-    if (std::this_thread::get_id() != executor_) return PreparedTextStatus::wrong_executor;
+    if (stxlib::current_thread() != executor_) return PreparedTextStatus::wrong_executor;
     if (active_) return PreparedTextStatus::busy;
     if (!std::isfinite(size.width) || !std::isfinite(size.height) || !std::isfinite(scale) ||
         size.width <= 0.0 || size.height <= 0.0 || scale < 0.5 || scale > 4.0) return PreparedTextStatus::invalid_geometry;
@@ -159,24 +186,24 @@ PreparedTextStatus PreparedSkiaFrame::begin(const Size size, const double scale,
     }
 }
 void PreparedSkiaFrame::abort() noexcept {
-    if (std::this_thread::get_id() != executor_) return;
+    if (stxlib::current_thread() != executor_) return;
     if (candidate_) (*(*candidate_).getCanvas()).restoreAll();
     candidate_authorities_.clear();
     active_ = false;
     failed_ = false;
 }
 PreparedTextStatus PreparedSkiaFrame::commit(const PaintReceipt receipt) {
-    if (std::this_thread::get_id() != executor_) return PreparedTextStatus::wrong_executor;
+    if (stxlib::current_thread() != executor_) return PreparedTextStatus::wrong_executor;
     if (!active_ || !receipt || failed_) {
         abort();
         return PreparedTextStatus::invalid_input;
     }
     // Owners precede guards, including on abort, so guarded mutexes survive.
     const Authorities retained = candidate_authorities_;
-    std::array<std::unique_lock<std::mutex>, 64> locks{};
+    HeldAuthorityLocks locks{};
     for (std::size_t index = 0; index < retained.count; ++index) {
         detail::PreparedAuthorityState& authority = *(*retained.owners[index]).authority_state;
-        locks[index] = std::unique_lock<std::mutex>(authority.mutex);
+        locks.take(authority.mutex);
         if (!detail::prepared_authority_current_locked(*retained.owners[index], (*retained.owners[index]).authority)) {
             abort();
             return PreparedTextStatus::stale;
@@ -195,7 +222,7 @@ PreparedTextStatus PreparedSkiaFrame::commit(const PaintReceipt receipt) {
 PreparedTextPaintResult PreparedSkiaFrame::draw(const PreparedTextLayout& layout,
     const LayoutAuthority expected, const Point baseline, const Color color, PreparedCoverageSink* const sink) {
     PreparedTextPaintResult result{};
-    if (std::this_thread::get_id() != executor_) {
+    if (stxlib::current_thread() != executor_) {
         result.status = PreparedTextStatus::wrong_executor;
         return result;
     }
@@ -222,7 +249,7 @@ PreparedTextPaintResult PreparedSkiaFrame::draw(const PreparedTextLayout& layout
                     const bool has_ink = mask.width() != 0 && mask.height() != 0;
                     if (result.status == PreparedTextStatus::success) {
                         detail::PreparedAuthorityState& authority = *(*storage).authority_state;
-                        std::lock_guard<std::mutex> lock(authority.mutex);
+                        const stxlib::ScopedLock lock(authority.mutex);
                         if (!detail::prepared_authority_current_locked(*storage, expected)) result.status = PreparedTextStatus::stale;
                         else result.status = candidate_authorities_.retain(storage);
                         bool composited = false;

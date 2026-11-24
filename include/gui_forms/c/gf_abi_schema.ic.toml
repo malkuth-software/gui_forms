@@ -1,0 +1,326 @@
+# The C ABI's gf_schema_table (GF_TABLE_SCHEMA): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_schema_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_schema_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_schema_table {"
+keys = { manifest = "gf_abi::schema", abi = "GF_TABLE_SCHEMA" }
+thread = "ui"
+
+[checks]
+path = "src/abi/stable/ic/abi_schema_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_schema"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_schema_table.cpp"]
+
+[[call]]
+name = "vocabulary_count"
+declarations = ["gf_status (GF_CALL* vocabulary_count)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: vocabulary_count needs a known vocabulary and an output" },
+]
+
+[[call]]
+name = "vocabulary_at"
+declarations = ["gf_status (GF_CALL* vocabulary_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: vocabulary_at needs a known vocabulary and an output" },
+]
+
+[[call]]
+name = "type_count"
+declarations = ["gf_status (GF_CALL* type_count)("]
+kind = "static"
+thread = "ui"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "type_count_count" },
+]
+
+[[call]]
+name = "find_type"
+declarations = ["gf_status (GF_CALL* find_type)("]
+kind = "static"
+thread = "ui"
+parameters = { type = "uint64_t*" }
+requires = [
+  { holds = "not_null(type)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "find_type_type" },
+]
+fails = [
+  { failure = "invalid_argument", when = "code: find_type needs an output" },
+  { failure = "not_found", when = "code: the schema has no type of that name" },
+]
+
+[[call]]
+name = "type_at"
+declarations = ["gf_status (GF_CALL* type_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "item_system_at"
+declarations = ["gf_status (GF_CALL* item_system_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: item_system_at needs an item system index" },
+]
+
+[[call]]
+name = "part_at"
+declarations = ["gf_status (GF_CALL* part_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "state_at"
+declarations = ["gf_status (GF_CALL* state_at)("]
+kind = "static"
+thread = "ui"
+parameters = { name = "gf_utf8_view*" }
+requires = [
+  { holds = "not_null(name)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "state_at_name" },
+]
+
+[[call]]
+name = "custom_state_at"
+declarations = ["gf_status (GF_CALL* custom_state_at)("]
+kind = "static"
+thread = "ui"
+parameters = { name = "gf_utf8_view*" }
+requires = [
+  { holds = "not_null(name)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "custom_state_at_name" },
+]
+
+[[call]]
+name = "property_at"
+declarations = ["gf_status (GF_CALL* property_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "choice_at"
+declarations = ["gf_status (GF_CALL* choice_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "interaction_at"
+declarations = ["gf_status (GF_CALL* interaction_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "engine"
+declarations = ["gf_status (GF_CALL* engine)("]
+kind = "static"
+thread = "ui"
+
+[[call]]
+name = "primitive_at"
+declarations = ["gf_status (GF_CALL* primitive_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "primitive_name_at"
+declarations = ["gf_status (GF_CALL* primitive_name_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: primitive_name_at needs a known list and an output" },
+]
+
+[[call]]
+name = "parameter_at"
+declarations = ["gf_status (GF_CALL* parameter_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "parameter_choice_at"
+declarations = ["gf_status (GF_CALL* parameter_choice_at)("]
+kind = "static"
+thread = "ui"
+parameters = { name = "gf_utf8_view*" }
+requires = [
+  { holds = "not_null(name)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "parameter_choice_at_name" },
+]
+
+[[call]]
+name = "effect_count"
+declarations = ["gf_status (GF_CALL* effect_count)("]
+kind = "static"
+thread = "ui"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "effect_count_count" },
+]
+
+[[call]]
+name = "effect_at"
+declarations = ["gf_status (GF_CALL* effect_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT past the end." },
+]
+
+[[call]]
+name = "child_property_count"
+declarations = ["gf_status (GF_CALL* child_property_count)("]
+kind = "static"
+thread = "ui"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "child_property_count_count" },
+]
+fails = [
+  { failure = "invalid_argument", when = "GF_STATUS_INVALID_ARGUMENT past the end." },
+]
+
+[[call]]
+name = "child_property_at"
+declarations = ["gf_status (GF_CALL* child_property_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "child_choice_at"
+declarations = ["gf_status (GF_CALL* child_choice_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "composite_count"
+declarations = ["gf_status (GF_CALL* composite_count)("]
+kind = "static"
+thread = "ui"
+parameters = { count = "uint64_t*" }
+requires = [
+  { holds = "not_null(count)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "composite_count_count" },
+]
+
+[[call]]
+name = "composite_at"
+declarations = ["gf_status (GF_CALL* composite_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+]
+
+[[call]]
+name = "composite_part_at"
+declarations = ["gf_status (GF_CALL* composite_part_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+  { failure = "removed", when = "code: the composite's load was released" },
+]
+
+[[call]]
+name = "composite_state_at"
+declarations = ["gf_status (GF_CALL* composite_state_at)("]
+kind = "static"
+thread = "ui"
+parameters = { name = "gf_utf8_view*" }
+requires = [
+  { holds = "not_null(name)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "composite_state_at_name" },
+]
+fails = [
+  { failure = "removed", when = "code: the composite's load was released" },
+]
+
+[[call]]
+name = "composite_custom_state_at"
+declarations = ["gf_status (GF_CALL* composite_custom_state_at)("]
+kind = "static"
+thread = "ui"
+parameters = { name = "gf_utf8_view*" }
+requires = [
+  { holds = "not_null(name)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "composite_custom_state_at_name" },
+]
+fails = [
+  { failure = "removed", when = "code: the composite's load was released" },
+]
+
+[[call]]
+name = "composite_property_at"
+declarations = ["gf_status (GF_CALL* composite_property_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+  { failure = "removed", when = "code: the composite's load was released" },
+]
+
+[[call]]
+name = "composite_choice_at"
+declarations = ["gf_status (GF_CALL* composite_choice_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+  { failure = "removed", when = "code: the composite's load was released" },
+]
+
+[[call]]
+name = "composite_event_at"
+declarations = ["gf_status (GF_CALL* composite_event_at)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: the index is past the end of its list" },
+  { failure = "removed", when = "code: the composite's load was released" },
+]
+
+[[call]]
+name = "composite_command_at"
+declarations = ["gf_status (GF_CALL* composite_command_at)("]
+kind = "static"
+thread = "ui"
+parameters = { name = "gf_utf8_view*" }
+requires = [
+  { holds = "not_null(name)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "composite_command_at_name" },
+]
+fails = [
+  { failure = "removed", when = "code: the composite's load was released" },
+]

@@ -1,0 +1,117 @@
+{
+  "schema": 1,
+  "component": "gf_abi::classes",
+  "declaration": "include/gui_forms/c/gf_abi_classes.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.classes.create",
+      "mode": "legal",
+      "call": "create",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "object",
+          "type": "gf_object*",
+          "bounded_by": [
+            "not_null(object)"
+          ]
+        },
+        {
+          "name": "table",
+          "type": "gf_class_header*",
+          "bounded_by": [
+            "not_null(table)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(object)",
+        "not_null(table)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: this class is not made from a stable id alone; it has no class table object yet",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_version",
+          "when": "A class with no class table gives GF_STATUS_NOT_FOUND; a malformed table (a header smaller than the 1.3 size or not a multiple of 8, a segment count above the class's, a segment whose class_id is not of the class's chain or repeats, a segment smaller than its header) gives GF_STATUS_INVALID_ARGUMENT, and an abi_minor newer than the library's GF_STATUS_UNSUPPORTED_VERSION: nothing is created and re",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {
+        "type": "gf_object",
+        "owns": "caller"
+      },
+      "refusal_order": [
+        "create_object",
+        "create_table"
+      ]
+    },
+    {
+      "name": "gf_abi.classes.create.misuse.create_object",
+      "mode": "misuse",
+      "call": "create",
+      "violates": "not_null(object)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.classes.create.misuse.create_table",
+      "mode": "misuse",
+      "call": "create",
+      "violates": "not_null(table)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.classes.base_raiser",
+      "mode": "legal",
+      "call": "base_raiser",
+      "kind": "static",
+      "thread": "any",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a base function needs an event",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "An unknown class or entry gives GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    }
+  ]
+}

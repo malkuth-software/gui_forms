@@ -10,6 +10,7 @@
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/pages/page_set/page_set.hpp"
 #include "gui_forms/pages/types/page_set_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "tabs-and-pages_form.hpp"
 
@@ -379,7 +380,7 @@ private:
 
 void add_tabs_and_pages(const std::shared_ptr<Surface>& page,
                         const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<TabsPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<TabsPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

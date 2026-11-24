@@ -108,6 +108,9 @@ gui_forms::RibbonGallery
       **overlay_open** : ``bool``, read-only
          Drop-down: whether the gallery is open as an overlay.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the gallery's overlay state agrees with itself (state hunt, 2026-11-23): open, its overlay is in the window; closed, it is not in its layer or a Popup. For tests and diagnostics.
+
       **more_gallery** : ``std::shared_ptr<RibbonGallery>``, read-only
          In the ribbon: the full gallery the more button opens, made on first use.
 
@@ -317,6 +320,10 @@ gui_forms::RibbonGallery
 
       Drop-down: whether the gallery is open as an overlay.
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the gallery's overlay state agrees with itself (state hunt, 2026-11-23): open, its overlay is in the window; closed, it is not in its layer or a Popup. For tests and diagnostics.
+
    .. cpp:function:: std::shared_ptr<RibbonGallery> more_gallery() const noexcept
 
       In the ribbon: the full gallery the more button opens, made on first use.
@@ -454,7 +461,7 @@ gui_forms::RibbonGallery
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 7 unclassified; 25 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 19 supported, 0 deferred, 0 excluded, 7 unclassified; 26 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -465,6 +472,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``can_scroll_down``

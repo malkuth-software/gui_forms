@@ -5,6 +5,7 @@
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -301,7 +302,7 @@ void RichTextBox::open_heading_menu() {
     for (std::size_t index = 0U; index < heading_choices.size(); ++index) {
         std::string identity = prefix + std::to_string(index);
         if (!heading_commands_[index]) {
-            heading_commands_[index] = std::make_shared<Command>(identity, std::string(heading_choices[index]));
+            heading_commands_[index] = gui_forms::detail::make_library_shared<Command>(identity, std::string(heading_choices[index]));
         }
         Command& command = *heading_commands_[index];
         command.set_checked(level.has_value() && index == *level);
@@ -311,9 +312,9 @@ void RichTextBox::open_heading_menu() {
     (*heading_menu_).set_items(std::move(items));
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
     const Rect button = buttons[static_cast<std::size_t>(RichTextBarButton::heading)];
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     (*heading_menu_).preferred_width = 160.0;
-    (*heading_menu_).show(shared_from_this(), {absolute.x + button.x, absolute.y + button.y + button.height},
+    (*heading_menu_).show(shared_from_this(), frame_to_outer(local_frame, Point{button.x, button.y + button.height}),
                           MenuOpenMode::pointer);
 }
 
@@ -329,6 +330,9 @@ void RichTextBox::heading_chosen(const MenuItemInvocation& invocation) {
 
 void RichTextBox::heading_menu_open_changed(bool open) {
     heading_menu_open_ = open;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -338,7 +342,7 @@ std::vector<SemanticNode> RichTextBox::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
     const std::size_t count = realized_item_count();
     if (count == 0U) return nodes;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::array<Rect, rich_text_bar_button_count> buttons = bar_buttons();
     const RichTextFormat format = selection_format();
     const bool usable = enabled.read() && !read_only.read();
@@ -350,7 +354,7 @@ std::vector<SemanticNode> RichTextBox::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.name = std::string(bar_button_texts[index].name);
         const Rect bounds = buttons[index];
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible;
         if (usable) node.states |= SemanticState::enabled;
         if (button == RichTextBarButton::heading) {

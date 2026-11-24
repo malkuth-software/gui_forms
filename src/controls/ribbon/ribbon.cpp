@@ -12,6 +12,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "ribbon_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -21,6 +22,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::ribbon;
 
 using namespace ribbon_detail;
 
@@ -442,31 +444,6 @@ Ribbon::PreparedTabs Ribbon::prepare_tabs(const std::vector<RibbonTabSpec>& tabs
     return prepared;
 }
 
-// Takes the hosted controls out of the current records, leaving those
-// records without them: ribbon-made controls with their records, keyed by
-// their command's ID and kind; the application's controls by identity.
-Ribbon::HostedCarryOver Ribbon::take_hosted_controls() {
-    HostedCarryOver carried;
-    for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        // A panel tab's control is the application's, kept by identity.
-        const Control::Ptr& panel = tabs_[tab].panel;
-        if (panel && (*panel).parent().get() == this) carried.authored.push_back(panel);
-        for (std::size_t group = 0; group < tabs_[tab].groups.size(); ++group) {
-            for (std::size_t command = 0; command < tabs_[tab].groups[group].commands.size(); ++command) {
-                CommandRecord& record = records_[tab][group][command];
-                if (!record.hosted) continue;
-                const RibbonCommandSpec& spec = tabs_[tab].groups[group].commands[command];
-                if (authored_kind(spec.kind)) {
-                    carried.authored.push_back(std::move(record.hosted));
-                    continue;
-                }
-                carried.made.emplace_back(hosted_key(spec), std::move(record));
-            }
-        }
-    }
-    return carried;
-}
-
 // The new sets' states: availability and last accent carried over by set ID,
 // and each set's range of tabs from `tab_set_of`.
 std::vector<Ribbon::TabSetState> Ribbon::carried_set_states(
@@ -488,58 +465,64 @@ std::vector<Ribbon::TabSetState> Ribbon::carried_set_states(
     return states;
 }
 
-// Makes one record per command of tabs_: its hosted control, carried over
-// (a ribbon-made one by ID and kind, the application's by identity) or made
-// and added, configured from its command; and a watch on its Command. Takes
-// what it reuses out of `carried`.
-void Ribbon::rebuild_records(HostedCarryOver& carried) {
-    records_.clear();
-    advance_layout_revision();
-    records_.resize(tabs_.size());
-    advance_layout_revision();
+// A ribbon-made control of the current records that `spec` can take over:
+// same command ID and kind, not taken by an earlier command of the draft.
+Control::Ptr Ribbon::reusable_made_control(const RibbonCommandSpec& spec,
+                                           const std::vector<const Control*>& taken) const {
+    const std::string key = hosted_key(spec);
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
-        const Control::Ptr& panel = tabs_[tab].panel;
-        if (panel) {
-            for (Control::Ptr& old : carried.authored) {
-                if (old.get() != panel.get()) continue;
-                old.reset();
-                break;
-            }
-            if ((*panel).parent().get() != this) add_child(panel);
-        }
-        records_[tab].resize(tabs_[tab].groups.size());
         for (std::size_t group = 0; group < tabs_[tab].groups.size(); ++group) {
             const std::vector<RibbonCommandSpec>& commands = tabs_[tab].groups[group].commands;
-            records_[tab][group].resize(commands.size());
+            for (std::size_t command = 0; command < commands.size(); ++command) {
+                if (!hosted(commands[command].kind) || hosted_key(commands[command]) != key) continue;
+                const CommandRecord* const record = record_at(tab, group, command);
+                if (record == nullptr || !(*record).hosted) continue;
+                const Control* const control = (*record).hosted.get();
+                if (std::find(taken.begin(), taken.end(), control) != taken.end()) continue;
+                return (*record).hosted;
+            }
+        }
+    }
+    return {};
+}
+
+// Drafts one record per command of `tabs` into `draft`, leaving the ribbon's
+// tabs and records as they are: a panel or hosted control that is not yet a
+// child is added (and listed in draft.added), a ribbon-made control is
+// reused or made and configured, and each Command is watched for the next
+// definition. Throws what add_child, a hosted control or a subscription
+// throws; the caller then abandons the draft. A reused control's
+// configuration (a combo box's choices, a check box's text) is not undone.
+void Ribbon::draft_records(const std::vector<RibbonTabSpec>& tabs, TabsDraft& draft) {
+    const std::uint64_t next = definition_ + 1U;
+    std::vector<const Control*> taken{};
+    draft.records.resize(tabs.size());
+    for (std::size_t tab = 0; tab < tabs.size(); ++tab) {
+        if (tabs[tab].panel) adopt_drafted(tabs[tab].panel, draft);
+        draft.records[tab].resize(tabs[tab].groups.size());
+        for (std::size_t group = 0; group < tabs[tab].groups.size(); ++group) {
+            const std::vector<RibbonCommandSpec>& commands = tabs[tab].groups[group].commands;
+            draft.records[tab][group].resize(commands.size());
             for (std::size_t command = 0; command < commands.size(); ++command) {
                 const RibbonCommandSpec& spec = commands[command];
-                CommandRecord& record = records_[tab][group][command];
+                CommandRecord& record = draft.records[tab][group][command];
                 if (authored_kind(spec.kind)) {
-                    const Control::Ptr own = authored_control(spec);
-                    for (Control::Ptr& old : carried.authored) {
-                        if (old.get() != own.get()) continue;
-                        record.hosted = std::move(old);
-                        break;
-                    }
-                    if (!record.hosted) {
-                        record.hosted = own;
-                        if ((*own).parent().get() != this) add_child(record.hosted);
-                    }
+                    record.hosted = authored_control(spec);
+                    adopt_drafted(record.hosted, draft);
                 } else if (hosted(spec.kind)) {
-                    const std::string key = hosted_key(spec);
-                    for (std::pair<std::string, CommandRecord>& old : carried.made) {
-                        if (old.first != key || !old.second.hosted) continue;
-                        record.hosted = std::move(old.second.hosted);
-                        break;
+                    record.hosted = reusable_made_control(spec, taken);
+                    if (record.hosted) {
+                        configure_hosted(spec, *record.hosted);
+                    } else {
+                        Control::Ptr made = make_hosted(spec);
+                        configure_hosted(spec, *made);
+                        record.hosted = made;
+                        adopt_drafted(record.hosted, draft);
                     }
-                    if (!record.hosted) {
-                        record.hosted = make_hosted(spec);
-                        add_child(record.hosted);
-                    }
-                    configure_hosted(spec, *record.hosted);
+                    taken.push_back(record.hosted.get());
                 }
                 if (spec.command) {
-                    const CommandWatch watch{this, tab, group, command};
+                    const CommandWatch watch{this, tab, group, command, next};
                     record.watch = (*spec.command).state_changed().subscribe(*this, watch);
                     record.text = (*spec.command).state().text;
                     record.visible = (*spec.command).state().visible;
@@ -549,46 +532,103 @@ void Ribbon::rebuild_records(HostedCarryOver& carried) {
     }
 }
 
-// Removes the hosted controls no new command took.
-void Ribbon::release_carried(const HostedCarryOver& carried) {
-    for (const std::pair<std::string, CommandRecord>& old : carried.made) {
-        if (old.second.hosted) static_cast<void>(remove_child((*old.second.hosted).runtime_id()));
-    }
-    for (const Control::Ptr& old : carried.authored) {
-        if (old && (*old).parent().get() == this) static_cast<void>(remove_child((*old).runtime_id()));
-    }
+// Makes `control` a child for the draft unless it is one, listing it in
+// draft.added so a refusal removes it again.
+void Ribbon::adopt_drafted(const Control::Ptr& control, TabsDraft& draft) {
+    if ((*control).parent().get() == this) return;
+    add_child(control);
+    draft.added.push_back(control);
 }
 
-// A commit that failed part way (add_child refused a hosted control for a
-// reason prepare_tabs cannot see, such as a lifecycle notification under
-// way): the ribbon is left with no tabs rather than with tabs_, records_,
-// layouts_ and scaling_ of different shapes, which every layout, paint and
-// hit test indexes together (A-gf-controls-11-F1). The hosted controls the
-// partial records and the carry-over hold are taken out where the tree
-// allows; a removal that is refused leaves that control a child with no
-// record, which nothing reaches. Never throws.
-void Ribbon::abandon_definition(HostedCarryOver& carried) noexcept {
-    std::vector<Control::Ptr> held{};
+// A draft set_tabs refused: its watches go with its records, and the
+// children it added are removed where the tree allows (a refused removal
+// leaves that control a child with no record, which nothing reaches). The
+// ribbon's tabs and records were not touched. Never throws.
+void Ribbon::abandon_draft(TabsDraft& draft) noexcept {
+    draft.records.clear();
+    for (std::size_t index = draft.added.size(); index > 0U; --index) {
+        const Control::Ptr& control = draft.added[index - 1U];
+        try {
+            if ((*control).parent().get() == this) static_cast<void>(remove_child((*control).runtime_id()));
+        } catch (...) {
+        }
+    }
+    draft.added.clear();
+}
+
+// Removes the panels and hosted controls of the replaced definition that the
+// new one did not take. A refused removal leaves that control a child with
+// no record, which nothing reaches. Never throws.
+void Ribbon::release_retired(const std::vector<RibbonTabSpec>& retired_tabs,
+                             const std::vector<std::vector<std::vector<CommandRecord>>>& retired_records) noexcept {
+    std::vector<const Control*> kept{};
+    std::vector<Control::Ptr> retired{};
     try {
         for (const RibbonTabSpec& tab : tabs_) {
-            if (tab.panel) held.push_back(tab.panel);
+            if (tab.panel) kept.push_back(tab.panel.get());
         }
-        for (std::vector<std::vector<CommandRecord>>& tab : records_) {
-            for (std::vector<CommandRecord>& group : tab) {
-                for (CommandRecord& record : group) {
-                    if (record.hosted) held.push_back(std::move(record.hosted));
+        for (const std::vector<std::vector<CommandRecord>>& tab : records_) {
+            for (const std::vector<CommandRecord>& group : tab) {
+                for (const CommandRecord& record : group) {
+                    if (record.hosted) kept.push_back(record.hosted.get());
+                }
+            }
+        }
+        for (const RibbonTabSpec& tab : retired_tabs) {
+            if (tab.panel) retired.push_back(tab.panel);
+        }
+        for (const std::vector<std::vector<CommandRecord>>& tab : retired_records) {
+            for (const std::vector<CommandRecord>& group : tab) {
+                for (const CommandRecord& record : group) {
+                    if (record.hosted) retired.push_back(record.hosted);
                 }
             }
         }
     } catch (...) {
     }
-    records_.clear();
-    tabs_.clear();
-    tab_sets_.clear();
-    set_states_.clear();
-    tab_set_of_.clear();
-    layouts_.clear();
-    scaling_.clear();
+    for (const Control::Ptr& control : retired) {
+        if (std::find(kept.begin(), kept.end(), control.get()) != kept.end()) continue;
+        try {
+            if ((*control).parent().get() == this) static_cast<void>(remove_child((*control).runtime_id()));
+        } catch (...) {
+        }
+    }
+}
+
+// Validates and prepares everything first (prepare_tabs), so that a refusal
+// leaves the ribbon as it was; then closes the overlays, drafts the new
+// records (adding what the new tabs need), and only then swaps the new
+// definition in whole (state hunt C40, C41). A draft the window refuses is
+// abandoned and the ribbon keeps its tabs, records, selection and indices.
+void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets) {
+    require_mutable();
+    if (merge_ && !merging_) throw std::logic_error("Ribbon holds a merge: revert it before replacing the tabs");
+    PreparedTabs prepared = prepare_tabs(tabs, sets);
+    std::vector<TabSetState> states = carried_set_states(sets, prepared.tab_set_of);
+    close_menus();
+    close_group_overlay();
+    close_plane_popup();
+    TabsDraft draft;
+    try {
+        draft_records(tabs, draft);
+    } catch (...) {
+        abandon_draft(draft);
+        throw;
+    }
+    // Nothing below refuses: the new definition goes in whole.
+    std::string selected_id;
+    if (selected_tab_.present() && *selected_tab_.value() < tabs_.size()) {
+        selected_id = tabs_[*selected_tab_.value()].stable_id;
+    }
+    std::vector<RibbonTabSpec> retired_tabs = std::exchange(tabs_, std::move(tabs));
+    std::vector<std::vector<std::vector<CommandRecord>>> retired_records =
+        std::exchange(records_, std::move(draft.records));
+    ++definition_;
+    tab_sets_ = std::move(sets);
+    set_states_ = std::move(states);
+    tab_set_of_ = std::move(prepared.tab_set_of);
+    layouts_ = std::move(prepared.layouts);
+    scaling_.assign(tabs_.size(), TabScaling{});
     selected_tab_.reset();
     last_core_tab_.reset();
     first_group_ = 0U;
@@ -602,74 +642,17 @@ void Ribbon::abandon_definition(HostedCarryOver& carried) noexcept {
     stop_.reset();
     ++content_generation_;
     advance_layout_revision();
-    for (const Control::Ptr& control : held) {
-        try {
-            if ((*control).parent().get() == this) static_cast<void>(remove_child((*control).runtime_id()));
-        } catch (...) {
-        }
-    }
-    try {
-        release_carried(carried);
-    } catch (...) {
-    }
-    try {
-        invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    } catch (...) {
-    }
-}
-
-// Validates and prepares everything first (prepare_tabs), so that a refusal
-// leaves the ribbon as it was; then closes the overlays, carries the hosted
-// controls and the sets' states over, commits, and restores the selection.
-void Ribbon::set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets) {
-    require_mutable();
-    PreparedTabs prepared = prepare_tabs(tabs, sets);
-    close_menus();
-    close_group_overlay();
-    close_plane_popup();
-    // Lives to the end: its records keep their Command watches until then.
-    HostedCarryOver carried = take_hosted_controls();
-    std::string selected_id;
-    if (selected_tab_.present()) selected_id = tabs_[*selected_tab_.value()].stable_id;
-    std::vector<TabSetState> states = carried_set_states(sets, prepared.tab_set_of);
-    try {
-        tabs_ = std::move(tabs);
-        advance_layout_revision();
-        tab_sets_ = std::move(sets);
-        set_states_ = std::move(states);
-        advance_layout_revision();
-        tab_set_of_ = std::move(prepared.tab_set_of);
-        advance_layout_revision();
-        layouts_ = std::move(prepared.layouts);
-        advance_layout_revision();
-        rebuild_records(carried);
-    } catch (...) {
-        abandon_definition(carried);
-        throw;
-    }
-    release_carried(carried);
+    // The replaced records' watches go with them, after the controls the new
+    // definition did not take are let go.
+    release_retired(retired_tabs, retired_records);
+    retired_records.clear();
     refresh_accents();
-    selected_tab_.reset();
-    last_core_tab_.reset();
     for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
         if (tabs_[tab].stable_id == selected_id && selectable(tab)) selected_tab_.set(tab);
-        advance_layout_revision();
     }
     if (selected_tab_.absent()) selected_tab_ = fallback_tab();
-    advance_layout_revision();
     if (selected_tab_.present() && tab_set_of_[*selected_tab_.value()].absent()) last_core_tab_ = selected_tab_;
-    scaling_.assign(tabs_.size(), TabScaling{});
     advance_layout_revision();
-    ++content_generation_;
-    first_group_ = 0U;
-    advance_layout_revision();
-    hot_ = Hit{};
-    pressed_command_.reset();
-    pressed_launcher_.reset();
-    pressed_group_.reset();
-    held_tab_.reset();
-    pressed_scroll_ = Hit::Kind::none;
-    stop_.reset();
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
@@ -703,7 +686,8 @@ Control::Ptr Ribbon::hosted_control(std::string_view command_id, RibbonCommandKi
             for (std::size_t command = 0; command < commands.size(); ++command) {
                 if (commands[command].stable_id != command_id) continue;
                 if (commands[command].kind != kind) break;
-                return records_[tab][group][command].hosted;
+                const CommandRecord* const record = record_at(tab, group, command);
+                return record != nullptr ? (*record).hosted : Control::Ptr{};
             }
         }
     }
@@ -818,8 +802,24 @@ void Ribbon::set_application_menu(std::vector<MenuItemSpec> items) {
     invalidate(Dirty::semantics);
 }
 
+// The record of one command, or null while the records do not have that
+// shape (state hunt C40: set_tabs rebuilds them tab by tab, and code run by
+// the rebuild may reach the ribbon with an address into the new tabs).
+const Ribbon::CommandRecord* Ribbon::record_at(std::size_t tab, std::size_t group, std::size_t command) const noexcept {
+    if (tab >= records_.size() || group >= records_[tab].size() || command >= records_[tab][group].size()) return nullptr;
+    return &records_[tab][group][command];
+}
+
+Ribbon::CommandRecord* Ribbon::record_at(std::size_t tab, std::size_t group, std::size_t command) noexcept {
+    if (tab >= records_.size() || group >= records_[tab].size() || command >= records_[tab][group].size()) return nullptr;
+    return &records_[tab][group][command];
+}
+
 const RibbonGroupSpec* Ribbon::selected_group(std::size_t group) const noexcept {
-    if (selected_tab_.absent() || group >= tabs_[*selected_tab_.value()].groups.size()) return nullptr;
+    if (selected_tab_.absent() || *selected_tab_.value() >= tabs_.size() ||
+        group >= tabs_[*selected_tab_.value()].groups.size()) {
+        return nullptr;
+    }
     return &tabs_[*selected_tab_.value()].groups[group];
 }
 
@@ -903,7 +903,8 @@ bool Ribbon::command_checked(const RibbonCommandSpec& command) const {
 }
 
 void Ribbon::CommandWatch::operator()(const CommandState&) const {
-    if (ribbon != nullptr && (*ribbon).is_alive()) (*ribbon).command_state_changed(tab, group, command);
+    if (ribbon == nullptr || !(*ribbon).is_alive() || definition != (*ribbon).definition_) return;
+    (*ribbon).command_state_changed(tab, group, command);
 }
 
 // A Command's state changed. Text and visibility change the layout (and the
@@ -914,19 +915,21 @@ void Ribbon::command_state_changed(std::size_t tab, std::size_t group, std::size
         return;
     }
     const RibbonCommandSpec& spec = tabs_[tab].groups[group].commands[command];
-    CommandRecord& record = records_[tab][group][command];
+    CommandRecord* const found = record_at(tab, group, command);
+    if (found == nullptr) return;
+    CommandRecord& record = *found;
     const gui_forms::CommandState& state = (*spec.command).state();
     if (state.text != record.text || state.visible != record.visible) {
         record.text = state.text;
         record.visible = state.visible;
         ++content_generation_;
         invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-        if (group_overlay_ && overlay_group_.present()) (*group_overlay_).invalidate(Dirty::arrange | Dirty::paint);
+        if (group_overlay_ && overlay_group_index().present()) (*group_overlay_).invalidate(Dirty::arrange | Dirty::paint);
         return;
     }
     invalidate(Dirty::semantics);
     if (selected_tab_ != stxlib::Optional<std::size_t>::of(tab) || minimized.read() || plane_hidden_) return;
-    if (holds(overlay_group_, group) && group_overlay_) {
+    if (holds(overlay_group_index(), group) && group_overlay_) {
         (*group_overlay_).invalidate(Dirty::paint);
         return;
     }
@@ -956,6 +959,10 @@ void Ribbon::set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolba
     if (toolbar && (*toolbar).parent() != nullptr) {
         throw std::invalid_argument("Ribbon Quick Access Toolbar already has a parent");
     }
+    // The new toolbar joins first (state hunt, Ribbon reading): a refused
+    // add changes nothing, where before the ribbon named a toolbar that was
+    // not its child, and a retry with it returned early.
+    if (toolbar) add_child(toolbar);
     quick_access_placed_.disconnect();
     quick_access_customized_.disconnect();
     if (quick_access_ && (*quick_access_).parent().get() == this) {
@@ -964,7 +971,6 @@ void Ribbon::set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolba
     quick_access_ = std::move(toolbar);
     advance_layout_revision();
     if (quick_access_) {
-        add_child(quick_access_);
         quick_access_placed_ = (*quick_access_).placement_changed().subscribe(QuickAccessWatch{this});
         quick_access_customized_ = (*quick_access_).customized().subscribe(QuickAccessWatch{this});
     }
@@ -972,12 +978,14 @@ void Ribbon::set_quick_access_toolbar(std::shared_ptr<QuickAccessToolbar> toolba
 }
 
 void Ribbon::QuickAccessWatch::operator()(const QuickAccessToolbarPlacementChange&) const {
+    if (!(*ribbon).is_alive()) return;
     (*ribbon).hot_ = Hit{};
     (*ribbon).advance_layout_revision();
     (*ribbon).invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
 void Ribbon::QuickAccessWatch::operator()(const QuickAccessToolbarCustomization&) const {
+    if (!(*ribbon).is_alive()) return;
     (*ribbon).advance_layout_revision();
     (*ribbon).invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
@@ -1066,7 +1074,7 @@ void Ribbon::arrange(Rect final_bounds) {
     advance_layout_revision();
     // An overlay whose group grew back closes; the keyboard's command in it
     // keeps its place in the plane (RIBBON_SCALING_STUDY.md §5.8).
-    if (overlay_group_.present() && (placed.plane.empty() || !group_collapsed(placed, *overlay_group_.value()))) {
+    if (overlay_group_index().present() && (placed.plane.empty() || !group_collapsed(placed, overlay_group_position()))) {
         stxlib::Optional<Stop> carried{};
         if (overlay_focused_) carried = overlay_stop_;
         close_group_overlay();
@@ -1407,7 +1415,7 @@ AnatomyStateSet Ribbon::group_button_states(std::size_t group) const {
     AnatomyStateSet states;
     if (hot_.kind == Hit::Kind::group_button && hot_.index == group) states.insert(AnatomyState::hot);
     if (holds(pressed_group_, group)) states.insert(AnatomyState::pressed);
-    if (holds(overlay_group_, group)) states.insert(AnatomyState::open);
+    if (holds(overlay_group_index(), group)) states.insert(AnatomyState::open);
     if (stop_focus_visible(Stop{StopKind::group_button, group, {}})) states.insert(AnatomyState::focus_visible);
     return states;
 }
@@ -1797,7 +1805,7 @@ void Ribbon::paint_label_command(Painter& painter, PartPaint& part, const Ribbon
 }
 
 void Ribbon::overlay_paint(Painter& painter, Rect panel) const {
-    if (selected_tab_.absent() || overlay_group_.absent()) return;
+    if (selected_tab_.absent() || overlay_group_index().absent()) return;
     const Layout placed = overlay_layout(panel);
     painter.save();
     painter.clip_rect(panel);
@@ -1885,14 +1893,14 @@ void Ribbon::set_hot(const Hit& hit) {
 
 void Ribbon::repaint_part(Hit::Kind kind, std::size_t index, CommandAddress command) {
     if (kind == Hit::Kind::none) return;
-    const bool overlay_part = (kind == Hit::Kind::command && holds(overlay_group_, command.group)) ||
+    const bool overlay_part = (kind == Hit::Kind::command && holds(overlay_group_index(), command.group)) ||
                               ((kind == Hit::Kind::launcher || kind == Hit::Kind::group_button) &&
-                               holds(overlay_group_, index));
+                               holds(overlay_group_index(), index));
     if (overlay_part && group_overlay_ && (*group_overlay_).is_alive()) {
         (*group_overlay_).invalidate(Dirty::paint);
     }
     // A plane part shows in the popup while it is open.
-    if (plane_popup_open_ && plane_popup_ && (*plane_popup_).is_alive() && kind != Hit::Kind::tab &&
+    if (plane_popup_open() && plane_popup_ && (*plane_popup_).is_alive() && kind != Hit::Kind::tab &&
         kind != Hit::Kind::application && kind != Hit::Kind::help) {
         (*plane_popup_).invalidate(Dirty::paint);
     }
@@ -1968,7 +1976,7 @@ void Ribbon::repaint_stop(const stxlib::Optional<Stop>& held) {
 // group overlay that shares its interaction state.
 void Ribbon::invalidate_views(Dirty dirty) {
     invalidate(dirty);
-    if (group_overlay_ && overlay_group_.present() && (*group_overlay_).is_alive()) (*group_overlay_).invalidate(dirty);
+    if (group_overlay_ && overlay_group_index().present() && (*group_overlay_).is_alive()) (*group_overlay_).invalidate(dirty);
 }
 
 void Ribbon::click_tab(std::size_t tab) {
@@ -2011,7 +2019,7 @@ void Ribbon::click_command(CommandAddress address) {
     if (!is_alive()) return;
     const RibbonCommandClick click{std::string(stable_id().value()), spec.stable_id};
     command_clicked_.emit(click);
-    if (is_alive() && holds(overlay_group_, address.group)) close_group_overlay();
+    if (is_alive() && holds(overlay_group_index(), address.group)) close_group_overlay();
     if (is_alive()) close_plane_popup();
 }
 
@@ -2028,7 +2036,7 @@ void Ribbon::launch(std::size_t group) {
     const Control::Ptr lifetime = shared_from_this();
     const RibbonDialogLaunch launched{std::string(stable_id().value()), (*found).stable_id};
     dialog_launcher_clicked_.emit(launched);
-    if (is_alive() && holds(overlay_group_, group)) close_group_overlay();
+    if (is_alive() && holds(overlay_group_index(), group)) close_group_overlay();
     if (is_alive()) close_plane_popup();
 }
 
@@ -2082,7 +2090,9 @@ void Ribbon::press(const Hit& hit, PointerEvent& event) {
         if (spec == nullptr || !command_enabled(*spec)) return;
         // A press on a field's label focuses its field, as a form label does.
         if (hosted((*spec).kind)) {
-            const Control::Ptr& field = records_[*selected_tab_.value()][hit.command.group][hit.command.command].hosted;
+            const CommandRecord* const record =
+                record_at(*selected_tab_.value(), hit.command.group, hit.command.command);
+            const Control::Ptr field = record != nullptr ? (*record).hosted : Control::Ptr{};
             if (field && field_labelled(*spec) && window() != nullptr) {
                 static_cast<void>((*window()).request_focus(field));
             }
@@ -2201,22 +2211,22 @@ void Ribbon::on_mouse_up(MouseEventArgs& arguments) {
 void Ribbon::on_pointer_preview(PointerEvent& event) {
     Control::on_pointer_preview(event);
     if (event.action != PointerAction::down || event.button != PointerButton::primary) return;
-    if (overlay_group_.absent() && !application_overlay_open_ && !backstage_open_ && !plane_popup_open_) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    if (overlay_group_index().absent() && !application_overlay_shown() && !backstage_open_ && !plane_popup_open()) return;
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const Layout placed = layout();
     const Hit hit = hit_test(placed, local);
     // The minimized ribbon's popup closes; a press on a tab, the File tab,
     // the help button or the Quick Access Toolbar still acts (a tab then
     // opens its own popup, the selected tab pins the plane), and a press on
     // the bare tab row only closes it (interview D3).
-    if (plane_popup_open_) {
+    if (plane_popup_open()) {
         close_plane_popup();
         if (hit.kind == Hit::Kind::none && !placed.quick_access.contains(local)) event.handled = true;
         return;
     }
-    if (overlay_group_.present()) {
-        const bool same = hit.kind == Hit::Kind::group_button && hit.index == *overlay_group_.value();
+    if (overlay_group_index().present()) {
+        const bool same = hit.kind == Hit::Kind::group_button && hit.index == overlay_group_position();
         close_group_overlay();
         if (same || hit.kind == Hit::Kind::none) event.handled = true;
         return;
@@ -2233,13 +2243,13 @@ void Ribbon::on_pointer_preview(PointerEvent& event) {
 }
 
 void Ribbon::overlay_pointer(PointerEvent& event, Rect panel) {
-    if (!eligible_for_input() || !group_overlay_ || overlay_group_.absent()) return;
+    if (!eligible_for_input() || !group_overlay_ || overlay_group_index().absent()) return;
     if (event.action == PointerAction::leave) {
         set_hot(Hit{});
         return;
     }
-    const Rect absolute = (*group_overlay_).absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = (*group_overlay_).window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const Layout placed = overlay_layout(panel);
     const Hit hit = hit_test(placed, local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
@@ -2291,8 +2301,8 @@ std::vector<Ribbon::Stop> Ribbon::stops() const {
 // launcher.
 std::vector<Ribbon::Stop> Ribbon::overlay_stops() const {
     std::vector<Stop> result;
-    if (selected_tab_.absent() || overlay_group_.absent()) return result;
-    const std::size_t group = *overlay_group_.value();
+    if (selected_tab_.absent() || overlay_group_index().absent()) return result;
+    const std::size_t group = overlay_group_position();
     const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
     for (std::size_t command = 0; command < spec.commands.size(); ++command) {
         const RibbonCommandSpec& item = spec.commands[command];
@@ -2434,7 +2444,7 @@ void Ribbon::on_key_down(KeyEventArgs& arguments) {
 // a split or drop-down command's menu; Enter and Space activate. Escape
 // reaches the overlay's layer, which closes it.
 void Ribbon::overlay_key(KeyEvent& event) {
-    if (event.action != KeyAction::down || !effectively_enabled() || overlay_group_.absent()) return;
+    if (event.action != KeyAction::down || !effectively_enabled() || overlay_group_index().absent()) return;
     const std::vector<Stop> all = overlay_stops();
     if (all.empty()) return;
     std::size_t position = 0U;
@@ -2561,14 +2571,14 @@ bool Ribbon::show_application_menu(MenuOpenMode mode) {
     close_plane_popup();
     const Layout placed = layout();
     (*overlay_).set_items(application_menu_);
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     // Over the ribbon, below the File tab (owner decision 23).
     // show opens a focus scope whose handlers run before it returns; one
     // may close the menu (A-gf-controls-11-F2): the File tab is marked open
     // only for a menu still open.
     const Control::Ptr self = shared_from_this();
-    (*overlay_).show(self, {absolute.x + placed.application.x, absolute.y + placed.application.y +
-                                                                  placed.application.height},
+    (*overlay_).show(self, frame_to_outer(local_frame, Point{placed.application.x, placed.application.y +
+                                                                  placed.application.height}),
                    mode);
     if (!is_alive() || !(*overlay_).is_open()) return false;
     application_open_ = true;
@@ -2580,7 +2590,7 @@ bool Ribbon::show_application_menu(MenuOpenMode mode) {
 // A command's bounds in window coordinates, in the plane or in the open
 // group overlay; none where it is not shown.
 stxlib::Optional<Rect> Ribbon::command_window_bounds(CommandAddress address) const {
-    if (holds(overlay_group_, address.group) && group_overlay_) {
+    if (holds(overlay_group_index(), address.group) && group_overlay_) {
         const Layout placed = overlay_layout((*group_overlay_).panel());
         if (address.group >= placed.commands.size() || address.command >= placed.commands[address.group].size()) {
             return stxlib::Optional<Rect>::none();
@@ -2637,7 +2647,7 @@ void Ribbon::close_menus() noexcept {
 }
 
 bool Ribbon::menu_open() const noexcept {
-    const bool result = (overlay_ && (*overlay_).is_open()) || application_overlay_open_;
+    const bool result = (overlay_ && (*overlay_).is_open()) || application_overlay_shown();
     return result;
 }
 
@@ -2650,10 +2660,14 @@ void Ribbon::on_overlay_open_changed(bool open) {
     open_command_.reset();
     if (application_overlay_) (*application_overlay_).submenu_closed();
     if (application_panel_) (*application_panel_).submenu_closed();
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     // A two-pane submenu's command ran, or a press away from it dismissed
     // it: the two-pane menu closes after it.
-    if (application_submenu_invoked_) {
-        application_submenu_invoked_ = false;
+    ApplicationOpening* const application = application_presentation_.shown_state();
+    if (application != nullptr && (*application).submenu_invoked) {
+        (*application).submenu_invoked = false;
         close_application_overlay();
     }
     invalidate_views(Dirty::semantics);
@@ -2663,7 +2677,7 @@ void Ribbon::on_overlay_open_changed(bool open) {
 
 void Ribbon::on_overlay_item_invoked(const MenuItemInvocation& invocation) {
     if (application_open_) {
-        if (application_overlay_open_) application_submenu_invoked_ = true;
+        mark_application_submenu_invoked();
         application_menu_item_invoked_.emit(invocation);
         return;
     }
@@ -2687,9 +2701,11 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
     if (!group_collapsed(placed, group) || Rect::intersection(placed.groups[group], placed.groups_area).empty()) {
         return false;
     }
-    if (holds(overlay_group_, group)) return true;
+    if (holds(overlay_group_index(), group)) return true;
     close_menus();
     close_group_overlay();
+    // An overlay still closing is not replaced until it has finished.
+    if (!group_presentation_.is_closed()) return false;
     const std::string ribbon_id(stable_id().value());
     const Control::Ptr self = shared_from_this();
     if (!group_overlay_) {
@@ -2699,47 +2715,61 @@ bool Ribbon::show_group_overlay(std::string_view group_id, MenuOpenMode mode) {
         group_layer_dismissed_ = (*group_layer_).dismiss_requested().subscribe(
             Delegate<OverlayDismissReason>::bind<Ribbon, &Ribbon::on_group_layer_dismissed>(*this));
     }
-    overlay_group_.set(group);
-    overlay_stop_.reset();
-    const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
-    (*group_overlay_).accessible_name = spec.caption;
-    move_hosted_to_overlay(group);
-    // The content runs from the ribbon's left edge (start alignment) to the
-    // panel's right; the panel starts under the group's button.
-    const Rect absolute = absolute_bounds();
-    const Size panel = overlay_panel_size();
-    AnchoredOverlayPlacement placement;
-    placement.preferred_size = {placed.groups[group].x + panel.width, panel.height};
-    placement.horizontal_alignment = OverlayHorizontalAlignment::start;
-    placement.vertical_preference = OverlayVerticalPreference::below;
-    placement.gap = overlay_gap;
-    sync_overlay_themes();
-    (*group_layer_).set_anchor(self);
-    (*group_layer_).placement = placement;
-    (*group_overlay_).set_anchor_x(absolute.x + placed.groups[group].x);
-    const Size client = (*window).client_size();
-    (*group_layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    group_overlay_token_ = (*window).open_overlay(self, group_layer_);
-    if (Event<>* closed = group_overlay_token_.closed_event()) {
-        group_overlay_revoked_ =
-            (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_group_overlay_revoked>(*this));
+    GroupOverlayOpening opening{};
+    opening.group = group;
+    group_presentation_ = OverlayPresentation<GroupOverlayOpening>::opening(std::move(opening));
+    // From here until the scope is begun a refusal (state hunt, the
+    // "one leftover" of the Ribbon reading: the move of the hosted
+    // controls, open_overlay, a refused scope) closes the overlay again
+    // before it leaves: the hosted controls return to the ribbon and a
+    // later show of the same group opens it.
+    FocusScopeId scope{};
+    try {
+        overlay_stop_.reset();
+        const RibbonGroupSpec& spec = tabs_[*selected_tab_.value()].groups[group];
+        (*group_overlay_).accessible_name = spec.caption;
+        move_hosted_to_overlay(group);
+        // The content runs from the ribbon's left edge (start alignment) to the
+        // panel's right; the panel starts under the group's button.
+        const Size panel = overlay_panel_size();
+        AnchoredOverlayPlacement placement;
+        placement.preferred_size = {placed.groups[group].x + panel.width, panel.height};
+        placement.horizontal_alignment = OverlayHorizontalAlignment::start;
+        placement.vertical_preference = OverlayVerticalPreference::below;
+        placement.gap = overlay_gap;
+        sync_overlay_themes();
+        (*group_layer_).set_anchor(self);
+        (*group_layer_).placement = placement;
+        (*group_overlay_).set_anchor_x(point_to_window(Point{placed.groups[group].x, 0.0}).x);
+        const Size client = (*window).client_size();
+        (*group_layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
+        GroupOverlayOpening* const opening_record = group_presentation_.opening_state();
+        if (opening_record == nullptr) return false;
+        (*opening_record).lease.overlay = (*window).open_overlay(self, group_layer_);
+        if (Event<>* closed = (*opening_record).lease.overlay.closed_event()) {
+            (*opening_record).lease.overlay_closed =
+                (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_group_overlay_revoked>(*this));
+        }
+        if (mode == MenuOpenMode::keyboard) {
+            const std::vector<Stop> all = overlay_stops();
+            if (!all.empty()) overlay_stop_.set(all[0]);
+        }
+        scope = (*window).begin_focus_scope(group_layer_, group_overlay_);
+    } catch (...) {
+        if (group_presentation_.is_opening()) close_group_overlay();
+        throw;
     }
-    if (mode == MenuOpenMode::keyboard) {
-        const std::vector<Stop> all = overlay_stops();
-        if (!all.empty()) overlay_stop_.set(all[0]);
-    }
-    const FocusScopeId scope = (*window).begin_focus_scope(group_layer_, group_overlay_);
     // The focus move ran the previous control's handlers; one may have
     // closed this overlay, or closed it and opened another (which began
-    // its own scope). The scope is kept only for this overlay still open
-    // (A-gf-controls-11-F2).
+    // its own scope). The scope is kept only for this opening still in
+    // progress (A-gf-controls-11-F2).
     if (!is_alive()) return false;
-    if (!holds(overlay_group_, group) || group_scope_) {
+    if (!group_presentation_.settle_open()) {
         end_abandoned_scope(scope);
-        const bool still_open = holds(overlay_group_, group);
+        const bool still_open = holds(overlay_group_index(), group);
         return still_open;
     }
-    group_scope_ = scope;
+    (*group_presentation_.open_state()).lease.scope = scope;
     invalidate_views(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     return true;
 }
@@ -2753,29 +2783,77 @@ void Ribbon::end_abandoned_scope(FocusScopeId scope) noexcept {
     }
 }
 
+// Closing order: the scope ends (the group still reads as the overlay's),
+// the overlay finishes (the record goes), then the window drops the layer.
+// A close or open asked meanwhile is refused.
 void Ribbon::close_group_overlay() noexcept {
-    if (overlay_group_.absent()) return;
+    if (!group_presentation_.begin_closing()) return;
+    GroupOverlayOpening& closing = *group_presentation_.closing_state();
     Window* const window = attached_window();
-    if (window != nullptr && group_scope_) {
+    if (window != nullptr && closing.lease.scope) {
         try {
-            static_cast<void>((*window).end_focus_scope(group_scope_));
+            static_cast<void>((*window).end_focus_scope(closing.lease.scope));
         } catch (...) {
         }
     }
-    group_scope_ = {};
+    closing.lease.scope = {};
+    OverlayLease lease = std::move(closing.lease);
     finish_group_overlay();
-    group_overlay_revoked_.disconnect();
-    group_overlay_token_.disconnect();
+    lease.overlay_closed.disconnect();
+    lease.overlay.disconnect();
+}
+
+stxlib::Optional<std::size_t> Ribbon::overlay_group_index() const noexcept {
+    stxlib::Optional<std::size_t> group{};
+    const GroupOverlayOpening* const held = group_presentation_.held_state();
+    if (held != nullptr) group.set((*held).group);
+    return group;
+}
+
+bool Ribbon::agrees_with_itself() const noexcept {
+    // The records have the shape of the tabs (state hunt C40).
+    if (records_.size() != tabs_.size()) return false;
+    for (std::size_t tab = 0; tab < tabs_.size(); ++tab) {
+        if (records_[tab].size() != tabs_[tab].groups.size()) return false;
+        for (std::size_t group = 0; group < tabs_[tab].groups.size(); ++group) {
+            if (records_[tab][group].size() != tabs_[tab].groups[group].commands.size()) return false;
+        }
+    }
+    // Indices into the tabs are in range (C41).
+    if (selected_tab_.present() && *selected_tab_.value() >= tabs_.size()) return false;
+    if (pressed_tab_.present() && *pressed_tab_.value() >= tabs_.size()) return false;
+    if (held_tab_.present() && *held_tab_.value() >= tabs_.size()) return false;
+    // The group overlay held names a group of the selected tab, and each
+    // presentation open has its overlay in the window.
+    const GroupOverlayOpening* const group = group_presentation_.held_state();
+    if (group != nullptr) {
+        if (selected_tab_.absent() || (*group).group >= tabs_[*selected_tab_.value()].groups.size()) return false;
+        if (group_presentation_.is_open() && !(*group).lease.overlay.connected()) return false;
+    }
+    const ApplicationOpening* const application = application_presentation_.open_state();
+    if (application != nullptr && !(*application).lease.overlay.connected()) return false;
+    const OverlayLease* const plane = plane_presentation_.open_state();
+    if (plane != nullptr && !(*plane).overlay.connected()) return false;
+    // Backstage open has its overlay; closed, it has neither overlay nor scope.
+    if (backstage_open_ != backstage_token_.connected()) return false;
+    if (!backstage_open_ && backstage_scope_) return false;
+    return true;
+}
+
+std::size_t Ribbon::overlay_group_position() const noexcept {
+    const GroupOverlayOpening* const held = group_presentation_.held_state();
+    return held != nullptr ? (*held).group : 0U;
 }
 
 // The overlay is gone or going: its hosted controls return to the ribbon and
 // its interaction state is cleared.
 void Ribbon::finish_group_overlay() noexcept {
     move_hosted_to_ribbon(group_overlay_);
-    const std::size_t* const open_group = overlay_group_.value();
+    const stxlib::Optional<std::size_t> open_group_held = overlay_group_index();
+    const std::size_t* const open_group = open_group_held.value();
     const CommandAddress* const pressed = pressed_command_.value();
     if (open_group != nullptr && pressed != nullptr && (*pressed).group == *open_group) pressed_command_.reset();
-    overlay_group_.reset();
+    group_presentation_.finish_closing();
     overlay_stop_.reset();
     overlay_focused_ = false;
     pressed_group_.reset();
@@ -2788,7 +2866,8 @@ void Ribbon::finish_group_overlay() noexcept {
 }
 
 std::optional<std::string> Ribbon::overlay_group() const {
-    const std::size_t* const group = overlay_group_.value();
+    const stxlib::Optional<std::size_t> group_held = overlay_group_index();
+    const std::size_t* const group = group_held.value();
     if (group == nullptr || selected_tab_.absent()) return std::nullopt;
     return tabs_[*selected_tab_.value()].groups[*group].stable_id;
 }
@@ -2807,7 +2886,18 @@ void Ribbon::move_hosted_to_overlay(std::size_t group) {
         if (!control || (*control).parent().get() != this) continue;
         Control::Ptr moved = remove_child((*control).runtime_id());
         if (!moved) continue;
-        (*group_overlay_).add_child(std::move(moved));
+        // A refused add puts the control back in the ribbon before the
+        // refusal leaves (state hunt, Ribbon reading: it was left with no
+        // parent, and nothing re-adds a ribbon-made control).
+        try {
+            (*group_overlay_).add_child(moved);
+        } catch (...) {
+            try {
+                add_child(moved);
+            } catch (...) {
+            }
+            throw;
+        }
         const RibbonCommandSpec& spec = tabs_[tab].groups[group].commands[command];
         if (spec.kind == RibbonCommandKind::gallery) (*spec.gallery).columns = (*spec.gallery).maximum_columns();
     }
@@ -2847,10 +2937,13 @@ void Ribbon::on_group_layer_dismissed(OverlayDismissReason) {
 // The window closed the overlay itself (its owner left the window, or the
 // window closes): nothing remains to end but the ribbon's own state.
 void Ribbon::on_group_overlay_revoked() {
-    if (overlay_group_.absent()) return;
-    group_scope_ = {};
+    if (!group_presentation_.begin_closing()) return;
+    GroupOverlayOpening& closing = *group_presentation_.closing_state();
+    closing.lease.scope = {};
+    // The revoked token is let go without closing it again.
+    OverlayLease lease = std::move(closing.lease);
     finish_group_overlay();
-    group_overlay_revoked_.disconnect();
+    lease.overlay_closed.disconnect();
 }
 
 // -- the minimized ribbon's popup ----------------------------------------------
@@ -2879,13 +2972,13 @@ void Ribbon::popup_paint(Painter& painter, Rect panel) const {
 }
 
 void Ribbon::popup_pointer(PointerEvent& event, Rect panel) {
-    if (!eligible_for_input() || !plane_popup_ || !plane_popup_open_) return;
+    if (!eligible_for_input() || !plane_popup_ || !plane_popup_open()) return;
     if (event.action == PointerAction::leave) {
         set_hot(Hit{});
         return;
     }
-    const Rect absolute = (*plane_popup_).absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = (*plane_popup_).window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const Layout placed = popup_layout(panel);
     const Hit hit = hit_test(placed, local);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
@@ -2910,7 +3003,7 @@ bool Ribbon::show_plane_popup() {
     Window* const window = attached_window();
     if (!minimized.read() || selected_tab_.absent() || window == nullptr || !effectively_enabled()) return false;
     if (tabs_[*selected_tab_.value()].panel) return false;
-    if (plane_popup_open_) return true;
+    if (plane_presentation_.held_state() != nullptr) return true;
     close_menus();
     close_group_overlay();
     const std::string ribbon_id(stable_id().value());
@@ -2923,72 +3016,87 @@ bool Ribbon::show_plane_popup() {
         plane_layer_dismissed_ = (*plane_layer_).dismiss_requested().subscribe(
             Delegate<OverlayDismissReason>::bind<Ribbon, &Ribbon::on_plane_layer_dismissed>(*this));
     }
-    plane_popup_open_ = true;
-    hot_ = Hit{};
-    const std::size_t tab = *selected_tab_.value();
-    (*plane_popup_).accessible_name = parse_mnemonic_text(tabs_[tab].text).display_text;
-    // The selected tab's hosted controls move into the popup, in record order.
-    for (std::size_t group = 0; group < records_[tab].size(); ++group) {
-        for (const CommandRecord& record : records_[tab][group]) {
-            const Control::Ptr control = record.hosted;
-            if (!control || (*control).parent().get() != this) continue;
-            Control::Ptr moved = remove_child((*control).runtime_id());
-            if (moved) (*plane_popup_).add_child(std::move(moved));
+    plane_presentation_ = OverlayPresentation<OverlayLease>::opening(OverlayLease{});
+    // From here until the scope is begun a refusal (the move of the hosted
+    // controls, open_overlay, a refused scope) closes the popup again
+    // before it leaves, the hosted controls back in the ribbon.
+    FocusScopeId scope{};
+    try {
+        hot_ = Hit{};
+        const std::size_t tab = *selected_tab_.value();
+        (*plane_popup_).accessible_name = parse_mnemonic_text(tabs_[tab].text).display_text;
+        // The selected tab's hosted controls move into the popup, in record order.
+        for (std::size_t group = 0; group < records_[tab].size(); ++group) {
+            for (const CommandRecord& record : records_[tab][group]) {
+                const Control::Ptr control = record.hosted;
+                if (!control || (*control).parent().get() != this) continue;
+                Control::Ptr moved = remove_child((*control).runtime_id());
+                if (moved) (*plane_popup_).add_child(std::move(moved));
+            }
         }
+        // As wide as the ribbon and as tall as its plane, its left edge at the
+        // ribbon's, right under the tab row.
+        const Rect absolute = absolute_bounds();
+        AnchoredOverlayPlacement placement;
+        placement.preferred_size = {absolute.width, plane_height()};
+        placement.horizontal_alignment = OverlayHorizontalAlignment::start;
+        placement.vertical_preference = OverlayVerticalPreference::below;
+        placement.gap = 0.0;
+        // Flush with the ribbon's edges: the default 4-unit viewport margin
+        // would inset a full-width ribbon's popup from the window's sides.
+        placement.viewport_margin = 0.0;
+        sync_overlay_themes();
+        (*plane_layer_).set_anchor(self);
+        (*plane_layer_).placement = placement;
+        const Size client = (*window).client_size();
+        (*plane_layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
+        OverlayLease* const opening_lease = plane_presentation_.opening_state();
+        if (opening_lease == nullptr) return plane_presentation_.held_state() != nullptr;
+        (*opening_lease).overlay = (*window).open_overlay(self, plane_layer_);
+        if (Event<>* closed = (*opening_lease).overlay.closed_event()) {
+            (*opening_lease).overlay_closed =
+                (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_plane_popup_revoked>(*this));
+        }
+        scope = (*window).begin_focus_scope(plane_layer_, plane_popup_);
+    } catch (...) {
+        if (plane_presentation_.is_opening()) close_plane_popup();
+        throw;
     }
-    // As wide as the ribbon and as tall as its plane, its left edge at the
-    // ribbon's, right under the tab row.
-    const Rect absolute = absolute_bounds();
-    AnchoredOverlayPlacement placement;
-    placement.preferred_size = {absolute.width, plane_height()};
-    placement.horizontal_alignment = OverlayHorizontalAlignment::start;
-    placement.vertical_preference = OverlayVerticalPreference::below;
-    placement.gap = 0.0;
-    // Flush with the ribbon's edges: the default 4-unit viewport margin
-    // would inset a full-width ribbon's popup from the window's sides.
-    placement.viewport_margin = 0.0;
-    sync_overlay_themes();
-    (*plane_layer_).set_anchor(self);
-    (*plane_layer_).placement = placement;
-    const Size client = (*window).client_size();
-    (*plane_layer_).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    plane_popup_token_ = (*window).open_overlay(self, plane_layer_);
-    if (Event<>* closed = plane_popup_token_.closed_event()) {
-        plane_popup_revoked_ =
-            (*closed).subscribe(*this, Delegate<>::bind<Ribbon, &Ribbon::on_plane_popup_revoked>(*this));
-    }
-    const FocusScopeId scope = (*window).begin_focus_scope(plane_layer_, plane_popup_);
-    // As in show_group_overlay: kept only for this popup still open
-    // (A-gf-controls-11-F2).
+    // As in show_group_overlay: kept only for this opening still in
+    // progress (A-gf-controls-11-F2).
     if (!is_alive()) return false;
-    if (!plane_popup_open_ || plane_scope_) {
+    if (!plane_presentation_.settle_open()) {
         end_abandoned_scope(scope);
-        return plane_popup_open_;
+        return plane_presentation_.held_state() != nullptr;
     }
-    plane_scope_ = scope;
+    (*plane_presentation_.open_state()).scope = scope;
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
     return true;
 }
 
+// Closing order as for the group overlay; a close or open asked meanwhile
+// is refused.
 void Ribbon::close_plane_popup() noexcept {
-    if (!plane_popup_open_) return;
+    if (!plane_presentation_.begin_closing()) return;
+    OverlayLease& closing = *plane_presentation_.closing_state();
     Window* const window = attached_window();
-    if (window != nullptr && plane_scope_) {
+    if (window != nullptr && closing.scope) {
         try {
-            static_cast<void>((*window).end_focus_scope(plane_scope_));
+            static_cast<void>((*window).end_focus_scope(closing.scope));
         } catch (...) {
         }
     }
-    plane_scope_ = {};
+    closing.scope = {};
+    OverlayLease lease = std::move(closing);
     finish_plane_popup();
-    plane_popup_revoked_.disconnect();
-    plane_popup_token_.disconnect();
+    lease.overlay_closed.disconnect();
+    lease.overlay.disconnect();
 }
 
 // The popup is gone or going: its hosted controls return to the ribbon and
 // the interaction state it held is cleared.
 void Ribbon::finish_plane_popup() noexcept {
-    plane_popup_open_ = false;
+    plane_presentation_.finish_closing();
     move_hosted_to_ribbon(plane_popup_);
     pressed_command_.reset();
     pressed_zone_ = CommandZone::none;
@@ -3003,7 +3111,7 @@ void Ribbon::finish_plane_popup() noexcept {
 }
 
 Control::Ptr Ribbon::plane_popup() const noexcept {
-    if (!plane_popup_open_) return {};
+    if (plane_presentation_.held_state() == nullptr) return {};
     return plane_popup_;
 }
 
@@ -3012,10 +3120,13 @@ void Ribbon::on_plane_layer_dismissed(OverlayDismissReason) {
 }
 
 void Ribbon::on_plane_popup_revoked() {
-    if (!plane_popup_open_) return;
-    plane_scope_ = {};
+    if (!plane_presentation_.begin_closing()) return;
+    OverlayLease& closing = *plane_presentation_.closing_state();
+    closing.scope = {};
+    // The revoked token is let go without closing it again.
+    OverlayLease lease = std::move(closing);
     finish_plane_popup();
-    plane_popup_revoked_.disconnect();
+    lease.overlay_closed.disconnect();
 }
 
 // -- semantics -----------------------------------------------------------------
@@ -3047,7 +3158,7 @@ void Ribbon::append_group_node(SemanticNode& parent, const Layout& placed, std::
         group_node.role = SemanticRole::menu_button;
         group_node.has_popup = true;
         group_node.states = base | SemanticState::focusable;
-        if (holds(overlay_group_, group)) group_node.states |= SemanticState::expanded;
+        if (holds(overlay_group_index(), group)) group_node.states |= SemanticState::expanded;
         if (focused_ && holds(stop_, Stop{StopKind::group_button, group, {}})) {
             group_node.states |= SemanticState::focused;
         }
@@ -3238,10 +3349,10 @@ std::vector<SemanticNode> Ribbon::semantic_virtual_children() const {
 }
 
 std::vector<SemanticNode> Ribbon::overlay_semantic_children(Rect panel) const {
-    if (selected_tab_.absent() || overlay_group_.absent() || !group_overlay_) return {};
+    if (selected_tab_.absent() || overlay_group_index().absent() || !group_overlay_) return {};
     const Layout placed = overlay_layout(panel);
     SemanticNode holder{};
-    append_group_node(holder, placed, *overlay_group_.value(), (*group_overlay_).absolute_bounds());
+    append_group_node(holder, placed, overlay_group_position(), (*group_overlay_).absolute_bounds());
     if (holder.children.empty()) return {};
     std::vector<SemanticNode> nodes = std::move(holder.children[0].children);
     return nodes;
@@ -3310,7 +3421,7 @@ bool Ribbon::on_semantic_child_action(std::string_view id, SemanticAction action
         const stxlib::Optional<CommandAddress> found = find_command(command_id);
         const CommandAddress* const address = found.value();
         // While minimized, only the popup's commands act.
-        if (address == nullptr || (minimized.read() && !plane_popup_open_) || (plane_hidden_ && !plane_popup_open_)) return false;
+        if (address == nullptr || (minimized.read() && !plane_popup_open()) || (plane_hidden_ && !plane_popup_open())) return false;
         const RibbonCommandSpec* const target = selected_command(*address);
         if (target == nullptr || text_only((*target).kind)) return false;
         if (action == SemanticAction::press) {
@@ -3693,13 +3804,13 @@ std::vector<Ribbon::CommandItem> Ribbon::realized_commands() const {
 }
 
 std::vector<Ribbon::Group> Ribbon::realized_overlay_groups() const {
-    if (overlay_group_.absent() || !group_overlay_) return {};
+    if (overlay_group_index().absent() || !group_overlay_) return {};
     const std::vector<Group> records = groups_of(overlay_layout((*group_overlay_).panel()));
     return records;
 }
 
 std::vector<Ribbon::CommandItem> Ribbon::realized_overlay_commands() const {
-    if (overlay_group_.absent() || !group_overlay_) return {};
+    if (overlay_group_index().absent() || !group_overlay_) return {};
     const std::vector<CommandItem> records = commands_of(overlay_layout((*group_overlay_).panel()));
     return records;
 }
@@ -3730,7 +3841,7 @@ void Ribbon::append_interactions(std::vector<InteractionDeclaration>& interactio
 
 void Ribbon::prepare_write(const decltype(document_minimum_height)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0) {
+    if (!ic::admits_document_minimum_height(incoming)) {
         throw std::invalid_argument("Ribbon document minimum height must be finite and not negative");
     }
 }

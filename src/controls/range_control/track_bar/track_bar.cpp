@@ -4,7 +4,9 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
+#include "track_bar_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -14,6 +16,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::track_bar;
 using namespace range_control_detail;
 
 namespace {
@@ -22,7 +25,7 @@ namespace {
 // may read it.
 std::shared_ptr<const PropertyEnumDescriptor> track_bar_visual_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "track_bar_visual_style", {{"classic", 0}, {"filled", 1}, {"compact", 2}}, false});
     return value;
 }
@@ -291,15 +294,16 @@ void TrackBar::on_paint(Painter& painter, Rect) {
 }
 
 double TrackBar::value_from_window_point(Point point) const noexcept {
-    const Rect absolute = absolute_bounds();
+    const Point local = point_from_window(point);
+    const Rect own = client_rectangle();
     double ratio = 0.0;
     if (orientation.read() == Orientation::horizontal) {
-        const double span = std::max(1.0, absolute.width - track_inset * 2.0);
-        const double from_left = (point.x - absolute.x - track_inset) / span;
+        const double span = std::max(1.0, own.width - track_inset * 2.0);
+        const double from_left = (local.x - track_inset) / span;
         ratio = mirrored_axis() ? 1.0 - from_left : from_left;
     } else {
-        const double span = std::max(1.0, absolute.height - track_inset * 2.0);
-        ratio = 1.0 - (point.y - absolute.y - track_inset) / span;
+        const double span = std::max(1.0, own.height - track_inset * 2.0);
+        ratio = 1.0 - (local.y - track_inset) / span;
     }
     ratio = std::clamp(ratio, 0.0, 1.0);
     return minimum.read() + ratio * (maximum.read() - minimum.read());
@@ -529,7 +533,7 @@ BindingValue PropertyValueTraits<TrackBarVisualStyle>::to_binding(TrackBarVisual
     descriptor.enumeration = track_bar_visual_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -570,7 +574,7 @@ std::span<const PropertyEntry> TrackBar::property_table() const noexcept {
 void TrackBar::prepare_write(const decltype(tick_frequency)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "tick frequency must be finite");
-    if (incoming <= 0.0) throw std::invalid_argument("tick frequency must be positive");
+    if (!ic::admits_tick_frequency(incoming)) throw std::invalid_argument("tick frequency must be positive");
 }
 
 void TrackBar::written(const decltype(tick_frequency)&) {
@@ -596,7 +600,7 @@ void TrackBar::written(const decltype(visual_style)&) {
 void TrackBar::prepare_write(const decltype(thumb_extent)&, double& incoming) {
     require_mutable();
     require_finite(incoming, "thumb extent must be finite");
-    if (incoming < 0.0 || incoming > 64.0) throw std::invalid_argument("thumb extent must be between 0 and 64");
+    if (!ic::admits_thumb_extent(incoming)) throw std::invalid_argument("thumb extent must be between 0 and 64");
 }
 
 void TrackBar::written(const decltype(thumb_extent)&) {

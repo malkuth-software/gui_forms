@@ -96,9 +96,7 @@
       "hand": [],
       "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) ||",
-        "    incoming.width < 86.0 || incoming.height < 78.0 ||",
-        "    incoming.width > 512.0 || incoming.height > 512.0) {",
+        "if (!ic::admits_icon_cell_size(incoming)) {",
         "    throw std::invalid_argument(\"ObjectView icon cell must be 86x78 through 512x512\");",
         "}"
       ],
@@ -122,7 +120,7 @@
       "hand": [],
       "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 20.0 || incoming > 256.0) {",
+        "if (!ic::admits_details_row_height(incoming)) {",
         "    throw std::invalid_argument(\"ObjectView details row height must be 20 through 256\");",
         "}"
       ],

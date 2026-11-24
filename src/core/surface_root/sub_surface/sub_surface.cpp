@@ -1,17 +1,21 @@
 #include "gui_forms/surface_root/sub_surface/sub_surface.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "sub_surface_alerts.hpp"
 #include "sub_surface_channel.hpp"
 #include "sub_surface_tool_tips.hpp"
-#include "../../thread_records/thread_records_end.hpp"
+#include "../../threading/start_thread.hpp"
 
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <cstdint>
 #include <cstring>
 #include <exception>
 #include <stdexcept>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 #include <system_error>
 #include <utility>
 
@@ -223,6 +227,14 @@ private:
 // the presenter holds every one (rare: three buffers by default).
 constexpr std::chrono::milliseconds publish_retry_interval{4};
 
+// The loop's wait predicate, under the channel's mutex: a stop, a
+// configuration, a wake, input or an outcome is waiting.
+bool loop_has_work(const void* const context) noexcept {
+    const detail::SubSurfaceChannel& channel = *static_cast<const detail::SubSurfaceChannel*>(context);
+    return channel.stop_requested || channel.pending || channel.signalled || !channel.inputs.empty() ||
+           !channel.outcomes.empty();
+}
+
 } // namespace
 
 namespace detail {
@@ -242,6 +254,8 @@ public:
     // The thread's entry. Owns the loop and destroys it before returning, so
     // the content, its controls and both framebuffers die on this thread.
     static void run(std::unique_ptr<SubSurfaceLoop> loop) noexcept;
+    // The STXlib thread's body: takes the loop (`context`) and runs it.
+    static void thread_main(const stxlib::StopSignal& stop, void* context) noexcept;
 
 private:
     // Builds the tree and runs the loop until stopped. Exceptions leave the
@@ -305,9 +319,14 @@ private:
     std::uint64_t published_semantic_generation_{};
 };
 
+void SubSurfaceLoop::thread_main(const stxlib::StopSignal& stop, void* const context) noexcept {
+    // The channel's stop_requested ends the loop; STXlib ends the thread's
+    // records after this returns.
+    static_cast<void>(stop);
+    run(std::unique_ptr<SubSurfaceLoop>(static_cast<SubSurfaceLoop*>(context)));
+}
+
 void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
-    // Closes last: the thread's records are released here, on the thread.
-    const gui_forms::detail::ThreadRecordsEnd thread_records_end;
     SubSurfaceState end = SubSurfaceState::stopped;
     std::string failure;
     // This thread's synchronous invokes can be revoked by the parent's stop
@@ -331,7 +350,7 @@ void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceEndListener> target;
     {
-        const std::lock_guard<std::mutex> lock((*channel).mutex);
+        const stxlib::ScopedLock lock((*channel).mutex);
         (*channel).state = end;
         (*channel).failure = std::move(failure);
         // Only an end the parent did not ask for is told (a failure while
@@ -354,7 +373,7 @@ void SubSurfaceLoop::run(std::unique_ptr<SubSurfaceLoop> loop) noexcept {
 }
 
 void SubSurfaceLoop::run_tree() {
-    std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>();
+    std::shared_ptr<ApplicationResources> resources = gui_forms::detail::make_library_shared<ApplicationResources>();
     // A user theme is chosen before the first root shares the resources.
     if (user_theme_) (*resources).set_user_theme(user_theme_);
     (*resources).set_theme(theme_);
@@ -372,7 +391,7 @@ void SubSurfaceLoop::run_tree() {
     LiveSurfaceWakeConnection presented =
         (*surface_).connect_presented_wake(detail::SignalSubSurfaceChannel(channel_));
     {
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         (*channel_).dispatcher = root.dispatcher();
         (*channel_).state = SubSurfaceState::running;
     }
@@ -384,7 +403,7 @@ void SubSurfaceLoop::run_tree() {
             apply(root, *configuration);
             if ((*configuration).update) {
                 (*content_).apply_update(*(*configuration).update);
-                const std::lock_guard<std::mutex> lock((*channel_).mutex);
+                const stxlib::ScopedLock lock((*channel_).mutex);
                 ++(*channel_).statistics.updates_applied;
             }
             configuration.reset();
@@ -393,7 +412,7 @@ void SubSurfaceLoop::run_tree() {
         deliver_outcomes(root);
         const DispatchDrainResult drained = root.drain_posted_work();
         if (drained.remaining != 0U) {
-            const std::lock_guard<std::mutex> lock((*channel_).mutex);
+            const stxlib::ScopedLock lock((*channel_).mutex);
             (*channel_).signalled = true;
         }
         // Motion ticks on display time (design note section 8): the
@@ -419,15 +438,17 @@ bool SubSurfaceLoop::wait(const SubSurface& root, std::optional<SubSurfaceConfig
     stxlib::Optional<FrameTime> deadline = root.next_wake();
     if (retry_at_.present() && (deadline.absent() || *retry_at_.value() < *deadline.value())) deadline = retry_at_;
     if (pacing_wake_.present() && (deadline.absent() || *pacing_wake_.value() < *deadline.value())) deadline = pacing_wake_;
-    std::unique_lock<std::mutex> lock((*channel_).mutex);
+    stxlib::ScopedLock lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
-    while (!channel.stop_requested && !channel.pending && !channel.signalled && channel.inputs.empty() &&
-           channel.outcomes.empty()) {
-        if (deadline.absent()) {
-            channel.wake.wait(lock);
-            continue;
-        }
-        if (channel.wake.wait_until(lock, *deadline.value()) == std::cv_status::timeout) break;
+    if (deadline.absent()) {
+        channel.wake.wait(lock, &loop_has_work, &channel);
+    } else {
+        // The frame clock and STXlib's interval clock are both the monotonic
+        // clock; the wait takes the interval to the deadline.
+        const FrameInterval left = *deadline.value() - FrameClock::now();
+        const std::int64_t nanoseconds = std::chrono::duration_cast<std::chrono::nanoseconds>(left).count();
+        static_cast<void>(
+            channel.wake.wait_for(lock, &loop_has_work, &channel, stxlib::Duration::nanoseconds(nanoseconds)));
     }
     if (channel.stop_requested) return false;
     ++channel.statistics.loop_turns;
@@ -444,7 +465,7 @@ void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceKeyReturn> target;
     {
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         parent = (*channel_).key_return_dispatcher;
         target = (*channel_).key_return;
     }
@@ -497,7 +518,7 @@ void SubSurfaceLoop::dispatch_inputs(SubSurface& root) {
     const std::uint64_t dispatched = inputs_.size();
     const std::uint64_t last_sequence = inputs_.back().sequence;
     inputs_.clear();
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     (*channel_).statistics.inputs_dispatched += dispatched;
     (*channel_).statistics.last_input_sequence = last_sequence;
     (*channel_).statistics.keys_returned += returned;
@@ -514,7 +535,7 @@ void SubSurfaceLoop::deliver_outcomes(SubSurface& root) {
         if (!(*root.alert_requester_).receive_outcome(outcome)) ++stale;
     }
     outcomes_.clear();
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     (*channel_).statistics.outcomes_received += received;
     (*channel_).statistics.outcomes_stale += stale;
 }
@@ -562,7 +583,7 @@ void SubSurfaceLoop::apply(SubSurface& root, SubSurfaceConfiguration& configurat
             // a description LiveSurface refuses; the frames then stay at the
             // old size and the copy below is clipped to it.
             if ((*surface_).reconfigure(description)) {
-                const std::lock_guard<std::mutex> lock((*channel_).mutex);
+                const stxlib::ScopedLock lock((*channel_).mutex);
                 ++(*channel_).statistics.surface_reconfigures;
             }
         }
@@ -607,7 +628,7 @@ void SubSurfaceLoop::produce(SubSurface& root) {
         pacing_wake_.reset();
         epoch_due_ = false;
         if (pace.outcome == LivePacingOutcome::deadline) {
-            const std::lock_guard<std::mutex> lock((*channel_).mutex);
+            const stxlib::ScopedLock lock((*channel_).mutex);
             ++(*channel_).statistics.deadline_wakes;
             (*channel_).statistics.missed_frames += pace.missed_frames;
         }
@@ -631,7 +652,7 @@ void SubSurfaceLoop::publish_caret(SubSurface& root) {
     const stxlib::Optional<Rect> caret = root.text_input_caret();
     if (caret == published_caret_) return;
     published_caret_ = caret;
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     (*channel_).text_input_caret = caret;
 }
 
@@ -644,7 +665,7 @@ void SubSurfaceLoop::publish_semantics(SubSurface& root) {
     // (or listener set). A change nobody asked for marks the published one
     // stale; taking it wakes this loop to build the newest (take_semantics).
     {
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         detail::SubSurfaceChannel& channel = *channel_;
         if (!channel.semantics_wanted) {
             channel.semantics_stale = true;
@@ -655,13 +676,13 @@ void SubSurfaceLoop::publish_semantics(SubSurface& root) {
     }
     // Built here, on the tree's thread, and never changed after: the parent
     // reads it on its own thread through the shared pointer.
-    std::shared_ptr<const SemanticSnapshot> snapshot = std::make_shared<const SemanticSnapshot>(root.semantic_snapshot());
+    std::shared_ptr<const SemanticSnapshot> snapshot = gui_forms::detail::make_library_shared<const SemanticSnapshot>(root.semantic_snapshot());
     published_semantic_generation_ = (*snapshot).generation;
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceSemanticsListener> target;
     bool notify = false;
     {
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         detail::SubSurfaceChannel& channel = *channel_;
         // The snapshot replaced here is released after the lock.
         std::swap(channel.semantics, snapshot);
@@ -683,7 +704,7 @@ void SubSurfaceLoop::publish() {
     LiveSurfaceWriteLease lease = (*surface_).try_acquire_write(true);
     if (!lease) {
         retry_at_.set(FrameClock::now() + publish_retry_interval);
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         ++(*channel_).statistics.publish_retries;
         return;
     }
@@ -703,7 +724,7 @@ void SubSurfaceLoop::publish() {
     static_cast<void>(lease.publish(damage, content_epoch_));
     unpublished_ = PixelRectangle{};
     publish_whole_ = false;
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     ++(*channel_).statistics.frames_published;
     (*channel_).statistics.published_content_epoch = content_epoch_;
 }
@@ -715,7 +736,7 @@ SubSurfaceThread::SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content,
                                    std::shared_ptr<const Theme> theme,
                                    std::unique_ptr<PaintFramebuffer> text_measure,
                                    std::shared_ptr<const Theme> layered_user_theme)
-    : channel_(std::make_shared<detail::SubSurfaceChannel>()) {
+    : channel_(gui_forms::detail::make_library_shared<detail::SubSurfaceChannel>()) {
     if (!content || !surface || !theme) {
         throw std::invalid_argument("GUI.Forms sub-surface requires content, a LiveSurface and a theme");
     }
@@ -726,7 +747,10 @@ SubSurfaceThread::SubSurfaceThread(std::unique_ptr<SubSurfaceContent> content,
     std::unique_ptr<detail::SubSurfaceLoop> loop = std::make_unique<detail::SubSurfaceLoop>(
         channel_, std::move(content), std::move(surface), std::move(theme), std::move(layered_user_theme),
         std::move(text_measure));
-    thread_ = std::thread(&detail::SubSurfaceLoop::run, std::move(loop));
+    thread_ = detail::start_library_thread(&detail::SubSurfaceLoop::thread_main, loop.get(),
+                                           "GUI.Forms sub-surface could not start its thread");
+    // The thread owns the loop from here (SubSurfaceLoop::thread_main).
+    static_cast<void>(loop.release());
 }
 
 SubSurfaceThread::~SubSurfaceThread() {
@@ -748,7 +772,7 @@ void SubSurfaceThread::configure(SubSurfaceConfiguration configuration) {
     // so its framebuffer never dies under the channel's lock.
     std::optional<SubSurfaceConfiguration> replaced;
     {
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         detail::SubSurfaceChannel& channel = *channel_;
         if (channel.stop_requested || channel.state == SubSurfaceState::failed) return;
         ++channel.statistics.configurations_received;
@@ -777,7 +801,7 @@ void SubSurfaceThread::configure(SubSurfaceConfiguration configuration) {
 }
 
 std::uint64_t SubSurfaceThread::post_input(const SubSurfaceInput& input) {
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
     if (channel.stop_requested || channel.state == SubSurfaceState::failed) return 0U;
     // As the window's deferred input (SurfaceRoot): a pointer move replaces
@@ -821,7 +845,7 @@ void SubSurfaceThread::set_key_return(WindowDispatcher parent, std::weak_ptr<Sub
     // The previous dispatcher and target are released after the lock.
     WindowDispatcher previous_parent = std::move(parent);
     std::weak_ptr<SubSurfaceKeyReturn> previous_target = std::move(target);
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     std::swap((*channel_).key_return_dispatcher, previous_parent);
     std::swap((*channel_).key_return, previous_target);
 }
@@ -834,13 +858,13 @@ void SubSurfaceThread::set_request_target(WindowDispatcher parent,
     // The previous dispatcher and target are released after the lock.
     WindowDispatcher previous_parent = std::move(parent);
     std::weak_ptr<SubSurfaceRequestTarget> previous_target = std::move(target);
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     std::swap((*channel_).request_dispatcher, previous_parent);
     std::swap((*channel_).request_target, previous_target);
 }
 
 void SubSurfaceThread::post_request_outcome(const SurfaceRequestOutcome& outcome) {
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     detail::SubSurfaceChannel& channel = *channel_;
     if (channel.stop_requested || channel.state == SubSurfaceState::failed) return;
     channel.outcomes.push_back(outcome);
@@ -869,7 +893,7 @@ void SubSurfaceThread::set_semantics_listener(WindowDispatcher parent,
     // The previous dispatcher and target are released after the lock.
     WindowDispatcher previous_parent = std::move(parent);
     std::weak_ptr<SubSurfaceSemanticsListener> previous_target = std::move(target);
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     std::swap((*channel_).semantics_dispatcher, previous_parent);
     std::swap((*channel_).semantics_listener, previous_target);
     // A notice owed to the previous target is owed to this one.
@@ -878,7 +902,7 @@ void SubSurfaceThread::set_semantics_listener(WindowDispatcher parent,
 }
 
 std::shared_ptr<const SemanticSnapshot> SubSurfaceThread::take_semantics() {
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     (*channel_).semantics_notice_pending = false;
     want_semantics(*channel_);
     return (*channel_).semantics;
@@ -891,7 +915,7 @@ void SubSurfaceThread::set_end_listener(WindowDispatcher parent, std::weak_ptr<S
     // The previous dispatcher and target are released after the lock.
     WindowDispatcher previous_parent = std::move(parent);
     std::weak_ptr<SubSurfaceEndListener> previous_target = std::move(target);
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     std::swap((*channel_).end_dispatcher, previous_parent);
     std::swap((*channel_).end_listener, previous_target);
 }
@@ -901,7 +925,7 @@ void SubSurfaceThread::stop() noexcept {
     std::vector<detail::SubSurfaceInputRecord> discarded;
     std::vector<SurfaceRequestOutcome> unanswered;
     {
-        const std::lock_guard<std::mutex> lock((*channel_).mutex);
+        const stxlib::ScopedLock lock((*channel_).mutex);
         (*channel_).stop_requested = true;
         abandoned.swap((*channel_).pending);
         discarded.swap((*channel_).inputs);
@@ -913,9 +937,8 @@ void SubSurfaceThread::stop() noexcept {
     // synchronous invoke onto the parent) would wait for ever: revoke it, and
     // any it makes before it returns, so the join ends.
     detail::revoke_invokes(*(*channel_).revocable_invokes);
-    if (!thread_.joinable()) return;
     try {
-        thread_.join();
+        detail::join_library_thread(thread_);
     } catch (const std::system_error&) {
         // join refuses only a thread joining itself or a detached one, and
         // neither can happen: this object's thread never holds it.
@@ -923,27 +946,27 @@ void SubSurfaceThread::stop() noexcept {
 }
 
 WindowDispatcher SubSurfaceThread::dispatcher() const {
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     return (*channel_).dispatcher;
 }
 
 SubSurfaceState SubSurfaceThread::state() const {
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     return (*channel_).state;
 }
 
 std::string SubSurfaceThread::failure() const {
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     return (*channel_).failure;
 }
 
 SubSurfaceStatistics SubSurfaceThread::statistics() const {
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     return (*channel_).statistics;
 }
 
 stxlib::Optional<Rect> SubSurfaceThread::text_input_caret() const {
-    const std::lock_guard<std::mutex> lock((*channel_).mutex);
+    const stxlib::ScopedLock lock((*channel_).mutex);
     return (*channel_).text_input_caret;
 }
 

@@ -12,14 +12,14 @@
 #include <atomic>
 #include <cstddef>
 #include <cstdint>
-#include <mutex>
 #include <span>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 namespace {
 
 struct FontFamilyStackTable final {
-    std::mutex registration{};
+    stxlib::Mutex registration{};
     std::array<FontFamilyStack, maximum_font_family_stacks> stacks{};
     // How many entries of `stacks` are numbered; entry n has number n + 1.
     std::atomic<std::size_t> published{0U};
@@ -54,7 +54,7 @@ FontFamilyStackId register_font_family_stack(std::span<const FontFamilyId> famil
     for (std::size_t index = 0U; index < families.size(); ++index) candidate.families[index] = families[index];
     candidate.count = families.size();
     FontFamilyStackTable& table = stack_table();
-    const std::lock_guard<std::mutex> lock(table.registration);
+    const stxlib::ScopedLock lock(table.registration);
     const std::size_t published = table.published.load(std::memory_order_relaxed);
     for (std::size_t index = 0U; index < published; ++index) {
         if (!(table.stacks[index] == candidate)) continue;

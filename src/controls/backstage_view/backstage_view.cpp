@@ -4,6 +4,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "backstage_view_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -13,6 +14,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::backstage_view;
 namespace {
 
 // Column geometry in logical units at text scale 1: fast commands on 26-unit
@@ -25,8 +27,6 @@ constexpr double icon_left = 10.0;
 constexpr double icon_side = 16.0;
 constexpr double label_left = 34.0;
 constexpr double label_right = 8.0;
-constexpr double minimum_column = 48.0;
-constexpr double maximum_column = 480.0;
 
 std::string node_id(std::string_view view_id, std::string_view item_id) {
     std::string identity(view_id);
@@ -432,7 +432,7 @@ SemanticDescriptor BackstageView::semantic_descriptor() const {
 std::vector<SemanticNode> BackstageView::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes;
     const Geometry placed = geometry();
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const std::string view_id(stable_id().value());
     nodes.reserve(items_.size());
     for (std::size_t item = 0; item < items_.size(); ++item) {
@@ -446,7 +446,7 @@ std::vector<SemanticNode> BackstageView::semantic_virtual_children() const {
         node.position_in_set.set(item + 1U);
         node.set_size.set(items_.size());
         const Rect bounds = placed.items[item];
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (item_enabled(spec)) node.states |= SemanticState::enabled;
         if (selected_ == stxlib::Optional<std::size_t>::of(item)) node.states |= SemanticState::selected;
@@ -601,7 +601,7 @@ void BackstageView::append_interactions(std::vector<InteractionDeclaration>& int
 
 void BackstageView::prepare_write(const decltype(column_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < minimum_column || incoming > maximum_column) {
+    if (!ic::admits_column_width(incoming)) {
         throw std::invalid_argument("BackstageView column width must lie within 48 to 480");
     }
 }

@@ -2,6 +2,7 @@
 
 #include "gui_forms/controls/color_value_editor.hpp"
 #include "gui_forms/controls/flags_value_editor.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../property_service_utilities.hpp"
 
 #include <stxlib/optional.hpp>
@@ -161,7 +162,7 @@ std::optional<PropertyEditorBinding> create_numeric_editor(
     (*editor).enabled = request.writable;
     (*editor).accessible_name = request.property_path;
     (*editor).accessible_description = request.descriptor.description;
-    const std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
+    const std::shared_ptr<bool> synchronizing = gui_forms::detail::make_library_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
     binding.synchronize = NumericEditorSynchronizer{editor, synchronizing};
@@ -194,7 +195,7 @@ std::optional<PropertyEditorBinding> create_flags_editor(
     (*editor).enabled = request.writable;
     (*editor).accessible_name = request.property_path;
     (*editor).accessible_description = request.descriptor.description;
-    const std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
+    const std::shared_ptr<bool> synchronizing = gui_forms::detail::make_library_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
     binding.synchronize = FlagsEditorSynchronizer{editor, synchronizing};
@@ -216,7 +217,7 @@ std::optional<PropertyEditorBinding> create_color_editor(
         (*(*editor).editor()).accessible_name = request.property_path;
         (*(*editor).editor()).accessible_description = request.descriptor.description;
     }
-    const std::shared_ptr<bool> synchronizing = std::make_shared<bool>(false);
+    const std::shared_ptr<bool> synchronizing = gui_forms::detail::make_library_shared<bool>(false);
     PropertyEditorBinding binding;
     binding.control = editor;
     binding.synchronize = ColorEditorSynchronizer{editor, synchronizing};
@@ -309,7 +310,7 @@ std::optional<PropertyEditorBinding> PropertyEditorRegistry::create(
 }
 
 std::shared_ptr<PropertyEditorRegistry> PropertyEditorRegistry::create_default() {
-    std::shared_ptr<gui_forms::PropertyEditorRegistry> result = std::make_shared<PropertyEditorRegistry>();
+    std::shared_ptr<gui_forms::PropertyEditorRegistry> result = gui_forms::detail::make_library_shared<PropertyEditorRegistry>();
     static_cast<void>((*result).register_factory(
         "numeric-up-down", create_numeric_editor));
     static_cast<void>((*result).register_factory(

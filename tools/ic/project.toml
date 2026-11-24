@@ -1,0 +1,18 @@
+# GUI.Forms' behavioural constraint declarations (IC3; IC study, notes
+# planning/stages/IC-integrity-constraints/STUDY.md, decisions 1 to 7).
+# Each *.ic.toml beside a header states one component's constraints once;
+#   python3 -B tools/ic_declarations.py generate --config tools/ic/project.toml
+# writes everything else, and `check` (gui_forms_ic_declarations_tests) fails
+# when an output is stale or a generated entry check goes uncalled.
+schema = 1
+declarations = [
+  "include/gui_forms/**/*.ic.toml",
+  "src/core/**/*.ic.toml",
+  "lab/include/**/*.ic.toml",
+  "demo/**/include/**/*.ic.toml",
+]
+manifest_column = "manifests/ic/members_constraints.json"
+blocks = "manifests/ic/blocks"
+obligations = "manifests/ic/obligations"
+generator = "tools/ic_declarations.py"
+column_limit = 120

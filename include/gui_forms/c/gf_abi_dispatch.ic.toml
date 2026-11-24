@@ -1,0 +1,45 @@
+# The C ABI's gf_dispatch_table (GF_TABLE_DISPATCH): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_dispatch_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_dispatch_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_dispatch_table {"
+keys = { manifest = "gf_abi::dispatch", abi = "GF_TABLE_DISPATCH" }
+thread = "ui"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "gf_objects_table.state", observes = { alive = "GF_OBJECT_STATE_ALIVE", disposing = "GF_OBJECT_STATE_DISPOSING", disposed = "GF_OBJECT_STATE_DISPOSED" } }
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_dispatch_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_dispatch"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/tables/abi_dispatch.cpp"]
+
+[[call]]
+name = "begin_invoke"
+declarations = ["gf_status (GF_CALL* begin_invoke)("]
+kind = "member"
+thread = "any"
+fails = [
+  { failure = "limit_exceeded", when = "At most 4096 callbacks wait at once (GF_STATUS_LIMIT_EXCEEDED)." },
+]
+transfers = [
+  { what = "callback", from = "caller", to = "library" },
+]
+
+[[call]]
+name = "run_pending"
+declarations = ["gf_status (GF_CALL* run_pending)("]
+kind = "static"
+thread = "ui"
+parameters = { invoked = "uint64_t*" }
+requires = [
+  { holds = "not_null(invoked)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "run_pending_invoked" },
+]

@@ -1,0 +1,61 @@
+{
+  "family": "PopupContainerBox",
+  "step": "DX-1",
+  "declaring": "PopupContainerBox",
+  "header": "include/gui_forms/controls/popup_container_box.hpp",
+  "source": "src/controls/popup_container_box/popup_container_box.cpp",
+  "capabilities_header": "include/gui_forms/controls/popup_container_box_capabilities.hpp",
+  "base": "Control",
+  "shared": [],
+  "includes": [],
+  "properties": [
+    {
+      "name": "text",
+      "capability": "PopupContainerBoxText",
+      "value": "std::string",
+      "initial": null,
+      "comment": "The text the field shows, which the application writes, usually from the content when the popup closes. Invalid UTF-8 throws std::invalid_argument.",
+      "getter": "text",
+      "setter": "set_text",
+      "clear": null,
+      "field": "text_",
+      "event": "text_changed_",
+      "on_changed": true,
+      "localizable": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The text the field shows.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": true,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "hooks": "generated",
+      "written_effects": "Dirty::paint | Dirty::semantics",
+      "prepare": [
+        "if (!validate_utf8(incoming).valid()) throw std::invalid_argument(\"PopupContainerBox text must be valid UTF-8\");"
+      ],
+      "sample": "std::string(\"codemod.text\")"
+    }
+  ],
+  "not_properties": [
+    {
+      "name": "popup_content",
+      "reason": "the application's control, lent to the overlay while open; set through set_popup_content"
+    },
+    {
+      "name": "popup_size",
+      "reason": "a Size set through set_popup_size, read when the popup opens"
+    }
+  ],
+  "test": {
+    "type": "PopupContainerBox",
+    "include": "gui_forms/controls/popup_container_box.hpp"
+  }
+}

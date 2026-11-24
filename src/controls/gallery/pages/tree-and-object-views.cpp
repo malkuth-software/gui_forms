@@ -10,6 +10,7 @@
 #include "gui_forms/controls/virtual_rows_view.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "tree-and-object-views_form.hpp"
 #include "gui_forms_lab/correspondence_view.hpp"
@@ -414,7 +415,7 @@ private:
             {.name = "history", .header_text = "History", .kind = DataGridViewColumnKind::link, .width = 80.0,
              .link_text = "Changes"},
         });
-        grid_rows_ = std::make_shared<ProjectFileRows>();
+        grid_rows_ = gui_forms::detail::make_library_shared<ProjectFileRows>();
         (*grid_).set_virtual_rows(grid_rows_, (*grid_rows_).order());
         on((*grid_).cell_value_changed(), *this, &TreeAndObjectViewsPage::on_grid_value_changed);
         on((*grid_).cell_content_click(), *this, &TreeAndObjectViewsPage::on_grid_content_click);
@@ -448,6 +449,7 @@ private:
         on((*tree_list_).selection_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_selected);
         on((*tree_list_).sort_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_sorted);
         on((*tree_list_).column_moved(), *this, &TreeAndObjectViewsPage::on_tree_list_column_moved);
+        on((*tree_list_).check_state_changed(), *this, &TreeAndObjectViewsPage::on_tree_list_checked);
     }
 
     // A VirtualRowsView over the seeded message history, following the tail
@@ -780,6 +782,15 @@ private:
                             " moved to position " + std::to_string(change.display_position + 1U);
     }
 
+    // A cascade raises one change per node, the toggled node first: the
+    // status line ends on the last node it checked or unchecked.
+    void on_tree_list_checked(const TreeListCheckChange& change) {
+        if (change.check_state == CheckState::indeterminate) return;
+        const char* state = change.check_state == CheckState::checked ? " checked" : " unchecked";
+        (*status_).text = "TreeListView node " + change.node_id + state + " · " +
+                            node_path(node_index(change.node_id));
+    }
+
     // Value
     void on_view_mode_changed(const int mode) {
         (*objects_).view_mode = mode == 0 ? ObjectViewMode::icons : ObjectViewMode::details;
@@ -810,7 +821,7 @@ private:
 
 void add_tree_and_object_views(const std::shared_ptr<Surface>& page,
                                const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<TreeAndObjectViewsPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<TreeAndObjectViewsPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

@@ -9,6 +9,7 @@
 #include "gui_forms/controls/check_box.hpp"
 #include "gui_forms/controls/combo_box.hpp"
 #include "gui_forms/controls/numeric_up_down.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/controls/quick_access_toolbar.hpp"
 #include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/ribbon_color_picker.hpp"
@@ -31,6 +32,7 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 
 namespace gui_forms {
 
@@ -352,6 +354,8 @@ struct GUI_FORMS_API RibbonTabChange final {
 // Not yet: right-to-left mirroring and two-line large labels; in the
 // minimized popup, collapsed groups' overlays, drop-down menus and the
 // keyboard's stops (the popup's hosted controls take focus as usual).
+// ic: gui_forms::Ribbon: generated from include/gui_forms/controls/ribbon.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Ribbon final : public Control, public RibbonCapabilities<Ribbon> {
 public:
     // Development bounds, not measured capacity.
@@ -400,7 +404,8 @@ public:
     // font control, colour picker or tab panel is refused the same way. If
     // adding a hosted control fails after validation (a call from inside a
     // lifecycle notification), the exception reaches the caller and the
-    // ribbon is left with no tabs.
+    // ribbon is left with no tabs. Throws std::logic_error while the ribbon
+    // holds a merge (merge).
     void set_tabs(std::vector<RibbonTabSpec> tabs, std::vector<RibbonTabSetSpec> sets = {});
     [[nodiscard]] std::span<const RibbonTabSetSpec> tab_sets() const& noexcept {
         return std::span<const RibbonTabSetSpec>(tab_sets_.data(), tab_sets_.size());
@@ -418,6 +423,37 @@ public:
     // A newly shown set takes an index no other shown set has, keeping its
     // previous one when it can. Throws std::out_of_range for an unknown set.
     [[nodiscard]] stxlib::Optional<AccentIndex> tab_set_accent(std::string_view set_id) const;
+
+    // -- merging -------------------------------------------------------------------
+    // Ribbon merging (an MDI child's ribbon into the main window's, as
+    // Windows Forms merges an MDI child's menu strip into the parent's; the
+    // ribbon-merging behaviour of DockWorkspace::set_panel_ribbon). The
+    // source's tabs move into this ribbon: a core tab whose text matches a
+    // core tab here (ASCII case-insensitive, mnemonic marks ignored), when
+    // neither is a panel tab, adds its groups after that tab's groups and
+    // its reduction steps after that tab's; every other core tab follows
+    // this ribbon's core tabs, in the source's order; the source's
+    // contextual tab sets follow this ribbon's, with their tabs and their
+    // availability. The source is left with no tabs until the merge is
+    // reverted. A ribbon holds one merge at a time: merging again reverts
+    // the previous merge first.
+    //
+    // Returns false, changing nothing, when the source has no tabs or holds
+    // a merge itself, or when the merged tabs would be invalid (a repeated
+    // ID, too many groups on a tab). Throws std::invalid_argument when
+    // `source` is this ribbon and std::bad_weak_ptr when it is not owned by
+    // a shared pointer. While a merge is held, set_tabs throws
+    // std::logic_error; the source's tabs are its own again after
+    // revert_merge (a source destroyed meanwhile loses them). Destroying
+    // the merged ribbon drops the source's merged tabs: revert first.
+    bool merge(Ribbon& source);
+    // Restores this ribbon's own tabs and gives the source back its tabs
+    // and its sets' availability. Returns whether a merge was held. An
+    // exception from restoring the source (its tabs no longer valid there)
+    // propagates after this ribbon is restored and the merge forgotten.
+    bool revert_merge();
+    // The ribbon whose tabs are merged here, or null.
+    [[nodiscard]] std::shared_ptr<Ribbon> merge_source() const;
     // Whether a tab shows on the tab row now (its modes, and its set's
     // availability). Throws std::out_of_range for a tab past the end.
     [[nodiscard]] bool tab_shown(std::size_t tab) const;
@@ -472,7 +508,7 @@ public:
     // without a selected tab, a window, or while disabled.
     bool show_plane_popup();
     void close_plane_popup() noexcept;
-    [[nodiscard]] bool plane_popup_open() const noexcept { return plane_popup_open_; }
+    [[nodiscard]] bool plane_popup_open() const noexcept { return plane_presentation_.held_state() != nullptr; }
     // The popup's content control while open (for tests and inspection).
     [[nodiscard]] Control::Ptr plane_popup() const noexcept;
     [[nodiscard]] const std::shared_ptr<QuickAccessToolbar>& quick_access_toolbar() const& noexcept {
@@ -506,6 +542,11 @@ public:
     bool show_drop_down(std::string_view command_id, MenuOpenMode mode = MenuOpenMode::keyboard);
     void close_menus() noexcept;
     [[nodiscard]] bool menu_open() const noexcept;
+    // Whether the ribbon's state agrees with itself (state hunt, 2026-11-23):
+    // its records have the shape of its tabs, its tab indices are in range,
+    // and each overlay it holds open is in the window. For tests and
+    // diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // Opens a collapsed group of the selected tab in an overlay below the ribbon,
     // at its largest layout (owner decision 27); the group's hosted controls
     // move into the overlay while it is open. False for a group that is not
@@ -782,11 +823,15 @@ private:
     };
     // A named callback: a Command's state changed. `tab`, `group` and
     // `command` locate the record.
+    // A Command's watch, for the definition (definition_) it was made for:
+    // a watch of a definition set_tabs is still drafting, or of one it
+    // replaced, does nothing.
     struct CommandWatch final {
         Ribbon* ribbon{};
         std::size_t tab{};
         std::size_t group{};
         std::size_t command{};
+        std::uint64_t definition{};
         void operator()(const CommandState&) const;
     };
 
@@ -935,22 +980,26 @@ private:
         std::vector<stxlib::Optional<std::size_t>> tab_set_of;
         std::vector<std::vector<std::vector<RibbonGroupLayout>>> layouts;
     };
-    // The hosted controls taken out of the records set_tabs replaces:
-    // ribbon-made controls with their records (and Command watches), keyed
-    // "<command ID>/<kind>", and the application's controls (galleries, font
-    // controls, colour pickers), matched by identity.
-    struct HostedCarryOver final {
-        std::vector<std::pair<std::string, CommandRecord>> made;
-        std::vector<Control::Ptr> authored;
+    // The records set_tabs drafts for the new tabs before it changes the
+    // ribbon (state hunt C40): each command's hosted control, reused from the
+    // current records (a ribbon-made one by command ID and kind, the
+    // application's by identity) or made, and its Command watch for the next
+    // definition; and the children the draft added, which a refusal removes.
+    struct TabsDraft final {
+        std::vector<std::vector<std::vector<CommandRecord>>> records;
+        std::vector<Control::Ptr> added;
     };
     [[nodiscard]] PreparedTabs prepare_tabs(const std::vector<RibbonTabSpec>& tabs,
                                             const std::vector<RibbonTabSetSpec>& sets) const;
-    [[nodiscard]] HostedCarryOver take_hosted_controls();
     [[nodiscard]] std::vector<TabSetState> carried_set_states(
         const std::vector<RibbonTabSetSpec>& sets, const std::vector<stxlib::Optional<std::size_t>>& tab_set_of) const;
-    void rebuild_records(HostedCarryOver& carried);
-    void release_carried(const HostedCarryOver& carried);
-    void abandon_definition(HostedCarryOver& carried) noexcept;
+    void draft_records(const std::vector<RibbonTabSpec>& tabs, TabsDraft& draft);
+    [[nodiscard]] Control::Ptr reusable_made_control(const RibbonCommandSpec& spec,
+                                                     const std::vector<const Control*>& taken) const;
+    void adopt_drafted(const Control::Ptr& control, TabsDraft& draft);
+    void abandon_draft(TabsDraft& draft) noexcept;
+    void release_retired(const std::vector<RibbonTabSpec>& retired_tabs,
+                         const std::vector<std::vector<std::vector<CommandRecord>>>& retired_records) noexcept;
 
     // A realized item located: a tab, a group or a command of the selected
     // tab, or nothing past the end.
@@ -1017,6 +1066,8 @@ private:
     [[nodiscard]] AnatomyStateSet group_button_states(std::size_t group) const;
     [[nodiscard]] bool group_collapsed(const Layout& placed, std::size_t group) const noexcept;
     [[nodiscard]] ImageId group_image(const RibbonGroupSpec& group) const noexcept;
+    [[nodiscard]] const CommandRecord* record_at(std::size_t tab, std::size_t group, std::size_t command) const noexcept;
+    [[nodiscard]] CommandRecord* record_at(std::size_t tab, std::size_t group, std::size_t command) noexcept;
     [[nodiscard]] const RibbonGroupSpec* selected_group(std::size_t group) const noexcept;
     [[nodiscard]] const RibbonCommandSpec* selected_command(CommandAddress address) const noexcept;
     [[nodiscard]] const std::string& authored_text(const RibbonCommandSpec& command) const noexcept;
@@ -1090,6 +1141,16 @@ private:
     // ribbon, in record order.
     void move_hosted_to_ribbon(const Control::Ptr& source) noexcept;
     void finish_group_overlay() noexcept;
+    // The group the overlay shows while it is held (opening, open, or
+    // closing until finish_group_overlay); absent otherwise.
+    [[nodiscard]] stxlib::Optional<std::size_t> overlay_group_index() const noexcept;
+    // That group; only while overlay_group_index() is present (0 otherwise).
+    [[nodiscard]] std::size_t overlay_group_position() const noexcept;
+    // The two-pane menu is opening or open.
+    [[nodiscard]] bool application_overlay_shown() const noexcept { return application_presentation_.is_shown(); }
+    // A submenu of the two-pane menu ran its command or a press away
+    // dismissed it; nothing while the two-pane menu is not shown.
+    void mark_application_submenu_invoked() noexcept;
     // Ends `scope`, begun for an overlay that a focus handler closed (or
     // closed and opened again) while the scope began: beginning a scope
     // moves focus and runs the previous control's handlers before it
@@ -1136,6 +1197,14 @@ private:
     void on_backstage_revoked();
     void validate_two_pane(const std::vector<MenuItemSpec>& items, std::size_t recent) const;
 
+    // The merge this ribbon holds as a target (merge): its own definition,
+    // and the source's definition and sets' availability to give back.
+    // Defined in ribbon_merge.cpp.
+    struct MergeState;
+    stxlib::Unique<MergeState> merge_{};
+    // Set while merge and revert_merge replace the tabs themselves.
+    bool merging_{};
+
     std::vector<RibbonTabSpec> tabs_{};
     // One record per command, indexed [tab][group][command] as tabs_.
     std::vector<std::vector<std::vector<CommandRecord>>> records_{};
@@ -1179,6 +1248,9 @@ private:
     // Scaling. The caches are derived state, emptied when scaling_key_ no
     // longer matches; scaling_ has one entry per tab.
     std::uint64_t content_generation_{1U};
+    // The tab definition's generation, advanced by each set_tabs that
+    // commits; Command watches carry the one they were made for.
+    std::uint64_t definition_{0U};
     mutable ScalingKey scaling_key_{};
     mutable std::vector<TabScaling> scaling_{};
     mutable RowMetrics row_metrics_{};
@@ -1197,23 +1269,26 @@ private:
     // the keyboard's stop in it.
     std::shared_ptr<RibbonGroupOverlay> group_overlay_{};
     std::shared_ptr<AnchoredOverlayLayer> group_layer_{};
-    OverlayToken group_overlay_token_{};
-    FocusScopeId group_scope_{};
     SubscriptionToken group_layer_dismissed_{};
-    SubscriptionToken group_overlay_revoked_{};
-    stxlib::Optional<std::size_t> overlay_group_{};
+    // One opening of the group overlay: its lease (the scope begun while
+    // opening) and the group it shows. The keyboard's stop and focus in it
+    // are interaction state, cleared when it finishes.
+    struct GroupOverlayOpening final {
+        OverlayLease lease{};
+        std::size_t group{};
+    };
+    OverlayPresentation<GroupOverlayOpening> group_presentation_{};
     stxlib::Optional<Stop> overlay_stop_{};
     bool overlay_focused_{};
 
     // The minimized ribbon's popup: its content control and layer (made on
-    // first use), the overlay lease and focus scope while open.
+    // first use), and the lease of one opening (the scope begun while
+    // opening). plane_popup_open reports it held, also while closing until
+    // finish_plane_popup.
     std::shared_ptr<RibbonGroupOverlay> plane_popup_{};
     std::shared_ptr<AnchoredOverlayLayer> plane_layer_{};
-    OverlayToken plane_popup_token_{};
-    FocusScopeId plane_scope_{};
     SubscriptionToken plane_layer_dismissed_{};
-    SubscriptionToken plane_popup_revoked_{};
-    bool plane_popup_open_{};
+    OverlayPresentation<OverlayLease> plane_presentation_{};
 
     Event<const RibbonCommandClick&> command_clicked_{};
     Event<const RibbonDropDownInvocation&> drop_down_item_invoked_{};
@@ -1233,16 +1308,16 @@ private:
     std::shared_ptr<RibbonApplicationMenu> application_panel_{};
     PopupLift application_lift_{};
     Rect application_face_{};
-    // A submenu item of the two-pane menu ran its command, or a press away
-    // from the submenu dismissed it: the menu closes once the ribbon's
-    // menu has.
-    bool application_submenu_invoked_{};
-    OverlayToken application_overlay_token_{};
-    FocusScopeId application_scope_{};
-    SubscriptionToken application_overlay_revoked_{};
-    // The owner window's frame_moved while the application menu shows.
-    SubscriptionToken application_owner_moved_{};
-    bool application_overlay_open_{};
+    // One opening of the two-pane menu: its lease (the scope begun while
+    // opening), the owner window's frame_moved while it shows, and whether
+    // a submenu item ran its command or a press away from the submenu
+    // dismissed it (the menu then closes once the ribbon's menu has).
+    struct ApplicationOpening final {
+        OverlayLease lease{};
+        SubscriptionToken owner_moved{};
+        bool submenu_invoked{};
+    };
+    OverlayPresentation<ApplicationOpening> application_presentation_{};
     SubscriptionToken backstage_close_{};
     OverlayToken backstage_token_{};
     FocusScopeId backstage_scope_{};
@@ -1279,6 +1354,7 @@ private:
     // The capabilities' hooks, chosen by the cell's type (study section 14).
     void prepare_write(const decltype(application_modes)& cell, std::uint32_t& incoming);
     void written(const decltype(application_modes)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(document_minimum_height)& cell, double& incoming);
     void written(const decltype(document_minimum_height)& cell);
     void prepare_write(const decltype(minimized)& cell, bool& incoming);

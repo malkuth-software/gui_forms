@@ -11,6 +11,8 @@
 
 namespace gui_forms {
 
+// ic: gui_forms::PictureBox: generated from include/gui_forms/controls/picture_box.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API PictureBox : public Panel, public PictureBoxCapabilities<PictureBox> {
 public:
     explicit PictureBox(StableId stable_id);
@@ -25,6 +27,8 @@ public:
     [[nodiscard]] Size measure(Size available) override;
     void on_paint(Painter& painter, Rect local_damage) override;
     [[nodiscard]] bool hit_test_local(Point local_point) const override;
+    // Media (stage VA, section 8): its contain has no floor but its fit's.
+    [[nodiscard]] bool shows_media_content() const noexcept override;
     [[nodiscard]] SemanticDescriptor semantic_descriptor() const override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;
     // Stage T1 anatomy, as dot members: Panel's parts and the image.
@@ -67,6 +71,7 @@ private:
     void written(const decltype(image)& cell);
     void prepare_write(const decltype(size_mode)& cell, PictureBoxSizeMode& incoming);
     void written(const decltype(size_mode)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0 and incoming <= 1, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(image_opacity)& cell, double& incoming);
     void written(const decltype(image_opacity)& cell);
     // property_codemod end PictureBox

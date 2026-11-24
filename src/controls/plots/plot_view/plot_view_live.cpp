@@ -1,6 +1,7 @@
 #include "plot_view_live.hpp"
 
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -280,8 +281,8 @@ void PlotLiveFrame::report(const PlotEngineOutcome& outcome) {
 void PlotLiveFrame::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
     gather();
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     PlotEngineOptions options{};
     options.crosshair = state_.crosshair;
     const PlotEngineOutcome outcome = engine_.pointer(event, local, gathered_, device_scale(), options);
@@ -367,7 +368,7 @@ void PlotLiveFrame::on_key_up(KeyEventArgs& arguments) {
 // -- content ---------------------------------------------------------------------------
 
 Control::Ptr PlotLiveContent::build_root() {
-    frame_ = std::make_shared<PlotLiveFrame>(stable_id_);
+    frame_ = gui_forms::detail::make_library_shared<PlotLiveFrame>(stable_id_);
     Control::Ptr root = frame_;
     return root;
 }

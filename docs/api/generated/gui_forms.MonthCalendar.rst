@@ -103,10 +103,10 @@ gui_forms::MonthCalendar
          :cpp:func:`remove_bolded_date <gui_forms::MonthCalendar::remove_bolded_date>` and :cpp:func:`remove_all_bolded_dates <gui_forms::MonthCalendar::remove_all_bolded_dates>` change them; an
          invalid date throws ``std::invalid_argument``.
 
-      **annually_bolded_dates** : ``std::span<const DateTimeValue>``
+      **annually_bolded_dates** : ``BorrowedSpan<DateTimeValue>``
          Days shown in bold every year: only their month and day count.
 
-      **monthly_bolded_dates** : ``std::span<const DateTimeValue>``
+      **monthly_bolded_dates** : ``BorrowedSpan<DateTimeValue>``
          Days shown in bold every month: only their day counts.
 
       **effective_format_provider** : ``DateTimeFormatProvider``, read-only
@@ -318,7 +318,7 @@ gui_forms::MonthCalendar
 
       Sets :cpp:func:`bolded_dates <gui_forms::MonthCalendar::bolded_dates>`; see the property's description above.
 
-   .. cpp:function:: std::span<const DateTimeValue> annually_bolded_dates() const& noexcept
+   .. cpp:function:: BorrowedSpan<DateTimeValue> annually_bolded_dates() const& noexcept
 
       Days shown in bold every year: only their month and day count.
 
@@ -326,7 +326,7 @@ gui_forms::MonthCalendar
 
       Sets :cpp:func:`annually_bolded_dates <gui_forms::MonthCalendar::annually_bolded_dates>`; see the property's description above.
 
-   .. cpp:function:: std::span<const DateTimeValue> monthly_bolded_dates() const& noexcept
+   .. cpp:function:: BorrowedSpan<DateTimeValue> monthly_bolded_dates() const& noexcept
 
       Days shown in bold every month: only their day counts.
 

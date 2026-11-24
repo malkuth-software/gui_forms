@@ -381,7 +381,7 @@ stxlib::Optional<std::size_t> VirtualRowsView::column_of_child_id(std::string_vi
 
 void VirtualRowsView::append_column_semantics(std::vector<SemanticNode>& children) const {
     if (header_.empty()) return;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const bool enabled = effectively_enabled();
     for (std::size_t column = 0U; column < columns_.size(); ++column) {
         const Rect shown = Rect::intersection(column_extent(column), header_);
@@ -394,7 +394,7 @@ void VirtualRowsView::append_column_semantics(std::vector<SemanticNode>& childre
         if (sort_column_.present() && *sort_column_.value() == column) {
             node.value = sort_direction_ == VirtualRowsSort::ascending ? "ascending" : "descending";
         }
-        node.bounds = {absolute.x + shown.x, absolute.y + shown.y, shown.width, shown.height};
+        node.bounds = frame_to_outer(local_frame, shown);
         node.states = SemanticState::visible;
         if (enabled) node.states |= SemanticState::enabled;
         if (columns_[column].sortable) node.actions = {SemanticAction::press};

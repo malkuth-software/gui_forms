@@ -7,6 +7,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -49,7 +50,7 @@ QuickAccessToolbar::QuickAccessToolbar(StableId stable_id) : ToolStrip(std::move
                    *this));
     menu_changed_ = (*menu_).open_changed().subscribe(
         *this, Delegate<bool>::bind<QuickAccessToolbar, &QuickAccessToolbar::on_menu_open_changed>(*this));
-    placement_command_ = std::make_shared<Command>(prefix + ".customize.placement",
+    placement_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".customize.placement",
                                                    placement_row_text(placement.read()));
     rebuild_menu();
 }
@@ -102,7 +103,7 @@ void QuickAccessToolbar::set_commands(std::vector<QuickAccessToolbarCommand> com
     row_commands_.reserve(commands_.size());
     for (const QuickAccessToolbarCommand& declared : commands_) {
         const std::string& id = (*declared.command).stable_id();
-        std::shared_ptr<Command> row = std::make_shared<Command>(customize_row_id(id), (*declared.command).state().text);
+        std::shared_ptr<Command> row = gui_forms::detail::make_library_shared<Command>(customize_row_id(id), (*declared.command).state().text);
         row_commands_.push_back(std::move(row));
     }
     rebuild_items();
@@ -242,10 +243,10 @@ QuickAccessToolbar::CustomizeGeometry QuickAccessToolbar::customize_geometry() c
 }
 
 bool QuickAccessToolbar::customize_at(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect button = customize_geometry().button;
     const bool result = !button.empty() &&
-        button.contains(Point{window_point.x - absolute.x, window_point.y - absolute.y});
+        button.contains(frame_to_inner(local_frame, window_point));
     return result;
 }
 
@@ -260,8 +261,8 @@ bool QuickAccessToolbar::show_customize_menu(MenuOpenMode mode) {
     close_drop_down();
     rebuild_menu();
     (*menu_).set_items(menu_items_);
-    const Rect absolute = absolute_bounds();
-    const Point anchor{absolute.x + button.x, absolute.y + button.y + button.height};
+    const ScaleFrame local_frame = window_frame();
+    const Point anchor = frame_to_outer(local_frame, Point{button.x, button.y + button.height});
     (*menu_).show(shared_from_this(), anchor, mode);
     // A menu with nothing visible stays closed (A-gf-controls-06-F3).
     if (!(*menu_).is_open()) return false;
@@ -282,6 +283,9 @@ bool QuickAccessToolbar::customize_menu_open() const noexcept {
 void QuickAccessToolbar::on_menu_open_changed(bool open) {
     if (open) return;
     customize_open_ = false;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -399,14 +403,14 @@ std::vector<SemanticNode> QuickAccessToolbar::semantic_virtual_children() const 
     std::vector<SemanticNode> nodes = ToolStrip::semantic_virtual_children();
     const Rect button = customize_geometry().button;
     if (button.empty()) return nodes;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     SemanticNode node{};
     node.stable_id = std::string(stable_id().value()) + ".customize";
     node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
     node.name = "Customize Quick Access Toolbar";
     node.role = SemanticRole::menu_button;
     node.has_popup = true;
-    node.bounds = {absolute.x + button.x, absolute.y + button.y, button.width, button.height};
+    node.bounds = frame_to_outer(local_frame, button);
     node.states = SemanticState::visible | SemanticState::enabled | SemanticState::focusable;
     if (customize_open_) node.states |= SemanticState::expanded;
     node.actions = {SemanticAction::press, SemanticAction::expand, SemanticAction::collapse};

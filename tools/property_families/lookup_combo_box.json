@@ -105,14 +105,16 @@
         "registry": false
       },
       "prepare": [
-        "if (incoming == 0U || incoming > 64U) throw std::invalid_argument(\"LookupComboBox drop-down rows must be from 1 to 64\");"
+        "if (!ic::admits_max_drop_down_rows(incoming)) throw std::invalid_argument(\"LookupComboBox drop-down rows must be from 1 to 64\");"
       ],
       "sample": "std::uint32_t{5U}"
     }
   ],
   "test": {
     "type": "LookupComboBox",
-    "configure": ["(*control).set_rows({LookupRow{\"codemod.key\", {\"Codemod\"}}});"],
+    "configure": [
+      "(*control).set_rows({LookupRow{\"codemod.key\", {\"Codemod\"}}});"
+    ],
     "include": "gui_forms/controls/lookup_combo_box.hpp"
   }
 }

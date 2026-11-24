@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ContextMenu",
+  "declaration": "include/gui_forms/components/context_menu/context_menu.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.contextmenu.preferred_width_write",
+      "mode": "legal",
+      "call": "preferred_width",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::ContextMenu"
+        },
+        {
+          "name": "incoming",
+          "type": "double",
+          "bounded_by": [
+            "finite(incoming) and incoming >= 120 and incoming <= 1024"
+          ]
+        }
+      ],
+      "requires": [
+        "finite(incoming) and incoming >= 120 and incoming <= 1024"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.contextmenu.preferred_width_write.misuse.preferred_width",
+      "mode": "misuse",
+      "call": "preferred_width",
+      "violates": "finite(incoming) and incoming >= 120 and incoming <= 1024",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

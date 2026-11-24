@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gf_abi::application",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_application.ic.toml",
+    "sha256": "bdaaba9af1b1a9cc475be75093333fb91ebeff08b5fdcaf89bcfd41530714b46"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.application.close.requires.close_windows_alive",
+      "kind": "entry-check",
+      "statement": "close runs only when not_null(windows_alive); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_application::admits_close_windows_alive, called in src/abi/stable/tables/abi_application.cpp"
+    },
+    {
+      "id": "gf_abi.application.close.refusal.close_windows_alive",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(windows_alive), close changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.application.state.requires.state_state",
+      "kind": "entry-check",
+      "statement": "state runs only when not_null(state); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_application::admits_state_state, called in src/abi/stable/tables/abi_application.cpp"
+    },
+    {
+      "id": "gf_abi.application.state.refusal.state_state",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(state), state changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

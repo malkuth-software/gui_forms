@@ -136,6 +136,8 @@ struct GUI_FORMS_API ToolStripDropDownInvocation final {
 // move to an overflow menu opened from the overflow button at the strip's
 // end. A strip is laid out horizontally, or vertically (top to bottom) for
 // the left and right panels of a ToolStripContainer.
+// ic: gui_forms::ToolStrip: generated from include/gui_forms/controls/tool_strip.ic.toml by tools/ic_declarations.py;
+// ic: edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ToolStrip : public Control, public ToolStripCapabilities<ToolStrip> {
 public:
     explicit ToolStrip(StableId stable_id);
@@ -160,6 +162,11 @@ public:
     // std::out_of_range for an unknown ID and std::invalid_argument for
     // invalid UTF-8.
     void set_item_text(std::string_view item_id, std::string text);
+    // Replaces a hosted item's width in logical units (0 for the default),
+    // which the strip scales by the text scale as it does the width the
+    // item was given. Throws std::out_of_range for an unknown ID and
+    // std::invalid_argument for a width that set_items would refuse.
+    void set_item_width(std::string_view item_id, double width);
     // The checked state the strip shows for an item: its command's when it
     // has one. Throws std::out_of_range for an unknown ID.
     [[nodiscard]] bool item_checked(std::string_view item_id) const;
@@ -392,6 +399,7 @@ private:
     void written(const decltype(orientation)& cell);
     void prepare_write(const decltype(sizing_grip_visible)& cell, bool& incoming);
     void written(const decltype(sizing_grip_visible)& cell);
+    // ic: Requires finite(incoming) and incoming >= 0 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(end_reserve)& cell, double& incoming);
     void written(const decltype(end_reserve)& cell);
     // property_codemod end ToolStrip

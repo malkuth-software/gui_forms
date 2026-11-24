@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.24)
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
-    project(stx_fontpack VERSION 0.1.0 LANGUAGES CXX)
+    project(stx_fontpack VERSION 1.0.0 LANGUAGES CXX)
     set(CMAKE_CXX_STANDARD 20)
     set(CMAKE_CXX_STANDARD_REQUIRED ON)
     set(CMAKE_CXX_EXTENSIONS OFF)
@@ -25,7 +25,7 @@ set(STX_FONTPACK_TEST_FONT_DIR "" CACHE PATH "Fonts the stx_fontpack tests also 
 # already has the sibling target it is used as is; a standalone build finds
 # an installed stx_zlib.
 if(NOT TARGET stx_zlib::stx_zlib)
-    find_package(stx_zlib 0.1 CONFIG REQUIRED)
+    find_package(stx_zlib 1.0 CONFIG REQUIRED)
 endif()
 
 set(_stx_fontpack_warnings "")
@@ -110,7 +110,7 @@ if(STX_FONTPACK_INSTALL)
         ${CMAKE_CURRENT_BINARY_DIR}/stx_fontpackConfig.cmake
         INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/stx_fontpack)
     write_basic_package_version_file(${CMAKE_CURRENT_BINARY_DIR}/stx_fontpackConfigVersion.cmake
-        VERSION 0.1.0 COMPATIBILITY SameMajorVersion)
+        VERSION 1.0.0 COMPATIBILITY SameMajorVersion)
     install(FILES ${CMAKE_CURRENT_BINARY_DIR}/stx_fontpackConfig.cmake
         ${CMAKE_CURRENT_BINARY_DIR}/stx_fontpackConfigVersion.cmake
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/stx_fontpack)

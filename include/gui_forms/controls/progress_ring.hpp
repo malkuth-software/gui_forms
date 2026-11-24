@@ -45,6 +45,8 @@ namespace gui_forms {
 // dots); indeterminate, an arc of run_count / dot_count of the turn turns
 // with the same steps and clock as the dots. Every built-in theme draws
 // dots, so the default look is unchanged.
+// ic: gui_forms::ProgressRing: generated from include/gui_forms/controls/progress_ring.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API ProgressRing final : public Control, public ProgressRingCapabilities<ProgressRing> {
 public:
     explicit ProgressRing(StableId stable_id);
@@ -128,8 +130,10 @@ private:
     friend struct ProgressRingIndeterminateCapability<ProgressRing>;
     friend struct ProgressRingStyleCapability<ProgressRing>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming), else failure invalid_argument, unchanged.
     void prepare_write(const decltype(value)& cell, double& incoming);
     void written(const decltype(value)& cell);
+    // ic: Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(maximum)& cell, double& incoming);
     void written(const decltype(maximum)& cell);
     void prepare_write(const decltype(indeterminate)& cell, bool& incoming);

@@ -5,14 +5,15 @@
 // allocator type; every allocation and release of the container's storage is
 // then counted under that subsystem.
 //
-// Memory: allocate calls the global operator new and deallocate the matching
-// global operator delete, with the same byte count and, for over-aligned
-// values, the same alignment, so the memory never leaves the library's own
-// new/delete pair. Stateless: every instance of one specialization is
-// interchangeable (is_always_equal), so containers move storage between them
-// freely. Usable for an incomplete value type (allocator completeness), as
-// nothing here depends on the value type before allocate is instantiated.
+// Memory: the library seam (allocation/library_memory), so the counted
+// paths' storage is STXlib's allocator's in every process GUI.Forms runs
+// in, whatever the program's operator new is, and deallocate releases it
+// there. Stateless: every instance of one specialization is interchangeable
+// (is_always_equal), so containers move storage between them freely. Usable
+// for an incomplete value type (allocator completeness), as nothing here
+// depends on the value type before allocate is instantiated.
 
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/allocation/statistics/allocation_statistics.hpp"
 
 #include <cstddef>
@@ -45,36 +46,24 @@ public:
     CountedAllocator(const CountedAllocator<Other, Subsystem>&) noexcept {}
 
     // Storage for `count` values, uninitialized. std::bad_array_new_length
-    // when count * sizeof(Value) overflows; std::bad_alloc from operator new.
-    // Counts nothing when it throws.
+    // when count * sizeof(Value) overflows; std::bad_alloc when the library
+    // seam refuses the block. Counts nothing when it throws.
     [[nodiscard]] Value* allocate(std::size_t count) {
         if (count > std::numeric_limits<std::size_t>::max() / sizeof(Value)) {
             throw std::bad_array_new_length();
         }
         const std::size_t bytes = count * sizeof(Value);
-        void* memory = nullptr;
-        if constexpr (alignof(Value) > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-            memory = ::operator new(bytes, std::align_val_t(alignof(Value)));
-        } else {
-            memory = ::operator new(bytes);
-        }
+        void* const memory = library_allocate_or_throw(bytes, alignof(Value));
         count_allocation(Subsystem, bytes);
         Value* const values = static_cast<Value*>(memory);
         return values;
     }
 
-    // Releases storage allocate(count) returned, through the delete that
-    // matches its new: the aligned form for an over-aligned Value, the plain
-    // one otherwise. The unsized forms are used because a library built
-    // without sized deallocation (MinGW clang64's libc++) does not declare
-    // the sized ones; the byte count is still what the release counts.
+    // Releases storage allocate(count) returned. The byte count is what the
+    // release counts.
     void deallocate(Value* values, std::size_t count) noexcept {
         const std::size_t bytes = count * sizeof(Value);
-        if constexpr (alignof(Value) > __STDCPP_DEFAULT_NEW_ALIGNMENT__) {
-            ::operator delete(static_cast<void*>(values), std::align_val_t(alignof(Value)));
-        } else {
-            ::operator delete(static_cast<void*>(values));
-        }
+        library_release(static_cast<void*>(values));
         count_release(Subsystem, bytes);
     }
 };

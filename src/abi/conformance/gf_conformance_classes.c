@@ -1055,8 +1055,21 @@ static void class_direct_29(gf_kit* kit) {
                      GF_STATUS_OK);
 }
 
-/* NodeCanvas NodeCanvas::on_edit_ended: a direct base. */
+/* ButtonBase Control::on_gesture: a direct base. */
 static void class_direct_30(gf_kit* kit) {
+    gf_button_base_class table;
+    memset(&table, 0, sizeof(table));
+    table.header.struct_size = (uint32_t)sizeof(gf_class_header);
+    table.header.abi_minor = GF_ABI_MINOR;
+    table.header.class_id = GF_CLASS_BUTTON_BASE;
+    table.header.segment_count = 1u;
+    table.header.release = &class_release;
+    class_run_direct(kit, &table.header, "ButtonBase Control::on_gesture", GF_CLASS_CONTROL, 43u, "gesture", "gesture",
+                     GF_STATUS_OK);
+}
+
+/* NodeCanvas NodeCanvas::on_edit_ended: a direct base. */
+static void class_direct_31(gf_kit* kit) {
     gf_node_canvas_class table;
     memset(&table, 0, sizeof(table));
     table.header.struct_size = (uint32_t)sizeof(gf_class_header);
@@ -1069,7 +1082,7 @@ static void class_direct_30(gf_kit* kit) {
 }
 
 /* NodeCanvas NodeCanvas::on_graph_edited: a direct base. */
-static void class_direct_31(gf_kit* kit) {
+static void class_direct_32(gf_kit* kit) {
     gf_node_canvas_class table;
     memset(&table, 0, sizeof(table));
     table.header.struct_size = (uint32_t)sizeof(gf_class_header);
@@ -1082,7 +1095,7 @@ static void class_direct_31(gf_kit* kit) {
 }
 
 /* NodeCanvas NodeCanvas::on_link_connected: a direct base. */
-static void class_direct_32(gf_kit* kit) {
+static void class_direct_33(gf_kit* kit) {
     gf_node_canvas_class table;
     memset(&table, 0, sizeof(table));
     table.header.struct_size = (uint32_t)sizeof(gf_class_header);
@@ -1095,7 +1108,7 @@ static void class_direct_32(gf_kit* kit) {
 }
 
 /* NodeCanvas NodeCanvas::on_palette_requested: a direct base. */
-static void class_direct_33(gf_kit* kit) {
+static void class_direct_34(gf_kit* kit) {
     gf_node_canvas_class table;
     memset(&table, 0, sizeof(table));
     table.header.struct_size = (uint32_t)sizeof(gf_class_header);
@@ -1108,7 +1121,7 @@ static void class_direct_33(gf_kit* kit) {
 }
 
 /* NodeCanvas NodeCanvas::on_selection_changed: a direct base. */
-static void class_direct_34(gf_kit* kit) {
+static void class_direct_35(gf_kit* kit) {
     gf_node_canvas_class table;
     memset(&table, 0, sizeof(table));
     table.header.struct_size = (uint32_t)sizeof(gf_class_header);
@@ -1121,7 +1134,7 @@ static void class_direct_34(gf_kit* kit) {
 }
 
 /* NodeCanvas NodeCanvas::on_view_changed: a direct base. */
-static void class_direct_35(gf_kit* kit) {
+static void class_direct_36(gf_kit* kit) {
     gf_node_canvas_class table;
     memset(&table, 0, sizeof(table));
     table.header.struct_size = (uint32_t)sizeof(gf_class_header);
@@ -1274,5 +1287,6 @@ void gf_kit_classes(gf_kit* kit) {
     class_direct_33(kit);
     class_direct_34(kit);
     class_direct_35(kit);
+    class_direct_36(kit);
     class_refusals(kit);
 }

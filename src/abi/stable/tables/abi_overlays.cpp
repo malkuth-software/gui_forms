@@ -4,12 +4,14 @@
 #include "abi_control_entry.hpp"
 #include "abi_tables.hpp"
 #include "../windows/abi_window_handle.hpp"
+#include "../ic/abi_overlays_ic_checks.hpp"
 
 #include "gui_forms/application.hpp"
 
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/anchored_overlay_layer.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <chrono>
 #include <cmath>
@@ -114,7 +116,7 @@ gf_status overlays_open_overlay_body(gf_object owner, gf_object overlay) {
     }
     // Window::open_overlay refuses an overlay with a parent and an owner that
     // cannot own one (std::logic_error: GF_STATUS_INVALID_STATE).
-    const std::shared_ptr<OpenOverlay> entry = std::make_shared<OpenOverlay>();
+    const std::shared_ptr<OpenOverlay> entry = gui_forms::detail::make_library_shared<OpenOverlay>();
     (*entry).token = (*window).open_overlay(owner_control, overlay_control);
     if (Event<>* closed = (*entry).token.closed_event()) {
         (*entry).closed = (*closed).subscribe(OverlayClosedByWindow{overlay, entry});
@@ -411,7 +413,7 @@ gf_status open_anchored_overlay(gf_object anchor, gf_object content, const gf_an
     placement.gap = (*options).gap;
     placement.allow_vertical_flip = (flags & GF_ANCHORED_OVERLAY_NO_FLIP) == 0U;
 
-    const std::shared_ptr<AnchoredSession> session = std::make_shared<AnchoredSession>();
+    const std::shared_ptr<AnchoredSession> session = gui_forms::detail::make_library_shared<AnchoredSession>();
     AnchoredSession& held = *session;
     held.content = content;
     held.content_control = content_control;
@@ -560,7 +562,7 @@ gf_status GF_CALL overlays_set_tool_tips_shown(gf_object window, gf_tool_tips_se
 
 gf_status overlays_tool_tips_shown_body(gf_object window, std::uint32_t* shown,
                                         gf_tool_tips_setting* setting) {
-    if (shown == nullptr) {
+    if (!ic_overlays::admits_tool_tips_shown_shown(shown)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, tool_tips_shown_slot, "tool_tips_shown needs an output");
     }
     const gf_status entered = registry().enter_ui(tool_tips_shown_slot, false);

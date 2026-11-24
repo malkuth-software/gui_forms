@@ -20,16 +20,15 @@
 #include <stxlib/error.hpp>
 #include <stxlib/gate.hpp>
 #include <stxlib/result.hpp>
+#include <stxlib/threads.hpp>
 
 #include <cstddef>
 #include <cstdint>
 #include <deque>
 #include <functional>
 #include <memory>
-#include <mutex>
 #include <span>
 #include <string>
-#include <thread>
 #include <unordered_map>
 #include <vector>
 
@@ -201,6 +200,10 @@ public:
     // Whether the library holds an object or a run: an application is made
     // only before either (application.create).
     [[nodiscard]] bool holds_objects() noexcept;
+    // No object, subscription, posted or deferred call, or running window:
+    // nothing the registry holds would call back (the module's end deletes
+    // an idle registry, abi_registry.cpp).
+    [[nodiscard]] bool idle_at_module_end() noexcept;
 
     // The control behind a live identity (GF_STATUS_INVALID_ARGUMENT for
     // zero, GF_STATUS_STALE_HANDLE for an ended one or one whose sub-surface
@@ -304,7 +307,7 @@ private:
         SubSurfaceDomain& operator=(SubSurfaceDomain&&) = default;
 
         bool occupied = false;
-        std::thread::id thread{};
+        stxlib::ThreadIdentity thread{};
         // Objects of the domain released last off its thread.
         std::vector<Component::Ptr> deferred;
         std::deque<PostedCall> posted;
@@ -354,9 +357,9 @@ private:
     // the lock.
     void complete_deferred();
 
-    std::mutex mutex_;
+    stxlib::Mutex mutex_;
     // The UI thread, or a default id while unbound.
-    std::thread::id ui_thread_{};
+    stxlib::ThreadIdentity ui_thread_{};
     std::vector<ObjectSlot> objects_;
     std::vector<std::uint32_t> free_objects_;
     std::unordered_map<const Component*, std::uint32_t> object_index_;
@@ -383,8 +386,9 @@ private:
     std::function<void()> run_wake_{};
 };
 
-// The library's one registry. It is created on first use and never
-// destroyed, so no callback is released by a static destructor at exit.
+// The library's one registry. It is created on first use; the module's end
+// (unload or process end) deletes it only when it is idle, so no callback is
+// released by a static destructor at exit.
 [[nodiscard]] HandleRegistry& registry() noexcept;
 
 // The exception policy of every slot gate (abi_registry.cpp), STXlib's

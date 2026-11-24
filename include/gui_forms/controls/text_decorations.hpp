@@ -223,7 +223,7 @@ private:
 
     std::vector<Layer> layers_{};
     // Stamps items(); empty in the ordinary build.
-    [[no_unique_address]] detail::BorrowLender items_lender_{};
+    GUI_FORMS_NO_UNIQUE_ADDRESS detail::BorrowLender items_lender_{};
     std::size_t font_decorations_{};
     std::uint64_t layout_revision_{};
     // compose's scratch: the overlapping decorations (borrowed from

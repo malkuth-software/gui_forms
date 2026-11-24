@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::Ribbon",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/ribbon.ic.toml",
+    "sha256": "89180e7af607cea1e206090a4e29ad6a9437bbf17e649525743bf6a164f11371"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.ribbon.document_minimum_height_write.requires.document_minimum_height",
+      "kind": "entry-check",
+      "statement": "document_minimum_height runs only when finite(incoming) and incoming >= 0; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::ribbon::admits_document_minimum_height, called in src/controls/ribbon/ribbon.cpp"
+    },
+    {
+      "id": "gui_forms.ribbon.document_minimum_height_write.refusal.document_minimum_height",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 0, document_minimum_height changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

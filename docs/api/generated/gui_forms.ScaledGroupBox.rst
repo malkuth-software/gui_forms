@@ -38,16 +38,16 @@ gui_forms::ScaledGroupBox
          The caption, with ``&`` marking the mnemonic as in :cpp:class:`GroupBox <gui_forms::GroupBox>`.
 
       **initial_design_size** : ``Size``, default ``{1.0, 1.0}``
-         The width and height of the design space. Both must be finite and
-         positive, or the constructor throws ``std::invalid_argument``. The default
-         unit square lets you give design bounds as fractions of the box.
+         The width and height of the design space, written to the box's
+         ``design_size`` (a :cpp:class:`Control <gui_forms::Control>` property; while it is zero the box maps from
+         the unit square). Both must be finite and positive, or the constructor
+         throws ``std::invalid_argument``. The default unit square lets you give
+         design bounds as fractions of the box.
 
    :Properties:
 
-      **design_size** : ``Size``
-         The size of the design space that child slots are given in. Setting it
-         relays out every child; a size that is not finite and positive throws
-         ``std::invalid_argument``.
+      **aspect** : ``ScaledAspect``
+         How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
 
    :Inherited:
 
@@ -125,11 +125,9 @@ gui_forms::ScaledGroupBox
 
    .. rubric:: Properties
 
-   .. cpp:member:: Size design_size
+   .. cpp:member:: ScaledAspect aspect
 
-      The size of the design space that child slots are given in. Setting it
-      relays out every child; a size that is not finite and positive throws
-      ``std::invalid_argument``.
+      How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
 
 
    .. rubric:: Methods
@@ -163,6 +161,14 @@ gui_forms::ScaledGroupBox
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
+   .. cpp:function:: stxlib::Optional<double> applied_viewport_scale() const noexcept override
+
+      Its children are mapped from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). :cpp:member:`aspect <gui_forms::ScaledGroupBox::aspect>` chooses a stretch per axis (the default) or a uniform scale that keeps the design's proportions, aligned by viewport_fit's alignment. Reports the smaller axis ratio; none while design_size is zero or it has no extent.
+
+   .. cpp:function:: bool scales_design_space() const noexcept override
+
+      True: the stretch above is this control's own mapping (decision 10).
+
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
    .. cpp:member:: constexpr std::size_t scaled_group_box_property_count
@@ -184,7 +190,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
      - Status
    * - property
      - GUI.Forms-only
-     - ``design_size``
+     - ``aspect``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

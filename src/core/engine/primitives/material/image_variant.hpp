@@ -6,7 +6,7 @@
 
 #include <memory>
 
-// An image face's sized variant (owner, 2026-10-22): stx_conv generates
+// An image face's sized variant (owner, 2026-10-22): CONV generates
 // face sizes from the reference image as a preparation step, never inside a
 // bake. The engine makes each variant once, here, keeps it in its shared
 // cache (EnginePartTable), and lends it to the bakes that composite it.
@@ -15,9 +15,10 @@
 // premultiplied colour in [0, 1], each axis on its own (the face study's
 // choice, tools/resampler_face_study):
 //
-//   - shrinking an axis: pixel-area, each variant pixel integrating the
-//     source it covers, so nothing aliases;
-//   - enlarging an axis: the CONV interpolant evaluated at each variant
+//   - shrinking an axis: pixel-area (stxlib::conv's canon, through the
+//     interpolation seam), each variant pixel the source line's average
+//     over its footprint, so nothing aliases;
+//   - enlarging an axis: the CONV line field evaluated at each variant
 //     pixel's centre, mapped to source position (o + 0.5) × s / t − 0.5 and
 //     clamped to the first and last source pixel;
 //   - an axis of unchanged length is copied.

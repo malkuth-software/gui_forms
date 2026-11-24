@@ -1,48 +1,59 @@
 #include "theme_files.hpp"
 
+#include "../../platform/library_files.hpp"
 #include "../../platform/stxlib_bridge.hpp"
 
 #include <stxlib/desktop.hpp>
 #include <stxlib/environment.hpp>
+#include <stxlib/error.hpp>
+#include <stxlib/files.hpp>
 #include <stxlib/path.hpp>
 #include <stxlib/process.hpp>
 #include <stxlib/result.hpp>
 #include <stxlib/text.hpp>
 #include <stxlib/text_view.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
-#include <cstdio>
+#include <cstddef>
+#include <cstdint>
 #include <cstdlib>
 #include <filesystem>
-#include <fstream>
-#include <ios>
+#include <optional>
 #include <string>
-#include <system_error>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::detail::theme_files {
 namespace {
 
-// UTF-8 text as a path, and back: through char8_t, so that a Windows
-// path is not read in the process's code page.
+// UTF-8 text as a path: through char8_t, so that a Windows path is not
+// read in the process's code page. A listed entry's relative path is its
+// names' Path text joined by '/' (list_folder), as the generic form was.
 std::filesystem::path path_of(std::string_view text) {
     const std::u8string units(reinterpret_cast<const char8_t*>(text.data()), text.size());
     std::filesystem::path made(units);
     return made;
 }
 
-std::string text_of(const std::filesystem::path& path) {
-    const std::u8string units = path.generic_u8string();
-    std::string made(reinterpret_cast<const char*>(units.data()), units.size());
-    return made;
+// A listed entry's kind: a link, to anything, is `other` and never entered.
+EntryKind kind_of(const stxlib::FileKind kind) noexcept {
+    switch (kind) {
+    case stxlib::FileKind::regular: return EntryKind::file;
+    case stxlib::FileKind::directory: return EntryKind::folder;
+    case stxlib::FileKind::symbolic_link: return EntryKind::other;
+    case stxlib::FileKind::other: return EntryKind::other;
+    default: return EntryKind::other;
+    }
 }
 
-EntryKind kind_of(const std::filesystem::file_status status) noexcept {
-    if (std::filesystem::is_symlink(status)) return EntryKind::other;
-    if (std::filesystem::is_regular_file(status)) return EntryKind::file;
-    if (std::filesystem::is_directory(status)) return EntryKind::folder;
-    return EntryKind::other;
-}
+// A folder still to be listed: its path and its path relative to the root
+// ('/' separating, empty for the root itself).
+struct PendingFolder final {
+    stxlib::Path path;
+    std::string relative;
+};
 
 struct EntryPathOrder final {
     bool operator()(const FolderEntry& left, const FolderEntry& right) const noexcept {
@@ -77,33 +88,60 @@ FileOutcome list_folder(std::string_view folder, bool recursive, std::size_t max
                         std::vector<FolderEntry>& entries) {
     entries.clear();
     const std::filesystem::path root = path_of(folder);
-    std::error_code error{};
-    const std::filesystem::file_status status = std::filesystem::symlink_status(root, error);
-    if (error || !std::filesystem::is_directory(status)) return FileOutcome::missing;
-    // One iterator form for both, so that a link to a folder is listed as
-    // `other` and never entered.
-    std::filesystem::recursive_directory_iterator walk(root, std::filesystem::directory_options::none, error);
-    if (error) return FileOutcome::failed;
-    const std::filesystem::recursive_directory_iterator end{};
-    while (walk != end) {
-        const std::filesystem::directory_entry& entry = *walk;
-        const std::filesystem::file_status entry_status = entry.symlink_status(error);
-        if (error) return FileOutcome::failed;
-        if (entries.size() == maximum_entries) {
-            entries.clear();
-            return FileOutcome::over_limit;
+    // The root itself, not what a link names: a link to a folder is not
+    // listed.
+    const std::optional<stxlib::FileInformation> root_information =
+        platform::file_information(root, stxlib::LinkMode::no_follow);
+    if (!root_information.has_value() || (*root_information).kind != stxlib::FileKind::directory) {
+        return FileOutcome::missing;
+    }
+    stxlib::OperationResult<stxlib::Path> root_path = platform::stxlib_path(root);
+    if (root_path.failed()) return FileOutcome::failed;
+    // One folder at a time (STXlib lists one level); the order does not
+    // matter, since the entries are sorted at the end.
+    std::vector<PendingFolder> pending;
+    pending.push_back(PendingFolder{.path = static_cast<stxlib::OperationResult<stxlib::Path>&&>(root_path).take_value(),
+                                    .relative = std::string{}});
+    while (!pending.empty()) {
+        PendingFolder current = std::move(pending.back());
+        pending.pop_back();
+        // More entries than are left is over the limit; STXlib refuses the
+        // listing before holding them.
+        const std::size_t room = maximum_entries - entries.size();
+        const stxlib::OperationResult<stxlib::DirectoryListing> listed =
+            stxlib::list_directory(current.path, static_cast<stxlib::usize>(room));
+        if (listed.failed()) {
+            if ((*listed.error()).kind() == stxlib::ErrorKind::limit_exceeded) {
+                entries.clear();
+                return FileOutcome::over_limit;
+            }
+            return FileOutcome::failed;
         }
-        FolderEntry listed{};
-        listed.path = text_of(entry.path().lexically_relative(root));
-        listed.kind = kind_of(entry_status);
-        if (listed.kind == EntryKind::file) {
-            listed.bytes = static_cast<std::uint64_t>(entry.file_size(error));
-            if (error) return FileOutcome::failed;
+        const stxlib::DirectoryListing& listing = *listed.value();
+        for (stxlib::usize index = 0; index < listing.count(); ++index) {
+            const stxlib::PathText name = listing.name(index);
+            const stxlib::OperationResult<stxlib::Path> name_path = stxlib::Path::parse_wtf8(name.data(), name.count());
+            if (name_path.failed()) return FileOutcome::failed;
+            stxlib::OperationResult<stxlib::Path> entry_path = current.path.join(*name_path.value());
+            if (entry_path.failed()) return FileOutcome::failed;
+            FolderEntry entry{};
+            entry.path = current.relative;
+            if (!entry.path.empty()) entry.path.push_back('/');
+            entry.path.append(name.data(), static_cast<std::size_t>(name.count()));
+            entry.kind = kind_of(listing.kind(index));
+            if (entry.kind == EntryKind::file) {
+                const stxlib::OperationResult<stxlib::FileInformation> information =
+                    stxlib::inspect(*entry_path.value(), stxlib::LinkMode::no_follow);
+                if (information.failed()) return FileOutcome::failed;
+                entry.bytes = static_cast<std::uint64_t>((*information.value()).size);
+            }
+            if (recursive && entry.kind == EntryKind::folder) {
+                pending.push_back(PendingFolder{
+                    .path = static_cast<stxlib::OperationResult<stxlib::Path>&&>(entry_path).take_value(),
+                    .relative = entry.path});
+            }
+            entries.push_back(std::move(entry));
         }
-        entries.push_back(std::move(listed));
-        if (!recursive || entries.back().kind != EntryKind::folder) walk.disable_recursion_pending();
-        walk.increment(error);
-        if (error) return FileOutcome::failed;
     }
     std::sort(entries.begin(), entries.end(), EntryPathOrder{});
     return FileOutcome::done;
@@ -112,19 +150,19 @@ FileOutcome list_folder(std::string_view folder, bool recursive, std::size_t max
 FileOutcome read_file(std::string_view path, std::size_t maximum_bytes, std::string& bytes) {
     bytes.clear();
     const std::filesystem::path file = path_of(path);
-    std::error_code error{};
-    const std::filesystem::file_status status = std::filesystem::symlink_status(file, error);
-    if (error || !std::filesystem::is_regular_file(status)) return FileOutcome::missing;
-    const std::uintmax_t size = std::filesystem::file_size(file, error);
-    if (error) return FileOutcome::failed;
+    // The name itself, not what a link names.
+    const std::optional<stxlib::FileInformation> information =
+        platform::file_information(file, stxlib::LinkMode::no_follow);
+    if (!information.has_value() || (*information).kind != stxlib::FileKind::regular) return FileOutcome::missing;
+    const std::uint64_t size = (*information).size;
     if (size > maximum_bytes) return FileOutcome::over_limit;
-    std::ifstream stream(file, std::ios::binary);
-    if (!stream) return FileOutcome::failed;
+    stxlib::OperationResult<stxlib::File> opened = platform::open_file(file, stxlib::FileMode::read);
+    if (opened.failed()) return FileOutcome::failed;
+    stxlib::File& stream = *opened.value();
     bytes.resize(static_cast<std::size_t>(size));
-    stream.read(bytes.data(), static_cast<std::streamsize>(bytes.size()));
     // A file that changed size while read is refused rather than cut.
-    const bool all_read = static_cast<std::size_t>(stream.gcount()) == bytes.size();
-    const bool whole = all_read && stream.peek() == std::char_traits<char>::eof();
+    const bool all_read = platform::read_exactly_at(stream, 0, bytes.data(), bytes.size());
+    const bool whole = all_read && platform::ends_at(stream, size);
     if (!whole) {
         bytes.clear();
         return FileOutcome::failed;
@@ -137,12 +175,14 @@ FileOutcome read_named_file(std::string_view path, std::size_t maximum_bytes, st
     constexpr std::size_t block_bytes = std::size_t{64} * 1024U;
     bytes.clear();
     const std::filesystem::path file = path_of(path);
-    std::error_code error{};
-    const std::filesystem::file_status status = std::filesystem::status(file, error);
-    if (error || !std::filesystem::exists(status)) return FileOutcome::missing;
-    if (!std::filesystem::is_regular_file(status)) return FileOutcome::failed;
-    std::ifstream stream(file, std::ios::binary);
-    if (!stream) return FileOutcome::failed;
+    // Through links: a link to a regular file is read.
+    const std::optional<stxlib::FileInformation> information =
+        platform::file_information(file, stxlib::LinkMode::follow);
+    if (!information.has_value()) return FileOutcome::missing;
+    if ((*information).kind != stxlib::FileKind::regular) return FileOutcome::failed;
+    stxlib::OperationResult<stxlib::File> opened = platform::open_file(file, stxlib::FileMode::read);
+    if (opened.failed()) return FileOutcome::failed;
+    stxlib::File& stream = *opened.value();
     while (true) {
         const std::size_t held = bytes.size();
         if (held > maximum_bytes) {
@@ -150,14 +190,22 @@ FileOutcome read_named_file(std::string_view path, std::size_t maximum_bytes, st
             return FileOutcome::over_limit;
         }
         bytes.resize(held + block_bytes);
-        stream.read(bytes.data() + held, static_cast<std::streamsize>(block_bytes));
-        const std::size_t read = static_cast<std::size_t>(stream.gcount());
+        // One block, as many reads as the host needs, ending early only at
+        // the end of the file.
+        std::size_t read = 0;
+        while (read < block_bytes) {
+            const stxlib::MutableView<stxlib::Byte> rest(reinterpret_cast<stxlib::Byte*>(bytes.data() + held + read),
+                                                         static_cast<stxlib::usize>(block_bytes - read));
+            const stxlib::OperationResult<stxlib::usize> got = stream.read(rest);
+            if (got.failed()) {
+                bytes.clear();
+                return FileOutcome::failed;
+            }
+            if (*got.value() == 0U) break;
+            read += static_cast<std::size_t>(*got.value());
+        }
         bytes.resize(held + read);
         if (read < block_bytes) break;
-    }
-    if (stream.bad()) {
-        bytes.clear();
-        return FileOutcome::failed;
     }
     if (bytes.size() > maximum_bytes) {
         bytes.clear();
@@ -168,25 +216,20 @@ FileOutcome read_named_file(std::string_view path, std::size_t maximum_bytes, st
 
 FileOutcome write_new_file(std::string_view path, std::string_view bytes) {
     const std::filesystem::path file = path_of(path);
-    std::error_code error{};
-    std::filesystem::create_directories(file.parent_path(), error);
-    if (error) return FileOutcome::failed;
-#if defined(_WIN32)
-    // Checked, then created: another writer between the two could still
-    // be overwritten (an exclusive open replaces this with STXlib).
-    if (std::filesystem::exists(std::filesystem::symlink_status(file, error))) return FileOutcome::exists;
-    std::FILE* const stream = _wfopen(file.c_str(), L"wb");
-#else
-    // "x": created only where no file is, atomically.
-    std::FILE* const stream = std::fopen(file.c_str(), "wbx");
-    if (stream == nullptr && std::filesystem::exists(std::filesystem::symlink_status(file, error))) {
-        return FileOutcome::exists;
+    if (!platform::create_directories(file.parent_path())) return FileOutcome::failed;
+    // Created only where nothing has the name, atomically, on every host
+    // (FileMode::create_new: O_EXCL; CREATE_NEW).
+    stxlib::OperationResult<stxlib::File> opened = platform::open_file(file, stxlib::FileMode::create_new);
+    if (opened.failed()) {
+        const bool taken = platform::file_information(file, stxlib::LinkMode::no_follow).has_value();
+        return taken ? FileOutcome::exists : FileOutcome::failed;
     }
-#endif
-    if (stream == nullptr) return FileOutcome::failed;
-    const std::size_t written = std::fwrite(bytes.data(), 1U, bytes.size(), stream);
-    const int closed = std::fclose(stream);
-    if (written != bytes.size() || closed != 0) return FileOutcome::failed;
+    stxlib::File& stream = *opened.value();
+    const stxlib::View<stxlib::Byte> content(reinterpret_cast<const stxlib::Byte*>(bytes.data()),
+                                             static_cast<stxlib::usize>(bytes.size()));
+    const stxlib::OperationStatus written = stream.write_all(content);
+    const stxlib::OperationStatus closed = stream.close();
+    if (written.failed() || closed.failed()) return FileOutcome::failed;
     return FileOutcome::done;
 }
 

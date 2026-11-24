@@ -1,7 +1,9 @@
 #include "gui_forms/controls/task_dialog.hpp"
 #include "../frame_chrome/frame_chrome.hpp"
+#include "../dialog_presentation/provisional_child.hpp"
 
 #include "gui_forms/controls/progress_bar.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/delegate.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/resources/stock_icons/stock_icons.hpp"
@@ -13,14 +15,85 @@
 #include <array>
 #include <cmath>
 #include <limits>
+#include <new>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <stxlib/optional.hpp>
 #include <unordered_set>
 #include <utility>
 
+#include <stxlib/optional.hpp>
+#include <stxlib/result.hpp>
+#include <stxlib/unique.hpp>
+
 namespace gui_forms {
+
+// Where every part and child sits, from one pass over a width.
+struct TaskDialog::Layout final {
+    Parts parts{};
+    // Child slots, in the order of buttons_ and radios_.
+    std::vector<Rect> buttons{};
+    std::vector<Rect> radios{};
+    double height{};
+};
+
+struct TaskDialog::State final {
+    std::vector<std::shared_ptr<Button>> buttons_{};
+    std::vector<std::shared_ptr<RadioButton>> radios_{};
+    std::shared_ptr<Label> heading_{};
+    std::shared_ptr<Label> text_{};
+    std::shared_ptr<Label> expanded_text_{};
+    std::shared_ptr<Label> footnote_{};
+    std::shared_ptr<CheckBox> verification_{};
+    std::shared_ptr<Button> expander_button_{};
+    std::shared_ptr<ProgressBar> progress_{};
+    std::shared_ptr<TextBox> input_{};
+    std::vector<SubscriptionToken> child_tokens_{};
+    std::optional<TaskDialogResult> result_{};
+    Event<const std::string&> radio_button_changed_{};
+    [[nodiscard]] static stxlib::Optional<std::size_t> button_index(const TaskDialog& self,
+                                                                  std::string_view button_id) noexcept;
+    [[nodiscard]] static std::string default_button_id(const TaskDialog& self);
+    [[nodiscard]] static std::string cancel_button_id(const TaskDialog& self);
+    // Adds a word-wrapped, top-aligned Label child named <stable_id><suffix>
+    // showing `text` in `font`: the heading, text, expanded text and
+    // footnote paragraphs.
+    [[nodiscard]] static std::shared_ptr<Label> make_paragraph(TaskDialog& self, std::string_view suffix,
+                                                               const std::string& text, FontSpec font);
+    static void finish(TaskDialog& self, std::string button_id);
+};
+
+stxlib::Unique<TaskDialog::State> TaskDialog::make_state() {
+    stxlib::OperationResult<stxlib::Unique<State>> made = stxlib::Unique<State>::make();
+    if (made.failed()) throw std::bad_alloc();
+    stxlib::Unique<State> state = std::move(made).take_value();
+    return state;
+}
+
+std::shared_ptr<CheckBox> TaskDialog::verification_check_box() const noexcept {
+    return (*state_).verification_;
+}
+
+std::shared_ptr<Button> TaskDialog::expander_button() const noexcept {
+    return (*state_).expander_button_;
+}
+
+std::shared_ptr<ProgressBar> TaskDialog::progress_bar() const noexcept {
+    return (*state_).progress_;
+}
+
+std::shared_ptr<TextBox> TaskDialog::input_box() const noexcept {
+    return (*state_).input_;
+}
+
+const std::optional<TaskDialogResult>& TaskDialog::result() const noexcept {
+    return (*state_).result_;
+}
+
+Event<const std::string&>& TaskDialog::radio_button_changed() noexcept {
+    return (*state_).radio_button_changed_;
+}
+
 namespace {
 
 // Geometry in logical units at text scale 1.
@@ -33,6 +106,7 @@ constexpr double icon_size = 32.0;
 constexpr double icon_gap = 12.0;
 constexpr double paragraph_gap = 8.0;
 constexpr double progress_height = 16.0;
+constexpr double input_height = 28.0;
 constexpr double radio_height = 24.0;
 constexpr double expander_height = 28.0;
 constexpr double expander_glyph_size = 10.0;
@@ -185,10 +259,7 @@ TaskDialog::TaskDialog(StableId stable_id) : Control(std::move(stable_id)) {
 }
 
 TaskDialog::~TaskDialog() {
-    overlay_revoked_.disconnect();
-    native_closed_.disconnect();
-    native_.disconnect();
-    overlay_.disconnect();
+    presentation_.abandon();
 }
 
 // -- page ----------------------------------------------------------------------
@@ -252,6 +323,15 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog expander text must be valid UTF-8");
         }
     }
+    if (page.input.has_value()) {
+        const TaskDialogInput& input = *page.input;
+        if (!valid_text(input.text) || !valid_text(input.placeholder)) {
+            throw std::invalid_argument("TaskDialog input text must be valid UTF-8");
+        }
+        if (input.maximum_length != 0U && input.text.size() > input.maximum_length) {
+            throw std::invalid_argument("TaskDialog input text is longer than its maximum length");
+        }
+    }
     if (page.progress_bar.present()) {
         const TaskDialogProgressBar& progress = (*page.progress_bar.value());
         if (!std::isfinite(progress.minimum) || !std::isfinite(progress.maximum) ||
@@ -259,43 +339,67 @@ void TaskDialog::set_page(TaskDialogPage page) {
             throw std::invalid_argument("TaskDialog progress bounds must be finite and ordered");
         }
     }
+    // The page and its child controls change together (state hunt C21): a
+    // child the window refuses part-way (an identity another control of
+    // the window holds) brings back the page shown before, with its
+    // children, and the refusal leaves. Should that rebuild be refused too,
+    // the dialog is left with an empty page and no children, which agree.
+    TaskDialogPage previous = std::move(page_);
     page_ = std::move(page);
-    rebuild_children();
+    try {
+        rebuild_children();
+    } catch (...) {
+        page_ = std::move(previous);
+        try {
+            rebuild_children();
+        } catch (...) {
+            page_ = TaskDialogPage{};
+            clear_children_of_page();
+            try {
+                clear_children();
+            } catch (...) {
+            }
+        }
+        throw;
+    }
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
-    if (!shown_) return;
+    if (!presentation_.shown()) return;
     // A page shown in place of another: focus moves to its default button.
     Window* const host = attached_window();
-    const std::shared_ptr<Button> preferred = button(default_button_id());
+    const std::shared_ptr<Button> preferred = button(State::default_button_id(*this));
     if (host != nullptr && preferred) static_cast<void>((*host).request_focus(preferred));
     navigated_.emit();
 }
 
 void TaskDialog::clear_children_of_page() noexcept {
-    child_tokens_.clear();
-    buttons_.clear();
-    radios_.clear();
-    heading_.reset();
-    text_.reset();
-    expanded_text_.reset();
-    footnote_.reset();
-    verification_.reset();
-    expander_button_.reset();
-    progress_.reset();
+    State& state = *state_;
+    state.child_tokens_.clear();
+    state.buttons_.clear();
+    state.radios_.clear();
+    state.heading_.reset();
+    state.text_.reset();
+    state.expanded_text_.reset();
+    state.footnote_.reset();
+    state.verification_.reset();
+    state.expander_button_.reset();
+    state.progress_.reset();
+    state.input_.reset();
 }
 
-std::shared_ptr<Label> TaskDialog::make_paragraph(std::string_view suffix, const std::string& text,
-                                                  FontSpec font) {
-    std::string identity(stable_id().value());
+std::shared_ptr<Label> TaskDialog::State::make_paragraph(TaskDialog& self, std::string_view suffix,
+                                                         const std::string& text, FontSpec font) {
+    std::string identity(self.stable_id().value());
     identity.append(suffix);
     std::shared_ptr<Label> paragraph = make_control<Label>(StableId(std::move(identity)), text);
     (*paragraph).font = stxlib::Optional<FontSpec>::of(font);
     (*paragraph).text_wrapping = TextWrapping::word;
     (*paragraph).vertical_alignment = VerticalAlignment::start;
-    add_child(paragraph);
+    self.add_child(paragraph);
     return paragraph;
 }
 
 void TaskDialog::rebuild_children() {
+    State& state = *state_;
     clear_children_of_page();
     clear_children();
     const std::string prefix(stable_id().value());
@@ -304,15 +408,24 @@ void TaskDialog::rebuild_children() {
     heading_font.weight = 600;
     FontSpec footnote_font = font_;
     footnote_font.size = footnote_size;
-    if (!page_.heading.empty()) heading_ = make_paragraph(".heading", page_.heading, heading_font);
-    if (!page_.text.empty()) text_ = make_paragraph(".text", page_.text, font_);
+    if (!page_.heading.empty()) state.heading_ = State::make_paragraph(*this, ".heading", page_.heading, heading_font);
+    if (!page_.text.empty()) state.text_ = State::make_paragraph(*this, ".text", page_.text, font_);
+    if (page_.input.has_value()) {
+        const TaskDialogInput& settings = *page_.input;
+        state.input_ = make_control<TextBox>(StableId(prefix + ".input"), settings.text);
+        (*state.input_).placeholder_text = settings.placeholder;
+        (*state.input_).maximum_length = settings.maximum_length;
+        // The prompt names the field to assistive technology.
+        (*state.input_).accessible_name = page_.text;
+        add_child(state.input_);
+    }
     if (page_.progress_bar.present()) {
         const TaskDialogProgressBar& settings = (*page_.progress_bar.value());
-        progress_ = make_control<ProgressBar>(StableId(prefix + ".progress"));
-        (*progress_).set_range(settings.minimum, settings.maximum);
-        (*progress_).value = std::clamp(settings.value, settings.minimum, settings.maximum);
-        if (settings.marquee) (*progress_).visual_style = ProgressBarVisualStyle::marquee;
-        add_child(progress_);
+        state.progress_ = make_control<ProgressBar>(StableId(prefix + ".progress"));
+        (*state.progress_).set_range(settings.minimum, settings.maximum);
+        (*state.progress_).value = std::clamp(settings.value, settings.minimum, settings.maximum);
+        if (settings.marquee) (*state.progress_).visual_style = ProgressBarVisualStyle::marquee;
+        add_child(state.progress_);
     }
     for (const TaskDialogRadioButton& radio : page_.radio_buttons) {
         std::shared_ptr<RadioButton> control =
@@ -320,30 +433,30 @@ void TaskDialog::rebuild_children() {
         (*control).checked = radio.checked;
         (*control).enabled = radio.enabled;
         add_child(control);
-        child_tokens_.push_back((*control).checked_changed().subscribe(
+        state.child_tokens_.push_back((*control).checked_changed().subscribe(
             *this, Delegate<bool>::bind<TaskDialog, &TaskDialog::on_radio>(*this)));
-        radios_.push_back(std::move(control));
+        state.radios_.push_back(std::move(control));
     }
     if (page_.expander) {
         const TaskDialogExpander& expander = *page_.expander;
-        expander_button_ = make_control<Button>(
+        state.expander_button_ = make_control<Button>(
             StableId(prefix + ".expander"),
             expander.expanded ? expander.expanded_button_text : expander.collapsed_button_text);
-        (*expander_button_).visual_style = ButtonVisualStyle::flat;
-        add_child(expander_button_);
-        child_tokens_.push_back((*expander_button_).clicked().subscribe(
+        (*state.expander_button_).visual_style = ButtonVisualStyle::flat;
+        add_child(state.expander_button_);
+        state.child_tokens_.push_back((*state.expander_button_).clicked().subscribe(
             *this, Delegate<ButtonBase&>::bind<TaskDialog, &TaskDialog::on_expander>(*this)));
-        expanded_text_ = make_paragraph(".expanded-text", expander.text, font_);
-        set_child_layout_collapsed(expanded_text_, !expander.expanded);
+        state.expanded_text_ = State::make_paragraph(*this, ".expanded-text", expander.text, font_);
+        set_child_layout_collapsed(state.expanded_text_, !expander.expanded);
     }
     if (!page_.verification_text.empty()) {
-        verification_ = make_control<CheckBox>(StableId(prefix + ".verification"), page_.verification_text);
-        (*verification_).checked = page_.verification_checked;
-        add_child(verification_);
-        child_tokens_.push_back((*verification_).checked_changed().subscribe(
+        state.verification_ = make_control<CheckBox>(StableId(prefix + ".verification"), page_.verification_text);
+        (*state.verification_).checked = page_.verification_checked;
+        add_child(state.verification_);
+        state.child_tokens_.push_back((*state.verification_).checked_changed().subscribe(
             *this, Delegate<bool>::bind<TaskDialog, &TaskDialog::on_verification>(*this)));
     }
-    const std::string preferred = default_button_id();
+    const std::string preferred = State::default_button_id(*this);
     for (const TaskDialogButton& definition : page_.buttons) {
         std::shared_ptr<Button> control =
             make_control<Button>(StableId(prefix + ".button." + std::string(button_segment(definition.stable_id))),
@@ -351,44 +464,53 @@ void TaskDialog::rebuild_children() {
         (*control).enabled = definition.enabled;
         if (definition.stable_id == preferred) (*control).visual_style = ButtonVisualStyle::accent;
         add_child(control);
-        child_tokens_.push_back((*control).clicked().subscribe(
+        state.child_tokens_.push_back((*control).clicked().subscribe(
             *this, Delegate<ButtonBase&>::bind<TaskDialog, &TaskDialog::on_child_button>(*this)));
-        buttons_.push_back(std::move(control));
+        state.buttons_.push_back(std::move(control));
     }
-    if (!page_.footnote.empty()) footnote_ = make_paragraph(".footnote", page_.footnote, footnote_font);
+    if (!page_.footnote.empty()) {
+        state.footnote_ = State::make_paragraph(*this, ".footnote", page_.footnote, footnote_font);
+    }
 }
 
-stxlib::Optional<std::size_t> TaskDialog::button_index(std::string_view button_id) const noexcept {
-    for (std::size_t index = 0; index < page_.buttons.size(); ++index) {
-        if (page_.buttons[index].stable_id == button_id) return stxlib::Optional<std::size_t>::of(index);
+stxlib::Optional<std::size_t> TaskDialog::State::button_index(const TaskDialog& self,
+                                                             std::string_view button_id) noexcept {
+    for (std::size_t index = 0; index < self.page_.buttons.size(); ++index) {
+        if (self.page_.buttons[index].stable_id == button_id) return stxlib::Optional<std::size_t>::of(index);
     }
     return stxlib::Optional<std::size_t>::none();
 }
 
-std::string TaskDialog::default_button_id() const {
-    if (!page_.default_button.empty()) return page_.default_button;
-    if (page_.buttons.empty()) return {};
-    return page_.buttons.front().stable_id;
+std::string TaskDialog::State::default_button_id(const TaskDialog& self) {
+    if (!self.page_.default_button.empty()) return self.page_.default_button;
+    if (self.page_.buttons.empty()) return {};
+    return self.page_.buttons.front().stable_id;
 }
 
-std::string TaskDialog::cancel_button_id() const {
-    for (const TaskDialogButton& definition : page_.buttons) {
+std::string TaskDialog::State::cancel_button_id(const TaskDialog& self) {
+    for (const TaskDialogButton& definition : self.page_.buttons) {
         if (definition.standard == TaskDialogStandardButton::cancel) return definition.stable_id;
     }
     return "cancel";
 }
 
 std::shared_ptr<Button> TaskDialog::button(std::string_view button_id) const {
-    const stxlib::Optional<std::size_t> index = button_index(button_id);
-    if (index.absent() || (*index.value()) >= buttons_.size()) return nullptr;
-    return buttons_[(*index.value())];
+    const stxlib::Optional<std::size_t> index = State::button_index(*this, button_id);
+    if (index.absent() || (*index.value()) >= (*state_).buttons_.size()) return nullptr;
+    return (*state_).buttons_[(*index.value())];
 }
 
 std::shared_ptr<RadioButton> TaskDialog::radio_button(std::string_view radio_id) const {
-    for (std::size_t index = 0; index < page_.radio_buttons.size() && index < radios_.size(); ++index) {
-        if (page_.radio_buttons[index].stable_id == radio_id) return radios_[index];
+    for (std::size_t index = 0; index < page_.radio_buttons.size() && index < (*state_).radios_.size(); ++index) {
+        if (page_.radio_buttons[index].stable_id == radio_id) return (*state_).radios_[index];
     }
     return nullptr;
+}
+
+std::string TaskDialog::input_text() const {
+    if (!(*state_).input_) return std::string();
+    std::string text = (*(*state_).input_).text.read();
+    return text;
 }
 
 std::string TaskDialog::checked_radio_button() const {
@@ -405,17 +527,19 @@ bool TaskDialog::read_view(const decltype(expanded)&) const {
 }
 
 void TaskDialog::write_view(const decltype(expanded)&, bool incoming) {
+    State& state = *state_;
     require_mutable();
     if (!page_.expander || (*page_.expander).expanded == incoming) return;
     TaskDialogExpander& expander = *page_.expander;
     expander.expanded = incoming;
-    if (expander_button_) {
-        (*expander_button_).text = incoming ? expander.expanded_button_text : expander.collapsed_button_text;
+    if (state.expander_button_) {
+        (*state.expander_button_).text = incoming ? expander.expanded_button_text : expander.collapsed_button_text;
     }
-    if (expanded_text_) set_child_layout_collapsed(expanded_text_, !incoming);
+    if (state.expanded_text_) set_child_layout_collapsed(state.expanded_text_, !incoming);
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     // The layer centres the dialog again at its new height.
-    if (layer_) (*layer_).invalidate(Dirty::arrange);
+    const Control::Ptr layer = presentation_.layer();
+    if (layer) (*layer).invalidate(Dirty::arrange);
     expanded_changed_.emit(incoming);
 }
 
@@ -429,8 +553,8 @@ bool TaskDialog::read_view(const decltype(verification_checked)&) const {
 // verification_changed.
 void TaskDialog::write_view(const decltype(verification_checked)&, bool incoming) {
     require_mutable();
-    if (verification_) {
-        (*verification_).checked = incoming;
+    if ((*state_).verification_) {
+        (*(*state_).verification_).checked = incoming;
         return;
     }
     page_.verification_checked = incoming;
@@ -438,17 +562,17 @@ void TaskDialog::write_view(const decltype(verification_checked)&, bool incoming
 
 void TaskDialog::set_progress_value(double value) {
     require_mutable();
-    if (page_.progress_bar.absent() || !progress_ || !std::isfinite(value)) return;
+    if (page_.progress_bar.absent() || !(*state_).progress_ || !std::isfinite(value)) return;
     TaskDialogProgressBar& settings = (*page_.progress_bar.value());
     settings.value = std::clamp(value, settings.minimum, settings.maximum);
-    (*progress_).value = settings.value;
+    (*(*state_).progress_).value = settings.value;
 }
 
 // -- interaction ---------------------------------------------------------------
 
 void TaskDialog::on_child_button(ButtonBase& sender) {
-    for (std::size_t index = 0; index < buttons_.size(); ++index) {
-        if (buttons_[index].get() == &sender) {
+    for (std::size_t index = 0; index < (*state_).buttons_.size(); ++index) {
+        if ((*state_).buttons_[index].get() == &sender) {
             const std::string identity = page_.buttons[index].stable_id;
             static_cast<void>(click(identity));
             return;
@@ -458,7 +582,7 @@ void TaskDialog::on_child_button(ButtonBase& sender) {
 
 bool TaskDialog::click(std::string_view button_id) {
     require_mutable();
-    const stxlib::Optional<std::size_t> index = button_index(button_id);
+    const stxlib::Optional<std::size_t> index = State::button_index(*this, button_id);
     if (index.absent() || !page_.buttons[(*index.value())].enabled) return false;
     TaskDialogButtonClick request{std::string(button_id), !page_.buttons[(*index.value())].allow_close};
     // A handler may drop the dialog's last other reference; it stays alive
@@ -466,8 +590,8 @@ bool TaskDialog::click(std::string_view button_id) {
     const Control::Ptr lifetime = weak_from_this().lock();
     button_clicked_.emit(request);
     // A handler may have navigated to another page or closed the dialog.
-    if (!is_alive() || request.keep_open || !shown_) return true;
-    finish(request.button_id);
+    if (!is_alive() || request.keep_open || !presentation_.shown()) return true;
+    State::finish(*this, request.button_id);
     return true;
 }
 
@@ -482,24 +606,25 @@ void TaskDialog::on_verification(bool checked) {
 }
 
 void TaskDialog::on_radio(bool) {
+    State& state = *state_;
     if (synchronizing_) return;
     std::string newly_checked{};
-    for (std::size_t index = 0; index < radios_.size() && index < page_.radio_buttons.size(); ++index) {
-        const bool checked = (*radios_[index]).checked.read();
+    for (std::size_t index = 0; index < state.radios_.size() && index < page_.radio_buttons.size(); ++index) {
+        const bool checked = (*state.radios_[index]).checked.read();
         if (checked && !page_.radio_buttons[index].checked) newly_checked = page_.radio_buttons[index].stable_id;
         page_.radio_buttons[index].checked = checked;
     }
-    if (!newly_checked.empty()) radio_button_changed_.emit(newly_checked);
+    if (!newly_checked.empty()) state.radio_button_changed_.emit(newly_checked);
 }
 
 void TaskDialog::on_key_preview(KeyEvent& event) {
-    if (!shown_ || event.action != KeyAction::down) return;
+    if (!presentation_.shown() || event.action != KeyAction::down) return;
     if (event.physical_key == PhysicalKey::escape) {
-        const std::string cancel = cancel_button_id();
-        if (button_index(cancel).present()) {
+        const std::string cancel = State::cancel_button_id(*this);
+        if (State::button_index(*this, cancel).present()) {
             static_cast<void>(click(cancel));
         } else if (page_.allow_cancel) {
-            finish(cancel);
+            State::finish(*this, cancel);
         }
         event.handled = true;
         return;
@@ -509,56 +634,85 @@ void TaskDialog::on_key_preview(KeyEvent& event) {
     // button's.
     Window* const host = attached_window();
     const Control::Ptr focused = host != nullptr ? (*host).focused_control() : nullptr;
-    for (const std::shared_ptr<Button>& candidate : buttons_) {
+    for (const std::shared_ptr<Button>& candidate : (*state_).buttons_) {
         if (focused == candidate) return;
     }
-    if (focused && focused == expander_button_) return;
-    static_cast<void>(click(default_button_id()));
+    if (focused && focused == (*state_).expander_button_) return;
+    static_cast<void>(click(State::default_button_id(*this)));
     event.handled = true;
 }
 
 // -- showing -------------------------------------------------------------------
 
 bool TaskDialog::show(const Control::Ptr& owner) {
+    State& state = *state_;
     require_mutable();
     Window* const window = owner ? (*owner).attached_window() : nullptr;
-    if (shown_ || window == nullptr || parent()) return false;
+    if (presentation_.shown() || window == nullptr || parent()) return false;
     Window& host = *window;
     // A page never set has no buttons; setting it gives it the OK button.
     if (page_.buttons.empty()) set_page(page_);
     const Size client = host.client_size();
+    // `lifetime` holds the dialog across the handlers the steps below run.
+    const Control::Ptr lifetime = shared_from_this();
     Control::Ptr layer = make_control<TaskDialogLayer>(StableId(std::string(stable_id().value()) + ".layer"));
     (*layer).set_requested_bounds({0.0, 0.0, client.width, client.height});
-    (*layer).add_child(shared_from_this());
-    overlay_ = host.open_overlay(owner, layer);
-    layer_ = layer;
-    shown_ = true;
-    result_.reset();
-    if (Event<>* revoked = overlay_.closed_event()) {
-        overlay_revoked_ = (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
+    // Until the presentation is installed, every step is undone on an
+    // exception: the guard takes the dialog out of the layer, and the
+    // owner half's lease and subscription end with it.
+    ProvisionalChild in_layer(layer, lifetime);
+    PresentationLayer owner_half{};
+    owner_half.overlay = host.open_overlay(owner, layer);
+    owner_half.layer = layer;
+    if (Event<>* revoked = owner_half.overlay.closed_event()) {
+        owner_half.overlay_closed =
+            (*revoked).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
     }
+    DialogPresentation shown = surface_ == DialogSurface::native_popup
+        ? present_natively(host, owner, std::move(owner_half))
+        : DialogPresentation::overlay(std::move(owner_half));
+    in_layer.commit();
+    presentation_ = std::move(shown);
+    state.result_.reset();
     // begin_focus_scope moves the focus, running the previous control's
-    // focus and validation handlers; one may close the dialog, and then the
-    // scope it opened is ended here, since finish found none to end
-    // (A-gf-controls-13-F4). `lifetime` holds the dialog across them.
-    const Control::Ptr lifetime = shared_from_this();
+    // focus and validation handlers; one may close the dialog (and even
+    // show it again), and then the scope this show() opened is ended here,
+    // since finish found none to end (A-gf-controls-13-F4).
+    // The default button takes focus when it can; a disabled or hidden one
+    // is not offered to the window, which would refuse it and leave the
+    // dialog shown with no scope (state hunt, run 6). Any other refusal (a
+    // containing scope, the nesting limit) takes the dialog down again
+    // before it leaves, with nothing raised.
+    Control::Ptr preferred = button(State::default_button_id(*this));
+    if (preferred && !((*preferred).eligible_for_input() && (*preferred).focusable.read())) preferred = {};
     FocusScopeId started{};
-    if (surface_ == DialogSurface::native_popup && open_native(host, owner)) {
-        // The empty layer keeps the owner's keys from its controls.
-        started = host.begin_focus_scope(layer);
-    } else {
-        started = host.begin_focus_scope(layer, button(default_button_id()));
+    try {
+        if (Window* const popup = presentation_.popup_window()) {
+            static_cast<void>((*popup).begin_focus_scope(presentation_.popup_root(), preferred));
+        }
+        if (!is_alive() || !presentation_.shown_with(*layer)) return true;
+        if (presentation_.surface() == NativePopupSurface::native) {
+            // The empty layer keeps the owner's keys from its controls.
+            started = host.begin_focus_scope(layer);
+        } else {
+            // A page with a text field focuses it first.
+            const Control::Ptr first = state.input_ ? Control::Ptr(state.input_) : preferred;
+            started = host.begin_focus_scope(layer, first);
+        }
+    } catch (...) {
+        if (is_alive() && presentation_.shown_with(*layer)) abandon_show();
+        throw;
     }
-    if (!is_alive() || !shown_) {
+    if (!is_alive() || !presentation_.adopt_scope(*layer, started)) {
         if (started) static_cast<void>(host.end_focus_scope(started));
         return true;
     }
-    scope_ = started;
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::semantics);
     return true;
 }
 
-bool TaskDialog::open_native(Window& host, const Control::Ptr& owner) {
+DialogPresentation TaskDialog::present_natively(Window& host, const Control::Ptr& owner,
+                                                PresentationLayer owner_half) {
     // Measured in the layer, as the overlay would be, then centred.
     const Size client = host.client_size();
     const double margin = window_margin * effective_text_scale();
@@ -569,85 +723,90 @@ bool TaskDialog::open_native(Window& host, const Control::Ptr& owner) {
     const Rect bounds{std::floor((client.width - width) * 0.5), std::max(0.0, std::floor((client.height - height) * 0.5)),
                       width, height};
     const Control::Ptr self = shared_from_this();
-    static_cast<void>((*layer_).remove_child(runtime_id()));
-    native_root_ = make_control<Control>(StableId(std::string(stable_id().value()) + ".native"));
+    static_cast<void>((*owner_half.layer).remove_child(runtime_id()));
+    PresentationPopup popup_half{};
+    popup_half.root = make_control<Control>(StableId(std::string(stable_id().value()) + ".native"));
     set_requested_bounds({0.0, 0.0, width, height});
-    (*native_root_).add_child(self);
+    // Taken out of the root again if the popup does not open, or throws.
+    ProvisionalChild in_root(popup_half.root, self);
     NativePopupOptions options{};
     options.focus = HostPopupFocus::takes_focus;
     options.fallback = NativePopupFallback::refuse;
-    native_ = host.open_native_popup(owner, native_root_, bounds, options);
-    if (native_.surface() != NativePopupSurface::native) {
-        static_cast<void>((*native_root_).remove_child(runtime_id()));
-        native_root_.reset();
-        (*layer_).add_child(self);
-        return false;
+    popup_half.popup = host.open_native_popup(owner, popup_half.root, bounds, options);
+    if (popup_half.popup.surface() != NativePopupSurface::native) {
+        in_root.undo();
+        (*owner_half.layer).add_child(self);
+        DialogPresentation fallback = DialogPresentation::overlay(std::move(owner_half));
+        return fallback;
     }
-    if (Event<>* closed = native_.closed_event()) {
-        native_closed_ = (*closed).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
+    if (Event<>* closed = popup_half.popup.closed_event()) {
+        popup_half.popup_closed =
+            (*closed).subscribe(*this, Delegate<>::bind<TaskDialog, &TaskDialog::on_overlay_revoked>(*this));
     }
-    Window* const popup = native_.window();
-    if (popup != nullptr) static_cast<void>((*popup).begin_focus_scope(native_root_, button(default_button_id())));
-    return true;
+    in_root.commit();
+    DialogPresentation shown = DialogPresentation::native(std::move(owner_half), std::move(popup_half));
+    return shown;
 }
 
 NativePopupSurface TaskDialog::presented_surface() const noexcept {
-    if (!shown_) return NativePopupSurface::none;
-    if (native_root_) return NativePopupSurface::native;
-    return NativePopupSurface::overlay;
+    const NativePopupSurface result = presentation_.surface();
+    return result;
 }
 
 void TaskDialog::close(std::string_view button_id) {
     require_mutable();
-    finish(std::string(button_id));
+    State::finish(*this, std::string(button_id));
 }
 
 void TaskDialog::on_overlay_revoked() {
     // The owner left its window: the dialog closes as cancelled.
-    finish(cancel_button_id());
+    State::finish(*this, State::cancel_button_id(*this));
 }
 
-void TaskDialog::finish(std::string button_id) {
-    if (!shown_) return;
-    shown_ = false;
-    TaskDialogResult outcome{std::move(button_id), page_.verification_checked, checked_radio_button()};
-    // The scope is the owner's window's, where the layer is.
-    Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
-    if (host != nullptr && scope_) static_cast<void>((*host).end_focus_scope(scope_));
-    scope_ = {};
-    overlay_revoked_.disconnect();
-    native_closed_.disconnect();
-    const Control::Ptr layer = layer_;
-    layer_.reset();
-    if (layer) static_cast<void>((*layer).remove_child(runtime_id()));
-    const Control::Ptr native_root = native_root_;
-    native_root_.reset();
-    if (native_root) static_cast<void>((*native_root).remove_child(runtime_id()));
-    native_.disconnect();
-    overlay_.disconnect();
-    result_ = outcome;
-    closed_.emit(outcome);
+bool TaskDialog::agrees_with_itself() const noexcept {
+    // The page and the child controls it describes, matched by index.
+    const State& state = *state_;
+    if (page_.buttons.size() != state.buttons_.size() || page_.radio_buttons.size() != state.radios_.size()) return false;
+    if (static_cast<bool>(page_.expander) != static_cast<bool>(state.expander_button_)) return false;
+    if (page_.verification_text.empty() == static_cast<bool>(state.verification_)) return false;
+    if (page_.input.has_value() != static_cast<bool>(state.input_)) return false;
+    for (const std::shared_ptr<Button>& control : state.buttons_) {
+        if (!control || (*control).parent().get() != this) return false;
+    }
+    // Shown: in the presentation's layer or popup root; closed: no parent.
+    if (!presentation_.shown()) return !parent();
+    const Control::Ptr holder = parent();
+    return holder && (holder == presentation_.layer() || holder == presentation_.popup_root());
+}
+
+// A show whose scope was refused: the dialog leaves its layer and popup and
+// both close, with closed not raised (no show was reported either).
+void TaskDialog::abandon_show() noexcept {
+    const Control::Ptr retained = weak_from_this().lock();
+    DialogPresentation closing = presentation_.take();
+    try {
+        closing.dismantle(*this, FocusScopeCloseReason::explicit_close);
+    } catch (...) {
+        closing.abandon();
+    }
+}
+
+void TaskDialog::State::finish(TaskDialog& self, std::string button_id) {
+    if (!self.presentation_.shown()) return;
+    // Closed from here on, for every handler the steps below run.
+    DialogPresentation closing = self.presentation_.take();
+    TaskDialogResult outcome{std::move(button_id), self.page_.verification_checked, self.checked_radio_button(),
+                             self.input_text()};
+    closing.dismantle(self, FocusScopeCloseReason::explicit_close);
+    (*self.state_).result_ = outcome;
+    self.closed_.emit(outcome);
 }
 
 void TaskDialog::on_dispose() noexcept {
     // A disposed dialog closes without raising closed.
-    shown_ = false;
-    overlay_revoked_.disconnect();
-    native_closed_.disconnect();
-    Window* const host = layer_ ? (*layer_).attached_window() : nullptr;
-    if (scope_ && host != nullptr) {
-        try {
-            static_cast<void>((*host).end_focus_scope(scope_));
-        } catch (...) {
-            // Disposal must not throw; the window ends the scope with the overlay.
-        }
-    }
-    scope_ = {};
-    native_.disconnect();
-    native_root_.reset();
-    overlay_.disconnect();
-    layer_.reset();
-    child_tokens_.clear();
+    DialogPresentation closing = presentation_.take();
+    closing.dismantle_on_dispose();
+    (*state_).child_tokens_.clear();
     Control::on_dispose();
 }
 
@@ -661,6 +820,7 @@ double TaskDialog::preferred_width(Size available) const noexcept {
 }
 
 TaskDialog::Layout TaskDialog::layout(double width) const {
+    State& state = *state_;
     const double scale = effective_text_scale();
     const double inset = content_padding * scale;
     const double gap = paragraph_gap * scale;
@@ -683,30 +843,34 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
     }
     const double text_width = std::max(0.0, width - text_x - inset);
     const double unbounded = std::numeric_limits<double>::max();
-    if (heading_) {
-        const double height = (*heading_).measure({text_width, unbounded}).height;
+    if (state.heading_) {
+        const double height = (*state.heading_).measure({text_width, unbounded}).height;
         parts.heading = PartGeometry::from_bounds({text_x, y, text_width, height});
         y += height + gap;
     }
-    if (text_) {
-        const double height = (*text_).measure({text_width, unbounded}).height;
+    if (state.text_) {
+        const double height = (*state.text_).measure({text_width, unbounded}).height;
         parts.text = PartGeometry::from_bounds({text_x, y, text_width, height});
         y += height + gap;
     }
-    if (progress_) {
+    if (state.input_) {
+        parts.input = PartGeometry::from_bounds({text_x, y, text_width, input_height * scale});
+        y += input_height * scale + gap;
+    }
+    if (state.progress_) {
         parts.progress = PartGeometry::from_bounds({text_x, y, text_width, progress_height * scale});
         y += progress_height * scale + gap;
     }
     Rect radio_group{};
-    for (std::size_t index = 0; index < radios_.size(); ++index) {
+    for (std::size_t index = 0; index < state.radios_.size(); ++index) {
         const Rect slot{text_x, y, text_width, radio_height * scale};
         result.radios.push_back(slot);
         radio_group = bounds_union(radio_group, slot);
         y += radio_height * scale;
     }
-    if (!radios_.empty()) y += gap;
+    if (!state.radios_.empty()) y += gap;
     parts.radio_group = PartGeometry::from_bounds(radio_group);
-    if (expander_button_) {
+    if (state.expander_button_) {
         const double row = expander_height * scale;
         const double glyph = expander_glyph_size * scale;
         parts.expander_glyph = PartGeometry::from_bounds(
@@ -715,13 +879,13 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
         parts.expander_button = PartGeometry::from_bounds(
             {button_x, y, std::max(0.0, text_x + text_width - button_x), row});
         y += row + gap * 0.5;
-        if (expanded.read() && expanded_text_) {
-            const double height = (*expanded_text_).measure({text_width, unbounded}).height;
+        if (expanded.read() && state.expanded_text_) {
+            const double height = (*state.expanded_text_).measure({text_width, unbounded}).height;
             parts.expanded_text = PartGeometry::from_bounds({text_x, y, text_width, height});
             y += height + gap;
         }
     }
-    if (verification_) {
+    if (state.verification_) {
         parts.verification = PartGeometry::from_bounds({text_x, y, text_width, verification_height * scale});
         y += verification_height * scale + gap;
     }
@@ -735,18 +899,18 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
     parts.button_band = PartGeometry::from_bounds({0.0, y, width, band_height});
     parts.button_divider = PartGeometry::from_bounds({0.0, y, width, 1.0});
     const FontSpec font = text_font(font_);
-    std::vector<double> widths(buttons_.size(), 0.0);
+    std::vector<double> widths(state.buttons_.size(), 0.0);
     double total = 0.0;
-    for (std::size_t index = 0; index < buttons_.size(); ++index) {
+    for (std::size_t index = 0; index < state.buttons_.size(); ++index) {
         const ResolvedTextLayout label = resolve_text_layout_utf8(page_.buttons[index].text, font);
         const double measured = label.logical_size.width;
         widths[index] = std::max(minimum_button_width * scale, measured + button_text_padding * scale);
         total += widths[index];
     }
-    if (!buttons_.empty()) total += button_gap * scale * static_cast<double>(buttons_.size() - 1U);
+    if (!state.buttons_.empty()) total += button_gap * scale * static_cast<double>(state.buttons_.size() - 1U);
     double x = std::max(inset, width - inset - total);
     Rect button_row{};
-    for (std::size_t index = 0; index < buttons_.size(); ++index) {
+    for (std::size_t index = 0; index < state.buttons_.size(); ++index) {
         const Rect slot{x, y + band_inset, widths[index], row};
         result.buttons.push_back(slot);
         button_row = bounds_union(button_row, slot);
@@ -754,7 +918,7 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
     }
     parts.button_row = PartGeometry::from_bounds(button_row);
     y += band_height;
-    if (footnote_) {
+    if (state.footnote_) {
         const double note_inset = footnote_padding * scale;
         double note_x = inset;
         const bool has_note_icon = page_.footnote_icon != TaskDialogIcon::none;
@@ -764,7 +928,7 @@ TaskDialog::Layout TaskDialog::layout(double width) const {
             note_x = inset + side + icon_gap * 0.5 * scale;
         }
         const double note_width = std::max(0.0, width - note_x - inset);
-        const double height = (*footnote_).measure({note_width, unbounded}).height;
+        const double height = (*state.footnote_).measure({note_width, unbounded}).height;
         const double band = std::max(height, has_note_icon ? footnote_icon_size * scale : 0.0) + note_inset * 2.0;
         parts.footnote_band = PartGeometry::from_bounds({0.0, y, width, band});
         parts.footnote = PartGeometry::from_bounds({note_x, y + note_inset, note_width, height});
@@ -787,22 +951,24 @@ Size TaskDialog::measure(Size available) {
 }
 
 void TaskDialog::arrange(Rect final_bounds) {
+    State& state = *state_;
     arrange_self(final_bounds);
     const Layout placed = layout(final_bounds.width);
     const Parts& parts = placed.parts;
-    if (heading_) set_child_layout(heading_, parts.heading.bounds);
-    if (text_) set_child_layout(text_, parts.text.bounds);
-    if (progress_) set_child_layout(progress_, parts.progress.bounds);
-    for (std::size_t index = 0; index < radios_.size() && index < placed.radios.size(); ++index) {
-        set_child_layout(radios_[index], placed.radios[index]);
+    if (state.heading_) set_child_layout(state.heading_, parts.heading.bounds);
+    if (state.text_) set_child_layout(state.text_, parts.text.bounds);
+    if (state.input_) set_child_layout(state.input_, parts.input.bounds);
+    if (state.progress_) set_child_layout(state.progress_, parts.progress.bounds);
+    for (std::size_t index = 0; index < state.radios_.size() && index < placed.radios.size(); ++index) {
+        set_child_layout(state.radios_[index], placed.radios[index]);
     }
-    if (expander_button_) set_child_layout(expander_button_, parts.expander_button.bounds);
-    if (expanded_text_) set_child_layout(expanded_text_, parts.expanded_text.bounds);
-    if (verification_) set_child_layout(verification_, parts.verification.bounds);
-    for (std::size_t index = 0; index < buttons_.size() && index < placed.buttons.size(); ++index) {
-        set_child_layout(buttons_[index], placed.buttons[index]);
+    if (state.expander_button_) set_child_layout(state.expander_button_, parts.expander_button.bounds);
+    if (state.expanded_text_) set_child_layout(state.expanded_text_, parts.expanded_text.bounds);
+    if (state.verification_) set_child_layout(state.verification_, parts.verification.bounds);
+    for (std::size_t index = 0; index < state.buttons_.size() && index < placed.buttons.size(); ++index) {
+        set_child_layout(state.buttons_[index], placed.buttons[index]);
     }
-    if (footnote_) set_child_layout(footnote_, parts.footnote.bounds);
+    if (state.footnote_) set_child_layout(state.footnote_, parts.footnote.bounds);
 }
 
 // -- paint ---------------------------------------------------------------------
@@ -878,7 +1044,7 @@ SemanticDescriptor TaskDialog::semantic_descriptor() const {
     // so it blocks the rest of its window (modal).
     SemanticDescriptor descriptor{};
     descriptor.role = SemanticRole::dialog;
-    descriptor.modal = shown_;
+    descriptor.modal = presentation_.shown();
     if (!accessible_name.read().empty()) {
         descriptor.name = accessible_name.read();
     } else if (!page_.caption.empty()) {
@@ -895,7 +1061,7 @@ namespace {
 
 constexpr std::array<AnatomyState, 1> expander_glyph_states{{AnatomyState::open}};
 
-constexpr std::array<PartField<TaskDialog::Parts>, 21> task_dialog_part_fields{{
+constexpr std::array<PartField<TaskDialog::Parts>, 22> task_dialog_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
      .member = &TaskDialog::Parts::region},
     {.declaration = {.name = "face", .role = PartRole::face, .composed_from = {}, .states = {}},
@@ -912,6 +1078,8 @@ constexpr std::array<PartField<TaskDialog::Parts>, 21> task_dialog_part_fields{{
      .member = &TaskDialog::Parts::heading},
     {.declaration = {.name = "text", .role = PartRole::content, .composed_from = "label", .states = {}},
      .member = &TaskDialog::Parts::text},
+    {.declaration = {.name = "input", .role = PartRole::well, .composed_from = "text_box", .states = {}},
+     .member = &TaskDialog::Parts::input},
     {.declaration = {.name = "progress", .role = PartRole::track, .composed_from = "progress_bar", .states = {}},
      .member = &TaskDialog::Parts::progress},
     {.declaration = {.name = "radio_group", .role = PartRole::region, .composed_from = "radio_button", .states = {}},
@@ -941,7 +1109,7 @@ constexpr std::array<PartField<TaskDialog::Parts>, 21> task_dialog_part_fields{{
      .member = &TaskDialog::Parts::focus},
 }};
 
-constexpr std::array<PartDeclaration, 21> task_dialog_parts = part_declarations(task_dialog_part_fields);
+constexpr std::array<PartDeclaration, 22> task_dialog_parts = part_declarations(task_dialog_part_fields);
 constexpr std::array<AnatomyState, 5> task_dialog_states{
     AnatomyState::normal, AnatomyState::enabled, AnatomyState::disabled,
     AnatomyState::focused, AnatomyState::focus_visible,

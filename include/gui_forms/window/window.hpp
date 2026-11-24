@@ -15,6 +15,16 @@
 
 namespace gui_forms {
 
+class Window;
+
+// One window a Window shows over itself (Window::shown_popup_window): its
+// model, borrowed for the current UI turn, and where it is in the owner's
+// client coordinates.
+struct GUI_FORMS_API ShownPopupWindow final {
+    Window* model{};
+    Rect bounds{};
+};
+
 // Native popups (gui_forms/window/native_popup/native_popup.hpp).
 class NativePopupToken;
 struct NativePopupOptions;
@@ -39,11 +49,19 @@ public:
 // shares the application's resources unless given its own, starts from its
 // presentation defaults and reads its tooltip switch, and leaves it when
 // destroyed. With no current application it makes its own resources.
+// ic: gui_forms::Window: generated from include/gui_forms/window/window.ic.toml by tools/ic_declarations.py; edit the
+// ic: declaration, not these lines. States: constructed (initial), attached, close_authorized, closed, shutdown.
+// ic: Observed by host_lifecycle_phase(): constructed HostLifecyclePhase::constructed, attached
+// ic: HostLifecyclePhase::attached, close_authorized HostLifecyclePhase::close_authorized, closed
+// ic: HostLifecyclePhase::closed, shutdown HostLifecyclePhase::shutdown. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API Window : public SurfaceRoot, public WindowCapabilities<Window> {
 public:
+    // ic: Returns Window, owned by the caller.
     explicit Window(Control::Ptr root, Size client_size = {});
     // Joins `application` explicitly, for a program that wants the
     // dependency visible: std::logic_error off its thread or once closed.
+    // ic: Fails logic_error (off the application's thread, or once the application has closed), unchanged. Returns
+    // ic: Window, owned by the caller.
     Window(Application& application, Control::Ptr root, Size client_size = {});
     /// Uses explicit per-window image quotas. The two-argument constructor
     /// retains the normal defaults; large-document consumers choose a budget.
@@ -54,6 +72,8 @@ public:
     /// subtree moved between them keeps its images. Null resources are
     /// std::invalid_argument; resources made on another thread are
     /// std::logic_error. The window takes the resources' current theme.
+    // ic: Fails invalid_argument (null resources), unchanged; logic_error (resources made on another thread),
+    // ic: unchanged. Returns Window, owned by the caller.
     Window(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources);
     // Virtual: a generated form class derives from Window and holds its
     // controls in members, and is owned through a Window pointer
@@ -141,6 +161,12 @@ public:
     // paint endpoint's surface, named for the surface's control. Nothing
     // while the overlay is off. UI thread.
     void note_live_surface_presented(const LiveSurfacePresentation& presentation, Rect presented);
+    // A host showed `generation` of `surface` in this present tick: reports
+    // it to the surface (LiveSurface::notify_presented) with this window's
+    // display timing (live_display_timing of display_timing() at now), so
+    // the surface's producer paces to the window's frame source. Once per
+    // surface per tick, however many fragments showed it. UI thread.
+    void report_live_surface_shown(LiveSurface& surface, std::uint64_t generation) const noexcept;
     // Content pairing (stage S2, design note section 6): the surface
     // registered for `control` must next show a frame published with a
     // content tag of at least `content_tag`. Until one is published, the next
@@ -225,12 +251,33 @@ public:
     [[nodiscard]] bool move_popup_window(std::size_t slot, Rect bounds);
     void hide_popup_window(std::size_t slot) noexcept;
     [[nodiscard]] Window* popup_window_model(std::size_t slot) const noexcept;
+    // The windows of its own this window shows over itself now, in screen
+    // order: index i below maximum_popup_windows is Popup slot i (a menu's
+    // depths open in turn), and index maximum_popup_windows is its tooltip's
+    // Splash window. Each with where it is, in this window's client
+    // coordinates (logical units; it may lie partly outside the client area,
+    // and the host may have moved it to keep it on its monitor). A null
+    // model for an index that shows nothing or whose frame the host does
+    // not report. For compositing what the user sees (the automation's
+    // capture). UI thread.
+    static constexpr std::size_t shown_popup_window_count = maximum_popup_windows + 1U;
+    [[nodiscard]] ShownPopupWindow shown_popup_window(std::size_t index) const;
     [[nodiscard]] Event<std::size_t>& popup_window_closed();
     // Why the host closed this window (the accepted HostClosedEvent's
     // reason: the user, the program, the session ending, a quit), once it
     // has; empty until then. Readable from the window's closed callback
     // (ApplicationWindowOptions::closed). Set only by HostSession.
+    // ic: Fails empty (before the host session accepts the closed event (states constructed, attached,
+    // ic: close_authorized)), unchanged. Returns stxlib::Optional<HostCloseReason>, owned by the caller.
     [[nodiscard]] stxlib::Optional<HostCloseReason> host_close_reason() const noexcept;
+    // The phase of the host session that drives this window (IC3, the
+    // window's public state query): constructed until a host attaches,
+    // then attached, close_authorized, closed and shutdown, as
+    // HostSession::snapshot().phase reports it; constructed for a window no
+    // host drives. Set only by HostSession; a window outlives its session's
+    // last phase write (shutdown is the session's, after which the window
+    // stays at the phase it had when its session ended without it).
+    [[nodiscard]] HostLifecyclePhase host_lifecycle_phase() const noexcept { return host_phase_; }
     // The slot drop-downs and pickers lift their lists and panels into
     // (PopupLift; owner, 2026-11-08: Part S scope for 0.5). Menus use the
     // slots below it, one per depth.
@@ -438,6 +485,8 @@ private:
     // host_close_reason(): written by HostSession when it accepts the
     // closed event.
     stxlib::Optional<HostCloseReason> host_close_reason_{};
+    // host_lifecycle_phase(): written by HostSession with its snapshot's phase.
+    HostLifecyclePhase host_phase_{HostLifecyclePhase::constructed};
     [[nodiscard]] detail::PopupStandby& popup_standby();
     // Sends the corner preference to the attached host, if any, and takes
     // its report; changed corners repaint the band's strips. Called by

@@ -1,0 +1,175 @@
+{
+  "schema": 1,
+  "component": "gf_abi::properties",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_properties.ic.toml",
+    "sha256": "56af6555c0ad24638056179fd4a0a2fe832103a529cccb49ad3cd0e8c039a2f0"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.properties.get.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "get in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.get.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "get in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.set.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.set.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.reset.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "reset in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.reset.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "reset in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.element_at.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "element_at in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.element_at.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "element_at in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.read_elements.requires.read_elements_text_buffer",
+      "kind": "entry-check",
+      "statement": "read_elements runs only when not_null(text_required) and (not_null(text_buffer) or text_capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_properties::admits_read_elements_text_buffer, called in src/abi/stable/tables/abi_properties.cpp"
+    },
+    {
+      "id": "gf_abi.properties.read_elements.refusal.read_elements_text_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(text_required) and (not_null(text_buffer) or text_capacity == 0), read_elements changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.read_elements.order",
+      "kind": "refusal-order",
+      "statement": "When several of read_elements's refusals apply, the first of read_elements_text_buffer, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.read_elements.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "read_elements in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.read_elements.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "read_elements in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.get_at.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "get_at in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.get_at.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "get_at in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.set_at.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_at in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.set_at.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_at in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.properties.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

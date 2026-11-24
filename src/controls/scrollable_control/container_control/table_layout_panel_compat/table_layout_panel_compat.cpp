@@ -4,6 +4,8 @@
 #include "../text_collection_property.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "table_layout_panel_compat_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -19,20 +21,21 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::table_layout_panel_compat;
 
 namespace {
 constexpr std::size_t maximum_layout_tracks = 64U;
 
 std::shared_ptr<const PropertyEnumDescriptor> grow_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "table_layout_grow_style", {{"fixed_size", 0}, {"add_rows", 1}, {"add_columns", 2}}, false});
     return value;
 }
 
 std::shared_ptr<const PropertyEnumDescriptor> cell_border_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "table_cell_border_style", {{"none", 0}, {"single", 1}, {"inset", 2}, {"outset", 3}}, false});
     return value;
 }
@@ -1191,7 +1194,7 @@ BindingValue PropertyValueTraits<TableLayoutGrowStyle>::to_binding(TableLayoutGr
     descriptor.enumeration = grow_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1210,7 +1213,7 @@ BindingValue PropertyValueTraits<TableCellBorderStyle>::to_binding(TableCellBord
     descriptor.enumeration = cell_border_style_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1286,7 +1289,7 @@ void TableLayoutPanelCompat::written(const decltype(cell_border_style)&) {
 
 void TableLayoutPanelCompat::prepare_write(const decltype(track_spacing)&, Size& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming.width) || !std::isfinite(incoming.height) || incoming.width < 0.0 || incoming.height < 0.0 || incoming.width > 256.0 || incoming.height > 256.0) throw std::invalid_argument("TableLayoutPanelCompat track spacing must be finite and between zero and 256");
+    if (!ic::admits_track_spacing(incoming)) throw std::invalid_argument("TableLayoutPanelCompat track spacing must be finite and between zero and 256");
 }
 
 void TableLayoutPanelCompat::written(const decltype(track_spacing)&) {

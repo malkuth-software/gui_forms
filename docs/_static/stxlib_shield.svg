@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 520" width="760" height="520" role="img" aria-labelledby="t d">
+<title id="t">STXlib wrapped around and under GUI.Forms</title>
+<desc id="d">Your program, written in C, C++ or C#, sits at the top and reaches GUI.Forms through the C ABI, where every slot is behind a gate, or through the C++ API. GUI.Forms sits inside STXlib, which wraps it on both sides and underneath. Inside the same program module is the pinned C++ library, linked statically. STXlib's band lists what it supplies: gates and error records, its own allocator, owned math, text and glyphs, files, paths, threads and clocks, and its own runtime pieces such as the outline atomics, with a checked object surface. At the bottom is the host: the C library and the operating system and kernel, reached through STXlib. A separate column on the right shows the platform hosts, which call the windowing system, input and accessibility directly, with every callback from the system behind a fail-fast gate.</desc>
+<defs><style>text{font-family:"Segoe UI",Helvetica,Arial,sans-serif}</style></defs>
+<rect x="20" y="10" width="720" height="58" rx="8" fill="#7d8aa0" stroke="#ffffff" stroke-width="2"/>
+<text x="380" y="35" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">Your program</text>
+<text x="380" y="56" text-anchor="middle" font-size="13" fill="#ffffff">C, C++ or C#: the C ABI (every slot behind a gate) or the C++ API</text>
+<rect x="20" y="82" width="600" height="338" rx="10" fill="#3d6fbd" stroke="#ffffff" stroke-width="2"/>
+<text x="46" y="250" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff" transform="rotate(-90 46 250)">STXlib</text>
+<text x="594" y="250" text-anchor="middle" font-size="15" font-weight="700" fill="#ffffff" transform="rotate(90 594 250)">STXlib</text>
+<rect x="72" y="82" width="496" height="196" rx="8" fill="#2f8f5b" stroke="#ffffff" stroke-width="2"/>
+<text x="320" y="112" text-anchor="middle" font-size="18" font-weight="700" fill="#ffffff">GUI.Forms</text>
+<text x="320" y="134" text-anchor="middle" font-size="13" fill="#ffffff">controls, layout, themes, painting, the C ABI's tables</text>
+<rect x="92" y="150" width="216" height="50" rx="6" fill="#1f6b43" stroke="#ffffff" stroke-width="1.5"/>
+<text x="200" y="171" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Gates at every boundary</text>
+<text x="200" y="189" text-anchor="middle" font-size="12" fill="#ffffff">C ABI, callbacks, native entries</text>
+<rect x="332" y="150" width="216" height="50" rx="6" fill="#1f6b43" stroke="#ffffff" stroke-width="1.5"/>
+<text x="440" y="171" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">Owned text and fonts</text>
+<text x="440" y="189" text-anchor="middle" font-size="12" fill="#ffffff">the embedded font pack</text>
+<rect x="92" y="212" width="456" height="50" rx="6" fill="#26553b" stroke="#ffffff" stroke-width="1.5"/>
+<text x="320" y="233" text-anchor="middle" font-size="12" font-weight="700" fill="#ffffff">The pinned C++ library, linked into the program</text>
+<text x="320" y="251" text-anchor="middle" font-size="12" fill="#ffffff">our copy of libc++, never the host's: a program imports system libraries only</text>
+<text x="320" y="306" text-anchor="middle" font-size="14" font-weight="700" fill="#ffffff">STXlib: the boundary between GUI.Forms and the host</text>
+<text x="320" y="330" text-anchor="middle" font-size="12" fill="#ffffff">gates and error records · its own allocator · owned math · text and glyphs</text>
+<text x="320" y="350" text-anchor="middle" font-size="12" fill="#ffffff">files, paths, threads, clocks · its own runtime pieces (the outline atomics)</text>
+<text x="320" y="370" text-anchor="middle" font-size="12" fill="#ffffff">only its interface modules call the host, and their reach is checked</text>
+<text x="320" y="390" text-anchor="middle" font-size="12" fill="#ffffff">on the compiled objects (the object-surface checks)</text>
+<rect x="636" y="82" width="104" height="338" rx="10" fill="#8a5a14" stroke="#ffffff" stroke-width="2"/>
+<text x="688" y="112" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">Platform</text>
+<text x="688" y="130" text-anchor="middle" font-size="13" font-weight="700" fill="#ffffff">hosts</text>
+<text x="688" y="162" text-anchor="middle" font-size="12" fill="#ffffff">windowing,</text>
+<text x="688" y="179" text-anchor="middle" font-size="12" fill="#ffffff">input and</text>
+<text x="688" y="196" text-anchor="middle" font-size="12" fill="#ffffff">accessibility,</text>
+<text x="688" y="213" text-anchor="middle" font-size="12" fill="#ffffff">called directly</text>
+<text x="688" y="252" text-anchor="middle" font-size="12" fill="#ffffff">every callback</text>
+<text x="688" y="269" text-anchor="middle" font-size="12" fill="#ffffff">from the system</text>
+<text x="688" y="286" text-anchor="middle" font-size="12" fill="#ffffff">is behind a</text>
+<text x="688" y="303" text-anchor="middle" font-size="12" fill="#ffffff">fail-fast gate</text>
+<rect x="20" y="436" width="720" height="74" rx="8" fill="#4a5568" stroke="#ffffff" stroke-width="2"/>
+<text x="380" y="464" text-anchor="middle" font-size="17" font-weight="700" fill="#ffffff">The host</text>
+<text x="380" y="488" text-anchor="middle" font-size="13" fill="#ffffff">the C library, the operating system and kernel, the windowing system</text>
+</svg>

@@ -3,12 +3,15 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../support/binding_support.hpp"
 #include "../../../platform/stxlib_bridge.hpp"
+#include "../../failure/fail_fast.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
+#include <array>
 #include <bit>
 #include <charconv>
 #include <cmath>
@@ -18,6 +21,7 @@
 #include <set>
 #include <sstream>
 #include <stdexcept>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms {
@@ -814,7 +818,7 @@ bool valid_property_value_tree(const BindingValue& value) noexcept {
 
 PropertyObjectValue make_property_object(
     std::string type_name, std::vector<PropertyObjectMember> members) {
-    std::shared_ptr<gui_forms::PropertyObjectData> data = std::make_shared<PropertyObjectData>();
+    std::shared_ptr<gui_forms::PropertyObjectData> data = gui_forms::detail::make_library_shared<PropertyObjectData>();
     (*data).type_name = std::move(type_name);
     // Member names are registered names, stored in snake_case whichever
     // spelling the application wrote (owner decision 8). An empty name is
@@ -849,7 +853,7 @@ PropertyCollectionValue make_property_collection(
         }
         item = *converted;
     }
-    std::shared_ptr<gui_forms::PropertyCollectionData> data = std::make_shared<PropertyCollectionData>();
+    std::shared_ptr<gui_forms::PropertyCollectionData> data = gui_forms::detail::make_library_shared<PropertyCollectionData>();
     (*data).item_type_name = std::move(item_type_name);
     (*data).item_kind = item_kind;
     (*data).items = std::move(items);
@@ -885,6 +889,19 @@ bool valid_property_enum_descriptor(
         }
     }
     return true;
+}
+
+void detail::fail_retained_enumerator(const PropertyDescriptor& descriptor) noexcept {
+    std::array<char, 192> text{};
+    constexpr std::string_view lead = "retained enumerator is outside its property enumeration (corrupted storage): ";
+    char* cursor = std::copy(lead.begin(), lead.end(), text.data());
+    const std::string_view name = descriptor.enumeration ? std::string_view((*descriptor.enumeration).type_name)
+                                                         : std::string_view(descriptor.name);
+    const std::size_t room = static_cast<std::size_t>(text.data() + text.size() - cursor);
+    const std::size_t shown = std::min(room, name.size());
+    cursor = std::copy_n(name.begin(), shown, cursor);
+    fail_fast("property.retained_enumerator",
+              std::string_view(text.data(), static_cast<std::size_t>(cursor - text.data())));
 }
 
 std::optional<BindingValue> convert_property_value(

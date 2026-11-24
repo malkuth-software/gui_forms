@@ -363,6 +363,22 @@ InvalidationOutlineStyle invalidation_outline_style(InvalidationCause cause) noe
     return style;
 }
 
+InvalidationOutlineStyle overflow_outline_style(OverflowOutlineKind kind) noexcept {
+    InvalidationOutlineStyle style{};
+    switch (kind) {
+    case OverflowOutlineKind::unanswered:
+        style = InvalidationOutlineStyle{Color::rgba(230, 0, 0), 3.0, 0.0, 0.0, false};
+        break;
+    case OverflowOutlineKind::clipped:
+        style = InvalidationOutlineStyle{Color::rgba(255, 176, 0), 3.0, 8.0, 4.0, false};
+        break;
+    default:
+        // An enumerator outside the declared set (a corrupt value) does nothing.
+        break;
+    }
+    return style;
+}
+
 std::string_view invalidation_cause_name(InvalidationCause cause) noexcept {
     switch (cause) {
     case InvalidationCause::control: return "control";
@@ -446,13 +462,44 @@ void InvalidationOverlay::set_counters(std::span<const std::string_view> lines) 
     counter_count_ = count;
 }
 
+void InvalidationOverlay::set_overflow_outlines(stxlib::View<OverflowOutline> outlines) {
+    const stxlib::usize count = std::min<stxlib::usize>(outlines.count(), maximum_overflow_outlines);
+    overflow_outlines_.clear();
+    // Reserved once for the whole set, so the pushes fit; storage that
+    // cannot grow leaves the outlines it holds.
+    const stxlib::OperationStatus reserved = overflow_outlines_.reserve(count);
+    if (reserved.failed()) return;
+    for (stxlib::usize index = 0U; index < count; ++index) {
+        const stxlib::OperationStatus pushed = overflow_outlines_.push_copy(outlines[index]);
+        static_cast<void>(pushed);
+    }
+}
+
 void InvalidationOverlay::fill_regions(double scale, std::uint32_t width, std::uint32_t height,
                                        std::vector<DevicePixelRect>& regions) const {
     regions.clear();
-    if ((outlines_.empty() && counter_count_ == 0U) || width == 0U || height == 0U) return;
+    if ((outlines_.empty() && overflow_outlines_.count() == 0U && counter_count_ == 0U) || width == 0U ||
+        height == 0U) {
+        return;
+    }
     const DevicePixelRect client{0, 0, static_cast<std::int32_t>(width), static_cast<std::int32_t>(height)};
     const std::int32_t unit = device_unit(scale);
-    regions.reserve(outlines_.size() * 5U + 2U);
+    regions.reserve(outlines_.size() * 5U + overflow_outlines_.count() * 4U + 2U);
+    for (stxlib::usize index = 0U; index < overflow_outlines_.count(); ++index) {
+        const OverflowOutline& outline = overflow_outlines_[index];
+        const DevicePixelRect device = device_bounds(outline.bounds, scale);
+        const std::int32_t thickness = stroke_thickness(overflow_outline_style(outline.kind), scale);
+        const std::array<DevicePixelRect, 4> bands{{
+            {device.left, device.top, device.right, device.top + thickness},
+            {device.left, device.bottom - thickness, device.right, device.bottom},
+            {device.left, device.top, device.left + thickness, device.bottom},
+            {device.right - thickness, device.top, device.right, device.bottom},
+        }};
+        for (const DevicePixelRect& band : bands) {
+            const DevicePixelRect clipped = intersect(band, client);
+            if (!empty_rect(clipped)) regions.push_back(clipped);
+        }
+    }
     for (const InvalidationOutline& outline : outlines_) {
         const DevicePixelRect device = device_bounds(outline.bounds, scale);
         const std::int32_t thickness = stroke_thickness(invalidation_outline_style(outline.cause), scale);
@@ -480,7 +527,10 @@ void InvalidationOverlay::fill_regions(double scale, std::uint32_t width, std::u
 
 void InvalidationOverlay::compose(const InvalidationOverlayTarget& target, double scale,
                                   InvalidationClock::time_point now, DevicePixelRect clip) const {
-    if ((outlines_.empty() && counter_count_ == 0U) || target.width == 0U || target.height == 0U) return;
+    if ((outlines_.empty() && overflow_outlines_.count() == 0U && counter_count_ == 0U) || target.width == 0U ||
+        target.height == 0U) {
+        return;
+    }
     const std::uint64_t needed = static_cast<std::uint64_t>(target.row_bytes) * (target.height - 1U) +
                                  static_cast<std::uint64_t>(target.width) * 4U;
     if (target.row_bytes < static_cast<std::size_t>(target.width) * 4U || target.pixels.size() < needed) return;
@@ -490,6 +540,11 @@ void InvalidationOverlay::compose(const InvalidationOverlayTarget& target, doubl
     canvas.clip = intersect(clip, bounds);
     if (empty_rect(canvas.clip)) return;
     const std::int32_t unit = device_unit(scale);
+    // The overflow outlines first, steady, beneath the fading ones.
+    for (stxlib::usize index = 0U; index < overflow_outlines_.count(); ++index) {
+        const OverflowOutline& outline = overflow_outlines_[index];
+        stroke(canvas, device_bounds(outline.bounds, scale), overflow_outline_style(outline.kind), scale, 1.0);
+    }
     const double lifetime = static_cast<double>(
         std::chrono::duration_cast<std::chrono::microseconds>(invalidation_outline_lifetime).count());
     for (const InvalidationOutline& outline : outlines_) {

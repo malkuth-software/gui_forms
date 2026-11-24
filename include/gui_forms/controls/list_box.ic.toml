@@ -1,0 +1,29 @@
+# ListBox's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/list_box.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/panel/list_box/list_box_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "ListBox"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/list_box.hpp"
+anchor = "class GUI_FORMS_API ListBox : public ListControl, public TextItemsCapability<ListBox>, public ListBoxCapabilities<ListBox> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/panel/list_box/list_box_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::list_box"
+includes = ["gui_forms/controls/list_box.hpp"]
+used_in = ["src/controls/panel/list_box/list_box.cpp"]
+
+[[call]]
+name = "item_height"
+id = "item_height_write"
+declarations = ["void prepare_write(const decltype(item_height)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 12 and incoming <= 256", refuses = "failure:invalid_argument", check = "item_height" },
+]

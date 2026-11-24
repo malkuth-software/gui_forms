@@ -8,7 +8,7 @@
 #include <memory>
 #include <span>
 #include <string_view>
-#include <thread>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -106,7 +106,7 @@ private:
 
     class Impl;
     std::unique_ptr<Impl> impl_;
-    std::thread::id owner_thread_;
+    stxlib::ThreadIdentity owner_thread_;
 };
 
 } // namespace gui_drawing::render

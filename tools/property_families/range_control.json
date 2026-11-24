@@ -132,7 +132,7 @@
       "effects": "Dirty::semantics",
       "prepare": [
         "require_finite(incoming, \"small change must be finite\");",
-        "if (incoming <= 0.0) throw std::invalid_argument(\"small change must be positive\");"
+        "if (!ic::admits_small_change(incoming)) throw std::invalid_argument(\"small change must be positive\");"
       ],
       "sample": "2.0"
     },
@@ -154,7 +154,7 @@
       "effects": "Dirty::semantics",
       "prepare": [
         "require_finite(incoming, \"large change must be finite\");",
-        "if (incoming <= 0.0) throw std::invalid_argument(\"large change must be positive\");"
+        "if (!ic::admits_large_change(incoming)) throw std::invalid_argument(\"large change must be positive\");"
       ],
       "sample": "20.0"
     },

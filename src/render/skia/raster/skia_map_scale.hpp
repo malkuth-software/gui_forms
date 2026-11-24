@@ -1,9 +1,9 @@
 #pragma once
 
 // Rotation tier 1 (claude/geometry-1): before a part raster is drawn through
-// a turning or skewing map, it is area-resampled (stx_conv, through the
-// interpolation seam) down to the map's minimum scale, so the bilinear draw
-// through the map never minifies and the turned raster does not alias.
+// a turning or skewing map, it is area-resampled (stxlib::conv's canon, as
+// draw_image below 1x) down to the map's minimum scale, so the bilinear
+// draw through the map never minifies and the turned raster does not alias.
 // Private to src/render/skia; pure arithmetic, no Skia type.
 
 #include "gui_forms/engine/types/engine_types.hpp"

@@ -37,6 +37,7 @@
 #include "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp"
 #include "gui_forms/components/help_provider/help_provider.hpp"
 #include "gui_forms/components/notify_icon/notify_icon.hpp"
+#include "gui_forms/components/toast_notification/toast_notification.hpp"
 #include "gui_forms/components/open_file_dialog/open_file_dialog.hpp"
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/save_file_dialog/save_file_dialog.hpp"
@@ -53,6 +54,7 @@
 #include "gui_forms/image_list/image_list/image_list.hpp"
 #include "gui_forms/live_surface/surface/live_surface.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <cstdint>
 #include <memory>
@@ -103,11 +105,11 @@ Component::Ptr create_type(StableId stable_id) {
         const Control::Ptr control = make_control<Type>(std::move(stable_id));
         return control;
     } else if constexpr (made_from_nothing<Type> && std::is_constructible_v<Type, std::string>) {
-        const std::shared_ptr<Type> component = std::make_shared<Type>(std::string(stable_id.value()));
+        const std::shared_ptr<Type> component = gui_forms::detail::make_library_shared<Type>(std::string(stable_id.value()));
         return component;
     } else if constexpr (made_from_nothing<Type>) {
         static_cast<void>(stable_id);
-        const std::shared_ptr<Type> component = std::make_shared<Type>();
+        const std::shared_ptr<Type> component = gui_forms::detail::make_library_shared<Type>();
         return component;
     } else {
         static_cast<void>(stable_id);
@@ -178,6 +180,7 @@ template <> void describe_type<PlotLinkGroup>(SchemaSample& sample);
 template <> void describe_type<RibbonToolTip>(SchemaSample& sample);
 template <> void describe_type<SaveFileDialog>(SchemaSample& sample);
 template <> void describe_type<SemanticFeedback>(SchemaSample& sample);
+template <> void describe_type<ToastNotification>(SchemaSample& sample);
 template <> void describe_type<ThreadExceptionDialog>(SchemaSample& sample);
 template <> void describe_type<Timer>(SchemaSample& sample);
 template <> void describe_type<ToolTip>(SchemaSample& sample);

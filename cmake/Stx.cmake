@@ -279,11 +279,6 @@ ${_gui_stx_stamp}"
             VERBATIM)
     endif()
 endif()
-if(GUI_FORMS_BUILD_FUZZERS AND GUI_FORMS_STX_SOURCE_DIR STREQUAL "")
-    # The fuzzers compile stx_zlib's and stx_png's sources with their own
-    # instrumentation, so they need the source whether or not the package was built.
-    _gui_stx_fetch_source()
-endif()
 
 # The package root this configure links, which nested generations of this
 # source (cmake/ApplicationText.cmake's consumer checks) link as their prefix.
@@ -291,6 +286,21 @@ set(GUI_FORMS_STX_PACKAGE_ROOT "${_gui_stx_package}")
 set(GUI_FORMS_STX_PREFIX_DIR "${_gui_stx_package}/stx")
 set(GUI_FORMS_STX_BUILD_PREFIX_DIR "${_gui_stx_package}/build")
 list(PREPEND CMAKE_PREFIX_PATH "${GUI_FORMS_STX_PREFIX_DIR}" "${GUI_FORMS_STX_BUILD_PREFIX_DIR}")
+# find_package takes a cached <name>_DIR before any PATHS, so a tree that
+# once linked another package (a renamed GUI_FORMS_STX_PACKAGE_DIR, or a
+# GUI_FORMS_STX_PREFIX since emptied) would keep linking that package's
+# libraries and config: cp37's M4 tree built against stx-package-preview's
+# STXlib, without stxlib::mcp, while it built and stamped stx-package-cp37.
+# A cached directory outside this package is dropped and found again here.
+foreach(_gui_stx_found stxlib stx_zlib stx_png stx_conv stx_raster3d stx_rtf2md stx_vorbis stx_skia)
+    if(DEFINED CACHE{${_gui_stx_found}_DIR})
+        file(TO_CMAKE_PATH "${${_gui_stx_found}_DIR}" _gui_stx_found_dir)
+        string(FIND "${_gui_stx_found_dir}/" "${_gui_stx_package}/" _gui_stx_found_at)
+        if(NOT _gui_stx_found_at EQUAL 0)
+            unset(${_gui_stx_found}_DIR CACHE)
+        endif()
+    endif()
+endforeach()
 # STXlib, which stx builds at its stxlib.lock commit and installs beside its
 # packages: stx_conv's SIMD level and the controls' row height index.
 find_package(stxlib CONFIG REQUIRED NO_DEFAULT_PATH PATHS "${GUI_FORMS_STX_PREFIX_DIR}")

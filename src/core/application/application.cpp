@@ -2,12 +2,14 @@
 #include "splashscreen_surface.hpp"
 #include "../surface_root/access/surface_lifetime_access.hpp"
 #include "../surface_root/access/surface_application_access.hpp"
+#include "../host/session/session_directory.hpp"
 #include "gui_forms/text/types/text_types.hpp"
 
 #include "gui_forms/application/user_themes/user_themes.hpp"
 #include "gui_forms/resources/application_resources/application_resources.hpp"
 #include "gui_forms/theme/stock_anatomies/stock_anatomies.hpp"
 #include "gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <atomic>
@@ -15,6 +17,7 @@
 #include <cstdio>
 #include <span>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -47,7 +50,7 @@ std::shared_ptr<detail::ApplicationWindowState> ready_state(
     status = {};
     std::shared_ptr<detail::ApplicationWindowState> state = weak.lock();
     if (!state) { status.error = HostServiceError::after_shutdown; return {}; }
-    if ((*state).thread != std::this_thread::get_id()) {
+    if ((*state).thread != stxlib::current_thread()) {
         status.error = HostServiceError::wrong_thread;
         return {};
     }
@@ -210,6 +213,12 @@ void attach_application_window(SurfaceRoot& model, const std::shared_ptr<Applica
     // The first window of the run is ready: a splashscreen shown before
     // Application::create hands over to it (its later windows find none).
     hand_over_splashscreen();
+    // The automation joins the window (session_directory.hpp), when a run
+    // installed its hook; nothing otherwise.
+    if (state) {
+        const ApplicationWindowHandle handle = ApplicationHandleAccess::make(state);
+        notify_window_ready(model, (*state).stable_id, handle);
+    }
 }
 
 void revoke_window_state(ApplicationWindowState& state) noexcept {
@@ -304,7 +313,7 @@ ApplicationWindowHandle::ApplicationWindowHandle(
 
 bool ApplicationWindowHandle::active() const noexcept {
     const std::shared_ptr<detail::ApplicationWindowState> state = state_.lock();
-    const bool active = state && (*state).thread == std::this_thread::get_id() &&
+    const bool active = state && (*state).thread == stxlib::current_thread() &&
         (*state).ready && !(*state).closed;
     return active;
 }
@@ -354,7 +363,7 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
         result.error = ApplicationCreateError::already_exists;
         return result;
     }
-    std::shared_ptr<ApplicationResources> resources = std::make_shared<ApplicationResources>(config.image_limits);
+    std::shared_ptr<ApplicationResources> resources = gui_forms::detail::make_library_shared<ApplicationResources>(config.image_limits);
     // The theme compiles here, once (APP_WINDOW_RULES_DESIGN K.1): the base,
     // then the program's packages. The process default's base alone is
     // already built (default_compiled_theme).
@@ -389,7 +398,7 @@ ApplicationCreateResult Application::create(ApplicationConfig config) {
     // does not hold refuses the user theme (E417) as it refuses a program
     // package, and the program's own theme stays.
     ThemeRequestContext request_context{};
-    request_context.library = std::make_shared<const ThemeLibrary>(std::move(config.theme.library));
+    request_context.library = gui_forms::detail::make_library_shared<const ThemeLibrary>(std::move(config.theme.library));
     request_context.base = config.theme.base;
     // The stock anatomies and the program's own, which theme_anatomies
     // places in the storage when there are both; none means the stock ones.
@@ -422,8 +431,8 @@ Application* Application::current() noexcept {
 Application::Application(std::shared_ptr<ApplicationResources> resources, PresentationSettings presentation)
     : resources_(std::move(resources)),
       presentation_(presentation),
-      key_bindings_(std::make_shared<KeyBindings>()),
-      tool_tips_shown_(std::make_shared<std::atomic<bool>>(true)) {}
+      key_bindings_(gui_forms::detail::make_library_shared<KeyBindings>()),
+      tool_tips_shown_(gui_forms::detail::make_library_shared<std::atomic<bool>>(true)) {}
 
 Application::~Application() {
     if (window_count_ > 0U) {
@@ -645,7 +654,7 @@ std::shared_ptr<detail::ApplicationRunState> live_run(
     status = {};
     std::shared_ptr<detail::ApplicationRunState> run = weak.lock();
     if (!run) { status.error = HostServiceError::after_shutdown; return {}; }
-    if ((*run).thread != std::this_thread::get_id()) {
+    if ((*run).thread != stxlib::current_thread()) {
         status.error = HostServiceError::wrong_thread;
         return {};
     }
@@ -730,7 +739,7 @@ ApplicationWindows::ApplicationWindows(std::weak_ptr<detail::ApplicationRunState
 
 bool ApplicationWindows::active() const noexcept {
     const std::shared_ptr<detail::ApplicationRunState> run = run_.lock();
-    const bool result = run && (*run).thread == std::this_thread::get_id() &&
+    const bool result = run && (*run).thread == stxlib::current_thread() &&
         !(*run).closed && (*run).windowing != nullptr;
     return result;
 }
@@ -830,7 +839,7 @@ ApplicationModalResult ApplicationWindows::show_modal(ApplicationWindow&& window
     // Subscribed before the open, so a result set by the ready callback is
     // seen. The token is safe after the model is gone (Event's slots hold
     // the event weakly).
-    const std::shared_ptr<ModalOutcome> outcome = std::make_shared<ModalOutcome>();
+    const std::shared_ptr<ModalOutcome> outcome = gui_forms::detail::make_library_shared<ModalOutcome>();
     (*outcome).dialog_result = (*window.model).dialog_result();
     const std::string owner_id = window.owner_id;
     SubscriptionToken subscription =

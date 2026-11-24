@@ -1,0 +1,49 @@
+# FormLayout's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/form_layout.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/panel/form_layout/form_layout_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "FormLayout"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/form_layout.hpp"
+anchor = "class GUI_FORMS_API FormLayout final : public Panel, public FormLayoutCapabilities<FormLayout> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/panel/form_layout/form_layout_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::form_layout"
+includes = ["gui_forms/controls/form_layout.hpp"]
+used_in = ["src/controls/panel/form_layout/form_layout.cpp"]
+
+[[call]]
+name = "caption_width"
+id = "caption_width_write"
+declarations = ["void prepare_write(const decltype(caption_width)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0 and incoming <= 4096", refuses = "failure:invalid_argument", check = "caption_width" },
+]
+
+[[call]]
+name = "row_spacing"
+id = "row_spacing_write"
+declarations = ["void prepare_write(const decltype(row_spacing)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0 and incoming <= 256", refuses = "failure:invalid_argument", check = "row_spacing" },
+]
+
+[[call]]
+name = "column_spacing"
+id = "column_spacing_write"
+declarations = ["void prepare_write(const decltype(column_spacing)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 0 and incoming <= 256", refuses = "failure:invalid_argument", check = "column_spacing" },
+]

@@ -3,7 +3,10 @@
 // Shared command-line contract for the GUI.Forms demonstration programs
 // (Gallery, Correspondence and the labs) on every host:
 //
-//   --automation        Windows: enable the WM_COPYDATA automation channel.
+//   --mcp, --model-directed, --mcp-script <file>
+//                       The library's automation (MCP) arguments: accepted and
+//                       left to the library, which reads the process's own
+//                       arguments (gui_forms/automation/marks/automation_marks.hpp).
 //   --smoke-test        The packaged-program proof, shaped like PlaySuite's:
 //                       the program runs normally, a UI timer closes the
 //                       window once a frame has been presented, the host
@@ -21,8 +24,10 @@
 //                       (gallery_headless_capture.hpp): a still of the
 //                       staged page at --size and --scale. The
 //                       process-control demonstrator draws its window the
-//                       same way (process_control_program.hpp). Other
-//                       programs ignore it.
+//                       same way (process_control_program.hpp), as does
+//                       the touch start demonstrator
+//                       (touch_start_program.hpp). Other programs ignore
+//                       it.
 //   --size <W>x<H>      Create the window at this logical size.
 //   --scale <factor>    Recorded as a hint only; hosts take the device scale
 //                       from the display.
@@ -54,10 +59,19 @@
 //                       click would (capture staging: the industrial-
 //                       surfaces page's industrial theme). The
 //                       process-control demonstrator sets its own check
-//                       boxes the same way. Other programs ignore it.
+//                       boxes the same way; the touch start demonstrator
+//                       selects the tile with this id segment (weather,
+//                       map, ...). Other programs ignore it.
+//   --familiar-theme <id>
+//                       The Gallery runs in this stock familiar theme
+//                       (familiar_theme_named: classic, xp_style, ...)
+//                       in place of its own sheet, as the Theme settings
+//                       page's every-window choice does (capture staging:
+//                       a familiar theme across the control catalogue).
+//                       Other programs ignore it.
 //
-// Every host's Gallery main applies --page, --reveal, --open-menu, --check
-// and --scheme through gallery_staging.hpp.
+// Every host's Gallery main applies --page, --reveal, --open-menu, --check,
+// --familiar-theme and --scheme through gallery_staging.hpp.
 //
 // The user-theme options every GUI.Forms program takes (--theme
 // <name|built-in|path.css> and --export-themes [folder];
@@ -90,7 +104,6 @@
 namespace gui_forms::demo {
 
 struct ProgramOptions final {
-    bool automation{};
     bool smoke_test{};
     // --headless: the Gallery's offscreen capture, with no host window.
     bool headless{};
@@ -108,13 +121,16 @@ struct ProgramOptions final {
     std::string reveal;
     std::string open_menu;
     std::string check;
+    // --familiar-theme <id> (capture staging); empty when not given.
+    std::string familiar_theme;
 };
 
 inline void print_program_usage(const char* program) {
     std::fprintf(stderr,
-                 "usage: %s [--automation] [--smoke-test] [--capture <path.png>] [--headless] "
+                 "usage: %s [--mcp] [--mcp-script <file.jsonl>] [--smoke-test] [--capture <path.png>] [--headless] "
                  "[--size <W>x<H>] [--scale <factor>] [--page <id>] [--backdrop <list>] [--theme-base <id>]\n"
                  "       [--scheme light|dark] [--reveal <id>] [--open-menu <id>[/<item>]] [--check <id>]\n"
+                 "       [--familiar-theme <id>]\n"
                  "       [--theme <name|built-in|path.css>]\n",
                  program != nullptr && *program != '\0' ? program : "gui-forms-demo");
 }
@@ -168,8 +184,10 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
     const std::size_t argument_count = arguments.size();
     for (std::size_t index = 0U; index < argument_count; ++index) {
         const std::string_view argument = arguments[index];
-        if (argument == "--automation") {
-            options.automation = true;
+        // The automation's arguments are the library's (automation_marks.hpp).
+        if (argument == "--mcp" || argument == "--model-directed") continue;
+        if (argument == "--mcp-script") {
+            ++index;
             continue;
         }
         if (argument == "--smoke-test") {
@@ -184,7 +202,8 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                                  argument == "--scale" || argument == "--page" ||
                                  argument == "--backdrop" || argument == "--theme-base" ||
                                  argument == "--scheme" || argument == "--reveal" ||
-                                 argument == "--open-menu" || argument == "--check";
+                                 argument == "--open-menu" || argument == "--check" ||
+                                 argument == "--familiar-theme";
         if (!wants_value) {
             print_program_usage(program);
             return std::nullopt;
@@ -225,6 +244,12 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
                 return std::nullopt;
             }
             options.scheme = std::string(value);
+        } else if (argument == "--familiar-theme") {
+            if (value.empty()) {
+                print_program_usage(program);
+                return std::nullopt;
+            }
+            options.familiar_theme = std::string(value);
         } else if (argument == "--reveal" || argument == "--open-menu" || argument == "--check") {
             if (value.empty()) {
                 print_program_usage(program);
@@ -258,7 +283,7 @@ inline std::optional<ProgramOptions> parse_program_options(int argc, char** argv
 
 // Copies the portable capture fields into any host option struct that carries
 // them (MacHostOptions, WindowsHostOptions, LinuxHostOptions). Host-specific
-// fields such as automation_enabled are set by the main that owns them.
+// fields are set by the main that owns them.
 // The capture size into a host's options: the macOS and Linux hosts hold an
 // stxlib::Optional (D15), the Windows host a std::optional for now.
 inline void assign_capture_size(stxlib::Optional<Size>& target, const std::optional<Size>& size) {

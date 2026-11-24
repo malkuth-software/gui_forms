@@ -20,7 +20,8 @@
 #                                         GUIForms::Application, an interface
 #                                         target over the two
 #                                         (GUIFormsApplicationTargets.cmake.in).
-# The STXlib and stx packages, GUIForms::Threading and GUIForms::PlotPrimitives
+# The STXlib and stx packages, GUIForms::Threading, GUIForms::Memory and
+# GUIForms::PlotPrimitives
 # are installed archives of their own, which the interface names; the
 # program's link therefore holds one copy of each routine.
 #
@@ -88,6 +89,10 @@ set(GUI_FORMS_PACKAGE_FIND_DEPENDENCIES "")
 if(APPLE)
     set(GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES
         "-framework AppKit;-framework QuartzCore;-framework IOSurface;-framework CoreGraphics;-framework CoreText;-framework UniformTypeIdentifiers;-framework CoreFoundation")
+    # Desktop notifications; not linked in a high-integrity build.
+    if(NOT GUI_FORMS_HIGH_INTEGRITY)
+        string(APPEND GUI_FORMS_PACKAGE_SYSTEM_LIBRARIES ";-framework UserNotifications")
+    endif()
     set(GUI_FORMS_PACKAGE_WHOLE_ARCHIVE
         "LINKER:-force_load,\${_gui_forms_application_prefix}/${CMAKE_INSTALL_LIBDIR}/libgui_forms_application.a")
 elseif(WIN32 AND MINGW)
@@ -131,6 +136,14 @@ endif()
 set(GUI_FORMS_PACKAGE_DEFINITIONS "")
 if(WIN32)
     set(GUI_FORMS_PACKAGE_DEFINITIONS "_WIN32_WINNT=0x0A00;WINVER=0x0A00")
+endif()
+# The MCP transport (CMakeLists.txt: gui_forms_application links stxlib::mcp
+# privately when GUI_FORMS_MCP is on): the engine archive calls into it, so the
+# installed interface names the STXlib package's stxlib::mcp before the
+# libraries it links.
+set(GUI_FORMS_PACKAGE_MCP_LIBRARIES "")
+if(GUI_FORMS_MCP AND NOT GUI_FORMS_HIGH_INTEGRITY AND TARGET stxlib::mcp)
+    set(GUI_FORMS_PACKAGE_MCP_LIBRARIES "stxlib::mcp;")
 endif()
 # The prefix, from lib/cmake/GUIForms where the targets file is installed.
 file(RELATIVE_PATH GUI_FORMS_PACKAGE_PREFIX_FROM_CONFIG

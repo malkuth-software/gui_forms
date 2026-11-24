@@ -11,7 +11,19 @@
 
 #include <stxlib/optional.hpp>
 
+namespace gui_forms {
+class Window;
+} // namespace gui_forms
+
 namespace gui_forms::detail {
+
+// The Splash window a route shows its bubble in (shown_splash): its model
+// and where it is in the root's client coordinates; a null model when none
+// shows.
+struct ShownSplash final {
+    gui_forms::Window* model{};
+    Rect bounds{};
+};
 
 // Where a root's tooltips go (threaded sub-surfaces design note section 15).
 // A window shows them itself (ToolTipPresenter); a sub-surface, which never
@@ -75,6 +87,10 @@ public:
     [[nodiscard]] virtual Control::Ptr target() const noexcept = 0;
     [[nodiscard]] virtual std::string item_id() const = 0;
     [[nodiscard]] virtual std::string text() const = 0;
+    // The Splash window the bubble shows in now (the automation's capture
+    // composites it); a null model when the bubble shows as an overlay, or
+    // nothing shows.
+    [[nodiscard]] virtual ShownSplash shown_splash() const = 0;
 };
 
 } // namespace gui_forms::detail

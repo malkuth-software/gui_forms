@@ -1,0 +1,113 @@
+{
+  "schema": 1,
+  "component": "gf_abi::events",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_events.ic.toml",
+    "sha256": "f29689355148010d648f64de93e4aa2a7fe11578df545ece9d62bf3008315fa8"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.events.subscribe.requires.subscription_output",
+      "kind": "entry-check",
+      "statement": "subscribe runs only when not_null(subscription); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_events::admits_subscription_output, called in src/abi/stable/tables/abi_events.cpp"
+    },
+    {
+      "id": "gf_abi.events.subscribe.refusal.subscription_output",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(subscription), subscribe changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe.order",
+      "kind": "refusal-order",
+      "statement": "When several of subscribe's refusals apply, the first of subscription_output, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "subscribe in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "subscribe in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.requires.subscription_output",
+      "kind": "entry-check",
+      "statement": "subscribe_property runs only when not_null(subscription); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_events::admits_subscription_output, called in src/abi/stable/tables/abi_events.cpp"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.refusal.subscription_output",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(subscription), subscribe_property changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.order",
+      "kind": "refusal-order",
+      "statement": "When several of subscribe_property's refusals apply, the first of subscription_output, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "subscribe_property in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.subscribe_property.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "subscribe_property in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.events.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

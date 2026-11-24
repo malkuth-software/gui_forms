@@ -3,7 +3,7 @@ project(stx_fontpack_installed_consumer LANGUAGES CXX)
 
 # This fixture has no source-tree include path or library fallback; the
 # package config finds stx_zlib by itself.
-find_package(stx_fontpack 0.1 CONFIG REQUIRED)
+find_package(stx_fontpack 1.0 CONFIG REQUIRED)
 add_executable(stx_fontpack_installed_consumer main.cpp)
 set_target_properties(stx_fontpack_installed_consumer PROPERTIES CXX_STANDARD 20 CXX_STANDARD_REQUIRED ON)
 target_link_libraries(stx_fontpack_installed_consumer PRIVATE stx_fontpack::packer)

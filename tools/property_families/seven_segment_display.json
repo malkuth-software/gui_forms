@@ -72,7 +72,7 @@
         "registry": false
       },
       "prepare": [
-        "if (incoming > 64U) throw std::invalid_argument(\"SevenSegmentDisplay digit count must be at most 64\");"
+        "if (!ic::admits_digit_count(incoming)) throw std::invalid_argument(\"SevenSegmentDisplay digit count must be at most 64\");"
       ],
       "sample": "std::uint32_t{6U}"
     },

@@ -381,9 +381,9 @@ Rect CompositeEvaluator::subject_box(const std::string_view name) const {
     if (!name.starts_with("@")) return part_box(name);
     const Control::Ptr child = control_.child(name.substr(1U));
     if (!child) return Rect{};
+    // The child's window rectangle in the control's own coordinates.
     const Rect child_bounds = (*child).absolute_bounds();
-    const Rect own = control_.absolute_bounds();
-    const Rect relative{child_bounds.x - own.x, child_bounds.y - own.y, child_bounds.width, child_bounds.height};
+    const Rect relative = control_.rectangle_from_window(child_bounds);
     return relative;
 }
 

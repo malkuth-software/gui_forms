@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::SevenSegmentDisplay",
+  "declaration": "include/gui_forms/controls/seven_segment_display.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gui_forms.sevensegmentdisplay.digit_count_write",
+      "mode": "legal",
+      "call": "digit_count",
+      "kind": "member",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gui_forms::SevenSegmentDisplay"
+        },
+        {
+          "name": "incoming",
+          "type": "std::uint32_t",
+          "bounded_by": [
+            "incoming <= 64"
+          ]
+        }
+      ],
+      "requires": [
+        "incoming <= 64"
+      ],
+      "fails": [],
+      "returns": {}
+    },
+    {
+      "name": "gui_forms.sevensegmentdisplay.digit_count_write.misuse.digit_count",
+      "mode": "misuse",
+      "call": "digit_count",
+      "violates": "incoming <= 64",
+      "expect": {
+        "kind": "failure",
+        "failure": "invalid_argument"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

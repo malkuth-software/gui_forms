@@ -9,6 +9,7 @@
 #include "gui_forms/host.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -230,7 +231,7 @@ ContentTextEditor::ContentTextEditor(StableId stable_id, std::string initial_tex
     : TextBoxBase(std::move(stable_id)),
       editing_host_(std::make_unique<EditingHost>(*this)),
       editing_(std::make_unique<detail::TextEditingEngine>(*editing_host_, initial_text)),
-      notices_(std::make_shared<FrameNotices>(*this)) {
+      notices_(gui_forms::detail::make_library_shared<FrameNotices>(*this)) {
     focusable = true;
     cursor = stxlib::Optional<CursorKind>::of(CursorKind::text);
 }
@@ -727,18 +728,28 @@ void ContentTextEditor::handle_key(KeyEvent& event) {
 
 void ContentTextEditor::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     if (event.action == PointerAction::down && event.button == PointerButton::primary) {
-        if (window() != nullptr) static_cast<void>((*window()).request_focus(shared_from_this()));
+        const Control::Ptr lifetime = shared_from_this();
+        event.handled = true;
+        if (window() != nullptr) static_cast<void>((*window()).request_focus(lifetime));
+        // The focus handlers may detach or dispose the box: nothing below
+        // runs on a box that left its window (`lifetime` keeps it until the
+        // press is done).
+        if (!is_alive() || window() == nullptr) return;
         const Utf8Offset position = position_at(local);
         const bool extend = includes(event.modifiers, Modifier::shift);
         const TextSelection placed = extend ? TextSelection{(*editing_).selection().anchor, position}
                                             : TextSelection{position, position};
         set_selection(placed);
-        selecting_ = true;
+        // The selection drag starts with the capture and only if it was
+        // taken: a refused capture, or handlers that drop the box, leave no
+        // drag waiting for a release that may never come.
+        if (!is_alive() || window() == nullptr) return;
         set_pointer_capture(true);
-        event.handled = true;
+        if (!is_alive()) return;
+        selecting_ = has_pointer_capture();
         return;
     }
     const bool dragging = event.action == PointerAction::move && selecting_ && has_pointer_capture();

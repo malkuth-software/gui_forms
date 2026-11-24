@@ -12,6 +12,8 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "button_base_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -25,10 +27,11 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::button_base;
 
 std::shared_ptr<const PropertyEnumDescriptor> button_base_detail::choice_indicator_style_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "indicator_style", {{"classic", 0}, {"modern", 1}, {"toggle", 2}, {"lamp", 3}}, false});
     return value;
 }
@@ -114,7 +117,7 @@ void ButtonBase::bind(Command& command) {
     require_mutable();
     const Control::Ptr retained = weak_from_this().lock();
     std::shared_ptr<CommandConnection> connection =
-        std::make_shared<CommandConnection>(*this, command);
+        gui_forms::detail::make_library_shared<CommandConnection>(*this, command);
     unbind_command();
     command_connection_ = std::move(connection);
     (*command_connection_).synchronize();
@@ -169,7 +172,7 @@ namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> content_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "content_alignment",
             {{"top_left", 0}, {"top_center", 1}, {"top_right", 2}, {"middle_left", 3}, {"middle_center", 4},
              {"middle_right", 5}, {"bottom_left", 6}, {"bottom_center", 7}, {"bottom_right", 8}},
@@ -1312,7 +1315,7 @@ BindingValue PropertyValueTraits<ContentAlignment>::to_binding(ContentAlignment 
     descriptor.enumeration = content_alignment_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1411,7 +1414,7 @@ void ButtonBase::written(const decltype(content_padding)&) {
 
 void ButtonBase::prepare_write(const decltype(text_line_spacing)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.75 || incoming > 3.0) {
+    if (!ic::admits_text_line_spacing(incoming)) {
         throw std::invalid_argument("Button text line spacing must be finite and between 0.75 and 3.0");
     }
 }
@@ -1440,7 +1443,7 @@ void ButtonBase::written(const decltype(text_image_relation)&) {
 
 void ButtonBase::prepare_write(const decltype(image_gap)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 64.0) {
+    if (!ic::admits_image_gap(incoming)) {
         throw std::invalid_argument("Button image gap must be finite and between zero and 64");
     }
 }

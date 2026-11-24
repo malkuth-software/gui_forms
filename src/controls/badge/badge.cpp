@@ -3,6 +3,8 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "badge_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -14,13 +16,14 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::badge;
 namespace {
 
 // The BadgeMode enumeration, numbered as declared. Static storage; any
 // thread may read it.
 std::shared_ptr<const PropertyEnumDescriptor> badge_mode_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "badge_mode", {{"count", 0}, {"dot", 1}}, false});
     return value;
 }
@@ -269,7 +272,7 @@ BindingValue PropertyValueTraits<BadgeMode>::to_binding(BadgeMode value) {
     descriptor.enumeration = badge_mode_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -322,7 +325,7 @@ void Badge::written(const decltype(count)&) {
 
 void Badge::prepare_write(const decltype(maximum)&, std::uint32_t& incoming) {
     require_mutable();
-    if (incoming == 0U) throw std::invalid_argument("Badge maximum must be at least 1");
+    if (!ic::admits_maximum(incoming)) throw std::invalid_argument("Badge maximum must be at least 1");
 }
 
 void Badge::written(const decltype(maximum)&) {

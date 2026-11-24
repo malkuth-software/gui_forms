@@ -109,6 +109,14 @@ Related types
      - The host's compositor and preference state (stage T5): reported once after attach and again whenever it changes (capability compositor_notifications).
    * - :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`
      - The platform asked for a context menu (owner's mouse-event rule): Windows WM_CONTEXTMENU (after the right button's release, or Shift+F10 and the Menu key), macOS menuForEvent: (the right button's press, or a Control-click).
+   * - :cpp:class:`HostDesktopNotificationEvent <gui_forms::HostDesktopNotificationEvent>`
+     -  
+   * - :cpp:class:`HostDesktopNotificationId <gui_forms::HostDesktopNotificationId>`
+     - Desktop notifications (capability desktop_notifications): a notification the platform's own notification service shows outside the application's windows, kept in its notification list where it has one: macOS's UNUserNotificationCenter, Windows' toast notifications and the freedesktop notification service (org.freedesktop.Notifications).
+   * - :cpp:class:`HostDesktopNotificationRequest <gui_forms::HostDesktopNotificationRequest>`
+     - A notification: a title of at most 255 bytes and text of 1 to 1023 bytes of UTF-8, without NUL.
+   * - :cpp:class:`HostDesktopNotificationResult <gui_forms::HostDesktopNotificationResult>`
+     -  
    * - :cpp:class:`HostDialogHelpEvent <gui_forms::HostDialogHelpEvent>`
      - The user asked for help in an open message dialog: its Help button, or F1.
    * - :cpp:class:`HostDialogRequest <gui_forms::HostDialogRequest>`
@@ -119,6 +127,12 @@ Related types
      - HostDispatchResult carries handled/deferred/capacity/close/drag outcome plus portable rejection or callback-fault category.
    * - :cpp:class:`HostDisplayEvent <gui_forms::HostDisplayEvent>`
      - HostDisplayEvent carries a complete validated unique-primary monitor set after display topology change.
+   * - :cpp:class:`HostDragSourceEnd <gui_forms::HostDragSourceEnd>`
+     - How a drag to other programs ended (HostServices::drag_source_ended), raised once per started drag on the UI thread.
+   * - :cpp:class:`HostDragSourceRequest <gui_forms::HostDragSourceRequest>`
+     - A drag to other programs (capability typed_drag_source, HostServices::start_drag): what the drag carries and the effects the destination may choose.
+   * - :cpp:class:`HostDragSourceResult <gui_forms::HostDragSourceResult>`
+     - A started drag's identity, when ``status`` is accepted (zero otherwise).
    * - :cpp:class:`HostEvent <gui_forms::HostEvent>`
      - HostEvent binds nonzero monotonic sequence and caller-supplied monotonic timestamp to one portable lifecycle/input payload.
    * - :cpp:class:`HostEventClock <gui_forms::HostEventClock>`
@@ -163,6 +177,8 @@ Related types
      - What the window asks of the host for relative pointer mode (HostServices::set_relative_pointer).
    * - :cpp:class:`HostResizeEvent <gui_forms::HostResizeEvent>`
      - HostResizeEvent carries a validated logical client extent for an attached session.
+   * - :cpp:class:`HostSafeInsetsEvent <gui_forms::HostSafeInsetsEvent>`
+     - The edges of the client area the host or the device hides, in logical units (stage VA; capability safe_insets, host protocol version 16): reported after attach and whenever they change.
    * - :cpp:class:`HostSaveFileDialogRequest <gui_forms::HostSaveFileDialogRequest>`
      - HostSaveFileDialogRequest declares portable title/location/name/default extension/filter and overwrite policy.
    * - :cpp:class:`HostScaleEvent <gui_forms::HostScaleEvent>`
@@ -1022,6 +1038,61 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostDesktopNotificationEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   .. cpp:member:: HostDesktopNotificationId notification_id
+
+   .. cpp:member:: HostDesktopNotificationAction action
+
+      Default: ``{HostDesktopNotificationAction::activated}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDesktopNotificationId final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   Desktop notifications (capability desktop_notifications): a notification the platform's own notification service shows outside the application's windows, kept in its notification list where it has one: macOS's UNUserNotificationCenter, Windows' toast notifications and the freedesktop notification service (org.freedesktop.Notifications). No tray icon is needed. A notification is named by the identity HostServices::show_desktop_notification returns; no native handle enters the portable contract.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool valid() const noexcept
+
+   .. cpp:member:: std::uint64_t value
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDesktopNotificationRequest final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   A notification: a title of at most 255 bytes and text of 1 to 1023 bytes of UTF-8, without NUL. ``silent`` asks the platform not to play its sound.
+
+   .. cpp:member:: std::string title
+
+   .. cpp:member:: std::string text
+
+   .. cpp:member:: HostDesktopNotificationUrgency urgency
+
+      Default: ``{HostDesktopNotificationUrgency::normal}``.
+
+   .. cpp:member:: bool silent
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDesktopNotificationResult final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   .. cpp:member:: HostServiceStatus status
+
+   .. cpp:member:: HostDesktopNotificationId notification_id
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostDialogHelpEvent final
 
    ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
@@ -1104,6 +1175,46 @@ Related types
    HostDisplayEvent carries a complete validated unique-primary monitor set after display topology change.
 
    .. cpp:member:: std::vector<HostMonitor> monitors
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDragSourceEnd final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   How a drag to other programs ended (HostServices::drag_source_ended), raised once per started drag on the UI thread. ``performed_effect`` is the effect the destination took, one of the request's allowed effects, or none when the drag was cancelled (Escape, released over nothing, or refused by the destination). The program removes its own copy only on ``move``; a Windows shell destination that moves files itself (an optimized move) reports none, as it has already removed them.
+
+   .. cpp:member:: std::uint64_t session_id
+
+   .. cpp:member:: DragEffect performed_effect
+
+      Default: ``{DragEffect::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDragSourceRequest final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   A drag to other programs (capability typed_drag_source, HostServices::start_drag): what the drag carries and the effects the destination may choose. Each item becomes the platform's own format: a file list its file references (CF_HDROP, file URLs), text its Unicode text, and bytes the format its media type names ("image/png" the platform's PNG type). The same bounds as an inbound drag hold: 1 to DragLimits::maximum_items items within the total, UTF-8 throughout, no NUL. A file list names paths the platform can resolve (full paths).
+
+   .. cpp:member:: std::vector<DragDataItem> items
+
+   .. cpp:member:: DragEffect allowed_effects
+
+      Default: ``{DragEffect::copy}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HostDragSourceResult final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   A started drag's identity, when ``status`` is accepted (zero otherwise). The drag's end arrives later as a HostDragSourceEnd with this identity.
+
+   .. cpp:member:: HostServiceStatus status
+
+   .. cpp:member:: std::uint64_t session_id
 
 .. cpp:namespace:: gui_forms
 
@@ -1535,6 +1646,16 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HostSafeInsetsEvent final
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   The edges of the client area the host or the device hides, in logical units (stage VA; capability safe_insets, host protocol version 16): reported after attach and whenever they change. The window's root slot keeps clear of them (SurfaceRoot::set_safe_insets). Refused as invalid_geometry unless valid_safe_insets holds.
+
+   .. cpp:member:: SafeInsets insets
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HostSaveFileDialogRequest final
 
    ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
@@ -1623,6 +1744,10 @@ Related types
 
       Validates zero through five seconds, commits the new policy, and clears prior cue history so old state cannot suppress the next cue.
 
+   .. cpp:function:: bool drag_source_active() const noexcept
+
+      Whether a drag from these services is running.
+
    .. cpp:function:: HostServicesSnapshot snapshot() const
 
       Returns capability, cursor/capture, service counts, sound policy, modal depth, rejection, and shutdown telemetry.
@@ -1633,6 +1758,14 @@ Related types
    .. cpp:function:: Event<const HostTrayIconEvent&>& tray_icon_events() noexcept
 
       Raised on the UI thread for each user action on a live tray icon.
+
+   .. cpp:function:: Event<const HostDragSourceEnd&>& drag_source_ended() noexcept
+
+      Raised on the UI thread once for each accepted start_drag.
+
+   .. cpp:function:: Event<const HostDesktopNotificationEvent&>& desktop_notification_events() noexcept
+
+      Raised on the UI thread, once per live notification, when it is activated, dismissed or fails; the identity is no longer live when the event is raised.
 
    .. cpp:function:: Event<const HostDialogHelpEvent&>& dialog_help_requested() noexcept
 
@@ -1714,6 +1847,22 @@ Related types
       Capability notification_area_menus. Shows a native menu at the icon and returns when it closes, as show_dialog does.
 
    .. cpp:function:: bool tray_icon_live(HostTrayIconId icon_id) const noexcept
+
+   .. cpp:function:: HostDragSourceResult start_drag(const HostDragSourceRequest& request)
+
+      Starts a drag of ``request.items`` to other programs (capability typed_drag_source); the program's own windows are destinations too. Call it while handling a pointer press or move with a button held down, as the drag follows that button. Refused, starting nothing: unsupported without typed_drag_source; invalid_argument for items outside the bounds HostDragSourceRequest states or for allowed effects that are none or hold an unknown bit; modal_limit while another drag from these services runs; backend_failure when the platform refuses (no button held, no pointer event to start from). An accepted drag ends exactly once, through drag_source_ended. On Windows (DoDragDrop) and X11 (the XDND source's loop) the drag runs a modal loop and ends before start_drag returns; on macOS it ends later, from the run loop. The platform takes the press's release; on macOS and X11 the window receives it right after the end is reported, so pressed and capture state end as after any press (Windows ends the capture with WM_CAPTURECHANGED). UI thread.
+
+   .. cpp:function:: HostDesktopNotificationResult show_desktop_notification(const HostDesktopNotificationRequest& request)
+
+      Desktop notifications (capability desktop_notifications), shown by the platform's notification service outside the application's windows. show_desktop_notification hands the request to the platform and returns its identity, assigned from 1 and never reused by this HostServices; the platform may still refuse it later, which arrives as a ``failed`` event. Refused, changing nothing: unsupported without the capability (always in a high-integrity build, which compiles the service out); too_large for a title or text past its maximum; invalid_utf8 for either not valid UTF-8; invalid_argument for empty text, a NUL, or an urgency outside the enumeration; backend_failure when the platform's service could not take it. With maximum_live_desktop_notifications live, the oldest is withdrawn first. UI thread.
+
+   .. cpp:function:: HostServiceStatus withdraw_desktop_notification(HostDesktopNotificationId notification_id)
+
+      Takes a live notification back from the platform's list, raising no event. invalid_argument for an identity that is not live.
+
+   .. cpp:function:: bool desktop_notification_live(HostDesktopNotificationId notification_id) const noexcept
+
+      Whether the identity is shown and not yet activated, dismissed, failed or withdrawn. Shutdown forgets every identity and leaves the notifications in the platform's list, as platforms keep them.
 
    .. cpp:function:: bool publish_dialog_help(const HostDialogHelpEvent& event)
 
@@ -1844,6 +1993,16 @@ Related types
 
       *Protected.*
 
+   .. cpp:function:: virtual HostServiceStatus show_desktop_notification_impl(HostDesktopNotificationId notification_id, const HostDesktopNotificationRequest& request)
+
+      *Protected.*
+
+      Desktop notification adapters: called with a validated request and the identity the base class assigned, on a host that advertises desktop_notifications. The defaults refuse as unsupported. Withdraw must not fail in a way that leaves the notification in the platform's list where the platform can take it back.
+
+   .. cpp:function:: virtual void withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept
+
+      *Protected.*
+
    .. cpp:function:: virtual HostDialogResult show_dialog_impl(const HostDialogRequest& request) = 0
 
       *Protected.*
@@ -1861,6 +2020,12 @@ Related types
       *Protected.*
 
       Lets the concrete adapter release native resources after portable terminal state commits.
+
+   .. cpp:function:: virtual HostServiceStatus start_drag_impl(std::uint64_t session_id, const HostDragSourceRequest& request)
+
+      *Protected.*
+
+      Starts the platform drag for start_drag, which has validated the request and assigned ``session_id``; the adapter reports its end through publish_drag_source_end. The default refuses as unsupported.
 
    .. cpp:function:: virtual HostServiceStatus add_tray_icon_impl(HostTrayIconId icon_id, const HostTrayIconRequest& request)
 
@@ -1909,6 +2074,18 @@ Related types
       *Protected.*
 
       Adapters report native tray events here, on the UI thread. Events for identities that are not live are dropped.
+
+   .. cpp:function:: void publish_drag_source_end(const HostDragSourceEnd& event)
+
+      *Protected.*
+
+      Adapters report the end of the drag start_drag_impl started here. Dropped off the UI thread and for an identity that is not the running drag's; a performed effect outside the drag's allowed effects is reported as none. Ends the drag before raising drag_source_ended, so a handler may start another.
+
+   .. cpp:function:: void publish_desktop_notification_event(const HostDesktopNotificationEvent& event)
+
+      *Protected.*
+
+      Adapters report what became of a desktop notification here, on the UI thread. The identity stops being live before the event is raised; events for identities that are not live are dropped (a second report, or one for a withdrawn notification).
 
    .. cpp:member:: constexpr std::size_t maximum_clipboard_text_bytes
 
@@ -1965,6 +2142,18 @@ Related types
    .. cpp:member:: constexpr std::size_t maximum_tray_menu_items
 
       Default: ``64U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_desktop_notification_title_bytes
+
+      Default: ``255U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_desktop_notification_text_bytes
+
+      Default: ``1023U``.
+
+   .. cpp:member:: constexpr std::size_t maximum_live_desktop_notifications
+
+      Live notification identities a HostServices keeps; showing one more withdraws the oldest (development bound, not measured capacity). Default: ``32U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -2047,6 +2236,16 @@ Related types
 
    .. cpp:member:: std::uint64_t tray_events
 
+   .. cpp:member:: std::uint64_t desktop_notifications
+
+      Desktop notifications: the accepted shows and withdrawals, the live identities now, and the events published.
+
+   .. cpp:member:: std::uint64_t desktop_notification_withdrawals
+
+   .. cpp:member:: std::uint64_t desktop_notifications_live
+
+   .. cpp:member:: std::uint64_t desktop_notification_events
+
    .. cpp:member:: std::uint64_t rejected_requests
 
    .. cpp:member:: bool shutdown
@@ -2110,6 +2309,10 @@ Related types
 
       Validates thread/sequence/phase/geometry/payload, suppresses modal input, translates the event into retained operations, contains callback faults at the foreign boundary, publishes observation, and returns exact outcome.
 
+   .. cpp:function:: HostDispatchResult dispatch_model_input(HostEventPayload payload, std::uint64_t timestamp_nanoseconds)
+
+      A model's input (notes:planning/studies/MCP_AUTOMATION_STUDY.md, section 8.1): the automation core builds a pointer, key, text, hover or context request event as a host would and delivers it through this same session, so the model's input and the user's go through one door in the order they arrive. It takes no sequence number (the host's own sequence stays the host's, so no later host event is refused as out of order) and is never held by the user input gate that model.directed and suspend_input install; a modal window over this one suppresses it exactly as it suppresses the user's input. Any other payload is refused as invalid_payload; the other refusals are dispatch's (wrong_thread, after_shutdown, the lifecycle, invalid UTF-8 text, an invalid pointer report). Counted in the snapshot's model_input_events. UI thread.
+
    .. cpp:function:: void shutdown() noexcept
 
       Idempotently revokes dispatcher, frame, pointer, drag, service attachment, and active/occluded state before committing terminal phase.
@@ -2157,9 +2360,19 @@ Related types
 
       HostRelativeMotionEvent samples delivered to the window.
 
+   .. cpp:member:: std::uint64_t gesture_events
+
+      GestureEvent reports delivered to the window.
+
    .. cpp:member:: std::uint64_t drag_events
 
    .. cpp:member:: std::uint64_t drag_drops
+
+   .. cpp:member:: std::uint64_t model_input_events
+
+      A model's input delivered through HostSession::dispatch_model_input, and the user's input events held back while a model held the interface (model.directed or suspend_input; MCP automation study, sections 8.2 and 8.3).
+
+   .. cpp:member:: std::uint64_t user_input_held
 
    .. cpp:member:: std::uint32_t modal_depth
 
@@ -2694,6 +2907,12 @@ Related types
    .. cpp:member:: std::uint64_t follow_moves
 
    .. cpp:member:: std::uint64_t clamped_follow_moves
+
+   .. cpp:member:: std::uint64_t size_clamped_frames
+
+      The visible-area guarantee (stage VA, decision 7): reported frames of primary, standard and tool windows larger than the work area of their monitor (and not covering its whole frame, as a full-screen window does) for which a smaller frame was requested, and those the window kept because the request was refused or did not take (a minimum size larger than the work area).
+
+   .. cpp:member:: std::uint64_t unfit_frames
 
    .. cpp:member:: bool application_active
 
@@ -3642,8 +3861,6 @@ Related types
 
       Default: ``{true}``.
 
-   .. cpp:member:: bool automation_enabled
-
    .. cpp:member:: bool close_after_launch_for_testing
 
    .. cpp:member:: bool quit_thread_on_close
@@ -3675,8 +3892,6 @@ Related types
       Published on the host UI thread during initialization, like title_ready. The operation asks for a native client size in logical units; see ApplicationWindowHandle::request_client_size. Sizes below minimum_size are invalid_argument; full screen, maximized and minimized windows are unsupported. The new size arrives through the host's resize event.
 
    .. cpp:member:: Point initial_position
-
-   .. cpp:member:: std::function<std::shared_ptr<Control>(std::string_view)> automation_resolve
 
    .. cpp:member:: std::function<void(HostCloseRequest&)> close_request
 
@@ -4027,6 +4242,10 @@ Enumerations
 
    .. cpp:enumerator:: reference_presentation
 
+   .. cpp:enumerator:: desktop_notifications
+
+   .. cpp:enumerator:: safe_insets
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: HostCloseReason
@@ -4042,6 +4261,30 @@ Enumerations
    .. cpp:enumerator:: test
 
    .. cpp:enumerator:: quit
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostDesktopNotificationAction
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   .. cpp:enumerator:: activated
+
+   .. cpp:enumerator:: dismissed
+
+   .. cpp:enumerator:: failed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: HostDesktopNotificationUrgency
+
+   ``#include <gui_forms/host/types/host_types.hpp>`` (:src:`source <include/gui_forms/host/types/host_types.hpp>`)
+
+   .. cpp:enumerator:: low
+
+   .. cpp:enumerator:: normal
+
+   .. cpp:enumerator:: critical
 
 .. cpp:namespace:: gui_forms
 
@@ -4646,9 +4889,9 @@ Functions, constants and aliases
 
    Whether the rows run consecutively from 8, each with a feature.
 
-.. cpp:var:: constexpr std::array<HostProtocolRevision, 8> host_protocol_revisions
+.. cpp:var:: constexpr std::array<HostProtocolRevision, 9> host_protocol_revisions
 
-   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version. Value: ``{{{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"}, {9U, "the compositor state report (HostCompositorEvent, stage T5)"}, {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"}, {11U, "the platform's mouse conventions: context requests (HostContextRequestEvent), native hover " "(HostHoverEvent) and the drag and hover settings (HostInputSettingsEvent::pointer)"}, {12U, "the native window's state (HostWindowStateEvent: full screen and corner-reshaping changes)"}, {13U, "the caret's blink phase (HostInputSettingsEvent::caret)"}, {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"}, {15U, "relative pointer mode (HostRelativeMotionEvent, HostServices::set_relative_pointer and " "warp_pointer) and pointer event timestamps and scroll phases"}}}``.
+   The host protocol's versions, one row each, from version 8 (earlier versions are not recorded). The current version is the last row's. A change to the protocol adds a row at the end, so two changes that claim the same version both add the same line and conflict when merged, and the checks below refuse a skipped or repeated version. Value: ``{{{8U, "the host's keyboard-command defaults (HostCapabilities::key_map)"}, {9U, "the compositor state report (HostCompositorEvent, stage T5)"}, {10U, "the platform's input settings (HostInputSettingsEvent: the double-click interval)"}, {11U, "the platform's mouse conventions: context requests (HostContextRequestEvent), native hover " "(HostHoverEvent) and the drag and hover settings (HostInputSettingsEvent::pointer)"}, {12U, "the native window's state (HostWindowStateEvent: full screen and corner-reshaping changes)"}, {13U, "the caret's blink phase (HostInputSettingsEvent::caret)"}, {14U, "the platform's locale (HostCapabilities::locale, HostCapability::locale)"}, {15U, "relative pointer mode (HostRelativeMotionEvent, HostServices::set_relative_pointer and " "warp_pointer) and pointer event timestamps and scroll phases"}, {16U, "the client area's safe insets (HostSafeInsetsEvent, HostCapability::safe_insets; stage VA)"}}}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4662,7 +4905,7 @@ Functions, constants and aliases
 
 .. cpp:var:: constexpr HostCapability high_integrity_compiled_out_capabilities
 
-   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, frame capture to a file, drag and drop with other programs, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture | HostCapability::typed_drag_source | HostCapability::typed_drag_destination``.
+   The host services a high-integrity build does not compile (cmake/HighIntegrity.cmake): opening addresses, clipboard images and clipboard file references, frame capture to a file, drag and drop with other programs, desktop notifications, and clipboard text unless the build keeps its allowance. Every host removes them from its report and HostServices from its own, so their requests are refused as unsupported. Value: ``HostCapability::open_url | HostCapability::clipboard_images | HostCapability::frame_capture | HostCapability::typed_drag_source | HostCapability::typed_drag_destination | HostCapability::desktop_notifications``.
 
 .. cpp:namespace:: gui_forms
 
@@ -4718,7 +4961,7 @@ Functions, constants and aliases
 
 .. cpp:type:: HostDialogResultPayload = std::variant< HostMessageDialogResult, HostPathDialogResult, HostColorDialogResult>
 
-.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent, HostRelativeMotionEvent>
+.. cpp:type:: HostEventPayload = std::variant< HostAttachEvent, HostResizeEvent, HostScaleEvent, HostActivationEvent, HostOcclusionEvent, HostDisplayEvent, DragEvent, PointerEvent, KeyEvent, TextInputEvent, HostCloseRequest, HostClosedEvent, HostShutdownEvent, HostCompositorEvent, HostInputSettingsEvent, HostContextRequestEvent, HostHoverEvent, HostWindowStateEvent, HostRelativeMotionEvent, GestureEvent, HostSafeInsetsEvent>
 
 .. cpp:namespace:: gui_forms
 
@@ -4786,6 +5029,10 @@ Functions, constants and aliases
 
    Moves ``outer`` the least distance that puts it inside ``work_area``; a rectangle wider or taller than the work area is aligned with its left or top edge. The size never changes.
 
+.. cpp:function:: Rect fit_to_work_area(Rect outer, Rect work_area) noexcept
+
+   The visible-area guarantee for windows (stage VA, decision 7): ``outer`` made no wider and no taller than ``work_area``, then moved the least distance that puts it inside (clamp_to_work_area). A rectangle that already fits only moves.
+
 .. cpp:namespace:: gui_forms::host
 
 ``#include <gui_forms/platform/linux_host.hpp>`` (:src:`source <include/gui_forms/platform/linux_host.hpp>`)
@@ -4851,10 +5098,6 @@ Functions, constants and aliases
 .. cpp:namespace:: gui_forms::host
 
 ``#include <gui_forms/platform/windows_host.hpp>`` (:src:`source <include/gui_forms/platform/windows_host.hpp>`)
-
-.. cpp:function:: void accept_automation_environment() noexcept
-
-   Development opt-in, Windows only: after this call, a later run_windows_application (and so Application::run) honours GUI_FORMS_WINDOWS_AUTOMATION=1 in the process environment by turning on the automation channel (automation_enabled) in every window. Without the call the variable is ignored, and a build configured without GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT ignores it even after the call. It is for test probes that run through the portable Application API, whose options cannot ask for automation; a shipped program does not call it. Process-wide, callable from any thread, and never withdrawn.
 
 .. cpp:function:: HostCapabilities windows_capabilities()
 

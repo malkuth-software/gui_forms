@@ -87,6 +87,10 @@ Related types
      - DispatchOperation observes and explicitly cancels one bounded FIFO work record; dropping it does not cancel fire-and-forget work.
    * - :cpp:class:`DisplayChunkInfo <gui_forms::DisplayChunkInfo>`
      - DisplayChunkInfo exposes immutable generation, paint plane, logical bounds, and command count for one retained recording without exposing its private commands.
+   * - :cpp:class:`DisplayTiming <gui_forms::DisplayTiming>`
+     - One window's display timing as its host last reported it (design note frame-source, section 2): frames are shown at presentation_phase + k * refresh_period for whole k.
+   * - :cpp:class:`DisplayTimingEstimator <gui_forms::DisplayTimingEstimator>`
+     - Display timing measured from the times a host's presentations completed, for a host whose system reports no timing (design note frame-source, section 4): an X11 copy presenter without Present, the shared single-surface manager, a vertical-blank waiter that stamps each refresh.
    * - :cpp:class:`FocusedControlChange <gui_forms::FocusedControlChange>`
      - Focus moved from one control to another (or to or from none) through request_focus.
    * - :cpp:class:`FocusScopeChange <gui_forms::FocusScopeChange>`
@@ -115,6 +119,12 @@ Related types
      - A frame's pixels the overlay composites onto: ``height`` rows of ``width`` premultiplied BGRA pixels, ``row_bytes`` apart.
    * - :cpp:class:`KeyGesture <gui_forms::KeyGesture>`
      - KeyGesture is exact portable physical-key plus modifier identity used for deterministic accelerator comparison.
+   * - :cpp:class:`LibraryAllocated <gui_forms::LibraryAllocated>`
+     - The class-scope allocation functions of GUI.Forms' object roots: every form of operator new and delete a new- or delete-expression of a derived type can name, over the library seam, so that the object's storage is GUI.Forms' whoever writes the expression.
+   * - :cpp:class:`LibraryAllocator <gui_forms::LibraryAllocator>`
+     - Not final: libstdc++'s containers derive from their allocator.
+   * - :cpp:class:`LibraryAllocator::rebind <gui_forms::LibraryAllocator::rebind>`
+     -  
    * - :cpp:class:`LiveSurfacePairingListener <gui_forms::LiveSurfacePairingListener>`
      - Told that a live surface's frame was presented unpaired: older than the content tag its control required (Window::require_live_surface_content), once per required tag.
    * - :cpp:class:`LiveSurfacePresentation <gui_forms::LiveSurfacePresentation>`
@@ -135,6 +145,8 @@ Related types
      - OffscreenRaster::create's outcome: the raster, or why there is none.
    * - :cpp:class:`OffscreenRasterOptions <gui_forms::OffscreenRasterOptions>`
      -  
+   * - :cpp:class:`OverflowOutline <gui_forms::OverflowOutline>`
+     - One overflowing owner's outline: its child viewport (or, for the root, the root slot) in window logical units.
    * - :cpp:class:`OverlayOptions <gui_forms::OverlayOptions>`
      - OverlayOptions distinguishes interactive overlays that require an enabled owner from passive providers that require only live visible attachment.
    * - :cpp:class:`OverlayToken <gui_forms::OverlayToken>`
@@ -163,6 +175,8 @@ Related types
      - The screen area one presentation copied (stage DP): device pixels, the rectangles they were copied in, and the time spent only copying them (pixel conversion and the native copy, not painting).
    * - :cpp:class:`PressTrace <gui_forms::PressTrace>`
      - The last primary press: where it landed and how the route treated it.
+   * - :cpp:class:`RefreshCounterTiming <gui_forms::RefreshCounterTiming>`
+     - Display timing from a presenter's completion stamps that count the display's refreshes (X11 Present's ust and msc; design note frame-source, section 3): each stamp is the time a frame was shown and the refresh it was shown on.
    * - :cpp:class:`ScrollCopy <gui_forms::ScrollCopy>`
      - A scroll copy (SurfaceRoot::take_scroll_copies): the host moves the pixels it holds inside ``clip`` by ``offset``, both in window coordinates and whole device pixels, before painting the damage taken with it.
    * - :cpp:class:`ShadowFrame <gui_forms::ShadowFrame>`
@@ -173,6 +187,8 @@ Related types
      - Opens a frame on the calling thread for the scope's lifetime and closes it on every exit, an exception's included.
    * - :cpp:class:`ShadowStackState <gui_forms::ShadowStackState>`
      - The calling thread's stack beside its frames.
+   * - :cpp:class:`ShownPopupWindow <gui_forms::ShownPopupWindow>`
+     - One window a Window shows over itself (Window::shown_popup_window): its model, borrowed for the current UI turn, and where it is in the owner's client coordinates.
    * - :cpp:class:`SpecimenStateResult <gui_forms::SpecimenStateResult>`
      -  
    * - :cpp:class:`SurfaceRequestAnswer <gui_forms::SurfaceRequestAnswer>`
@@ -904,6 +920,90 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: DisplayTiming final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   One window's display timing as its host last reported it (design note frame-source, section 2): frames are shown at presentation_phase + k * refresh_period for whole k. A display link reports its target time as the phase on every tick; a fixed rate has its phase at the clock's epoch.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool paced() const noexcept
+
+      Frames are drawn for the time they are shown: any source but assumed.
+
+   .. cpp:function:: double refresh_hertz() const noexcept
+
+      Refreshes per second; 0 for assumed timing.
+
+   .. cpp:function:: bool valid() const noexcept
+
+      Whether a window may hold this timing: assumed, or a period within minimum_refresh_period and maximum_refresh_period.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static DisplayTiming assumed() noexcept
+
+      No report: assumed_refresh_period at the epoch, poll-time frames.
+
+   .. cpp:function:: static DisplayTiming fixed_rate(FrameInterval period, FrameTime phase = FrameTime{}) noexcept
+
+      A fixed rate for tests, benches and offscreen hosts: frames every ``period`` from ``phase``.
+
+   .. cpp:function:: static DisplayTiming reported(DisplayTimingSource source, FrameInterval period, FrameTime presentation) noexcept
+
+      A host's report: ``source`` timing with frames every ``period`` and one shown at ``presentation``.
+
+   .. cpp:member:: FrameInterval refresh_period
+
+      The current refresh interval; on a variable-rate display, the rate the system chose last. Default: ``{assumed_refresh_period}``.
+
+   .. cpp:member:: FrameTime presentation_phase
+
+      Any instant at which a frame is shown, in the frame clock's domain.
+
+   .. cpp:member:: DisplayTimingSource source
+
+      Default: ``{DisplayTimingSource::assumed}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: DisplayTimingEstimator final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   Display timing measured from the times a host's presentations completed, for a host whose system reports no timing (design note frame-source, section 4): an X11 copy presenter without Present, the shared single-surface manager, a vertical-blank waiter that stamps each refresh. The period is the median of the last 16 intervals between completions; once three are known, an interval longer than 1.75 periods counts as that many whole refreshes (the window drew nothing in between) when it is within a tenth of a whole number of them, and is dropped otherwise. The timing is reported, phased at the latest completion, once 8 of the intervals agree with the median within a tenth. One instance per window, on its thread.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: std::size_t interval_count() const noexcept
+
+      The intervals held, at most interval_capacity.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: stxlib::Optional<DisplayTiming> take(FrameTime completed) noexcept
+
+      Takes a presentation that completed at ``completed``. Returns measured timing (DisplayTimingSource::measured) once the intervals agree, and nothing before. A completion within minimum_refresh_period of the last is ignored (two stamps for one refresh); one after a gap longer than maximum_refresh_period (the window rested) starts the next interval from it, keeping the intervals; one earlier than the last (another clock, a reset presenter) forgets every interval and starts again.
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets every completion (the window moved to another display).
+
+   .. cpp:member:: constexpr std::size_t interval_capacity
+
+      The intervals the median is taken over, and how many of them must agree with it before a timing is reported. Default: ``16U``.
+
+   .. cpp:member:: constexpr std::size_t agreeing_intervals
+
+      Default: ``8U``.
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: FocusedControlChange final
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
@@ -995,6 +1095,10 @@ Related types
    .. cpp:member:: bool suppressed_by_occlusion
 
    .. cpp:member:: stxlib::Optional<FrameTime> next_wake
+
+   .. cpp:member:: FrameTime presentation_time
+
+      The time the frames this poll produced are shown: the window's next presentation after the poll's time when its display timing is paced (SurfaceRoot::display_timing), else the poll's time. The motion clock and display-paced animation timers were advanced to it.
 
 .. cpp:namespace:: gui_forms
 
@@ -1155,6 +1259,12 @@ Related types
 
       Replaces the counters card's lines (the window fills them from its metrics after each paint): the first maximum_overlay_counter_lines, each cut to maximum_overlay_counter_characters bytes. The lines' storage is reused, so a steady card allocates nothing. No lines, no card.
 
+   .. cpp:function:: stxlib::View<OverflowOutline> overflow_outlines() const& noexcept
+
+   .. cpp:function:: void set_overflow_outlines(stxlib::View<OverflowOutline> outlines)
+
+      Replaces the overflow outlines (the window fills them from its overflow records after each paint; stage VA): the first maximum_overflow_outlines of :cpp:func:`outlines <gui_forms::InvalidationOverlay::outlines>`. The storage is reused, so a steady set allocates nothing after the first.
+
    .. cpp:function:: std::span<const InvalidationOutline> outlines() const& noexcept
 
       Oldest first.
@@ -1180,7 +1290,7 @@ Related types
 
    .. cpp:function:: void fill_regions(double scale, std::uint32_t width, std::uint32_t height, std::vector<DevicePixelRect>& regions) const
 
-      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, the legend while any outline shows, and the counters card at the top left while it has lines. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
+      The device rectangles the overlay draws on at ``scale`` in a client of ``width`` by ``height`` device pixels, into ``regions`` (replacing its contents): each outline's four stroke bands and its label, each overflow outline's four bands, the legend while any outline shows, and the counters card at the top left while it has lines. A host presents these again from its raster when the overlay changes, so that a faded outline leaves nothing behind.
 
    .. cpp:function:: void compose(const InvalidationOverlayTarget& target, double scale, InvalidationClock::time_point now, DevicePixelRect clip) const
 
@@ -1215,6 +1325,56 @@ Related types
    .. cpp:member:: Modifier modifiers
 
       Default: ``{Modifier::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: LibraryAllocated
+
+   ``#include <gui_forms/allocation/library_memory/library_memory.hpp>`` (:src:`source <include/gui_forms/allocation/library_memory/library_memory.hpp>`)
+
+   The class-scope allocation functions of GUI.Forms' object roots: every form of operator new and delete a new- or delete-expression of a derived type can name, over the library seam, so that the object's storage is GUI.Forms' whoever writes the expression. The placement form stays the ordinary one (a class-scope operator new hides the global placement new otherwise). Empty: deriving from it adds no state.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <typename Value> LibraryAllocator
+
+   ``#include <gui_forms/allocation/library_memory/library_memory.hpp>`` (:src:`source <include/gui_forms/allocation/library_memory/library_memory.hpp>`)
+
+   Not final: libstdc++'s containers derive from their allocator.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: LibraryAllocator() noexcept
+
+   .. cpp:function:: template <typename Other> LibraryAllocator(const LibraryAllocator<Other>&) noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: Value* allocate(std::size_t count)
+
+      Storage for ``count`` values, uninitialized. std::bad_array_new_length when count * sizeof(Value) overflows; std::bad_alloc when refused.
+
+   .. cpp:function:: void deallocate(Value* values, std::size_t) noexcept
+
+   .. cpp:type:: value_type = Value
+
+   .. cpp:type:: size_type = std::size_t
+
+   .. cpp:type:: difference_type = std::ptrdiff_t
+
+   .. cpp:type:: is_always_equal = std::true_type
+
+   .. cpp:type:: propagate_on_container_move_assignment = std::true_type
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: template <typename Other> LibraryAllocator::rebind
+
+   ``#include <gui_forms/allocation/library_memory/library_memory.hpp>`` (:src:`source <include/gui_forms/allocation/library_memory/library_memory.hpp>`)
+
+   .. cpp:type:: other = LibraryAllocator<Other>
 
 .. cpp:namespace:: gui_forms
 
@@ -1465,6 +1625,20 @@ Related types
    .. cpp:member:: FilePath font_directory
 
       A directory of the bundled faces (assets/fonts) to read in place of the embedded font pack; empty takes the source the hosts' windows take (the pack, or a development build's directory).
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: OverflowOutline final
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
+
+   One overflowing owner's outline: its child viewport (or, for the root, the root slot) in window logical units. Steady: drawn at full opacity while the overflow lasts, never fading.
+
+   .. cpp:member:: Rect bounds
+
+   .. cpp:member:: OverflowOutlineKind kind
+
+      Default: ``{OverflowOutlineKind::unanswered}``.
 
 .. cpp:namespace:: gui_forms
 
@@ -1798,6 +1972,10 @@ Related types
 
       The preferred colour scheme (EC3). A change re-resolves every part: a theme's rules may hold for one scheme only. Default: ``{ColourScheme::light}``.
 
+   .. cpp:member:: double minimum_content_scale
+
+      The smallest effective scale controls are contained at (stage VA, decision 5): a contain of controls that would go smaller takes its viewport_fit's below_minimum at this scale instead. Media (Control:: shows_media_content) is bounded by its own minimum_scale alone. Above 0 and at most 1. Default: ``{0.5}``.
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: PresentedArea final
@@ -1841,6 +2019,25 @@ Related types
    .. cpp:member:: PressOutcome outcome
 
       Default: ``{PressOutcome::none}``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: RefreshCounterTiming final
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   Display timing from a presenter's completion stamps that count the display's refreshes (X11 Present's ust and msc; design note frame-source, section 3): each stamp is the time a frame was shown and the refresh it was shown on. The period is the time between an anchor stamp and the latest over the refreshes between them, so it is as fine as a long span makes it; the anchor moves forward every 240 refreshes, to a stamp taken 120 or more after it, so the span stays between 120 and 240 refreshes once that many have passed. One instance per window, on its thread.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: stxlib::Optional<DisplayTiming> take(FrameTime shown, std::uint64_t count) noexcept
+
+      Takes a frame shown at ``shown`` on refresh ``count``. Returns display timing with that period, phased at ``shown``; nothing for the first stamp, and nothing (starting again from this stamp) when the count does not advance or the time does not (a reset presenter, another display).
+
+   .. cpp:function:: void reset() noexcept
+
+      Forgets every stamp (the window moved to another display).
 
 .. cpp:namespace:: gui_forms
 
@@ -1952,6 +2149,18 @@ Related types
    .. cpp:member:: std::uint64_t dropped
 
       Default: ``0U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: ShownPopupWindow final
+
+   ``#include <gui_forms/window/window.hpp>`` (:src:`source <include/gui_forms/window/window.hpp>`)
+
+   One window a Window shows over itself (Window::shown_popup_window): its model, borrowed for the current UI turn, and where it is in the owner's client coordinates.
+
+   .. cpp:member:: Window* model
+
+   .. cpp:member:: Rect bounds
 
 .. cpp:namespace:: gui_forms
 
@@ -2494,7 +2703,7 @@ Related types
 
    ``#include <gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp>`` (:src:`source <include/gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp>`)
 
-   A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window. Window::invoke and Window::begin_invoke need a live Window; a thread that may outlive the window (a client thread, a worker the window does not join) posts through this handle instead. The handle shares the dispatcher's state, never the window: once the window has closed (its host shut the dispatcher down, or its destructor began), the handle reports that as an explicit result and touches nothing of the window. The window is gone when its dispatcher has stopped accepting work or its teardown has begun. Work posted before that and still pending when it happens is cancelled, as Window::shutdown_dispatcher always does.
+   A window's dispatcher, reachable from any thread for as long as the caller holds this handle, whatever happens to the window. Window::invoke and Window::begin_invoke need a live Window; a thread that may outlive the window (a client thread, a worker the window does not join) posts through this handle instead. The handle shares the dispatcher's state, never the window: once the window has closed (its host shut the dispatcher down, or its destructor began), the handle reports that as an explicit result and touches nothing of the window. The window is gone when its dispatcher has stopped accepting work or its teardown has begun. Work posted before that and still pending when it happens is cancelled, as Window::shutdown_dispatcher always does. ic: gui_forms::WindowDispatcher: generated from ic: include/gui_forms/dispatcher/window_dispatcher/window_dispatcher.ic.toml by tools/ic_declarations.py; edit the ic: declaration, not these lines. States: unbound (initial), accepting, gone. Observed by state(): unbound ic: WindowDispatcherState::unbound, accepting WindowDispatcherState::accepting, gone WindowDispatcherState::gone. ic: Thread: any, unless a call says otherwise.
 
 
    .. rubric:: Construction
@@ -2510,16 +2719,20 @@ Related types
 
       Whether the window was still accepting work at the moment of the call; an answer that may be stale by the time the caller acts on it.
 
+   .. cpp:function:: WindowDispatcherState state() const noexcept
+
+      The handle's state: unbound, accepting or gone (WindowDispatcherState). accepting may be stale by the time the caller acts on it, as window_alive's answer may; unbound and gone never change.
+
 
    .. rubric:: Methods
 
    .. cpp:function:: DispatchOperation begin_invoke(std::function<void()> callback) const
 
-      Posts ``callback`` to run on the window's UI thread. A window that is gone returns an operation that is already cancelled (the explicit result DispatchOperation carries) and releases the callback.
+      Posts ``callback`` to run on the window's UI thread. A window that is gone returns an operation that is already cancelled (the explicit result DispatchOperation carries) and releases the callback. ic: Admitted in accepting, gone. In unbound: failure logic_error, unchanged. Requires bound != 0, else failure ic: logic_error, unchanged. When several refusals apply: the state refusal, then bound. Fails cancelled (the ic: window is gone: the operation returned is already cancelled and the callback released), unchanged. Returns ic: DispatchOperation, owned by the caller. Transfers the callback from caller to the window's dispatcher.
 
    .. cpp:function:: DispatchInvokeResult invoke(std::function<void()> callback) const
 
-      Runs ``callback`` on the window's UI thread and waits for it: inline on the UI thread, marshalled from any other through the host's wake. The result is completed when it ran and window_gone when the window was gone first or closed while the work waited; the callback did not run then. An exception the callback throws is rethrown here, as Window::invoke does. A live window with no running host (no wake handler) throws std::logic_error, as Window::invoke does.
+      Runs ``callback`` on the window's UI thread and waits for it: inline on the UI thread, marshalled from any other through the host's wake. The result is completed when it ran and window_gone when the window was gone first or closed while the work waited; the callback did not run then. An exception the callback throws is rethrown here, as Window::invoke does. A live window with no running host (no wake handler) throws std::logic_error, as Window::invoke does. ic: Admitted in accepting, gone. In unbound: failure logic_error, unchanged. Requires bound != 0, else failure ic: logic_error, unchanged. When several refusals apply: the state refusal, then bound. Fails invalid_argument ic: (an empty callback (a std::function the clause grammar cannot name, so its check stays in code)), unchanged; ic: window_gone (the window was gone first or closed while the work waited (DispatchInvokeResult::window_gone); ic: the callback did not run), unchanged; logic_error (a live window with no running host (no wake handler)), ic: unchanged.
 
 .. cpp:namespace:: gui_forms
 
@@ -2993,6 +3206,22 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: DisplayTimingSource
+
+   ``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+   .. cpp:enumerator:: assumed
+
+   .. cpp:enumerator:: display
+
+   .. cpp:enumerator:: measured
+
+   .. cpp:enumerator:: nominal
+
+   .. cpp:enumerator:: fixed
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FocusScopeCloseReason
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
@@ -3130,6 +3359,16 @@ Enumerations
    .. cpp:enumerator:: fonts_refused
 
    .. cpp:enumerator:: raster_refused
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: OverflowOutlineKind
+
+   ``#include <gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`` (:src:`source <include/gui_forms/diagnostics/invalidation_overlay/invalidation_overlay.hpp>`)
+
+   .. cpp:enumerator:: unanswered
+
+   .. cpp:enumerator:: clipped
 
 .. cpp:namespace:: gui_forms
 
@@ -3391,6 +3630,18 @@ Enumerations
 
    .. cpp:enumerator:: rounded
 
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: WindowDispatcherState
+
+   ``#include <gui_forms/dispatcher/types/dispatcher_types.hpp>`` (:src:`source <include/gui_forms/dispatcher/types/dispatcher_types.hpp>`)
+
+   .. cpp:enumerator:: unbound
+
+   .. cpp:enumerator:: accepting
+
+   .. cpp:enumerator:: gone
+
 Functions, constants and aliases
 --------------------------------
 
@@ -3444,7 +3695,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void append_blend_study_log(std::string_view window, std::uint64_t frame, const BlendFrameCounters& counters) noexcept
 
-   The study's log, for programs measured without code of their own (the product procedure of tools/blend_study.py): when the environment variable GUI_FORMS_BLEND_STUDY_LOG names a file, every frame any window counts is appended to it as one JSON line, {"window":<its root's stable id>, "frame":<the window's frame number>,"counters":<blend_frame_counters_json>}. The file is opened on the first counted frame (append mode) and each line is flushed; lines from windows on several threads are serialized. Unset, empty or not openable, nothing is written. Any thread.
+   The study's log, for programs measured without code of their own (the product procedure of gui_forms_tests tools/blend_study.py): when the environment variable GUI_FORMS_BLEND_STUDY_LOG names a file, every frame any window counts is appended to it as one JSON line, {"window":<its root's stable id>, "frame":<the window's frame number>,"counters":<blend_frame_counters_json>}. The file is opened on the first counted frame (append mode) and each line is flushed; lines from windows on several threads are serialized. Unset, empty or not openable, nothing is written. Any thread.
 
 .. cpp:function:: BlendStudyMode blend_study_requested_by_environment() noexcept
 
@@ -3500,6 +3751,8 @@ Functions, constants and aliases
 
    Counts each change of the process switch, so a window notices one with a single relaxed load. Any thread.
 
+.. cpp:function:: InvalidationOutlineStyle overflow_outline_style(OverflowOutlineKind kind) noexcept
+
 .. cpp:var:: constexpr std::size_t invalidation_cause_count
 
    Value: ``6U``.
@@ -3527,6 +3780,10 @@ Functions, constants and aliases
 .. cpp:type:: InvalidationClock = std::chrono::steady_clock
 
    The time outlines are stamped and aged with.
+
+.. cpp:var:: constexpr std::size_t maximum_overflow_outlines
+
+   The overflow outlines a window keeps at once; later ones are not shown. Value: ``256U``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3631,6 +3888,34 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t paint_plane_count
 
    Value: ``3``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/scheduler/display_timing/display_timing.hpp>`` (:src:`source <include/gui_forms/scheduler/display_timing/display_timing.hpp>`)
+
+.. cpp:function:: FrameTime next_on_grid(FrameTime phase, FrameInterval period, FrameTime after) noexcept
+
+   The first instant phase + k * period strictly after ``after`` (k may be negative). ``period`` must be positive.
+
+.. cpp:function:: FrameTime next_presentation(const DisplayTiming& timing, FrameTime now) noexcept
+
+   The time a frame drawn at ``now`` is shown: the first presentation strictly after ``now``, or ``now`` itself for timing that is not paced.
+
+.. cpp:function:: const char* display_timing_source_name(DisplayTimingSource source) noexcept
+
+   A short label of the source for diagnostics and benches: "assumed", "display", "measured", "nominal" or "fixed".
+
+.. cpp:var:: constexpr FrameInterval assumed_refresh_period
+
+   The cadence a window without display timing paces its frames at. Value: ``std::chrono::milliseconds(16)``.
+
+.. cpp:var:: constexpr FrameInterval minimum_refresh_period
+
+   The bounds a reported refresh period must lie within (1000 Hz to 1 Hz); SurfaceRoot::set_display_timing rejects a period outside them. Value: ``std::chrono::milliseconds(1)``.
+
+.. cpp:var:: constexpr FrameInterval maximum_refresh_period
+
+   Value: ``std::chrono::seconds(1)``.
 
 .. cpp:namespace:: gui_forms
 
@@ -3848,7 +4133,7 @@ Functions, constants and aliases
 
 .. cpp:function:: void validate_presentation_settings(const PresentationSettings& settings)
 
-   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a double-click interval outside 1 to maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, caret settings that are not valid_caret_settings, or an origin or scheme outside its enum.
+   Throws std::invalid_argument for settings no window takes: a text scale outside 0.5 to 4.0 or not finite, a minimum content scale not above 0 or above 1, a double-click interval outside 1 to maximum_double_click_milliseconds, pointer settings that are not valid_pointer_settings, caret settings that are not valid_caret_settings, or an origin or scheme outside its enum.
 
 .. cpp:function:: PresentationSettings overridden_presentation(PresentationSettings settings, const PresentationOverrides& overrides) noexcept
 

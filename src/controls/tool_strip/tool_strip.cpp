@@ -10,6 +10,8 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "tool_strip_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +21,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::tool_strip;
 namespace {
 
 // Strip geometry in logical units at text scale 1 (Windows Forms' 25-unit
@@ -40,7 +43,6 @@ constexpr double vertical_item_extent = 22.0;
 constexpr double default_combo_box_width = 120.0;
 constexpr double default_hosted_width = 100.0;
 constexpr double maximum_hosted_width = 1024.0;
-constexpr double maximum_end_reserve = 64.0;
 
 bool has_menu(ToolStripItemKind kind) noexcept {
     const bool result = kind == ToolStripItemKind::drop_down_button ||
@@ -335,6 +337,20 @@ void ToolStrip::set_item_text(std::string_view item_id, std::string text) {
     invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
 }
 
+void ToolStrip::set_item_width(std::string_view item_id, double width) {
+    require_mutable();
+    const stxlib::Optional<std::size_t> found_index = index_of(item_id);
+    const std::size_t* const index = found_index.value();
+    if (index == nullptr) throw std::out_of_range("ToolStrip has no item with this ID");
+    if (!std::isfinite(width) || width < 0.0 || width > maximum_hosted_width) {
+        throw std::invalid_argument("ToolStrip hosted item widths must be finite, non-negative and at most 1024");
+    }
+    if (items_[*index].width == width) return;
+    items_[*index].width = width;
+    advance_layout_revision();
+    invalidate(Dirty::measure | Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+}
+
 bool ToolStrip::item_checked(std::string_view item_id) const {
     const stxlib::Optional<std::size_t> found_index = index_of(item_id);
     const std::size_t* const index = found_index.value();
@@ -361,7 +377,7 @@ void ToolStrip::set_item_checked(std::string_view item_id, bool checked) {
 
 void ToolStrip::prepare_write(const decltype(end_reserve)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > maximum_end_reserve) {
+    if (!ic::admits_end_reserve(incoming)) {
         throw std::invalid_argument("ToolStrip end reserve must be finite and between 0 and 64");
     }
 }
@@ -795,9 +811,10 @@ void ToolStrip::on_paint(Painter& painter, Rect) {
 
 stxlib::Optional<std::size_t> ToolStrip::index_at(Point window_point, ItemZone& zone) const {
     zone = ItemZone::none;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
+    const Rect absolute = frame_to_outer(local_frame, client_rectangle());
     if (!absolute.contains(window_point)) return stxlib::Optional<std::size_t>::none();
-    const Point local{window_point.x - absolute.x, window_point.y - absolute.y};
+    const Point local = frame_to_inner(local_frame, window_point);
     const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (placed.items[index].empty() || !placed.items[index].contains(local)) continue;
@@ -809,10 +826,10 @@ stxlib::Optional<std::size_t> ToolStrip::index_at(Point window_point, ItemZone& 
 }
 
 bool ToolStrip::overflow_at(Point window_point) const {
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Rect button = layout().overflow_button;
     const bool result = !button.empty() &&
-        button.contains(Point{window_point.x - absolute.x, window_point.y - absolute.y});
+        button.contains(frame_to_inner(local_frame, window_point));
     return result;
 }
 
@@ -1048,13 +1065,13 @@ bool ToolStrip::show_drop_down(std::string_view item_id, MenuOpenMode mode) {
     if (holds(open_index_, *index) && (*overlay_).is_open()) return true;
     close_drop_down();
     (*overlay_).set_items(std::move(menu));
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     // A menu opens below an item, or beside it on a vertical strip.
     // Right to left it hangs leftward from the item's right edge.
     const bool right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
     const double drop_x = right_to_left ? bounds.x + bounds.width : bounds.x;
-    Point anchor{absolute.x + drop_x, absolute.y + bounds.y + bounds.height};
-    if (vertical()) anchor = {absolute.x + bounds.x + bounds.width, absolute.y + bounds.y};
+    Point anchor = frame_to_outer(local_frame, Point{drop_x, bounds.y + bounds.height});
+    if (vertical()) anchor = frame_to_outer(local_frame, Point{bounds.x + bounds.width, bounds.y});
     // show opens a focus scope, which runs the previous control's focus and
     // validation handlers before it returns; one may close the menu or
     // replace the items (A-gf-controls-14-F2). The open item is recorded
@@ -1110,7 +1127,7 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
             items_[index].kind != ToolStripItemKind::button) continue;
         ItemState& state = item_states_[index];
         if (!state.overflow_command) {
-            state.overflow_command = std::make_shared<Command>(items_[index].stable_id, item_text(items_[index]));
+            state.overflow_command = gui_forms::detail::make_library_shared<Command>(items_[index].stable_id, item_text(items_[index]));
         }
         (*state.overflow_command).set_text(item_text(items_[index]));
         (*state.overflow_command).set_enabled(item_enabled(items_[index]));
@@ -1119,16 +1136,16 @@ bool ToolStrip::show_overflow(MenuOpenMode mode) {
     if (menu.empty()) return false;
     close_drop_down();
     (*overlay_).set_items(std::move(menu));
-    const Rect absolute = absolute_bounds();
-    const double right = absolute.x + placed.overflow_button.x + placed.overflow_button.width;
-    Point anchor{std::max(absolute.x, right - (*overlay_).preferred_width.read()),
-                 absolute.y + placed.overflow_button.y + placed.overflow_button.height};
+    // The button's corners in window coordinates (through the window
+    // frame, stage VA); the menu's own width is the window's.
+    const Rect button = rectangle_to_window(placed.overflow_button);
+    const double left = point_to_window(Point{}).x;
+    const double right = button.right();
+    Point anchor{std::max(left, right - (*overlay_).preferred_width.read()), button.bottom()};
     // Right to left the button is at the strip's left; the menu hangs
     // leftward from its right edge and the overlay keeps it on screen.
-    if (effective_layout_direction() == LayoutDirection::right_to_left) {
-        anchor = {right, absolute.y + placed.overflow_button.y + placed.overflow_button.height};
-    }
-    if (vertical()) anchor = {right, absolute.y + placed.overflow_button.y};
+    if (effective_layout_direction() == LayoutDirection::right_to_left) anchor = {right, button.bottom()};
+    if (vertical()) anchor = {right, button.y};
     // As in show_drop_down: the menu is marked open only if the focus
     // handlers show runs left it open (A-gf-controls-14-F2).
     const Control::Ptr lifetime = shared_from_this();
@@ -1161,6 +1178,9 @@ void ToolStrip::on_overlay_open_changed(bool open) {
     if (open) return;
     open_index_.reset();
     overflow_open_ = false;
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -1216,7 +1236,7 @@ SemanticDescriptor ToolStrip::semantic_descriptor() const {
 
 std::vector<SemanticNode> ToolStrip::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes{};
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const Layout placed = layout();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         const Rect bounds = placed.items[index];
@@ -1229,7 +1249,7 @@ std::vector<SemanticNode> ToolStrip::semantic_virtual_children() const {
         node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
         node.name = item_text(item);
         node.tool_tip = item.tool_tip_text;
-        node.bounds = {absolute.x + bounds.x, absolute.y + bounds.y, bounds.width, bounds.height};
+        node.bounds = frame_to_outer(local_frame, bounds);
         node.states = SemanticState::visible;
         if (item_enabled(item)) node.states |= SemanticState::enabled;
         if (item.kind == ToolStripItemKind::separator) {

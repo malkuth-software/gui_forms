@@ -1,4 +1,5 @@
 #include "windows_semantic_source.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <climits>
 #include <exception>
@@ -300,7 +301,7 @@ bool SemanticSource::snapshot(SemanticTreeRef& client) {
     // The key is read again after the build, which may lay the window
     // out first and so move its revisions.
     SemanticTreeKey after = read_tree_key(*window, hwnd, scale);
-    std::shared_ptr<SemanticNode> built = std::make_shared<SemanticNode>();
+    std::shared_ptr<SemanticNode> built = gui_forms::detail::make_library_shared<SemanticNode>();
     SemanticNode& node = *built;
     node.runtime_id = 0U;
     node.stable_id.clear();

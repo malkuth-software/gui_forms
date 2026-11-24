@@ -5,6 +5,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -241,11 +242,11 @@ NavigationPane::NavigationPane(StableId stable_id) : Control(std::move(stable_id
         *this, Delegate<const MenuItemInvocation&>::bind<NavigationPane, &NavigationPane::on_menu_item_invoked>(*this));
     menu_changed_ = (*menu_).open_changed().subscribe(
         *this, Delegate<bool>::bind<NavigationPane, &NavigationPane::on_menu_open_changed>(*this));
-    show_more_command_ = std::make_shared<Command>(prefix + ".show-more", std::string(show_more_text));
-    show_fewer_command_ = std::make_shared<Command>(prefix + ".show-fewer", std::string(show_fewer_text));
-    hidden_heading_command_ = std::make_shared<Command>(prefix + ".hidden-heading", std::string(hidden_heading_text));
+    show_more_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".show-more", std::string(show_more_text));
+    show_fewer_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".show-fewer", std::string(show_fewer_text));
+    hidden_heading_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".hidden-heading", std::string(hidden_heading_text));
     (*hidden_heading_command_).set_enabled(false);
-    options_command_ = std::make_shared<Command>(prefix + ".options", std::string(options_text));
+    options_command_ = gui_forms::detail::make_library_shared<Command>(prefix + ".options", std::string(options_text));
     selection_token_ = pages_.selected_page_changed().subscribe(
         *this,
         Delegate<const PageSelectionChange&>::bind<NavigationPane, &NavigationPane::on_selected_page_changed>(*this));
@@ -261,10 +262,14 @@ void NavigationPane::initialize_control_tree() {
 NavigationPane::~NavigationPane() {
     // The overlay's root may outlive the pane inside its window until the
     // lease is dropped; it must not reach back.
-    window_pointer_.disconnect();
-    overlay_revoked_.disconnect();
-    if (flyout_) (*flyout_).release_pane();
-    overlay_token_.disconnect();
+    OverlayOpening* const shown = presentation_.shown_state();
+    if (shown != nullptr) {
+        (*shown).window_pointer.disconnect();
+        (*shown).lease.overlay_closed.disconnect();
+        if ((*shown).flyout) (*(*shown).flyout).release_pane();
+        (*shown).lease.overlay.disconnect();
+    }
+    presentation_.finish_closing();
     if (menu_) (*menu_).close();
 }
 
@@ -846,10 +851,11 @@ void NavigationPane::arrange(Rect final_bounds) {
         set_child_layout_collapsed(host_, !shown);
         if (shown) set_child_layout(host_, placed.content);
     }
-    if (overlay_open_ && flyout_) {
+    const OverlayOpening* const open = presentation_.open_state();
+    if (open != nullptr && (*open).flyout) {
         const FlyoutLayout overlay = flyout_layout();
-        if (!((*flyout_).requested_bounds() == overlay.window_bounds)) {
-            (*flyout_).set_requested_bounds(overlay.window_bounds);
+        if (!((*(*open).flyout).requested_bounds() == overlay.window_bounds)) {
+            (*(*open).flyout).set_requested_bounds(overlay.window_bounds);
         }
     }
 }
@@ -904,7 +910,7 @@ AnatomyStateSet NavigationPane::target_states(const Target& target) const {
     if (pressed_ == target && target.kind != TargetKind::grip) states.insert(AnatomyState::pressed);
     if (target.kind == TargetKind::grip && grip_captured_) states.insert(AnatomyState::captured);
     if (target.kind == TargetKind::configure && configure_menu_open()) states.insert(AnatomyState::open);
-    if (target.kind == TargetKind::caption && overlay_open_) states.insert(AnatomyState::open);
+    if (target.kind == TargetKind::caption && presentation_.is_open()) states.insert(AnatomyState::open);
     const Window* const host = attached_window();
     if (focused_ && stop_ == target && host != nullptr && (*host).focus_cue_visible()) {
         states.insert(AnatomyState::focus_visible);
@@ -1206,7 +1212,7 @@ void NavigationPane::release(MouseEventArgs& arguments) {
 // on to whatever is under it (owner decision DK-27, E2-1), so the event is
 // observed and never handled here.
 void NavigationPane::on_window_pointer(const PointerEvent& event) {
-    if (!overlay_open_ || event.action != PointerAction::down) return;
+    if (!presentation_.is_open() || event.action != PointerAction::down) return;
     const Rect absolute = absolute_bounds();
     if (absolute.contains(event.position)) return;
     close_overlay();
@@ -1223,7 +1229,7 @@ void NavigationPane::activate(const Target& target) {
         collapsed = !collapsed_;
         return;
     case TargetKind::caption:
-        if (overlay_open_) {
+        if (presentation_.is_open()) {
             close_overlay();
         } else {
             static_cast<void>(open_overlay());
@@ -1330,7 +1336,7 @@ void NavigationPane::on_key_down(KeyEventArgs& arguments) {
     if (arguments.handled || !focused_ || !effectively_enabled()) return;
     const std::uint32_t key = arguments.physical_key;
     if (key == PhysicalKey::escape) {
-        if (!overlay_open_) return;
+        if (!presentation_.is_open()) return;
         close_overlay();
         arguments.handled = true;
         return;
@@ -1395,94 +1401,136 @@ void NavigationPane::on_focus_changed(bool focused) {
 
 // -- the overlay -------------------------------------------------------------------------
 
-void NavigationPane::move_host_to_overlay() {
-    if (!host_ || !flyout_ || (*host_).parent().get() != this) return;
+void NavigationPane::move_host_to_overlay(Flyout& flyout) {
+    if (!host_ || (*host_).parent().get() != this) return;
     const Control::Ptr moved = remove_child((*host_).runtime_id());
-    if (moved) (*flyout_).adopt(moved);
+    if (moved) flyout.adopt(moved);
 }
 
-void NavigationPane::move_host_to_pane() {
-    if (!host_ || !flyout_ || (*host_).parent() != flyout_) return;
-    const Control::Ptr moved = (*flyout_).remove_child((*host_).runtime_id());
+void NavigationPane::move_host_to_pane(Flyout& flyout) {
+    if (!host_ || (*host_).parent().get() != &flyout) return;
+    const Control::Ptr moved = flyout.remove_child((*host_).runtime_id());
     if (moved) add_child(moved);
 }
 
 bool NavigationPane::open_overlay() {
     require_mutable();
-    if (overlay_open_) return true;
+    // Opening, open or closing: the one presentation there is serves.
+    if (!presentation_.is_closed()) return true;
     Window* const host = attached_window();
     if (!collapsed_ || host == nullptr || !effectively_visible() || !effectively_enabled()) return false;
     close_configure_menu();
-    flyout_ = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".overlay"), *this);
+    OverlayOpening opening{};
+    opening.flyout = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".overlay"), *this);
+    const std::shared_ptr<Flyout> flyout = opening.flyout;
     const FlyoutLayout placed = flyout_layout();
-    (*flyout_).set_requested_bounds(placed.window_bounds);
-    overlay_token_ = (*host).open_overlay(shared_from_this(), flyout_);
-    if (Event<>* const closed = overlay_token_.closed_event()) {
-        overlay_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<NavigationPane, &NavigationPane::on_overlay_revoked>(*this));
+    (*flyout).set_requested_bounds(placed.window_bounds);
+    opening.lease.overlay = (*host).open_overlay(shared_from_this(), flyout);
+    if (Event<>* const closed = opening.lease.overlay.closed_event()) {
+        opening.lease.overlay_closed =
+            (*closed).subscribe(*this, Delegate<>::bind<NavigationPane, &NavigationPane::on_overlay_revoked>(*this));
     }
-    move_host_to_overlay();
-    if (const Control::Ptr root = (*host).root()) {
-        window_pointer_ = (*root).pointer_preview_observed().subscribe(
-            *this, Delegate<const PointerEvent&>::bind<NavigationPane, &NavigationPane::on_window_pointer>(*this));
+    presentation_ = OverlayPresentation<OverlayOpening>::opening(std::move(opening));
+    // Until the scope is begun a refusal (state hunt N3: the move of the
+    // content, a containing scope, the nesting limit) closes the overlay
+    // again before it leaves; an overlay closed while opening reports
+    // nothing, so a failed open leaves nothing shown.
+    FocusScopeId started{};
+    try {
+        started = enter_overlay(*host, flyout);
+    } catch (...) {
+        release_overlay(FocusScopeCloseReason::explicit_close);
+        throw;
     }
-    // Focus enters the overlay's first Tab stop and returns when it closes.
-    // The scope does not contain focus: the bar stays usable while the overlay
-    // is open (its title closes it, its icons switch the page shown).
-    FocusScopeOptions options{};
-    options.contain_focus = false;
-    overlay_scope_ = (*host).begin_focus_scope(flyout_, {}, options);
-    overlay_open_ = true;
+    if (!presentation_.settle_open()) {
+        Window* const still = attached_window();
+        if (started && still != nullptr) static_cast<void>((*still).end_focus_scope(started));
+        return false;
+    }
+    (*presentation_.open_state()).lease.scope = started;
     invalidate(Dirty::paint | Dirty::semantics);
     overlay_open_changed_.emit(true);
     return true;
 }
 
+// Moves the content panel into the opening overlay, watches the window's
+// pointer, and begins the overlay's focus scope. Runs focus handlers.
+FocusScopeId NavigationPane::enter_overlay(Window& window, const std::shared_ptr<Flyout>& flyout) {
+    Window* const host = &window;
+    move_host_to_overlay(*flyout);
+    OverlayOpening* const shown = presentation_.opening_state();
+    if (shown != nullptr) {
+        if (const Control::Ptr root = (*host).root()) {
+            (*shown).window_pointer = (*root).pointer_preview_observed().subscribe(
+                *this, Delegate<const PointerEvent&>::bind<NavigationPane, &NavigationPane::on_window_pointer>(*this));
+        }
+    }
+    // Focus enters the overlay's first Tab stop and returns when it closes.
+    // The scope does not contain focus: the bar stays usable while the overlay
+    // is open (its title closes it, its icons switch the page shown).
+    // Beginning it runs focus handlers; one may close the overlay, and then
+    // the scope begun here is ended here.
+    FocusScopeOptions options{};
+    options.contain_focus = false;
+    const FocusScopeId started = (*host).begin_focus_scope(flyout, {}, options);
+    return started;
+}
+
+bool NavigationPane::agrees_with_itself() const noexcept {
+    // Held, the overlay has its flyout, and open its overlay is in the
+    // window. Closed, the content panel is the pane's.
+    const OverlayOpening* const held = presentation_.held_state();
+    if (held != nullptr) {
+        if (!(*held).flyout) return false;
+        return !presentation_.is_open() || (*held).lease.overlay.connected();
+    }
+    return !host_ || (*host_).parent().get() == this;
+}
+
 void NavigationPane::close_overlay() noexcept {
-    if (!overlay_open_ || overlay_closing_) return;
+    if (!presentation_.is_shown()) return;
     release_overlay(FocusScopeCloseReason::explicit_close);
 }
 
 // The window dropped the overlay (its owner became unavailable): the content
 // panel comes back and the pane forgets the overlay.
 void NavigationPane::on_overlay_revoked() {
-    if (!overlay_open_ || overlay_closing_) return;
+    if (!presentation_.is_shown()) return;
     release_overlay(FocusScopeCloseReason::owner_unavailable);
 }
 
 // Closing order, for either cause: focus leaves the overlay (the scope
 // restores it), the content panel returns to the pane, the window drops the
 // overlay (a revoked overlay's window has already dropped it), then
-// overlay_open_changed(false) is raised.
+// overlay_open_changed(false) is raised. While it runs the presentation is
+// closing, so no handler can close or open it again.
 void NavigationPane::release_overlay(FocusScopeCloseReason reason) noexcept {
-    overlay_closing_ = true;
+    const bool was_open = presentation_.is_open();
+    if (!presentation_.begin_closing()) return;
+    OverlayOpening& closing = *presentation_.closing_state();
     Window* const host = attached_window();
-    if (host != nullptr && overlay_scope_) {
+    if (host != nullptr && closing.lease.scope) {
         try {
-            static_cast<void>((*host).end_focus_scope(overlay_scope_, reason));
+            static_cast<void>((*host).end_focus_scope(closing.lease.scope, reason));
         } catch (...) {
         }
     }
-    overlay_scope_ = {};
-    overlay_revoked_.disconnect();
-    if (flyout_) {
+    closing.lease.scope = {};
+    closing.lease.overlay_closed.disconnect();
+    if (closing.flyout) {
         try {
-            move_host_to_pane();
+            move_host_to_pane(*closing.flyout);
         } catch (...) {
         }
     }
-    if (reason == FocusScopeCloseReason::explicit_close) overlay_token_.disconnect();
-    finish_overlay_close();
-}
-
-void NavigationPane::finish_overlay_close() noexcept {
-    window_pointer_.disconnect();
-    if (flyout_) (*flyout_).release_pane();
-    flyout_.reset();
-    overlay_open_ = false;
-    overlay_closing_ = false;
+    if (reason == FocusScopeCloseReason::explicit_close) closing.lease.overlay.disconnect();
+    closing.window_pointer.disconnect();
+    if (closing.flyout) (*closing.flyout).release_pane();
+    presentation_.finish_closing();
     if (!is_alive()) return;
     invalidate(Dirty::arrange | Dirty::paint | Dirty::semantics);
-    overlay_open_changed_.emit(false);
+    // An overlay closed while it opened never reported opening.
+    if (was_open) overlay_open_changed_.emit(false);
 }
 
 // -- the configure menu ------------------------------------------------------------
@@ -1519,7 +1567,7 @@ bool NavigationPane::show_configure_menu(MenuOpenMode mode) {
     for (const std::size_t position : placed.unfit) {
         const std::string id = prefix + ".page." + pages_.record_at(PagePosition{position}).id.value;
         const std::string text = page_text(position);
-        page_commands_.push_back(std::make_shared<Command>(id, text));
+        page_commands_.push_back(gui_forms::detail::make_library_shared<Command>(id, text));
         items.emplace_back(id, MenuItemKind::command, page_commands_.back(), text);
     }
     const std::vector<PageId> hidden = hidden_pages();
@@ -1534,21 +1582,24 @@ bool NavigationPane::show_configure_menu(MenuOpenMode mode) {
         if (position.absent()) continue;
         const std::string id = prefix + ".page." + page.value;
         const std::string text = page_text((*position.value()).value);
-        page_commands_.push_back(std::make_shared<Command>(id, text));
+        page_commands_.push_back(gui_forms::detail::make_library_shared<Command>(id, text));
         items.emplace_back(id, MenuItemKind::command, page_commands_.back(), text);
     }
     items.emplace_back(prefix + ".options-separator", MenuItemKind::separator);
     items.emplace_back(prefix + ".options", MenuItemKind::command, options_command_, std::string(options_text));
     (*menu_).set_items(std::move(items));
-    const Rect absolute = absolute_bounds();
-    const Point anchor{absolute.x + placed.configure_button.x + placed.configure_button.width,
-                       absolute.y + placed.configure_button.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point anchor = frame_to_outer(
+        local_frame, Point{placed.configure_button.x + placed.configure_button.width, placed.configure_button.y});
     (*menu_).show(shared_from_this(), anchor, mode);
     invalidate(Dirty::paint | Dirty::semantics);
     return true;
 }
 
 void NavigationPane::on_menu_open_changed(bool) {
+    // Disposing closes the menu with this control no longer alive: the
+    // state above is reset, nothing is repainted or raised.
+    if (!is_alive()) return;
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -1623,9 +1674,9 @@ std::vector<SemanticNode> NavigationPane::semantic_virtual_children() const {
         node.has_popup = true;
         node.bounds = window_rect(absolute, placed.collapsed_label);
         node.states = base | SemanticState::focusable;
-        if (overlay_open_) node.states |= SemanticState::expanded;
+        if (presentation_.is_open()) node.states |= SemanticState::expanded;
         if (focused_ && stop_ == target) node.states |= SemanticState::focused;
-        node.actions = {SemanticAction::press, overlay_open_ ? SemanticAction::collapse : SemanticAction::expand};
+        node.actions = {SemanticAction::press, presentation_.is_open() ? SemanticAction::collapse : SemanticAction::expand};
         nodes.push_back(std::move(node));
     }
     if (!placed.collapsed && !placed.grip_bar.empty()) {
@@ -1731,7 +1782,7 @@ bool NavigationPane::on_semantic_child_action(std::string_view id, SemanticActio
             return opened;
         }
         if (action == SemanticAction::collapse) {
-            if (!overlay_open_) return false;
+            if (!presentation_.is_open()) return false;
             close_overlay();
             return true;
         }
@@ -1928,11 +1979,11 @@ void NavigationPane::publish_part_geometry(std::span<PartGeometry> geometry) con
     record.collapsed_bar = PartGeometry::from_bounds(placed.collapsed_bar);
     target.kind = TargetKind::caption;
     record.collapsed_label = part_with_states(placed.collapsed_label, target_states(target), caption_states);
-    if (overlay_open_) {
+    if (presentation_.is_open()) {
         const FlyoutLayout overlay = flyout_layout();
-        const Rect absolute = absolute_bounds();
-        const double dx = overlay.window_bounds.x - absolute.x;
-        const double dy = overlay.window_bounds.y - absolute.y;
+        const Point overlay_origin = point_from_window(Point{overlay.window_bounds.x, overlay.window_bounds.y});
+        const double dx = overlay_origin.x;
+        const double dy = overlay_origin.y;
         record.overlay_shadow = PartGeometry::from_bounds(offset_rect(overlay.face, dx, dy));
         record.overlay_face = PartGeometry::from_bounds(offset_rect(overlay.face, dx, dy));
         record.overlay_header = PartGeometry::from_bounds(offset_rect(overlay.header, dx, dy));

@@ -48,7 +48,7 @@ public unsafe struct gf_splashscreen_options
     public double progress;
 }
 
-/// <summary>gf_runtime_table (table, 64 bytes).</summary>
+/// <summary>gf_runtime_table (table, 72 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_runtime_table
 {
@@ -61,6 +61,7 @@ public unsafe struct gf_runtime_table
     public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_utf8_view, gf_status> splashscreen_set_status;
     public delegate* unmanaged[Cdecl]<gf_splashscreen, uint, double, gf_status> splashscreen_set_progress;
     public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_status> splashscreen_close;
+    public delegate* unmanaged[Cdecl]<gf_splashscreen, gf_splashscreen_state*, gf_status> splashscreen_state;
 }
 
 /// <summary>gf_logical_point (record, 16 bytes).</summary>
@@ -348,7 +349,33 @@ public unsafe struct gf_window_shaping
     public double corner_radius;
 }
 
-/// <summary>gf_windows_table (table, 256 bytes).</summary>
+/// <summary>gf_viewport_fit (extensible, 32 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_viewport_fit
+{
+    public uint struct_size;
+    public gf_overflow_answer answer;
+    public double minimum_scale;
+    public double maximum_scale;
+    public gf_overflow_answer below_minimum;
+    public gf_content_alignment alignment;
+}
+
+/// <summary>gf_overflow_record (extensible, 72 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_overflow_record
+{
+    public uint struct_size;
+    public gf_overflow_cause cause;
+    public gf_overflow_answer answer;
+    public uint answered;
+    public gf_logical_size content_extent;
+    public gf_logical_size viewport_extent;
+    public double effective_scale;
+    public gf_utf8_view owner;
+}
+
+/// <summary>gf_windows_table (table, 288 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_table
 {
@@ -385,6 +412,10 @@ public unsafe struct gf_windows_table
     public delegate* unmanaged[Cdecl]<gf_object, uint*, gf_status> mdi_children_minimized_anchor_bottom;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> set_main_menu_strip;
     public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> main_menu_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_overflow_record*, ulong, ulong*, byte*, ulong, ulong*, gf_status> overflow_records;
+    public delegate* unmanaged[Cdecl]<gf_object, ulong*, gf_status> unanswered_overflow_count;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_logical_insets*, gf_status> safe_insets;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_window_lifecycle*, gf_status> lifecycle;
 }
 
 /// <summary>gf_schema_type (extensible, 88 bytes).</summary>
@@ -920,7 +951,7 @@ public unsafe struct gf_content_effect
     public gf_effect_mask_layer* masks;
 }
 
-/// <summary>gf_controls_table (table, 160 bytes).</summary>
+/// <summary>gf_controls_table (table, 176 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_controls_table
 {
@@ -945,6 +976,8 @@ public unsafe struct gf_controls_table
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_point, uint*, gf_status> warp_pointer;
     public delegate* unmanaged[Cdecl]<gf_object, gf_logical_rect*, uint, gf_status> set_pointer_release_regions;
     public delegate* unmanaged[Cdecl]<gf_object, gf_content_effect*, gf_status> set_content_effect;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_viewport_fit*, gf_status> set_viewport_fit;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_viewport_fit*, gf_status> viewport_fit;
 }
 
 /// <summary>gf_text_decoration (record, 56 bytes).</summary>
@@ -1517,7 +1550,7 @@ public unsafe struct gf_dock_frame_memory
     public uint reserved;
 }
 
-/// <summary>gf_docking_table (table, 208 bytes).</summary>
+/// <summary>gf_docking_table (table, 272 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_docking_table
 {
@@ -1548,6 +1581,14 @@ public unsafe struct gf_docking_table
     public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> area_active_document;
     public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object, gf_status> set_panel_menu_strip;
     public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> merged_document;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> set_merge_tool_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> merge_tool_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object, gf_status> set_panel_tool_strip;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> merged_tool_strip_document;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object, gf_status> set_merge_ribbon;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_object*, gf_status> merge_ribbon;
+    public delegate* unmanaged[Cdecl]<gf_object, gf_utf8_view, gf_object, gf_status> set_panel_ribbon;
+    public delegate* unmanaged[Cdecl]<gf_object, byte*, ulong, ulong*, gf_status> merged_ribbon_document;
 }
 
 /// <summary>gf_app_font_face (extensible, 32 bytes).</summary>
@@ -1879,6 +1920,88 @@ public unsafe struct gf_list_view_table
     public delegate* unmanaged[Cdecl]<gf_object, ulong, gf_list_view_sort_order, gf_status> sort_items;
 }
 
+/// <summary>gf_automation_tool_call (extensible, 80 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_tool_call
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view arguments_json;
+    public gf_utf8_view client_name;
+    public gf_utf8_view model_name;
+    public gf_utf8_view window_id;
+    public void* reply;
+}
+
+/// <summary>gf_automation_tool (extensible, 104 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_tool
+{
+    public uint struct_size;
+    public gf_automation_tool_access access;
+    public gf_automation_tool_flags flags;
+    public uint reserved;
+    public gf_utf8_view name;
+    public gf_utf8_view title;
+    public gf_utf8_view description;
+    public gf_utf8_view input_schema;
+    public void* context;
+    public delegate* unmanaged[Cdecl]<void*, gf_automation_tool_call*, void> call;
+    public delegate* unmanaged[Cdecl]<void*, void> release;
+}
+
+/// <summary>gf_automation_inspect_call (extensible, 64 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_inspect_call
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view window_id;
+    public gf_utf8_view node_id;
+    public gf_utf8_view arguments_json;
+    public void* text;
+}
+
+/// <summary>gf_automation_inspect_section (extensible, 64 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_inspect_section
+{
+    public uint struct_size;
+    public uint reserved;
+    public gf_utf8_view name;
+    public gf_utf8_view description;
+    public void* context;
+    public delegate* unmanaged[Cdecl]<void*, gf_automation_inspect_call*, void> inspect;
+    public delegate* unmanaged[Cdecl]<void*, void> release;
+}
+
+/// <summary>gf_automation_table (table, 160 bytes).</summary>
+[StructLayout(LayoutKind.Sequential)]
+public unsafe struct gf_automation_table
+{
+    public uint struct_size;
+    public uint abi_minor;
+    public delegate* unmanaged[Cdecl]<uint*, gf_status> capability_built;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> set_window_drivable;
+    public delegate* unmanaged[Cdecl]<gf_object, uint, gf_status> set_window_destructive;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_automation_action, uint, gf_status> set_action_destructive;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, uint, gf_status> set_command_hidden;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_utf8_view, gf_status> require_user_step;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> complete_user_step;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, uint*, gf_status> user_step_pending;
+    public delegate* unmanaged[Cdecl]<uint, gf_status> set_clipboard_readable;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> set_identity;
+    public delegate* unmanaged[Cdecl]<gf_automation_tool*, gf_status> register_tool;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> unregister_tool;
+    public delegate* unmanaged[Cdecl]<void*, gf_utf8_view, gf_status> reply_text;
+    public delegate* unmanaged[Cdecl]<void*, gf_utf8_view, gf_status> reply_structured;
+    public delegate* unmanaged[Cdecl]<void*, byte*, ulong, gf_utf8_view, gf_status> reply_image;
+    public delegate* unmanaged[Cdecl]<void*, gf_automation_tool_error, gf_utf8_view, gf_utf8_view, gf_status> reply_fail;
+    public delegate* unmanaged[Cdecl]<gf_automation_inspect_section*, gf_status> register_inspect_section;
+    public delegate* unmanaged[Cdecl]<gf_utf8_view, gf_status> unregister_inspect_section;
+    public delegate* unmanaged[Cdecl]<void*, gf_utf8_view, gf_status> inspect_append;
+}
+
 /// <summary>gf_windows_paint_endpoint_table (table, 104 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_windows_paint_endpoint_table
@@ -1918,7 +2041,7 @@ public unsafe struct gf_class_header
     public delegate* unmanaged[Cdecl]<void*, void> release;
 }
 
-/// <summary>gf_control_hooks (segment, 352 bytes).</summary>
+/// <summary>gf_control_hooks (segment, 360 bytes).</summary>
 [StructLayout(LayoutKind.Sequential)]
 public unsafe struct gf_control_hooks
 {
@@ -1967,6 +2090,7 @@ public unsafe struct gf_control_hooks
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_preview_key_down;
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_validated;
     public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_validating;
+    public delegate* unmanaged[Cdecl]<void*, gf_object, gf_event*, delegate* unmanaged[Cdecl]<gf_object, gf_event*, gf_status>, void> on_gesture;
 }
 
 /// <summary>gf_masked_text_box_hooks (segment, 16 bytes).</summary>

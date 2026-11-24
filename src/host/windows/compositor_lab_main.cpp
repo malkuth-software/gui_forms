@@ -25,7 +25,6 @@ int main(int argc, char** argv) {
     options.initial_size = gui_forms::compositor_lab::lab_size;
     options.minimum_size = gui_forms::compositor_lab::lab_size;
     gui_forms::demo::apply_program_options(*program, options);
-    options.automation_enabled = (*program).automation;
     std::unique_ptr<gui_forms::Window> window = gui_forms::compositor_lab::make_compositor_lab(*request, true);
     gui_forms::compositor_lab::record_when_ready(options, *window);
     const std::shared_ptr<gui_forms::demo::SmokeTest> smoke =

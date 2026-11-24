@@ -83,8 +83,7 @@ SurfaceRoot::EnginePaintPlace SurfaceRoot::engine_paint_place(const Control& con
     } else {
         place.painted_by = &control;
     }
-    const Rect bounds = absolute_bounds_of(*place.painted_by);
-    place.window_origin = Point{bounds.x + place.origin.x, bounds.y + place.origin.y};
+    place.window_origin = frame_to_outer(local_frame_of(*place.painted_by), place.origin);
     return place;
 }
 
@@ -138,9 +137,7 @@ void SurfaceRoot::damage_backplane_readers(const Rect* damage) {
         if (damage != nullptr) {
             const Control::Ptr recorded_by = find((*record).painted_by);
             if (!recorded_by || (*recorded_by).surface_root_ != this) continue;
-            const Rect bounds = absolute_bounds_of(*recorded_by);
-            const Rect extent{bounds.x + (*record).extent.x, bounds.y + (*record).extent.y, (*record).extent.width,
-                              (*record).extent.height};
+            const Rect extent = frame_to_outer(local_frame_of(*recorded_by), (*record).extent);
             if (Rect::intersection(extent, *damage).empty()) continue;
         }
         static_cast<void>(damage_engine_part(*record, damaged));

@@ -1,0 +1,51 @@
+# Component's behavioural constraints, stated once (IC3; the format is template_harness docs/ic_declarations.md).
+# tools/ic_declarations.py generates the header's // ic: lines, the member-manifest column, the fuzz block stubs and
+# the proof obligations from it. Every control and component shares this lifecycle; the C ABI's objects.state
+# reports it (gf_object_state mirrors ComponentState).
+
+schema = 1
+component = "Component"
+namespace = "gui_forms"
+header = "include/gui_forms/component/component/component.hpp"
+anchor = "class GUI_FORMS_API Component : public LibraryAllocated {"
+keys = { manifest = "gui_forms::Component" }
+thread = "owner"
+states = ["alive", "disposing", "disposed"]
+initial = "alive"
+state_query = { call = "component_state", observes = { alive = "ComponentState::alive", disposing = "ComponentState::disposing", disposed = "ComponentState::disposed" } }
+
+[[call]]
+name = "dispose"
+declarations = ["void dispose();"]
+kind = "member"
+moves = "disposed"
+fails = [
+  { failure = "logic_error", when = "verify_dispose_thread refuses the calling thread (a control's or window's own rule)", leaves = "unchanged" },
+]
+
+[[call]]
+name = "own_revocable"
+declarations = ["void own_revocable(const std::weak_ptr<detail::Revocable>& revocable);"]
+kind = "member"
+in = ["alive"]
+outside = { disposing = "null", disposed = "null" }
+transfers = [{ what = "an observation of the revocable work (weak)", from = "caller", to = "component" }]
+
+[[call]]
+name = "own_subscription"
+declarations = ["void own_subscription(SubscriptionToken subscription);"]
+kind = "member"
+in = ["alive"]
+outside = { disposing = "null", disposed = "null" }
+transfers = [{ what = "the subscription token", from = "caller", to = "component" }]
+
+[[call]]
+name = "component_state"
+declarations = ["[[nodiscard]] ComponentState component_state() const noexcept { return checked_state(); }"]
+kind = "member"
+
+[[obligation]]
+id = "dispose_once"
+statement = "dispose from alive moves to disposing, revokes the owned work, runs on_dispose and moves to disposed; from disposing (a re-entrant dispose inside on_dispose) or disposed it changes nothing. own_revocable and own_subscription outside alive disconnect what they were given at once (the outside refusal null: nothing is owned)."
+method = "inspection of Component::dispose, own_revocable and own_subscription (component.cpp)"
+premises = []

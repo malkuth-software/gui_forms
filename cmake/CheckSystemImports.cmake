@@ -2,7 +2,9 @@
 # the system's (one module, owner decision 2026-11-15): no first-party
 # library (libgui_forms_*, libgui_drawing_*, libstxlib_*), no C++ runtime
 # (libc++, libc++abi, libunwind, libstdc++, libgcc_s on Windows,
-# libwinpthread) and no copy of the text stack.
+# libwinpthread), no Microsoft C or C++ runtime DLL (msvcrt, vcruntime,
+# msvcp, the debug UCRT, the api-ms-win-crt forwarders: the own runtime
+# imports ucrtbase.dll by name) and no copy of the text stack.
 #
 #   cmake [-DTOOL_OBJDUMP=<objdump>] [-DALLOW_SHARED_CXX_RUNTIME=ON]
 #         -DBINARIES=<a|b|...> -P cmake/CheckSystemImports.cmake
@@ -33,7 +35,7 @@ if(NOT DEFINED BINARIES OR BINARIES STREQUAL "")
 endif()
 string(REPLACE "|" ";" binaries "${BINARIES}")
 set(refused_pattern
-    "(gui_forms_|gui_drawing_|stxlib_|libc\\+\\+|libunwind|libstdc\\+\\+|libgcc_s_|libwinpthread|freetype|harfbuzz)")
+    "(gui_forms_|gui_drawing_|stxlib_|libc\\+\\+|libunwind|libstdc\\+\\+|libgcc_s_|libwinpthread|freetype|harfbuzz|msvcrt|msvcr[0-9]|msvcp[0-9]|vcruntime|ucrtbased|api-ms-win-crt-)")
 
 set(failures "")
 foreach(binary IN LISTS binaries)

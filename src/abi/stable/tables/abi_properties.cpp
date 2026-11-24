@@ -8,6 +8,7 @@
 #include "../values/abi_values.hpp"
 #include "../windows/abi_window_handle.hpp"
 #include "../windows/abi_window_properties.hpp"
+#include "../ic/abi_properties_ic_checks.hpp"
 
 #include "gui_forms/binding.hpp"
 
@@ -329,7 +330,7 @@ gf_status GF_CALL properties_element_at(gf_object object, gf_utf8_view name, std
 gf_status properties_read_elements_body(gf_object object, gf_utf8_view name, std::uint64_t first,
                                         std::uint64_t count, gf_value* values, char* text_buffer,
                                         std::uint64_t text_capacity, std::uint64_t* text_required) {
-    if (text_required == nullptr || (text_buffer == nullptr && text_capacity != 0U)) {
+    if (!ic_properties::admits_read_elements_text_buffer(text_required, text_buffer, text_capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, read_elements_slot,
                     "read_elements needs a text size output, and a buffer unless its capacity is zero");
     }

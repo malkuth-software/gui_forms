@@ -6,6 +6,7 @@
 
 #include "../engine/abi_engine.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_host_ic_checks.hpp"
 
 #include "gui_forms/application.hpp"
 #include "gui_forms/host.hpp"
@@ -34,10 +35,6 @@ constexpr SlotIdentity write_clipboard_text_slot{GF_TABLE_HOST, 4U};
 constexpr SlotIdentity show_dialog_slot{GF_TABLE_HOST, 5U};
 constexpr SlotIdentity dialog_path_at_slot{GF_TABLE_HOST, 6U};
 
-// The 1.0 size of gf_host_capabilities: a caller passes at least this much
-// and receives the fields that fit (1.1 added transient_surfaces, then
-// window_corner_shapes and window_band_maximum_width).
-constexpr std::uint32_t host_capabilities_size_1_0 = 16U;
 static_assert(sizeof(gf_host_capabilities) == 32U);
 static_assert(sizeof(gf_file_filter) == 32U);
 static_assert(sizeof(gf_dialog_result) == 32U);
@@ -54,7 +51,7 @@ struct CapabilityBit final {
     gf_host_capability abi = 0U;
 };
 
-constexpr std::array<CapabilityBit, 44> capability_bits{{
+constexpr std::array<CapabilityBit, 46> capability_bits{{
     {HostCapability::lifecycle, GF_HOST_CAPABILITY_LIFECYCLE},
     {HostCapability::scale_notifications, GF_HOST_CAPABILITY_SCALE_NOTIFICATIONS},
     {HostCapability::monitor_geometry, GF_HOST_CAPABILITY_MONITOR_GEOMETRY},
@@ -99,6 +96,8 @@ constexpr std::array<CapabilityBit, 44> capability_bits{{
     {HostCapability::direct_buffers, GF_HOST_CAPABILITY_DIRECT_BUFFERS},
     {HostCapability::host_scroll, GF_HOST_CAPABILITY_HOST_SCROLL},
     {HostCapability::reference_presentation, GF_HOST_CAPABILITY_REFERENCE_PRESENTATION},
+    {HostCapability::desktop_notifications, GF_HOST_CAPABILITY_DESKTOP_NOTIFICATIONS},
+    {HostCapability::safe_insets, GF_HOST_CAPABILITY_SAFE_INSETS},
 }};
 
 // The corner shapes a host with window_corners may report, as the host
@@ -204,7 +203,7 @@ gf_status owner_services(gf_object owner, SlotIdentity slot, HostServices*& serv
 }
 
 gf_status host_capabilities_body(gf_host_capabilities* record) {
-    if (record == nullptr || (*record).struct_size < host_capabilities_size_1_0) {
+    if (!ic_host::admits_capabilities_record(record) || !ic_host::admits_capabilities_record_size((*record).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, capabilities_slot,
                     "the output record is null or smaller than its 1.0 size");
     }
@@ -278,7 +277,7 @@ gf_status GF_CALL host_set_cursor(gf_pointer_cursor cursor) noexcept {
 }
 
 gf_status host_read_clipboard_text_body(char* buffer, std::uint64_t capacity, std::uint64_t* required) {
-    if (required == nullptr || (buffer == nullptr && capacity != 0U)) {
+    if (!ic_host::admits_read_clipboard_text_buffer(required, buffer, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, read_clipboard_text_slot,
                     "a text output needs a size output, and a buffer unless its capacity is zero");
     }

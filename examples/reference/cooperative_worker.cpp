@@ -2,7 +2,7 @@
 
 #include <atomic>
 #include <iostream>
-#include <thread>
+#include <stxlib/threads.hpp>
 
 namespace {
 struct Work final {
@@ -15,7 +15,7 @@ void perform(const gui_forms::CancellationFlag& cancellation, void* const addres
     work.entered.store(true, std::memory_order_release);
     // A real producer checks between bounded jobs; this small example yields
     // until its owner cancels, then publishes its completion through join.
-    while (!cancellation.requested()) std::this_thread::yield();
+    while (!cancellation.requested()) stxlib::yield_thread();
     work.result = 42;
 }
 } // namespace
@@ -23,7 +23,7 @@ void perform(const gui_forms::CancellationFlag& cancellation, void* const addres
 int main() {
     Work work{};
     gui_forms::Worker worker(perform, &work);
-    while (!work.entered.load(std::memory_order_acquire)) std::this_thread::yield();
+    while (!work.entered.load(std::memory_order_acquire)) stxlib::yield_thread();
     worker.request_cancel();
     worker.join();
     if (work.result != 42) return 1;

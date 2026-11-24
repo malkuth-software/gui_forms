@@ -1,5 +1,5 @@
 #include "gallery_pages.hpp"
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/binding/binding/binding.hpp"
 #include "gui_forms/binding/binding_schema/binding_schema.hpp"
 #include "gui_forms/binding/binding_source/binding_source.hpp"
@@ -12,6 +12,7 @@
 #include "gui_forms/components/ribbon_tool_tip/ribbon_tool_tip.hpp"
 #include "gui_forms/components/tool_tip/tool_tip.hpp"
 #include "gui_forms/controls/check_box.hpp"
+#include "gui_forms/controls/choice_group.hpp"
 #include "gui_forms/controls/list_view.hpp"
 #include "gui_forms/controls/list_view_values.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
@@ -19,11 +20,14 @@
 #include "gui_forms/events/key_events/key_events.hpp"
 #include "gui_forms/controls/ribbon.hpp"
 #include "gui_forms/controls/scaled_panel.hpp"
+#include "gui_forms/controls/text_box.hpp"
 #include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/rules/rule_set/rule_set.hpp"
 #include "gui_forms/timer/timer/timer.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "gallery.hpp"
+#include "gallery/page_sources.hpp"
 #include "gallery/pages/pages.hpp"
 #include "gallery_page_specs.hpp"
 
@@ -39,7 +43,6 @@
 #include <stxlib/optional.hpp>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <tuple>
 #include <type_traits>
 #include <utility>
@@ -232,10 +235,90 @@ std::shared_ptr<PageContext> retained_page_context(const Window& window) {
     return *retained;
 }
 
+// The page header's Source button: it swaps the page body for a viewer of
+// the files that make the page (page_sources.hpp) and back. The viewer is
+// made on the first click, so a page nobody inspects carries only the
+// button.
+class PageSourceToggle final : public Component {
+public:
+    PageSourceToggle(std::string surface_id, std::string_view page_id, std::shared_ptr<Surface> page,
+                     std::shared_ptr<Surface> body, std::shared_ptr<Button> button, double strip_height)
+        : surface_id_(std::move(surface_id)), page_id_(page_id), page_(std::move(page)), body_(std::move(body)),
+          button_(std::move(button)), strip_height_(strip_height) {}
+
+    // Subscribes the button; call once the toggle is shared.
+    void connect() { on((*button_).clicked(), *this, &PageSourceToggle::on_clicked); }
+
+private:
+    void on_clicked() {
+        if (!viewer_) build_viewer();
+        showing_ = !showing_;
+        (*body_).visible = !showing_;
+        (*viewer_).visible = showing_;
+        (*button_).text = showing_ ? "Back to page" : "Source";
+    }
+
+    void build_viewer() {
+        files_ = page_sources::page_files(page_id_);
+        viewer_ = make_control<Surface>(StableId(surface_id_ + ".source-view"), Size{1000.0, 660.0});
+        static_cast<void>((*viewer_).add_class("shell-canvas"));
+        files_choice_ = make_control<ChoiceGroup>(StableId(surface_id_ + ".source-view.files"));
+        (*files_choice_).accessible_name = "Source file";
+        std::vector<ChoiceItem> items{};
+        for (std::size_t file = 0; file < files_.size(); ++file) {
+            const std::string_view path = (*files_[file]).path;
+            const std::size_t slash = path.rfind('/');
+            ChoiceItem item{};
+            item.id = static_cast<int>(file);
+            item.label = std::string(slash == std::string_view::npos ? path : path.substr(slash + 1U));
+            item.accessible_name = std::string(path);
+            items.push_back(std::move(item));
+        }
+        (*files_choice_).set_items(std::move(items));
+        (*viewer_).add_at(files_choice_, {0.0, 0.0, 1000.0, 28.0});
+        path_ = label(surface_id_ + ".source-view.path", "", 10.0, 400, "muted");
+        (*viewer_).add_at(path_, {0.0, 32.0, 1000.0, 18.0});
+        text_ = make_control<TextBox>(StableId(surface_id_ + ".source-view.text"));
+        (*text_).accessible_name = "Page source";
+        (*text_).multiline = true;
+        (*text_).read_only = true;
+        (*viewer_).add_at(text_, {0.0, 54.0, 1000.0, 600.0});
+        (*viewer_).visible = false;
+        (*page_).add_at(viewer_, {0.0, strip_height_, 1000.0, 660.0});
+        on((*files_choice_).changed(), *this, &PageSourceToggle::show_file);
+        if (files_.empty()) {
+            (*path_).text = "No source is embedded for this page";
+            return;
+        }
+        (*files_choice_).selected_index = 0;
+        show_file(0);
+    }
+
+    void show_file(int index) {
+        if (index < 0 || static_cast<std::size_t>(index) >= files_.size()) return;
+        const page_sources::EmbeddedSource& file = *files_[static_cast<std::size_t>(index)];
+        (*path_).text = std::string(file.path) + " · " + std::to_string(file.size) + " bytes";
+        (*text_).text = page_sources::file_text(file);
+    }
+
+    std::string surface_id_;
+    std::string_view page_id_;
+    std::shared_ptr<Surface> page_;
+    std::shared_ptr<Surface> body_;
+    std::shared_ptr<Button> button_;
+    double strip_height_{};
+    std::vector<const page_sources::EmbeddedSource*> files_{};
+    std::shared_ptr<Surface> viewer_;
+    std::shared_ptr<ChoiceGroup> files_choice_;
+    std::shared_ptr<Label> path_;
+    std::shared_ptr<TextBox> text_;
+    bool showing_{};
+};
+
 } // namespace
 
 void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> compiled) {
-    std::shared_ptr<PageContext> context = std::make_shared<PageContext>();
+    std::shared_ptr<PageContext> context = gui_forms::detail::make_library_shared<PageContext>();
     (*context).compiled = std::move(compiled);
     // Pages capture the status line while they are built; the form made it.
     (*context).status = window.gallery_status_text;
@@ -361,7 +444,10 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         std::shared_ptr<Label> title = label(surface_id + ".title", std::string(spec.title),
                                              15.0, 700, "heading");
         (*title).font = stxlib::Optional<FontSpec>::of(FontSpec{FontRole::control, 15.0, 700, false});
-        (*page).add_at(title, {0.0, 4.0, 1000.0, 22.0});
+        (*page).add_at(title, {0.0, 4.0, 870.0, 22.0});
+        std::shared_ptr<Button> source = make_control<Button>(StableId(surface_id + ".source"), "Source");
+        (*source).accessible_name = "Show the source of " + std::string(spec.title);
+        (*page).add_at(source, {880.0, 2.0, 120.0, 24.0});
         if (demonstrated.empty()) {
             std::shared_ptr<Label> summary = label(surface_id + ".summary",
                                                    std::string(spec.summary), 10.0, 400, "muted");
@@ -392,6 +478,10 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
         const double page_height = strip_height + body_height;
         (*body).design_size = Size{1000.0, body_height};
         (*page).set_design_bounds(*body, {0.0, strip_height, 1000.0, body_height});
+        const std::shared_ptr<PageSourceToggle> source_toggle =
+            gui_forms::detail::make_library_shared<PageSourceToggle>(surface_id, spec.id, page, body, source, strip_height);
+        (*context).components.add(source_toggle);
+        (*source_toggle).connect();
         (*page).design_size = Size{1000.0, page_height};
         (*page).set_bounds({0.0, 0.0, 1000.0, page_height});
         (*viewport).auto_scroll_min_size = {1000.0, page_height};
@@ -402,7 +492,7 @@ void build_gallery_shell(GalleryWindow& window, std::shared_ptr<GalleryContext> 
     }
 
     RuleSet& rules = window.rules();
-    const std::shared_ptr<ShellActions> shell = std::make_shared<ShellActions>(context, window);
+    const std::shared_ptr<ShellActions> shell = gui_forms::detail::make_library_shared<ShellActions>(context, window);
     (*context).components.add(shell);
     on((*navigation).item_activated(), *shell, &ShellActions::navigation_activated);
     on(window.key_down(), *shell, &ShellActions::shell_key_down);
@@ -589,7 +679,7 @@ public:
         const double cycle = static_cast<double>((*context).timer_ticks % 20U) / 19.0;
         (*(*context).timer_progress).value = cycle * 100.0;
         constexpr double travel = 98.0;
-        const double eased = 0.5 - engine_sine_cosine(cycle * 6.283185307179586).cosine * 0.5;
+        const double eased = 0.5 - stxlib::math::cos(cycle * 6.283185307179586) * 0.5;
         (*(*context).timer_motion).set_design_bounds(
             *(*context).timer_motion_target, {14.0 + travel * eased, 39.0, 168.0, 34.0});
         (*(*context).timer_status).text = "Running · tick " + std::to_string((*context).timer_ticks) + " · " +
@@ -623,15 +713,15 @@ void initialize_gallery_runtime(Window& window) {
         throw std::logic_error("gallery runtime requires a retained context tag");
     }
     if ((*context).ui_timer) return;
-    const std::shared_ptr<RuntimeActions> actions = std::make_shared<RuntimeActions>(context);
+    const std::shared_ptr<RuntimeActions> actions = gui_forms::detail::make_library_shared<RuntimeActions>(context);
     (*context).components.add(actions);
 
-    (*context).ui_timer = std::make_shared<Timer>(window, 250ms);
-    (*context).tooltips = std::make_shared<ToolTip>(window);
-    (*context).ribbon_tooltips = std::make_shared<RibbonToolTip>(window);
-    (*context).error_provider = std::make_shared<ErrorProvider>(window);
-    (*context).help_provider = std::make_shared<HelpProvider>(window);
-    (*context).binding_source = std::make_shared<BindingSource>(window);
+    (*context).ui_timer = gui_forms::detail::make_library_shared<Timer>(window, 250ms);
+    (*context).tooltips = gui_forms::detail::make_library_shared<ToolTip>(window);
+    (*context).ribbon_tooltips = gui_forms::detail::make_library_shared<RibbonToolTip>(window);
+    (*context).error_provider = gui_forms::detail::make_library_shared<ErrorProvider>(window);
+    (*context).help_provider = gui_forms::detail::make_library_shared<HelpProvider>(window);
+    (*context).binding_source = gui_forms::detail::make_library_shared<BindingSource>(window);
     (*context).components.add((*context).ui_timer);
     (*context).components.add((*context).tooltips);
     (*context).components.add((*context).ribbon_tooltips);
@@ -640,7 +730,7 @@ void initialize_gallery_runtime(Window& window) {
     (*context).components.add((*context).binding_source);
     // Three profiles: name is text; enabled and gain take what their
     // check box and track bar write back, so they are untyped.
-    const std::shared_ptr<BindingTable> profiles = std::make_shared<BindingTable>(BindingSchema(std::vector<BindingColumn>{
+    const std::shared_ptr<BindingTable> profiles = gui_forms::detail::make_library_shared<BindingTable>(BindingSchema(std::vector<BindingColumn>{
         BindingColumn{"name", BindingValueKind::text},
         BindingColumn{"enabled"},
         BindingColumn{"gain"},

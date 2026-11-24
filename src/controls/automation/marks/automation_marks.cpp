@@ -1,0 +1,314 @@
+#include "gui_forms/automation/marks/automation_marks.hpp"
+#include "automation_marks_internal.hpp"
+
+#include "gui_forms/window.hpp"
+
+#include <atomic>
+#include <cstddef>
+#include <cstring>
+#include <stxlib/threads.hpp>
+#include <string>
+#include <string_view>
+#include <vector>
+
+namespace gui_forms::automation {
+namespace {
+
+// The longest stable identity and user step text a mark keeps.
+constexpr std::size_t maximum_mark_text_bytes = 4096U;
+
+struct WindowMark final {
+    WindowRef window{};
+    const Window* address{};
+    bool drivable{};
+    bool destructive{};
+};
+
+struct ActionMark final {
+    std::string stable_id{};
+    SemanticAction action{SemanticAction::press};
+};
+
+struct UserStep final {
+    std::string stable_id{};
+    std::string what{};
+};
+
+// One table for the process. Marks are set and read on the UI thread; the
+// mutex keeps a program with several UI threads safe, and nothing is called
+// while it is held.
+struct MarkTable final {
+    stxlib::Mutex mutex{};
+    std::vector<WindowMark> windows{};
+    std::vector<ActionMark> destructive_actions{};
+    std::vector<std::string> hidden_commands{};
+    std::vector<UserStep> user_steps{};
+    std::string identity{};
+};
+
+MarkTable& marks() noexcept {
+    // Never destroyed (termination releases nothing): a late call at exit
+    // never meets a destroyed lock.
+    static MarkTable* const instance = new MarkTable();
+    return *instance;
+}
+
+std::atomic<bool> clipboard_readable{false};
+
+// Text from a program's pointer: present, at most the limit, and UTF-8.
+bool read_text(const char* text, std::string_view& out) noexcept {
+    if (text == nullptr) return false;
+    const std::size_t length = ::strnlen(text, maximum_mark_text_bytes + 1U);
+    if (length == 0U || length > maximum_mark_text_bytes) return false;
+    const std::string_view view(text, length);
+    if (!validate_utf8(view).valid()) return false;
+    out = view;
+    return true;
+}
+
+// The live mark of `window`, or null. Marks of destroyed windows are
+// dropped as they are found, so an address a new window reuses never
+// inherits an old mark. Called with the table's lock held.
+WindowMark* window_mark(MarkTable& table, const Window& window) noexcept {
+    std::size_t index = 0U;
+    while (index < table.windows.size()) {
+        WindowMark& mark = table.windows[index];
+        if (mark.window.get() == nullptr) {
+            mark = table.windows.back();
+            table.windows.pop_back();
+            continue;
+        }
+        if (mark.address == &window) return &mark;
+        ++index;
+    }
+    return nullptr;
+}
+
+WindowMark& ensure_window_mark(MarkTable& table, Window& window) {
+    WindowMark* found = window_mark(table, window);
+    if (found != nullptr) return *found;
+    table.windows.push_back(WindowMark{window.window_ref(), &window, false, false});
+    return table.windows.back();
+}
+
+bool valid_identity_character(char character) noexcept {
+    const bool lower = character >= 'a' && character <= 'z';
+    const bool digit = character >= '0' && character <= '9';
+    const bool punctuation = character == '.' || character == '-' || character == '_';
+    return lower || digit || punctuation;
+}
+
+} // namespace
+
+bool mcp_capability_built() noexcept {
+#if defined(GUI_FORMS_MCP)
+    return true;
+#else
+    return false;
+#endif
+}
+
+void set_model_drivable(Window& window, bool drivable) {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    ensure_window_mark(table, window).drivable = drivable;
+}
+
+bool model_drivable(const Window& window) noexcept {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    const WindowMark* const mark = window_mark(table, window);
+    const bool drivable = mark != nullptr && (*mark).drivable;
+    return drivable;
+}
+
+void set_window_destructive(Window& window, bool destructive) {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    ensure_window_mark(table, window).destructive = destructive;
+}
+
+bool window_destructive(const Window& window) noexcept {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    const WindowMark* const mark = window_mark(table, window);
+    const bool destructive = mark != nullptr && (*mark).destructive;
+    return destructive;
+}
+
+bool set_action_destructive(const char* stable_id, SemanticAction action, bool destructive) {
+    std::string_view identity{};
+    if (!read_text(stable_id, identity)) return false;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (std::size_t index = 0U; index < table.destructive_actions.size(); ++index) {
+        const ActionMark& mark = table.destructive_actions[index];
+        if (mark.stable_id != identity || mark.action != action) continue;
+        if (!destructive) {
+            table.destructive_actions.erase(table.destructive_actions.begin() +
+                                            static_cast<std::ptrdiff_t>(index));
+        }
+        return true;
+    }
+    if (destructive) table.destructive_actions.push_back(ActionMark{std::string(identity), action});
+    return true;
+}
+
+bool action_destructive(const char* stable_id, SemanticAction action) noexcept {
+    std::string_view identity{};
+    if (!read_text(stable_id, identity)) return false;
+    const bool destructive = detail::action_destructive_mark(identity, action);
+    return destructive;
+}
+
+bool set_command_hidden_from_model(const char* stable_id, bool hidden) {
+    std::string_view identity{};
+    if (!read_text(stable_id, identity)) return false;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (std::size_t index = 0U; index < table.hidden_commands.size(); ++index) {
+        if (table.hidden_commands[index] != identity) continue;
+        if (!hidden) table.hidden_commands.erase(table.hidden_commands.begin() + static_cast<std::ptrdiff_t>(index));
+        return true;
+    }
+    if (hidden) table.hidden_commands.emplace_back(identity);
+    return true;
+}
+
+bool command_hidden_from_model(const char* stable_id) noexcept {
+    std::string_view identity{};
+    if (!read_text(stable_id, identity)) return false;
+    const bool hidden = detail::command_hidden_mark(identity);
+    return hidden;
+}
+
+bool require_user_step(const char* stable_id, const char* what_user_must_do) {
+    std::string_view identity{};
+    std::string_view what{};
+    if (!read_text(stable_id, identity) || !read_text(what_user_must_do, what)) return false;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (UserStep& step : table.user_steps) {
+        if (step.stable_id != identity) continue;
+        step.what = std::string(what);
+        return true;
+    }
+    table.user_steps.push_back(UserStep{std::string(identity), std::string(what)});
+    return true;
+}
+
+void complete_user_step(const char* stable_id) {
+    std::string_view identity{};
+    if (!read_text(stable_id, identity)) return;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (std::size_t index = 0U; index < table.user_steps.size(); ++index) {
+        if (table.user_steps[index].stable_id != identity) continue;
+        table.user_steps.erase(table.user_steps.begin() + static_cast<std::ptrdiff_t>(index));
+        return;
+    }
+}
+
+bool user_step_pending(const char* stable_id) noexcept {
+    std::string_view identity{};
+    if (!read_text(stable_id, identity)) return false;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (const UserStep& step : table.user_steps) {
+        if (step.stable_id == identity) return true;
+    }
+    return false;
+}
+
+void set_clipboard_readable_by_model(bool readable) noexcept {
+    clipboard_readable.store(readable, std::memory_order_release);
+}
+
+bool clipboard_readable_by_model() noexcept {
+    const bool readable = clipboard_readable.load(std::memory_order_acquire);
+    return readable;
+}
+
+bool set_mcp_identity(const char* identity) {
+    if (identity == nullptr) return false;
+    const std::size_t length = ::strnlen(identity, 129U);
+    if (length < 3U || length > 128U) return false;
+    const std::string_view text(identity, length);
+    if (text[0] < 'a' || text[0] > 'z') return false;
+    bool dotted = false;
+    for (const char character : text) {
+        if (!valid_identity_character(character)) return false;
+        if (character == '.') dotted = true;
+    }
+    if (!dotted) return false;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    table.identity = std::string(text);
+    return true;
+}
+
+const char* mcp_identity_override() noexcept {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    const char* const identity = table.identity.c_str();
+    return identity;
+}
+
+void take_mcp_arguments(int& argc, char** argv) noexcept {
+    if (argv == nullptr || argc <= 1) return;
+    int write = 1;
+    int read = 1;
+    while (read < argc) {
+        const char* const argument = argv[read];
+        const std::string_view text = argument == nullptr ? std::string_view{} : std::string_view(argument);
+        if (text == "--mcp" || text == "--model-directed") {
+            ++read;
+            continue;
+        }
+        if (text == "--mcp-script") {
+            // The option and its file; a trailing option without a file is
+            // dropped alone.
+            read += read + 1 < argc ? 2 : 1;
+            continue;
+        }
+        argv[write] = argv[read];
+        ++write;
+        ++read;
+    }
+    argc = write;
+    argv[write] = nullptr;
+}
+
+namespace detail {
+
+bool pending_user_step(std::string_view stable_id, std::string& what) {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (const UserStep& step : table.user_steps) {
+        if (step.stable_id != stable_id) continue;
+        what = step.what;
+        return true;
+    }
+    return false;
+}
+
+bool action_destructive_mark(std::string_view stable_id, SemanticAction action) {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (const ActionMark& mark : table.destructive_actions) {
+        if (mark.stable_id == stable_id && mark.action == action) return true;
+    }
+    return false;
+}
+
+bool command_hidden_mark(std::string_view stable_id) {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    for (const std::string& hidden : table.hidden_commands) {
+        if (hidden == stable_id) return true;
+    }
+    return false;
+}
+
+} // namespace detail
+} // namespace gui_forms::automation

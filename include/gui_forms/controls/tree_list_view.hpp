@@ -4,10 +4,12 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/image_list.hpp"
+#include "gui_forms/controls/check_box_values.hpp"
 #include "gui_forms/text/localizable/localizable_property.hpp"
 #include "gui_forms/controls/tree_list_view_capabilities.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
 
+#include <array>
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
@@ -53,7 +55,8 @@ struct GUI_FORMS_API TreeListColumn final {
 // can always be expanded; `expandable` shows the expander on a node whose
 // children are not loaded yet. `expanded` is ignored on a node that cannot
 // be expanded. `image_key` names an image in the image list; an empty or
-// unknown key shows none.
+// unknown key shows none. `check_state` is the node's check box, shown when
+// the view's check_boxes is on and kept either way.
 struct GUI_FORMS_API TreeListNode final {
     std::string stable_id{};
     std::string text{};
@@ -63,6 +66,7 @@ struct GUI_FORMS_API TreeListNode final {
     bool expanded{};
     bool enabled{true};
     std::string image_key{};
+    CheckState check_state{CheckState::unchecked};
 };
 
 // A change of the selected node, after it happened.
@@ -80,6 +84,14 @@ struct GUI_FORMS_API TreeListExpansionChange final {
 // A node activated by a double click, Enter, or the semantic press action.
 struct GUI_FORMS_API TreeListActivation final {
     std::string node_id{};
+};
+
+// A node's check state changed, by a click on its check box, Space, the
+// semantic press, or set_check_state(). A cascading change raises one per
+// node it changed (see TreeListView::set_check_state).
+struct GUI_FORMS_API TreeListCheckChange final {
+    std::string node_id{};
+    CheckState check_state{CheckState::unchecked};
 };
 
 // The sibling order after a header click, the semantic press on a header,
@@ -150,6 +162,17 @@ public:
         static_cast<void>(node_id);
         return stxlib::Optional<std::size_t>::none();
     }
+    // Sets the row's node's check state in the application's model (with
+    // whatever cascade the application keeps) and returns whether it
+    // changed; the view then repaints, reading the rows again, and raises
+    // check_state_changed once, for this row's node. The row is below
+    // row_count() and its node enabled. Refused (false) by default: a
+    // virtual view's check boxes only show the rows' states.
+    [[nodiscard]] virtual bool set_row_check_state(std::size_t row, CheckState state) {
+        static_cast<void>(row);
+        static_cast<void>(state);
+        return false;
+    }
     // Type-ahead: the first enabled row at or after `start` (wrapping) whose
     // text starts with `folded_prefix` (ASCII case folded); none by default,
     // so a virtual view has no type-ahead unless the source provides it.
@@ -177,8 +200,11 @@ class RowHeightIndex;
 // collapsed node, as TreeView does. Sorting orders siblings by one column's
 // text and keeps the tree structure. Columns are resized by dragging a
 // header's divider and moved by dragging a header; the tree column stays
-// first. Multiple selection, check boxes, label editing and owner drawing
-// are not supported yet.
+// first. With check_boxes on, each row shows its node's check box after the
+// expander, as TreeView's CheckBoxes does; with cascading_checks a check
+// applies to the node's subtree and its ancestors show checked, unchecked
+// or indeterminate from their children. Multiple selection, label editing
+// and owner drawing are not supported yet.
 //
 // Virtual mode (set_row_source): the rows come from a TreeListRowSource and
 // their heights live in a height-indexed tree, so a jump anywhere, a
@@ -188,6 +214,8 @@ class RowHeightIndex;
 // empty; sorting raises sort_changed and re-reads the rows (the source sorts
 // in its handler); ensure_visible and selected_id find rows through
 // find_row and do not expand ancestors.
+// ic: gui_forms::TreeListView: generated from include/gui_forms/controls/tree_list_view.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API TreeListView final : public Control, public TreeListViewCapabilities<TreeListView> {
 public:
     static constexpr bool initialize_tree_after_construction = true;
@@ -258,6 +286,23 @@ public:
     // Expands the node and every expandable node under it (the asterisk
     // key), raising expansion_changed for each in preorder.
     void expand_subtree(std::string_view node_id);
+
+    // -- check boxes -----------------------------------------------------------
+    // The node's check state, shown or not. Throws std::out_of_range for an
+    // unknown node.
+    [[nodiscard]] CheckState check_state(std::string_view node_id) const;
+    // Sets a node's check state and raises check_state_changed for each node
+    // that changed, after every state is set: the node, then (cascading) its
+    // descendants in model order, then its ancestors, nearest first. With
+    // cascading_checks every descendant takes the state and each ancestor
+    // becomes checked or unchecked when all its children are, otherwise
+    // indeterminate; an indeterminate write is then refused, since it is
+    // derived. Turning cascading_checks on does not recompute the states.
+    // In virtual mode the source sets it (set_row_check_state) and keeps any
+    // cascade. Throws std::out_of_range for an unknown node and
+    // std::invalid_argument for a state outside CheckState or a cascading
+    // indeterminate write.
+    void set_check_state(std::string_view node_id, CheckState state);
 
     // -- virtual rows ------------------------------------------------------------
     // Shows the source's rows instead of nodes (a null source returns to an
@@ -336,6 +381,9 @@ public:
         return column_width_changed_;
     }
     [[nodiscard]] Event<const TreeListColumnMove&>& column_moved() noexcept { return column_moved_; }
+    [[nodiscard]] Event<const TreeListCheckChange&>& check_state_changed() noexcept {
+        return check_state_changed_;
+    }
 
     void arrange(Rect final_bounds) override;
     void on_paint(Painter& painter, Rect local_damage) override;
@@ -367,6 +415,8 @@ public:
         PartGeometry row;
         PartGeometry row_face;
         PartGeometry expander;
+        PartGeometry check_well;
+        PartGeometry check;
         PartGeometry icon;
         PartGeometry text;
         PartGeometry row_focus;
@@ -379,6 +429,8 @@ public:
         bool closed{};
         bool disabled{};
         bool focus_visible{};
+        bool checked{};
+        bool indeterminate{};
     };
     struct GUI_FORMS_API Row final {
         // The row's position among the rows, and the node's model index.
@@ -474,7 +526,7 @@ private:
         std::size_t top_row{};      // clamped
     };
     // Which part of the view a point is on.
-    enum class HitZone : std::uint8_t { none, row, expander, header, divider };
+    enum class HitZone : std::uint8_t { none, row, expander, check_box, header, divider };
     struct Hit final {
         HitZone zone{HitZone::none};
         // A row, or a column for the header and divider zones.
@@ -519,6 +571,16 @@ private:
     // a handler sees the finished state.
     void expand_ancestors(std::size_t index, std::vector<TreeListExpansionChange>& changes);
     void publish_expansions(std::span<const TreeListExpansionChange> changes);
+    // Sets a node's check state and, cascading, its subtree's and its
+    // ancestors', appending one change per node that changed in the order
+    // set_check_state() raises them. Nothing is published here.
+    void apply_check_state(std::size_t index, CheckState state, std::vector<TreeListCheckChange>& changes);
+    [[nodiscard]] CheckState derived_check_state(std::size_t index) const noexcept;
+    void publish_checks(std::span<const TreeListCheckChange> changes);
+    // A user's toggle of a row's check box: checked becomes unchecked,
+    // anything else checked. A disabled node is left alone.
+    void toggle_row_check(std::size_t row);
+    void set_virtual_row_check_state(std::size_t row, CheckState state);
     // The node itself when it has a row, otherwise its nearest ancestor
     // with one (a root always has a row).
     [[nodiscard]] std::size_t visible_ancestor(std::size_t index) const noexcept;
@@ -678,7 +740,18 @@ private:
     Event<const TreeListSortChange&> sort_changed_{};
     Event<const TreeListColumnWidthChange&> column_width_changed_{};
     Event<const TreeListColumnMove&> column_moved_{};
+    Event<const TreeListCheckChange&> check_state_changed_{};
+    // The routed form of a key the raisers left unhandled.
+    void handle_key(KeyEvent& event);
+    // The target phase in the routed form, from the mouse raisers.
+    void handle_pointer(PointerEvent& event);
     // property_codemod begin TreeListView (tools/property_families/tree_list_view.json; generated, do not edit)
+public:
+    // TreeListView's property table: Control's entries, then its own.
+    static constexpr std::size_t tree_list_view_property_count = Control::control_property_count + 2U;
+    [[nodiscard]] static const std::array<PropertyEntry, tree_list_view_property_count>& tree_list_view_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
     // raises the change event (the class is final: nothing overrides it in
@@ -687,15 +760,15 @@ protected:
     void on_font_changed();
 
 private:
-    // The routed form of a key the raisers left unhandled.
-    void handle_key(KeyEvent& event);
-    // The target phase in the routed form, from the mouse raisers.
-    void handle_pointer(PointerEvent& event);
     friend struct TreeListViewIndentationCapability<TreeListView>;
     friend struct TreeListViewImageListCapability<TreeListView>;
     friend struct FontCapability<TreeListView>;
     friend struct TreeListViewSelectedIdCapability<TreeListView>;
+    friend struct TreeListViewCheckBoxesCapability<TreeListView>;
+    friend struct TreeListViewCascadingChecksCapability<TreeListView>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires finite(incoming) and incoming >= indentation_least and incoming <= indentation_most, else failure
+    // ic: invalid_argument, unchanged.
     void prepare_write(const decltype(indentation)& cell, double& incoming);
     void written(const decltype(indentation)& cell);
     void prepare_write(const decltype(image_list)& cell, std::shared_ptr<ImageList>& incoming);
@@ -704,6 +777,10 @@ private:
     void written(const decltype(font)& cell);
     void write_view(const decltype(selected_id)& cell, std::optional<std::string> incoming);
     [[nodiscard]] std::optional<std::string> read_view(const decltype(selected_id)& cell) const;
+    void prepare_write(const decltype(check_boxes)& cell, bool& incoming);
+    void written(const decltype(check_boxes)& cell);
+    void prepare_write(const decltype(cascading_checks)& cell, bool& incoming);
+    void written(const decltype(cascading_checks)& cell);
     // property_codemod end TreeListView
 };
 

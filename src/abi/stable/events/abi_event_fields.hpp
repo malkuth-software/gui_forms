@@ -48,6 +48,7 @@
 #include "gui_forms/control.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <array>
 #include <cstddef>
@@ -849,7 +850,7 @@ struct EventForwarder final {
 
 template <typename... Arguments>
 SubscriptionToken subscribe_forwarded(Event<Arguments...>& event, const EventSink& sink) {
-    EventForwarder<Arguments...> forwarder{sink.binding, std::make_shared<EventFields>()};
+    EventForwarder<Arguments...> forwarder{sink.binding, gui_forms::detail::make_library_shared<EventFields>()};
     SubscriptionToken token = event.subscribe(std::move(forwarder));
     return token;
 }

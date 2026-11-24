@@ -5,11 +5,14 @@
 
 #include "../failure/abi_failure.hpp"
 #include "../registry/abi_registry.hpp"
+#include "../ic/abi_docking_ic_checks.hpp"
 
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/control/stable_id/stable_id.hpp"
 #include "gui_forms/controls/dock_workspace.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
+#include "gui_forms/controls/ribbon.hpp"
+#include "gui_forms/controls/tool_strip.hpp"
 #include "gui_forms/docking.hpp"
 
 #include <algorithm>
@@ -52,6 +55,14 @@ constexpr SlotIdentity area_document_at_slot{GF_TABLE_DOCKING, 21U};
 constexpr SlotIdentity area_active_document_slot{GF_TABLE_DOCKING, 22U};
 constexpr SlotIdentity set_panel_menu_strip_slot{GF_TABLE_DOCKING, 23U};
 constexpr SlotIdentity merged_document_slot{GF_TABLE_DOCKING, 24U};
+constexpr SlotIdentity set_merge_tool_strip_slot{GF_TABLE_DOCKING, 25U};
+constexpr SlotIdentity merge_tool_strip_slot{GF_TABLE_DOCKING, 26U};
+constexpr SlotIdentity set_panel_tool_strip_slot{GF_TABLE_DOCKING, 27U};
+constexpr SlotIdentity merged_tool_strip_document_slot{GF_TABLE_DOCKING, 28U};
+constexpr SlotIdentity set_merge_ribbon_slot{GF_TABLE_DOCKING, 29U};
+constexpr SlotIdentity merge_ribbon_slot{GF_TABLE_DOCKING, 30U};
+constexpr SlotIdentity set_panel_ribbon_slot{GF_TABLE_DOCKING, 31U};
+constexpr SlotIdentity merged_ribbon_document_slot{GF_TABLE_DOCKING, 32U};
 
 constexpr const char* not_workspace = "the object is not a dock workspace";
 
@@ -645,7 +656,7 @@ gf_status GF_CALL docking_apply_edit(gf_object workspace, const gf_dock_edit* ed
 }
 
 gf_status docking_locate_body(gf_object workspace, gf_utf8_view panel, gf_dock_location* location) {
-    if (location == nullptr || (*location).struct_size < location_size_1_1) {
+    if (!ic_docking::admits_locate_location(location) || !ic_docking::admits_locate_location_size((*location).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, locate_slot, "locate needs a location of at least the 1.1 size");
     }
     WorkspacePtr typed;
@@ -787,7 +798,7 @@ gf_status GF_CALL docking_attach_windows(gf_object workspace) noexcept {
 }
 
 gf_status docking_document_area_body(gf_object workspace, std::uint32_t* node) {
-    if (node == nullptr) {
+    if (!ic_docking::admits_document_area_node(node)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, document_area_slot, "document_area needs a node output");
     }
     WorkspacePtr typed;
@@ -830,7 +841,7 @@ gf_status GF_CALL docking_panel_at(gf_object workspace, std::uint32_t stack, std
 
 gf_status docking_floating_sites_body(gf_object workspace, std::uint32_t* sites, std::uint64_t capacity,
                                       std::uint64_t* count) {
-    if (count == nullptr || (sites == nullptr && capacity != 0U)) {
+    if (!ic_docking::admits_floating_sites_sites(count, sites, capacity)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, floating_sites_slot,
                     "floating_sites needs a count output, and sites when capacity is not zero");
     }
@@ -995,7 +1006,7 @@ gf_status write_optional_panel(const stxlib::Optional<DockPanelId>& panel, char*
 }
 
 gf_status docking_document_presentation_body(gf_object workspace, gf_dock_document_presentation* presentation) {
-    if (presentation == nullptr) {
+    if (!ic_docking::admits_document_presentation_presentation(presentation)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, document_presentation_slot,
                     "document_presentation needs a presentation output");
     }
@@ -1040,7 +1051,7 @@ gf_status GF_CALL docking_arrange_frames(gf_object workspace, gf_dock_frame_arra
 }
 
 gf_status docking_frame_memory_body(gf_object workspace, gf_utf8_view document, gf_dock_frame_memory* frame) {
-    if (frame == nullptr || (*frame).struct_size < frame_memory_size_1_6) {
+    if (!ic_docking::admits_frame_memory_frame(frame) || !ic_docking::admits_frame_memory_frame_size((*frame).struct_size)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, frame_memory_slot,
                     "frame_memory needs a frame record of at least the 1.6 size");
     }
@@ -1095,7 +1106,7 @@ gf_status GF_CALL docking_set_frame_icons_at_bottom(gf_object workspace, std::ui
 }
 
 gf_status docking_area_document_count_body(gf_object workspace, std::uint64_t* count) {
-    if (count == nullptr) {
+    if (!ic_docking::admits_area_document_count_count(count)) {
         return fail(GF_STATUS_INVALID_ARGUMENT, area_document_count_slot, "area_document_count needs a count output");
     }
     WorkspacePtr typed;
@@ -1202,6 +1213,207 @@ gf_status GF_CALL docking_merged_document(gf_object workspace, char* buffer, std
     return call_slot(merged_document_slot, docking_merged_document_body, workspace, buffer, capacity, required);
 }
 
+// A live control of type Typed for a merge slot (since 1.7): the object's
+// control when it is one, else WRONG_HANDLE_KIND (refusal says what was
+// wanted), or DISPOSED for a disposed one.
+template <typename Typed>
+gf_status find_merge_control(gf_object object, SlotIdentity slot, const char* refusal, std::shared_ptr<Typed>& typed) {
+    Control::Ptr control;
+    const gf_status found = registry().find_object(object, slot, control);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    std::shared_ptr<Typed> cast = std::dynamic_pointer_cast<Typed>(control);
+    if (cast == nullptr) {
+        return fail(GF_STATUS_WRONG_HANDLE_KIND, slot, refusal);
+    }
+    if (!(*cast).is_alive()) {
+        return fail(GF_STATUS_DISPOSED, slot, "the control has been disposed");
+    }
+    typed = std::move(cast);
+    return GF_STATUS_OK;
+}
+
+// A merge target as a new reference, or zero when none is set or it is
+// gone. The reference is made before the output is written: a failed
+// allocation leaves the output as it was.
+gf_status write_merge_target(const Control::Ptr& held, gf_object* output) {
+    const bool live = held && (*held).is_alive();
+    const gf_object made = live ? registry().add_reference(held) : gf_object{0U};
+    *output = made;
+    return GF_STATUS_OK;
+}
+
+gf_status docking_set_merge_tool_strip_body(gf_object workspace, gf_object strip) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_merge_tool_strip_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (strip == 0U) {
+        (*typed).clear_merge_tool_strip();
+        return GF_STATUS_OK;
+    }
+    std::shared_ptr<ToolStrip> target;
+    const gf_status found =
+        find_merge_control(strip, set_merge_tool_strip_slot, "the strip is not a tool strip", target);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    (*typed).set_merge_tool_strip(*target);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_set_merge_tool_strip(gf_object workspace, gf_object strip) noexcept {
+    return call_slot(set_merge_tool_strip_slot, docking_set_merge_tool_strip_body, workspace, strip);
+}
+
+gf_status docking_merge_tool_strip_body(gf_object workspace, gf_object* strip) {
+    if (strip == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, merge_tool_strip_slot, "merge_tool_strip needs a strip output");
+    }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, merge_tool_strip_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    return write_merge_target((*typed).merge_tool_strip(), strip);
+}
+
+gf_status GF_CALL docking_merge_tool_strip(gf_object workspace, gf_object* strip) noexcept {
+    return call_slot(merge_tool_strip_slot, docking_merge_tool_strip_body, workspace, strip);
+}
+
+gf_status docking_set_panel_tool_strip_body(gf_object workspace, gf_utf8_view panel, gf_object strip) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_panel_tool_strip_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    DockPanelId id;
+    const gf_status read = read_registered_panel(*typed, panel, set_panel_tool_strip_slot, id);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    if (strip == 0U) {
+        static_cast<void>((*typed).clear_panel_tool_strip(id));
+        return GF_STATUS_OK;
+    }
+    std::shared_ptr<ToolStrip> source;
+    const gf_status found =
+        find_merge_control(strip, set_panel_tool_strip_slot, "the strip is not a tool strip", source);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    static_cast<void>((*typed).set_panel_tool_strip(id, *source));
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_set_panel_tool_strip(gf_object workspace, gf_utf8_view panel, gf_object strip) noexcept {
+    return call_slot(set_panel_tool_strip_slot, docking_set_panel_tool_strip_body, workspace, panel, strip);
+}
+
+gf_status docking_merged_tool_strip_document_body(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                                  std::uint64_t* required) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, merged_tool_strip_document_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const stxlib::Optional<DockPanelId> merged = (*typed).merged_tool_strip_document();
+    return write_optional_panel(merged, buffer, capacity, required, merged_tool_strip_document_slot);
+}
+
+gf_status GF_CALL docking_merged_tool_strip_document(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                                     std::uint64_t* required) noexcept {
+    return call_slot(merged_tool_strip_document_slot, docking_merged_tool_strip_document_body, workspace, buffer,
+                     capacity, required);
+}
+
+gf_status docking_set_merge_ribbon_body(gf_object workspace, gf_object ribbon) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_merge_ribbon_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    if (ribbon == 0U) {
+        (*typed).clear_merge_ribbon();
+        return GF_STATUS_OK;
+    }
+    std::shared_ptr<Ribbon> target;
+    const gf_status found = find_merge_control(ribbon, set_merge_ribbon_slot, "the object is not a ribbon", target);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    (*typed).set_merge_ribbon(*target);
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_set_merge_ribbon(gf_object workspace, gf_object ribbon) noexcept {
+    return call_slot(set_merge_ribbon_slot, docking_set_merge_ribbon_body, workspace, ribbon);
+}
+
+gf_status docking_merge_ribbon_body(gf_object workspace, gf_object* ribbon) {
+    if (ribbon == nullptr) {
+        return fail(GF_STATUS_INVALID_ARGUMENT, merge_ribbon_slot, "merge_ribbon needs a ribbon output");
+    }
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, merge_ribbon_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    return write_merge_target((*typed).merge_ribbon(), ribbon);
+}
+
+gf_status GF_CALL docking_merge_ribbon(gf_object workspace, gf_object* ribbon) noexcept {
+    return call_slot(merge_ribbon_slot, docking_merge_ribbon_body, workspace, ribbon);
+}
+
+gf_status docking_set_panel_ribbon_body(gf_object workspace, gf_utf8_view panel, gf_object ribbon) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, set_panel_ribbon_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    DockPanelId id;
+    const gf_status read = read_registered_panel(*typed, panel, set_panel_ribbon_slot, id);
+    if (read != GF_STATUS_OK) {
+        return read;
+    }
+    if (ribbon == 0U) {
+        static_cast<void>((*typed).clear_panel_ribbon(id));
+        return GF_STATUS_OK;
+    }
+    std::shared_ptr<Ribbon> source;
+    const gf_status found = find_merge_control(ribbon, set_panel_ribbon_slot, "the object is not a ribbon", source);
+    if (found != GF_STATUS_OK) {
+        return found;
+    }
+    static_cast<void>((*typed).set_panel_ribbon(id, *source));
+    return GF_STATUS_OK;
+}
+
+gf_status GF_CALL docking_set_panel_ribbon(gf_object workspace, gf_utf8_view panel, gf_object ribbon) noexcept {
+    return call_slot(set_panel_ribbon_slot, docking_set_panel_ribbon_body, workspace, panel, ribbon);
+}
+
+gf_status docking_merged_ribbon_document_body(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                              std::uint64_t* required) {
+    WorkspacePtr typed;
+    const gf_status entered = enter_workspace(workspace, merged_ribbon_document_slot, typed);
+    if (entered != GF_STATUS_OK) {
+        return entered;
+    }
+    const stxlib::Optional<DockPanelId> merged = (*typed).merged_ribbon_document();
+    return write_optional_panel(merged, buffer, capacity, required, merged_ribbon_document_slot);
+}
+
+gf_status GF_CALL docking_merged_ribbon_document(gf_object workspace, char* buffer, std::uint64_t capacity,
+                                                 std::uint64_t* required) noexcept {
+    return call_slot(merged_ribbon_document_slot, docking_merged_ribbon_document_body, workspace, buffer, capacity,
+                     required);
+}
+
 const gf_docking_table table{
     .struct_size = static_cast<std::uint32_t>(sizeof(gf_docking_table)),
     .abi_minor = GF_ABI_MINOR,
@@ -1230,6 +1442,14 @@ const gf_docking_table table{
     .area_active_document = &docking_area_active_document,
     .set_panel_menu_strip = &docking_set_panel_menu_strip,
     .merged_document = &docking_merged_document,
+    .set_merge_tool_strip = &docking_set_merge_tool_strip,
+    .merge_tool_strip = &docking_merge_tool_strip,
+    .set_panel_tool_strip = &docking_set_panel_tool_strip,
+    .merged_tool_strip_document = &docking_merged_tool_strip_document,
+    .set_merge_ribbon = &docking_set_merge_ribbon,
+    .merge_ribbon = &docking_merge_ribbon,
+    .set_panel_ribbon = &docking_set_panel_ribbon,
+    .merged_ribbon_document = &docking_merged_ribbon_document,
 };
 
 } // namespace

@@ -20,6 +20,31 @@ void append_size(std::ostringstream& output, Size value) {
     output << '[' << detail::JsonNumber{value.width} << ',' << detail::JsonNumber{value.height} << ']';
 }
 
+// The visible-area guarantee's layout reasons (stage VA), written only
+// where a control is scaled, scales its children or owns an overflow, so a
+// window that scales nothing and overflows nowhere reads as before.
+void append_viewport_reasons(std::ostringstream& output, const VisualControlLayoutSnapshot& layout) {
+    const bool scaled = layout.effective_scale != 1.0;
+    const bool framing = !is_identity_frame(layout.content_frame);
+    if (!scaled && !framing && layout.overflows.count() == 0U) return;
+    output << ",\"viewport\":{\"effective_scale\":" << detail::JsonNumber{layout.effective_scale}
+           << ",\"content_frame\":{\"origin\":[" << detail::JsonNumber{layout.content_frame.origin.x} << ','
+           << detail::JsonNumber{layout.content_frame.origin.y}
+           << "],\"scale\":" << detail::JsonNumber{layout.content_frame.scale} << "},\"overflows\":[";
+    for (stxlib::usize index = 0U; index < layout.overflows.count(); ++index) {
+        const OverflowRecord& record = layout.overflows[index];
+        if (index != 0U) output << ',';
+        output << "{\"cause\":\"" << overflow_cause_name(record.cause) << "\",\"answer\":\""
+               << overflow_answer_name(record.answer) << "\",\"answered\":" << (record.answered ? "true" : "false")
+               << ",\"scale\":" << detail::JsonNumber{record.effective_scale} << ",\"content\":["
+               << detail::JsonNumber{record.content_extent.width} << ','
+               << detail::JsonNumber{record.content_extent.height} << "],\"viewport\":["
+               << detail::JsonNumber{record.viewport_extent.width} << ','
+               << detail::JsonNumber{record.viewport_extent.height} << "]}";
+    }
+    output << "]}";
+}
+
 void append_rect(std::ostringstream& output, Rect value) {
     output << '[' << detail::JsonNumber{value.x} << ',' << detail::JsonNumber{value.y} << ',' << detail::JsonNumber{value.width} << ','
            << detail::JsonNumber{value.height} << ']';
@@ -605,7 +630,9 @@ void append_control(std::ostringstream& output,
            << ",\"requested_revision\":"
            << control.layout.transaction.requested_revision
            << ",\"committed_revision\":"
-           << control.layout.transaction.committed_revision << "}},\"state\":{";
+           << control.layout.transaction.committed_revision << '}';
+    append_viewport_reasons(output, control.layout);
+    output << "},\"state\":{";
     output << "\"visible\":" << (control.state.visible ? "true" : "false")
            << ",\"layout_collapsed\":"
            << (control.state.layout_collapsed ? "true" : "false")

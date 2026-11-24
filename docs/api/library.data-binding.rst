@@ -72,6 +72,8 @@ Types
      - ControlBindingsCollection owns the unique active binding for each canonical target property and disposes the set deterministically.
    * - :cpp:class:`CurrencyManager <gui_forms::CurrencyManager>`
      - CurrencyManager is the non-owning facade over exactly one BindingSource, keeping navigation, edit, and bulk transfer vocabulary uniform.
+   * - :cpp:class:`FormDocumentSource <gui_forms::FormDocumentSource>`
+     - One member the form binds, by the name its document's ``to`` gives.
    * - :cpp:class:`NumberFormat <gui_forms::NumberFormat>`
      -  
    * - :cpp:class:`PropertyCell <gui_forms::PropertyCell>`
@@ -1123,6 +1125,24 @@ Types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: FormDocumentSource final
+
+   ``#include <gui_forms/binding/form_document_export/form_document_export.hpp>`` (:src:`source <include/gui_forms/binding/form_document_export/form_document_export.hpp>`)
+
+   One member the form binds, by the name its document's ``to`` gives. The source is borrowed: it must outlive the form's controls, as the bindings generated code makes already require. Made by form_document_source.
+
+   .. cpp:member:: const char* name
+
+   .. cpp:member:: std::size_t name_bytes
+
+   .. cpp:member:: FormDocumentSourceKind kind
+
+      Default: ``{FormDocumentSourceKind::boolean_value}``.
+
+   .. cpp:member:: void* source
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: NumberFormat final
 
    ``#include <gui_forms/binding/number_format/number_format.hpp>`` (:src:`source <include/gui_forms/binding/number_format/number_format.hpp>`)
@@ -1789,6 +1809,34 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FormDocumentRegistration
+
+   ``#include <gui_forms/binding/form_document_export/form_document_export.hpp>`` (:src:`source <include/gui_forms/binding/form_document_export/form_document_export.hpp>`)
+
+   .. cpp:enumerator:: registered
+
+   .. cpp:enumerator:: refused
+
+   .. cpp:enumerator:: full
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:enum-class:: FormDocumentSourceKind
+
+   ``#include <gui_forms/binding/form_document_export/form_document_export.hpp>`` (:src:`source <include/gui_forms/binding/form_document_export/form_document_export.hpp>`)
+
+   .. cpp:enumerator:: boolean_value
+
+   .. cpp:enumerator:: integer_value
+
+   .. cpp:enumerator:: number_value
+
+   .. cpp:enumerator:: command
+
+   .. cpp:enumerator:: binding_source
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: FormUpdateTrigger
 
    ``#include <gui_forms/binding/form_binding/form_binding.hpp>`` (:src:`source <include/gui_forms/binding/form_binding/form_binding.hpp>`)
@@ -1907,6 +1955,26 @@ Functions, constants and aliases
 .. cpp:function:: void bind_form_field(Control& target, std::string_view property, const std::shared_ptr<BindingSource>& source, std::string field, PropertyBindingDirection direction, FormUpdateTrigger trigger)
 
    Binds ``property`` of ``target`` to the field ``field`` of ``source``'s current record. ``trigger`` matters only for a two-way binding.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/binding/form_document_export/form_document_export.hpp>`` (:src:`source <include/gui_forms/binding/form_document_export/form_document_export.hpp>`)
+
+.. cpp:function:: FormDocumentSource form_document_source(const char* name, std::size_t name_bytes, Value<bool>& source) noexcept
+
+.. cpp:function:: FormDocumentSource form_document_source(const char* name, std::size_t name_bytes, Value<int>& source) noexcept
+
+.. cpp:function:: FormDocumentSource form_document_source(const char* name, std::size_t name_bytes, Value<double>& source) noexcept
+
+.. cpp:function:: FormDocumentSource form_document_source(const char* name, std::size_t name_bytes, Command& source) noexcept
+
+.. cpp:function:: FormDocumentSource form_document_source(const char* name, std::size_t name_bytes, BindingSource& source) noexcept
+
+   A BindingSource the program holds shared (as generated bindings take it).
+
+.. cpp:function:: FormDocumentRegistration register_form_document(const Control::Ptr& root, const char* file, std::size_t file_bytes, const char* document, std::size_t document_bytes, const FormDocumentSource* sources, std::size_t source_count)
+
+   Registers the form whose root control is ``root``: its document named ``file``, and its ``sources``. A second registration of the same root replaces the first. A form whose root ends is forgotten.
 
 .. cpp:namespace:: gui_forms
 

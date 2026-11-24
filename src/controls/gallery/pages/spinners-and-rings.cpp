@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "spinners-and-rings_form.hpp"
 
@@ -72,7 +73,7 @@ void SpinnersAndRingsPage::on_advance() {
 }
 
 void add_spinners_and_rings(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<SpinnersAndRingsPage>(page));
+    (*context).components.add(gui_forms::detail::make_library_shared<SpinnersAndRingsPage>(page));
 }
 
 }  // namespace gui_forms::gallery::pages

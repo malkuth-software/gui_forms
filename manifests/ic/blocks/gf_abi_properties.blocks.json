@@ -1,0 +1,488 @@
+{
+  "schema": 1,
+  "component": "gf_abi::properties",
+  "declaration": "include/gui_forms/c/gf_abi_properties.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [
+    "alive",
+    "disposing",
+    "disposed"
+  ],
+  "initial": "alive",
+  "state_query": "gf_objects_table.state",
+  "blocks": [
+    {
+      "name": "gf_abi.properties.get.alive",
+      "mode": "legal",
+      "call": "get",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::properties",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Text is copied into text_buffer and value->text points there; text_required receives its size (zero for other kinds), also with GF_STATUS_BUFFER_TOO_SMALL.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: a property name is not empty",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "An unknown or unreadable property gives GF_STATUS_NOT_FOUND; a kind gf_value cannot hold yet gives GF_STATUS_UNSUPPORTED_CAPABILITY.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "An unknown or unreadable property gives GF_STATUS_NOT_FOUND; a kind gf_value cannot hold yet gives GF_STATUS_UNSUPPORTED_CAPABILITY.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is a component, not a control or a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.properties.get.outside.disposing",
+      "mode": "misuse",
+      "call": "get",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.get.outside.disposed",
+      "mode": "misuse",
+      "call": "get",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.set.alive",
+      "mode": "legal",
+      "call": "set",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::properties",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "A value that does not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_state",
+          "when": "A value that does not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A value that does not convert to the property's kind gives GF_STATUS_INVALID_ARGUMENT, a read-only property GF_STATUS_INVALID_STATE, an unknown one GF_STATUS_NOT_FOUND.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is a component, not a control or a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.properties.set.outside.disposing",
+      "mode": "misuse",
+      "call": "set",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.set.outside.disposed",
+      "mode": "misuse",
+      "call": "set",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.reset.alive",
+      "mode": "legal",
+      "call": "reset",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::properties",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: a property name is not empty",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: a window has no property of that name",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "GF_STATUS_UNSUPPORTED_CAPABILITY when it has no reset path.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is a component, not a control or a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.properties.reset.outside.disposing",
+      "mode": "misuse",
+      "call": "reset",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.reset.outside.disposed",
+      "mode": "misuse",
+      "call": "reset",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.element_at.alive",
+      "mode": "legal",
+      "call": "element_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::properties",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "GF_STATUS_INVALID_ARGUMENT when the property is not a collection, GF_STATUS_NOT_FOUND when index is not below its count.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "GF_STATUS_INVALID_ARGUMENT when the property is not a collection, GF_STATUS_NOT_FOUND when index is not below its count.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is a component, not a control or a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.properties.element_at.outside.disposing",
+      "mode": "misuse",
+      "call": "element_at",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.element_at.outside.disposed",
+      "mode": "misuse",
+      "call": "element_at",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.read_elements.alive",
+      "mode": "legal",
+      "call": "read_elements",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::properties",
+          "state": "alive"
+        },
+        {
+          "name": "text_required",
+          "type": "uint64_t*",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        },
+        {
+          "name": "text_buffer",
+          "type": "char*",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        },
+        {
+          "name": "text_capacity",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "buffer_too_small",
+          "when": "Reads count elements of the COLLECTION property name from position first into values, an array of count records (the array rule above; fields past the 1.0 size are left alone), their text copied into text_buffer one after another, each value's view pointing there. text_required receives the total text size, also with GF_STATUS_BUFFER_TOO_SMALL, which writes no value.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "invalid_argument",
+          "when": "code: read_elements needs a text size output, and a buffer unless its capacity is zero",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "limit_exceeded",
+          "when": "A range past the count gives GF_STATUS_NOT_FOUND; more than GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "A range past the count gives GF_STATUS_NOT_FOUND; more than GF_PROPERTY_MAXIMUM_ELEMENTS_PER_CALL elements GF_STATUS_LIMIT_EXCEEDED; otherwise as element_at.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "unsupported_capability",
+          "when": "code: an element's value kind has no gf_value form in this library",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is a component, not a control or a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {},
+      "refusal_order": [
+        "read_elements_text_buffer",
+        "outside"
+      ]
+    },
+    {
+      "name": "gf_abi.properties.read_elements.misuse.read_elements_text_buffer",
+      "mode": "misuse",
+      "call": "read_elements",
+      "violates": "not_null(text_required) and (not_null(text_buffer) or text_capacity == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.read_elements.outside.disposing",
+      "mode": "misuse",
+      "call": "read_elements",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.read_elements.outside.disposed",
+      "mode": "misuse",
+      "call": "read_elements",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.get_at.alive",
+      "mode": "legal",
+      "call": "get_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::properties",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "An index past the list gives GF_STATUS_INVALID_ARGUMENT; otherwise as get and set.",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the control's type is not in the schema",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is a component, not a control or a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.properties.get_at.outside.disposing",
+      "mode": "misuse",
+      "call": "get_at",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.get_at.outside.disposed",
+      "mode": "misuse",
+      "call": "get_at",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.set_at.alive",
+      "mode": "legal",
+      "call": "set_at",
+      "kind": "member",
+      "thread": "ui",
+      "state": "alive",
+      "moves": null,
+      "inputs": [
+        {
+          "name": "self",
+          "type": "gf_abi::properties",
+          "state": "alive"
+        }
+      ],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: the index is past the type's properties",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "not_found",
+          "when": "code: the control's type is not in the schema",
+          "leaves": "unchanged"
+        },
+        {
+          "failure": "wrong_handle_kind",
+          "when": "code: the object is a component, not a control or a window",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.properties.set_at.outside.disposing",
+      "mode": "misuse",
+      "call": "set_at",
+      "state": "disposing",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.properties.set_at.outside.disposed",
+      "mode": "misuse",
+      "call": "set_at",
+      "state": "disposed",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_DISPOSED"
+      },
+      "leaves": "unchanged"
+    }
+  ]
+}

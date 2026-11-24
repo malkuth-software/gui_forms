@@ -27,7 +27,7 @@
       "hooks": "generated",
       "hand": [],
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < minimum_indentation || incoming > maximum_indentation) {",
+        "if (!ic::admits_indentation(incoming)) {",
         "    throw std::invalid_argument(\"TreeListView indentation is outside the indentation bounds\");",
         "}"
       ],
@@ -95,6 +95,68 @@
         "view over selected_node_: write expands ancestors, makes it current and visible, publishes the expansions and the selection"
       ],
       "storage": "view"
+    },
+    {
+      "name": "check_boxes",
+      "capability": "TreeListViewCheckBoxes",
+      "value": "bool",
+      "initial": null,
+      "comment": "Whether each row shows its node's check box after the expander (Windows Forms' TreeView.CheckBoxes); check_state and set_check_state read and write the state.",
+      "getter": "check_boxes",
+      "setter": "set_check_boxes",
+      "clear": null,
+      "field": "check_boxes_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Appearance",
+        "description": "Whether each row shows its node's check box.",
+        "default": "BindingValue{false}",
+        "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "effects": null,
+      "hooks": "generated",
+      "hand": []
+    },
+    {
+      "name": "cascading_checks",
+      "capability": "TreeListViewCascadingChecks",
+      "value": "bool",
+      "initial": "true",
+      "comment": "Whether a check applies to the node's subtree and its ancestors show checked, unchecked or indeterminate from their children; turning it on does not recompute the states.",
+      "getter": "cascading_checks",
+      "setter": "set_cascading_checks",
+      "clear": null,
+      "field": "cascading_checks_",
+      "event": null,
+      "on_changed": false,
+      "localizable": null,
+      "table": {
+        "kind": "boolean",
+        "category": "Behavior",
+        "description": "Whether a check cascades to the node's subtree and ancestors.",
+        "default": "BindingValue{true}",
+        "effects": "Dirty::none",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
+      "effects": null,
+      "hooks": "generated",
+      "hand": []
     }
   ],
   "not_properties": [

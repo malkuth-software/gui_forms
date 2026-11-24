@@ -4,6 +4,7 @@
 #include "sub_surface_channel.hpp"
 #include "sub_surface_request_posts.hpp"
 
+#include <stxlib/threads.hpp>
 #include <utility>
 #include <vector>
 
@@ -67,7 +68,7 @@ void SubSurfaceToolTipRequester::revoke(std::optional<OpenRequest>& slot) {
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceRequestTarget> target;
     {
-        const std::lock_guard<std::mutex> lock((*root_.channel_).mutex);
+        const stxlib::ScopedLock lock((*root_.channel_).mutex);
         parent = (*root_.channel_).request_dispatcher;
         target = (*root_.channel_).request_target;
         ++(*root_.channel_).statistics.requests_revoked;
@@ -94,7 +95,7 @@ void SubSurfaceToolTipRequester::post(SubSurfaceToolTipOrigin origin, ToolTipSub
     WindowDispatcher parent;
     std::weak_ptr<SubSurfaceRequestTarget> target;
     {
-        const std::lock_guard<std::mutex> lock((*root_.channel_).mutex);
+        const stxlib::ScopedLock lock((*root_.channel_).mutex);
         detail::SubSurfaceChannel& channel = *root_.channel_;
         if (channel.request_target.expired()) return;
         parent = channel.request_dispatcher;
@@ -382,6 +383,12 @@ std::string SubSurfaceToolTipRequester::item_id() const {
     const OpenRequest* request = shown();
     if (request == nullptr) return {};
     return (*request).subject.item_id;
+}
+
+ShownSplash SubSurfaceToolTipRequester::shown_splash() const {
+    // A sub-surface's bubble shows through its host window's route.
+    const ShownSplash none{};
+    return none;
 }
 
 std::string SubSurfaceToolTipRequester::text() const {

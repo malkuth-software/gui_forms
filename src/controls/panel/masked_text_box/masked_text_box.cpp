@@ -62,6 +62,12 @@ void MaskedTextBox::EditorChangeCallback::operator()(const std::string& text) co
     if (box) (*box).editor_text_changed(text);
 }
 
+void MaskedTextBox::EditorReadOnlyCallback::operator()() const {
+    const std::shared_ptr<MaskedTextBox> box = target.lock();
+    if (!box || !(*box).is_alive() || !(*box).editor_) return;
+    if ((*(*box).editor_).read_only.read() != (*box).read_only.read()) (*box).invalidate(Dirty::arrange);
+}
+
 void MaskedTextBox::initialize_control_tree() {
     const std::string prefix(stable_id().value());
     editor_ = make_control<TextBox>(StableId(prefix + ".editor"), provider_.display_text());
@@ -72,6 +78,7 @@ void MaskedTextBox::initialize_control_tree() {
     const std::weak_ptr<MaskedTextBox> weak =
         std::static_pointer_cast<MaskedTextBox>(shared_from_this());
     editor_change_ = (*editor_).text_changed().subscribe(*this, EditorChangeCallback{weak});
+    editor_read_only_ = (*editor_).subscribe_property_changed("read_only", *this, EditorReadOnlyCallback{weak});
     validating_ = validating().subscribe(
         *this, Delegate<ControlValidationEvent&>::bind<MaskedTextBox, &MaskedTextBox::check_mask_on_validating>(*this));
 }
@@ -80,6 +87,15 @@ void MaskedTextBox::initialize_control_tree() {
 
 void MaskedTextBox::filter_edit(TextEdit& edit) {
     pending_.reset();
+    // The box's read_only is the record: a user edit is refused while it is
+    // set, whatever the inner editor's own read_only says (a direct write to
+    // the editor, which is addressable by stable ID, must not make a
+    // read-only box editable; state hunt O10). The program's own value
+    // writes still pass.
+    if (read_only.read() && edit.kind != TextEditKind::value) {
+        edit.verdict = TextEditVerdict::refuse;
+        return;
+    }
     // An empty mask takes any text.
     if (provider_.length() == 0U) return;
     const MaskPosition start = provider_.display_position(edit.start);
@@ -532,9 +548,20 @@ void MaskedTextBox::check_mask_on_validating(ControlValidationEvent& event) {
 
 // -- layout, input and semantics ---------------------------------------------------
 
+// The editor's read_only follows the box's (written(read_only) copies it);
+// a direct write of the editor's is put back here on every arrange, never
+// compared with a cached copy (state hunt O10). The write runs handlers,
+// which may drop the box.
 void MaskedTextBox::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
-    if (editor_) set_child_layout(editor_, {0.0, 0.0, final_bounds.width, final_bounds.height});
+    if (!editor_) return;
+    if ((*editor_).read_only.read() != read_only.read()) {
+        const Control::Ptr lifetime = shared_from_this();
+        const std::shared_ptr<TextBox> editor = editor_;
+        (*editor).read_only = read_only.read();
+        if (!is_alive()) return;
+    }
+    set_child_layout(editor_, {0.0, 0.0, final_bounds.width, final_bounds.height});
 }
 
 void MaskedTextBox::on_key_preview(KeyEvent& event) {

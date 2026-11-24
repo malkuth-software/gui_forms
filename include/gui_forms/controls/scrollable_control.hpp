@@ -190,6 +190,9 @@ protected:
     [[nodiscard]] Rect child_viewport_rectangle() const noexcept override {
         return effective_viewport_rectangle();
     }
+    // With auto scroll its scroll range reaches every child, so it answers
+    // an overflow of its viewport by scrolling (stage VA).
+    [[nodiscard]] bool content_scrolls() const noexcept override;
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
     // The region, viewport, scroll axes and focus as currently laid out.
     [[nodiscard]] Parts scrollable_parts() const;

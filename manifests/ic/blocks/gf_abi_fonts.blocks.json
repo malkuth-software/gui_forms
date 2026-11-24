@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "component": "gf_abi::fonts",
+  "declaration": "include/gui_forms/c/gf_abi_fonts.ic.toml",
+  "generated_by": "tools/ic_declarations.py",
+  "status": "stub: the block bodies are phase IC2 (the engine); each block says what its body must do",
+  "states": [],
+  "initial": null,
+  "state_query": null,
+  "blocks": [
+    {
+      "name": "gf_abi.fonts.family_id",
+      "mode": "legal",
+      "call": "family_id",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "family",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(family)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(family)"
+      ],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: no bundled font family answers that name",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.fonts.family_id.misuse.family_id_family",
+      "mode": "misuse",
+      "call": "family_id",
+      "violates": "not_null(family)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.fonts.family_name",
+      "mode": "legal",
+      "call": "family_name",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: no bundled font family has that id",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.fonts.load_family",
+      "mode": "legal",
+      "call": "load_family",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [
+        {
+          "name": "family",
+          "type": "uint32_t*",
+          "bounded_by": [
+            "not_null(family) and (not_null(faces) or face_count == 0)"
+          ]
+        },
+        {
+          "name": "faces",
+          "type": "gf_app_font_face*",
+          "bounded_by": [
+            "not_null(family) and (not_null(faces) or face_count == 0)"
+          ]
+        },
+        {
+          "name": "face_count",
+          "type": "uint64_t",
+          "bounded_by": [
+            "not_null(family) and (not_null(faces) or face_count == 0)"
+          ]
+        }
+      ],
+      "requires": [
+        "not_null(family) and (not_null(faces) or face_count == 0)"
+      ],
+      "fails": [
+        {
+          "failure": "invalid_argument",
+          "when": "code: load_family needs its faces and an output",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    },
+    {
+      "name": "gf_abi.fonts.load_family.misuse.load_family_faces",
+      "mode": "misuse",
+      "call": "load_family",
+      "violates": "not_null(family) and (not_null(faces) or face_count == 0)",
+      "expect": {
+        "kind": "value",
+        "value": "GF_STATUS_INVALID_ARGUMENT"
+      },
+      "leaves": "unchanged"
+    },
+    {
+      "name": "gf_abi.fonts.unload_family",
+      "mode": "legal",
+      "call": "unload_family",
+      "kind": "static",
+      "thread": "ui",
+      "state": null,
+      "moves": null,
+      "inputs": [],
+      "requires": [],
+      "fails": [
+        {
+          "failure": "not_found",
+          "when": "code: no loaded application font family has that id",
+          "leaves": "unchanged"
+        }
+      ],
+      "returns": {}
+    }
+  ]
+}

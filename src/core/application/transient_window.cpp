@@ -126,6 +126,13 @@ bool TransientWindow::move(const Rect desktop) {
     return framed;
 }
 
+std::optional<Rect> TransientWindow::desktop_frame() const {
+    if (!shown_ || !connected()) return std::nullopt;
+    const HostWindowFrameResult frame = (*record_).handle().frame();
+    if (!frame.status.accepted()) return std::nullopt;
+    return frame.frame.content;
+}
+
 void TransientWindow::hide() noexcept {
     if (!shown_) return;
     shown_ = false;

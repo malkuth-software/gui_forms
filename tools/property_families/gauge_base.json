@@ -39,7 +39,7 @@
         "registry": false
       },
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.0) throw std::invalid_argument(\"gauge tick frequency must be finite and not negative\");"
+        "if (!ic::admits_tick_frequency(incoming)) throw std::invalid_argument(\"gauge tick frequency must be finite and not negative\");"
       ],
       "sample": "5.0"
     },
@@ -105,7 +105,7 @@
         "registry": false
       },
       "prepare": [
-        "if (incoming > 6U) throw std::invalid_argument(\"gauge decimal places must be at most 6\");"
+        "if (!ic::admits_decimal_places(incoming)) throw std::invalid_argument(\"gauge decimal places must be at most 6\");"
       ],
       "sample": "std::uint32_t{1U}"
     },

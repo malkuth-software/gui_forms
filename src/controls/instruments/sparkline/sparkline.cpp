@@ -7,6 +7,7 @@
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "../../basic/number_text.hpp"
+#include "sparkline_ic_checks.hpp"
 
 #include <algorithm>
 #include <array>
@@ -19,6 +20,7 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::sparkline;
 
 namespace {
 
@@ -28,8 +30,6 @@ constexpr double newest_marker_size = 4.0;
 constexpr AccentIndex line_accent{5U};
 constexpr std::uint8_t band_alpha = 72U;
 // The admitted capacities.
-constexpr std::uint32_t smallest_capacity = 2U;
-constexpr std::uint32_t largest_capacity = 100000U;
 
 constexpr std::array<PartField<Sparkline::Parts>, 4> sparkline_part_fields{{
     {.declaration = {.name = "region", .role = PartRole::region, .composed_from = {}, .states = {}},
@@ -310,7 +310,7 @@ Sparkline::States Sparkline::states() const {
 
 void Sparkline::prepare_write(const decltype(capacity)&, std::uint32_t& incoming) {
     require_mutable();
-    if (incoming < smallest_capacity || incoming > largest_capacity) {
+    if (!ic::admits_capacity(incoming)) {
         throw std::invalid_argument("Sparkline capacity must be from 2 to 100000");
     }
 }

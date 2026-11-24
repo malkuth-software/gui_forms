@@ -79,7 +79,8 @@ endif()
 # A boolean compares by truth (ON, 1, TRUE and YES agree); a string by text.
 set(_gf_high_integrity_settings
     "GUI_FORMS_HARDENING|ON|BOOL|the hardening flags are part of the configuration (cmake/Hardening.cmake)"
-    "GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT|OFF|BOOL|the automation channel takes another process's requests"
+    "GUI_FORMS_MCP|OFF|BOOL|the automation serves another process's requests over MCP"
+    "GUI_FORMS_MCP_TEST_CONTROLS|OFF|BOOL|the automation is not built"
     "GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY|OFF|BOOL|faces come from the embedded font pack only"
     "GUI_FORMS_BUILD_AUDIO|OFF|BOOL|the audio service decodes sound files from outside the program"
     "GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT|OFF|BOOL|the loop transport is a development channel"
@@ -90,8 +91,6 @@ set(_gf_high_integrity_settings
     "GUI_FORMS_BUILD_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_INSTALL_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD|OFF|BOOL|the demoboard calls entries this configuration removes"
-    "GUI_FORMS_BUILD_FUZZERS|OFF|BOOL|the fuzzers feed outside bytes to the parsers"
-    "GUI_FORMS_BUILD_BENCHMARKS|OFF|BOOL|the measurement harnesses are development programs"
     "STXLIB_MATH_DISPATCH|OFF|BOOL|STXlib's math takes one code path, chosen at build time"
     "GUI_FORMS_LTO|ON|BOOL|link-time optimisation prunes across modules where the toolchain allows")
 if(NOT _gf_high_integrity_sanitized)

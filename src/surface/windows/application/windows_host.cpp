@@ -5,8 +5,14 @@
 #include "../services/windows_clipboard_image.hpp"
 #include "../services/windows_clipboard_open.hpp"
 #include "../services/windows_cursor.hpp"
+#include "../services/windows_drag_drop.hpp"
 #include "../services/windows_notify_icons.hpp"
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+#include "../services/windows_toast_notifications.hpp"
+#endif
 #include "../compositor/windows_compositor.hpp"
+#include "../display/windows_vblank_clock.hpp"
+#include "../input/windows_direct_manipulation.hpp"
 #include "../input/windows_key_translation.hpp"
 #include "../input/windows_message_queue.hpp"
 #include "../locale/windows_locale.hpp"
@@ -33,6 +39,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/text.hpp"
 #include "gui_forms/detail/bound_member_function.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../../core/failure/fail_fast.hpp"
 
 #include "../paint_endpoint/windows_compatibility_paint_endpoint_metrics.hpp"
@@ -59,27 +66,22 @@
 #include <atomic>
 #include <chrono>
 #include <cmath>
-#include <condition_variable>
 #include <cstdlib>
 #include <cstdint>
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
-#include <deque>
 #include <exception>
 #include <filesystem>
-#include <fstream>
 #include <iomanip>
 #include <limits>
 #include <memory>
-#include <mutex>
 #include <optional>
 #include <span>
 #include <sstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
-#include <thread>
 #include <type_traits>
 #include <unordered_map>
 #include <unordered_set>
@@ -122,39 +124,13 @@ bool present_bgra_area(HDC target, const std::byte* pixels, std::size_t row_byte
     return presented;
 }
 
-// Retries automation commands deferred while the UI thread was inside a
-// dispatch or a native size/move loop (WindowsHostState::automation).
-constexpr UINT_PTR automation_retry_timer = 4;
-constexpr UINT automation_retry_milliseconds = 10;
-// At most this many automation commands wait per window; more are refused.
-constexpr std::size_t maximum_deferred_automation = 64U;
-
-// How deep the UI thread is in host dispatches into a model, across every
-// window of the thread: an automation command arriving through WM_COPYDATA
-// while one runs (sent by another process, it is delivered whenever the
-// thread waits in a send or a nested pump) would run model code inside
-// model code, menus and popups half opened. Such commands wait until the
-// count is back to zero. A modal loop entered by a dispatch sets the count
-// aside for its length (ModalDispatchDepth): the modal window is meant to
-// take input there.
-thread_local std::uint32_t host_dispatch_depth = 0U;
-
-// Counts one host dispatch for its length.
-struct HostDispatchScope final {
-    HostDispatchScope() noexcept { ++host_dispatch_depth; }
-    ~HostDispatchScope() { --host_dispatch_depth; }
-    HostDispatchScope(const HostDispatchScope&) = delete;
-    HostDispatchScope& operator=(const HostDispatchScope&) = delete;
-};
-
-// Sets the dispatch count aside for a modal loop's length.
-struct ModalDispatchDepth final {
-    std::uint32_t saved{host_dispatch_depth};
-    ModalDispatchDepth() noexcept { host_dispatch_depth = 0U; }
-    ~ModalDispatchDepth() { host_dispatch_depth = saved; }
-    ModalDispatchDepth(const ModalDispatchDepth&) = delete;
-    ModalDispatchDepth& operator=(const ModalDispatchDepth&) = delete;
-};
+// Pumps DirectManipulation's update manager while a touchpad gesture or its
+// inertia runs (WindowsHostState::manipulation_status), about a frame apart.
+constexpr UINT_PTR manipulation_timer = 5;
+constexpr UINT manipulation_timer_milliseconds = 8;
+// DM_POINTERHITTEST (winuser.h for Windows 8 and later): a new touchpad or
+// touch contact DirectManipulation may take.
+constexpr UINT pointer_hit_test_message = 0x0250;
 constexpr UINT live_surface_period_milliseconds = 16;
 // The live frame clock's cadence when the display's composition timing is
 // unavailable: 60 Hz, in milliseconds per thousand frames.
@@ -179,6 +155,11 @@ constexpr UINT live_surface_wake_message = WM_APP + 0x44U;
 // was made or moved outside the model's frame poll, so the window polls,
 // collects damage and arms its wake for the new deadline.
 constexpr UINT schedule_wake_message = WM_APP + 0x45U;
+// Posted by the program's close request (ApplicationWindowHandle::
+// request_close, post_close): the window is asked to close as WM_CLOSE asks
+// it, with reason application instead of user, since WM_CLOSE also comes
+// from the user (the close box, Alt+F4, the window menu).
+constexpr UINT program_close_message = WM_APP + 0x46U;
 // A scheduled wake nearer than this rides the high-resolution scheduler
 // clock instead of WM_TIMER, whose floor is about 10 ms, whose granularity
 // is the system timer's (15.6 ms by default) and whose message has the
@@ -208,7 +189,6 @@ void post_modal_live_clock(PVOID context) {
 void CALLBACK modal_live_clock_signalled(PTP_CALLBACK_INSTANCE, PVOID context, PTP_WAIT, TP_WAIT_RESULT) {
     gui_forms::detail::call_failing_fast("windows.modal_live_clock", &post_modal_live_clock, context);
 }
-constexpr std::size_t maximum_automation_command = 4096;
 
 // Whether the variable `name` is "1". A high-integrity build reads no
 // environment variable (cmake/HighIntegrity.cmake): every flag is off.
@@ -221,11 +201,6 @@ bool environment_flag(const char* name) noexcept {
     return value != nullptr && std::strcmp(value, "1") == 0;
 #endif
 }
-
-// Set once by accept_automation_environment and never cleared: the program's
-// own opt-in to the GUI_FORMS_WINDOWS_AUTOMATION hook. Atomic because a
-// program may opt in from a thread other than the one that later runs.
-std::atomic<bool> automation_environment_accepted{false};
 
 bool trace_win32_input() noexcept {
     static const bool enabled =
@@ -1448,23 +1423,6 @@ public:
     }
     [[nodiscard]] bool bundled_fonts_ready() const noexcept { return bundled_fonts_ready_; }
 
-    // What the window last presented, for a composite capture
-    // (capture-composite): premultiplied BGRA8 rows `row_bytes` apart,
-    // borrowed until the next frame; `alpha` false when every pixel is
-    // presented opaque.
-    struct PresentedView final {
-        const std::byte* pixels{};
-        std::size_t row_bytes{};
-        int width{};
-        int height{};
-        bool alpha{};
-    };
-    [[nodiscard]] PresentedView presented_view() const noexcept {
-        const PresentedPixels saved = presented_pixels();
-        const PresentedView view{saved.pixels, saved.row_bytes, saved.width, saved.height, frame_alpha_};
-        return view;
-    }
-
 public:
     // The pixels a capture and the invalidation overlay read: the committed
     // front (transactional), else the painter's last frame.
@@ -1641,11 +1599,6 @@ private:
 
 class WindowsHostState;
 class WindowsApplicationRun;
-// Writes what `owner` and the visible windows it owns show, composed in
-// their desktop places over a checkerboard, as one PNG at `path`, and
-// prints their client rectangles (capture-composite). Defined in
-// windows_application_run.inc; `run` is null outside an application run.
-bool write_composite_capture(WindowsApplicationRun* run, WindowsHostState& owner, const std::wstring& path);
 // As TitleCallbackState: only the UI thread reads or revokes host. The
 // operation owns no host; it reaches the host only while the window lives.
 struct ClientSizeCallbackState final {
@@ -1656,7 +1609,7 @@ struct RequestClientSize final {
     std::weak_ptr<ClientSizeCallbackState> owner{};
     HostServiceStatus operator()(Size client_size) const;
 };
-class WindowsHostState final {
+class WindowsHostState final : private windows_detail::DirectManipulationInput::Sink {
     // Reaches request_client_size through its revocable callback state.
     friend struct RequestClientSize;
 #if defined(GUI_FORMS_DIB_LIFECYCLE_TEST)
@@ -1673,6 +1626,9 @@ class WindowsHostState final {
 #endif
 #if defined(GUI_FORMS_WINDOWS_SCHEDULE_WAKE_TEST)
     friend struct ScheduleWakeHostFixture;
+#endif
+#if defined(GUI_FORMS_WINDOWS_DROP_TEST)
+    friend struct DropHostFixture;
 #endif
 public:
     WindowsHostState(std::unique_ptr<Window> model, WindowsHostOptions options)
@@ -1715,6 +1671,12 @@ public:
         (*title_state_).window = nullptr;
         (*size_state_).host = nullptr;
         accessibility_.detach();
+        // The vertical-blank thread reads nothing of the window, but goes
+        // first: it outlives no state it was started with.
+        vblank_clock_.stop();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        drop_registration_.revoke();
+#endif
         // The modal live clock posts to the window: stop it first.
         if (modal_live_clock_ != nullptr) {
             stop_modal_live_clock();
@@ -1764,6 +1726,10 @@ public:
             return false;
         }
         hwnd_ = window;
+        // The monitors DWM does not time are timed by their own vertical
+        // blanks (report_display_timing); without DXGI they keep their mode
+        // rate.
+        static_cast<void>(vblank_clock_.start());
         scale_ = options_.scale_override > 0.0 ? options_.scale_override : query_scale(window);
         const gui_forms::detail::BundledFontLocation font_location = bundled_font_location();
         std::shared_ptr<gui_forms::detail::BundledFontSet> fonts = load_bundled_fonts(font_location);
@@ -1789,6 +1755,16 @@ public:
         report_input_settings();
         report_window_state();
         accessibility_.attach(hwnd_, *model_, scale_);
+        // Precision-touchpad pinch and pan (windows_direct_manipulation.hpp),
+        // engaged only while the window wants gestures (sync_manipulation);
+        // otherwise Windows keeps sending the pan as WM_MOUSEWHEEL and the
+        // pinch as Ctrl+wheel, exactly as without it.
+        sync_manipulation();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+        // Drops from other programs (typed_drag_destination). A window OLE
+        // refuses still runs; it takes no drops.
+        static_cast<void>(drop_registration_.register_window(hwnd_, drop_sink_));
+#endif
         (*model_).set_dispatch_wake_handler(
             gui_forms::detail::BoundMemberFunction<
                 void (WindowsHostState::*)() noexcept>(
@@ -1956,7 +1932,6 @@ public:
         native_phase_ = NativePhase::closing;
         DestroyWindow(hwnd_);
     }
-    [[nodiscard]] WindowsRaster::PresentedView presented_view() const noexcept { return raster_.presented_view(); }
     // Defined in windows_application_run.inc.
     void report_frame_to_run();
     // Whether the screen point in `lparam` (WM_NCHITTEST) lies in a content
@@ -2073,6 +2048,7 @@ public:
             report_application_active_to_run(wparam != FALSE);
             break;
         case WM_SIZE:
+            manipulation_.resize(LOWORD(lparam), HIWORD(lparam));
             // Inside the native size/move loop the sizes arriving between two
             // frames are coalesced: the newest is laid out when the next frame
             // is painted or the live clock ticks (apply_pending_resize). The
@@ -2235,7 +2211,6 @@ public:
             leave_live_idle();
             return 0;
         case managed_dispatch_message: {
-            const HostDispatchScope scope;
             static_cast<void>((*model_).drain_posted_work());
             if (options_.dispatch_pending) options_.dispatch_pending();
             collect_damage();
@@ -2265,8 +2240,8 @@ public:
                 present_invalidation_overlay();
                 return 0;
             }
-            if (wparam == automation_retry_timer) {
-                run_deferred_automation();
+            if (wparam == manipulation_timer) {
+                manipulation_.pump();
                 return 0;
             }
             if (wparam == modal_live_surface_timer) {
@@ -2303,6 +2278,7 @@ public:
         case WM_CONTEXTMENU: context_request(lparam); return 0;
         case WM_MOUSEHOVER: hover(lparam); return 0;
         case WM_MOUSEWHEEL: wheel(wparam, lparam, false); return 0;
+        case pointer_hit_test_message: manipulation_.pointer_hit_test(wparam); return 0;
         case WM_MOUSEHWHEEL: wheel(wparam, lparam, true); return 0;
         case WM_SYSKEYDOWN:
             // Preserve the native close gesture. Swallowing all system keys
@@ -2355,15 +2331,23 @@ public:
             }
             break;
         case WM_GETMINMAXINFO: minimum_size(reinterpret_cast<MINMAXINFO*>(lparam)); return 0;
-        case WM_COPYDATA: return automation(reinterpret_cast<const COPYDATASTRUCT*>(lparam));
-        case WM_CLOSE: return close();
+        case WM_CLOSE: return close(HostCloseReason::user);
+        case program_close_message: return close(HostCloseReason::application);
         case WM_QUERYENDSESSION: return query_end_session();
         case WM_ENDSESSION: return end_session(wparam != FALSE);
         case WM_DESTROY:
+            stop_manipulation();
             (*title_state_).window = nullptr;
             (*size_state_).host = nullptr;
             services_.revoke_cursor_interaction(CursorError::closing);
             accessibility_.detach();
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+            // While the window still exists (RevokeDragDrop needs it).
+            drop_registration_.revoke();
+            // A drag from this window, if one runs (a handler DoDragDrop's
+            // loop dispatched destroyed it), ends cancelled.
+            services_.source_window_destroyed();
+#endif
             if (!closed_) {
                 const HostLifecyclePhase phase = session_.snapshot().phase;
                 if (phase == HostLifecyclePhase::attached ||
@@ -2526,7 +2510,7 @@ private:
     }
 
     void post_close() noexcept {
-        if (hwnd_ != nullptr) PostMessageW(hwnd_, WM_CLOSE, 0, 0);
+        if (hwnd_ != nullptr) PostMessageW(hwnd_, program_close_message, 0, 0);
     }
 
     void show_window() noexcept {
@@ -2588,7 +2572,6 @@ private:
         event.sequence = next_sequence_++;
         event.timestamp_nanoseconds = now_nanoseconds();
         event.payload = std::move(payload);
-        const HostDispatchScope scope;
         return session_.dispatch(std::move(event));
     }
 
@@ -2945,6 +2928,8 @@ private:
     void collect_damage() {
         // Nothing to collect for a destroyed window (A-gf-host-03-F8).
         if (hwnd_ == nullptr) return;
+        report_display_timing();
+        sync_manipulation();
         static_cast<void>((*model_).poll_frame_schedule(FrameClock::now()));
         accessibility_.notify(scale_);
         DamageRegion damage = (*model_).take_damage();
@@ -3076,7 +3061,9 @@ private:
         }
         // DWM reports the primary display's timing only (a window handle is
         // refused since Windows 8.1). A window on another display with a
-        // different refresh rate takes that display's period, at the
+        // different refresh rate takes the timing the window holds for its
+        // own monitor (report_display_timing: its vertical blanks, phased,
+        // or its mode rate) and otherwise that display's mode period, at the
         // cadence's own phase (audit N64).
         const LONGLONG window_period = window_monitor_period();
         if (window_period > 0 && (window_period * 100 < period * 99 || window_period * 100 > period * 101)) {
@@ -3084,6 +3071,19 @@ private:
             anchor = live_clock_deadline_ != 0 ? live_clock_deadline_ : now.QuadPart;
             live_timing_vblank_ = anchor;
             live_timing_source_ = LiveTimingSource::fallback;
+            const DisplayTiming held = (*model_).display_timing();
+            const LONGLONG held_period = held.paced() ? qpc_ticks(held.refresh_period) : 0;
+            if (held_period > 0 && held.source != DisplayTimingSource::nominal) {
+                // The latest presentation at or before now, in counter ticks.
+                const FrameTime steady_now = FrameClock::now();
+                const FrameTime latest =
+                    next_on_grid(held.presentation_phase, held.refresh_period, steady_now) - held.refresh_period;
+                period = held_period;
+                live_timing_vblank_ = now.QuadPart - qpc_ticks(steady_now - latest);
+                anchor = live_timing_vblank_ + period / 2;
+                live_timing_source_ = held.source == DisplayTimingSource::display ? LiveTimingSource::display_phased
+                                                                                 : LiveTimingSource::phased_timer;
+            }
         }
         live_timing_period_ = period;
         LONGLONG earliest = now.QuadPart + 1;
@@ -3101,6 +3101,59 @@ private:
         live_clock_armed_ = SetWaitableTimer(live_frame_clock_, &due, 0, nullptr, nullptr,
                                              FALSE) != FALSE;
         if (live_clock_armed_) live_clock_deadline_ = deadline;
+    }
+
+    // Reports the display's timing to the model before each poll (design
+    // note frame-source, section 3), so that its display-paced frames fall
+    // on the display's refreshes and are drawn for the time they are shown:
+    // DWM's composition timing (display timing, phased at its vertical
+    // blank) where the window is on the primary display or on one of the
+    // same rate; elsewhere the window's own monitor's vertical blanks, as
+    // the DXGI vertical-blank thread measured them (display timing), and
+    // until those agree, or without DXGI, the monitor's mode rate (nominal
+    // timing, at the phase already held, or now); nothing (the model keeps
+    // what it holds, assumed at first) where none is known. The thread is
+    // wanted only while the window wants display frames on such a monitor.
+    // A refused report changes nothing.
+    void report_display_timing() {
+        if (hwnd_ == nullptr || qpc_frequency_ <= 0) return;
+        LARGE_INTEGER now{};
+        QueryPerformanceCounter(&now);
+        const FrameTime steady_now = FrameClock::now();
+        DWM_TIMING_INFO timing{};
+        timing.cbSize = sizeof(timing);
+        const bool composed = dwm_composition_timing_ != nullptr && dwm_composition_timing_(nullptr, &timing) == S_OK &&
+                              timing.qpcRefreshPeriod > 0U && timing.qpcVBlank > 0U;
+        const LONGLONG composed_period = composed ? static_cast<LONGLONG>(timing.qpcRefreshPeriod) : 0;
+        const LONGLONG window_period = window_monitor_period();
+        const bool other_rate = window_period > 0 && (!composed || window_period * 100 < composed_period * 99 ||
+                                                      window_period * 100 > composed_period * 101);
+        const bool dwm_times = composed && !other_rate;
+        const HMONITOR monitor = MonitorFromWindow(hwnd_, MONITOR_DEFAULTTONEAREST);
+        const bool frames_wanted = (*model_).wants_display_frames() || (*model_).has_live_surface_presentations();
+        vblank_clock_.want(monitor, frames_wanted && !dwm_times);
+        if (dwm_times) {
+            const FrameInterval period = std::chrono::duration_cast<FrameInterval>(
+                std::chrono::nanoseconds(qpc_nanoseconds(composed_period)));
+            const LONGLONG since_vblank = now.QuadPart - static_cast<LONGLONG>(timing.qpcVBlank);
+            const FrameTime vblank = steady_now - std::chrono::duration_cast<FrameInterval>(
+                std::chrono::nanoseconds(qpc_nanoseconds(since_vblank)));
+            const DisplayTiming reported = DisplayTiming::reported(DisplayTimingSource::display, period, vblank);
+            static_cast<void>((*model_).set_display_timing(reported));
+            return;
+        }
+        const stxlib::Optional<DisplayTiming> blanks = vblank_clock_.timing(monitor);
+        if (blanks.present()) {
+            static_cast<void>((*model_).set_display_timing(*blanks.value()));
+            return;
+        }
+        if (!other_rate) return;
+        const FrameInterval period =
+            std::chrono::duration_cast<FrameInterval>(std::chrono::nanoseconds(qpc_nanoseconds(window_period)));
+        const DisplayTiming held = (*model_).display_timing();
+        const FrameTime phase = held.paced() ? held.presentation_phase : steady_now;
+        const DisplayTiming reported = DisplayTiming::reported(DisplayTimingSource::nominal, period, phase);
+        static_cast<void>((*model_).set_display_timing(reported));
     }
 
     // The refresh period, in counter ticks, of the display the window is on
@@ -3139,6 +3192,17 @@ private:
             std::chrono::nanoseconds(qpc_nanoseconds(now.QuadPart - live_timing_vblank_)));
         timing.source = live_timing_source_;
         return timing;
+    }
+
+    // A frame-clock interval as QueryPerformanceCounter ticks, split so
+    // that a long interval does not overflow.
+    [[nodiscard]] LONGLONG qpc_ticks(FrameInterval interval) const noexcept {
+        const LONGLONG nanoseconds =
+            static_cast<LONGLONG>(std::chrono::duration_cast<std::chrono::nanoseconds>(interval).count());
+        const LONGLONG seconds = nanoseconds / 1'000'000'000LL;
+        const LONGLONG remainder = nanoseconds % 1'000'000'000LL;
+        const LONGLONG ticks = seconds * qpc_frequency_ + remainder * qpc_frequency_ / 1'000'000'000LL;
+        return ticks;
     }
 
     // QueryPerformanceCounter ticks as nanoseconds, split so that a long
@@ -3712,6 +3776,88 @@ private:
         collect_damage();
     }
 
+    // DirectManipulation's reports (Sink): the viewport's status arms the
+    // update pump while a gesture runs; each status and transform becomes
+    // the wheel and gesture events windows_manipulation_rules.hpp names, at
+    // the pointer's position (on a touchpad, where the fingers work).
+    void manipulation_status(windows_detail::ManipulationStatus status) override {
+        const bool running = status == windows_detail::ManipulationStatus::running ||
+                             status == windows_detail::ManipulationStatus::inertia;
+        if (running && !manipulation_timer_armed_) {
+            manipulation_timer_armed_ = SetTimer(hwnd_, manipulation_timer, manipulation_timer_milliseconds, nullptr) != 0;
+        } else if (!running && manipulation_timer_armed_) {
+            KillTimer(hwnd_, manipulation_timer);
+            manipulation_timer_armed_ = false;
+        }
+        const windows_detail::ManipulationReport report =
+            windows_detail::manipulation_status(manipulation_tracker_, status, pointer_focal(), modifiers(), 0U);
+        dispatch_manipulation(report);
+    }
+
+    void manipulation_transform(double scale, Point device_offset) override {
+        const windows_detail::ManipulationReport report = windows_detail::manipulation_transform(
+            manipulation_tracker_, scale, device_offset, pointer_focal(), scale_, modifiers(), 0U);
+        dispatch_manipulation(report);
+    }
+
+    // Runs inside DirectManipulation's callbacks, where its objects must not
+    // be released: sync_manipulation waits for the next dispatch outside
+    // them (an exception here ends the process at the COM boundary, so the
+    // flag needs no unwinding).
+    void dispatch_manipulation(const windows_detail::ManipulationReport& report) {
+        in_manipulation_report_ = true;
+        if (report.has_wheel) static_cast<void>(dispatch(report.wheel));
+        if (report.has_gesture) static_cast<void>(dispatch(report.gesture));
+        if (report.reset_content) manipulation_.reset_content();
+        if (report.has_wheel || report.has_gesture) collect_damage();
+        in_manipulation_report_ = false;
+    }
+
+    // The pointer's position in logical client coordinates.
+    Point pointer_focal() const {
+        POINT point{};
+        if (GetCursorPos(&point) == FALSE) return Point{};
+        ScreenToClient(hwnd_, &point);
+        return Point{point.x / scale_, point.y / scale_};
+    }
+
+    // Engages DirectManipulation while the window wants gestures (a control
+    // with a gesture handler, or the window's opt-in) and the diagnosis
+    // switch allows it; releases it when neither holds and no gesture runs.
+    // After every dispatch (collect_damage), so a handler added or removed
+    // takes effect at the next input.
+    void sync_manipulation() {
+        if (hwnd_ == nullptr || !model_ || in_manipulation_report_) return;
+        const bool engaged = manipulation_.attached();
+        const bool wanted = windows_detail::direct_manipulation_wanted(
+            direct_manipulation_allowed(), (*model_).gesture_input_requested(), engaged,
+            manipulation_tracker_.running);
+        if (wanted && !engaged && !manipulation_refused_) {
+            // Refused once (no DirectManipulation on this Windows), never
+            // asked again for this window.
+            manipulation_refused_ = !manipulation_.attach(hwnd_, *this);
+        } else if (!wanted && engaged) {
+            stop_manipulation();
+        }
+    }
+
+    // GUI_FORMS_DIRECT_MANIPULATION, read once per process.
+    static bool direct_manipulation_allowed() {
+        static const bool allowed = windows_detail::direct_manipulation_allowed(
+            std::getenv("GUI_FORMS_DIRECT_MANIPULATION"));
+        return allowed;
+    }
+
+    // Ends the window's DirectManipulation before its HWND goes (WM_DESTROY).
+    void stop_manipulation() noexcept {
+        if (manipulation_timer_armed_) {
+            KillTimer(hwnd_, manipulation_timer);
+            manipulation_timer_armed_ = false;
+        }
+        manipulation_.detach();
+        manipulation_tracker_ = windows_detail::ManipulationTracker{};
+    }
+
     // WM_MOUSEWHEEL (vertical) or WM_MOUSEHWHEEL (horizontal: a tilt wheel,
     // a precision touchpad's sideways pan). Both carry WHEEL_DELTA per
     // notch, or a fraction of one from a smooth device, as lines. A
@@ -3943,8 +4089,11 @@ private:
         if (minimum.height > 0.0) (*info).ptMinTrackSize.y = rect.bottom - rect.top;
     }
 
-    LRESULT close() {
-        HostCloseRequest request{HostCloseReason::user, false, options_.hide_on_close};
+    // A close request: the user's (WM_CLOSE) or the program's
+    // (program_close_message). An allowed one hides a hide-on-close window,
+    // else destroys it, and WM_DESTROY reports reason as the closed event's.
+    LRESULT close(const HostCloseReason reason) {
+        HostCloseRequest request{reason, false, options_.hide_on_close};
         if (options_.close_request) options_.close_request(request);
         request.hide_on_accept = options_.hide_on_close;
         // WM_CLOSE closes the window when allowed: a request, never a query.
@@ -3956,6 +4105,7 @@ private:
                 hidden_on_close_to_run();
                 return 0;
             }
+            destroy_reason_ = reason;
             native_phase_ = NativePhase::closing;
             DestroyWindow(hwnd_);
         }
@@ -3991,371 +4141,6 @@ private:
         return 0;
     }
 
-    LRESULT automation(const COPYDATASTRUCT* data) {
-        if (!options_.automation_enabled || data == nullptr || (*data).lpData == nullptr ||
-            (*data).cbData == 0 || (*data).cbData > maximum_automation_command) return FALSE;
-        const char* bytes = static_cast<const char*>((*data).lpData);
-        std::string command(bytes, bytes + (*data).cbData);
-        while (!command.empty() && command.back() == '\0') command.pop_back();
-        constexpr std::string_view prefix = "GUI.Forms.Automation/1 ";
-        if (!command.starts_with(prefix)) return FALSE;
-        command.erase(0, prefix.size());
-        // A command that feeds the model waits while the thread is inside a
-        // dispatch or a native size/move loop, and runs, in arrival order,
-        // once neither holds: whichever of an input and a command arrives
-        // first, each runs whole before the other starts. It is accepted
-        // (TRUE) when deferred; its own result is printed when it runs.
-        const bool reads_only = command == "snapshot" || command == "capture" ||
-                                command.starts_with("capture ") || command.starts_with("capture-composite ") ||
-                                command == "close";
-        if (!reads_only && (automation_busy() || !deferred_automation_.empty())) {
-            if (deferred_automation_.size() >= maximum_deferred_automation) return FALSE;
-            deferred_automation_.push_back(std::move(command));
-            SetTimer(hwnd_, automation_retry_timer, automation_retry_milliseconds, nullptr);
-            return TRUE;
-        }
-        return automation_command(command);
-    }
-
-    [[nodiscard]] bool automation_busy() const noexcept {
-        const bool busy = host_dispatch_depth != 0U || in_size_move_;
-        return busy;
-    }
-
-    // Runs the deferred automation commands, oldest first, while the thread
-    // is free; the timer stops once none wait.
-    void run_deferred_automation() {
-        while (!deferred_automation_.empty() && !automation_busy() && hwnd_ != nullptr) {
-            const std::string command = std::move(deferred_automation_.front());
-            deferred_automation_.pop_front();
-            static_cast<void>(automation_command(command));
-        }
-        if (deferred_automation_.empty() && hwnd_ != nullptr) KillTimer(hwnd_, automation_retry_timer);
-    }
-
-    // Model code run by a command counts as a dispatch: a command sent
-    // while it runs waits for it.
-    LRESULT automation_command(const std::string& command) {
-        const HostDispatchScope scope;
-        if (command == "snapshot") {
-            const DispatcherSnapshot dispatcher = (*model_).dispatcher_snapshot();
-            std::fprintf(
-                stdout,
-                "{\"automation\":\"snapshot\",\"window\":%s,\"host\":%s,"
-                "\"dispatcher\":{\"posted\":%llu,\"invoked\":%llu,"
-                "\"cancelled\":%llu,\"faulted\":%llu,"
-                "\"synchronous_invocations\":%llu,\"inline_invocations\":%llu,"
-                "\"marshalled_invocations\":%llu,\"pending\":%zu,"
-                "\"maximum_pending\":%zu,\"accepting\":%s}}\n",
-                metrics_json().c_str(), host_json().c_str(),
-                static_cast<unsigned long long>(dispatcher.posted),
-                static_cast<unsigned long long>(dispatcher.invoked),
-                static_cast<unsigned long long>(dispatcher.cancelled),
-                static_cast<unsigned long long>(dispatcher.faulted),
-                static_cast<unsigned long long>(dispatcher.synchronous_invocations),
-                static_cast<unsigned long long>(dispatcher.inline_invocations),
-                static_cast<unsigned long long>(dispatcher.marshalled_invocations),
-                dispatcher.pending, dispatcher.maximum_pending,
-                dispatcher.accepting ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view capture = "capture";
-        if (command == capture || command.starts_with("capture ")) {
-            const std::wstring path = command.size() == capture.size()
-                ? executable_directory() + L"gallery-automation.bmp"
-                : wide_from_utf8(command.substr(capture.size() + 1U));
-            if (path.empty()) return FALSE;
-            const bool saved = raster_.save_bmp(path);
-            std::fprintf(stdout,
-                         "{\"automation\":\"capture\",\"saved\":%s,\"explicit\":%s}\n",
-                         saved ? "true" : "false",
-                         command.size() == capture.size() ? "false" : "true");
-            std::fflush(stdout);
-            return saved ? TRUE : FALSE;
-        }
-        constexpr std::string_view composite = "capture-composite ";
-        if (command.starts_with(composite)) {
-            const std::wstring path = wide_from_utf8(command.substr(composite.size()));
-            if (path.empty()) return FALSE;
-            const bool saved = write_composite_capture(run_, *this, path);
-            return saved ? TRUE : FALSE;
-        }
-        if (command == "close") { PostMessageW(hwnd_, WM_CLOSE, 0, 0); return TRUE; }
-        // The invalidation overlay on, off, or following the program's
-        // switch (tools/contention_fuzz.py toggles it under load).
-        if (command == "overlay on" || command == "overlay off" || command == "overlay default") {
-            stxlib::Optional<bool> enabled{};
-            if (command == "overlay on") enabled.set(true);
-            if (command == "overlay off") enabled.set(false);
-            (*model_).set_invalidation_overlay(enabled);
-            collect_damage();
-            return TRUE;
-        }
-        constexpr std::string_view move_at = "move ";
-        if (command.starts_with(move_at)) {
-            std::istringstream input(command.substr(move_at.size()));
-            std::string id;
-            double local_x{};
-            double local_y{};
-            if (!(input >> id >> local_x >> local_y) || !std::isfinite(local_x) ||
-                !std::isfinite(local_y)) return FALSE;
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) return FALSE;
-            const Rect bounds = (*control).absolute_bounds();
-            const Point point{bounds.x + std::clamp(local_x, 0.0, bounds.width),
-                              bounds.y + std::clamp(local_y, 0.0, bounds.height)};
-            const bool handled = dispatch(PointerEvent{
-                PointerAction::move, PointerButton::none, point, {},
-                Modifier::none, 1}).handled;
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"move\",\"id\":\"%s\",\"handled\":%s}\n",
-                         id.c_str(), handled ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view focus = "focus ";
-        if (command.starts_with(focus)) {
-            const std::string id = command.substr(focus.size());
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input() ||
-                !(*model_).request_focus(control)) return FALSE;
-            std::fprintf(stdout, "{\"automation\":\"focus\",\"id\":\"%s\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view text_input = "text ";
-        if (command.starts_with(text_input)) {
-            const std::string payload = command.substr(text_input.size());
-            const std::size_t separator = payload.find(' ');
-            if (separator == std::string::npos) return FALSE;
-            const std::string id = payload.substr(0, separator);
-            const std::string text = payload.substr(separator + 1U);
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input() ||
-                !(*model_).request_focus(control)) return FALSE;
-            const bool handled = dispatch(TextInputEvent{text}).handled;
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"text\",\"id\":\"%s\",\"bytes\":%zu,\"handled\":%s}\n",
-                         id.c_str(), text.size(), handled ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        // A key to whatever has the keyboard now (an open menu, a lifted
-        // drop-down), without moving the focus: "key-focused <physical>".
-        constexpr std::string_view focused_key = "key-focused ";
-        if (command.starts_with(focused_key)) {
-            std::istringstream input(command.substr(focused_key.size()));
-            std::uint32_t physical{};
-            if (!(input >> physical)) return FALSE;
-            KeyEvent pressed;
-            pressed.action = KeyAction::down;
-            pressed.physical_key = physical;
-            const bool handled_down = dispatch(std::move(pressed)).handled;
-            KeyEvent released;
-            released.action = KeyAction::up;
-            released.physical_key = physical;
-            static_cast<void>(dispatch(std::move(released)));
-            collect_damage();
-            std::fprintf(stdout, "{\"automation\":\"key-focused\",\"physical\":%u,\"handled\":%s}\n", physical,
-                         handled_down ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view key_input = "key ";
-        if (command.starts_with(key_input)) {
-            std::istringstream input(command.substr(key_input.size()));
-            std::string id;
-            std::uint32_t physical{};
-            std::string action;
-            std::uint32_t modifiers{};
-            if (!(input >> id >> physical >> action) ||
-                (action != "down" && action != "up")) return FALSE;
-            if (!(input >> modifiers)) modifiers = 0;
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input() ||
-                !(*model_).request_focus(control)) return FALSE;
-            KeyEvent event;
-            event.action = action == "down" ? KeyAction::down : KeyAction::up;
-            event.physical_key = physical;
-            event.modifiers = static_cast<Modifier>(modifiers);
-            const bool handled = dispatch(std::move(event)).handled;
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"key\",\"id\":\"%s\",\"physical\":%u,\"action\":\"%s\",\"modifiers\":%u,\"handled\":%s}\n",
-                         id.c_str(), physical, action.c_str(), modifiers,
-                         handled ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view activate = "activate ";
-        if (command.starts_with(activate)) {
-            const std::string id = command.substr(activate.size());
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) {
-                std::fprintf(stdout,
-                             "{\"automation\":\"activate\",\"id\":\"%s\",\"accepted\":false,\"reason\":\"%s\"}\n",
-                             id.c_str(), !control ? "not-found" : "ineligible");
-                std::fflush(stdout);
-                return FALSE;
-            }
-            (*control).on_activate();
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"activate\",\"id\":\"%s\",\"stable_id\":\"%s\"}\n",
-                         id.c_str(), (*control).stable_id().value().data());
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view click_at = "click-at ";
-        if (command.starts_with(click_at)) {
-            std::istringstream input(command.substr(click_at.size()));
-            std::string id;
-            double local_x{};
-            double local_y{};
-            if (!(input >> id >> local_x >> local_y) || !std::isfinite(local_x) ||
-                !std::isfinite(local_y)) return FALSE;
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) {
-                std::fprintf(stdout,
-                             "{\"automation\":\"click-at\",\"id\":\"%s\",\"accepted\":false,\"reason\":\"%s\"}\n",
-                             id.c_str(), !control ? "not-found" : "ineligible");
-                std::fflush(stdout);
-                return FALSE;
-            }
-            const Rect bounds = (*control).absolute_bounds();
-            const Point point{bounds.x + std::clamp(local_x, 0.0, bounds.width),
-                              bounds.y + std::clamp(local_y, 0.0, bounds.height)};
-            const bool handled_down = dispatch(PointerEvent{
-                PointerAction::down, PointerButton::primary, point, {},
-                Modifier::none, 1}).handled;
-            const bool handled_up = dispatch(PointerEvent{
-                PointerAction::up, PointerButton::primary, point, {},
-                Modifier::none, 1}).handled;
-            synchronize_capture();
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"click-at\",\"id\":\"%s\",\"local_x\":%.3f,\"local_y\":%.3f,\"handled\":%s}\n",
-                         id.c_str(), local_x, local_y,
-                         (handled_down || handled_up) ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view drag = "drag ";
-        if (command.starts_with(drag)) {
-            std::istringstream input(command.substr(drag.size()));
-            std::string id;
-            double start_x{};
-            double start_y{};
-            double end_x{};
-            double end_y{};
-            unsigned requested_steps{8U};
-            if (!(input >> id >> start_x >> start_y >> end_x >> end_y) ||
-                !std::isfinite(start_x) || !std::isfinite(start_y) ||
-                !std::isfinite(end_x) || !std::isfinite(end_y)) return FALSE;
-            if (!(input >> requested_steps)) requested_steps = 8U;
-            const unsigned steps = std::clamp(requested_steps, 1U, 256U);
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) {
-                std::fprintf(stdout,
-                             "{\"automation\":\"drag\",\"id\":\"%s\",\"accepted\":false,\"reason\":\"%s\"}\n",
-                             id.c_str(), !control ? "not-found" : "ineligible");
-                std::fflush(stdout);
-                return FALSE;
-            }
-            const Rect bounds = (*control).absolute_bounds();
-            const Point start{
-                bounds.x + std::clamp(start_x, 0.0, bounds.width),
-                bounds.y + std::clamp(start_y, 0.0, bounds.height)};
-            const Point end{
-                bounds.x + std::clamp(end_x, 0.0, bounds.width),
-                bounds.y + std::clamp(end_y, 0.0, bounds.height)};
-            bool handled = dispatch(PointerEvent{
-                PointerAction::down, PointerButton::primary, start, {},
-                Modifier::none, 1}).handled;
-            for (unsigned index = 1; index <= steps; ++index) {
-                const double ratio = static_cast<double>(index) /
-                                     static_cast<double>(steps);
-                const Point position{start.x + (end.x - start.x) * ratio,
-                                     start.y + (end.y - start.y) * ratio};
-                handled = dispatch(PointerEvent{
-                    PointerAction::move, PointerButton::primary, position, {},
-                    Modifier::none, 1}).handled || handled;
-            }
-            handled = dispatch(PointerEvent{
-                PointerAction::up, PointerButton::primary, end, {},
-                Modifier::none, 1}).handled || handled;
-            synchronize_capture();
-            collect_damage();
-            std::fprintf(stdout,
-                         "{\"automation\":\"drag\",\"id\":\"%s\",\"steps\":%u,\"handled\":%s}\n",
-                         id.c_str(), steps, handled ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        constexpr std::string_view click = "click ";
-        if (command.starts_with(click)) {
-            const std::string id = command.substr(click.size());
-            std::fprintf(stdout, "{\"automation\":\"click-phase\",\"id\":\"%s\",\"phase\":\"request\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            const std::shared_ptr<gui_forms::Control> control = options_.automation_resolve
-                ? options_.automation_resolve(id) : (*model_).find(id);
-            if (!control || !(*control).eligible_for_input()) return FALSE;
-            std::fprintf(stdout, "{\"automation\":\"click-phase\",\"id\":\"%s\",\"phase\":\"resolved\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            const Rect bounds = (*control).absolute_bounds();
-            const Point center{bounds.x + bounds.width / 2.0, bounds.y + bounds.height / 2.0};
-            const Control::Ptr hit = (*model_).hit_test(center);
-            std::fprintf(stdout,
-                         "{\"automation\":\"click-target\",\"id\":\"%s\",\"resolved\":\"%s\",\"hit\":\"%s\",\"x\":%.3f,\"y\":%.3f}\n",
-                         id.c_str(), (*control).stable_id().value().data(),
-                         hit ? (*hit).stable_id().value().data() : "", center.x,
-                         center.y);
-            std::fflush(stdout);
-            PointerEvent down{PointerAction::down, PointerButton::primary, center,
-                              {}, Modifier::none, 1};
-            PointerEvent up{PointerAction::up, PointerButton::primary, center,
-                            {}, Modifier::none, 1};
-            const bool handled_down = dispatch(std::move(down)).handled;
-            std::fprintf(stdout, "{\"automation\":\"click-phase\",\"id\":\"%s\",\"phase\":\"down\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            const bool handled_up = dispatch(std::move(up)).handled;
-            std::fprintf(stdout, "{\"automation\":\"click-phase\",\"id\":\"%s\",\"phase\":\"up\"}\n",
-                         id.c_str());
-            std::fflush(stdout);
-            synchronize_capture();
-            collect_damage();
-            std::fprintf(stdout, "{\"automation\":\"click\",\"id\":\"%s\",\"handled\":%s}\n",
-                         id.c_str(), (handled_down || handled_up) ? "true" : "false");
-            std::fflush(stdout);
-            return TRUE;
-        }
-        return FALSE;
-    }
-
-    static std::wstring executable_directory() {
-        wchar_t executable[MAX_PATH]{};
-        const DWORD count = GetModuleFileNameW(nullptr, executable, MAX_PATH);
-        if (count == 0 || count >= MAX_PATH) return {};
-        std::wstring directory(executable, count);
-        const std::wstring::size_type slash = directory.find_last_of(L"\\/");
-        directory.resize(slash == std::wstring::npos ? 0 : slash + 1);
-        return directory;
-    }
-
     enum class NativePhase : std::uint8_t {
         creating,
         bound,
@@ -4367,11 +4152,70 @@ private:
         shutdown,
     };
 
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Drops from other programs reach the session through this window
+    // (windows_drag_drop.hpp); the registration that calls it is declared
+    // after it and revoked first.
+    class ExternalDragSink final : public gui_forms::host::detail::WindowsDragDispatch {
+    public:
+        explicit ExternalDragSink(WindowsHostState& host) noexcept : host_(&host) {}
+        DragEffect dispatch_external_drag(DragEvent event, POINT client) override {
+            const DragEffect accepted = (*host_).external_drag(std::move(event), client);
+            return accepted;
+        }
+
+    private:
+        WindowsHostState* host_;
+    };
+
+    // One drag event from the drop target: refused outside the window's
+    // input phases; a drop counts only when the window handled it.
+    DragEffect external_drag(DragEvent event, POINT client) {
+        const bool receiving = native_phase_ == NativePhase::attached || native_phase_ == NativePhase::ready ||
+                               native_phase_ == NativePhase::visible;
+        if (!receiving) {
+            if (std::getenv("GUI_FORMS_TRACE_DROP") != nullptr) {
+                std::fprintf(stderr, "gui_forms drop:   refused outside the input phases (phase=%d)\n",
+                             static_cast<int>(native_phase_));
+                std::fflush(stderr);
+            }
+            return DragEffect::none;
+        }
+        const DragAction action = event.action;
+        // Window device pixels to logical units, at the boundary.
+        event.position = {static_cast<double>(client.x) / scale_, static_cast<double>(client.y) / scale_};
+        const HostDispatchResult result = dispatch(std::move(event));
+        collect_damage();
+        if (std::getenv("GUI_FORMS_TRACE_DROP") != nullptr) {
+            std::fprintf(stderr,
+                         "gui_forms drop:   session result %s handled=%d deferred=%d effect=0x%x phase=%d\n",
+                         host_dispatch_error_name(result.error), result.handled ? 1 : 0,
+                         result.input_deferred ? 1 : 0, static_cast<unsigned>(result.drag_effect),
+                         static_cast<int>(native_phase_));
+            std::fflush(stderr);
+        }
+        if (!result.accepted() || (action == DragAction::drop && !result.handled)) return DragEffect::none;
+        return result.drag_effect;
+    }
+
+#endif
     WindowsAccessibility accessibility_;
+    // The touchpad's DirectManipulation (engaged by sync_manipulation while
+    // the window wants gestures, released at WM_DESTROY), its gesture in
+    // progress, whether its pump runs, and whether attaching it failed.
+    windows_detail::DirectManipulationInput manipulation_;
+    windows_detail::ManipulationTracker manipulation_tracker_{};
+    bool manipulation_timer_armed_{};
+    bool manipulation_refused_{};
+    bool in_manipulation_report_{};
     std::unique_ptr<Window> model_;
     WindowsHostOptions options_;
     WindowsHostServices services_;
     HostSession session_;
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    ExternalDragSink drop_sink_{*this};
+    gui_forms::host::detail::WindowsDropRegistration drop_registration_;
+#endif
     HWND hwnd_{};
     bool full_screen_{};
     LONG_PTR restore_style_{};
@@ -4460,6 +4304,9 @@ private:
     LONGLONG live_timing_vblank_{};
     LONGLONG live_timing_period_{};
     LiveTimingSource live_timing_source_{LiveTimingSource::none};
+    // The vertical blanks of a monitor DWM does not time
+    // (report_display_timing); stopped first in the destructor.
+    windows_detail::WindowsVBlankClock vblank_clock_;
     DwmCompositionTimingFunction dwm_composition_timing_{};
     bool live_frame_due_{};
     // An inline composition is open in the model (audit N61): the last
@@ -4491,8 +4338,8 @@ private:
     std::uint64_t live_present_duration_nanoseconds_{};
     std::uint64_t live_worst_present_duration_nanoseconds_{};
     bool in_size_move_{};
-    std::shared_ptr<TitleCallbackState> title_state_{std::make_shared<TitleCallbackState>()};
-    std::shared_ptr<ClientSizeCallbackState> size_state_{std::make_shared<ClientSizeCallbackState>()};
+    std::shared_ptr<TitleCallbackState> title_state_{gui_forms::detail::make_library_shared<TitleCallbackState>()};
+    std::shared_ptr<ClientSizeCallbackState> size_state_{gui_forms::detail::make_library_shared<ClientSizeCallbackState>()};
     bool closed_{};
     bool frame_capture_completed_{};
     bool frame_capture_saved_{};
@@ -4503,9 +4350,6 @@ private:
     HostWindowId window_id_{};
     // mark_passive_popup: never activated by a click.
     bool passive_popup_{};
-    // Automation commands waiting for the thread to leave a dispatch or a
-    // size/move loop, oldest first (at most maximum_deferred_automation).
-    std::deque<std::string> deferred_automation_{};
     // The client origin on the screen at the last WM_MOVE, for
     // report_moved_to_model.
     std::optional<POINT> last_client_origin_{};
@@ -4584,10 +4428,6 @@ void run_windows_prepared_text_fixture(const std::span<const std::byte> fonts) {
 // accessibility: MSAA and UI Automation publication of the semantic tree,
 // including the TextPattern, verified by the MSAA and UI Automation client
 // tests over the Gallery (stage A).
-void accept_automation_environment() noexcept {
-    automation_environment_accepted.store(true, std::memory_order_release);
-}
-
 HostCapabilities windows_capabilities() {
     HostCapabilities capabilities{HostCapabilities::current_protocol_version,
             "win32-dib",
@@ -4604,6 +4444,10 @@ HostCapabilities windows_capabilities() {
                 HostCapability::cursor |
                 HostCapability::clipboard |
                 HostCapability::clipboard_images |
+                // OLE drag and drop (windows_drag_drop.hpp): the window as
+                // a drop target, and drags from the program.
+                HostCapability::typed_drag_destination |
+                HostCapability::typed_drag_source |
                 HostCapability::dialogs |
                 HostCapability::sound_cues |
                 HostCapability::notification_area |
@@ -4648,6 +4492,11 @@ HostCapabilities windows_capabilities() {
     if (locale.has_value()) {
         capabilities.locale = *locale;
         capabilities.available = capabilities.available | HostCapability::locale;
+    }
+    // Toasts for a packaged process or one with an explicit AppUserModelID
+    // (services/windows_toast_notifications.hpp).
+    if (gui_forms::host::detail::WindowsToastNotifications::available()) {
+        capabilities.available = capabilities.available | HostCapability::desktop_notifications;
     }
 #endif
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
@@ -4824,19 +4673,6 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     if (primary_count != 1U) return 2;
     run_scale_override() = windows.front().options.scale_override > 0.0 ? windows.front().options.scale_override
                                                                          : development_scale_override();
-    // Development hook (GUI_FORMS_WINDOWS_AUTOMATION=1): a program run
-    // through Application::run, whose portable options cannot ask for it,
-    // answers the automation channel in every window (menu probes). The
-    // variable counts only in a build configured with
-    // GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT, and only in a program that
-    // called accept_automation_environment first, so the environment alone
-    // opens no program (A-gf-host-03-F6).
-#if defined(GUI_FORMS_WINDOWS_AUTOMATION_ENVIRONMENT)
-    const bool accepted = automation_environment_accepted.load(std::memory_order_acquire);
-    if (accepted && environment_flag("GUI_FORMS_WINDOWS_AUTOMATION")) {
-        for (WindowsApplicationWindow& entry : windows) entry.options.automation_enabled = true;
-    }
-#endif
 
     const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     enable_best_dpi_awareness();
@@ -4862,7 +4698,7 @@ int run_windows_application(std::vector<WindowsApplicationWindow> windows,
     // The run outlives every window state it owns; the open operation it
     // publishes is revoked (end_run_windowing) before the run is released.
     std::unique_ptr<WindowsApplicationRun> run = std::make_unique<WindowsApplicationRun>(instance);
-    const std::shared_ptr<WindowsRunOpenState> open_state = std::make_shared<WindowsRunOpenState>();
+    const std::shared_ptr<WindowsRunOpenState> open_state = gui_forms::detail::make_library_shared<WindowsRunOpenState>();
     (*open_state).run = run.get();
     const bool windowing_published = static_cast<bool>(application.windowing_ready);
     if (windowing_published) application.windowing_ready(*run, WindowsRunOpen{open_state});

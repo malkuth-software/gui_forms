@@ -10,7 +10,9 @@
 #include "../panel_anatomy.hpp"
 #include "../../../core/drag_engine/scrub_gesture.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "../../basic/number_text.hpp"
+#include "numeric_up_down_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -21,12 +23,13 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::numeric_up_down;
 namespace {
 
 // text_alignment's schema: HorizontalAlignment's values (Label's names).
 std::shared_ptr<const PropertyEnumDescriptor> numeric_text_alignment_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "horizontal_alignment", {{"start", 0}, {"center", 1}, {"end", 2}}, false});
     return value;
 }
@@ -208,7 +211,7 @@ void NumericUpDown::set_range(double lowest, double highest) {
 // Windows Forms does, then clamps value into the range.
 void NumericUpDown::prepare_write(const decltype(minimum)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming)) throw std::invalid_argument("NumericUpDown range must be finite and ordered");
+    if (!ic::admits_minimum(incoming)) throw std::invalid_argument("NumericUpDown range must be finite and ordered");
 }
 
 void NumericUpDown::written(const decltype(minimum)&) {
@@ -219,7 +222,7 @@ void NumericUpDown::written(const decltype(minimum)&) {
 
 void NumericUpDown::prepare_write(const decltype(maximum)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming)) throw std::invalid_argument("NumericUpDown range must be finite and ordered");
+    if (!ic::admits_maximum(incoming)) throw std::invalid_argument("NumericUpDown range must be finite and ordered");
 }
 
 void NumericUpDown::written(const decltype(maximum)&) {
@@ -397,7 +400,7 @@ void NumericUpDown::set_scrub_glow_target(bool lit) {
     scrub_glow_timeline_.set_specification(specification);
     scrub_glow_timeline_.start(FrameClock::now());
     const std::shared_ptr<NumericUpDown> self = std::static_pointer_cast<NumericUpDown>(shared_from_this());
-    scrub_glow_frames_.start(*this, display_frame_interval, ScrubGlowTick{self});
+    scrub_glow_frames_.start_every_frame(*this, ScrubGlowTick{self});
 }
 
 AnimationTickResult NumericUpDown::ScrubGlowTick::operator()(FrameTime now) const {
@@ -463,6 +466,10 @@ void NumericUpDown::arrange(Rect final_bounds) {
     field_bounds_ = field;
     if (editor_) set_child_layout(editor_, field);
     if (spinner_) set_child_layout(spinner_, column);
+    // The glow is lit only during a scrub: the scrub owns that fact, and a
+    // lit target with no scrub running (a stale or corrupted copy, bit-flip
+    // run 7, F5) fades out here.
+    if (scrub_glow_to_ != 0.0 && !scrubbing()) set_scrub_glow_target(false);
 }
 
 void NumericUpDown::on_key_preview(KeyEvent& event) {
@@ -928,7 +935,7 @@ void NumericUpDown::on_value_changed() {
 
 void NumericUpDown::prepare_write(const decltype(increment)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming <= 0.0) {
+    if (!ic::admits_increment(incoming)) {
         throw std::invalid_argument("NumericUpDown increment must be finite and positive");
     }
 }

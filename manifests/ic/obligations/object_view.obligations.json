@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::ObjectView",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/object_view.ic.toml",
+    "sha256": "3db570c2702286ba6a0d14e362af3f2054cc1bfe006a3c5bd7d3cf14e8669f5e"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.objectview.icon_cell_size_write.requires.icon_cell_size",
+      "kind": "entry-check",
+      "statement": "icon_cell_size runs only when finite(incoming.width) and finite(incoming.height) and incoming.width >= 86 and incoming.height >= 78 and incoming.width <= 512 and incoming.height <= 512; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::object_view::admits_icon_cell_size, called in src/controls/panel/object_view/object_view.cpp"
+    },
+    {
+      "id": "gui_forms.objectview.icon_cell_size_write.refusal.icon_cell_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming.width) and finite(incoming.height) and incoming.width >= 86 and incoming.height >= 78 and incoming.width <= 512 and incoming.height <= 512, icon_cell_size changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.objectview.details_row_height_write.requires.details_row_height",
+      "kind": "entry-check",
+      "statement": "details_row_height runs only when finite(incoming) and incoming >= 20 and incoming <= 256; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::object_view::admits_details_row_height, called in src/controls/panel/object_view/object_view.cpp"
+    },
+    {
+      "id": "gui_forms.objectview.details_row_height_write.refusal.details_row_height",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 20 and incoming <= 256, details_row_height changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

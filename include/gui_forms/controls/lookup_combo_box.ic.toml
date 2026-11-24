@@ -1,0 +1,29 @@
+# LookupComboBox's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/lookup_combo_box.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/lookup_combo_box/lookup_combo_box_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "LookupComboBox"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/lookup_combo_box.hpp"
+anchor = "class GUI_FORMS_API LookupComboBox final : public Control, public LookupComboBoxCapabilities<LookupComboBox> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/lookup_combo_box/lookup_combo_box_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::lookup_combo_box"
+includes = ["gui_forms/controls/lookup_combo_box.hpp"]
+used_in = ["src/controls/lookup_combo_box/lookup_combo_box.cpp"]
+
+[[call]]
+name = "max_drop_down_rows"
+id = "max_drop_down_rows_write"
+declarations = ["void prepare_write(const decltype(max_drop_down_rows)&"]
+kind = "member"
+parameters = { incoming = "std::uint32_t" }
+requires = [
+  { holds = "incoming != 0 and incoming <= 64", refuses = "failure:invalid_argument", check = "max_drop_down_rows" },
+]

@@ -1,0 +1,32 @@
+# Wizard's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/wizard.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry
+# checks (src/controls/wizard/wizard_ic_checks.hpp)
+# that prepare_write calls. A refusal failure:invalid_argument is a throw of std::invalid_argument before
+# anything changes.
+
+schema = 1
+component = "Wizard"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/wizard.hpp"
+anchor = "class GUI_FORMS_API Wizard final : public Control, public WizardCapabilities<Wizard> {"
+thread = "ui"
+
+[terms]
+page_count = "std::size_t"
+
+[checks]
+path = "src/controls/wizard/wizard_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::wizard"
+includes = ["gui_forms/controls/wizard.hpp"]
+used_in = ["src/controls/wizard/wizard.cpp"]
+
+[[call]]
+name = "current_page"
+id = "current_page_write"
+declarations = ["void prepare_write(const decltype(current_page)&"]
+kind = "member"
+parameters = { incoming = "std::uint32_t" }
+requires = [
+  { holds = "incoming == 0 or incoming < page_count", refuses = "failure:invalid_argument", check = "current_page" },
+]

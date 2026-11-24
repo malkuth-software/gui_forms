@@ -4,6 +4,7 @@
 #include "gui_forms/text.hpp"
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
+#include "../details_columns.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 
@@ -22,6 +23,7 @@ namespace gui_forms {
 
 using detail::property_editor_height;
 using detail::property_gap;
+using detail::label_share;
 using detail::property_group_height;
 using detail::property_padding;
 using detail::property_row_height;
@@ -175,6 +177,35 @@ struct PropertyList::Impl final {
             "Mg", owner.effective_font(font)).logical_size.height / scale();
     }
 
+    // The font the row names paint in.
+    [[nodiscard]] FontSpec name_font() const {
+        return owner.effective_font(font_overridden
+            ? font : FontSpec{FontRole::content, 9.5, 600, false});
+    }
+
+    // How wide `row`'s name lays out in the name font.
+    [[nodiscard]] double name_extent(const PropertyRowSpec& row) const {
+        return owner.measure_text_extent_utf8(row.name, name_font()).logical_size.width;
+    }
+
+    // The name column beside the values: the authored label_width, widened
+    // to the widest visible name and its indent, but to no more than
+    // label_share of the list; a name wider than that is shortened with an
+    // ellipsis and shows whole in its tooltip.
+    [[nodiscard]] double label_column(double width) const {
+        const double s = scale();
+        const double authored = label_width * s;
+        double widest = 0.0;
+        for (const RowState& state : rows) {
+            if (!groups[state.group_index].expanded || !row_visible(state)) continue;
+            const PropertyRowSpec& row = spec(state);
+            const double indent = static_cast<double>(row.depth) * 15.0 * s + (row.expandable ? 14.0 * s : 0.0);
+            widest = std::max(widest, indent + name_extent(row) + property_gap * s);
+        }
+        const double cap = std::max(authored, (width - property_padding * s * 2.0) * label_share);
+        return std::clamp(widest, authored, cap);
+    }
+
     [[nodiscard]] double group_extent() const {
         return std::max(property_group_height, line_height() + 8.0) * scale();
     }
@@ -231,8 +262,14 @@ struct PropertyList::Impl final {
         return (*current).parent_id.empty();
     }
 
+    // The rows leave the list before their editors leave the tree (state
+    // hunt N1): removing an editor whose drop-down is open closes it, moves
+    // focus and may flush layout, and that layout must find no rows rather
+    // than old rows indexing new groups.
     void clear_editors() noexcept {
-        for (RowState& row : rows) {
+        std::vector<RowState> leaving = std::move(rows);
+        rows.clear();
+        for (RowState& row : leaving) {
             if (row.editor && (*row.editor).parent().get() == &owner) {
                 Control::Ptr removed = owner.remove_child((*row.editor).runtime_id());
                 if (removed && (*removed).is_alive()) (*removed).dispose();
@@ -243,11 +280,23 @@ struct PropertyList::Impl final {
                 if (removed && (*removed).is_alive()) (*removed).dispose();
             }
         }
-        rows.clear();
     }
 
+    // One editor and reset button per row of `groups`. A child the window
+    // refuses part-way (state hunt C36: an editor identity another control
+    // of the window holds) takes out those added and leaves: no row then
+    // stands for an editor that is not there.
     void rebuild_editors() {
         clear_editors();
+        try {
+            add_editors();
+        } catch (...) {
+            clear_editors();
+            throw;
+        }
+    }
+
+    void add_editors() {
         for (std::size_t group_index = 0; group_index < groups.size(); ++group_index) {
             for (std::size_t row_index = 0;
                  row_index < groups[group_index].rows.size(); ++row_index) {
@@ -361,10 +410,11 @@ struct PropertyList::Impl final {
         const double stacked_extra = std::max(21.0, line + 6.0) - 21.0;
         const double padding = property_padding * s;
         const double gap = property_gap * s;
-        const double scaled_label_width = label_width * s;
+        // Whether the rows stack reads the authored column; the column the
+        // names get beside the values is measured.
+        const bool stacked = width < std::max(230.0 * s, label_width * s + 116.0 * s);
+        const double scaled_label_width = label_column(width);
         const double validation_height = std::max(property_validation_height, line + 4.0) * s;
-        const bool stacked = width < std::max(230.0 * s,
-                                              scaled_label_width + 116.0 * s);
         double y{header_height};
         for (std::size_t group_index = 0; group_index < groups.size(); ++group_index) {
             y += group_extent();
@@ -429,13 +479,17 @@ struct PropertyList::Impl final {
     }
 
     void arrange_editors() {
-        if (header) {
+        if (header && (*header).parent().get() == &owner) {
             owner.set_child_layout(header,
                 {0.0, -scroll_offset,
                  std::max(0.0, owner.committed_arranged_bounds().width),
                  header_height});
         }
         for (RowState& state : rows) {
+            if (state.group_index >= groups.size() ||
+                state.row_index >= groups[state.group_index].rows.size()) {
+                continue;
+            }
             const bool visible = groups[state.group_index].expanded &&
                 row_visible(state);
             if (state.editor) {
@@ -478,7 +532,7 @@ struct PropertyList::Impl final {
     std::optional<std::size_t> group_at(Point absolute) const {
         const Rect bounds = owner.absolute_bounds();
         if (!bounds.contains(absolute)) return {};
-        const double y_target = absolute.y - bounds.y + scroll_offset;
+        const double y_target = owner.point_from_window(absolute).y + scroll_offset;
         const double group_height = group_extent();
         double y{header_height};
         for (std::size_t group_index = 0; group_index < groups.size(); ++group_index) {
@@ -497,8 +551,8 @@ struct PropertyList::Impl final {
     RowState* disclosure_at(Point absolute) noexcept {
         const Rect bounds = owner.absolute_bounds();
         if (!bounds.contains(absolute)) return nullptr;
-        const Point local{absolute.x - bounds.x,
-                          absolute.y - bounds.y + scroll_offset};
+        const Point pointer = owner.point_from_window(absolute);
+        const Point local{pointer.x, pointer.y + scroll_offset};
         for (RowState& state : rows) {
             const PropertyRowSpec& row = spec(state);
             if (!groups[state.group_index].expanded || !row_visible(state) ||
@@ -537,6 +591,7 @@ PropertyList::PropertyList(StableId stable_id)
     border_style = BorderStyle::none;
     focusable = true;
     set_paint_plane(PaintPlane::control);
+    set_publishes_item_tool_tips(true);
 }
 
 PropertyList::~PropertyList() = default;
@@ -611,9 +666,30 @@ void PropertyList::set_groups(std::vector<PropertyGroupSpec> groups) {
             prior_rows.emplace(row.stable_id, &row);
         }
     }
+    // The old editors go while the old groups stand (state hunt N1); then
+    // the groups and their editors change together (C36): a refused editor
+    // brings back the groups before, with fresh editors, and the refusal
+    // leaves. Should that be refused too, the list is left empty.
+    (*impl_).clear_editors();
+    std::vector<PropertyGroupSpec> previous = std::move((*impl_).groups);
     (*impl_).groups = std::move(groups);
     (*impl_).scroll_offset = 0.0;
-    (*impl_).rebuild_editors();
+    try {
+        (*impl_).rebuild_editors();
+    } catch (...) {
+        (*impl_).groups = std::move(previous);
+        try {
+            (*impl_).rebuild_editors();
+        } catch (...) {
+            (*impl_).groups.clear();
+        }
+        (*impl_).recompute_geometry();
+        try {
+            invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+        } catch (...) {
+        }
+        throw;
+    }
     (*impl_).recompute_geometry();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
@@ -834,17 +910,39 @@ void PropertyList::set_header_content(Control::Ptr content, double height) {
                    Dirty::semantics);
         return;
     }
+    // The new header joins first (state hunt N6): a refused add changes
+    // nothing, where before the list named a header that was not its
+    // child and every later layout threw. Then the old one goes.
+    if (content) add_child(content);
     if ((*impl_).header && (*(*impl_).header).parent().get() == this) {
         Control::Ptr previous = remove_child((*(*impl_).header).runtime_id());
         if (previous && (*previous).is_alive()) (*previous).dispose();
     }
     (*impl_).header = std::move(content);
     (*impl_).header_height = height;
-    if ((*impl_).header) add_child((*impl_).header);
     (*impl_).recompute_geometry();
     (*impl_).arrange_editors();
     invalidate(Dirty::measure | Dirty::layout | Dirty::paint | Dirty::hit_test |
                Dirty::semantics);
+}
+
+bool PropertyList::agrees_with_itself() const noexcept {
+    // Each row stands for one row of the groups, in order, and its editor
+    // and reset button are this list's children; the header is a child.
+    std::size_t expected = 0U;
+    for (const PropertyGroupSpec& group : (*impl_).groups) expected += group.rows.size();
+    if ((*impl_).rows.size() != expected) return false;
+    std::size_t position = 0U;
+    for (std::size_t group_index = 0; group_index < (*impl_).groups.size(); ++group_index) {
+        for (std::size_t row_index = 0; row_index < (*impl_).groups[group_index].rows.size(); ++row_index) {
+            const Impl::RowState& state = (*impl_).rows[position];
+            if (state.group_index != group_index || state.row_index != row_index) return false;
+            if (state.editor && (*state.editor).parent().get() != this) return false;
+            if (state.reset_button && (*state.reset_button).parent().get() != this) return false;
+            ++position;
+        }
+    }
+    return !(*impl_).header || (*(*impl_).header).parent().get() == this;
 }
 
 Control::Ptr PropertyList::header_content() const noexcept {
@@ -962,8 +1060,10 @@ void PropertyList::on_paint(Painter& painter, Rect) {
     FontSpec group_font = effective_font((*impl_).font_overridden
         ? (*impl_).font : FontSpec{FontRole::control, 8.5, 700, false, 0.24});
     group_font.weight = std::max<std::uint16_t>(group_font.weight, 700U);
-    const FontSpec name_font = effective_font((*impl_).font_overridden
-        ? (*impl_).font : FontSpec{FontRole::content, 9.5, 600, false});
+    const FontSpec name_font = (*impl_).name_font();
+    // A name wider than its column is shortened with an ellipsis (the
+    // tooltip shows it whole); one buffer serves every row.
+    std::string shown_name;
     const FontSpec value_font = text_font((*impl_).font);
     const FontSpec validation_font = effective_font((*impl_).font_overridden
         ? (*impl_).font : FontSpec{FontRole::content, 8.5, 600, false});
@@ -1048,7 +1148,8 @@ void PropertyList::on_paint(Painter& painter, Rect) {
             name_part.family = ControlVisualRole::editor;
             name_part.role = PartRole::label;
             name_part.states = row_states;
-            name_part.text = lend_paint_text(row.name);
+            details_detail::elide_to_width(painter, row.name, name_font, name.width, shown_name);
+            name_part.text = lend_paint_text(shown_name);
             name_part.font = name_font;
             paint_text_part_at(painter, *this, name_part, {name.x, name_baseline}, name.width);
             if (row.editor == PropertyEditorKind::read_only) {
@@ -1195,6 +1296,8 @@ void PropertyList::on_key_down(KeyEventArgs& arguments) {
     if (event.handled) arguments.handled = true;
 }
 
+bool PropertyList::content_scrolls() const noexcept { return true; }
+
 SemanticDescriptor PropertyList::semantic_descriptor() const {
     SemanticDescriptor descriptor;
     descriptor.role = SemanticRole::property_grid;
@@ -1208,7 +1311,8 @@ SemanticDescriptor PropertyList::semantic_descriptor() const {
 
 std::vector<SemanticNode> PropertyList::semantic_virtual_children() const {
     std::vector<SemanticNode> nodes;
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
+    const double width = arranged_bounds().width;
     const double group_height = (*impl_).group_extent();
     double y = (*impl_).header_height - (*impl_).scroll_offset;
     for (std::size_t group_index = 0;
@@ -1219,8 +1323,7 @@ std::vector<SemanticNode> PropertyList::semantic_virtual_children() const {
         header.runtime_id = virtual_semantic_runtime_id(header.stable_id);
         header.role = SemanticRole::property_group;
         header.name = group.title;
-        header.bounds = {absolute.x, absolute.y + y, absolute.width,
-                         group_height};
+        header.bounds = frame_to_outer(local_frame, Rect{0.0, y, width, group_height});
         header.states = SemanticState::visible | SemanticState::focusable |
                         SemanticState::enabled;
         if (group.expanded) header.states |= SemanticState::expanded;
@@ -1243,9 +1346,8 @@ std::vector<SemanticNode> PropertyList::semantic_virtual_children() const {
                 node.description = row.validation_message.empty()
                     ? row.description : row.description + " · Error: " +
                                             row.validation_message;
-                node.bounds = {absolute.x,
-                    absolute.y + row_state.row_bounds.y - (*impl_).scroll_offset,
-                    absolute.width, row_state.row_bounds.height};
+                node.bounds = frame_to_outer(local_frame,
+                    Rect{0.0, row_state.row_bounds.y - (*impl_).scroll_offset, width, row_state.row_bounds.height});
                 node.states = SemanticState::visible;
                 if (row.enabled) node.states |= SemanticState::enabled;
                 if (row.expandable) {
@@ -1256,6 +1358,32 @@ std::vector<SemanticNode> PropertyList::semantic_virtual_children() const {
                 nodes.push_back(std::move(node));
             }
             y += row_state.row_bounds.height;
+        }
+    }
+    return nodes;
+}
+
+std::vector<SemanticNode> PropertyList::tool_tip_items() const {
+    std::vector<SemanticNode> nodes;
+    const ScaleFrame local_frame = window_frame();
+    for (std::size_t group_index = 0; group_index < (*impl_).groups.size(); ++group_index) {
+        if (!(*impl_).groups[group_index].expanded) continue;
+        for (const Impl::RowState& row_state : (*impl_).rows) {
+            if (row_state.group_index != group_index || !(*impl_).row_visible(row_state)) continue;
+            const PropertyRowSpec& row = (*impl_).spec(row_state);
+            if ((*impl_).name_extent(row) <= row_state.name_bounds.width) continue;
+            SemanticNode node;
+            node.stable_id = row.stable_id + ".name";
+            node.runtime_id = virtual_semantic_runtime_id(node.stable_id);
+            node.role = SemanticRole::static_text;
+            node.name = row.name;
+            node.tool_tip = row.name;
+            node.bounds = frame_to_outer(local_frame, Rect{row_state.name_bounds.x,
+                                                           row_state.name_bounds.y - (*impl_).scroll_offset,
+                                                           row_state.name_bounds.width, row_state.name_bounds.height});
+            node.states = SemanticState::visible;
+            if (row.enabled) node.states |= SemanticState::enabled;
+            nodes.push_back(std::move(node));
         }
     }
     return nodes;

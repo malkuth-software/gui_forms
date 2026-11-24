@@ -35,15 +35,14 @@ gui_forms::ScaledPanel
          Identity of the panel, unique within its window.
 
       **initial_design_size** : ``Size``, default ``{1.0, 1.0}``
-         The width and height of the design space, by default 1 by 1. Both must
-         be finite and positive, or the constructor throws
-         ``std::invalid_argument``.
+         The width and height of the design space, by default 1 by 1, written to
+         the panel's ``design_size`` (a :cpp:class:`Control <gui_forms::Control>` property). Both must be finite
+         and positive, or the constructor throws ``std::invalid_argument``.
 
    :Properties:
 
-      **design_size** : ``Size``, default ``{1.0, 1.0}``
-         The width and height of the design space. Both must be finite and
-         positive, or ``std::invalid_argument`` is thrown.
+      **aspect** : ``ScaledAspect``
+         How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
 
    :Inherited:
 
@@ -90,7 +89,14 @@ gui_forms::ScaledPanel
    are not applied, and the child's own ``requested_bounds`` are never rewritten.
    A child without a design rectangle is not scaled and stays at its requested
    bounds. Changing the design size or a design rectangle takes effect at the
-   next layout pass.
+   next layout pass. The design space is the panel's ``design_size``, which every
+   control has (the visible-area guarantee); while it is zero the panel maps
+   from the unit square.
+
+   The stretch is the panel's explicit answer to fitting its design content in
+   its bounds, and the window records it: ``applied_viewport_scale`` reports the
+   stretch's smaller axis ratio, so a design larger than the panel is a
+   recorded, answered overflow (``SurfaceRoot::overflow_records``).
 
    The panel publishes the accessibility role ``group`` only when it has an
    accessible name or description.
@@ -124,10 +130,9 @@ gui_forms::ScaledPanel
 
    .. rubric:: Properties
 
-   .. cpp:member:: Size design_size
+   .. cpp:member:: ScaledAspect aspect
 
-      The width and height of the design space. Both must be finite and
-      positive, or ``std::invalid_argument`` is thrown.
+      How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.
 
 
    .. rubric:: Methods
@@ -161,6 +166,14 @@ gui_forms::ScaledPanel
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
+   .. cpp:function:: stxlib::Optional<double> applied_viewport_scale() const noexcept override
+
+      Its children are mapped from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). :cpp:member:`aspect <gui_forms::ScaledPanel::aspect>` chooses a stretch per axis (the default) or a uniform scale that keeps the design's proportions, aligned by viewport_fit's alignment. Reports the smaller axis ratio; none while design_size is zero or it has no extent.
+
+   .. cpp:function:: bool scales_design_space() const noexcept override
+
+      True: the stretch above is this control's own mapping (decision 10).
+
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
    .. cpp:member:: constexpr std::size_t scaled_panel_property_count
@@ -182,7 +195,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
      - Status
    * - property
      - GUI.Forms-only
-     - ``design_size``
+     - ``aspect``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

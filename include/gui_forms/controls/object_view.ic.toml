@@ -1,0 +1,39 @@
+# ObjectView's property value rules, stated once (IC3: the property families' requires, moved out of
+# the prose of tools/property_families/object_view.json into clauses; the format is template_harness
+# docs/ic_declarations.md). tools/ic_declarations.py generates the header's // ic: lines and the entry checks
+# (src/controls/panel/object_view/object_view_ic_checks.hpp) that prepare_write calls. A refusal failure:invalid_argument is a throw of
+# std::invalid_argument before anything changes. Rules the clause grammar cannot state (UTF-8 text, font
+# specifications, enumerations) stay in prepare_write and the family's prose.
+
+schema = 1
+component = "ObjectView"
+namespace = "gui_forms"
+header = "include/gui_forms/controls/object_view.hpp"
+anchor = "class GUI_FORMS_API ObjectView final : public Panel, public ObjectViewCapabilities<ObjectView> {"
+thread = "ui"
+
+[checks]
+path = "src/controls/panel/object_view/object_view_ic_checks.hpp"
+namespace = "gui_forms::detail::ic::object_view"
+includes = ["gui_forms/controls/object_view.hpp"]
+used_in = ["src/controls/panel/object_view/object_view.cpp"]
+
+[[call]]
+name = "icon_cell_size"
+id = "icon_cell_size_write"
+declarations = ["void prepare_write(const decltype(icon_cell_size)&"]
+kind = "member"
+parameters = { incoming = "Size" }
+requires = [
+  { holds = "finite(incoming.width) and finite(incoming.height) and incoming.width >= 86 and incoming.height >= 78 and incoming.width <= 512 and incoming.height <= 512", refuses = "failure:invalid_argument", check = "icon_cell_size" },
+]
+
+[[call]]
+name = "details_row_height"
+id = "details_row_height_write"
+declarations = ["void prepare_write(const decltype(details_row_height)&"]
+kind = "member"
+parameters = { incoming = "double" }
+requires = [
+  { holds = "finite(incoming) and incoming >= 20 and incoming <= 256", refuses = "failure:invalid_argument", check = "details_row_height" },
+]

@@ -1,11 +1,13 @@
 #include "gui_forms/controls/responsive_track_panel.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "../container_layout_utilities.hpp"
 #include "../text_collection_property.hpp"
 #include "../../scrollable_anatomy.hpp"
 #include "../../../../core/types/restrict/restrict.hpp"
+#include "responsive_track_panel_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -22,11 +24,12 @@
 #include <variant>
 
 namespace gui_forms {
+namespace ic = detail::ic::responsive_track_panel;
 namespace {
 
 std::shared_ptr<const PropertyEnumDescriptor> orientation_enum() {
     static const std::shared_ptr<const PropertyEnumDescriptor> value =
-        std::make_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
+        gui_forms::detail::make_library_shared<const PropertyEnumDescriptor>(PropertyEnumDescriptor{
             "responsive_track_orientation", {{"horizontal", 0}, {"vertical", 1}}, false});
     return value;
 }
@@ -958,7 +961,7 @@ BindingValue PropertyValueTraits<ResponsiveTrackOrientation>::to_binding(Respons
     descriptor.enumeration = orientation_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -1007,7 +1010,7 @@ void ResponsiveTrackPanel::written(const decltype(orientation)&) {
 
 void ResponsiveTrackPanel::prepare_write(const decltype(track_gap)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 256.0) throw std::invalid_argument("ResponsiveTrackPanel gap must be finite and between zero and 256");
+    if (!ic::admits_track_gap(incoming)) throw std::invalid_argument("ResponsiveTrackPanel gap must be finite and between zero and 256");
 }
 
 void ResponsiveTrackPanel::written(const decltype(track_gap)&) {

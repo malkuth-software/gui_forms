@@ -53,7 +53,7 @@
       "hand": [],
       "effects": "Dirty::measure | Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 14.0 || incoming > 256.0) {",
+        "if (!ic::admits_item_height(incoming)) {",
         "    throw std::invalid_argument(\"TreeView item height must be finite and between 14 and 256\");",
         "}"
       ],
@@ -77,7 +77,7 @@
       "hand": [],
       "effects": "Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 96.0) {",
+        "if (!ic::admits_indentation(incoming)) {",
         "    throw std::invalid_argument(\"TreeView indentation must be finite and between 8 and 96\");",
         "}"
       ],

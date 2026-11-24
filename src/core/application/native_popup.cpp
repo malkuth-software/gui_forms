@@ -1,6 +1,7 @@
 // Native popups (owner, 2026-11-04): the record of one popup window and
 // its opening through the run's windowing. See native_popup.hpp.
 #include "native_popup_record.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "application_state.hpp"
 
@@ -138,6 +139,18 @@ std::optional<Rect> desktop_placement(const std::weak_ptr<ApplicationWindowState
     return placed;
 }
 
+std::optional<Rect> client_placement(const std::weak_ptr<ApplicationWindowState>& owner, const Rect desktop) {
+    const std::shared_ptr<ApplicationWindowState> state = owner.lock();
+    const std::shared_ptr<ApplicationRunState> run = owner_run(state);
+    if (!run) return std::nullopt;
+    const ApplicationWindowHandle owner_handle = ApplicationHandleAccess::make(state);
+    const HostWindowFrameResult owner_frame = owner_handle.frame();
+    if (!owner_frame.status.accepted()) return std::nullopt;
+    const Rect client = owner_frame.frame.content;
+    const Rect placed{desktop.x - client.x, desktop.y - client.y, desktop.width, desktop.height};
+    return placed;
+}
+
 std::optional<Rect> client_work_area(const std::weak_ptr<ApplicationWindowState>& owner, const Point client_point,
                                     HostMonitorResult& monitors) {
     const std::shared_ptr<ApplicationWindowState> state = owner.lock();
@@ -203,7 +216,7 @@ std::shared_ptr<NativePopupRecord> open_native_popup_window(const NativePopupOpe
     popup.origin = DesktopLogicalPoint{placed.x, placed.y};
     entry.popup.set(popup);
     // Made before the window, so the window's closed callback can reach it.
-    std::shared_ptr<NativePopupRecord> record = std::make_shared<NativePopupRecord>(borrowed);
+    std::shared_ptr<NativePopupRecord> record = gui_forms::detail::make_library_shared<NativePopupRecord>(borrowed);
     entry.options.closed = NativePopupClosed{record};
     const ApplicationWindowOpenResult opened = windows.open_window(std::move(entry));
     if (!opened.status.accepted() || !opened.window.active()) return nullptr;

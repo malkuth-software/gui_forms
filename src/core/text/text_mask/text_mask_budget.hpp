@@ -3,8 +3,8 @@
 #include "gui_forms/text_mask.hpp"
 #include <algorithm>
 #include <limits>
-#include <mutex>
 #include <stdexcept>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::detail {
@@ -32,7 +32,7 @@ struct MaskLimitFailure final : std::exception {
 };
 
 struct MaskLedger final {
-    std::mutex mutex{};
+    stxlib::Mutex mutex{};
     std::array<MaskUsage, static_cast<std::size_t>(MaskResource::count)> usage{};
     MaskLedger();
     void reserve(const MaskResource resource, const std::size_t amount);

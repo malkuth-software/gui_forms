@@ -28,7 +28,7 @@
       "hand": [],
       "effects": "Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < minimum_column || incoming > maximum_column) {",
+        "if (!ic::admits_column_width(incoming)) {",
         "    throw std::invalid_argument(\"BackstageView column width must lie within 48 to 480\");",
         "}"
       ],

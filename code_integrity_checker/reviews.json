@@ -256,14 +256,6 @@
       "reviewed": "2026-10-28"
     },
     {
-      "path": "src/core/engine/engine_math/engine_math.cpp",
-      "rule": "I05",
-      "evidence": "const bool inside = index >= 0 && index < static_cast<int>(limbs.size());",
-      "decision": "false_shape",
-      "reason": "limbs is a ReductionLimbs, a std::array of five limbs: its size is the constant 5, which an int holds",
-      "reviewed": "2026-11-16"
-    },
-    {
       "path": "src/render/text/glyph_run/glyph_run_raster.cpp",
       "rule": "I04",
       "evidence": "impl.piece_pixels_.insert(impl.piece_pixels_.end(), pixels.data(), pixels.data() + pixels.count());",

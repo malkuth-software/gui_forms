@@ -462,9 +462,9 @@ bool Plot3DView::hit_test_local(Point local_point) const {
 
 void Plot3DView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input()) return;
-    const Rect absolute = absolute_bounds();
+    const Point local = point_from_window(event.position);
     const Rect plot = plot_bounds();
-    const Point inside{event.position.x - absolute.x - plot.x, event.position.y - absolute.y - plot.y};
+    const Point inside{local.x - plot.x, local.y - plot.y};
     switch (event.action) {
     case PointerAction::down: {
         if (surface_root() != nullptr) static_cast<void>((*surface_root()).request_focus(shared_from_this()));
@@ -563,7 +563,8 @@ void Plot3DView::handle_pointer(PointerEvent& event) {
 // A drag whose capture is lost ends without a pick; the resting frame is
 // rendered again, as after a release.
 void Plot3DView::end_drag() {
-    if (drag_ == Drag::none) return;
+    // A disposed view has nothing to redraw (invalidate would refuse).
+    if (drag_ == Drag::none || !is_alive()) return;
     drag_ = Drag::none;
     dragged_ = false;
     invalidate(Dirty::paint);

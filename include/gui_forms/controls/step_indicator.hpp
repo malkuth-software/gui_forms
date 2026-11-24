@@ -30,6 +30,8 @@ namespace gui_forms {
 // is a step's name, ordinary for the current step and secondary for the
 // others. To assistive technology it is a group whose value reads "Step 2
 // of 4: Details".
+// ic: gui_forms::StepIndicator: generated from include/gui_forms/controls/step_indicator.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API StepIndicator final : public Control, public StepIndicatorCapabilities<StepIndicator> {
 public:
     explicit StepIndicator(StableId stable_id);
@@ -40,6 +42,10 @@ public:
     void set_steps(std::vector<std::string> steps);
     [[nodiscard]] const std::vector<std::string>& steps() const& noexcept { return steps_; }
     const std::vector<std::string>& steps() const&& = delete;
+    // Whether the indicator agrees with itself (state hunt, 2026-11-23): the
+    // current step names one of the steps, or is 0 with none. For tests and
+    // diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     // The step whose chip or name contains a local point, if any.
     [[nodiscard]] stxlib::Optional<std::size_t> step_at(Point local_point) const;
 
@@ -93,6 +99,7 @@ public:
 private:
     friend struct StepIndicatorCurrentStepCapability<StepIndicator>;
     // The capabilities' hooks, chosen by the cell's type (study section 14).
+    // ic: Requires incoming == 0 or incoming < step_count, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(current_step)& cell, std::uint32_t& incoming);
     void written(const decltype(current_step)& cell);
     // property_codemod end StepIndicator

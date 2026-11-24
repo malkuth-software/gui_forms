@@ -42,6 +42,12 @@ struct GUI_FORMS_API HostServicesSnapshot final {
     std::uint64_t tray_notifications{};
     std::uint64_t tray_menus{};
     std::uint64_t tray_events{};
+    // Desktop notifications: the accepted shows and withdrawals, the live
+    // identities now, and the events published.
+    std::uint64_t desktop_notifications{};
+    std::uint64_t desktop_notification_withdrawals{};
+    std::uint64_t desktop_notifications_live{};
+    std::uint64_t desktop_notification_events{};
     std::uint64_t rejected_requests{};
     bool shutdown{};
 

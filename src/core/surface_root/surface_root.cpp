@@ -3,6 +3,7 @@
 #include "gui_forms/theme/theme/theme.hpp"
 #include "../drag_engine/drag_engine.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "requests/alert_route.hpp"
 
 #include "../dispatcher/state/dispatcher_state.hpp"
@@ -13,7 +14,7 @@
 
 #include <stdexcept>
 #include <string>
-#include <thread>
+#include <stxlib/threads.hpp>
 
 namespace gui_forms {
 
@@ -28,12 +29,12 @@ const int detail::SurfaceRootLayout<Size, Alignment>::marker = 1;
 template struct detail::SurfaceRootLayout<sizeof(SurfaceRoot), alignof(SurfaceRoot)>;
 
 SurfaceRoot::SurfaceRoot(Control::Ptr root, Size client_size, std::shared_ptr<ApplicationResources> resources)
-    : root_thread_(std::this_thread::get_id()),
-      dispatcher_state_(std::make_shared<detail::DispatcherState>(root_thread_)),
+    : root_thread_(stxlib::current_thread()),
+      dispatcher_state_(gui_forms::detail::make_library_shared<detail::DispatcherState>(root_thread_)),
       root_(std::move(root)), client_size_(client_size),
       theme_(resources ? (*resources).theme_ptr() : default_theme()),
       resources_(std::move(resources)),
-      lifetime_(std::make_shared<detail::WindowLifetime>()) {
+      lifetime_(gui_forms::detail::make_library_shared<detail::WindowLifetime>()) {
     // A theme with no light variant shows GUI.Forms' own light theme.
     if (resources_) theme_ = scheme_theme((*resources_).theme_ptr());
 }
@@ -52,7 +53,7 @@ WindowRef SurfaceRoot::window_ref() const {
 }
 
 bool SurfaceRoot::check_access() const noexcept {
-    return std::this_thread::get_id() == root_thread_;
+    return stxlib::current_thread() == root_thread_;
 }
 
 void SurfaceRoot::verify_access(std::string_view operation) {
@@ -60,7 +61,7 @@ void SurfaceRoot::verify_access(std::string_view operation) {
 }
 
 void SurfaceRoot::require_root_thread(std::string_view operation) {
-    if (std::this_thread::get_id() == root_thread_) {
+    if (stxlib::current_thread() == root_thread_) {
         return;
     }
     metrics_.record_wrong_thread_rejection();

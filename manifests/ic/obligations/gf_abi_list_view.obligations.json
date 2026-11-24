@@ -1,0 +1,135 @@
+{
+  "schema": 1,
+  "component": "gf_abi::list_view",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_list_view.ic.toml",
+    "sha256": "6ff707bf4f1528725e1a68dade4f6c7ba188e6f6989ae5f4698a22ae1663238c"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.list_view.column_count.requires.column_count_count",
+      "kind": "entry-check",
+      "statement": "column_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_list_view::admits_column_count_count, called in src/abi/stable/tables/abi_list_view.cpp"
+    },
+    {
+      "id": "gf_abi.list_view.column_count.refusal.column_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), column_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.list_view.item_count.requires.item_count_count",
+      "kind": "entry-check",
+      "statement": "item_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_list_view::admits_item_count_count, called in src/abi/stable/tables/abi_list_view.cpp"
+    },
+    {
+      "id": "gf_abi.list_view.item_count.refusal.item_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), item_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.list_view.index_of.requires.index_of_index",
+      "kind": "entry-check",
+      "statement": "index_of runs only when not_null(index); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_list_view::admits_index_of_index, called in src/abi/stable/tables/abi_list_view.cpp"
+    },
+    {
+      "id": "gf_abi.list_view.index_of.refusal.index_of_index",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(index), index_of changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.list_view.group_count.requires.group_count_count",
+      "kind": "entry-check",
+      "statement": "group_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_list_view::admits_group_count_count, called in src/abi/stable/tables/abi_list_view.cpp"
+    },
+    {
+      "id": "gf_abi.list_view.group_count.refusal.group_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), group_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.list_view.selected_items.requires.selected_items_indices",
+      "kind": "entry-check",
+      "statement": "selected_items runs only when not_null(count) and (not_null(indices) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_list_view::admits_selected_items_indices, called in src/abi/stable/tables/abi_list_view.cpp"
+    },
+    {
+      "id": "gf_abi.list_view.selected_items.refusal.selected_items_indices",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count) and (not_null(indices) or capacity == 0), selected_items changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.list_view.focused_item.requires.focused_item_index",
+      "kind": "entry-check",
+      "statement": "focused_item runs only when not_null(index); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_list_view::admits_focused_item_index, called in src/abi/stable/tables/abi_list_view.cpp"
+    },
+    {
+      "id": "gf_abi.list_view.focused_item.refusal.focused_item_index",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(index), focused_item changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.list_view.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- The Gallery's guided-tasks page (roadmap row 2.5): StepIndicator,
-   Wizard and WizardPage, LookupComboBox, Callout, ModalLayer and
+   Wizard and WizardPage, LookupComboBox, PopupContainerBox, Callout, ModalLayer and
    AboutDialog. gui_forms_add_form() compiles this document into
    guided-tasks_form.hpp at build time.
 
    gallery.guided-tasks.document is a declared boundary only: the page
    moves its children into the shell's page body (a 1000 x 660 design
    surface). gallery.guided.modal-content is the modal layer's content,
-   shown only while the layer is open. Behaviour stays in the page
+   shown only while the layer is open, and gallery.guided.popup.calendar
+   is the due date field's popup content. Behaviour stays in the page
    (src/controls/gallery/pages/guided-tasks.cpp): the lookup's rows, the
-   wizard's gate and outcome, and the buttons that open the callout, the
+   due date's calendar popup, the wizard's gate and outcome, and the buttons that open the callout, the
    modal layer and the About box. -->
 <scaled-panel xmlns="urn:gui-forms:form:1" id="gallery.guided-tasks.document"
     design-size="1000 660">
@@ -96,7 +97,18 @@
         text-wrapping="word"
         vertical-alignment="start"
         bounds="14 350 322 80"/>
+    <label id="gallery.guided.popup.label"
+        text="Due date"
+        classes="heading note-strong"
+        bounds="14 440 200 20"/>
+    <popup-container-box id="gallery.guided.popup"
+        accessible-name="Due date"
+        text="Choose a date"
+        bounds="14 462 260 24"/>
   </scaled-group-box>
+
+  <month-calendar id="gallery.guided.popup.calendar"
+      accessible-name="Due date calendar"/>
 
   <panel id="gallery.guided.modal-content"
       accessible-name="Modal layer"

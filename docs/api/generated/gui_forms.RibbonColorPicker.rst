@@ -60,6 +60,9 @@ gui_forms::RibbonColorPicker
       **palette_open** : ``bool``, read-only
          Whether the palette is open.
 
+      **agrees_with_itself** : ``bool``, read-only
+         Whether the palette state agrees with itself (state hunt, 2026-11-23): open, its overlay is in the window; closed, nothing is lifted into a Popup. For tests and diagnostics.
+
       **palette_overlay** : ``Control::Ptr``, read-only
          The palette's content control, null before the first opening.
 
@@ -184,6 +187,10 @@ gui_forms::RibbonColorPicker
 
       Whether the palette is open.
 
+   .. cpp:function:: bool agrees_with_itself() const noexcept
+
+      Whether the palette state agrees with itself (state hunt, 2026-11-23): open, its overlay is in the window; closed, nothing is lifted into a Popup. For tests and diagnostics.
+
    .. cpp:function:: Control::Ptr palette_overlay() const noexcept
 
       The palette's content control, null before the first opening.
@@ -278,7 +285,7 @@ gui_forms::RibbonColorPicker
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 7 supported, 0 deferred, 0 excluded, 2 unclassified; 9 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 10 supported, 0 deferred, 0 excluded, 0 unclassified; 10 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -289,6 +296,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
      - Windows Forms
      - GUI.Forms
      - Status
+   * - property
+     - GUI.Forms-only
+     - ``agrees_with_itself``
+     - supported
    * - property
      - GUI.Forms-only
      - ``natural_size``
@@ -312,7 +323,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
    * - event
      - GUI.Forms-only
      - ``palette_open_changed``
-     - unclassified (untested)
+     - supported
    * - event
      - GUI.Forms-only
      - ``value_changed``
@@ -324,4 +335,4 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 7 su
    * - method
      - GUI.Forms-only
      - ``open_palette``
-     - unclassified (untested)
+     - supported

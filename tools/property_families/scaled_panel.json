@@ -1,6 +1,6 @@
 {
   "family": "ScaledPanel",
-  "step": "B2",
+  "step": "VA",
   "declaring": "ScaledPanel",
   "header": "include/gui_forms/controls/scaled_panel.hpp",
   "source": "src/controls/panel/scaled_panel/scaled_panel.cpp",
@@ -8,41 +8,42 @@
   "base": "Panel",
   "shared": [],
   "includes": [
+    "gui_forms/controls/scaled_layout_values.hpp",
     "gui_forms/types.hpp"
   ],
   "properties": [
     {
-      "name": "design_size",
-      "capability": "ScaledPanelDesignSize",
-      "value": "Size",
-      "initial": "Size{1.0, 1.0}",
-      "comment": "The coordinate space the children's design bounds are written in; it scales to the arranged size. Throws std::invalid_argument unless both sides are finite and positive.",
-      "getter": "design_size",
-      "setter": "set_design_size",
+      "name": "aspect",
+      "capability": "ScaledPanelAspect",
+      "value": "ScaledAspect",
+      "initial": "ScaledAspect::stretch",
+      "comment": "How the design space maps onto the arranged size (stage VA, decision 10): stretch, each axis at its own ratio (the default), or uniform, one scale (the smaller axis ratio) keeping the design's proportions, aligned by viewport_fit's alignment. Either is an explicit, recorded stretch. Throws std::invalid_argument for a value outside ScaledAspect.",
+      "getter": null,
+      "setter": null,
       "clear": null,
-      "field": "design_size_",
+      "field": null,
       "event": null,
       "on_changed": false,
       "localizable": null,
       "table": {
-        "kind": "size",
+        "kind": "enumeration",
         "category": "Layout",
-        "description": "The coordinate space the children's design bounds are written in; it scales to the arranged size.",
-        "default": "BindingValue{Size{1.0, 1.0}}",
+        "description": "How the design space maps onto the arranged size: stretch or uniform.",
+        "default": "BindingValue{PropertyEnumValue{\"scaled_aspect\", \"stretch\", 0}}",
         "effects": "Dirty::layout",
         "subtree": false,
         "bindable": false,
         "browsable": true,
         "nullable": false,
-        "enumeration": null,
+        "enumeration": "scaled_layout_detail::scaled_aspect_enum()",
         "reset": null,
         "registry": false
       },
       "hooks": "generated",
       "prepare": [
-        "scaled_layout_detail::validate_design_size(incoming);"
+        "if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ScaledAspect::uniform)) throw std::invalid_argument(\"ScaledPanel aspect is not a ScaledAspect\");"
       ],
-      "sample": "Size{640.0, 480.0}"
+      "sample": "ScaledAspect::uniform"
     }
   ],
   "not_properties": [

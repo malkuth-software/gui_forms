@@ -23,6 +23,7 @@
 #include "gui_forms/pages/types/page_set_types.hpp"
 #include "gui_forms/types/painter/painter.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <array>
@@ -211,7 +212,7 @@ std::vector<std::string> sample_items() {
 }
 
 std::shared_ptr<Command> make_command(std::string_view id, std::string_view text, std::string_view shortcut) {
-    const std::shared_ptr<Command> command = std::make_shared<Command>(std::string(id), std::string(text));
+    const std::shared_ptr<Command> command = gui_forms::detail::make_library_shared<Command>(std::string(id), std::string(text));
     if (!shortcut.empty()) (*command).set_shortcut(std::string(shortcut));
     return command;
 }
@@ -435,6 +436,48 @@ StockSpecimenInstance make_sparkline(const StockSpecimen&, StableId id) {
     write_sample(*control, "fill", BindingValue(true));
     const std::span<const double> values(sparkline_values);
     (*control).push_values(values);
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+// A folder field with its text, a browse button and a clear button.
+StockSpecimenInstance make_button_text_box(const StockSpecimen& specimen, StableId id) {
+    const std::shared_ptr<ButtonTextBox> control = make_control<ButtonTextBox>(std::move(id));
+    set_sample_text(*control, specimen.sample_text);
+    std::vector<EditButton> buttons;
+    buttons.push_back({.stable_id = "browse", .kind = EditButtonKind::ellipsis, .caption = "Browse",
+                       .description = {}, .placement = EditButtonPlacement::trailing, .enabled = true,
+                       .visible = true});
+    buttons.push_back({.stable_id = "clear", .kind = EditButtonKind::close, .caption = "Clear", .description = {},
+                       .placement = EditButtonPlacement::trailing, .enabled = true, .visible = true});
+    (*control).set_buttons(std::move(buttons));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+// Three weekdays, two of them checked: the field reads "Monday, Wednesday".
+StockSpecimenInstance make_checked_combo_box(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<CheckedComboBox> control = make_control<CheckedComboBox>(std::move(id));
+    std::vector<CheckedComboItem> items;
+    items.push_back({.stable_id = "monday", .text = "Monday", .checked = true});
+    items.push_back({.stable_id = "tuesday", .text = "Tuesday", .checked = false});
+    items.push_back({.stable_id = "wednesday", .text = "Wednesday", .checked = true});
+    (*control).set_items(std::move(items));
+    StockSpecimenInstance instance = alone(control);
+    return instance;
+}
+
+// A disk-usage breakdown: four fixed slices in the theme's series colours,
+// as a doughnut with its shares inside.
+StockSpecimenInstance make_pie_chart(const StockSpecimen&, StableId id) {
+    const std::shared_ptr<PieChart> control = make_control<PieChart>(std::move(id));
+    std::vector<PieSlice> slices;
+    slices.push_back({.stable_id = "documents", .label = "Documents", .value = 42.0, .color = {}});
+    slices.push_back({.stable_id = "pictures", .label = "Pictures", .value = 27.0, .color = {}});
+    slices.push_back({.stable_id = "music", .label = "Music", .value = 18.0, .color = {}});
+    slices.push_back({.stable_id = "other", .label = "Other", .value = 13.0, .color = {}});
+    (*control).set_slices(std::move(slices));
+    write_sample(*control, "doughnut_radius", BindingValue(55.0));
     StockSpecimenInstance instance = alone(control);
     return instance;
 }
@@ -1245,7 +1288,7 @@ DockPanelRegistration dock_panel(StockSpecimenHolder& holder, std::string_view i
 // or the layout.
 StockSpecimenInstance make_dock_site(const StockSpecimen&, StableId id) {
     const std::shared_ptr<StockSpecimenHolder> holder = make_control<StockSpecimenHolder>(child_id(id, ".holder"));
-    (*holder).workspace = std::make_shared<DockWorkspace>(child_name(id, ".workspace"));
+    (*holder).workspace = gui_forms::detail::make_library_shared<DockWorkspace>(child_name(id, ".workspace"));
     DockWorkspace& workspace = *(*holder).workspace;
     const std::array<std::string_view, 4> ids{"harbour", "quay", "explorer", "properties"};
     const std::array<std::string_view, 4> titles{"Harbour.theme.css", "Quay.theme.css", "Explorer", "Properties"};
@@ -1798,7 +1841,7 @@ void fill_sample_picture(std::byte* pixels, std::size_t row_bytes) {
 StockSpecimenInstance make_raster_canvas(const StockSpecimen&, StableId id) {
     const std::shared_ptr<RasterCanvas> control = make_control<RasterCanvas>(std::move(id));
     const std::shared_ptr<gui_drawing::Bitmap> bitmap =
-        std::make_shared<gui_drawing::Bitmap>(sample_picture_width, sample_picture_height);
+        gui_forms::detail::make_library_shared<gui_drawing::Bitmap>(sample_picture_width, sample_picture_height);
     const gui_drawing::RectI whole{0, 0, static_cast<std::int32_t>(sample_picture_width),
                                    static_cast<std::int32_t>(sample_picture_height)};
     const gui_drawing::BitmapEditView edit = (*bitmap).begin_edit(whole);

@@ -9,7 +9,7 @@ gui_forms::SurfaceRoot
 
 .. cpp:namespace:: gui_forms
 
-.. cpp:class:: SurfaceRoot
+.. cpp:class:: SurfaceRoot : public LibraryAllocated
 
    ``#include <gui_forms/surface_root/surface_root.hpp>`` (:src:`source <include/gui_forms/surface_root/surface_root.hpp>`)
 
@@ -65,12 +65,21 @@ gui_forms::SurfaceRoot
          The logical client size. ``resize`` changes it.
 
       **root_slot** : ``Rect``, read-only
-         The root slot (stage B, B.2a): the client rectangle less the window's outer band (Window::declare_band) and, inside it, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
+         The root slot (stage B, B.2a): the client rectangle less, on each edge, the larger of the window's outer band (Window::declare_band) and its safe inset (safe_insets, stage VA), and, inside that, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
 
       **content_rect** : ``Rect``, read-only
          The content rectangle: the client rectangle less the reserved outer band (the whole client area when none is reserved), in client coordinates. Live surfaces are clipped to it; points outside it hit nothing.
 
       **chrome_insets** : ``Insets``
+
+      **safe_insets** : ``SafeInsets``
+         The visible-area guarantee (stage VA). The edges of the client area the host or the device hides (SafeInsets), zero until the host reports any. The root slot keeps clear of them; drawing and hit testing still cover the whole client area.
+
+      **visible_client_rectangle** : ``Rect``, read-only
+         The client rectangle less, on each edge, the larger of the outer band and the safe inset: the part of the client area content may count on being seen, in client coordinates. Empty on an axis they cover.
+
+      **root_frame** : ``ScaleFrame``, read-only
+         The frame the window places its root through (stage VA): the identity, or, while the root is larger than its slot and its viewport_fit answers contain or cover, that answer carried out (the root's arranged bounds into the slot). Control::window_frame and every walk compose it above the root.
 
       **scale** : ``double``, default ``1.0``, read-only
          Device pixels per logical unit. The host sets it from the display; a
@@ -207,6 +216,12 @@ gui_forms::SurfaceRoot
          painting and paint wake-ups are suspended, and motion values jump to
          their ends without scheduling frames.
 
+      **display_timing** : ``DisplayTiming``
+         The display timing this window's frames are paced to (DisplayTiming; design note frame-source): what its host last reported, or a test's fixed rate; DisplayTiming::assumed() until either.
+
+      **wants_display_frames** : ``bool``, read-only
+         Whether this window wants frames at its display's rate now: a display-paced request is connected (motion moves, or an animation timer ticks) and the window is not occluded. A host keeps its display link running while this holds and may pause it once it does not; it is false whenever the window is at rest.
+
       **image_resources** : ``ImageRegistry``, read-only
          Returns the renderer-neutral image registry.
 
@@ -321,6 +336,8 @@ gui_forms::SurfaceRoot
       **hovered_control** : ``Control::Ptr``, read-only
          The control the pointer is over, or null.
 
+      **gesture_input_requested** : ``bool``, read-only
+
       **interaction_snapshot** : ``InteractionSnapshot``, read-only
          A copy of the window's input state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the held
          keys in press order with their press times, the modifiers, the pointer
@@ -350,6 +367,14 @@ gui_forms::SurfaceRoot
          Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in the order the layout passes recorded them: at most maximum_layout_diagnostics, the later ones counted in dropped_layout_diagnostics(). Clearing empties both. The span is valid until the next layout pass or clear.
 
       **dropped_layout_diagnostics** : ``std::uint64_t``, read-only
+
+      **overflow_records** : ``stxlib::View<OverflowRecord>``, read-only
+         The overflows this window knows of now (stage VA), one record per viewport owner and kind of overflow, in the order they appeared: at most maximum_overflow_records, later ones counted in dropped_overflow_records(). Each layout flush checks the owners it arranged and their parents, and the root against its slot: a record is added when an overflow appears (LayoutDiagnosticCode:: content_overflow is recorded and MetricsSnapshot::overflow_* count it), replaced when its answer, cause or applied scale changes (recorded and counted again), updated silently when only its extents change, and removed when the content fits again, or its owner is hidden, collapsed or leaves the window. The view is valid until the next layout flush. UI thread.
+
+      **dropped_overflow_records** : ``std::uint64_t``, read-only
+
+      **unanswered_overflow_count** : ``std::size_t``, read-only
+         The records whose answer is not carried out. The guarantee's evidence: a window whose every overflow is answered reports zero.
 
       **control_table** : ``detail::ControlTable``, read-only
          The control table (property-capabilities study, decision 6), for inspection: each attached control's slot, the controls touched since the last settle and the containers' resize registrations. Borrowed from this root.
@@ -526,6 +551,10 @@ gui_forms::SurfaceRoot
         -  
       * - :cpp:func:`cancel_frame_requests <gui_forms::SurfaceRoot::cancel_frame_requests>`
         -  
+      * - :cpp:func:`note_presentation_completed <gui_forms::SurfaceRoot::note_presentation_completed>`
+        - Called by a host whose system reports no display timing, on the window's thread, with the time each presentation completed (a copy presenter's flush, a vertical-blank waiter's wake).
+      * - :cpp:func:`reset_presentation_estimate <gui_forms::SurfaceRoot::reset_presentation_estimate>`
+        - Forgets the completions noted so far (the window moved to another display); the timing held stays until the next measured report.
       * - :cpp:func:`shutdown_dispatcher <gui_forms::SurfaceRoot::shutdown_dispatcher>`
         - Stops accepting posted work and cancels everything still queued.
       * - :cpp:func:`load_png <gui_forms::SurfaceRoot::load_png>`
@@ -620,6 +649,8 @@ gui_forms::SurfaceRoot
         - Delivers a pointer event, as the host does for mouse, pen and touch input, and returns whether a control handled it.
       * - :cpp:func:`dispatch_key <gui_forms::SurfaceRoot::dispatch_key>`
         - Delivers a key event and returns whether anything handled it: the focused control, an accelerator, a dialog key or Tab traversal.
+      * - :cpp:func:`dispatch_gesture <gui_forms::SurfaceRoot::dispatch_gesture>`
+        - A touchpad gesture (gesture_events.hpp gives the routing): to the captured control, else the control its gesture began over (the latch), else the control under ``event.position``; then its ancestors, until one handles it.
       * - :cpp:func:`dispatch_context_request <gui_forms::SurfaceRoot::dispatch_context_request>`
         - Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's :cpp:class:`HostContextRequestEvent <gui_forms::HostContextRequestEvent>`: a pointer request to the control under the position (the captured control while one is), a keyboard request to the focused control, then to each ancestor until one handles it, through ``Control::on_context_menu_requested`` and its ``context_menu_requested`` subscribers.
       * - :cpp:func:`dispatch_host_hover <gui_forms::SurfaceRoot::dispatch_host_hover>`
@@ -642,6 +673,8 @@ gui_forms::SurfaceRoot
         - The value published under a name, or none.
       * - :cpp:func:`clear_layout_diagnostics <gui_forms::SurfaceRoot::clear_layout_diagnostics>`
         -  
+      * - :cpp:func:`overflow_owner <gui_forms::SurfaceRoot::overflow_owner>`
+        - The control a record names, while it is attached to this window; empty otherwise.
       * - :cpp:func:`containing_block_dependent_count <gui_forms::SurfaceRoot::containing_block_dependent_count>`
         - Containing-block dependencies (PLAN section 3.3), for inspection: how many containers resolved an absolutely positioned child's containing block through ``watched`` (the block's control, or one between it and the container), the number of controls watched, and how many times a watched control over maximum_containing_block_dependents marked its whole subtree for arrange instead.
       * - :cpp:func:`visual_inspection_snapshot <gui_forms::SurfaceRoot::visual_inspection_snapshot>`
@@ -670,6 +703,8 @@ gui_forms::SurfaceRoot
         - Host adapters also install a schedule wake seam: a frame request made or moved outside poll_frame_schedule (a Timer started or restarted from posted work or from another window's callback, a paint deadline, motion frames, the engine's idle frames armed while painting) calls it, so that the host polls and re-arms its wake for the new deadline (next_wake).
       * - :cpp:func:`set_command_target <gui_forms::SurfaceRoot::set_command_target>`
         - Names the :cpp:class:`CommandTarget <gui_forms::CommandTarget>` of one stage of the command routing chain: the active panel, the active document or the main window, or clears it with null.
+      * - :cpp:func:`set_gesture_input <gui_forms::SurfaceRoot::set_gesture_input>`
+        - Whether the window wants touchpad gestures: set here (an explicit opt-in), or by a control in its tree that asked with Control::set_gesture_input.
       * - :cpp:func:`set_input_time_source <gui_forms::SurfaceRoot::set_input_time_source>`
         - Installs the clock the input state reads (:cpp:class:`InputTimeSource <gui_forms::InputTimeSource>`), borrowed, or null for the steady clock.
       * - :cpp:func:`set_semantic_text_selection <gui_forms::SurfaceRoot::set_semantic_text_selection>`
@@ -735,7 +770,7 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: Rect root_slot() const noexcept
 
-      The root slot (stage B, B.2a): the client rectangle less the window's outer band (Window::declare_band) and, inside it, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
+      The root slot (stage B, B.2a): the client rectangle less, on each edge, the larger of the window's outer band (Window::declare_band) and its safe inset (safe_insets, stage VA), and, inside that, the chrome insets, in client coordinates. The layout pass measures the root at its size and arranges it there, and a resize marks what it reaches through it; damage and clipping stay in the whole client area. The inset band is the window's own (chrome hit-testing, frame drag): no control is there. Empty on an axis the band and insets cover.
 
    .. cpp:function:: Rect content_rect() const noexcept
 
@@ -746,6 +781,22 @@ gui_forms::SurfaceRoot
    .. cpp:function:: void set_chrome_insets(Insets insets)
 
       Sets the chrome insets: std::invalid_argument, changing nothing, unless each is finite and not negative; otherwise damages the client area and marks the root to be arranged again, and measured again on an axis whose slot extent changed. Root thread.
+
+   .. cpp:function:: SafeInsets safe_insets() const noexcept
+
+      The visible-area guarantee (stage VA). The edges of the client area the host or the device hides (SafeInsets), zero until the host reports any. The root slot keeps clear of them; drawing and hit testing still cover the whole client area.
+
+   .. cpp:function:: void set_safe_insets(SafeInsets insets)
+
+      The host adapter's report of the safe insets (a headless or test host may report its own): std::invalid_argument, changing nothing, unless valid_safe_insets holds; otherwise damages the client area and marks the root to be arranged again, as set_chrome_insets does. Root thread.
+
+   .. cpp:function:: Rect visible_client_rectangle() const noexcept
+
+      The client rectangle less, on each edge, the larger of the outer band and the safe inset: the part of the client area content may count on being seen, in client coordinates. Empty on an axis they cover.
+
+   .. cpp:function:: ScaleFrame root_frame() const noexcept
+
+      The frame the window places its root through (stage VA): the identity, or, while the root is larger than its slot and its viewport_fit answers contain or cover, that answer carried out (the root's arranged bounds into the slot). Control::window_frame and every walk compose it above the root.
 
    .. cpp:function:: double scale() const noexcept
 
@@ -947,6 +998,18 @@ gui_forms::SurfaceRoot
 
       Sets :cpp:func:`occluded <gui_forms::SurfaceRoot::occluded>`; see the property's description above.
 
+   .. cpp:function:: DisplayTiming display_timing() const noexcept
+
+      The display timing this window's frames are paced to (DisplayTiming; design note frame-source): what its host last reported, or a test's fixed rate; DisplayTiming::assumed() until either.
+
+   .. cpp:function:: bool set_display_timing(const DisplayTiming& timing)
+
+      Called by the host on the window's thread whenever the display's timing is known or changes (a display link's tick, a move to another display), and by tests, benches and offscreen hosts with DisplayTiming::fixed_rate. Returns false, changing nothing, when the timing is not valid (DisplayTiming::valid). Otherwise it is stored (an assumed report as DisplayTiming::assumed() itself; a paced report whose period is within a thousandth of the held paced one keeps the held period, so a display link's per-tick measurement does not re-derive every interval), and each display-paced request (the motion clock's, the animation timers') takes the new refresh period and moves its deadline to the nearest point of the new grid, unless it lies within an eighth of a period of it: a report that restates the phase, with a display link's jitter, moves nothing. A moved deadline calls the schedule wake seam. Throws std::logic_error off the window's thread.
+
+   .. cpp:function:: bool wants_display_frames() const noexcept
+
+      Whether this window wants frames at its display's rate now: a display-paced request is connected (motion moves, or an animation timer ticks) and the window is not occluded. A host keeps its display link running while this holds and may pause it once it does not; it is false whenever the window is at rest.
+
    .. cpp:function:: const ImageRegistry& image_resources() const noexcept
 
    .. cpp:function:: ImageRegistrySnapshot image_resource_snapshot() const noexcept
@@ -1106,6 +1169,8 @@ gui_forms::SurfaceRoot
 
       The control the pointer is over, or null.
 
+   .. cpp:function:: bool gesture_input_requested() const noexcept
+
    .. cpp:function:: InteractionSnapshot interaction_snapshot() const
 
       A copy of the window's input state (:cpp:class:`InteractionSnapshot <gui_forms::InteractionSnapshot>`): the held
@@ -1138,6 +1203,16 @@ gui_forms::SurfaceRoot
       Nonfatal layout diagnostics (stage L, phase L5; PLAN section 2.5), in the order the layout passes recorded them: at most maximum_layout_diagnostics, the later ones counted in dropped_layout_diagnostics(). Clearing empties both. The span is valid until the next layout pass or clear.
 
    .. cpp:function:: std::uint64_t dropped_layout_diagnostics() const noexcept
+
+   .. cpp:function:: stxlib::View<OverflowRecord> overflow_records() const& noexcept
+
+      The overflows this window knows of now (stage VA), one record per viewport owner and kind of overflow, in the order they appeared: at most maximum_overflow_records, later ones counted in dropped_overflow_records(). Each layout flush checks the owners it arranged and their parents, and the root against its slot: a record is added when an overflow appears (LayoutDiagnosticCode:: content_overflow is recorded and MetricsSnapshot::overflow_* count it), replaced when its answer, cause or applied scale changes (recorded and counted again), updated silently when only its extents change, and removed when the content fits again, or its owner is hidden, collapsed or leaves the window. The view is valid until the next layout flush. UI thread.
+
+   .. cpp:function:: std::uint64_t dropped_overflow_records() const noexcept
+
+   .. cpp:function:: std::size_t unanswered_overflow_count() const noexcept
+
+      The records whose answer is not carried out. The guarantee's evidence: a window whose every overflow is answered reports zero.
 
    .. cpp:function:: const detail::ControlTable& control_table() const& noexcept
 
@@ -1469,6 +1544,14 @@ gui_forms::SurfaceRoot
 
    .. cpp:function:: void cancel_frame_requests()
 
+   .. cpp:function:: bool note_presentation_completed(FrameTime completed)
+
+      Called by a host whose system reports no display timing, on the window's thread, with the time each presentation completed (a copy presenter's flush, a vertical-blank waiter's wake). The completions feed a DisplayTimingEstimator; once it reports, the measured timing is set (set_display_timing) while the window's timing is assumed, nominal or measured, so a display or fixed timing is never overridden. Returns whether a timing was set. Throws std::logic_error off the window's thread.
+
+   .. cpp:function:: void reset_presentation_estimate() noexcept
+
+      Forgets the completions noted so far (the window moved to another display); the timing held stays until the next measured report.
+
    .. cpp:function:: void shutdown_dispatcher() noexcept
 
       Stops accepting posted work and cancels everything still queued. The
@@ -1699,6 +1782,10 @@ gui_forms::SurfaceRoot
       Delivers a key event and returns whether anything handled it: the
       focused control, an accelerator, a dialog key or Tab traversal.
 
+   .. cpp:function:: bool dispatch_gesture(GestureEvent event)
+
+      A touchpad gesture (gesture_events.hpp gives the routing): to the captured control, else the control its gesture began over (the latch), else the control under ``event.position``; then its ancestors, until one handles it. Returns whether one did. Nothing else is derived from an unhandled gesture. During a paint, as dispatch_pointer.
+
    .. cpp:function:: bool dispatch_context_request(ContextRequestOrigin origin, Point position)
 
       Offers a context-menu request (:cpp:class:`ContextMenuRequest <gui_forms::ContextMenuRequest>`) from the host's
@@ -1757,6 +1844,10 @@ gui_forms::SurfaceRoot
       The value published under a name, or none.
 
    .. cpp:function:: void clear_layout_diagnostics() noexcept
+
+   .. cpp:function:: Control::Ptr overflow_owner(const OverflowRecord& record) const
+
+      The control a record names, while it is attached to this window; empty otherwise.
 
    .. cpp:function:: std::size_t containing_block_dependent_count(RuntimeId watched) const noexcept
 
@@ -1849,6 +1940,10 @@ gui_forms::SurfaceRoot
       (``Control::set_command_target``), and naming it throws
       ``std::invalid_argument``. ``command_target(stage)`` returns the named
       target while it lives.
+
+   .. cpp:function:: void set_gesture_input(bool requested) noexcept
+
+      Whether the window wants touchpad gestures: set here (an explicit opt-in), or by a control in its tree that asked with Control::set_gesture_input. A host whose gesture source changes other input engages it only while this holds (the Windows host's DirectManipulation, which also takes the two-finger pan); every other window keeps the platform's plain wheel path. Hosts whose gestures add events without changing others (macOS, X11) report them always.
 
    .. cpp:function:: void set_input_time_source(const InputTimeSource* source) noexcept
 

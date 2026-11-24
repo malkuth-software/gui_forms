@@ -1,0 +1,50 @@
+{
+  "schema": 1,
+  "component": "gui_forms::TreeView",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/controls/tree_view.ic.toml",
+    "sha256": "eeb5a02cb7fd8ff1d7ec78a36620fcf6b4de8e6c23765ba7eae1d8d6df2a144e"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.treeview.item_height_write.requires.item_height",
+      "kind": "entry-check",
+      "statement": "item_height runs only when finite(incoming) and incoming >= 14 and incoming <= 256; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::tree_view::admits_item_height, called in src/controls/panel/tree_view/tree_view.cpp"
+    },
+    {
+      "id": "gui_forms.treeview.item_height_write.refusal.item_height",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 14 and incoming <= 256, item_height changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gui_forms.treeview.indentation_write.requires.indentation",
+      "kind": "entry-check",
+      "statement": "indentation runs only when finite(incoming) and incoming >= 8 and incoming <= 96; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::tree_view::admits_indentation, called in src/controls/panel/tree_view/tree_view.cpp"
+    },
+    {
+      "id": "gui_forms.treeview.indentation_write.refusal.indentation",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 8 and incoming <= 96, indentation changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

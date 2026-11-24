@@ -1,4 +1,5 @@
 #include "pages.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include "retained-layout-panels_form.hpp"
 
@@ -60,7 +61,7 @@ private:
 };
 
 void add_layout_panels(const std::shared_ptr<Surface>& page, const std::shared_ptr<PageContext>& context) {
-    (*context).components.add(std::make_shared<LayoutPanelsPage>(page, context));
+    (*context).components.add(gui_forms::detail::make_library_shared<LayoutPanelsPage>(page, context));
 }
 
 } // namespace gui_forms::gallery::pages

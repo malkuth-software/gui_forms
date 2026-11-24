@@ -195,7 +195,7 @@ private:
     // Stamps the views above per solve (borrow sanitizer, stage 3): the
     // next solve or reserve ends the views lent so far, and the sanitizer
     // tree reports a later use. Empty in the ordinary build.
-    [[no_unique_address]] detail::BorrowLender solve_lender_{};
+    GUI_FORMS_NO_UNIQUE_ADDRESS detail::BorrowLender solve_lender_{};
 };
 
 // The first call. Fills each item's flex_base_size, hypothetical_main,

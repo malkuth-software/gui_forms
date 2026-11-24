@@ -2,6 +2,7 @@
 
 #include "gui_forms/window.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "metrics_view_ic_checks.hpp"
 
 #include <array>
 #include <cmath>
@@ -10,6 +11,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::metrics_view;
 
 MetricsView::MetricsView(StableId stable_id, std::string initial_title)
     : Control(std::move(stable_id)) {
@@ -158,7 +160,7 @@ MetricsView::States MetricsView::states() const {
 
 void MetricsView::prepare_write(const decltype(accent_width)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 1.0 || incoming > 32.0) {
+    if (!ic::admits_accent_width(incoming)) {
         throw std::invalid_argument("metrics accent width must be within [1, 32]");
     }
 }

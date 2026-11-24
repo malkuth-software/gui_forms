@@ -259,7 +259,7 @@
       "hooks": "generated",
       "effects": "Dirty::measure | Dirty::paint | Dirty::semantics",
       "prepare": [
-        "if (!std::isfinite(incoming) || incoming < 0.75 || incoming > 3.0) throw std::invalid_argument(\"Label line spacing must be finite and between 0.75 and 3.0\");"
+        "if (!ic::admits_line_spacing(incoming)) throw std::invalid_argument(\"Label line spacing must be finite and between 0.75 and 3.0\");"
       ],
       "sample": "1.5"
     },

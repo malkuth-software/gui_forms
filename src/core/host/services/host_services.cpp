@@ -2,6 +2,7 @@
 
 #include "gui_forms/window.hpp"
 #include "../../surface_root/requests/alert_route.hpp"
+#include "../session/drag_items.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -10,6 +11,7 @@
 #include <atomic>
 #include <new>
 #include <sstream>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <unordered_set>
 
@@ -286,7 +288,7 @@ bool valid_dialog_result(const HostDialogRequest& request,
 
 } // namespace
 HostServices::HostServices(HostCapabilities capabilities)
-    : ui_thread_(std::this_thread::get_id()) {
+    : ui_thread_(stxlib::current_thread()) {
     snapshot_.capabilities = std::move(capabilities);
 #if defined(GUI_FORMS_HIGH_INTEGRITY)
     // The services this build does not compile are never reported, whatever
@@ -350,7 +352,7 @@ HostWindowCornersResult HostServices::apply_window_corners_impl(WindowCornerPref
 
 HostWindowChromeResult HostServices::apply_window_chrome(const WindowChrome& chrome, WindowChromeFields fields) {
     HostWindowChromeResult result{};
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         result.status = reject(HostServiceError::wrong_thread);
         return result;
     }
@@ -384,7 +386,7 @@ HostWindowChromeResult HostServices::apply_window_chrome_impl(const WindowChrome
 
 HostServiceStatus HostServices::validate_request(HostCapability capability) noexcept {
     HostServiceStatus status;
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         status.error = HostServiceError::wrong_thread;
         return status;
     } else if (snapshot_.shutdown) {
@@ -813,7 +815,7 @@ HostAutoCompleteResult HostServices::query_auto_complete(const HostAutoCompleteR
     HostAutoCompleteResult result;
     // No capability flag names these sources yet; the adapter's own answer
     // (unsupported by default) is the capability report.
-    if (std::this_thread::get_id() != ui_thread_) {
+    if (stxlib::current_thread() != ui_thread_) {
         result.status.error = HostServiceError::wrong_thread;
     } else if (snapshot_.shutdown) {
         result.status.error = HostServiceError::after_shutdown;
@@ -1154,8 +1156,112 @@ HostTrayMenuResult HostServices::show_tray_menu(HostTrayIconId icon_id, const Ho
     return result;
 }
 
+// -- desktop notifications ----------------------------------------------------
+
+bool HostServices::desktop_notification_live(HostDesktopNotificationId notification_id) const noexcept {
+    const bool live = std::find(desktop_notifications_.begin(), desktop_notifications_.end(), notification_id) !=
+                      desktop_notifications_.end();
+    return live;
+}
+
+HostDesktopNotificationResult HostServices::show_desktop_notification(const HostDesktopNotificationRequest& request) {
+    HostDesktopNotificationResult result;
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    static_cast<void>(request);
+    result.status = validate_request(HostCapability::desktop_notifications);
+    return result;
+#else
+    result.status = validate_request(HostCapability::desktop_notifications);
+    if (!result.status.accepted()) return result;
+    if (request.title.size() > maximum_desktop_notification_title_bytes ||
+        request.text.size() > maximum_desktop_notification_text_bytes) {
+        result.status = reject(HostServiceError::too_large);
+        return result;
+    }
+    if (!valid_utf8(request.title) || !valid_utf8(request.text)) {
+        result.status = reject(HostServiceError::invalid_utf8);
+        return result;
+    }
+    const bool has_nul = request.title.find('\0') != std::string::npos || request.text.find('\0') != std::string::npos;
+    const bool known_urgency = request.urgency == HostDesktopNotificationUrgency::low ||
+                               request.urgency == HostDesktopNotificationUrgency::normal ||
+                               request.urgency == HostDesktopNotificationUrgency::critical;
+    if (request.text.empty() || has_nul || !known_urgency) {
+        result.status = reject(HostServiceError::invalid_argument);
+        return result;
+    }
+    // At the bound the oldest goes first, so the list never grows past it.
+    if (desktop_notifications_.size() >= maximum_live_desktop_notifications) {
+        const HostDesktopNotificationId oldest = desktop_notifications_.front();
+        desktop_notifications_.erase(desktop_notifications_.begin());
+        withdraw_desktop_notification_impl(oldest);
+        ++snapshot_.desktop_notification_withdrawals;
+    }
+    const HostDesktopNotificationId notification_id{next_desktop_notification_id_};
+    HostServiceStatus shown{HostServiceError::backend_failure};
+    try {
+        shown = show_desktop_notification_impl(notification_id, request);
+    } catch (const std::exception&) {
+        shown = {HostServiceError::backend_failure};
+    }
+    snapshot_.desktop_notifications_live = desktop_notifications_.size();
+    if (!shown.accepted()) {
+        result.status = reject(shown.error);
+        return result;
+    }
+    ++next_desktop_notification_id_;
+    desktop_notifications_.push_back(notification_id);
+    ++snapshot_.desktop_notifications;
+    snapshot_.desktop_notifications_live = desktop_notifications_.size();
+    result.notification_id = notification_id;
+    return result;
+#endif
+}
+
+HostServiceStatus HostServices::withdraw_desktop_notification(HostDesktopNotificationId notification_id) {
+    const HostServiceStatus status = validate_request(HostCapability::desktop_notifications);
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    static_cast<void>(notification_id);
+    return status;
+#else
+    if (!status.accepted()) return status;
+    const std::vector<HostDesktopNotificationId>::iterator found =
+        std::find(desktop_notifications_.begin(), desktop_notifications_.end(), notification_id);
+    if (found == desktop_notifications_.end()) return reject(HostServiceError::invalid_argument);
+    desktop_notifications_.erase(found);
+    snapshot_.desktop_notifications_live = desktop_notifications_.size();
+    ++snapshot_.desktop_notification_withdrawals;
+    withdraw_desktop_notification_impl(notification_id);
+    return status;
+#endif
+}
+
+void HostServices::publish_desktop_notification_event(const HostDesktopNotificationEvent& event) {
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_) return;
+    const std::vector<HostDesktopNotificationId>::iterator found =
+        std::find(desktop_notifications_.begin(), desktop_notifications_.end(), event.notification_id);
+    if (found == desktop_notifications_.end()) return;
+    // The identity is finished before any handler runs, so a handler that
+    // shows another notification sees the list as it is.
+    desktop_notifications_.erase(found);
+    snapshot_.desktop_notifications_live = desktop_notifications_.size();
+    ++snapshot_.desktop_notification_events;
+    desktop_notification_events_.emit(event);
+}
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+HostServiceStatus HostServices::show_desktop_notification_impl(HostDesktopNotificationId,
+                                                               const HostDesktopNotificationRequest&) {
+    return {HostServiceError::unsupported};
+}
+
+void HostServices::withdraw_desktop_notification_impl(HostDesktopNotificationId) noexcept {}
+#endif
+
 bool HostServices::publish_dialog_help(const HostDialogHelpEvent& event) {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) return false;
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_) return false;
     const bool open = std::find(modal_stack_.begin(), modal_stack_.end(), event.request_id) != modal_stack_.end();
     if (!open) return false;
     dialog_help_requested_.emit(event);
@@ -1163,9 +1269,78 @@ bool HostServices::publish_dialog_help(const HostDialogHelpEvent& event) {
 }
 
 void HostServices::publish_tray_icon_event(const HostTrayIconEvent& event) {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_ || !tray_icon_live(event.icon_id)) return;
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_ || !tray_icon_live(event.icon_id)) return;
     ++snapshot_.tray_events;
     tray_icon_events_.emit(event);
+}
+
+HostDragSourceResult HostServices::start_drag(const HostDragSourceRequest& request) {
+    HostDragSourceResult result;
+#if defined(GUI_FORMS_HIGH_INTEGRITY)
+    // Not compiled (cmake/HighIntegrity.cmake): the capability is never
+    // reported, so this refuses as unsupported.
+    static_cast<void>(request);
+    result.status = validate_request(HostCapability::typed_drag_source);
+    return result;
+#else
+    result.status = validate_request(HostCapability::typed_drag_source);
+    if (!result.status.accepted()) return result;
+    const bool valid = !request.items.empty() && request.allowed_effects != DragEffect::none &&
+                       detail::known_drag_effects(request.allowed_effects) &&
+                       detail::valid_drag_items(request.items);
+    if (!valid) {
+        result.status = reject(HostServiceError::invalid_argument);
+        return result;
+    }
+    if (active_drag_source_ != 0U) {
+        result.status = reject(HostServiceError::modal_limit);
+        return result;
+    }
+    const std::uint64_t session_id = next_drag_source_;
+    ++next_drag_source_;
+    // Running before the platform starts: a platform whose drag ends inside
+    // start_drag_impl (Windows) reports the end against this identity.
+    active_drag_source_ = session_id;
+    active_drag_effects_ = request.allowed_effects;
+    HostServiceStatus started{HostServiceError::backend_failure};
+    try {
+        started = start_drag_impl(session_id, request);
+    } catch (const std::exception&) {
+        started = {HostServiceError::backend_failure};
+    }
+    if (!started.accepted()) {
+        if (active_drag_source_ == session_id) {
+            active_drag_source_ = 0U;
+            active_drag_effects_ = DragEffect::none;
+        }
+        result.status = reject(started.error);
+        return result;
+    }
+    result.session_id = session_id;
+    return result;
+#endif
+}
+
+void HostServices::publish_drag_source_end(const HostDragSourceEnd& event) {
+    if (stxlib::current_thread() != ui_thread_ || event.session_id == 0U ||
+        event.session_id != active_drag_source_) {
+        return;
+    }
+    HostDragSourceEnd reported = event;
+    const bool single = event.performed_effect == DragEffect::copy ||
+                        event.performed_effect == DragEffect::move ||
+                        event.performed_effect == DragEffect::link;
+    if (!single || !has_drag_effect(active_drag_effects_, event.performed_effect)) {
+        reported.performed_effect = DragEffect::none;
+    }
+    active_drag_source_ = 0U;
+    active_drag_effects_ = DragEffect::none;
+    if (snapshot_.shutdown) return;
+    drag_source_ended_.emit(reported);
+}
+
+HostServiceStatus HostServices::start_drag_impl(std::uint64_t, const HostDragSourceRequest&) {
+    return {HostServiceError::unsupported};
 }
 
 HostServiceStatus HostServices::add_tray_icon_impl(HostTrayIconId, const HostTrayIconRequest&) {
@@ -1189,7 +1364,7 @@ HostTrayMenuResult HostServices::show_tray_menu_impl(HostTrayIconId, const HostT
 }
 
 void HostServices::shutdown() noexcept {
-    if (snapshot_.shutdown || std::this_thread::get_id() != ui_thread_) {
+    if (snapshot_.shutdown || stxlib::current_thread() != ui_thread_) {
         return;
     }
     revoke_cursor_interaction(CursorError::closing);
@@ -1203,7 +1378,15 @@ void HostServices::shutdown() noexcept {
     for (const HostTrayIconId icon_id : tray_icons_) remove_tray_icon_impl(icon_id);
     tray_icons_.clear();
     snapshot_.tray_icons = 0U;
+    // Notifications stay in the platform's list; their identities end here,
+    // so a late report is dropped.
+    desktop_notifications_.clear();
+    snapshot_.desktop_notifications_live = 0U;
     snapshot_.shutdown = true;
+    // A running drag ends without a report: shutdown_impl detaches the
+    // platform's drag from these services, whose handlers are going away.
+    active_drag_source_ = 0U;
+    active_drag_effects_ = DragEffect::none;
     shutdown_impl();
     active_cursor_images_.reset();
     failed_cursor_images_.reset();

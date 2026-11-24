@@ -1,9 +1,0 @@
-<Project>
-  <PropertyGroup>
-    <MetricsFlavor Condition="'$(MSBuildProjectName)' == 'GuiDrawing.MetricsFacade'">facade</MetricsFlavor>
-    <MetricsFlavor Condition="'$(MSBuildProjectName)' == 'GuiDrawing.MetricsOracle'">oracle</MetricsFlavor>
-    <BaseIntermediateOutputPath>$(MSBuildThisFileDirectory)obj/$(MetricsFlavor)/</BaseIntermediateOutputPath>
-    <MSBuildProjectExtensionsPath>$(BaseIntermediateOutputPath)</MSBuildProjectExtensionsPath>
-    <DefaultItemExcludes>$(DefaultItemExcludes);$(MSBuildThisFileDirectory)obj/**;$(MSBuildThisFileDirectory)bin/**</DefaultItemExcludes>
-  </PropertyGroup>
-</Project>

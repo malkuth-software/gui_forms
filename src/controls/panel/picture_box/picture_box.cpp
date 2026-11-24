@@ -8,6 +8,7 @@
 #include "gui_forms/window.hpp"
 #include "../panel_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "picture_box_ic_checks.hpp"
 
 #include <stxlib/optional.hpp>
 #include <array>
@@ -19,14 +20,18 @@
 #include <vector>
 
 namespace gui_forms {
+namespace ic = detail::ic::picture_box;
 
 PictureBox::PictureBox(StableId stable_id) : Panel(std::move(stable_id)) {
     // A field's ground: the theme's editor role, resolved per colour scheme
     // (no colour written here, which would fix the light paper in every
     // scheme).
     visual_role = ControlVisualRole::editor;
-
+    // Media: contained with no floor (stage VA, section 8).
+    viewport_fit = media_viewport_fit;
 }
+
+bool PictureBox::shows_media_content() const noexcept { return true; }
 
 bool PictureBox::should_serialize_image() const noexcept {
     return image.read().value != 0U;
@@ -85,13 +90,14 @@ Rect PictureBox::image_bounds() const noexcept {
                 content.y + (content.height - source.height) * 0.5,
                 source.width, source.height};
     case PictureBoxSizeMode::zoom: {
-        const double scale = std::min(content.width / source.width,
-                                      content.height / source.height);
-        const double width = source.width * scale;
-        const double height = source.height * scale;
-        return {content.x + (content.width - width) * 0.5,
-                content.y + (content.height - height) * 0.5,
-                width, height};
+        // The visible-area guarantee's one contain computation (stage VA,
+        // section 8): the box's viewport_fit with its answer a contain, so
+        // its alignment and scale bounds hold (centred, unbounded below and
+        // up to maximum_viewport_scale by default, as Windows Forms' zoom).
+        ViewportFit fit = viewport_fit.read();
+        fit.answer = OverflowAnswer::contain;
+        const ViewportPlacement placed = place_viewport_content(source, content, fit);
+        return placed.destination;
     }
     case PictureBoxSizeMode::normal:
     case PictureBoxSizeMode::auto_size:
@@ -289,7 +295,7 @@ BindingValue PropertyValueTraits<PictureBoxSizeMode>::to_binding(PictureBoxSizeM
     descriptor.enumeration = picture_box_size_mode_enum();
     const std::optional<BindingValue> converted =
         convert_property_value(BindingValue{static_cast<std::int64_t>(value)}, descriptor);
-    if (!converted) throw std::logic_error("GUI.Forms enumeration value is outside its property schema");
+    if (!converted) detail::fail_retained_enumerator(descriptor);
     return *converted;
 }
 
@@ -349,7 +355,7 @@ void PictureBox::on_size_mode_changed() {}
 
 void PictureBox::prepare_write(const decltype(image_opacity)&, double& incoming) {
     require_mutable();
-    if (!std::isfinite(incoming) || incoming < 0.0 || incoming > 1.0) {
+    if (!ic::admits_image_opacity(incoming)) {
         throw std::invalid_argument("PictureBox image opacity must be finite and between zero and one");
     }
 }

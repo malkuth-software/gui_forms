@@ -5,6 +5,7 @@
 #include <cstring>
 #include <exception>
 #include <limits>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 namespace gui_forms::host::detail {
@@ -75,10 +76,10 @@ DibSurfaceView DibFrameStore::Surface::view() const noexcept {
     return result;
 }
 
-DibFrameStore::DibFrameStore() : executor_(std::this_thread::get_id()) {}
+DibFrameStore::DibFrameStore() : executor_(stxlib::current_thread()) {}
 DibFrameStore::~DibFrameStore() { close(); }
 bool DibFrameStore::on_executor() const noexcept {
-    const bool current = std::this_thread::get_id() == executor_;
+    const bool current = stxlib::current_thread() == executor_;
     return current;
 }
 bool DibFrameStore::take_failure(DibFrameFault fault) noexcept {

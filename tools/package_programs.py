@@ -50,18 +50,24 @@ WINDOWS_SYSTEM_DLLS: frozenset[str] = frozenset({
     "kernel32.dll", "user32.dll", "gdi32.dll", "advapi32.dll", "comdlg32.dll", "ole32.dll",
     "oleaut32.dll", "oleacc.dll", "comctl32.dll", "shell32.dll", "shlwapi.dll", "usp10.dll",
     "windowscodecs.dll", "ws2_32.dll", "version.dll", "imm32.dll", "dwmapi.dll", "ntdll.dll",
-    "msvcrt.dll", "ucrtbase.dll", "bcrypt.dll", "secur32.dll", "rpcrt4.dll", "setupapi.dll",
+    "ucrtbase.dll", "bcrypt.dll", "secur32.dll", "rpcrt4.dll", "setupapi.dll",
     "winspool.drv", "winmm.dll", "crypt32.dll", "normaliz.dll", "uxtheme.dll", "msimg32.dll",
     "shcore.dll", "dbghelp.dll", "psapi.dll", "userenv.dll", "iphlpapi.dll",
-    "uiautomationcore.dll",
+    "uiautomationcore.dll", "avrt.dll", "icuin.dll", "icuuc.dll", "icu.dll", "dxgi.dll", "combase.dll",
 })
-# Compiler runtime DLLs no Windows package may import: every Windows binary
-# links the LLVM runtimes and winpthreads statically (CMakeLists.txt), and a
-# GCC runtime (libgcc_s, libstdc++, libgomp, libatomic, libssp, libquadmath)
-# is never part of a GUI.Forms package.
+# Runtime DLLs no Windows binary may import. Windows builds
+# x86_64-pc-windows-msvc on STXlib's own runtime (owner, 2026-11-24;
+# cmake/llvm22-windows-msvc-own.cmake): libc++ and STXlib's C++ runtime are
+# linked statically and the one C library is ucrtbase.dll, imported by name.
+# So no Microsoft C or C++ runtime (msvcrt, vcruntime, msvcp, concrt, the
+# debug UCRT or the api-ms-win-crt forwarders), no GCC runtime (libgcc_s,
+# libstdc++, libgomp, libatomic, libssp, libquadmath), and no LLVM or
+# winpthreads DLL.
 WINDOWS_FORBIDDEN_RUNTIME_DLL: re.Pattern[str] = re.compile(
     r"(libgcc_s_[a-z0-9_]+-\d+|libstdc\+\+-\d+|libgomp-\d+|libatomic-\d+|libssp-\d+|libquadmath-\d+"
-    r"|libc\+\+|libc\+\+abi|libunwind|libwinpthread-\d+)\.dll", re.IGNORECASE)
+    r"|libc\+\+|libc\+\+abi|libunwind|libwinpthread-\d+"
+    r"|msvcrt|msvcr\d+|msvcp\d+[a-z0-9_]*|vcruntime\d+[a-z0-9_]*|concrt\d+|ucrtbased"
+    r"|api-ms-win-crt-[a-z0-9-]+)\.dll", re.IGNORECASE)
 NOTICES_NAME: str = "THIRD_PARTY_NOTICES.md"
 # The title every GNU GPL, LGPL and AGPL text begins with; a package carries
 # none of them.
@@ -145,14 +151,16 @@ def refused_dependency(name: str) -> str | None:
     if LINUX_LLVM_RUNTIME.fullmatch(base) is not None:
         return f"{base} is the LLVM runtime, which Linux programs link statically (cmake/llvm22.cmake)"
     if WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(base) is not None:
-        return (f"{base} is a compiler runtime; Windows binaries link the LLVM runtimes and "
-                "winpthreads statically and never a GCC runtime")
+        return (f"{base} is a compiler or C runtime; Windows binaries link libc++ and STXlib's "
+                "runtime statically and import only ucrtbase.dll")
     return None
 
 
 def windows_system_import(name: str) -> bool:
     """Whether a Windows DLL import is the operating system's own."""
     key: str = name.lower()
+    if WINDOWS_FORBIDDEN_RUNTIME_DLL.fullmatch(key) is not None:
+        return False
     return key in WINDOWS_SYSTEM_DLLS or key.startswith(("api-ms-win-", "ext-ms-win-"))
 
 

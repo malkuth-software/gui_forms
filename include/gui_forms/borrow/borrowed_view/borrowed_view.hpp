@@ -71,12 +71,22 @@
 #define GUI_FORMS_CHECKED_BORROWS 0
 #endif
 
+// The attribute a public owner declares its lender with. The Microsoft ABI
+// (x86_64-pc-windows-msvc) ignores the standard [[no_unique_address]], which
+// clang reports as an unknown attribute, and honours its own spelling.
+#if defined(_MSC_VER)
+#define GUI_FORMS_NO_UNIQUE_ADDRESS [[msvc::no_unique_address]]
+#else
+#define GUI_FORMS_NO_UNIQUE_ADDRESS [[no_unique_address]]
+#endif
+
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/types/platform_types/platform_types.hpp"
 #include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string_view>
+#include <stxlib/threads.hpp>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -87,7 +97,6 @@
 #include <iterator>
 #include <memory>
 #include <ranges>
-#include <thread>
 #endif
 
 #if GUI_FORMS_CHECKED_BORROWS
@@ -179,7 +188,7 @@ inline void require_current(const BorrowStamp& stamp) noexcept {
         fail_borrow(stamp, BorrowFault::structurally_invalidated);
     }
     const bool any_thread = stamp.thread == ThreadId();
-    if (!any_thread && std::this_thread::get_id() != stamp.thread) fail_borrow(stamp, BorrowFault::wrong_thread);
+    if (!any_thread && stxlib::current_thread() != stamp.thread) fail_borrow(stamp, BorrowFault::wrong_thread);
 }
 
 // The owner-state of one lending storage (ruling 5: a shared record). An
@@ -817,7 +826,7 @@ const std::vector<Element>& lent_storage(const LendingVector<Element>&& storage)
 // buffer, a layout workspace stamped per solve, a text store's characters):
 // `size` elements at `data`, stamped by `lender`. The owner calls
 // lender.invalidate() at each structural change. A public owner declares
-// the lender [[no_unique_address]] (empty in the ordinary build).
+// the lender GUI_FORMS_NO_UNIQUE_ADDRESS (empty in the ordinary build).
 template <typename Element>
 [[nodiscard]] BorrowedSpan<Element> lend_view(const Element* data, std::size_t size, const BorrowLender& lender) {
     BorrowedSpan<Element> view(data, size, lender.stamp());
@@ -903,7 +912,7 @@ using LendingPointer = Target*;
 
 // The checked build's lender, empty here: owners that keep storage beside a
 // lender hold one in both builds. A public class declares it
-// [[no_unique_address]], so its ordinary layout and size are unchanged.
+// GUI_FORMS_NO_UNIQUE_ADDRESS, so its ordinary layout and size are unchanged.
 class GUI_FORMS_API BorrowLender final {
 public:
     BorrowLender() noexcept {}

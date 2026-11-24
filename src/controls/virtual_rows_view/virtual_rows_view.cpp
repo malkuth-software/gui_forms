@@ -1218,8 +1218,8 @@ void VirtualRowsView::paint_owner_cells(Painter& painter, std::size_t row, Rect 
 
 void VirtualRowsView::handle_pointer(PointerEvent& event) {
     if (!eligible_for_input() || in_callback_) return;
-    const Rect absolute = absolute_bounds();
-    const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+    const ScaleFrame local_frame = window_frame();
+    const Point local = frame_to_inner(local_frame, event.position);
     const Control::Ptr lifetime = shared_from_this();
     if (event.action == PointerAction::wheel) {
         // Nothing to scroll: the wheel is left to the parent.
@@ -1358,8 +1358,8 @@ void VirtualRowsView::on_mouse_up(MouseEventArgs& arguments) {
     if (arguments.button == PointerButton::primary) {
         dragging_ = false;
         const PointerEvent event = pointer_event_of(arguments);
-        const Rect absolute = absolute_bounds();
-        const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
+        const ScaleFrame local_frame = window_frame();
+        const Point local = frame_to_inner(local_frame, event.position);
         if (header_release(local)) arguments.handled = true;
         if (!is_alive()) return;
     }
@@ -1463,7 +1463,7 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
     const std::size_t end = realized ? end_realized_ : 0U;
     // The realized rows, then the live region.
     children.reserve(end - first + 1U);
-    const Rect absolute = absolute_bounds();
+    const ScaleFrame local_frame = window_frame();
     const bool enabled = effectively_enabled();
     for (std::size_t row = first; row < end; ++row) {
         description_.row = VirtualRowIndex{row};
@@ -1490,7 +1490,7 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
         node.position_in_set.set(row + 1U);
         node.set_size.set(count);
         const Rect shown = Rect::intersection(row_rectangle(row), viewport_);
-        node.bounds = {absolute.x + shown.x, absolute.y + shown.y, shown.width, shown.height};
+        node.bounds = frame_to_outer(local_frame, shown);
         node.states = SemanticState::visible | SemanticState::focusable;
         if (enabled) node.states |= SemanticState::enabled;
         if (selected_at(row)) node.states |= SemanticState::selected;
@@ -1507,7 +1507,7 @@ std::vector<SemanticNode> VirtualRowsView::semantic_virtual_children() const {
     announcements.runtime_id = virtual_semantic_runtime_id(announcements.stable_id);
     announcements.role = SemanticRole::live_region;
     announcements.name = announcement_;
-    announcements.bounds = {absolute.x + viewport_.x, absolute.y + viewport_.y, viewport_.width, viewport_.height};
+    announcements.bounds = frame_to_outer(local_frame, viewport_);
     announcements.states = SemanticState::visible;
     if (enabled) announcements.states |= SemanticState::enabled;
     children.push_back(std::move(announcements));

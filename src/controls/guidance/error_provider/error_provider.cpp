@@ -10,6 +10,7 @@
 #include "gui_forms/window.hpp"
 #include "../../../core/surface_root/access/surface_lifetime_access.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
+#include "error_provider_ic_checks.hpp"
 
 #include <array>
 #include <algorithm>
@@ -21,6 +22,7 @@
 #include <utility>
 
 namespace gui_forms {
+namespace ic = detail::ic::error_provider;
 
 using namespace guidance_detail;
 struct ErrorProvider::Entry final {
@@ -251,7 +253,7 @@ double ErrorProvider::icon_padding(const Control& target) const {
 
 void ErrorProvider::prepare_write(const decltype(icon_size)&, double& incoming) {
     require_access("ErrorProvider icon-size mutation");
-    if (!std::isfinite(incoming) || incoming < 8.0 || incoming > 64.0) {
+    if (!ic::admits_icon_size(incoming)) {
         throw std::invalid_argument(
             "ErrorProvider icon size must be finite and between 8 and 64");
     }

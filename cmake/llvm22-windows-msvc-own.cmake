@@ -29,7 +29,7 @@
 #   GUI_FORMS_LIBCXX_PREFIX       libc++'s install (headers and archives);
 #                                 empty while libc++ itself is built;
 #   GUI_FORMS_LINK_MAP            ON writes a link map beside every image
-#                                 (lld-link /MAP), the evidence that nothing
+#                                 (lld-link /lldmap: every input by its path), the evidence that nothing
 #                                 was read from a Microsoft or MinGW folder.
 #
 # Include order (the switch's contract): libc++'s headers, clang's resource
@@ -55,7 +55,7 @@ if(NOT GUI_FORMS_LIBCXX_PREFIX AND DEFINED ENV{GUI_FORMS_LIBCXX_PREFIX})
 endif()
 set(GUI_FORMS_LIBCXX_PREFIX "${GUI_FORMS_LIBCXX_PREFIX}" CACHE PATH
     "libc++ 22 for x86_64-pc-windows-msvc (static, _LIBCPP_NO_VCRUNTIME); empty while it is built")
-option(GUI_FORMS_LINK_MAP "Write a link map beside every image (lld-link /MAP)" OFF)
+option(GUI_FORMS_LINK_MAP "Write a link map beside every image (lld-link /lldmap)" OFF)
 
 set(_gf_own_crt_include "${GUI_FORMS_OWN_RUNTIME_SOURCE}/src/hosted/windows/crt/include")
 set(_gf_own_api_include "${GUI_FORMS_OWN_RUNTIME_SOURCE}/src/hosted/windows/api/include")
@@ -93,11 +93,14 @@ if(GUI_FORMS_LIBCXX_PREFIX)
     endif()
     # libc++ first, then the C search order above. The archives are named on
     # the link by path, so libc++'s automatic library directive is off.
+    # -nostdinc (in the C flags) already drops the C++ directories too; a
+    # -nostdinc++ beside it is reported unused, an error under
+    # GUI_FORMS_WARNINGS_AS_ERRORS.
     set(CMAKE_CXX_FLAGS_INIT
-        "-nostdinc++ -isystem \"${GUI_FORMS_LIBCXX_PREFIX}/include/c++/v1\" ${_gf_own_c_includes} -D_LIBCPP_NO_AUTO_LINK")
+        "-isystem \"${GUI_FORMS_LIBCXX_PREFIX}/include/c++/v1\" ${_gf_own_c_includes} -D_LIBCPP_NO_AUTO_LINK")
 else()
     # The bootstrap that builds libc++ names libc++'s own headers itself.
-    set(CMAKE_CXX_FLAGS_INIT "-nostdinc++ ${_gf_own_c_includes}")
+    set(CMAKE_CXX_FLAGS_INIT "${_gf_own_c_includes}")
 endif()
 # Resource scripts: CMake preprocesses them with clang and compiles them with
 # llvm-rc, passing the same flags to both, so the headers are given as -I.
@@ -153,7 +156,7 @@ if(GUI_FORMS_OWN_RUNTIME_PREFIX)
     set(CMAKE_C_STANDARD_LIBRARIES "${_gf_own_libraries}"
         CACHE STRING "STXlib's runtime and the import libraries (cmake/llvm22-windows-msvc-own.cmake)" FORCE)
     if(GUI_FORMS_LINK_MAP)
-        string(APPEND _gf_link " -Xlinker /MAP")
+        string(APPEND _gf_link " -Xlinker /lldmap")
     endif()
 else()
     # The bootstrap links nothing: configure checks compile static libraries.

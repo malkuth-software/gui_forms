@@ -1,0 +1,258 @@
+{
+  "schema": 1,
+  "component": "gf_abi::data_grid",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_data_grid.ic.toml",
+    "sha256": "55297fc8479e87c8bd8c07a23beecbacdd56205c9966a42254f53f7d913d3425"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.data_grid.column_count.requires.column_count_count",
+      "kind": "entry-check",
+      "statement": "column_count runs only when not_null(count); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_column_count_count, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.column_count.refusal.column_count_count",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count), column_count changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.column_index.requires.column_index_index",
+      "kind": "entry-check",
+      "statement": "column_index runs only when not_null(index); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_column_index_index, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.column_index.refusal.column_index_index",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(index), column_index changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.append_rows.requires.append_rows_first",
+      "kind": "entry-check",
+      "statement": "append_rows runs only when not_null(first); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_append_rows_first, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.append_rows.refusal.append_rows_first",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(first), append_rows changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.replace_row.requires.replace_row_row",
+      "kind": "entry-check",
+      "statement": "replace_row runs only when not_null(row); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_replace_row_row, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.replace_row.refusal.replace_row_row",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(row), replace_row changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.replace_row.requires.replace_row_row_size",
+      "kind": "entry-check",
+      "statement": "replace_row runs only when row_size >= row_size_1_1; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_replace_row_row_size, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.replace_row.refusal.replace_row_row_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless row_size >= row_size_1_1, replace_row changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.replace_row.order",
+      "kind": "refusal-order",
+      "statement": "When several of replace_row's refusals apply, the first of replace_row_row, then replace_row_row_size is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.row_position.requires.row_position_position",
+      "kind": "entry-check",
+      "statement": "row_position runs only when not_null(position); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_row_position_position, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.row_position.refusal.row_position_position",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(position), row_position changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.set_cell_value.requires.set_cell_value_accepted",
+      "kind": "entry-check",
+      "statement": "set_cell_value runs only when not_null(accepted); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_set_cell_value_accepted, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.set_cell_value.refusal.set_cell_value_accepted",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(accepted), set_cell_value changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.read_cells.requires.read_cells_text_buffer",
+      "kind": "entry-check",
+      "statement": "read_cells runs only when not_null(text_required) and (not_null(text_buffer) or text_capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_read_cells_text_buffer, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.read_cells.refusal.read_cells_text_buffer",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(text_required) and (not_null(text_buffer) or text_capacity == 0), read_cells changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.set_current_cell.requires.set_current_cell_moved",
+      "kind": "entry-check",
+      "statement": "set_current_cell runs only when not_null(moved); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_set_current_cell_moved, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.set_current_cell.refusal.set_current_cell_moved",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(moved), set_current_cell changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.selected_rows.requires.selected_rows_positions",
+      "kind": "entry-check",
+      "statement": "selected_rows runs only when not_null(count) and (not_null(positions) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_selected_rows_positions, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.selected_rows.refusal.selected_rows_positions",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count) and (not_null(positions) or capacity == 0), selected_rows changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.selected_cells.requires.selected_cells_cells",
+      "kind": "entry-check",
+      "statement": "selected_cells runs only when not_null(count) and (not_null(cells) or capacity == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_selected_cells_cells, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.selected_cells.refusal.selected_cells_cells",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(count) and (not_null(cells) or capacity == 0), selected_cells changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.end_edit.requires.end_edit_committed",
+      "kind": "entry-check",
+      "statement": "end_edit runs only when not_null(committed); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_data_grid::admits_end_edit_committed, called in src/abi/stable/tables/abi_data_grid.cpp"
+    },
+    {
+      "id": "gf_abi.data_grid.end_edit.refusal.end_edit_committed",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(committed), end_edit changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.data_grid.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

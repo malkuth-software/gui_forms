@@ -14,6 +14,8 @@
 
 namespace gui_forms {
 
+// ic: gui_forms::RangeControl: generated from include/gui_forms/controls/range_control.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API RangeControl : public Control, public RangeControlCapabilities<RangeControl> {
 public:
     explicit RangeControl(StableId stable_id);
@@ -65,9 +67,18 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    friend struct detail::StateFlipAccess;
     void validate_bound_value(double candidate) const;
     // The value binding's getter and setter (ScalarBinding names members).
-    [[nodiscard]] double bound_value() const noexcept { return value_; }
+    [[nodiscard]] double bound_value() const noexcept { return checked_value(); }
+    // The stored range read back through its rule (bit-flip run 7, F5).
+    // Bounds that break it (not finite, or the minimum not below the
+    // maximum) are no write's result and no repair knows which bound is
+    // wrong: a defect, which fails fast. A value outside sound bounds (or
+    // not a number) is clamped into them, as set_range clamps it, and the
+    // next write of that value stores it.
+    void require_sound_bounds() const noexcept;
+    [[nodiscard]] double checked_value() const noexcept;
     void write_bound_value(double incoming);
     std::unique_ptr<detail::ScalarBinding<RangeControl, double>> value_binding_{};
     double minimum_{};
@@ -104,8 +115,10 @@ private:
     [[nodiscard]] double read_view(const decltype(minimum)& cell) const;
     void write_view(const decltype(maximum)& cell, double incoming);
     [[nodiscard]] double read_view(const decltype(maximum)& cell) const;
+    // ic: Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(small_change)& cell, double& incoming);
     void written(const decltype(small_change)& cell);
+    // ic: Requires finite(incoming) and incoming > 0, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(large_change)& cell, double& incoming);
     void written(const decltype(large_change)& cell);
     void prepare_write(const decltype(orientation)& cell, Orientation& incoming);

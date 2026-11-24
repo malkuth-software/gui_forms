@@ -99,7 +99,7 @@ void print_usage() {
                  "                               [--namespace <a::b>] [--type <name>,<class>,<base>,<header>]...\n"
                  "                               [--composite <document>,<class>,<header>]...\n"
                  "                               [--derived] [--model <a::Type>] [--model-header <header>]\n"
-                 "                               [--check]\n"
+                 "                               [--export-document] [--check]\n"
                  "       gui_forms_form_compiler <document.control> --control --class <Name> --output <header>\n"
                  "                               [--namespace <a::b>] [--type <name>,<class>,<base>,<header>]...\n"
                  "                               [--composite <document>,<class>,<header>]... [--check]\n"
@@ -134,6 +134,8 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
             arguments.composites.emplace_back(words[index]);
         } else if (word == "--derived") {
             arguments.options.derived = true;
+        } else if (word == "--export-document") {
+            arguments.options.export_document = true;
         } else if (word == "--model" && has_value) {
             ++index;
             arguments.options.derived = true;
@@ -154,7 +156,7 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
     if (arguments.schema) {
         const bool alone = arguments.input.empty() && arguments.options.class_name.empty() && !arguments.control &&
                            !arguments.options.derived && arguments.options.namespace_name.empty() &&
-                           arguments.options.model_header.empty();
+                           arguments.options.model_header.empty() && !arguments.options.export_document;
         if (!alone || arguments.output.empty()) return std::nullopt;
         return arguments;
     }
@@ -163,7 +165,8 @@ std::optional<Arguments> read_arguments(std::span<char* const> words) {
     }
     // A composite control is always a CompositeControl subclass: no
     // derived form or model.
-    if (arguments.control && (arguments.options.derived || !arguments.options.model_header.empty())) {
+    if (arguments.control && (arguments.options.derived || !arguments.options.model_header.empty() ||
+                              arguments.options.export_document)) {
         return std::nullopt;
     }
     return arguments;

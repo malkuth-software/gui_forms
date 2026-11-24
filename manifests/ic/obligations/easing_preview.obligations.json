@@ -1,0 +1,31 @@
+{
+  "schema": 1,
+  "component": "gui_forms::EasingPreview",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "demo/lab_controls/include/gui_forms_demo/easing_preview.ic.toml",
+    "sha256": "23f269e863dc49e7a9a4784ef9057a84ecc07368caebbba61bffdd58429fddd9"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gui_forms.easingpreview.marker_size_write.requires.marker_size",
+      "kind": "entry-check",
+      "statement": "marker_size runs only when finite(incoming) and incoming >= 4 and incoming <= 48; otherwise failure invalid_argument, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::detail::ic::easing_preview::admits_marker_size, called in demo/lab_controls/src/easing_preview.cpp"
+    },
+    {
+      "id": "gui_forms.easingpreview.marker_size_write.refusal.marker_size",
+      "kind": "refusal-leaves",
+      "statement": "Unless finite(incoming) and incoming >= 4 and incoming <= 48, marker_size changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

@@ -8,7 +8,7 @@
 #include "../kernel/pixel_kernel.hpp"
 #include "../procedural/procedural_pattern.hpp"
 
-#include "gui_forms/engine/engine_math/engine_math.hpp"
+#include "stxlib/math.hpp"
 #include "gui_forms/engine/part_raster/part_raster.hpp"
 #include "gui_forms/engine/part_shape/part_shape.hpp"
 #include "gui_forms/types/linear_light/linear_light.hpp"
@@ -33,7 +33,7 @@
 #include <string_view>
 #include <vector>
 
-// Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
+// Identical bytes on every host: no fused multiply-add.
 // Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
 // 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,
 // "Floating-point contraction").
@@ -399,8 +399,10 @@ Point css_direction(double angle_degrees) noexcept {
     if (angle == 180.0) return Point{0.0, 1.0};
     if (angle == 270.0) return Point{-1.0, 0.0};
     constexpr double degrees_to_radians = 3.14159265358979323846264338327950288 / 180.0;
-    const EngineSineCosine turned = engine_sine_cosine(angle * degrees_to_radians);
-    const Point direction{turned.sine, -turned.cosine};
+    double turned_sine = 0.0;
+    double turned_cosine = 0.0;
+    stxlib::math::sincos(angle * degrees_to_radians, turned_sine, turned_cosine);
+    const Point direction{turned_sine, -turned_cosine};
     return direction;
 }
 
@@ -1224,7 +1226,7 @@ Unit fill_colour(const ResolvedFill& fill, const MaterialImages& images, std::si
         // The angle clockwise from up, with y growing downward, as a turn
         // past the from-angle in [0, 1).
         constexpr double inverse_whole_turn = 1.0 / (2.0 * 3.14159265358979323846264338327950288);
-        const double angle = engine_arctangent2(centre_x - fill.origin_x, fill.origin_y - centre_y);
+        const double angle = stxlib::math::atan2(centre_x - fill.origin_x, fill.origin_y - centre_y);
         const double turn = angle * inverse_whole_turn - fill.from_turn;
         const double past = turn - std::floor(turn);
         const double t = past * fill.periods_per_turn;
@@ -1301,7 +1303,10 @@ double path_position(const BorderPath& path, double x, double y) noexcept {
     const double dy = y - (line.y + line.height * 0.5);
     if (path.circle) {
         // Clockwise from up, with y growing downward.
-        const double angle = engine_arctangent2(dx, -dy);
+        // Negations are written 0.0 - v here, never -0: STXlib's atan2
+        // follows Annex F at signed zeros (atan2(+0, -0) = pi, atan2(-0, -1)
+        // = -pi), and a point on an axis keeps the angle it had.
+        const double angle = stxlib::math::atan2(dx, 0.0 - dy);
         const double turned = angle < 0.0 ? angle + quarter_turn * 4.0 : angle;
         const double position = turned * std::min(line.width, line.height) * 0.5;
         return position;
@@ -1325,16 +1330,17 @@ double path_position(const BorderPath& path, double x, double y) noexcept {
         double angle = 0.0;
         std::size_t piece = 0U;
         if (top && !left) {
-            angle = engine_arctangent2(ax, -ay);
+            // 0.0 - v, never -0, as for the circle above.
+            angle = stxlib::math::atan2(ax, 0.0 - ay);
             piece = 1U;
         } else if (!top && !left) {
-            angle = engine_arctangent2(ay, ax);
+            angle = stxlib::math::atan2(ay, ax);
             piece = 3U;
         } else if (!top && left) {
-            angle = engine_arctangent2(-ax, ay);
+            angle = stxlib::math::atan2(0.0 - ax, ay);
             piece = 5U;
         } else {
-            angle = engine_arctangent2(-ay, -ax);
+            angle = stxlib::math::atan2(0.0 - ay, 0.0 - ax);
             piece = 7U;
         }
         const double position = path.starts[piece] + std::clamp(angle, 0.0, quarter_turn) * radius;

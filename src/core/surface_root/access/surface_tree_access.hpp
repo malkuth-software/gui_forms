@@ -58,6 +58,10 @@ public:
     static void forget_destroyed_subtree(SurfaceRoot& root, Control& control) noexcept {
         root.forget_destroyed_subtree(control);
     }
+    // Control::set_gesture_input's report (SurfaceRoot::gesture_input_requested).
+    static void note_gesture_input_change(SurfaceRoot& root, const Control& control) noexcept {
+        root.note_gesture_input_change(control);
+    }
     static void refresh_ancestor_summaries(SurfaceRoot& root, Control& first) noexcept {
         root.refresh_ancestor_summaries(first);
     }
@@ -91,6 +95,10 @@ public:
     static void ensure_layout(SurfaceRoot& root, bool read_barrier) { root.ensure_layout(read_barrier); }
     [[nodiscard]] static Rect absolute_bounds_of(const SurfaceRoot& root, const Control& control) {
         const Rect result = root.absolute_bounds_of(control);
+        return result;
+    }
+    [[nodiscard]] static ScaleFrame local_frame_of(const SurfaceRoot& root, const Control& control) {
+        const ScaleFrame result = root.local_frame_of(control);
         return result;
     }
 

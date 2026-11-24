@@ -323,7 +323,13 @@ struct GUI_FORMS_API SemanticNode final {
     // Control::tool_tip_text, or an authored part's, such as a strip item's
     // or a tab header's. Data items never carry one. Empty for none.
     std::string tool_tip;
+    // In window coordinates, as the node is seen: under a contain or cover
+    // above it, the scaled rectangle (stage VA).
     Rect bounds{};
+    // The scale the node is seen at (its control's Control::window_frame
+    // scale): 1 outside every contain or cover; below 1 its targets are
+    // that much smaller than authored (stage VA, section 9).
+    double effective_scale{1.0};
     SemanticState states{SemanticState::none};
     std::vector<SemanticAction> actions;
     std::vector<SemanticNode> children;

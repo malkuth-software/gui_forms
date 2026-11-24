@@ -10,7 +10,7 @@
 #include <new>
 #include <optional>
 
-// Identical bytes on every host: no fused multiply-add (see engine_math.cpp).
+// Identical bytes on every host: no fused multiply-add.
 // The pixel loops are integer; the few doubles are read before them.
 // Only in the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, owner
 // 2026-11-16): deployment builds leave contraction on (CMakeLists.txt,

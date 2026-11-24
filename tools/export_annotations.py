@@ -208,7 +208,9 @@ class Scope:
 
 def skip_attributes(statement, index):
     """Returns the index of the first token after `[[...]]` and alignas(...)
-    groups starting at `index`."""
+    groups starting at `index`, and after the effect vocabulary's attribute
+    macro, GUI_FORMS_EFFECT_VOCABULARY(...) (effect.hpp), which marks an
+    exported free function too (effect_sine)."""
     while index < len(statement):
         text = statement[index].text
         if text == '[[':
@@ -223,7 +225,7 @@ def skip_attributes(statement, index):
                     index += 1
                 index += 1
             continue
-        if text in ('alignas', '__attribute__', '__declspec'):
+        if text in ('alignas', '__attribute__', '__declspec', 'GUI_FORMS_EFFECT_VOCABULARY'):
             index += 1
             index = skip_group(statement, index, '(', ')')
             continue

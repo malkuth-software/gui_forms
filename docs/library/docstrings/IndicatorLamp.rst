@@ -62,6 +62,12 @@ lamp_style : default ``IndicatorLampStyle::lens``
     `IndicatorLampStyle::pinpoint`, a tiny accent light for status, a dot
     6 units across with no bezel and the legend 4 units after it. A
     pinpoint lights and warms up as a lens does, but never shows a bake.
+lamp_sparkle : default false
+    Whether the lit jewel sparkles as a string of Christmas lights does:
+    now and then a small glint swells and fades in one of the crown's
+    facets (`engine_light::lamp_sparkle_glints`), seeded by the stable id,
+    well under three flashes a second, and none under reduced motion. Only
+    a jewel's bake or a pinpoint sparkles, while on or showing an error.
 light_planes_shown
     Whether the lens is composited from its bake now.
 power
@@ -69,6 +75,8 @@ power
     current power, or the state's settled one.
 changing
     Whether a warm-up or cool-down is running, or the lamp is failing.
+sparkling
+    Whether the sparkle's frames run; `glints` gives its glints now.
 
 See Also
 --------

@@ -462,7 +462,7 @@ gui_forms::ValueBar
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 19 unclassified; 37 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 19 supported, 0 deferred, 0 excluded, 18 unclassified; 37 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -588,7 +588,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
    * - method
      - GUI.Forms-only
      - ``cancel_edit``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``commit_edit``

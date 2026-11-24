@@ -1,0 +1,552 @@
+{
+  "schema": 1,
+  "component": "gf_abi::bindings",
+  "generated_by": "tools/ic_declarations.py",
+  "declaration": {
+    "path": "include/gui_forms/c/gf_abi_bindings.ic.toml",
+    "sha256": "6973c23d3983312b3c391fc88e5e3f9b61307d0217f3b2801618ffbcd476448a"
+  },
+  "record": "level, tool, premises and status as in STXlib's verification programme, section 6; a discharged obligation records the source hash it was proved against",
+  "obligations": [
+    {
+      "id": "gf_abi.bindings.unbind.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "unbind in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.unbind.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "unbind in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.read_value.requires.read_value_updated",
+      "kind": "entry-check",
+      "statement": "read_value runs only when not_null(updated); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_read_value_updated, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.read_value.refusal.read_value_updated",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(updated), read_value changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.read_value.order",
+      "kind": "refusal-order",
+      "statement": "When several of read_value's refusals apply, the first of read_value_updated, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.read_value.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "read_value in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.read_value.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "read_value in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.write_value.requires.write_value_updated",
+      "kind": "entry-check",
+      "statement": "write_value runs only when not_null(updated); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_write_value_updated, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.write_value.refusal.write_value_updated",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(updated), write_value changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.write_value.order",
+      "kind": "refusal-order",
+      "statement": "When several of write_value's refusals apply, the first of write_value_updated, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.write_value.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "write_value in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.write_value.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "write_value in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_record.requires.add_record_index",
+      "kind": "entry-check",
+      "statement": "add_record runs only when not_null(index); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_add_record_index, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.add_record.refusal.add_record_index",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(index), add_record changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_record.order",
+      "kind": "refusal-order",
+      "statement": "When several of add_record's refusals apply, the first of add_record_index, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_record.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "add_record in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_record.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "add_record in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.insert_record.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "insert_record in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.insert_record.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "insert_record in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.remove_record.requires.remove_record_removed",
+      "kind": "entry-check",
+      "statement": "remove_record runs only when not_null(removed); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_remove_record_removed, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.remove_record.refusal.remove_record_removed",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(removed), remove_record changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.remove_record.order",
+      "kind": "refusal-order",
+      "statement": "When several of remove_record's refusals apply, the first of remove_record_removed, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.remove_record.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "remove_record in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.remove_record.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "remove_record in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.clear_records.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "clear_records in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.clear_records.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "clear_records in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_position.requires.set_position_moved",
+      "kind": "entry-check",
+      "statement": "set_position runs only when not_null(moved); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_set_position_moved, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.set_position.refusal.set_position_moved",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(moved), set_position changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_position.order",
+      "kind": "refusal-order",
+      "statement": "When several of set_position's refusals apply, the first of set_position_moved, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_position.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_position in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_position.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_position in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.position.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "position in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.position.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "position in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.current_field.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "current_field in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.current_field.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "current_field in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_current_field.requires.set_current_field_accepted",
+      "kind": "entry-check",
+      "statement": "set_current_field runs only when not_null(accepted); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_set_current_field_accepted, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.set_current_field.refusal.set_current_field_accepted",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(accepted), set_current_field changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_current_field.order",
+      "kind": "refusal-order",
+      "statement": "When several of set_current_field's refusals apply, the first of set_current_field_accepted, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_current_field.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_current_field in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_current_field.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_current_field in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_records.requires.add_records_records",
+      "kind": "entry-check",
+      "statement": "add_records runs only when not_null(first) and (not_null(records) or count == 0); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_add_records_records, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.add_records.refusal.add_records_records",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(first) and (not_null(records) or count == 0), add_records changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_records.order",
+      "kind": "refusal-order",
+      "statement": "When several of add_records's refusals apply, the first of add_records_records, then the state refusal is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_records.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "add_records in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.add_records.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "add_records in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.requires.set_provider_provider",
+      "kind": "entry-check",
+      "statement": "set_provider runs only when not_null(provider); otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_set_provider_provider, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.refusal.set_provider_provider",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(provider), set_provider changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.requires.set_provider_columns",
+      "kind": "entry-check",
+      "statement": "set_provider runs only when not_null(callbacks) or column_count == 0; otherwise returns GF_STATUS_INVALID_ARGUMENT, unchanged.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open",
+      "evidence": "generated check gui_forms::abi1::ic_bindings::admits_set_provider_columns, called in src/abi/stable/tables/abi_bindings.cpp"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.refusal.set_provider_columns",
+      "kind": "refusal-leaves",
+      "statement": "Unless not_null(callbacks) or column_count == 0, set_provider changes nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_provider.order",
+      "kind": "refusal-order",
+      "statement": "When several of set_provider's refusals apply, the first of set_provider_provider, then set_provider_columns is the one reported.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_sort.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_sort in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_sort.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_sort in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_filter.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "set_filter in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.set_filter.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "set_filter in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.generation.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "generation in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.generation.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "generation in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.read_cell.outside.disposing",
+      "kind": "typestate-refusal",
+      "statement": "read_cell in disposing: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.read_cell.outside.disposed",
+      "kind": "typestate-refusal",
+      "statement": "read_cell in disposed: returns GF_STATUS_DISPOSED, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    },
+    {
+      "id": "gf_abi.bindings.identity",
+      "kind": "identity",
+      "statement": "A stale identity (generational) is refused: returns GF_STATUS_STALE_HANDLE, changing nothing observable.",
+      "level": "none",
+      "tool": null,
+      "premises": [],
+      "status": "open"
+    }
+  ]
+}

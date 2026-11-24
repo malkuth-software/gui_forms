@@ -75,7 +75,7 @@ deployment target and the matched libc++ runtime in `GUI_FORMS_LLVM_RUNTIME`.
 |---|---|---|
 | macOS arm64 | `macos-15` | Homebrew `llvm@22`, plus libc++, libc++abi and libunwind built from SHA-256-pinned 22.1.8 source for macOS 14 (`tools/build_macos_runtimes.py`) |
 | Linux x64, arm64 | `ubuntu-24.04`, `ubuntu-24.04-arm` | apt.llvm.org `llvm-toolchain-noble-22`, package `clang-22` |
-| Windows x64 | `windows-2022` | MSYS2 CLANG64 tree from `tools/windows_toolchain.json`, restored from a published archive |
+| Windows x64 | `windows-2022` | LLVM 22.1.8's clang and lld from the MSYS2 CLANG64 tree in `tools/windows_toolchain.json` (restored from a published archive), building x86_64-pc-windows-msvc on STXlib's own runtime (`tools/own_runtime.py`) |
 
 The macOS runtime and the Windows toolchain are artefacts in their own right,
 with manifests that are verified before use; see

@@ -8,6 +8,7 @@
 #include "gui_forms/live_surface.hpp"
 #include "gui_forms/metrics/font_sources/bundled_font_sources.hpp"
 #include "gui_forms/text/types/text_types.hpp"
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -18,6 +19,7 @@
 #include <stdexcept>
 #include <string>
 #include <stxlib/optional.hpp>
+#include <stxlib/threads.hpp>
 #include <utility>
 
 #if defined(GUI_FORMS_PREPARED_TEXT)
@@ -152,11 +154,11 @@ struct Closing final {
 // that made them (A-gf-host-02-F12).
 struct Dialog final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostDialogResult operator()(const HostDialogRequest& request) const {
         HostDialogResult refused{};
         refused.request_id = request.request_id;
-        if (thread != std::this_thread::get_id()) {
+        if (thread != stxlib::current_thread()) {
             refused.status.error = HostServiceError::wrong_thread;
             return refused;
         }
@@ -171,10 +173,10 @@ struct Dialog final {
 };
 struct ReadText final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostClipboardTextResult operator()() const {
         HostClipboardTextResult refused{};
-        if (thread != std::this_thread::get_id()) {
+        if (thread != stxlib::current_thread()) {
             refused.status.error = HostServiceError::wrong_thread;
             return refused;
         }
@@ -189,9 +191,9 @@ struct ReadText final {
 };
 struct WriteText final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostServiceStatus operator()(std::string_view text) const {
-        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
         const std::shared_ptr<NativeWindow> window = owner.lock();
         if (!window || (*window).closed) return {HostServiceError::after_shutdown};
         const HostServiceStatus status = (*(*window).services).write_clipboard_text(text);
@@ -208,9 +210,9 @@ bool is_primary(const SurfaceApplicationWindow& entry) noexcept {
 // frame's.
 struct WindowTitle final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostServiceStatus operator()(const std::string_view text) const {
-        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
         const std::shared_ptr<NativeWindow> window = owner.lock();
         if (!window || (*window).closed) return {HostServiceError::after_shutdown};
         try {
@@ -232,9 +234,9 @@ struct WindowTitle final {
 // window's is the surface's, decided by the host.
 struct WindowClientSize final {
     std::weak_ptr<NativeWindow> owner{};
-    const std::thread::id thread{std::this_thread::get_id()};
+    const stxlib::ThreadIdentity thread{stxlib::current_thread()};
     HostServiceStatus operator()(const Size client_size) const {
-        if (thread != std::this_thread::get_id()) return {HostServiceError::wrong_thread};
+        if (thread != stxlib::current_thread()) return {HostServiceError::wrong_thread};
         const std::shared_ptr<NativeWindow> window = owner.lock();
         if (!window || (*window).closed) return {HostServiceError::after_shutdown};
         NativeWindow& native = *window;
@@ -333,7 +335,7 @@ void Wake::operator()() const noexcept {
 
 void ActionQueue::post(Action action) {
     {
-        const std::lock_guard<std::mutex> guard(mutex);
+        const stxlib::ScopedLock guard(mutex);
         pending.push_back(std::move(action));
     }
     (*input).wake();
@@ -561,6 +563,7 @@ void NativeWindow::attach() {
     if (!dispatch(HostAttachEvent{Size{content.width, content.height}, scale}).accepted())
         throw std::runtime_error("Surface window attach rejected");
     static_cast<void>(dispatch(HostCompositorEvent{surface_compositor_state()}));
+    report_safe_insets();
     if (entry.options.initially_visible) set_visible(true);
 }
 
@@ -656,8 +659,26 @@ void NativeWindow::apply_content(Rect next) {
         damage.add({0.0, 0.0, after.width, after.height});
         if (chrome) (*chrome).resize(after.width, scale);
     }
+    report_safe_insets();
     runtime.scene_changed();
     if (runtime.windowing) (*runtime.windowing).report_native_frame(*this);
+}
+
+void NativeWindow::report_safe_insets() {
+    if (closed) return;
+    const SafeInsets& surface = runtime.safe_insets;
+    const Size extent = runtime.extent;
+    // How far each hidden band reaches into the client area.
+    const double left = std::clamp(surface.left - content.x, 0.0, content.width);
+    const double top = std::clamp(surface.top - content.y, 0.0, content.height);
+    const double right = std::clamp(content.x + content.width - (extent.width - surface.right), 0.0, content.width);
+    const double bottom =
+        std::clamp(content.y + content.height - (extent.height - surface.bottom), 0.0, content.height);
+    const SafeInsets insets{left, top, right, bottom};
+    if (safe_insets_reported && reported_safe_insets == insets) return;
+    if (!dispatch(HostSafeInsetsEvent{insets}).accepted()) return;
+    safe_insets_reported = true;
+    reported_safe_insets = insets;
 }
 
 void NativeWindow::apply_scale(double next) {
@@ -749,7 +770,12 @@ bool NativeWindow::has_compose_work() const noexcept {
 }
 
 bool NativeWindow::wants_frames() const noexcept {
-    const bool wanted = !closed && (*entry.model).has_live_surface_presentations() && !live_idle;
+    // Live surfaces that are not resting, or display-paced motion and
+    // animation timers (Window::wants_display_frames): either wants the
+    // host's display frames, which also time the window (handle's frame
+    // record).
+    const bool live = (*entry.model).has_live_surface_presentations() && !live_idle;
+    const bool wanted = !closed && (live || (*entry.model).wants_display_frames());
     return wanted;
 }
 
@@ -940,6 +966,7 @@ bool NativeWindow::gather_live_frames() {
 }
 
 void NativeWindow::compose_live_frames() {
+    live_reported.clear();
     for (std::size_t index = 0U; index < live_regions.size(); ++index) {
         const Rect region = live_regions[index];
         if (region.empty()) continue;
@@ -950,10 +977,27 @@ void NativeWindow::compose_live_frames() {
         raster.restore();
         if (drawn) {
             (*entry.model).note_live_surface_presented(live_updates[index], region);
+            report_live_shown(live_frame_sources[index]);
             continue;
         }
         live_regions[index] = {};
         damage.add(region);
+    }
+}
+
+// Reports a live frame the compose showed to its surface, once per source
+// per tick, with the window's display timing (Window::
+// report_live_surface_shown): the surface's producer paces to the window's
+// frame source.
+void NativeWindow::report_live_shown(std::size_t source) {
+    if (source >= live_frames.size() || !live_frames[source]) return;
+    if (live_reported.size() < live_frames.size()) live_reported.resize(live_frames.size(), false);
+    if (live_reported[source]) return;
+    live_reported[source] = true;
+    for (std::size_t index = 0U; index < live_updates.size(); ++index) {
+        if (live_frame_sources[index] != source || !live_updates[index].surface) continue;
+        (*entry.model).report_live_surface_shown(*live_updates[index].surface, live_frames[source].generation());
+        return;
     }
 }
 
@@ -998,7 +1042,7 @@ bool NativeWindow::report_presented(const stxlib::Optional<PaintReceipt>& receip
 
 Runtime::Runtime(SurfaceHost& surface_host, std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts)
     : host(surface_host), queue(surface_host.input()), fonts(std::move(run_fonts)),
-      actions(std::make_shared<ActionQueue>(surface_host.input())) {
+      actions(gui_forms::detail::make_library_shared<ActionQueue>(surface_host.input())) {
     const SurfaceHostStart start = host.start();
     extent = Size{std::max(1.0, start.extent.width), std::max(1.0, start.extent.height)};
     scale = std::isfinite(start.scale) && start.scale > 0.0 ? start.scale : 1.0;
@@ -1028,7 +1072,7 @@ Runtime::~Runtime() {
 std::shared_ptr<NativeWindow> Runtime::add(SurfaceApplicationWindow entry, HostWindowId window_id, Rect content,
                                            bool initial) {
     const std::shared_ptr<NativeWindow> window =
-        std::make_shared<NativeWindow>(*this, std::move(entry), window_id, content, initial);
+        gui_forms::detail::make_library_shared<NativeWindow>(*this, std::move(entry), window_id, content, initial);
     windows.push_back(window);
     (*window).attach();
     scene_dirty_ = true;
@@ -1213,7 +1257,7 @@ void Runtime::step() {
     // The queued show, hide, close and full-screen requests.
     std::deque<Action> queued;
     {
-        const std::lock_guard<std::mutex> guard((*actions).mutex);
+        const stxlib::ScopedLock guard((*actions).mutex);
         queued.swap((*actions).pending);
     }
     for (std::size_t index = 0U; index < queued.size(); ++index) {
@@ -1679,6 +1723,9 @@ void Runtime::handle(SurfaceInputRecord& record) {
     case SurfaceInputKind::resize:
         handle_resize(record);
         break;
+    case SurfaceInputKind::safe_insets:
+        handle_safe_insets(record);
+        break;
     case SurfaceInputKind::focus: {
         host_focused = record.down;
         NativeWindow* active_window = window(desk.active());
@@ -1704,9 +1751,21 @@ void Runtime::handle(SurfaceInputRecord& record) {
         surface_inactive_ = !record.down;
         if (record.down) damage_surface();
         break;
-    case SurfaceInputKind::frame:
-        // The turn's update follows: live surfaces sample.
+    case SurfaceInputKind::frame: {
+        // The turn's update follows: live surfaces sample. The host reports
+        // no display timing, so the frames' arrival times are each window's
+        // presentation completions: the estimator measures the display's
+        // period and phase from them (SurfaceRoot::
+        // note_presentation_completed), on its own thread.
+        const FrameTime arrived = FrameClock::now();
+        const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+        for (std::size_t index = 0U; index < snapshot.size(); ++index) {
+            NativeWindow& candidate = *snapshot[index];
+            if (candidate.closed || !candidate.entry.model) continue;
+            static_cast<void>((*candidate.entry.model).note_presentation_completed(arrived));
+        }
         break;
+    }
     case SurfaceInputKind::dialog:
         for (std::size_t index = 0U; index < dialogs_.size(); ++index) {
             PendingDialog& pending = *dialogs_[index];
@@ -2022,6 +2081,18 @@ void Runtime::handle_resize(const SurfaceInputRecord& record) {
     }
 }
 
+void Runtime::handle_safe_insets(const SurfaceInputRecord& record) {
+    // A report that is not valid_safe_insets is dropped: the last one stands.
+    if (!valid_safe_insets(record.insets)) return;
+    safe_insets = record.insets;
+    const std::vector<std::shared_ptr<NativeWindow>> snapshot = windows;
+    for (std::size_t index = 0U; index < snapshot.size(); ++index) {
+        NativeWindow& candidate = *snapshot[index];
+        if (candidate.closed) continue;
+        candidate.report_safe_insets();
+    }
+}
+
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
 void Runtime::handle_drop(const SurfaceInputRecord& record) {
@@ -2060,7 +2131,7 @@ HostWindowAdmission RunOpen::operator()(SurfaceApplicationWindow entry) const {
         refused.status.error = HostServiceError::after_shutdown;
         return refused;
     }
-    if ((*state).thread != std::this_thread::get_id()) {
+    if ((*state).thread != stxlib::current_thread()) {
         refused.status.error = HostServiceError::wrong_thread;
         return refused;
     }
@@ -2096,7 +2167,7 @@ CompositorState surface_compositor_state() {
 
 int run_surface_application(SurfaceHost& host, std::vector<SurfaceApplicationWindow> windows,
                             SurfaceApplicationOptions application) {
-    const std::shared_ptr<RunOpenState> open_state = std::make_shared<RunOpenState>();
+    const std::shared_ptr<RunOpenState> open_state = gui_forms::detail::make_library_shared<RunOpenState>();
     try {
         // The run holds the bundled font set, so windows opened and closed
         // during it share one copy of each face.

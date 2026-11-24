@@ -1,0 +1,129 @@
+# The C ABI's gf_windows_paint_endpoint_table (GF_TABLE_WINDOWS_PAINT_ENDPOINT): its behavioural constraints, stated once
+# (IC3; the format is template_harness docs/ic_declarations.md). tools/ic_declarations.py generates
+# the header's // ic: lines, the entry checks (src/abi/stable/ic/abi_windows_paint_endpoint_ic_checks.hpp), the member-manifest
+# column, the fuzz blocks and the proof obligations from it. Bootstrapped on 2026-11-22 from the
+# header's prose and the implementation's refusals, then reviewed; this file is now the source.
+
+schema = 1
+component = "gf_windows_paint_endpoint_table"
+namespace = "gf"
+header = "include/gui_forms/c/gf_abi.h"
+anchor = "typedef struct gf_windows_paint_endpoint_table {"
+keys = { manifest = "gf_abi::windows_paint_endpoint", abi = "GF_TABLE_WINDOWS_PAINT_ENDPOINT" }
+thread = "ui"
+identity = { kind = "generational", stale = "value:GF_STATUS_STALE_HANDLE" }
+
+[checks]
+path = "src/abi/stable/ic/abi_windows_paint_endpoint_ic_checks.hpp"
+namespace = "gui_forms::abi1::ic_windows_paint_endpoint"
+includes = ["gui_forms/c/gf_abi.h"]
+used_in = ["src/abi/stable/windows/abi_windows_paint_endpoint.cpp"]
+
+[[call]]
+name = "acquire"
+declarations = ["gf_status (GF_CALL* acquire)("]
+kind = "static"
+thread = "ui"
+returns = { type = "gf_paint_endpoint", owns = "caller" }
+fails = [
+  { failure = "invalid_argument", when = "code: acquire needs outputs and 1 to 32768 pixels a side, at most 2^28 in all" },
+  { failure = "wrong_handle_kind", when = "Makes an endpoint of width by height pixels (1 to GF_PAINT_ENDPOINT_MAXIMUM_SIDE each, at most 2^28 pixels) bound to control, a custom control (else GF_STATUS_WRONG_HANDLE_KIND), and gives its token and compatibility handle." },
+]
+
+[[call]]
+name = "configure"
+declarations = ["gf_status (GF_CALL* configure)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: configure needs 1 to 32768 pixels a side, at most 2^28 in all" },
+]
+
+[[call]]
+name = "touch"
+declarations = ["gf_status (GF_CALL* touch)("]
+kind = "member"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: explicit_boundary is 0 or 1" },
+]
+
+[[call]]
+name = "drain"
+declarations = ["gf_status (GF_CALL* drain)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "snapshot"
+declarations = ["gf_status (GF_CALL* snapshot)("]
+kind = "member"
+thread = "ui"
+parameters = { required = "uint64_t*", buffer = "char*", capacity = "uint64_t" }
+requires = [
+  { holds = "not_null(required) and (not_null(buffer) or capacity == 0)", refuses = "value:GF_STATUS_INVALID_ARGUMENT", check = "snapshot_buffer" },
+]
+fails = [
+  { failure = "buffer_too_small", when = "The endpoint's state as text, for diagnostics; required receives its size, a short buffer gives GF_STATUS_BUFFER_TOO_SMALL." },
+]
+
+[[call]]
+name = "submit_bgra"
+declarations = ["gf_status (GF_CALL* submit_bgra)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: submit_bgra needs a handle and bounded pixels with rows of at least width * 4 bytes" },
+]
+
+[[call]]
+name = "release"
+declarations = ["gf_status (GF_CALL* release)("]
+kind = "member"
+thread = "ui"
+
+[[call]]
+name = "get_dc"
+declarations = ["gf_status (GF_CALL* get_dc)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: get_dc needs a handle and an output" },
+]
+
+[[call]]
+name = "release_dc"
+declarations = ["gf_status (GF_CALL* release_dc)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: release_dc needs a handle and a device context" },
+]
+
+[[call]]
+name = "publish_dc"
+declarations = ["gf_status (GF_CALL* publish_dc)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: publish_dc needs a device context" },
+]
+
+[[call]]
+name = "begin_write"
+declarations = ["gf_status (GF_CALL* begin_write)("]
+kind = "static"
+thread = "ui"
+returns = { type = "gf_paint_write_lease", owns = "caller" }
+fails = [
+  { failure = "invalid_argument", when = "code: begin_write needs a device context and an output" },
+]
+
+[[call]]
+name = "end_write"
+declarations = ["gf_status (GF_CALL* end_write)("]
+kind = "static"
+thread = "ui"
+fails = [
+  { failure = "invalid_argument", when = "code: end_write needs a lease and publish 0 or 1" },
+]

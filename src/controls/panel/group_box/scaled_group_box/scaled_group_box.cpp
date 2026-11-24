@@ -1,4 +1,5 @@
 #include "gui_forms/controls/scaled_group_box.hpp"
+#include "../../../scrollable_control/container_control/scaled_aspect_property.hpp"
 #include "../../../scrollable_control/container_control/scaled_layout_utilities.hpp"
 #include "../group_box_anatomy.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
@@ -54,6 +55,9 @@ void ScaledGroupBox::reconcile_slots() {
 void ScaledGroupBox::arrange(Rect final_bounds) {
     reconcile_slots();
     arrange_self(final_bounds);
+    const Size design_space = scaled_layout_detail::effective_design_size(design_size.read());
+    const scaled_layout_detail::DesignMap map = scaled_layout_detail::design_map(
+        design_space, final_bounds, aspect.read(), viewport_fit.read().alignment);
     for (const Control::Ptr& child : children()) {
         // A child added without design bounds (a form document's child,
         // added by add_child) is placed by its own authored bounds, read in
@@ -61,7 +65,7 @@ void ScaledGroupBox::arrange(Rect final_bounds) {
         const SlotMap::iterator slot =
             slots_.find((*child).runtime_id().value);
         const Rect design = slot == slots_.end() ? (*child).requested_bounds() : (*slot).second;
-        set_child_layout(child, scaled_layout_detail::child_bounds(design_size.read(), design, final_bounds));
+        set_child_layout(child, scaled_layout_detail::child_bounds(map, design));
     }
 }
 
@@ -81,26 +85,35 @@ const ControlAnatomy& ScaledGroupBox::anatomy() const noexcept {
     return scaled_group_box_anatomy;
 }
 
+bool ScaledGroupBox::scales_design_space() const noexcept { return true; }
+
+stxlib::Optional<double> ScaledGroupBox::applied_viewport_scale() const noexcept {
+    const stxlib::Optional<double> scale =
+        scaled_layout_detail::stretch_scale(design_size.read(), committed_arranged_bounds());
+    return scale;
+}
+
 // property_codemod begin ScaledGroupBox (tools/property_families/scaled_group_box.json; generated, do not edit)
 
 namespace {
 
-PropertyDescriptor scaled_group_box_design_size_descriptor() {
+PropertyDescriptor scaled_group_box_aspect_descriptor() {
     PropertyDescriptor descriptor;
-    descriptor.name = "design_size";
-    descriptor.kind = BindingValueKind::size;
+    descriptor.name = "aspect";
+    descriptor.kind = BindingValueKind::enumeration;
     descriptor.category = "Layout";
-    descriptor.description = "The coordinate space the children's design bounds are written in; it scales to the arranged size.";
-    descriptor.default_value = BindingValue{Size{1.0, 1.0}};
+    descriptor.description = "How the design space maps onto the arranged size: stretch or uniform.";
+    descriptor.default_value = BindingValue{PropertyEnumValue{"scaled_aspect", "stretch", 0}};
     descriptor.invalidation_effects = Dirty::layout;
     descriptor.bindable = false;
+    descriptor.enumeration = scaled_layout_detail::scaled_aspect_enum();
     descriptor.assignable_member = true;
     return descriptor;
 }
 
-const PropertyDescriptor& describe_scaled_group_box_design_size() {
+const PropertyDescriptor& describe_scaled_group_box_aspect() {
     static const PropertyDescriptor descriptor = property_table_descriptor(
-        scaled_group_box_design_size_descriptor(), PropertyOperations{true, true, false, false});
+        scaled_group_box_aspect_descriptor(), PropertyOperations{true, true, false, false});
     return descriptor;
 }
 
@@ -108,9 +121,9 @@ const PropertyDescriptor& describe_scaled_group_box_design_size() {
 
 const std::array<PropertyEntry, ScaledGroupBox::scaled_group_box_property_count>& ScaledGroupBox::scaled_group_box_property_entries() noexcept {
     static constexpr std::array<PropertyEntry, 1U> own{{
-        {"design_size", &describe_scaled_group_box_design_size,
-         &read_cell_entry<ScaledGroupBox, decltype(&ScaledGroupBox::design_size), &ScaledGroupBox::design_size>,
-         &write_cell_entry<ScaledGroupBox, decltype(&ScaledGroupBox::design_size), &ScaledGroupBox::design_size>,
+        {"aspect", &describe_scaled_group_box_aspect,
+         &read_cell_entry<ScaledGroupBox, decltype(&ScaledGroupBox::aspect), &ScaledGroupBox::aspect>,
+         &write_cell_entry<ScaledGroupBox, decltype(&ScaledGroupBox::aspect), &ScaledGroupBox::aspect>,
          nullptr, nullptr, nullptr,
          nullptr},
     }};
@@ -125,12 +138,12 @@ std::span<const PropertyEntry> ScaledGroupBox::property_table() const noexcept {
     return std::span<const PropertyEntry>(entries);
 }
 
-void ScaledGroupBox::prepare_write(const decltype(design_size)&, Size& incoming) {
+void ScaledGroupBox::prepare_write(const decltype(aspect)&, ScaledAspect& incoming) {
     require_mutable();
-    scaled_layout_detail::validate_design_size(incoming);
+    if (static_cast<std::uint8_t>(incoming) > static_cast<std::uint8_t>(ScaledAspect::uniform)) throw std::invalid_argument("ScaledGroupBox aspect is not a ScaledAspect");
 }
 
-void ScaledGroupBox::written(const decltype(design_size)&) {
+void ScaledGroupBox::written(const decltype(aspect)&) {
     invalidate(Dirty::layout);
 }
 

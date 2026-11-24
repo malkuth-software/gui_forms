@@ -48,6 +48,23 @@ HostServiceStatus HeadlessHostServices::warp_pointer_impl(Point position) {
 
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // Not compiled in a high-integrity build (cmake/HighIntegrity.cmake).
+HostServiceStatus HeadlessHostServices::start_drag_impl(std::uint64_t session_id,
+                                                        const HostDragSourceRequest& request) {
+    if (fail_next_drag_source_) {
+        fail_next_drag_source_ = false;
+        return {HostServiceError::backend_failure};
+    }
+    drag_source_request_ = request;
+    drag_source_session_ = session_id;
+    return {};
+}
+
+void HeadlessHostServices::finish_drag_source(DragEffect performed_effect) {
+    const HostDragSourceEnd end{drag_source_session_, performed_effect};
+    drag_source_session_ = 0U;
+    publish_drag_source_end(end);
+}
+
 HostServiceStatus HeadlessHostServices::open_url_impl(std::string_view url_utf8) {
     opened_urls_.emplace_back(url_utf8);
     return {};
@@ -204,6 +221,65 @@ HostTrayMenuResult HeadlessHostServices::show_tray_menu_impl(HostTrayIconId icon
     tray_menu_choices_.pop_front();
     return result;
 }
+
+const HostDesktopNotificationRequest* HeadlessHostServices::desktop_notification(
+    HostDesktopNotificationId notification_id) const noexcept {
+    for (const DesktopNotification& notification : desktop_notifications_) {
+        if (notification.id == notification_id) return &notification.request;
+    }
+    return nullptr;
+}
+
+void HeadlessHostServices::simulate_desktop_notification_event(HostDesktopNotificationEvent event) {
+    publish_desktop_notification_event(event);
+}
+
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+namespace {
+
+const char* urgency_name(HostDesktopNotificationUrgency urgency) noexcept {
+    switch (urgency) {
+    case HostDesktopNotificationUrgency::low:
+        return "low";
+    case HostDesktopNotificationUrgency::normal:
+        return "normal";
+    case HostDesktopNotificationUrgency::critical:
+        return "critical";
+    }
+    // HostServices refuses an urgency outside the enumeration first.
+    return "normal";
+}
+
+} // namespace
+
+HostServiceStatus HeadlessHostServices::show_desktop_notification_impl(
+    HostDesktopNotificationId notification_id, const HostDesktopNotificationRequest& request) {
+    if (fail_next_desktop_notification_) {
+        fail_next_desktop_notification_ = false;
+        return {HostServiceError::backend_failure};
+    }
+    desktop_notifications_.push_back({notification_id, request});
+    std::ostringstream line;
+    line << "notification show id=" << notification_id.value << " urgency=" << urgency_name(request.urgency)
+         << " silent=" << (request.silent ? 1 : 0) << " title=" << request.title << " text=" << request.text
+         << '\n';
+    desktop_notification_trace_ += line.str();
+    return {};
+}
+
+void HeadlessHostServices::withdraw_desktop_notification_impl(HostDesktopNotificationId notification_id) noexcept {
+    for (std::size_t index = 0; index < desktop_notifications_.size(); ++index) {
+        if (desktop_notifications_[index].id == notification_id) {
+            desktop_notifications_.erase(desktop_notifications_.begin() + static_cast<std::ptrdiff_t>(index));
+            break;
+        }
+    }
+    try {
+        desktop_notification_trace_ += "notification withdraw id=" + std::to_string(notification_id.value) + '\n';
+    } catch (...) {
+    }
+}
+#endif
 
 void HeadlessHostServices::shutdown_impl() noexcept {
     tray_menu_choices_.clear();

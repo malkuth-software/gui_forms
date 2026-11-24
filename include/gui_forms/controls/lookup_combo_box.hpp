@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/borrow/borrowed_view/borrowed_view.hpp"
 #include "gui_forms/basic_controls.hpp"
+#include "gui_forms/controls/overlay_presentation.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/controls/lookup_combo_box_capabilities.hpp"
 
@@ -64,6 +65,8 @@ struct GUI_FORMS_API LookupRow final {
 // family), its `header` captions, its rows (`item`, selected when
 // highlighted) and their cells' `label`s. To assistive technology it is a
 // combo box whose value is the shown cell, expanded while the list is open.
+// ic: gui_forms::LookupComboBox: generated from include/gui_forms/controls/lookup_combo_box.ic.toml by
+// ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class GUI_FORMS_API LookupComboBox final : public Control, public LookupComboBoxCapabilities<LookupComboBox> {
 public:
     explicit LookupComboBox(StableId stable_id);
@@ -88,7 +91,7 @@ public:
 
     void open_drop_down();
     void close_drop_down();
-    [[nodiscard]] bool is_dropped_down() const noexcept { return dropped_down_; }
+    [[nodiscard]] bool is_dropped_down() const noexcept { return presentation_.is_open(); }
     // The typed filter while open (empty when closed).
     [[nodiscard]] const std::string& filter() const& noexcept { return filter_; }
     const std::string& filter() const&& = delete;
@@ -150,20 +153,28 @@ private:
     void on_row_activated(std::size_t position);
     void on_dismiss(OverlayDismissReason reason);
     void on_overlay_revoked();
+    // Ends the presentation's subscriptions, takes the list out of its layer
+    // and gives the layer up; the presentation must be closing.
     void release_overlay() noexcept;
+    // The open list; null while the drop-down is not open.
+    [[nodiscard]] List* shown_list() const noexcept;
 
     detail::LendingVector<LookupColumn> columns_{};
     detail::LendingVector<LookupRow> rows_{};
     detail::LendingVector<std::size_t> filtered_{};
     stxlib::Optional<std::size_t> highlighted_{};
     std::string filter_{};
-    std::shared_ptr<AnchoredOverlayLayer> layer_{};
-    std::shared_ptr<List> list_{};
-    OverlayToken overlay_{};
-    SubscriptionToken overlay_revoked_{};
-    SubscriptionToken dismissal_{};
-    SubscriptionToken activation_{};
-    bool dropped_down_{false};
+    // One opening of the list: its anchored layer and list, the lease (no
+    // focus scope: the field keeps the keys) and the list's and layer's
+    // subscriptions. Open as soon as it is shown; there is no opening phase.
+    struct DropDownOpening final {
+        std::shared_ptr<AnchoredOverlayLayer> layer{};
+        std::shared_ptr<List> list{};
+        OverlayLease lease{};
+        SubscriptionToken dismissal{};
+        SubscriptionToken activation{};
+    };
+    OverlayPresentation<DropDownOpening> presentation_{};
     bool focused_{false};
     bool hot_{false};
     Event<const std::string&> selected_key_changed_;
@@ -184,6 +195,7 @@ private:
     void written(const decltype(selected_key)& cell);
     void prepare_write(const decltype(display_column)& cell, std::uint32_t& incoming);
     void written(const decltype(display_column)& cell);
+    // ic: Requires incoming != 0 and incoming <= 64, else failure invalid_argument, unchanged.
     void prepare_write(const decltype(max_drop_down_rows)& cell, std::uint32_t& incoming);
     void written(const decltype(max_drop_down_rows)& cell);
     // property_codemod end LookupComboBox

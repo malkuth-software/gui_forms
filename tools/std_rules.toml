@@ -8,7 +8,10 @@
 format = 1
 root = ".."
 profile = "consumer"
-paths = ["src", "include", "examples", "demo", "benchmarks", "fuzz", "lab"]
+# The two tools that link the library or read its inputs through STXlib
+# (the shield); the rest of tools/ is not checked yet.
+paths = ["src", "include", "examples", "demo", "lab",
+         "tools/preview_capture", "tools/stock_icon_generator"]
 # Native code, where the host-only rules (pthread, wchar_t and the rest)
 # do not apply: the platform hosts. (The tests, with the probes that drive a
 # native host directly, are gui_forms_tests', checked there with its own
@@ -21,3 +24,60 @@ host_paths = [
     "src/abi/conformance/*",
 ]
 allowance = "tools/std_rules_allowance.txt"
+
+# The STXlib shield (2026-11-22): every route GUI.Forms takes to the host's
+# threads and files passes through STXlib, so the standard thread, lock,
+# wait, stop, file-stream and filesystem-operation vocabulary does not come
+# back. The allowance is empty: the C ABI's recursive operation lock, the
+# atomic waits and the public stop parameters moved onto STXlib's
+# RecursiveMutex, MultiLock, AtomicWord and StopToken. std::filesystem::path
+# itself stays while FilePath is the public path type; the census
+# (tools/std_surface_census.py) counts it.
+[[rules]]
+id = "std-threads"
+what = "the standard thread, lock and wait vocabulary: GUI.Forms' threads and locks are STXlib's"
+instead = "stxlib/threads.hpp (Thread, Mutex, RecursiveMutex, ScopedLock, RecursiveLock, MultiLock, UniqueLock, ConditionVariable, OnceFlag, sleep_for, current_thread, processor_count)"
+qualified = ["thread", "jthread", "mutex", "recursive_mutex", "timed_mutex", "recursive_timed_mutex",
+             "shared_mutex", "shared_timed_mutex", "condition_variable", "condition_variable_any",
+             "unique_lock", "lock_guard", "scoped_lock", "shared_lock", "this_thread", "future",
+             "shared_future", "promise", "packaged_task", "async", "call_once", "once_flag",
+             "counting_semaphore", "binary_semaphore", "latch", "barrier"]
+headers = ["thread", "mutex", "shared_mutex", "condition_variable", "future", "semaphore", "latch", "barrier"]
+
+[[rules]]
+id = "std-atomic-wait"
+what = "std::atomic's wait and notify: the library's own parking, outside STXlib"
+instead = "stxlib::AtomicWord (stxlib/atomic_word.hpp): wait, notify_one, notify_all"
+patterns = ['\.\s*wait\s*\([^;()]*,\s*std\s*::\s*memory_order', '\batomic_(?:wait|notify_one|notify_all)\w*\s*\(']
+
+[[rules]]
+id = "std-stop-token"
+what = "std::stop_token, stop_source and stop_callback: the library's stop state, outside STXlib"
+instead = "stxlib/stop_token.hpp (StopSource, StopToken, StopCallback), or stxlib::StopSignal for a thread's own stop"
+qualified = ["stop_token", "stop_source", "stop_callback"]
+headers = ["stop_token"]
+
+[[rules]]
+id = "std-files"
+what = "the standard file streams and filesystem operations, and C stdio's file opening: GUI.Forms' files are STXlib's"
+instead = "src/platform/library_files.hpp over stxlib/files.hpp (read_whole_file, open_file, file_information, list_directory_entries, create_directories)"
+qualified = ['(?:basic_)?(?:i|o)?fstream', '(?:basic_)?filebuf',
+             'filesystem\s*::\s*(?:file_size|exists|is_\w+|status|symlink_status|create_\w+|remove\w*|copy\w*|rename|resize_file|temp_directory_path|current_path|absolute|canonical|weakly_canonical|relative|proximate|read_symlink|last_write_time|permissions|space|equivalent|hard_link_count|directory_iterator|recursive_directory_iterator|directory_entry|file_status|filesystem_error)']
+calls = ["fopen", "_wfopen", "freopen", "_wfreopen", "tmpfile", "fdopen", "_fdopen"]
+headers = ["fstream"]
+
+# The library allocator (owner, 2026-11-22; include/gui_forms/allocation/
+# library_memory/library_memory.hpp): every shared object GUI.Forms' code
+# makes comes from GUI.Forms' allocator, with its control block, so the last
+# owner, a program's included, releases it there. Programs that use GUI.Forms
+# keep their own allocator, so the rule binds the library only.
+[[rules]]
+id = "library-make-shared"
+what = "std::make_shared in GUI.Forms' code: the object and its control block come from the program's operator new"
+instead = "gui_forms::detail::make_library_shared (gui_forms/allocation/library_memory/library_memory.hpp)"
+qualified = ["make_shared"]
+
+[[allow]]
+paths = ["examples/*", "demo/*", "lab/*", "tools/preview_capture/*", "tools/stock_icon_generator/*"]
+rules = ["library-make-shared"]
+reason = "programs that use GUI.Forms keep their own allocator (owner, 2026-11-22)"

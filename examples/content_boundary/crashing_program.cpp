@@ -11,6 +11,8 @@
 // exits 2.
 
 #include <gui_forms/content/hosted/hosted_client.hpp>
+#include <stxlib/clocks.hpp>
+#include <stxlib/threads.hpp>
 
 #include <stxlib/optional.hpp>
 #include <chrono>
@@ -21,7 +23,6 @@
 #include <memory>
 #include <optional>
 #include <span>
-#include <thread>
 
 namespace gf = gui_forms;
 
@@ -86,7 +87,7 @@ int main() {
         if (slot.absent()) continue;
         if (!publish_band(*client, (*slot.value()), step)) break;
         ++step;
-        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        stxlib::sleep_for(stxlib::Duration::milliseconds(16));
     }
     // Asked to stop before the crash: leave politely.
     static_cast<void>((*client).goodbye());

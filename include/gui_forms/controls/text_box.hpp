@@ -469,6 +469,10 @@ private:
     Event<const TextSelection&> selection_changed_{};
     Event<const std::string&> committed_{};
     Event<> cancelled_{};
+    // read_only's change event, which subscribe_property_changed("read_only")
+    // and bindings reach through the property table (a MaskedTextBox follows
+    // its editor's read_only with it, state hunt O10).
+    Event<bool> read_only_changed_{};
     Event<bool> auto_complete_open_changed_{};
     Event<const std::string&> auto_complete_accepted_{};
 

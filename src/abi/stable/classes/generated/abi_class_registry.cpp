@@ -260,6 +260,11 @@ gf_status GF_CALL base_control_on_validating(gf_object self, gf_event* event) no
     return ran;
 }
 
+gf_status GF_CALL base_control_on_gesture(gf_object self, gf_event* event) noexcept {
+    const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_CONTROL, 43U});
+    return ran;
+}
+
 gf_status GF_CALL base_masked_text_box_on_mask_changed(gf_object self, gf_event* event) noexcept {
     const gf_status ran = run_class_base(self, event, HookKey{GF_CLASS_MASKED_TEXT_BOX, 0U});
     return ran;
@@ -559,7 +564,7 @@ constexpr std::array<gf_class_id, 1> up_down_base_segments{GF_CLASS_CONTROL};
 using NodeCanvasLayers = NodeCanvasHooksLayer<ControlHooksLayer<BridgeState<NodeCanvas>>>;
 constexpr std::array<gf_class_id, 2> node_canvas_segments{GF_CLASS_CONTROL, GF_CLASS_NODE_CANVAS};
 
-constexpr std::array<gf_base_raiser, 43> control_base_raisers{
+constexpr std::array<gf_base_raiser, 44> control_base_raisers{
     &base_control_on_auto_size_changed,
     &base_control_on_back_color_changed,
     &base_control_on_causes_validation_changed,
@@ -603,6 +608,7 @@ constexpr std::array<gf_base_raiser, 43> control_base_raisers{
     &base_control_on_preview_key_down,
     &base_control_on_validated,
     &base_control_on_validating,
+    &base_control_on_gesture,
 };
 
 constexpr std::array<gf_base_raiser, 1> masked_text_box_base_raisers{
