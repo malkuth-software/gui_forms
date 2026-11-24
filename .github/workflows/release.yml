@@ -317,11 +317,23 @@ jobs:
       # (cmake/Stx.cmake), restored from the cache the platform's native job
       # keeps under the same key, and built while configuring only when no
       # entry matches.
+      # Windows: STXlib's own runtime and libc++ for x86_64-pc-windows-msvc
+      # (tools/own_runtime.py; owner, 2026-11-24), restored from the cache the
+      # native job keeps under the same key, built here when none matches.
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        id: own-runtime
+        if: runner.os == 'Windows'
+        with:
+          path: .ci/own-runtime
+          key: gui-own-runtime-v1-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/tools/own_runtime.py', 'gui_forms/cmake/llvm22-windows-msvc.cmake', 'gui_forms/cmake/llvm22-windows-msvc-own.cmake') }}
+      - name: Build STXlib's own runtime and libc++ for the Windows target
+        if: runner.os == 'Windows'
+        run: python gui_forms/tools/own_runtime.py build --out .ci/own-runtime --jobs 4 --github-env
       - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         id: stx-package
         with:
           path: .ci/stx-package
-          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/tools/toolkit_configure.py') }}
+          key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/cmake/llvm22-windows-msvc.cmake', 'gui_forms/cmake/llvm22-windows-msvc-own.cmake', 'gui_forms/tools/toolkit_configure.py') }}
       - name: Configure the programs
         run: |
           # A deployment build: GUI_FORMS_REFERENCE_ARITHMETIC=OFF, so what ships
@@ -330,8 +342,11 @@ jobs:
           renderer="-DGUI_FORMS_ENABLE_SKIA=ON"
           miniaudio="$BUILD_DIR/_deps/gui_forms_miniaudio-src"
           if [ -f "$miniaudio/miniaudio.h" ]; then renderer="$renderer -DFETCHCONTENT_SOURCE_DIR_GUI_FORMS_MINIAUDIO=$PWD/$miniaudio"; fi
+          # The host's toolchain (tools/toolkit_configure.py toolchain_options):
+          # cmake/llvm22.cmake, or on Windows the own-runtime MSVC target.
+          toolchain=$(python gui_forms/tools/toolkit_configure.py toolchain)
           cmake -S gui_forms -B "$BUILD_DIR" -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_LIBDIR=lib \
-            -DCMAKE_TOOLCHAIN_FILE="$PWD/gui_forms/cmake/llvm22.cmake" -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
+            $toolchain -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
             -DGUI_FORMS_ENABLE_MACOS_HOST=$([ "${{ matrix.host }}" = MACOS ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_WINDOWS_HOST=$([ "${{ matrix.host }}" = WINDOWS ] && echo ON || echo OFF) \
             -DGUI_FORMS_ENABLE_LINUX_HOST=$([ "${{ matrix.host }}" = LINUX ] && echo ON || echo OFF) \
