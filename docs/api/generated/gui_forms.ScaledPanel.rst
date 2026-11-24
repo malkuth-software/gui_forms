@@ -195,7 +195,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 3 su
      - Status
    * - property
      - GUI.Forms-only
-     - ``design_size``
+     - ``aspect``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

@@ -396,6 +396,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "content_frame", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/viewport_fit_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "content_layout_rectangle", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "declares_clarity", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_chunk_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "design_size", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "dirty", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_core_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "display_chunk_info", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_chunk_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "effective_cursor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/core_tests.cpp"},
@@ -1344,7 +1345,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "x_range", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "y_range", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/plot_view_tests.cpp"}
     ]},
-    {"type": "PieChart", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/instruments_tests.cpp", "members": [
+    {"type": "PieChart", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/display_trace_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "doughnut_radius", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "label_style", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "legend_visible", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -3086,7 +3087,7 @@
       {"kind": "method", "winforms": "Control.OnTextChanged", "scope": "admitted", "gui_forms": "on_text_changed", "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"}
     ]},
     {"type": "ScaledGroupBox", "winforms": null, "gui_forms_base": "GroupBox", "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp", "members": [
-      {"kind": "property", "winforms": null, "gui_forms": "design_size", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "aspect", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "add_at", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "design_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/layout_panel_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "scaled_group_box_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
@@ -3517,7 +3518,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "remove_row", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/form_layout_tests.cpp"}
     ]},
     {"type": "ScaledPanel", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp", "members": [
-      {"kind": "property", "winforms": null, "gui_forms": "design_size", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "aspect", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "add_at", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "design_bounds", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/layout_panel_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "scaled_panel_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
