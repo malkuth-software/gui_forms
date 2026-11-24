@@ -532,3 +532,29 @@ Visible-area guarantee (stage VA):
   own runtime: libc++ is the only LLVM runtime linked, and the MinGW-w64
   rows are gone. The reliability page says where each allocation route
   ends up.
+
+### 1.0.3: the allocator opt-in for subdirectory consumers, Explore's MCP
+
+- GUI.Forms builds with stx 1.0.3 on STXlib 1.0.3. On Windows, STXlib's C
+  library headers declare the secure printf and scanf family (`sprintf_s`,
+  `vsnprintf_s`, `sscanf_s`, ... and the wide forms) and `_scprintf`, so
+  third-party code such as tinyxml2 compiles on the own runtime.
+- `gui_forms_use_library_allocator` works in a project that adds GUI.Forms
+  with `add_subdirectory`. It used to compile nothing into the program,
+  which stayed on the toolchain's `operator new`. `gui_forms_add_theme` and
+  `gui_forms_verify_effects` work there too, and the stx packages' imported
+  targets (`stxlib::boundary`, `stxlib::state`, ...) are visible from the
+  consumer's directory. `tools/subdirectory_consumer` is such a project:
+  CI builds it on every desktop host and runs its allocator probe, which
+  fails unless the replacement is live.
+- `host::run_linux_application`, `run_macos_application` and
+  `run_windows_application` start the automation, as `Application::run`
+  does, when a program calls them directly. Explore runs its windows this
+  way, and until now it ignored `--mcp` on every host.
+- `tools/check_allocator_startup.py` checks the allocator opt-in of a
+  program that takes no `--mcp`. It runs the program with
+  `GUI_FORMS_REQUIRE_LIBRARY_ALLOCATOR=1` and fails it if it exits at startup.
+  Plan Paint and Pocket Reference use it in CI.
+- `tools/check_mcp_launch.py` names the exit status of a program that does
+  not answer. It waits for a window's tools, which appear when the window
+  joins the automation.
