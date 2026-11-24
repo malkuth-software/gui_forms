@@ -195,6 +195,8 @@ public:
     // window's scale, as before. Reports the placement's scale while it
     // carries out a contain or cover; none otherwise.
     [[nodiscard]] stxlib::Optional<double> applied_viewport_scale() const noexcept override;
+    // True: the host places its content itself (content_placement).
+    [[nodiscard]] bool scales_design_space() const noexcept override;
     // Media (stage VA, section 8): its contain has no floor but its fit's.
     [[nodiscard]] bool shows_media_content() const noexcept override;
     [[nodiscard]] const ControlAnatomy& anatomy() const noexcept override;

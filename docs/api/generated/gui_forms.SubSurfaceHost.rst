@@ -279,6 +279,10 @@ gui_forms::SubSurfaceHost
 
       The visible-area guarantee at a root (stage VA, phase VA1). With a design size (Control::design_size) the sub-surface's root is laid out at that size and placed in the region by the host's viewport_fit (place_viewport_content): contain and cover render it at the window's scale times the placement's, so text and pictures are drawn at their real pixel size, never stretched; scroll and clip show it at its own size from the region's top left (a sub-surface does not scroll: a scroll is recorded unanswered). Pointer positions, the semantic nodes, the input method's caret and tooltip anchors map through the placement. Without a design size the content fills the region at the window's scale, as before. Reports the placement's scale while it carries out a contain or cover; none otherwise.
 
+   .. cpp:function:: bool scales_design_space() const noexcept override
+
+      True: the host places its content itself (content_placement).
+
    .. cpp:function:: bool shows_media_content() const noexcept override
 
       Media (stage VA, section 8): its contain has no floor but its fit's.

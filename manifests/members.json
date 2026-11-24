@@ -573,6 +573,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "resolve_text_layout_utf8", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/basic_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "resolved_text_font", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/theme_font_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "reveal_focused_descendant", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "scales_design_space", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "scroll_content", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/content_scroll_raster_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "semantic_descriptor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/abi/custom/gf_abi_custom_paint.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "semantic_virtual_children", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},

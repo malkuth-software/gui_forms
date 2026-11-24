@@ -1245,10 +1245,18 @@ public:
     // alone; one of controls also by the presentation settings' floor
     // (PresentationSettings::minimum_content_scale). False by default.
     [[nodiscard]] virtual bool shows_media_content() const noexcept;
+    // Whether this control maps its own design space onto its arranged
+    // size (ScaledPanel's and ScaledGroupBox's explicit stretch, decision
+    // 10). Such a control is laid out in its whole viewport, at the root
+    // too: the designed contain (content_layout_rectangle,
+    // SurfaceRoot::root_layout_rectangle) applies only where no control
+    // declares its own mapping. False by default.
+    [[nodiscard]] virtual bool scales_design_space() const noexcept;
     // The rectangle Control::arrange lays the children out in: the child
     // viewport, or, while this control has a design_size and its
     // viewport_fit answers contain or cover (and it neither scrolls its
-    // content nor scales it itself), that size at the viewport's origin.
+    // content nor scales it itself, scales_design_space), that size at the
+    // viewport's origin.
     // A layout container overriding arrange lays out in it too to take
     // part in a designed contain.
     [[nodiscard]] Rect content_layout_rectangle() const noexcept;

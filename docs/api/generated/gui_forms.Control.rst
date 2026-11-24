@@ -447,7 +447,7 @@ gui_forms::Control
          Advances whenever this control becomes measure-dirty; a cache entry stored under an earlier generation is never answered. Settles first (see dirty()): a descendant's touch advances it at the settle.
 
       **content_layout_rectangle** : ``Rect``, read-only
-         The rectangle Control::arrange lays the children out in: the child viewport, or, while this control has a design_size and its viewport_fit answers contain or cover (and it neither scrolls its content nor scales it itself), that size at the viewport's origin. A layout container overriding arrange lays out in it too to take part in a designed contain.
+         The rectangle Control::arrange lays the children out in: the child viewport, or, while this control has a design_size and its viewport_fit answers contain or cover (and it neither scrolls its content nor scales it itself, scales_design_space), that size at the viewport's origin. A layout container overriding arrange lays out in it too to take part in a designed contain.
 
       **effective_layout_direction** : ``LayoutDirection``, read-only
          layout_direction stores the authored inline direction, ``inherit`` by default (stage L, PLAN section 4): Windows Forms' RightToLeft. The registry, the property grid and forms spell it ``right_to_left`` (No, Yes, Inherit; RightToLeft in layout_types.hpp; owner ruling of 2026-11-11); the :cpp:member:`layout_direction <gui_forms::Control::layout_direction>` name is hidden there and refused in forms. Writing it re-arranges and repaints every control whose resolved direction changes. The direction this control lays out in: its own when not ``inherit``, otherwise the nearest ancestor's, and left to right at a root (the top-level window's default, No). Kept resolved: a read walks nothing; a write or a reparenting refreshes the affected subtree once. Directional controls (progress and scroll bars, track bars, up-downs, combo boxes, check boxes) mirror when it is right_to_left.
@@ -1404,7 +1404,7 @@ gui_forms::Control
 
    .. cpp:function:: Rect content_layout_rectangle() const noexcept
 
-      The rectangle Control::arrange lays the children out in: the child viewport, or, while this control has a design_size and its viewport_fit answers contain or cover (and it neither scrolls its content nor scales it itself), that size at the viewport's origin. A layout container overriding arrange lays out in it too to take part in a designed contain.
+      The rectangle Control::arrange lays the children out in: the child viewport, or, while this control has a design_size and its viewport_fit answers contain or cover (and it neither scrolls its content nor scales it itself, scales_design_space), that size at the viewport's origin. A layout container overriding arrange lays out in it too to take part in a designed contain.
 
    .. cpp:function:: LayoutDirection effective_layout_direction() const noexcept
 
@@ -1938,6 +1938,10 @@ gui_forms::Control
    .. cpp:function:: virtual bool shows_media_content() const noexcept
 
       Whether this control shows media (an image, a video, a canvas, a game in a sub-surface) rather than controls (stage VA, decision 5): a contain of media is bounded by its viewport_fit's minimum_scale alone; one of controls also by the presentation settings' floor (PresentationSettings::minimum_content_scale). False by default.
+
+   .. cpp:function:: virtual bool scales_design_space() const noexcept
+
+      Whether this control maps its own design space onto its arranged size (ScaledPanel's and ScaledGroupBox's explicit stretch, decision 10). Such a control is laid out in its whole viewport, at the root too: the designed contain (content_layout_rectangle, SurfaceRoot::root_layout_rectangle) applies only where no control declares its own mapping. False by default.
 
    .. cpp:function:: virtual void on_paint(Painter& painter, Rect local_damage)
 
@@ -2564,7 +2568,7 @@ gui_forms::Control
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``Control``. Members declared here and by the counterpart: 258 supported, 0 deferred, 12 excluded, 324 unclassified; 237 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``Control``. Members declared here and by the counterpart: 258 supported, 0 deferred, 12 excluded, 325 unclassified; 238 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -4846,6 +4850,10 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 258 supp
    * - method
      - GUI.Forms-only
      - ``reveal_focused_descendant``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``scales_design_space``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

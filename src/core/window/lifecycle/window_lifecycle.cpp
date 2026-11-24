@@ -321,7 +321,9 @@ Rect SurfaceRoot::root_layout_rectangle() const {
     const bool designed = design.width > 0.0 && design.height > 0.0;
     const OverflowAnswer answer = root.viewport_fit.read().answer;
     const bool scales = answer == OverflowAnswer::contain || answer == OverflowAnswer::cover;
-    if (!designed || !scales) return slot;
+    // A root that maps its own design space (decision 10's stretch) fills
+    // the slot; VA's designed contain is for the roots that declare none.
+    if (!designed || !scales || root.scales_design_space()) return slot;
     const Rect laid_out{slot.x, slot.y, design.width, design.height};
     return laid_out;
 }

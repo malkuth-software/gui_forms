@@ -85,6 +85,8 @@ const ControlAnatomy& ScaledGroupBox::anatomy() const noexcept {
     return scaled_group_box_anatomy;
 }
 
+bool ScaledGroupBox::scales_design_space() const noexcept { return true; }
+
 stxlib::Optional<double> ScaledGroupBox::applied_viewport_scale() const noexcept {
     const stxlib::Optional<double> scale =
         scaled_layout_detail::stretch_scale(design_size.read(), committed_arranged_bounds());

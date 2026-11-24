@@ -170,6 +170,10 @@ gui_forms::ScaledPanel
 
       Its children are mapped from its design space (Control::design_size, 1 x 1 while that is zero) to its arranged size, so its design content always fills its viewport: an explicit stretch, recorded (stage VA, decision 10). :cpp:member:`aspect <gui_forms::ScaledPanel::aspect>` chooses a stretch per axis (the default) or a uniform scale that keeps the design's proportions, aligned by viewport_fit's alignment. Reports the smaller axis ratio; none while design_size is zero or it has no extent.
 
+   .. cpp:function:: bool scales_design_space() const noexcept override
+
+      True: the stretch above is this control's own mapping (decision 10).
+
    .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
 
    .. cpp:member:: constexpr std::size_t scaled_panel_property_count

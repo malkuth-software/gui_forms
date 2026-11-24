@@ -348,6 +348,8 @@ void SubSurfaceHost::on_paint(Painter& painter, Rect) {
     painter.restore();
 }
 
+bool SubSurfaceHost::scales_design_space() const noexcept { return true; }
+
 stxlib::Optional<double> SubSurfaceHost::applied_viewport_scale() const noexcept {
     if (!placement_.applied) return stxlib::Optional<double>::none();
     const stxlib::Optional<double> scale = stxlib::Optional<double>::of(placement_.scale);

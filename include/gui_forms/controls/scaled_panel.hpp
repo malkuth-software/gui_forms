@@ -27,6 +27,8 @@ public:
     // viewport_fit's alignment. Reports the smaller axis ratio; none while
     // design_size is zero or it has no extent.
     [[nodiscard]] stxlib::Optional<double> applied_viewport_scale() const noexcept override;
+    // True: the stretch above is this control's own mapping (decision 10).
+    [[nodiscard]] bool scales_design_space() const noexcept override;
 
 private:
     using SlotMap = std::unordered_map<std::uint64_t, Rect>;

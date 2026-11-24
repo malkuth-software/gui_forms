@@ -4678,6 +4678,8 @@ bool Control::content_scrolls() const noexcept { return false; }
 
 bool Control::shows_media_content() const noexcept { return false; }
 
+bool Control::scales_design_space() const noexcept { return false; }
+
 stxlib::Optional<double> Control::applied_viewport_scale() const noexcept {
     return stxlib::Optional<double>::none();
 }
@@ -4688,7 +4690,9 @@ Rect Control::content_layout_rectangle() const noexcept {
     const bool designed = design.width > 0.0 && design.height > 0.0;
     const OverflowAnswer answer = viewport_fit.read().answer;
     const bool scales = answer == OverflowAnswer::contain || answer == OverflowAnswer::cover;
-    if (!designed || !scales || content_scrolls() || applied_viewport_scale().present()) return viewport;
+    if (!designed || !scales || content_scrolls() || scales_design_space() || applied_viewport_scale().present()) {
+        return viewport;
+    }
     const Rect designed_viewport{viewport.x, viewport.y, design.width, design.height};
     return designed_viewport;
 }

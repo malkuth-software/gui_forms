@@ -92,6 +92,8 @@ std::shared_ptr<const PropertyEnumDescriptor> scaled_layout_detail::scaled_aspec
     return value;
 }
 
+bool ScaledPanel::scales_design_space() const noexcept { return true; }
+
 stxlib::Optional<double> ScaledPanel::applied_viewport_scale() const noexcept {
     const stxlib::Optional<double> scale =
         scaled_layout_detail::stretch_scale(design_size.read(), committed_arranged_bounds());
