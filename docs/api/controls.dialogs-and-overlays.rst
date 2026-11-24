@@ -64,6 +64,8 @@ Related types
 
    * - :cpp:class:`AboutInfo <gui_forms::AboutInfo>`
      - What an AboutDialog shows.
+   * - :cpp:class:`AnchoredOpening <gui_forms::AnchoredOpening>`
+     - One opening of an anchored picker whose layer and content the control keeps between openings (ColorValueEditor, RibbonColorPicker, RibbonGallery): its lease, and the subscription to the picker Popup's closing while the content is lifted into a Popup (empty otherwise).
    * - :cpp:class:`AnchoredOverlayLayerCapabilities <gui_forms::AnchoredOverlayLayerCapabilities>`
      - Every AnchoredOverlayLayer capability, in the order the declaring class takes them.
    * - :cpp:class:`AnchoredOverlayLayerDismissOnClickAwayCapability <gui_forms::AnchoredOverlayLayerDismissOnClickAwayCapability>`
@@ -148,10 +150,14 @@ Related types
      - Whether Escape inside the layer asks to close it as cancelled (through closing, which may refuse).
    * - :cpp:class:`ModalLayerClosingEvent <gui_forms::ModalLayerClosingEvent>`
      - The argument of ModalLayer::closing: the result the layer would close with, and whether a handler refuses the closing.
+   * - :cpp:class:`OverlayLease <gui_forms::OverlayLease>`
+     - The lease of an overlay a control shows: the token that keeps its layer in the window, the subscription to the lease's revocation, and the focus scope begun for it.
    * - :cpp:class:`PresentationLayer <gui_forms::PresentationLayer>`
      - The owner's half of a shown owned dialog or callout (FontDialog, TaskDialog, Callout): the layer in the owner's window that holds the presented control (or, for a native presentation, holds the owner's input while the panel is elsewhere), the overlay lease that keeps the layer in that window, the subscription to the lease's revocation, and the focus scope begun in that window.
    * - :cpp:class:`PresentationPopup <gui_forms::PresentationPopup>`
      - The native half of a dialog presented in a native popup window (DialogSurface::native_popup): the root in the popup window that holds the panel, the popup's lease, and the subscription to the popup's closing.
+   * - :cpp:class:`PresentationState <gui_forms::PresentationState>`
+     - Where a popup, drop-down or overlay a control shows stands, with what each phase holds (owner, 2026-11-23: one presentation state instead of a flag beside the pointers and tokens it qualifies): - closed: nothing is held; - opening: ``Held`` is built and its overlay is in the window, and the control is beginning its focus scope, which runs focus and validation handlers; a second open is refused, a close is served; - open: ``Held`` is complete, its scope begun; - closing: ``Held`` is being dismantled; a second open or close is refused until it is closed, so a handler run by the teardown cannot open a second presentation over the first's remains.
    * - :cpp:class:`ProgramIdentity <gui_forms::ProgramIdentity>`
      - The program's identity, as the business card shows it.
    * - :cpp:class:`RibbonToolTipAutoPopDelayCapability <gui_forms::RibbonToolTipAutoPopDelayCapability>`
@@ -252,6 +258,18 @@ Related types
    .. cpp:member:: std::string copyright
 
    .. cpp:member:: std::string credits
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: AnchoredOpening final
+
+   ``#include <gui_forms/controls/presentation_state.hpp>`` (:src:`source <include/gui_forms/controls/presentation_state.hpp>`)
+
+   One opening of an anchored picker whose layer and content the control keeps between openings (ColorValueEditor, RibbonColorPicker, RibbonGallery): its lease, and the subscription to the picker Popup's closing while the content is lifted into a Popup (empty otherwise).
+
+   .. cpp:member:: OverlayLease lease
+
+   .. cpp:member:: SubscriptionToken popup_closed
 
 .. cpp:namespace:: gui_forms
 
@@ -1070,6 +1088,20 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: OverlayLease final
+
+   ``#include <gui_forms/controls/presentation_state.hpp>`` (:src:`source <include/gui_forms/controls/presentation_state.hpp>`)
+
+   The lease of an overlay a control shows: the token that keeps its layer in the window, the subscription to the lease's revocation, and the focus scope begun for it. The scope is empty while the presentation is opening (PresentationState), because beginning it runs focus handlers.
+
+   .. cpp:member:: OverlayToken overlay
+
+   .. cpp:member:: SubscriptionToken overlay_closed
+
+   .. cpp:member:: FocusScopeId scope
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: PresentationLayer final
 
    ``#include <gui_forms/controls/dialog_presentation.hpp>`` (:src:`source <include/gui_forms/controls/dialog_presentation.hpp>`)
@@ -1097,6 +1129,77 @@ Related types
    .. cpp:member:: NativePopupToken popup
 
    .. cpp:member:: SubscriptionToken popup_closed
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:class:: template <typename Held> PresentationState final
+
+   ``#include <gui_forms/controls/presentation_state.hpp>`` (:src:`source <include/gui_forms/controls/presentation_state.hpp>`)
+
+   Where a popup, drop-down or overlay a control shows stands, with what each phase holds (owner, 2026-11-23: one presentation state instead of a flag beside the pointers and tokens it qualifies): - closed: nothing is held; - opening: ``Held`` is built and its overlay is in the window, and the control is beginning its focus scope, which runs focus and validation handlers; a second open is refused, a close is served; - open: ``Held`` is complete, its scope begun; - closing: ``Held`` is being dismantled; a second open or close is refused until it is closed, so a handler run by the teardown cannot open a second presentation over the first's remains. ``Held`` is the owner's record of one presentation (its layer, content, lease and subscriptions); a contradictory combination of those fields and the phase cannot be represented. Each control states which phases its public queries report as open. UI thread only.
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: PresentationState() noexcept
+
+   .. cpp:function:: PresentationState(PresentationState&& other) noexcept
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool is_closed() const noexcept
+
+      The phase.
+
+   .. cpp:function:: bool is_opening() const noexcept
+
+   .. cpp:function:: bool is_open() const noexcept
+
+   .. cpp:function:: bool is_closing() const noexcept
+
+   .. cpp:function:: bool is_shown() const noexcept
+
+      Opening or open: shown, as the controls' shown and open queries mean it while the scope is being begun.
+
+   .. cpp:function:: const Held* open_state() const noexcept
+
+   .. cpp:function:: const Held* shown_state() const noexcept
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: static PresentationState closed() noexcept
+
+      The named states.
+
+   .. cpp:function:: static PresentationState opening(Held held) noexcept
+
+   .. cpp:function:: static PresentationState open(Held held) noexcept
+
+   .. cpp:function:: Held* opening_state() noexcept
+
+      What the phase holds; null in any other phase.
+
+   .. cpp:function:: Held* open_state() noexcept
+
+   .. cpp:function:: Held* closing_state() noexcept
+
+   .. cpp:function:: Held* shown_state() noexcept
+
+      Opening or open: the record of the presentation that is shown.
+
+   .. cpp:function:: bool settle_open() noexcept
+
+      Opening becomes open, keeping its record. False, changing nothing, in any other phase (a handler closed the presentation meanwhile).
+
+   .. cpp:function:: bool begin_closing() noexcept
+
+      Opening or open becomes closing, keeping its record for the teardown. False, changing nothing, when closed or closing already.
+
+   .. cpp:function:: void finish_closing() noexcept
+
+      Ends any phase: the record, with whatever leases it still holds, is released (its tokens close and its subscriptions end as they are destroyed).
 
 .. cpp:namespace:: gui_forms
 
@@ -2194,3 +2297,11 @@ Functions, constants and aliases
 .. cpp:var:: constexpr FrameInterval modal_scrim_fade
 
    The scrim's fade-in as a modal layer opens (roadmap row 2.6). Value: ``std::chrono::milliseconds(150)``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/controls/presentation_state.hpp>`` (:src:`source <include/gui_forms/controls/presentation_state.hpp>`)
+
+.. cpp:type:: AnchoredPresentation = PresentationState<AnchoredOpening>
+
+   The presentation of such a picker.

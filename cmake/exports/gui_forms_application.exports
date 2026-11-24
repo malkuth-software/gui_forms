@@ -269,6 +269,7 @@ __ZGVZN9gui_forms12MnemonicText*
 __ZGVZN9gui_forms12MotionPolicy*
 __ZGVZN9gui_forms12NodeProperty*
 __ZGVZN9gui_forms12NumberFormat*
+__ZGVZN9gui_forms12OverlayLease*
 __ZGVZN9gui_forms12OverlayToken*
 __ZGVZN9gui_forms12PagePosition*
 __ZGVZN9gui_forms12PageSetBatch*
@@ -536,6 +537,7 @@ __ZGVZN9gui_forms14UserThemeFiles*
 __ZGVZN9gui_forms14XmlWriteResult*
 __ZGVZN9gui_forms15AllocationScope*
 __ZGVZN9gui_forms15AnatomyStateSet*
+__ZGVZN9gui_forms15AnchoredOpening*
 __ZGVZN9gui_forms15AnimationSample*
 __ZGVZN9gui_forms15AvailableExtent*
 __ZGVZN9gui_forms15BackplaneRegion*
@@ -1960,6 +1962,7 @@ __ZGVZNK9gui_forms12MnemonicText*
 __ZGVZNK9gui_forms12MotionPolicy*
 __ZGVZNK9gui_forms12NodeProperty*
 __ZGVZNK9gui_forms12NumberFormat*
+__ZGVZNK9gui_forms12OverlayLease*
 __ZGVZNK9gui_forms12OverlayToken*
 __ZGVZNK9gui_forms12PagePosition*
 __ZGVZNK9gui_forms12PageSetBatch*
@@ -2227,6 +2230,7 @@ __ZGVZNK9gui_forms14UserThemeFiles*
 __ZGVZNK9gui_forms14XmlWriteResult*
 __ZGVZNK9gui_forms15AllocationScope*
 __ZGVZNK9gui_forms15AnatomyStateSet*
+__ZGVZNK9gui_forms15AnchoredOpening*
 __ZGVZNK9gui_forms15AnimationSample*
 __ZGVZNK9gui_forms15AvailableExtent*
 __ZGVZNK9gui_forms15BackplaneRegion*
@@ -3731,6 +3735,7 @@ __ZN9gui_forms12MnemonicText*
 __ZN9gui_forms12MotionPolicy*
 __ZN9gui_forms12NodeProperty*
 __ZN9gui_forms12NumberFormat*
+__ZN9gui_forms12OverlayLease*
 __ZN9gui_forms12OverlayToken*
 __ZN9gui_forms12PagePosition*
 __ZN9gui_forms12PageSetBatch*
@@ -4122,6 +4127,7 @@ __ZN9gui_forms14xml_error_nameB*
 __ZN9gui_forms14xml_error_nameE*
 __ZN9gui_forms15AllocationScope*
 __ZN9gui_forms15AnatomyStateSet*
+__ZN9gui_forms15AnchoredOpening*
 __ZN9gui_forms15AnimationSample*
 __ZN9gui_forms15AvailableExtent*
 __ZN9gui_forms15BackplaneRegion*
@@ -7056,6 +7062,7 @@ __ZNK[RO]9gui_forms12MnemonicText*
 __ZNK[RO]9gui_forms12MotionPolicy*
 __ZNK[RO]9gui_forms12NodeProperty*
 __ZNK[RO]9gui_forms12NumberFormat*
+__ZNK[RO]9gui_forms12OverlayLease*
 __ZNK[RO]9gui_forms12OverlayToken*
 __ZNK[RO]9gui_forms12PagePosition*
 __ZNK[RO]9gui_forms12PageSetBatch*
@@ -7323,6 +7330,7 @@ __ZNK[RO]9gui_forms14UserThemeFiles*
 __ZNK[RO]9gui_forms14XmlWriteResult*
 __ZNK[RO]9gui_forms15AllocationScope*
 __ZNK[RO]9gui_forms15AnatomyStateSet*
+__ZNK[RO]9gui_forms15AnchoredOpening*
 __ZNK[RO]9gui_forms15AnimationSample*
 __ZNK[RO]9gui_forms15AvailableExtent*
 __ZNK[RO]9gui_forms15BackplaneRegion*
@@ -8747,6 +8755,7 @@ __ZN[KRO]9gui_forms12MnemonicText*
 __ZN[KRO]9gui_forms12MotionPolicy*
 __ZN[KRO]9gui_forms12NodeProperty*
 __ZN[KRO]9gui_forms12NumberFormat*
+__ZN[KRO]9gui_forms12OverlayLease*
 __ZN[KRO]9gui_forms12OverlayToken*
 __ZN[KRO]9gui_forms12PagePosition*
 __ZN[KRO]9gui_forms12PageSetBatch*
@@ -9014,6 +9023,7 @@ __ZN[KRO]9gui_forms14UserThemeFiles*
 __ZN[KRO]9gui_forms14XmlWriteResult*
 __ZN[KRO]9gui_forms15AllocationScope*
 __ZN[KRO]9gui_forms15AnatomyStateSet*
+__ZN[KRO]9gui_forms15AnchoredOpening*
 __ZN[KRO]9gui_forms15AnimationSample*
 __ZN[KRO]9gui_forms15AvailableExtent*
 __ZN[KRO]9gui_forms15BackplaneRegion*
@@ -10438,6 +10448,7 @@ __ZT[VIST]N9gui_forms12MnemonicText*E
 __ZT[VIST]N9gui_forms12MotionPolicy*E
 __ZT[VIST]N9gui_forms12NodeProperty*E
 __ZT[VIST]N9gui_forms12NumberFormat*E
+__ZT[VIST]N9gui_forms12OverlayLease*E
 __ZT[VIST]N9gui_forms12OverlayToken*E
 __ZT[VIST]N9gui_forms12PagePosition*E
 __ZT[VIST]N9gui_forms12PageSetBatch*E
@@ -10705,6 +10716,7 @@ __ZT[VIST]N9gui_forms14UserThemeFiles*E
 __ZT[VIST]N9gui_forms14XmlWriteResult*E
 __ZT[VIST]N9gui_forms15AllocationScope*E
 __ZT[VIST]N9gui_forms15AnatomyStateSet*E
+__ZT[VIST]N9gui_forms15AnchoredOpening*E
 __ZT[VIST]N9gui_forms15AnimationSample*E
 __ZT[VIST]N9gui_forms15AvailableExtent*E
 __ZT[VIST]N9gui_forms15BackplaneRegion*E
@@ -12129,6 +12141,7 @@ __ZT[hvc]*9gui_forms12MnemonicText*
 __ZT[hvc]*9gui_forms12MotionPolicy*
 __ZT[hvc]*9gui_forms12NodeProperty*
 __ZT[hvc]*9gui_forms12NumberFormat*
+__ZT[hvc]*9gui_forms12OverlayLease*
 __ZT[hvc]*9gui_forms12OverlayToken*
 __ZT[hvc]*9gui_forms12PagePosition*
 __ZT[hvc]*9gui_forms12PageSetBatch*
@@ -12396,6 +12409,7 @@ __ZT[hvc]*9gui_forms14UserThemeFiles*
 __ZT[hvc]*9gui_forms14XmlWriteResult*
 __ZT[hvc]*9gui_forms15AllocationScope*
 __ZT[hvc]*9gui_forms15AnatomyStateSet*
+__ZT[hvc]*9gui_forms15AnchoredOpening*
 __ZT[hvc]*9gui_forms15AnimationSample*
 __ZT[hvc]*9gui_forms15AvailableExtent*
 __ZT[hvc]*9gui_forms15BackplaneRegion*
@@ -13820,6 +13834,7 @@ __ZZN9gui_forms12MnemonicText*
 __ZZN9gui_forms12MotionPolicy*
 __ZZN9gui_forms12NodeProperty*
 __ZZN9gui_forms12NumberFormat*
+__ZZN9gui_forms12OverlayLease*
 __ZZN9gui_forms12OverlayToken*
 __ZZN9gui_forms12PagePosition*
 __ZZN9gui_forms12PageSetBatch*
@@ -14087,6 +14102,7 @@ __ZZN9gui_forms14UserThemeFiles*
 __ZZN9gui_forms14XmlWriteResult*
 __ZZN9gui_forms15AllocationScope*
 __ZZN9gui_forms15AnatomyStateSet*
+__ZZN9gui_forms15AnchoredOpening*
 __ZZN9gui_forms15AnimationSample*
 __ZZN9gui_forms15AvailableExtent*
 __ZZN9gui_forms15BackplaneRegion*
@@ -15511,6 +15527,7 @@ __ZZNK9gui_forms12MnemonicText*
 __ZZNK9gui_forms12MotionPolicy*
 __ZZNK9gui_forms12NodeProperty*
 __ZZNK9gui_forms12NumberFormat*
+__ZZNK9gui_forms12OverlayLease*
 __ZZNK9gui_forms12OverlayToken*
 __ZZNK9gui_forms12PagePosition*
 __ZZNK9gui_forms12PageSetBatch*
@@ -15778,6 +15795,7 @@ __ZZNK9gui_forms14UserThemeFiles*
 __ZZNK9gui_forms14XmlWriteResult*
 __ZZNK9gui_forms15AllocationScope*
 __ZZNK9gui_forms15AnatomyStateSet*
+__ZZNK9gui_forms15AnchoredOpening*
 __ZZNK9gui_forms15AnimationSample*
 __ZZNK9gui_forms15AvailableExtent*
 __ZZNK9gui_forms15BackplaneRegion*

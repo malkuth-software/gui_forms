@@ -3,6 +3,7 @@
 #include "gui_forms/export/application_export.hpp"
 #include "gui_forms/basic_controls.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
+#include "gui_forms/controls/presentation_state.hpp"
 #include "gui_forms/controls/modal_layer_capabilities.hpp"
 #include "gui_forms/animation/animation_timeline/animation_timeline.hpp"
 #include "gui_forms/animation/animation_timer/animation_timer.hpp"
@@ -63,7 +64,9 @@ public:
     // Asks to close with `result`; false when the layer is not shown or a
     // closing handler refused.
     bool close(DialogResult result);
-    [[nodiscard]] bool is_shown() const noexcept { return shown_; }
+    // Shown from the moment its overlay opens (while the focus scope is
+    // begun, too) until a close begins.
+    [[nodiscard]] bool is_shown() const noexcept { return presentation_.is_shown(); }
     // The scrim's opacity now, as a factor on the theme's: it fades in from
     // 0 over modal_scrim_fade as the layer opens (ease out, on a
     // paint-gated timer, ADR-016), and is 1 at once under reduced motion or
@@ -71,7 +74,7 @@ public:
     // closing removes the layer at once.
     [[nodiscard]] double scrim_opacity() const noexcept { return scrim_opacity_; }
     // The content while shown, else empty.
-    [[nodiscard]] Control::Ptr content() const noexcept { return content_; }
+    [[nodiscard]] Control::Ptr content() const noexcept;
     // The result of the last closing, or none before the first.
     [[nodiscard]] stxlib::Optional<DialogResult> result() const noexcept { return result_; }
 
@@ -121,13 +124,16 @@ private:
     // Ends the fade at full opacity and stops its timer.
     void complete_scrim_fade() noexcept;
 
-    Control::Ptr content_{};
+    // One showing: the content it holds and the lease that keeps the layer
+    // (this control itself, so there is no separate layer) in the owner's
+    // window, with its revocation subscription and focus scope.
+    struct Shown final {
+        Control::Ptr content{};
+        OverlayLease lease{};
+    };
+    PresentationState<Shown> presentation_{};
     Rect content_bounds_{};
-    OverlayToken overlay_{};
-    SubscriptionToken overlay_revoked_{};
-    FocusScopeId scope_{};
     stxlib::Optional<DialogResult> result_{};
-    bool shown_{false};
     double scrim_opacity_{1.0};
     AnimationTimeline scrim_fade_{};
     AnimationTimer scrim_fade_frames_{};
