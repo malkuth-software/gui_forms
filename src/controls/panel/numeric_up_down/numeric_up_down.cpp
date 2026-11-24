@@ -466,6 +466,10 @@ void NumericUpDown::arrange(Rect final_bounds) {
     field_bounds_ = field;
     if (editor_) set_child_layout(editor_, field);
     if (spinner_) set_child_layout(spinner_, column);
+    // The glow is lit only during a scrub: the scrub owns that fact, and a
+    // lit target with no scrub running (a stale or corrupted copy, bit-flip
+    // run 7, F5) fades out here.
+    if (scrub_glow_to_ != 0.0 && !scrubbing()) set_scrub_glow_target(false);
 }
 
 void NumericUpDown::on_key_preview(KeyEvent& event) {

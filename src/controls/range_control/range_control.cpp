@@ -3,6 +3,7 @@
 #include "range_control_rendering.hpp"
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "range_control_ic_checks.hpp"
+#include "../../core/failure/fail_fast.hpp"
 
 #include <array>
 #include <algorithm>
@@ -57,7 +58,20 @@ RangeControl::RangeControl(StableId stable_id)
     : Control(std::move(stable_id)) {}
 
 double RangeControl::normalized_value() const noexcept {
-    return (value_ - minimum_) / (maximum_ - minimum_);
+    const double current = checked_value();
+    return (current - minimum_) / (maximum_ - minimum_);
+}
+
+void RangeControl::require_sound_bounds() const noexcept {
+    const bool sound = std::isfinite(minimum_) && std::isfinite(maximum_) && minimum_ < maximum_;
+    if (!sound) detail::fail_fast("range_control.bounds", "range bounds are not finite and ordered (corrupted storage)");
+}
+
+double RangeControl::checked_value() const noexcept {
+    require_sound_bounds();
+    if (!(value_ >= minimum_)) return minimum_;
+    if (value_ > maximum_) return maximum_;
+    return value_;
 }
 
 bool RangeControl::mirrored_axis() const noexcept {
@@ -78,7 +92,10 @@ void RangeControl::set_range(double minimum_value, double maximum_value) {
         return;
     }
     const double old_value = value_;
-    const double next_value = std::clamp(value_, minimum_value, maximum_value);
+    // A stored value that is not a number takes the new minimum (clamp
+    // would keep it).
+    const double held = std::isnan(value_) ? minimum_value : value_;
+    const double next_value = std::clamp(held, minimum_value, maximum_value);
     if (value_binding_) (*value_binding_).validate_update(next_value);
     if (!is_alive()) return;
     minimum_ = minimum_value;
@@ -104,7 +121,7 @@ void RangeControl::write_view(const decltype(value)&, double incoming) {
     if (incoming < minimum_ || incoming > maximum_) {
         throw std::out_of_range("range value is outside minimum and maximum");
     }
-    if (value_ == incoming) {
+    if (checked_value() == incoming && value_ == incoming) {
         return;
     }
     if (value_binding_) (*value_binding_).validate_update(incoming);
@@ -115,7 +132,7 @@ void RangeControl::write_view(const decltype(value)&, double incoming) {
 }
 
 double RangeControl::read_view(const decltype(value)&) const {
-    return value_;
+    return checked_value();
 }
 
 void RangeControl::write_view(const decltype(minimum)&, double incoming) {
@@ -123,6 +140,7 @@ void RangeControl::write_view(const decltype(minimum)&, double incoming) {
 }
 
 double RangeControl::read_view(const decltype(minimum)&) const {
+    require_sound_bounds();
     return minimum_;
 }
 
@@ -131,6 +149,7 @@ void RangeControl::write_view(const decltype(maximum)&, double incoming) {
 }
 
 double RangeControl::read_view(const decltype(maximum)&) const {
+    require_sound_bounds();
     return maximum_;
 }
 
@@ -146,7 +165,7 @@ void RangeControl::set_style(BasicControlStyle style) {
 void RangeControl::increment(double delta) {
     require_mutable();
     require_finite(delta, "range increment must be finite");
-    value = std::clamp(value_ + delta, minimum_, maximum_);
+    value = std::clamp(checked_value() + delta, minimum_, maximum_);
 }
 
 Rect RangeControl::local_bounds() const noexcept {
@@ -158,13 +177,14 @@ bool RangeControl::set_value_from_input(double requested, RangeAction action) {
     require_mutable();
     const Control::Ptr retained = weak_from_this().lock();
     require_finite(requested, "input range value must be finite");
+    const double current = checked_value();
     const double next = std::clamp(requested, minimum_, maximum_);
-    if (next == value_) {
+    if (next == current && next == value_) {
         return false;
     }
     if (value_binding_ && !bound_value_accepts(*value_binding_, next)) return false;
     if (!is_alive()) return false;
-    const RangeScrollEvent event{value_, next, action};
+    const RangeScrollEvent event{current, next, action};
     value_ = next;
     invalidate(Dirty::paint | Dirty::semantics);
     scroll_.emit(event);

@@ -109,6 +109,7 @@ protected:
 
 private:
     friend class NumericUpDownScrub;
+    friend struct detail::StateFlipAccess;
 
     struct EditorChangeCallback final {
         std::weak_ptr<NumericUpDown> target;

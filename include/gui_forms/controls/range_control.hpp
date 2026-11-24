@@ -67,9 +67,18 @@ protected:
     void publish_part_geometry(std::span<PartGeometry> geometry) const override;
 
 private:
+    friend struct detail::StateFlipAccess;
     void validate_bound_value(double candidate) const;
     // The value binding's getter and setter (ScalarBinding names members).
-    [[nodiscard]] double bound_value() const noexcept { return value_; }
+    [[nodiscard]] double bound_value() const noexcept { return checked_value(); }
+    // The stored range read back through its rule (bit-flip run 7, F5).
+    // Bounds that break it (not finite, or the minimum not below the
+    // maximum) are no write's result and no repair knows which bound is
+    // wrong: a defect, which fails fast. A value outside sound bounds (or
+    // not a number) is clamped into them, as set_range clamps it, and the
+    // next write of that value stores it.
+    void require_sound_bounds() const noexcept;
+    [[nodiscard]] double checked_value() const noexcept;
     void write_bound_value(double incoming);
     std::unique_ptr<detail::ScalarBinding<RangeControl, double>> value_binding_{};
     double minimum_{};
