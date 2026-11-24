@@ -93,6 +93,10 @@ public:
         Closing* const phase = std::get_if<Closing>(&state_);
         return phase != nullptr ? &(*phase).held : nullptr;
     }
+    [[nodiscard]] const Held* closing_state() const noexcept {
+        const Closing* const phase = std::get_if<Closing>(&state_);
+        return phase != nullptr ? &(*phase).held : nullptr;
+    }
     // Opening or open: the record of the presentation that is shown.
     [[nodiscard]] Held* shown_state() noexcept {
         Held* const opening_held = opening_state();
@@ -103,6 +107,19 @@ public:
         const Opening* const phase = std::get_if<Opening>(&state_);
         if (phase != nullptr) return &(*phase).held;
         return open_state();
+    }
+
+    // Any phase but closed: the record, also while it is being dismantled
+    // (for the queries that report a closing presentation as still there).
+    [[nodiscard]] Held* held_state() noexcept {
+        Held* const shown = shown_state();
+        if (shown != nullptr) return shown;
+        return closing_state();
+    }
+    [[nodiscard]] const Held* held_state() const noexcept {
+        const Held* const shown = shown_state();
+        if (shown != nullptr) return shown;
+        return closing_state();
     }
 
     // Opening becomes open, keeping its record. False, changing nothing,

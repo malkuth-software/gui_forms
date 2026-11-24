@@ -323,8 +323,8 @@ void DockSite::sync_side_strips() {
                 if (pages.record_at(PagePosition{index}).title != title) static_cast<void>(pages.set_title(page, title));
             }
             // The tab of the open flyout is the selected one.
-            if (flyout_panel_ && pages.find(PageId{(*flyout_panel_).value}).present()) {
-                static_cast<void>(pages.select(PageId{(*flyout_panel_).value}, PageSelectionCause::programmatic));
+            if (flyout_panel() && pages.find(PageId{(*flyout_panel()).value}).present()) {
+                static_cast<void>(pages.select(PageId{(*flyout_panel()).value}, PageSelectionCause::programmatic));
             }
             batch.close();
         }
@@ -399,9 +399,9 @@ DockSite::StackSlot* DockSite::side_slot_of(const DockPanelId& panel) {
 }
 
 std::size_t DockSite::flyout_slot_index() const noexcept {
-    if (!flyout_panel_) return stacks_.size();
+    if (!flyout_panel()) return stacks_.size();
     for (std::size_t index = 0; index < stacks_.size(); ++index) {
-        if (stacks_[index].stack == flyout_stack_ && stacks_[index].in_flyout) return index;
+        if (stacks_[index].stack == flyout_stack_id() && stacks_[index].in_flyout) return index;
     }
     return stacks_.size();
 }
@@ -466,7 +466,7 @@ DockSite::FlyoutGeometry DockSite::flyout_geometry() const {
 }
 
 double DockSite::flyout_extent() const {
-    if (!flyout_panel_) return 0.0;
+    if (!flyout_panel()) return 0.0;
     const std::size_t index = flyout_slot_index();
     if (index >= stacks_.size()) return 0.0;
     const FlyoutGeometry placed = flyout_geometry();
@@ -475,24 +475,46 @@ double DockSite::flyout_extent() const {
 }
 
 Control::Ptr DockSite::flyout_control() const noexcept {
-    if (!flyout_panel_) return {};
-    const Control::Ptr control = flyout_;
+    const FlyoutShown* const held = flyout_presentation_.held_state();
+    if (held == nullptr) return {};
+    const Control::Ptr control = (*held).root;
     return control;
+}
+
+std::optional<DockPanelId> DockSite::flyout_panel() const noexcept {
+    const FlyoutShown* const held = flyout_presentation_.held_state();
+    if (held == nullptr) return std::nullopt;
+    return (*held).panel;
+}
+
+DockSite::Flyout* DockSite::flyout_ptr() const noexcept {
+    const FlyoutShown* const held = flyout_presentation_.held_state();
+    return held != nullptr ? (*held).flyout.get() : nullptr;
+}
+
+Control* DockSite::flyout_root_ptr() const noexcept {
+    const FlyoutShown* const held = flyout_presentation_.held_state();
+    return held != nullptr ? (*held).root.get() : nullptr;
+}
+
+DockNodeId DockSite::flyout_stack_id() const noexcept {
+    const FlyoutShown* const held = flyout_presentation_.held_state();
+    return held != nullptr ? (*held).stack : DockNodeId{};
 }
 
 // Moves the flyout to where its slide stands: the slot's rectangles (for
 // painting and the parts) and the overlay's bounds in window coordinates.
 void DockSite::place_flyout() {
     const std::size_t index = flyout_slot_index();
-    if (!flyout_ || index >= stacks_.size()) return;
+    if (!flyout_ptr() || index >= stacks_.size()) return;
     const FlyoutGeometry placed = flyout_geometry();
     StackSlot& slot = stacks_[index];
     slot.bounds = placed.full;
     slot.caption = placed.caption;
     const Rect absolute = absolute_bounds();
     const Rect window_bounds = moved(placed.revealed, Point{absolute.x, absolute.y});
-    if (!((*flyout_).requested_bounds() == window_bounds)) (*flyout_).set_requested_bounds(window_bounds);
-    (*flyout_).invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    if (!((*flyout_ptr()).requested_bounds() == window_bounds)) (*flyout_ptr()).set_requested_bounds(window_bounds);
+    (*flyout_ptr()).invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
     invalidate(Dirty::paint | Dirty::semantics);
 }
 
@@ -518,21 +540,25 @@ bool DockSite::resize_flyout(double extent) {
 // -- opening and closing ------------------------------------------------------------------
 
 void DockSite::flyout_adopt(const Control::Ptr& view) {
-    if (flyout_) (*flyout_).adopt(view);
+    if (flyout_ptr()) (*flyout_ptr()).adopt(view);
 }
 
+// The flyout stops observing the site and the record lets it go; the
+// record itself (panel, stack, lease) stays until the presentation ends.
 void DockSite::release_flyout_control() noexcept {
-    if (flyout_) (*flyout_).release_site();
-    flyout_root_.reset();
-    flyout_.reset();
+    FlyoutShown* const held = flyout_presentation_.held_state();
+    if (held == nullptr) return;
+    if ((*held).flyout) (*(*held).flyout).release_site();
+    (*held).root.reset();
+    (*held).flyout.reset();
 }
 
 bool DockSite::focus_in_flyout() const {
     const Window* const host = attached_window();
-    if (host == nullptr || !flyout_ || !flyout_panel_) return false;
+    if (host == nullptr || !flyout_ptr() || !flyout_panel()) return false;
     const Control::Ptr focused = (*host).focused_control();
     if (!focused) return false;
-    const bool inside = (*focused).runtime_id() == (*flyout_).runtime_id() || (*flyout_).contains(*focused);
+    const bool inside = (*focused).runtime_id() == (*flyout_ptr()).runtime_id() || (*flyout_ptr()).contains(*focused);
     return inside;
 }
 
@@ -540,10 +566,11 @@ bool DockSite::focus_in_flyout() const {
 // focusable one), else onto the flyout itself.
 void DockSite::focus_into_flyout() {
     Window* const host = attached_window();
-    if (host == nullptr || !flyout_panel_ || !flyout_) return;
-    const DockPanelId panel = *flyout_panel_;
+    if (host == nullptr || !flyout_panel() || !flyout_ptr()) return;
+    const DockPanelId panel = *flyout_panel();
     focus_panel(panel);
-    if (!focus_in_flyout()) static_cast<void>((*host).request_focus(flyout_));
+    const FlyoutShown* const held = flyout_presentation_.held_state();
+    if (held != nullptr && !focus_in_flyout()) static_cast<void>((*host).request_focus((*held).root));
 }
 
 // The control that had focus before the flyout took it (never a side strip),
@@ -552,8 +579,8 @@ void DockSite::restore_focus_from_flyout() {
     Window* const host = attached_window();
     if (host == nullptr) return;
     const Control::Ptr target = return_focus_.lock();
-    const bool inside = target && flyout_ &&
-                        ((*target).runtime_id() == (*flyout_).runtime_id() || (*flyout_).contains(*target));
+    const bool inside = target && flyout_ptr() &&
+                        ((*target).runtime_id() == (*flyout_ptr()).runtime_id() || (*flyout_ptr()).contains(*target));
     if (target && !inside && focus_candidate(*target) && (*host).request_focus(target)) return;
     if (workspace_ == nullptr) return;
     const std::optional<DockPanelId> document = (*workspace_).active_document();
@@ -564,48 +591,60 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
     require_mutable();
     Window* const host = attached_window();
     if (host == nullptr || workspace_ == nullptr) return false;
+    // A flyout closing is not replaced until its view is back in the site.
+    if (flyout_presentation_.is_closing()) return false;
     StackSlot* slot = side_slot_of(panel);
     if (slot == nullptr || !(*slot).view) return false;
     const bool take_focus = cause != DockFlyoutCause::hover;
-    if (flyout_panel_ && *flyout_panel_ == panel) {
+    const FlyoutShown* const shown = flyout_presentation_.open_state();
+    if (shown != nullptr && (*shown).panel == panel) {
         if (take_focus && !focus_in_flyout()) {
             return_focus_ = focus_outside_;
             focus_into_flyout();
         }
         return true;
     }
-    if (flyout_panel_) {
+    if (shown != nullptr) {
         close_flyout(DockFlyoutCause::swapped);
+        if (!flyout_presentation_.is_closed()) return false;
         slot = side_slot_of(panel);
         if (slot == nullptr || !(*slot).view) return false;
     }
     stop_hover();
     leave_timer_.disconnect();
     stale_timer_.disconnect();
-    flyout_panel_ = panel;
-    flyout_stack_ = (*slot).stack;
     pointer_in_flyout_ = false;
     flyout_focused_ = false;
-    flyout_ = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".flyout"), *this);
+    FlyoutShown opening{};
+    opening.panel = panel;
+    opening.stack = (*slot).stack;
+    opening.flyout = make_control<Flyout>(StableId(std::string(stable_id().value()) + ".flyout"), *this);
+    Flyout& flyout = *opening.flyout;
     const std::shared_ptr<const Theme> site_theme = inherited_theme_override();
-    if (site_theme) (*flyout_).set_theme_override(site_theme);
+    if (site_theme) flyout.set_theme_override(site_theme);
     // The flyout is an overlay root, so the colours the program set on the
     // form (WinForms ambient BackColor and ForeColor) stop at it; it takes
     // the site's.
     const stxlib::Optional<Color> site_back = ambient_back_color();
-    if (site_back.present()) (*flyout_).back_color = site_back;
+    if (site_back.present()) flyout.back_color = site_back;
     const stxlib::Optional<Color> site_fore = ambient_fore_color();
-    if (site_fore.present()) (*flyout_).fore_color = site_fore;
-    flyout_root_ = flyout_;
+    if (site_fore.present()) flyout.fore_color = site_fore;
+    opening.root = opening.flyout;
+    // No focus scope: the flyout is open as soon as it is held, and the
+    // view moves into it, which reads the record.
+    flyout_presentation_ = PresentationState<FlyoutShown>::open(std::move(opening));
     move_view_to_flyout(*slot);
     // The slide starts under the strip; under reduced motion or in an
     // occluded window it is all out at once.
     flyout_slide_.jump_to(0.0);
     static_cast<void>(flyout_slide_.animate_to(1.0));
     place_flyout();
-    flyout_token_ = (*host).open_overlay(shared_from_this(), flyout_);
-    if (Event<>* const closed = flyout_token_.closed_event()) {
-        flyout_revoked_ = (*closed).subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_flyout_revoked>(*this));
+    FlyoutShown* const opened = flyout_presentation_.open_state();
+    if (opened == nullptr) return false;
+    (*opened).lease.overlay = (*host).open_overlay(shared_from_this(), (*opened).root);
+    if (Event<>* const closed = (*opened).lease.overlay.closed_event()) {
+        (*opened).lease.overlay_closed =
+            (*closed).subscribe(*this, Delegate<>::bind<DockSite, &DockSite::on_flyout_revoked>(*this));
     }
     sync_side_strips();
     if (take_focus) {
@@ -622,14 +661,16 @@ bool DockSite::open_flyout(const DockPanelId& panel, DockFlyoutCause cause) {
 }
 
 // Closing order: focus returns (when it was inside), the view goes back to
-// the site, the window drops the overlay, then flyout_changed(false).
+// the site, the window drops the overlay, then flyout_changed(false). The
+// record is closing throughout: the panel and stack stay readable, and a
+// close or open asked meanwhile is refused.
 void DockSite::close_flyout(DockFlyoutCause cause) noexcept {
-    if (!flyout_panel_ || flyout_closing_) return;
-    flyout_closing_ = true;
-    const DockPanelId panel = *flyout_panel_;
+    if (!flyout_presentation_.begin_closing()) return;
+    FlyoutShown& closing = *flyout_presentation_.closing_state();
+    const DockPanelId panel = closing.panel;
     try {
         if (cause != DockFlyoutCause::swapped && focus_in_flyout()) restore_focus_from_flyout();
-        if (menu_from_flyout_) close_position_menu();
+        if (menu_from_flyout()) close_position_menu();
     } catch (...) {
     }
     hover_timer_.disconnect();
@@ -640,21 +681,20 @@ void DockSite::close_flyout(DockFlyoutCause cause) noexcept {
     if (hot_.index == index && (hot_.zone != Zone::seam)) hot_ = {};
     if (pressed_.index == index && (pressed_.zone != Zone::seam)) pressed_ = {};
     grip_captured_ = false;
-    flyout_revoked_.disconnect();
+    closing.lease.overlay_closed.disconnect();
     try {
         if (index < stacks_.size()) move_view_to_site(stacks_[index]);
     } catch (...) {
     }
-    flyout_token_.disconnect();
+    closing.lease.overlay.disconnect();
     release_flyout_control();
-    flyout_panel_.reset();
-    flyout_stack_ = {};
+    flyout_presentation_.finish_closing();
     flyout_slide_.jump_to(1.0);
     flyout_focused_ = false;
     flyout_focus_pending_ = false;
     pointer_in_flyout_ = false;
-    menu_from_flyout_ = false;
-    flyout_closing_ = false;
+    PositionMenuTarget* const menu_target = menu_presentation_.shown_state();
+    if (menu_target != nullptr) (*menu_target).from_flyout = false;
     if (!is_alive()) return;
     try {
         invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
@@ -667,16 +707,19 @@ void DockSite::close_flyout(DockFlyoutCause cause) noexcept {
     }
 }
 
-// The window dropped the overlay (the site became unavailable).
+// The window dropped the overlay (the site became unavailable): its token
+// is let go without closing it again.
 void DockSite::on_flyout_revoked() {
-    flyout_token_ = {};
+    FlyoutShown* const shown = flyout_presentation_.open_state();
+    if (shown == nullptr) return;
+    (*shown).lease.overlay = {};
     close_flyout(DockFlyoutCause::programmatic);
 }
 
 // A step of the slide on the window's motion clock: the flyout moves to
 // where it now stands.
 void DockSite::on_slide_motion(const MotionStep&) {
-    if (!flyout_panel_) return;
+    if (!flyout_panel()) return;
     place_flyout();
 }
 
@@ -689,8 +732,8 @@ void DockSite::schedule_stale_check() {
 
 void DockSite::stale_flyout_elapsed() {
     stale_timer_.disconnect();
-    if (!flyout_panel_) return;
-    const StackSlot* const slot = slot_for(flyout_stack_);
+    if (!flyout_panel()) return;
+    const StackSlot* const slot = slot_for(flyout_stack_id());
     const bool behind_tabs = slot != nullptr && ((*slot).auto_hidden || (*slot).side_tabbed);
     if (!behind_tabs) close_flyout(DockFlyoutCause::layout);
 }
@@ -736,13 +779,13 @@ void DockSite::hover_elapsed(const DockPanelId& panel) {
     if (!(hover_panel_ == panel)) return;
     hover_panel_ = {};
     // A flyout the user is working in is not replaced by a hover.
-    if (flyout_panel_ && focus_in_flyout()) return;
+    if (flyout_panel() && focus_in_flyout()) return;
     static_cast<void>(open_flyout(panel, DockFlyoutCause::hover));
 }
 
 void DockSite::leave_elapsed() {
     leave_timer_.disconnect();
-    if (!flyout_panel_ || pointer_in_flyout_ || focus_in_flyout()) return;
+    if (!flyout_panel() || pointer_in_flyout_ || focus_in_flyout()) return;
     close_flyout(DockFlyoutCause::pointer_left);
 }
 
@@ -760,7 +803,7 @@ bool DockSite::side_tab_at(Point point, std::optional<DockPanelId>& tab) const {
 }
 
 void DockSite::close_on_outside_press(const PointerEvent& event) {
-    if (!flyout_panel_) return;
+    if (!flyout_panel()) return;
     std::optional<DockPanelId> tab{};
     if (side_tab_at(event.position, tab)) return;
     close_flyout(DockFlyoutCause::outside_press);
@@ -776,7 +819,7 @@ void DockSite::on_root_pointer(const PointerEvent& event) {
     const bool on_strip = side_tab_at(event.position, tab);
     if (event.action == PointerAction::move || event.action == PointerAction::enter) {
         pointer_in_flyout_ = false;
-        if (tab && flyout_panel_ && *flyout_panel_ == *tab) {
+        if (tab && flyout_panel() && *flyout_panel() == *tab) {
             // Resting on the open flyout's own tab keeps it out.
             stop_hover();
             leave_timer_.disconnect();
@@ -787,13 +830,13 @@ void DockSite::on_root_pointer(const PointerEvent& event) {
         } else {
             stop_hover();
         }
-        if (flyout_panel_ && !focus_in_flyout()) start_leave();
+        if (flyout_panel() && !focus_in_flyout()) start_leave();
         return;
     }
     if (event.action == PointerAction::up) flyout_focus_pending_ = false;
     if (event.action != PointerAction::down) return;
     stop_hover();
-    if (!flyout_panel_ || on_strip) return;
+    if (!flyout_panel() || on_strip) return;
     close_on_outside_press(event);
 }
 
@@ -840,14 +883,14 @@ DockSite::Hit DockSite::flyout_hit(Point local) const {
 // the panel's controls take their own). A press stays in the flyout.
 void DockSite::on_flyout_pointer(PointerEvent& event) {
     const std::size_t index = flyout_slot_index();
-    if (index >= stacks_.size() || !flyout_) return;
+    if (index >= stacks_.size() || !flyout_ptr()) return;
     const Rect absolute = absolute_bounds();
     const Point local{event.position.x - absolute.x, event.position.y - absolute.y};
     const DockSide edge = stacks_[index].edge;
     if (event.action == PointerAction::leave) {
         if (!grip_captured_ && hot_.index == index && hot_.zone != Zone::seam) {
             hot_ = {};
-            (*flyout_).invalidate(Dirty::paint);
+            (*flyout_ptr()).invalidate(Dirty::paint);
         }
         return;
     }
@@ -878,8 +921,8 @@ void DockSite::on_flyout_pointer(PointerEvent& event) {
             hot_ = hit;
             CursorKind cursor = CursorKind::arrow;
             if (hit.zone == Zone::grip) cursor = across(edge) ? CursorKind::resize_horizontal : CursorKind::resize_vertical;
-            (*flyout_).cursor = stxlib::Optional<CursorKind>::of(cursor);
-            (*flyout_).invalidate(Dirty::paint);
+            (*flyout_ptr()).cursor = stxlib::Optional<CursorKind>::of(cursor);
+            (*flyout_ptr()).invalidate(Dirty::paint);
             invalidate(Dirty::paint);
         }
         return;
@@ -894,22 +937,22 @@ void DockSite::on_flyout_pointer(PointerEvent& event) {
             grip_start_extent_ = flyout_extent();
             grip_origin_ = event.position;
             invalidate(Dirty::paint);
-            (*flyout_).invalidate(Dirty::paint);
+            (*flyout_ptr()).invalidate(Dirty::paint);
             return;
         }
-        if (hit.zone == Zone::menu && flyout_panel_) {
-            if (menu_open_ && menu_from_flyout_) {
+        if (hit.zone == Zone::menu && flyout_panel()) {
+            if (menu_from_flyout()) {
                 close_position_menu();
                 return;
             }
-            const DockPanelId panel = *flyout_panel_;
+            const DockPanelId panel = *flyout_panel();
             static_cast<void>(show_position_menu(panel, MenuOpenMode::pointer));
             return;
         }
         if ((hit.zone == Zone::pin || hit.zone == Zone::close) &&
             !button_states(hit.index, hit.zone).contains(AnatomyState::disabled)) {
             pressed_ = hit;
-            (*flyout_).invalidate(Dirty::paint);
+            (*flyout_ptr()).invalidate(Dirty::paint);
             return;
         }
         // A press on the caption or the face takes focus into the panel; on
@@ -926,14 +969,14 @@ void DockSite::on_flyout_pointer(PointerEvent& event) {
     if (grip_captured_) {
         grip_captured_ = false;
         invalidate(Dirty::paint);
-        if (flyout_) (*flyout_).invalidate(Dirty::paint);
+        if (flyout_ptr()) (*flyout_ptr()).invalidate(Dirty::paint);
         return;
     }
     const Hit pressed = pressed_;
     pressed_ = {};
     if (pressed.zone == Zone::none) return;
     const Hit released = flyout_hit(local);
-    if (flyout_) (*flyout_).invalidate(Dirty::paint);
+    if (flyout_ptr()) (*flyout_ptr()).invalidate(Dirty::paint);
     if (pressed != released) return;
     press_caption_button(pressed.index, pressed.zone);
 }

@@ -1164,7 +1164,11 @@ Related types
 
    .. cpp:function:: const Held* open_state() const noexcept
 
+   .. cpp:function:: const Held* closing_state() const noexcept
+
    .. cpp:function:: const Held* shown_state() const noexcept
+
+   .. cpp:function:: const Held* held_state() const noexcept
 
 
    .. rubric:: Methods
@@ -1188,6 +1192,10 @@ Related types
    .. cpp:function:: Held* shown_state() noexcept
 
       Opening or open: the record of the presentation that is shown.
+
+   .. cpp:function:: Held* held_state() noexcept
+
+      Any phase but closed: the record, also while it is being dismantled (for the queries that report a closing presentation as still there).
 
    .. cpp:function:: bool settle_open() noexcept
 

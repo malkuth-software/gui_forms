@@ -9,6 +9,7 @@
 #include "gui_forms/controls/dock_workspace.hpp"
 #include "gui_forms/controls/menu_strip.hpp"
 #include "gui_forms/controls/page_view.hpp"
+#include "gui_forms/controls/presentation_state.hpp"
 #include "gui_forms/docking.hpp"
 #include "gui_forms/event.hpp"
 #include "gui_forms/window.hpp"
@@ -490,7 +491,7 @@ public:
     // False when both lists are empty or the site is detached.
     bool open_navigator(DockNavigatorList list, int direction, Modifier release);
     void close_navigator() noexcept;
-    [[nodiscard]] bool navigator_open() const noexcept { return navigator_open_; }
+    [[nodiscard]] bool navigator_open() const noexcept { return navigator_presentation_.is_open(); }
     // The open navigator, or null.
     [[nodiscard]] std::shared_ptr<DockNavigator> navigator() const noexcept;
 
@@ -563,9 +564,10 @@ public:
     // site.
     bool open_flyout(const DockPanelId& panel, DockFlyoutCause cause = DockFlyoutCause::programmatic);
     void close_flyout(DockFlyoutCause cause = DockFlyoutCause::programmatic) noexcept;
-    [[nodiscard]] bool flyout_open() const noexcept { return flyout_panel_.has_value(); }
-    // The panel the flyout shows, or none.
-    [[nodiscard]] const std::optional<DockPanelId>& flyout_panel() const noexcept { return flyout_panel_; }
+    // Open, or closing until its view is back in the site.
+    [[nodiscard]] bool flyout_open() const noexcept { return flyout_presentation_.held_state() != nullptr; }
+    // The panel the flyout shows (also while it closes), or none.
+    [[nodiscard]] std::optional<DockPanelId> flyout_panel() const noexcept;
     // How far the flyout has slid out, from 0 to 1 (1 while closed).
     [[nodiscard]] double flyout_reveal() const noexcept { return flyout_slide_.current(); }
     // The open flyout's extent across its edge, in logical units, or 0.
@@ -1292,18 +1294,32 @@ private:
     SubscriptionToken menu_changed_{};
     // One command per position row, in DockPositionCommand order.
     std::array<std::shared_ptr<Command>, 9> menu_commands_{};
-    DockPanelId menu_panel_{};
-    std::size_t menu_stack_{};
-    bool menu_open_{};
-    std::shared_ptr<DockNavigator> navigator_{};
-    OverlayToken navigator_token_{};
-    FocusScopeId navigator_scope_{};
-    bool navigator_open_{};
-    bool navigator_closing_{};
-    SubscriptionToken navigator_chosen_{};
-    SubscriptionToken navigator_cancelled_{};
-    SubscriptionToken navigator_revoked_{};
-    SubscriptionToken window_pointer_{};
+    // The position menu's target while it is shown: the panel, its stack's
+    // slot and whether it was opened from the flyout's caption (focus in
+    // the menu then does not count as leaving the flyout). Opening while
+    // the ContextMenu shows; open from its open_changed(true) until its
+    // open_changed(false). The ContextMenu is the menu's own record.
+    struct PositionMenuTarget final {
+        DockPanelId panel{};
+        std::size_t stack{};
+        bool from_flyout{};
+    };
+    PresentationState<PositionMenuTarget> menu_presentation_{};
+    // The open menu's stack slot is `index`.
+    [[nodiscard]] bool menu_open_on(std::size_t index) const noexcept;
+    // The open menu was opened from the flyout.
+    [[nodiscard]] bool menu_from_flyout() const noexcept;
+    // One opening of the navigator: the overlay, its lease (with the focus
+    // scope, begun while opening), its chosen and cancelled subscriptions
+    // and the window's pointer preview that closes it on a press outside.
+    struct NavigatorOpening final {
+        std::shared_ptr<DockNavigator> navigator{};
+        OverlayLease lease{};
+        SubscriptionToken chosen{};
+        SubscriptionToken cancelled{};
+        SubscriptionToken window_pointer{};
+    };
+    PresentationState<NavigatorOpening> navigator_presentation_{};
     // The drag: its session, the layer that paints it above the stacks (a
     // child kept last), its motion and the window events that cancel it.
     // stamp_motion_ is the stamp's progress, 0 to 1 over 220 ms
@@ -1331,18 +1347,29 @@ private:
 
     // Auto-hide: the side strips by DockSide, the tree's rectangle from the
     // last layout pass, and the flyout. The flyout control is the window's
-    // overlay while open (flyout_token_) and observes the site, which
+    // overlay while open (flyout_presentation_) and observes the site, which
     // releases it before letting it go.
     std::array<SideStrip, 4> sides_{};
     Rect tree_area_{};
-    std::shared_ptr<Flyout> flyout_{};
-    // The same control as a Control, for the sources that see Flyout only
-    // declared.
-    Control::Ptr flyout_root_{};
-    OverlayToken flyout_token_{};
-    SubscriptionToken flyout_revoked_{};
-    std::optional<DockPanelId> flyout_panel_{};
-    DockNodeId flyout_stack_{};
+    // One opening of the flyout: the control (the window's overlay while
+    // open, through the lease; no focus scope), the same control as a
+    // Control for the sources that see Flyout only declared, the panel it
+    // shows and that panel's stack. Open as soon as it is shown; closing
+    // keeps the record (the panel and stack stay readable) until the view
+    // is back in the site.
+    struct FlyoutShown final {
+        std::shared_ptr<Flyout> flyout{};
+        Control::Ptr root{};
+        OverlayLease lease{};
+        DockPanelId panel{};
+        DockNodeId stack{};
+    };
+    PresentationState<FlyoutShown> flyout_presentation_{};
+    // The flyout control while one is held; null otherwise or once released.
+    [[nodiscard]] Flyout* flyout_ptr() const noexcept;
+    [[nodiscard]] Control* flyout_root_ptr() const noexcept;
+    // The flyout's stack while one is held; the empty id otherwise.
+    [[nodiscard]] DockNodeId flyout_stack_id() const noexcept;
     // How far the flyout has slid out: 0 to 1 over flyout_slide_duration
     // (linear), and 1 while closed.
     MotionValue flyout_slide_;
@@ -1352,13 +1379,9 @@ private:
     FrameRequestToken stale_timer_{};
     bool pointer_in_flyout_{};
     bool flyout_focused_{};
-    bool flyout_closing_{};
     // A side tab's press opened the flyout: the strip's focus that follows
     // is sent on into it, until the release.
     bool flyout_focus_pending_{};
-    // The position menu was opened from the flyout's caption: focus in it
-    // does not count as leaving the flyout.
-    bool menu_from_flyout_{};
     // The grip drag: the extent and the pointer where it started.
     bool grip_captured_{};
     double grip_start_extent_{};
