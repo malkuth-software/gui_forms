@@ -31,6 +31,9 @@
 #include <cstdint>
 #include <string>
 #include <string_view>
+#include <vector>
+
+#include "gui_forms/host/types/host_types.hpp"
 
 namespace gui_forms {
 class ApplicationWindowHandle;
@@ -143,5 +146,35 @@ using RouteObserver = void (*)(void* context, const SurfaceRoot& window, const R
 void install_route_observer(RouteObserver observer, void* context) noexcept;
 [[nodiscard]] bool route_observed() noexcept;
 void notify_route(const SurfaceRoot& window, const RouteRecord& record) noexcept;
+
+// The model's questions (owner, round 3): while a model's call runs, a
+// question the program raises (a save-changes prompt as the model closes or
+// quits) is the model's. HostServices::show_dialog answers it from the
+// call's argument and shows nothing: save is Yes, discard No, and no answer
+// cancels, so the program stays as it was with nothing left waiting. The
+// call's reply gives the question and its choices. A file, folder or colour
+// dialog asked meanwhile is cancelled the same way. UI thread.
+enum class ModelQuestionAnswer : std::uint8_t {
+    none,
+    save,
+    discard,
+};
+struct ModelQuestion final {
+    std::string title{};
+    std::string message{};
+    HostMessageButtons buttons{HostMessageButtons::ok};
+    // A file, folder or colour dialog, cancelled.
+    bool path_dialog{};
+    // What it was answered.
+    HostDialogChoice choice{HostDialogChoice::none};
+};
+// Starts `call`'s questions, ending any earlier call's.
+void begin_model_questions(std::uint64_t call, ModelQuestionAnswer answer) noexcept;
+// Ends `call`'s questions (any call's for 0), moving the questions asked
+// into `asked`. A call that is not the current one changes nothing.
+void end_model_questions(std::uint64_t call, std::vector<ModelQuestion>& asked) noexcept;
+[[nodiscard]] bool model_questions_open() noexcept;
+// Whether `request` was the model's: then `result` holds its answer.
+[[nodiscard]] bool answer_model_question(const HostDialogRequest& request, HostDialogResult& result);
 
 } // namespace gui_forms::detail

@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <atomic>
 #include <stxlib/threads.hpp>
+#include <utility>
+#include <variant>
 #include <vector>
 
 namespace gui_forms::detail {
@@ -226,6 +228,102 @@ void notify_route(const SurfaceRoot& window, const RouteRecord& record) noexcept
     }
     if (route.observer == nullptr) return;
     route.observer(route.context, window, record);
+}
+
+namespace {
+
+struct ModelQuestions final {
+    std::uint64_t call{};
+    ModelQuestionAnswer answer{ModelQuestionAnswer::none};
+    std::vector<ModelQuestion> asked{};
+};
+
+// Never destroyed: a question asked as the process exits finds it.
+ModelQuestions& model_questions() noexcept {
+    static ModelQuestions* const questions = new ModelQuestions();
+    return *questions;
+}
+
+bool buttons_offer(HostMessageButtons buttons, HostDialogChoice choice) noexcept {
+    switch (buttons) {
+    case HostMessageButtons::ok: return choice == HostDialogChoice::ok;
+    case HostMessageButtons::ok_cancel: return choice == HostDialogChoice::ok || choice == HostDialogChoice::cancel;
+    case HostMessageButtons::yes_no: return choice == HostDialogChoice::yes || choice == HostDialogChoice::no;
+    case HostMessageButtons::yes_no_cancel:
+        return choice == HostDialogChoice::yes || choice == HostDialogChoice::no || choice == HostDialogChoice::cancel;
+    case HostMessageButtons::retry_cancel:
+        return choice == HostDialogChoice::retry || choice == HostDialogChoice::cancel;
+    case HostMessageButtons::abort_retry_ignore:
+    case HostMessageButtons::cancel_try_continue: return false;
+    }
+    return false;
+}
+
+// The answer to a message question: save is Yes (OK where there is no
+// Yes), discard is No; anything else, or a choice the buttons lack,
+// cancels. A message with only OK is acknowledged.
+HostDialogChoice model_choice(HostMessageButtons buttons, ModelQuestionAnswer answer) noexcept {
+    if (buttons == HostMessageButtons::ok) return HostDialogChoice::ok;
+    if (answer == ModelQuestionAnswer::save) {
+        if (buttons_offer(buttons, HostDialogChoice::yes)) return HostDialogChoice::yes;
+        if (buttons_offer(buttons, HostDialogChoice::ok)) return HostDialogChoice::ok;
+    }
+    if (answer == ModelQuestionAnswer::discard && buttons_offer(buttons, HostDialogChoice::no)) {
+        return HostDialogChoice::no;
+    }
+    return HostDialogChoice::none;
+}
+
+} // namespace
+
+void begin_model_questions(const std::uint64_t call, const ModelQuestionAnswer answer) noexcept {
+    ModelQuestions& questions = model_questions();
+    questions.call = call;
+    questions.answer = answer;
+    questions.asked.clear();
+}
+
+void end_model_questions(const std::uint64_t call, std::vector<ModelQuestion>& asked) noexcept {
+    ModelQuestions& questions = model_questions();
+    if (questions.call == 0U || (call != 0U && call != questions.call)) return;
+    asked = std::move(questions.asked);
+    questions.asked.clear();
+    questions.call = 0U;
+    questions.answer = ModelQuestionAnswer::none;
+}
+
+bool model_questions_open() noexcept {
+    const bool open = model_questions().call != 0U;
+    return open;
+}
+
+bool answer_model_question(const HostDialogRequest& request, HostDialogResult& result) {
+    ModelQuestions& questions = model_questions();
+    if (questions.call == 0U) return false;
+    ModelQuestion asked{};
+    result.status = {};
+    result.request_id = request.request_id;
+    if (const HostMessageDialogRequest* const message = std::get_if<HostMessageDialogRequest>(&request.payload)) {
+        asked.title = (*message).title;
+        asked.message = (*message).message;
+        asked.buttons = (*message).buttons;
+        asked.choice = model_choice((*message).buttons, questions.answer);
+        HostMessageDialogResult answer{};
+        answer.outcome = asked.choice == HostDialogChoice::none ? HostDialogOutcome::cancelled
+                                                                : HostDialogOutcome::accepted;
+        answer.choice = asked.choice;
+        result.payload = answer;
+    } else if (std::holds_alternative<HostColorDialogRequest>(request.payload)) {
+        asked.path_dialog = true;
+        asked.title = "a colour dialog";
+        result.payload = HostColorDialogResult{};
+    } else {
+        asked.path_dialog = true;
+        asked.title = "a file or folder dialog";
+        result.payload = HostPathDialogResult{};
+    }
+    questions.asked.push_back(std::move(asked));
+    return true;
 }
 
 } // namespace gui_forms::detail

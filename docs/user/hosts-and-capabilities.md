@@ -410,6 +410,14 @@ Windows (Win32)
   This holds for a program run by `Application::run` and for one that calls
   its host's single-window entry (`host::run_macos`, `run_windows`,
   `run_linux`) directly; that window joins as `main`.
+  While the model's call runs, a question the program raises (save
+  changes, a file or colour dialog) is the model's: it is never shown, the
+  call's reply carries it with its choices, and the program stays as it was.
+  `on_unsaved` (`save` or `discard`) answers a save question; without it the
+  question is cancelled. Save first, then close, needs no question at all.
+  After the user takes control back, questions are shown as usual. The
+  take-back and countdown dialogs stay usable over any modal dialog
+  (`ApplicationWindow::outside_modality`).
   The built-in tools and their arguments are listed in [MCP tools](mcp-tools.md),
   generated from a built program.
   A program declares its own model tools and inspect sections beside the

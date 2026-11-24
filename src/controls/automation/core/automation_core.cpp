@@ -37,6 +37,10 @@ constexpr const char* target_properties =
     "\"target\":{\"type\":\"string\",\"description\":\"a node's stable ID, or #r<n> for a runtime ID\"},"
     "\"within\":{\"type\":\"string\",\"description\":\"an ancestor's stable ID, when the target's ID repeats\"}";
 
+// An acting call's answer to a question the program raises meanwhile.
+constexpr std::string_view on_unsaved_property =
+    "\"on_unsaved\":{\"type\":\"string\",\"enum\":[\"save\",\"discard\"]}";
+
 std::string object_schema(std::string_view properties) {
     std::string schema = "{\"type\":\"object\",\"properties\":{";
     schema += window_property;
@@ -124,14 +128,17 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, "
         "show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list "
         "does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), "
-        "never submitted. Waits for idle and replies with what changed; terse gives counts. Acts need "
-        "control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that "
-        "allows).",
+        "never submitted. close on a program window's own ID closes the window: save first, then close. A "
+        "question the program raises during an act (save changes?) is yours and never shown: with no "
+        "on_unsaved the act stops there, the program stays as it was, and the reply gives the question and its "
+        "choices; on_unsaved save or discard answers it. Waits for idle and replies with what changed; terse "
+        "gives counts. Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a "
+        "10-second countdown that allows).",
         object_schema(targets +
                       ",\"action\":{\"type\":\"string\",\"enum\":[\"press\",\"select\",\"expand\",\"collapse\","
                       "\"focus\",\"set_value\",\"increment\",\"decrement\",\"show_menu\",\"close\","
                       "\"scroll_into_view\",\"invoke_command\"]},\"value\":{\"type\":\"string\"},"
-                      "\"terse\":{\"type\":\"boolean\"}"),
+                      "\"terse\":{\"type\":\"boolean\"}," + std::string(on_unsaved_property)),
         ToolAccess::acting));
     specs.push_back(built_in(
         "reset", "Reset",
@@ -488,6 +495,11 @@ bool perform_act(Window& window, const PreparedAct& act, const ClientIdentity& c
         }
         return true;
     }
+    case ActKind::close_window: {
+        const HostServiceStatus asked = act.window_handle.request_close();
+        if (!asked.accepted()) outcome.detail = "the window refused the close request";
+        return asked.accepted();
+    }
     case ActKind::reveal: {
         const Control::Ptr target = window.find(act.command_id);
         if (!target) {
@@ -734,7 +746,8 @@ AutomationCore::~AutomationCore() {
     }
 }
 
-bool AutomationCore::attach_window(Window& window, std::string stable_id, const bool passive_popup) {
+bool AutomationCore::attach_window(Window& window, std::string stable_id, const bool passive_popup,
+                                   ApplicationWindowHandle handle) {
     AutomationPresenter* const presenter = control_.presenter();
     if (presenter != nullptr && (*presenter).presenter_window(window)) return false;
     prune_windows();
@@ -745,7 +758,7 @@ bool AutomationCore::attach_window(Window& window, std::string stable_id, const 
         stable_id = "window." + std::to_string(next_window_number_);
         ++next_window_number_;
     }
-    windows_.push_back(AutomationWindow{window.window_ref(), std::move(stable_id), passive_popup});
+    windows_.push_back(AutomationWindow{window.window_ref(), std::move(stable_id), passive_popup, std::move(handle)});
     // A tooltip's or a passive popup's window carries no sign (round 2:
     // the band and veil belong to the program's own windows).
     if (presenter != nullptr && !passive_popup) (*presenter).window_attached(window);
@@ -804,6 +817,13 @@ bool AutomationCore::passive_popup_window(const Window& window) const noexcept {
         if (entry.window.get() == &window) return entry.passive_popup;
     }
     return false;
+}
+
+ApplicationWindowHandle AutomationCore::window_handle(const Window& window) const {
+    for (const AutomationWindow& entry : windows_) {
+        if (entry.window.get() == &window) return entry.handle;
+    }
+    return ApplicationWindowHandle{};
 }
 
 std::string AutomationCore::window_stable_id(const Window& window) const {
@@ -870,7 +890,9 @@ void AutomationCore::fill_tool_specs(std::vector<ToolSpec>& specs) {
         spec.description = "The program's command \"" + state.text + "\"";
         if (!state.description.empty()) spec.description += ": " + state.description;
         if (!state.shortcut.empty()) spec.description += " (" + state.shortcut + ")";
-        spec.input_schema = object_schema(std::string_view{});
+        spec.description += ". A question it raises (save changes?) is yours and never shown: with no on_unsaved "
+                            "the call stops there and replies with it; save first, or pass on_unsaved";
+        spec.input_schema = object_schema(on_unsaved_property);
         spec.access = ToolAccess::acting;
         spec.destructive = state.destructive;
         spec.settles = true;
@@ -1395,6 +1417,19 @@ StepOutcome CoreAccess::prepare_act(RunningCall& call, Window& window, FrameTime
             call.before = std::move(nodes);
             return post_act(call, now);
         }
+        // A program window's own ID: the window is asked to close, as its
+        // close box asks; a question its program raises is the model's.
+        const ApplicationWindowHandle handle = core.window_handle(window);
+        if (target.has_value() && *target == core.window_stable_id(window) && handle.active() &&
+            !(dialog.open && dialog.window == &window)) {
+            PreparedAct& act = call.act;
+            act.kind = ActKind::close_window;
+            act.window_handle = handle;
+            act.destructive = window_destructive(window);
+            act.summary = "close [" + *target + "] (the window, as its close box)";
+            call.before = std::move(nodes);
+            return post_act(call, now);
+        }
     }
     if (*action_name == "scroll_into_view") {
         std::vector<FlatNode> nodes{};
@@ -1769,6 +1804,10 @@ StepOutcome CoreAccess::post_act(RunningCall& call, FrameTime now) {
     call.windows_before.clear();
     for (Window* const open : windows) call.windows_before.push_back(core.window_stable_id(*open));
     call.outcome = gui_forms::detail::make_library_shared<ActOutcome>();
+    // A question the program raises from here to the reply is the model's,
+    // a close's prompt included, which comes after the act returns.
+    gui_forms::detail::begin_model_questions(call.id.value, call.unsaved);
+    call.questions_open = true;
     PostedAct work{call.window, call.act, core.control().client(), call.outcome};
     static_cast<void>((*window).begin_invoke(std::move(work)));
     if (AutomationPresenter* const presenter = core.control().presenter()) {
@@ -2100,6 +2139,17 @@ StepOutcome CoreAccess::first_step(RunningCall& call, FrameTime now) {
     }
     const std::optional<bool> terse = detail::boolean_member(call.arguments, "terse");
     if (terse.has_value()) call.terse = *terse;
+    const std::optional<std::string> unsaved = detail::text_member(call.arguments, "on_unsaved");
+    if (unsaved.has_value()) {
+        if (*unsaved == "save") {
+            call.unsaved = gui_forms::detail::ModelQuestionAnswer::save;
+        } else if (*unsaved == "discard") {
+            call.unsaved = gui_forms::detail::ModelQuestionAnswer::discard;
+        } else {
+            return StepOutcome::finished(ToolReply::failure(ToolError::invalid_arguments,
+                                                            "no on_unsaved " + *unsaved, "save or discard"));
+        }
+    }
     if (tool == "windows") return windows_tool();
     if (tool == "reset") return reset_tool(call, now);
     if (tool == "release_control") return release_control_tool();
@@ -2383,11 +2433,74 @@ void AutomationCore::note_calls_finished() noexcept {
     if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).calls_finished();
 }
 
+namespace {
+
+const char* choice_name(HostDialogChoice choice) noexcept {
+    switch (choice) {
+    case HostDialogChoice::ok: return "OK";
+    case HostDialogChoice::yes: return "Yes";
+    case HostDialogChoice::no: return "No";
+    case HostDialogChoice::retry: return "Retry";
+    case HostDialogChoice::abort: return "Abort";
+    case HostDialogChoice::ignore: return "Ignore";
+    case HostDialogChoice::try_again: return "Try Again";
+    case HostDialogChoice::continue_: return "Continue";
+    case HostDialogChoice::help: return "Help";
+    case HostDialogChoice::none:
+    case HostDialogChoice::cancel: return "Cancel";
+    }
+    return "Cancel";
+}
+
+const char* buttons_names(HostMessageButtons buttons) noexcept {
+    switch (buttons) {
+    case HostMessageButtons::ok: return "OK";
+    case HostMessageButtons::ok_cancel: return "OK, Cancel";
+    case HostMessageButtons::yes_no: return "Yes, No";
+    case HostMessageButtons::yes_no_cancel: return "Yes, No, Cancel";
+    case HostMessageButtons::retry_cancel: return "Retry, Cancel";
+    case HostMessageButtons::abort_retry_ignore: return "Abort, Retry, Ignore";
+    case HostMessageButtons::cancel_try_continue: return "Cancel, Try Again, Continue";
+    }
+    return "OK";
+}
+
+// The questions the program raised during a call, for its reply: each
+// was the model's, answered and never shown (owner, round 3).
+void append_model_questions(const std::vector<gui_forms::detail::ModelQuestion>& asked, std::string& text) {
+    bool stopped = false;
+    for (const gui_forms::detail::ModelQuestion& question : asked) {
+        if (question.path_dialog) {
+            text += "\nquestion: the program opened " + question.title +
+                    "; it was cancelled, not shown (give a path to the program's own tool instead)";
+            continue;
+        }
+        text += "\nquestion: the program asked \"" + question.title;
+        if (!question.message.empty()) text += ": " + question.message;
+        text += "\" (" + std::string(buttons_names(question.buttons)) + "), answered " + choice_name(question.choice) +
+                "; not shown to the user";
+        if (question.choice == HostDialogChoice::none && question.buttons != HostMessageButtons::ok) stopped = true;
+    }
+    if (stopped) {
+        text += "\nThe program stopped there and stays as it was; nothing is left waiting. To go on, save first "
+                "(the program's save tool), then repeat the call; or repeat it with on_unsaved \"save\" or "
+                "\"discard\".";
+    }
+}
+
+} // namespace
+
 void AutomationCore::finish_reply(RunningCall& call, StepOutcome& outcome) {
     const ToolReply* const finished = outcome.reply();
     if (finished == nullptr) return;
     ToolReply reply = *finished;
     std::string extra{};
+    if (call.questions_open) {
+        std::vector<gui_forms::detail::ModelQuestion> asked{};
+        gui_forms::detail::end_model_questions(call.id.value, asked);
+        call.questions_open = false;
+        append_model_questions(asked, extra);
+    }
     const std::string notice = control_.take_notice();
     if (!notice.empty()) extra += "\nnote: " + notice;
     detail::append_pending_states(extra);
@@ -2498,6 +2611,10 @@ StepOutcome AutomationCore::step(CallId id, FrameTime now) {
 void AutomationCore::cancel(CallId id) noexcept {
     for (std::size_t index = 0U; index < calls_.size(); ++index) {
         if ((*calls_[index]).id != id) continue;
+        if ((*calls_[index]).questions_open) {
+            std::vector<gui_forms::detail::ModelQuestion> asked{};
+            gui_forms::detail::end_model_questions(id.value, asked);
+        }
         calls_.erase(calls_.begin() + static_cast<std::ptrdiff_t>(index));
         note_calls_finished();
         return;

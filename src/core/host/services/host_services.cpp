@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 #include "../../surface_root/requests/alert_route.hpp"
 #include "../session/drag_items.hpp"
+#include "../session/session_directory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -927,6 +928,20 @@ HostDialogResult HostServices::show_dialog(const HostDialogRequest& request) {
     }
 
     ++snapshot_.dialog_requests;
+    // While a model's call runs, the program's question is the model's: it
+    // is answered from the call's argument and never shown (owner, round 3).
+    try {
+        if (detail::answer_model_question(request, result)) {
+            ++snapshot_.dialog_completions;
+            snapshot_.dialog_cancellations +=
+                dialog_outcome(result.payload) == HostDialogOutcome::cancelled ? 1U : 0U;
+            return result;
+        }
+    } catch (...) {
+        result = {{HostServiceError::backend_failure}, request.request_id, HostMessageDialogResult{}};
+        ++snapshot_.rejected_requests;
+        return result;
+    }
     revoke_cursor_interaction(CursorError::denied);
     modal_stack_.push_back(request.request_id);
     snapshot_.modal_depth = static_cast<std::uint32_t>(modal_stack_.size());

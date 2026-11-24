@@ -5,6 +5,7 @@
 // read-only tools and the conditions of wait and expect).
 
 #include "automation_internal.hpp"
+#include "../../../core/host/session/session_directory.hpp"
 
 #include <memory>
 #include <optional>
@@ -37,6 +38,8 @@ enum class ActKind : std::uint8_t {
     selection,
     registry,
     reveal,
+    // A program window asked to close (act close on its own ID).
+    close_window,
 };
 
 // An act prepared and checked, performed at a later dispatcher turn so that
@@ -66,6 +69,8 @@ struct PreparedAct final {
     // The target opens a dialog: the program's dialog-free tool for it, or
     // empty, named when the dialog opens.
     std::string dialog_tool{};
+    // close_window: the window's handle.
+    ApplicationWindowHandle window_handle{};
     // reveal: scroll the control into view in every scrolling ancestor.
     // The target is a password field: the reply says only "ok" (study 9.1).
     bool protected_target{};
@@ -160,6 +165,10 @@ struct AutomationCore::RunningCall final {
     std::string reset_left{};
     std::vector<std::string> reset_windows{};
     std::vector<std::string> reset_dialogs{};
+    // on_unsaved: the answer to a question the program raises during the
+    // call; whether the call holds the model's questions open.
+    gui_forms::detail::ModelQuestionAnswer unsaved{gui_forms::detail::ModelQuestionAnswer::none};
+    bool questions_open{};
 };
 
 namespace detail {

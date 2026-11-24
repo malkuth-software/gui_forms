@@ -250,7 +250,7 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         const std::shared_ptr<gui_forms::detail::ApplicationWindowState> state =
             gui_forms::detail::ApplicationHandleAccess::state(handle);
         const bool passive_popup = state != nullptr && (*state).passive_popup;
-        if (!run.core_.attach_window(*model, std::string(stable_id), passive_popup)) return;
+        if (!run.core_.attach_window(*model, std::string(stable_id), passive_popup, handle)) return;
         run.presenter_.set_windowing(handle, stable_id);
         run.handles_.push_back(handle);
         bool closing = false;
@@ -346,11 +346,15 @@ ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json
             }
             return ToolReply::failure(ToolError::cancelled, "the client cancelled the call");
         }
+        // A window gone after the call began closed during it: a model's
+        // close of the program's last window ends here (round 3).
+        const ToolReply closed = ToolReply::success("ok: the window closed during the call; the program may be "
+                                                    "ending");
         dispatcher = home_dispatcher();
-        if (!dispatcher.window_alive()) return gone;
+        if (!dispatcher.window_alive()) return closed;
         try {
             if (dispatcher.invoke(StepWork{&core_, start.id, &outcome}) != DispatchInvokeResult::completed) {
-                return gone;
+                return closed;
             }
         } catch (const std::exception& failure) {
             return ToolReply::failure(ToolError::internal, failure.what());

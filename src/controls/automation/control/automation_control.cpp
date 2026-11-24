@@ -135,6 +135,9 @@ void AutomationControl::user_took_back() {
     // Counted before the release, so a running call's next step sees it.
     ++counters_.holds_taken_back;
     notice_ = "the user took back control of the program: your work was interrupted; acts now ask the user again";
+    // The program's questions are the user's again from here.
+    std::vector<gui_forms::detail::ModelQuestion> dropped{};
+    gui_forms::detail::end_model_questions(0U, dropped);
     release(ControlRelease::user_took_back);
 }
 

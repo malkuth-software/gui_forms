@@ -29,6 +29,7 @@
 #include "../control/automation_control.hpp"
 #include "../tools/automation_tools.hpp"
 
+#include "gui_forms/application/application.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
@@ -180,6 +181,9 @@ struct AutomationWindow final {
     // A passive popup window (a tooltip): listed and captured, never taken
     // for a dialog.
     bool passive_popup{};
+    // The program's handle for the window (act close on its ID asks it to
+    // close); empty for a window a test attached without one.
+    ApplicationWindowHandle handle{};
 };
 
 class AutomationCore final {
@@ -203,7 +207,8 @@ public:
     // presenter's own windows are refused (false). Leaves on its own when
     // the window is destroyed. `passive_popup` marks a popup window that
     // never takes focus (ApplicationWindowState::passive_popup).
-    bool attach_window(Window& window, std::string stable_id, bool passive_popup = false);
+    bool attach_window(Window& window, std::string stable_id, bool passive_popup = false,
+                       ApplicationWindowHandle handle = ApplicationWindowHandle{});
     // Whether `window` joined as a passive popup window.
     [[nodiscard]] bool passive_popup_window(const Window& window) const noexcept;
     void detach_window(const Window& window) noexcept;
@@ -215,6 +220,8 @@ public:
     [[nodiscard]] Window* find_window(std::string_view name);
     // The stable ID the window was attached with; empty when it is not.
     [[nodiscard]] std::string window_stable_id(const Window& window) const;
+    // The program's handle for `window`, or an empty one.
+    [[nodiscard]] ApplicationWindowHandle window_handle(const Window& window) const;
 
     // Records who is calling (the tag line, the replies).
     void set_client(const ClientIdentity& client);

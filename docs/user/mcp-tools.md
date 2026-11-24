@@ -38,7 +38,7 @@ No arguments.
 
 ## `act`
 
-**Act.** A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), never submitted. Waits for idle and replies with what changed; terse gives counts. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).
+**Act.** A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), never submitted. close on a program window's own ID closes the window: save first, then close. A question the program raises during an act (save changes?) is yours and never shown: with no on_unsaved the act stops there, the program stays as it was, and the reply gives the question and its choices; on_unsaved save or discard answers it. Waits for idle and replies with what changed; terse gives counts. Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that allows).
 
 | Argument | Type | Required | Meaning |
 |---|---|---|---|
@@ -48,10 +48,11 @@ No arguments.
 | `action` | one of `press`, `select`, `expand`, `collapse`, `focus`, `set_value`, `increment`, `decrement`, `show_menu`, `close`, `scroll_into_view`, `invoke_command` | no |  |
 | `value` | string | no |  |
 | `terse` | boolean | no |  |
+| `on_unsaved` | one of `save`, `discard` | no |  |
 
 ## `reset`
 
-**Reset.** Puts the interface back in order: closes the dialogs you opened (as Cancel), popups and menus, tooltips and drags, releases pointer capture, and stops content that froze; replies with what it reset and what it left (a dialog the user opened). Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).
+**Reset.** Puts the interface back in order: closes the dialogs you opened (as Cancel), popups and menus, tooltips and drags, releases pointer capture, and stops content that froze; replies with what it reset and what it left (a dialog the user opened). Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that allows).
 
 | Argument | Type | Required | Meaning |
 |---|---|---|---|
@@ -59,7 +60,7 @@ No arguments.
 
 ## `pointer`
 
-**Pointer.** Pointer input through the program's own input path: move, hover, click, double_click, right_click, down, up, drag, wheel. Aim with a target (offset inside it, default its centre) or with position in window coordinates, not both. A drag presses at that point and moves through path: with a target, path points are in the target's space like offset; without one, window coordinates like position. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows).
+**Pointer.** Pointer input through the program's own input path: move, hover, click, double_click, right_click, down, up, drag, wheel. Aim with a target (offset inside it, default its centre) or with position in window coordinates, not both. A drag presses at that point and moves through path: with a target, path points are in the target's space like offset; without one, window coordinates like position. Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that allows).
 
 | Argument | Type | Required | Meaning |
 |---|---|---|---|
@@ -77,7 +78,7 @@ No arguments.
 
 ## `keyboard`
 
-**Keyboard.** Key chords ("Ctrl+S") and sequences, committed text, and composition, to the focused control or to a target focused first. Acts need control: in a default launch your first act asks the user (a 10-second countdown that allows). Replies with what changed, as act does.
+**Keyboard.** Key chords ("Ctrl+S") and sequences, committed text, and composition, to the focused control or to a target focused first. Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that allows). Replies with what changed, as act does.
 
 | Argument | Type | Required | Meaning |
 |---|---|---|---|
@@ -156,6 +157,6 @@ No arguments.
 
 ## `release_control`
 
-**Release control.** Gives the program back to the user and ends AI mode. In a default launch your first act asks the user (a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s pass without a call; a launch with --mcp is yours from the start. Reads never need control.
+**Release control.** Gives the program back to the user and ends AI mode. In a shared launch your first act asks the user (a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s pass without a call; a launch with --mcp is yours from the start. Reads never need control.
 
 No arguments.

@@ -644,3 +644,25 @@ Visible-area guarantee (stage VA):
 - Configuring a build directory reached through a symbolic link no longer
   refuses to rebuild its own stx package (the package's owner and the tree
   are compared by their real paths).
+- **Round 3: the program's questions belong to the model.** While the
+  model's call runs, a question the program raises (save changes, a file or
+  colour dialog opened through the host) is answered for the model and never
+  shown. A message is cancelled unless the call says otherwise: `act` and
+  the command tools take `on_unsaved` (`save` answers Yes, `discard` No).
+  The reply carries the question, its choices and the answer, and says the
+  program stopped there and stays as it was, with nothing left waiting. The
+  smooth path is save first (the program's own save tool), then close; the
+  tool descriptions say so. Once the user takes control back, questions are
+  shown as usual. `act` close on a program window's own ID asks that window
+  to close; a window that closes during the call replies `ok`.
+- **Round 3: nested loops and modality.** The dispatcher runs a turn one
+  item at a time and keeps a wake pending while more work is queued, so a
+  callback that runs a nested modal loop no longer strands the rest of the
+  turn (an act that opened a dialog from posted work hung for 60 s).
+  `ApplicationWindow::outside_modality` keeps a window interactive under
+  any modal state at any depth (macOS panels that work when modal; the
+  Windows, X11, surface-desk and headless modal loops skip it); the
+  take-back and countdown dialogs use it, and taking back leaves a dialog
+  the model opened in place. `reset` waits for the dialogs it cancelled to
+  close before it replies, and a modal window's own ID names it as an act
+  target. The take-back dialog's paragraphs sit closer together.
