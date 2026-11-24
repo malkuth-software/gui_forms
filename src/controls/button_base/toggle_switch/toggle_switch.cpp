@@ -80,13 +80,20 @@ void ToggleSwitch::prepare_write(const decltype(checked)&, bool&) {
 
 // The thumb starts toward its new end before checked_changed is raised, so
 // a handler reads the switch already moving. If the clock cannot take the
-// move, the exception propagates with the new value stored and the thumb
-// where it stood.
+// move (its record or frame request cannot be made), the thumb stands at
+// its new end at once, as under reduced motion, and checked_changed is
+// still raised: the value, the thumb and the notification never disagree
+// (the value used to stay stored with the thumb where it stood and no
+// event raised).
 void ToggleSwitch::written(const decltype(checked)&) {
     invalidate(Dirty::paint | Dirty::semantics);
     const double end = checked.read() ? 1.0 : 0.0;
-    const MotionStart started = thumb_travel_.animate_to(end);
-    static_cast<void>(started);
+    try {
+        const MotionStart started = thumb_travel_.animate_to(end);
+        static_cast<void>(started);
+    } catch (const std::exception&) {
+        thumb_travel_.jump_to(end);
+    }
     publish_change(checked_changed_, checked.read());
 }
 
