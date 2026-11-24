@@ -192,6 +192,11 @@ public:
     // The children for each part of the current page, or null.
     [[nodiscard]] std::shared_ptr<Button> button(std::string_view button_id) const;
     [[nodiscard]] std::shared_ptr<RadioButton> radio_button(std::string_view radio_id) const;
+    // Whether the dialog's state agrees with itself (state hunt, 2026-11-23):
+    // its page describes exactly the child controls it has, and shown, it
+    // is in its presentation's layer or popup root; closed, it has no
+    // parent. For tests and diagnostics.
+    [[nodiscard]] bool agrees_with_itself() const noexcept;
     [[nodiscard]] std::shared_ptr<CheckBox> verification_check_box() const noexcept { return verification_; }
     [[nodiscard]] std::shared_ptr<Button> expander_button() const noexcept { return expander_button_; }
     [[nodiscard]] std::shared_ptr<ProgressBar> progress_bar() const noexcept { return progress_; }
@@ -260,6 +265,7 @@ private:
     void on_radio(bool checked);
     void on_overlay_revoked();
     void finish(std::string button_id);
+    void abandon_show() noexcept;
     [[nodiscard]] std::string cancel_button_id() const;
     [[nodiscard]] std::string default_button_id() const;
     [[nodiscard]] stxlib::Optional<std::size_t> button_index(std::string_view button_id) const noexcept;
