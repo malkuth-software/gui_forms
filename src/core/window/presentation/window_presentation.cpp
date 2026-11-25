@@ -559,6 +559,10 @@ bool nearly_touch(Rect left, Rect right) noexcept {
 // glint painted the whole window at 30 frames a second).
 bool worth_merging(Rect left, Rect right) noexcept {
     if (!nearly_touch(left, right)) return false;
+    // Overlapping rectangles always merge: painted apart, their overlap
+    // would be painted twice, and translucent content blends twice there
+    // (resize_damage_equivalence_tests).
+    if (!Rect::intersection(left, right).empty()) return true;
     const double covered = left.area() + right.area() - Rect::intersection(left, right).area();
     const double waste = Rect::united(left, right).area() - covered;
     const bool worth = waste <= std::min(left.area(), right.area()) * 0.25;
@@ -566,9 +570,10 @@ bool worth_merging(Rect left, Rect right) noexcept {
 }
 
 // Clips `input` to `window_bounds`, each grown to whole device pixels at
-// `scale`, merges rectangles that overlap or nearly touch, where their
-// union wastes little (worth_merging), until none do, and fills `merged`. A set larger than the damage region's capacity
-// collapses to its bounds, as DamageRegion does.
+// `scale`, merges rectangles that overlap, or nearly touch where their
+// union wastes little (worth_merging), until none do, and fills `merged`.
+// A set larger than the damage region's capacity collapses to its bounds,
+// as DamageRegion does.
 void merge_paint_rectangles(std::span<const Rect> input, Rect window_bounds, double scale,
                             std::vector<Rect>& merged) {
     merged.clear();
