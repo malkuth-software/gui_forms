@@ -52,6 +52,10 @@ private:
         HostMessageIcon icon;
         MessageBoxDefaultButton default_button;
     };
+    // Each case shows one default_button on purpose: OK/Cancel defaults to
+    // Cancel (button2), the cautious default for a warning, and the
+    // three-button boxes default to their second and third buttons, so the
+    // page demonstrates the argument; HostServices' own default is button1.
     static constexpr std::array<MessageCase, 6> message_cases{{
         {"OK", HostMessageButtons::ok,
          HostMessageIcon::information, MessageBoxDefaultButton::button1},
