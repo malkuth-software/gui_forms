@@ -60,6 +60,11 @@ struct GUI_FORMS_API HelpBookLabels final {
 // bars, callouts on darker paper, stable-ID links and PNG images. It scrolls
 // vertically; it never opens a link itself, but raises link_activated.
 //
+// The book lays its page out again only when the page, the open sections,
+// the font, the text metrics, the device scale or the wrap width change;
+// hover, presses and scrolling repaint. It states its own scroll extent in
+// arrange, so re-arranging keeps the scroll position.
+//
 // The paper's look is the theme's (parts paper, title, rule, body, close,
 // and the topic item system's topic_bar and expander); until the theme
 // language gives help-book rules, the parts are drawn with the tooltip
@@ -115,6 +120,9 @@ public:
 
     // The page's content height when laid out at the current width.
     [[nodiscard]] double content_height() const noexcept { return layout_.height; }
+    // How many times the screen layout has been made, for tests that prove
+    // a pointer move, a hover or a re-arrange lays nothing out.
+    [[nodiscard]] std::uint64_t layout_passes() const noexcept { return layout_passes_; }
     // The block's top in content coordinates, or none when it is hidden.
     [[nodiscard]] stxlib::Optional<double> block_top(std::size_t block) const noexcept;
     // The link's box in local coordinates (scroll applied), or none when it
@@ -262,7 +270,16 @@ private:
     [[nodiscard]] const HelpBookImage* find_image(std::string_view name) const noexcept;
     [[nodiscard]] std::string_view piece_text(const LaidOut& laid, std::size_t piece) const noexcept;
     void paint_laid(Painter& painter, const LaidOut& laid, Point offset, LayoutMode mode) const;
+    // Lays the page out now (the page or what shows of it changed). Outside
+    // arrange, a layout whose size changed marks arrange, so the scroll
+    // range follows the page.
     void relayout();
+    // Lays the page out only when what the layout is made from changed since
+    // the last one: the wrap width, the body font (the theme's), the text
+    // metrics provider or the device scale. A change of the page or of what
+    // shows of it lays out at once (relayout), so arrange, hover and pointer
+    // moves cost no layout while these hold.
+    void relayout_if_changed();
     [[nodiscard]] stxlib::Optional<std::size_t> link_at(Point local) const noexcept;
     [[nodiscard]] stxlib::Optional<std::size_t> section_bar_at(Point local) const noexcept;
     // Whether `held` (a hovered, pressed or focused index) holds `index`.
@@ -288,6 +305,15 @@ private:
     stxlib::Optional<std::size_t> pressed_link_{};
     stxlib::Optional<std::size_t> pressed_section_{};
     stxlib::Optional<std::size_t> focused_stop_{};
+    // What the screen layout was made from, so arrange lays out again only
+    // when it changed.
+    FontSpec layout_font_{};
+    const TextMetricsProvider* layout_provider_{};
+    double layout_scale_{};
+    // True while arrange runs: a layout there states its extent itself, so
+    // it marks no arrange.
+    bool arranging_{};
+    std::uint64_t layout_passes_{};
     bool close_visible_{};
     bool close_hovered_{};
     bool focused_{};

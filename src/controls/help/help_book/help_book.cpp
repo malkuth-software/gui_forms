@@ -4,6 +4,7 @@
 #include "gui_forms/anatomy.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
 #include "gui_forms/typography/types/typography_types.hpp"
+#include "gui_forms/window.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -637,22 +638,52 @@ void HelpBook::lay_out(double width, LayoutMode mode, LaidOut& laid) const {
 void HelpBook::relayout() {
     const Rect viewport = viewport_rectangle();
     const double width = viewport.width > 0.0 ? viewport.width : client_rectangle().width;
+    layout_font_ = body_font();
+    const Window* owner = window();
+    layout_provider_ = owner == nullptr ? nullptr : (*owner).text_metrics_provider();
+    layout_scale_ = owner == nullptr ? 1.0 : (*owner).scale();
+    const Size previous{layout_.width, layout_.height};
     lay_out(width, LayoutMode{false}, layout_);
+    ++layout_passes_;
+    if (!arranging_ && (previous.width != layout_.width || previous.height != layout_.height)) {
+        invalidate(Dirty::arrange);
+    }
     const std::size_t* const focused = focused_stop_.value();
     if (focused != nullptr && *focused >= layout_.stops.size()) focused_stop_.reset();
 }
 
-void HelpBook::arrange(Rect final_bounds) {
-    ScrollableControl::arrange(final_bounds);
+void HelpBook::relayout_if_changed() {
+    const Rect viewport = viewport_rectangle();
+    const double width = viewport.width > 0.0 ? viewport.width : client_rectangle().width;
+    const Window* owner = window();
+    const TextMetricsProvider* provider = owner == nullptr ? nullptr : (*owner).text_metrics_provider();
+    const double scale = owner == nullptr ? 1.0 : (*owner).scale();
+    if (std::abs(width - layout_.width) <= 0.5 && body_font() == layout_font_ && provider == layout_provider_ &&
+        scale == layout_scale_) return;
     relayout();
-    arrange_scroll_viewport(Size{final_bounds.width, final_bounds.height}, Size{layout_.width, layout_.height});
+}
+
+void HelpBook::arrange(Rect final_bounds) {
+    // The page has no child controls: it states its own extent, as RichTextBox
+    // and TextBox do, instead of ScrollableControl::arrange, whose extent is
+    // its children's and so would clamp the scroll position to nothing on
+    // every arrange. The position is never put back with scroll_to here,
+    // which would mark arrange again and leave the book dirty while it is
+    // scrolled. The flow runs only when its inputs changed.
+    arranging_ = true;
+    struct Reset final {
+        bool& value;
+        ~Reset() { value = false; }
+    } reset{arranging_};
+    arrange_self(final_bounds);
+    const Size client{final_bounds.width, final_bounds.height};
+    relayout_if_changed();
+    arrange_scroll_viewport(client, Size{layout_.width, layout_.height});
     // A vertical bar that appeared or went narrows the viewport: lay out
     // again at the width it leaves.
-    const Rect viewport = viewport_rectangle();
-    if (viewport.width > 0.0 && std::abs(viewport.width - layout_.width) > 0.5) {
-        relayout();
-        arrange_scroll_viewport(Size{final_bounds.width, final_bounds.height}, Size{layout_.width, layout_.height});
-    }
+    relayout_if_changed();
+    arrange_scroll_viewport(client, Size{layout_.width, layout_.height});
+    Control::arrange(final_bounds);
 }
 
 Size HelpBook::measure(Size available) {

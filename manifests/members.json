@@ -4963,6 +4963,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "content_height", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "focused_stop", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "labels", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "property", "winforms": null, "gui_forms": "layout_passes", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_book_reference_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "page", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/help-book_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "close_requested", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "event", "winforms": null, "gui_forms": "link_activated", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/help_system_tests.cpp"},
