@@ -1449,6 +1449,7 @@
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},
         {"name": "margin", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "mask", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "maximum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
@@ -1456,6 +1457,7 @@
         {"name": "right_to_left", "kind": "enumeration", "category": "Appearance", "enumeration": "right_to_left", "choices": ["no", "yes", "inherit"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "wheel_scrolls", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"}
@@ -8666,6 +8668,7 @@
         {"name": "right_to_left", "kind": "enumeration", "category": "Appearance", "enumeration": "right_to_left", "choices": ["no", "yes", "inherit"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "text", "kind": "text", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "wheel_scrolls", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"}
