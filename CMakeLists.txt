@@ -6,7 +6,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "GUI.Forms supports Apple silicon arm64 only")
     endif()
 endif()
-project(GUIForms VERSION 1.0.5 LANGUAGES C CXX)
+project(GUIForms VERSION 1.0.6 LANGUAGES C CXX)
 
 # The browser target's compiler is the pinned emsdk's clang
 # (cmake/emscripten.cmake checks the release); every other target is LLVM 22.1.

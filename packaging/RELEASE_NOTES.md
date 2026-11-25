@@ -843,3 +843,29 @@ One release folds the work queued after 1.0.4.
   attach endpoint needs on Windows, and the own runtime ships an empty
   `m.lib`, so a link line that names the maths library needs no workaround.
 - GUI.Forms builds with stx 1.0.4 on STXlib 1.0.4.
+
+### 1.0.6: MCP round 4, the control model at rest
+
+- **Quiet under control.** The AI-mode veil no longer animates. The band's
+  strips repaint on their own instead of merging into a full-window paint,
+  and the glint ends in an ambient wake. On the M4, idle CPU under control
+  falls from 17.5% to under 3%, with no full-window paints.
+- **Idle means idle.** The idle check ignores decoration wakes and timers,
+  so a socket call no longer waits out its timeout while the decoration
+  moves. Program tools (registry and command acts) settle within 100 ms
+  and reply "replied after".
+- **One question per session.** For a program launched without `--mcp`,
+  the Allow on connect is also the consent to control. Only
+  `release_control`, the user's take-back and a new connection ask again.
+  The session token stands on its own line.
+- **No take-back on activation.** Alt-Tab, Cmd-Tab, the title bar, the
+  Dock and modifier keys never offer take-back.
+- **Tooltips rest** while a model holds control, and resume on release.
+- **The program can always close.** A dropped connection, the end of
+  standard input and the end of a session close every open model-question
+  scope and return control at once. Before this, an open scope answered the
+  program's save question (close, File > Exit) as Cancel without showing it,
+  so the program could not be closed.
+- **help in the console:** `help`, `help tools`, `help <tool>`,
+  `help mcp` and `help gui.forms`. Tool help comes from the tools'
+  descriptions and schemas, and topics from talk-to-a-program.md.
