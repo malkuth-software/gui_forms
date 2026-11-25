@@ -198,7 +198,9 @@ void MenuStrip::on_overlay_item_invoked(
     item_invoked_.emit(forwarded);
     // A command chosen from a menu entered from the keyboard gives the
     // focus back, unless a handler moved it or dropped the strip.
-    if (is_alive() && focused_ && !focus_return_.expired()) leave_menu_bar();
+    // The focus may still be in the menu's rows here; the menu's close gives
+    // it back to the strip, and leave_menu_bar takes it on from there.
+    if (is_alive() && (focused_ || is_open()) && !focus_return_.expired()) leave_menu_bar();
 }
 
 void MenuStrip::on_overlay_open_changed(bool open_state) {
@@ -835,7 +837,9 @@ bool MenuStrip::keyboard_cues_shown() const {
 
 void MenuStrip::on_focus_changed(bool focused) {
     focused_ = focused;
-    if (!focused_) focus_return_.reset();
+    // The focus moving into this strip's own open menu (its rows take the
+    // keyboard) keeps the control to give it back to; leaving elsewhere drops it.
+    if (!focused_ && !is_open()) focus_return_.reset();
     if (focused_ && hot_index_.absent()) {
         for (std::size_t index = 0; index < items_.size(); ++index) {
             if (items_[index].visible && items_[index].enabled) {
