@@ -166,6 +166,43 @@ bool visible_window_bounds(HWND window, RECT& bounds) noexcept {
     return measured;
 }
 
+// The visible-area guarantee (stage VA, decision 7) for the window of
+// run_windows, which no HostWindowing places and so never reaches
+// HostWindowing::fit_frame_to_work_area: before its first show, a window
+// that does not lie inside the work area of the monitor it opens on is made
+// to fit it (fit_to_work_area, in device pixels), so its bottom edge and
+// status bar never open under the taskbar (Windows field report D3: the
+// Gallery's 1280x820 window at 200% on a 1408x833 logical work area). The
+// whole window rectangle is fitted, its invisible resize borders included,
+// since DWM's visible bounds are not reliable before the window is shown;
+// the visible frame then lies a few pixels inside the work area. A window
+// that lies inside is left where Windows put it.
+void fit_direct_frame_to_work_area(HWND window) noexcept {
+    RECT outer{};
+    if (GetWindowRect(window, &outer) == FALSE) return;
+    const HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+    MONITORINFO info{};
+    info.cbSize = sizeof(info);
+    if (monitor == nullptr || GetMonitorInfoW(monitor, &info) == FALSE) return;
+    const RECT work_rectangle = info.rcWork;
+    const bool inside = outer.left >= work_rectangle.left && outer.top >= work_rectangle.top &&
+                        outer.right <= work_rectangle.right && outer.bottom <= work_rectangle.bottom;
+    if (inside) return;
+    const Rect frame{static_cast<double>(outer.left), static_cast<double>(outer.top),
+                     static_cast<double>(outer.right - outer.left), static_cast<double>(outer.bottom - outer.top)};
+    const Rect work{static_cast<double>(work_rectangle.left), static_cast<double>(work_rectangle.top),
+                    static_cast<double>(work_rectangle.right - work_rectangle.left),
+                    static_cast<double>(work_rectangle.bottom - work_rectangle.top)};
+    const Rect fitted = fit_to_work_area(frame, work);
+    // WM_GETMINMAXINFO still holds the window to its minimum size; a work
+    // area smaller than that leaves the window as large as its minimum.
+    static_cast<void>(SetWindowPos(window, nullptr, static_cast<int>(std::lround(fitted.x)),
+                                   static_cast<int>(std::lround(fitted.y)),
+                                   static_cast<int>(std::lround(fitted.width)),
+                                   static_cast<int>(std::lround(fitted.height)),
+                                   SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE));
+}
+
 // The Win32 window styles of one window.
 struct WindowsWindowStyles final {
     DWORD style{};

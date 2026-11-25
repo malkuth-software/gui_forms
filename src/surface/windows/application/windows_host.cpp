@@ -4600,6 +4600,9 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
         if (SUCCEEDED(com_status)) CoUninitialize();
         return 5;
     }
+    // A capture keeps the size it asked for, and a popup the place its
+    // program gave it; every other window opens inside the work area.
+    if (!options.capture_size.has_value() && !options.popup_window) fit_direct_frame_to_work_area(window);
     state.show_with(SW_SHOWNORMAL);
     UpdateWindow(window);
     if (options.close_after_launch_for_testing) {
