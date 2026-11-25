@@ -498,7 +498,7 @@ void HelpBook::reveal_current_match() {
 // --- Layout ---------------------------------------------------------------------------
 
 FontSpec HelpBook::body_font() const noexcept {
-    const FontSpec own{FontRole::control, body_size, 400, false};
+    const FontSpec own{FontRole::content, body_size, 400, false};
     const FontSpec resolved = text_font(own);
     return resolved;
 }
@@ -506,12 +506,12 @@ FontSpec HelpBook::body_font() const noexcept {
 HelpBook::LayoutFonts HelpBook::layout_fonts() const {
     LayoutFonts fonts{};
     fonts.body = body_font();
-    // Code is Portsmouth Mono, the house mono, over the monospace role's
-    // faces for what it does not cover. It is sized so its x-height is the
-    // body's: a mono face at the body's size looks larger and lighter.
+    // Code is in the monospace role's faces, and only code is. It is sized
+    // so its x-height is the body's: a mono face at the body's size looks
+    // larger and lighter.
     fonts.code = fonts.body;
     fonts.code.role = FontRole::monospace;
-    fonts.code.family = portsmouth_mono_font_family;
+    fonts.code.family = FontFamilyId{};
     fonts.code.stack = FontFamilyStackId{};
     fonts.code.weight = 400;
     fonts.code.italic = false;

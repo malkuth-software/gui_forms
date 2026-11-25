@@ -78,8 +78,9 @@ struct GUI_FORMS_API HelpBookLabels final {
 //
 // Text is set with leading: body lines are 1.5 times the body size,
 // headings 1.3 times, and every run on a line, code and links included,
-// sits on the line's one baseline. Inline code is in Portsmouth Mono, sized
-// so its x-height matches the body's, on a chip.
+// sits on the line's one baseline. Body text is in the content role's face;
+// inline code and code blocks are in the monospace role's, and inline code
+// is sized so its x-height matches the body's, on a chip.
 //
 // The book lays its page out again only when the page, the open sections,
 // the font, the text metrics, the device scale or the wrap width change;

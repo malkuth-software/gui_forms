@@ -126,8 +126,9 @@ and the arrows, Page Up, Page Down, Home and End scroll.
 The book lays its page out again only when the page, the open sections,
 the font, the text metrics, the device scale or the wrap width change;
 hover, presses and scrolling repaint. Lines are one and a half times the
-body size apart, every run on a line shares one baseline, and inline code
-is set in Portsmouth Mono, sized to the body's x-height, on a chip.
+body size apart, every run on a line shares one baseline. Body text is set
+in the content role's face and code in the monospace role's; inline code is
+sized to the body's x-height, on a chip.
 
 The paper's look is the theme's: the parts ``paper``, ``title``, ``rule``,
 ``body`` and ``close``; the content parts ``code_span``, ``code_block``,
