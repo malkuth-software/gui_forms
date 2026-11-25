@@ -40,7 +40,7 @@
           bounds="84 5 96 24"/>
       <picture-box id="gallery.command.status-badge" accessible-name="Host status" bounds="188 9 16 16"/>
       <label id="gallery.command.status"
-          text="Portable core · Host 0.4 · drop-ready"
+          text="Portable core · drop-ready"
           classes="control-body"
           bounds="210 5 1064 24"/>
     </panel>

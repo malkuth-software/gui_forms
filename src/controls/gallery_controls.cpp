@@ -179,7 +179,7 @@ void GalleryContext::synchronize(std::string_view cause)
     }
 
     (*gallery.gallery_command_status).text =
-        drop_status.empty() ? "Portable core · Host 0.4 · reusable controls" : drop_status;
+        drop_status.empty() ? "Portable core · reusable controls" : drop_status;
     (*pages.gallery_value_label).text = format_percent(state.progress_value);
     // Diagnostics are live instrumentation, not a snapshot captured when the
     // panel opens: every retained interaction is observable on the next frame.
