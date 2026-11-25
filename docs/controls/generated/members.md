@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2521 | 3 | 370 | 4147 | 2649 |
+| 2523 | 3 | 370 | 4147 | 2649 |
 
 ## GUI.Forms types
 
@@ -26,7 +26,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TokenBox` | GUI.Forms-only | 12 | 0 | 0 | 2 | 14 |
 | `SearchField` | GUI.Forms-only | 7 | 0 | 0 | 5 | 12 |
 | `ButtonTextBox` | GUI.Forms-only | 10 | 0 | 0 | 6 | 16 |
-| `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 39 | 8 |
+| `MaskedTextBox` | `MaskedTextBox` | 17 | 0 | 0 | 39 | 8 |
 | `RichTextBox` | `RichTextBox` | 26 | 0 | 2 | 55 | 20 |
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
 | `TextBlock` | GUI.Forms-only | 3 | 0 | 0 | 7 | 10 |
@@ -88,7 +88,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `NavigationPane` | GUI.Forms-only | 19 | 0 | 0 | 2 | 21 |
 | `DockSite` | GUI.Forms-only | 53 | 0 | 0 | 6 | 59 |
 | `DockNavigator` | GUI.Forms-only | 10 | 0 | 0 | 4 | 14 |
-| `TabPage` | `TabPage` | 4 | 0 | 0 | 17 | 1 |
+| `TabPage` | `TabPage` | 5 | 0 | 0 | 17 | 1 |
 | `FlexPanel` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
 | `GridPanel` | GUI.Forms-only | 11 | 0 | 0 | 3 | 14 |
 | `BlockPanel` | GUI.Forms-only | 7 | 0 | 0 | 4 | 11 |
@@ -317,6 +317,6 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `nested` | 641 |
 | `no-entry` | 497 |
 | `review` | 13 |
-| `unmatched` | 1588 |
-| `untested` | 974 |
+| `unmatched` | 1587 |
+| `untested` | 975 |
 | `w-open` | 5 |
