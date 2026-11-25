@@ -687,8 +687,7 @@ jobs:
             echo "::notice::DEVKIT_DISPATCH_APP_ID or DEVKIT_DISPATCH_APP_KEY is not set; gui_forms_devkit is not told about ${GITHUB_SHA}"
             echo "present=false" >> "$GITHUB_OUTPUT"
           fi
-      # TODO(integrator): pin this action by commit, as the others are.
-      - uses: actions/create-github-app-token@v1
+      - uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1.12.0
         id: token
         if: steps.app.outputs.present == 'true'
         with:
