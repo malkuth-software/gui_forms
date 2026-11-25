@@ -2,20 +2,6 @@
   "about": "Decisions on the loop branches that harness/check_loop_branches.py (E2) reports, matched by path, function and condition text. keep: the branch stays, for the reason given. false_shape: the condition is not invariant (it changes inside the loop through a call, a callback or another thread).",
   "decisions": [
     {
-      "path": "demo/correspondence/correspondence_controls.cpp",
-      "function": "gui_forms::correspondence::project_messages",
-      "condition": "!search.empty()",
-      "decision": "keep",
-      "reason": "a few visible messages; a search adds its term to each item"
-    },
-    {
-      "path": "demo/responsive_tracks_lab.cpp",
-      "function": "gui_forms::responsive_tracks_lab::SidePane::arrange",
-      "condition": "seam_at_right_",
-      "decision": "keep",
-      "reason": "a demonstration's few children; one placement select per child"
-    },
-    {
       "path": "src/audio/loop_transport/scheduler.cpp",
       "function": "gui_forms::audio_experiment::finish",
       "condition": "phase == RequestPhase::rejected",
