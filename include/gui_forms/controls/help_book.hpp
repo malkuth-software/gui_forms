@@ -393,8 +393,8 @@ private:
     [[nodiscard]] std::string_view piece_text(const LaidOut& laid, std::size_t piece) const noexcept;
     void paint_laid(Painter& painter, const LaidOut& laid, Point offset, LayoutMode mode) const;
     // Lays the page out now (the page or what shows of it changed). Outside
-    // arrange, a layout whose size changed marks arrange, so the scroll
-    // range follows the page.
+    // arrange, a layout whose size changed states the new scroll range at
+    // once and marks arrange, so a scroll right after reaches the page.
     void relayout();
     // Lays the page out only when what the layout is made from changed since
     // the last one: the wrap width, the body font (the theme's), the text

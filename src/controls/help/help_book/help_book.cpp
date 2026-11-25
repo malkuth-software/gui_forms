@@ -446,12 +446,6 @@ void HelpBook::reveal_current_match() {
     const stxlib::Optional<std::size_t> block = block_of_run(match.run);
     if (block.present() && open_sections_around((*block.value()))) {
         relayout();
-        // The page grew: state the scroll range now, so the scroll below
-        // can reach the match.
-        const Rect client = client_rectangle();
-        if (client.width > 0.0 && client.height > 0.0) {
-            arrange_scroll_viewport(Size{client.width, client.height}, Size{layout_.extent, layout_.height});
-        }
         invalidate(Dirty::semantics);
     }
     const Rect viewport = viewport_rectangle();
@@ -1377,6 +1371,13 @@ void HelpBook::relayout() {
     lay_out(width, LayoutMode{false}, layout_);
     ++layout_passes_;
     if (!arranging_ && (previous.width != layout_.extent || previous.height != layout_.height)) {
+        // State the new scroll range now, so a scroll right after (to an
+        // anchor, to a match) can reach the page's far end, and arrange
+        // again for the rest.
+        const Rect client = client_rectangle();
+        if (client.width > 0.0 && client.height > 0.0) {
+            arrange_scroll_viewport(Size{client.width, client.height}, Size{layout_.extent, layout_.height});
+        }
         invalidate(Dirty::arrange);
     }
     const std::size_t* const focused = focused_stop_.value();
