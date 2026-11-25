@@ -60,7 +60,7 @@ Labels, images, progress and review cards.
    * - :cpp:class:`StepIndicator <gui_forms::StepIndicator>`
      - A step indicator: a row of numbered steps joined by connectors, each with its name beneath.
    * - :cpp:class:`HelpBook <gui_forms::HelpBook>`
-     - The help topic pane: one help page on paper, with its title over a rule, collapsible sections under topic bars, callouts, links and PNG images.
+     - The help topic pane: one help page on paper, with its title over a rule, collapsible sections under topic bars, callouts, links and PNG images, tables, definition lists, code coloured by token, signatures and linked cards, with find in page.
    * - :cpp:class:`HelpBookViewer <gui_forms::HelpBookViewer>`
      - The three-pane help viewer: a toolbar, the navigation tabs (Contents, Index, Search and Bookmarks) and a :cpp:class:`HelpBook <gui_forms::HelpBook>`.
 
@@ -183,12 +183,16 @@ Related types
      - A link was activated (click, Enter, or the semantic press).
    * - :cpp:class:`HelpLinkEntry <gui_forms::HelpLinkEntry>`
      - One link of a body, in record and source order.
+   * - :cpp:class:`HelpLinkHover <gui_forms::HelpLinkHover>`
+     - The pointer moved onto a link, or off every link.
    * - :cpp:class:`HelpLinkTarget <gui_forms::HelpLinkTarget>`
      - What a link destination is in a help body (study section 4): a valid stable ID, optionally with '#' and an anchor, is a topic link (a popup when ``title`` is "popup"); anything else is external.
    * - :cpp:class:`HelpLocaleReadResult <gui_forms::HelpLocaleReadResult>`
      -  
    * - :cpp:class:`HelpPageBlock <gui_forms::HelpPageBlock>`
      - One block.
+   * - :cpp:class:`HelpPageCell <gui_forms::HelpPageCell>`
+     - A table cell or a card's line: HelpPageModel::runs from first_run, run_count of them.
    * - :cpp:class:`HelpPageImage <gui_forms::HelpPageImage>`
      -  
    * - :cpp:class:`HelpPageLink <gui_forms::HelpPageLink>`
@@ -886,6 +890,38 @@ Related types
 
    .. cpp:member:: PartGeometry body
 
+   .. cpp:member:: PartGeometry code_span
+
+      The content parts repeat; each publishes its first laid instance, or nothing when the page has none.
+
+   .. cpp:member:: PartGeometry code_block
+
+   .. cpp:member:: PartGeometry signature
+
+   .. cpp:member:: PartGeometry signature_bar
+
+   .. cpp:member:: PartGeometry table_header
+
+   .. cpp:member:: PartGeometry table_cell
+
+   .. cpp:member:: PartGeometry card
+
+   .. cpp:member:: PartGeometry find_match
+
+   .. cpp:member:: PartGeometry keyword
+
+   .. cpp:member:: PartGeometry type
+
+   .. cpp:member:: PartGeometry function
+
+   .. cpp:member:: PartGeometry string
+
+   .. cpp:member:: PartGeometry number
+
+   .. cpp:member:: PartGeometry comment
+
+   .. cpp:member:: PartGeometry directive
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:struct:: HelpBook::TopicParts final
@@ -1401,6 +1437,26 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: HelpLinkHover final
+
+   ``#include <gui_forms/controls/help_book.hpp>`` (:src:`source <include/gui_forms/controls/help_book.hpp>`)
+
+   The pointer moved onto a link, or off every link. ``link`` indexes the page's links, or is none once the pointer is over no link; ``kind``, ``target`` and ``fragment`` are that link's (empty for none). An owner shows the target in its status bar.
+
+   .. cpp:member:: std::string page
+
+   .. cpp:member:: stxlib::Optional<std::size_t> link
+
+   .. cpp:member:: HelpLinkKind kind
+
+      Default: ``{HelpLinkKind::external}``.
+
+   .. cpp:member:: std::string target
+
+   .. cpp:member:: std::string fragment
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: HelpLinkTarget final
 
    ``#include <gui_forms/help/helpbook_section/helpbook_section.hpp>`` (:src:`source <include/gui_forms/help/helpbook_section/helpbook_section.hpp>`)
@@ -1449,7 +1505,7 @@ Related types
 
    ``#include <gui_forms/help/help_page/help_page.hpp>`` (:src:`source <include/gui_forms/help/help_page/help_page.hpp>`)
 
-   One block. ``level`` is a heading's level (1 to 6) or a list item's nesting. ``section`` is the innermost collapsible section the block lies in (a section's heading is not in its own section). ``anchor`` is a heading's fragment name (help_heading_anchor), or a listed control's stable ID for a help-line entry, so a link or F1 can scroll to it. ``image`` indexes the page's images for an image block.
+   One block. ``level`` is a heading's level (1 to 6) or a list item's nesting. ``indent`` counts nesting levels besides quotes and lists (the members under a declaration, say), each indented as a quote is. ``section`` is the innermost collapsible section the block lies in (a section's heading is not in its own section). ``anchor`` is a heading's fragment name (help_heading_anchor), or a listed control's stable ID for a help-line entry, so a link or F1 can scroll to it. ``image`` indexes the page's images for an image block.
 
    .. cpp:member:: HelpPageBlockKind kind
 
@@ -1479,9 +1535,37 @@ Related types
 
    .. cpp:member:: stxlib::Optional<std::size_t> image
 
+   .. cpp:member:: std::size_t indent
+
+   .. cpp:member:: bool header
+
+      A table row of header cells.
+
+   .. cpp:member:: HelpCodeLanguage language
+
+      A code block's or a signature's language. Default: ``{HelpCodeLanguage::plain}``.
+
    .. cpp:member:: std::size_t first_run
 
       The block's runs: HelpPageModel::runs from first_run, run_count of them.
+
+   .. cpp:member:: std::size_t run_count
+
+   .. cpp:member:: std::size_t first_cell
+
+      A table row's cells, or a card's line: HelpPageModel::cells from first_cell, cell_count of them.
+
+   .. cpp:member:: std::size_t cell_count
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: HelpPageCell final
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>`` (:src:`source <include/gui_forms/help/help_page/help_page.hpp>`)
+
+   A table cell or a card's line: HelpPageModel::runs from first_run, run_count of them. An empty cell has no runs.
+
+   .. cpp:member:: std::size_t first_run
 
    .. cpp:member:: std::size_t run_count
 
@@ -1541,6 +1625,8 @@ Related types
    .. cpp:member:: std::vector<HelpPageBlock> blocks
 
    .. cpp:member:: std::vector<HelpPageRun> runs
+
+   .. cpp:member:: std::vector<HelpPageCell> cells
 
    .. cpp:member:: std::vector<HelpPageLink> links
 
@@ -4887,6 +4973,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: HelpCodeLanguage
+
+   ``#include <gui_forms/help/help_page/help_page.hpp>`` (:src:`source <include/gui_forms/help/help_page/help_page.hpp>`)
+
+   .. cpp:enumerator:: plain
+
+   .. cpp:enumerator:: cpp
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: HelpEntryRefusal
 
    ``#include <gui_forms/help/help_records/help_records.hpp>`` (:src:`source <include/gui_forms/help/help_records/help_records.hpp>`)
@@ -5002,6 +5098,18 @@ Enumerations
    .. cpp:enumerator:: rule
 
    .. cpp:enumerator:: image
+
+   .. cpp:enumerator:: table_row
+
+   .. cpp:enumerator:: term
+
+   .. cpp:enumerator:: definition
+
+   .. cpp:enumerator:: card
+
+   .. cpp:enumerator:: signature
+
+   .. cpp:enumerator:: caption
 
 .. cpp:namespace:: gui_forms
 

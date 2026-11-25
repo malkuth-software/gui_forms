@@ -3883,6 +3883,21 @@ Interactions: none.
 | `rule` | divider |  |  |
 | `close` | glyph |  |  |
 | `body` | content |  |  |
+| `code_span` | chip |  |  |
+| `code_block` | well |  |  |
+| `signature` | face |  |  |
+| `signature_bar` | keyline |  |  |
+| `table_header` | face |  |  |
+| `table_cell` | face |  |  |
+| `card` | face |  | hot |
+| `find_match` | selection |  | current |
+| `keyword` | label |  |  |
+| `type` | label |  |  |
+| `function` | label |  |  |
+| `string` | label |  |  |
+| `number` | label |  |  |
+| `comment` | label |  |  |
+| `directive` | label |  |  |
 
 States: `normal`, `pressed`, `captured`, `enabled`, `disabled`, `focused`, `focus_visible`.
 
@@ -3911,6 +3926,7 @@ Properties beyond every control's: `auto_scroll` (boolean), `auto_scroll_margin`
 | `link_activated` | `HelpLinkActivation`, by reference |
 | `close_requested` | none |
 | `section_toggled` | `HelpSectionToggle` |
+| `link_hovered` | `HelpLinkHover` |
 
 ## `help_book_viewer` (HelpBookViewer, control)
 

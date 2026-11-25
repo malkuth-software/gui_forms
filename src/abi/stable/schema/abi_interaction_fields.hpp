@@ -15,7 +15,7 @@ struct InteractionFieldsEntry final {
     std::string_view fields;
 };
 
-inline constexpr std::array<InteractionFieldsEntry, 206> interaction_fields{{
+inline constexpr std::array<InteractionFieldsEntry, 207> interaction_fields{{
     {"", ""},
     {"AutoValidate", "value: enumeration"},
     {"BackgroundWorkerCompleted", "result: any, error_message: text, cancelled: boolean"},
@@ -83,6 +83,7 @@ inline constexpr std::array<InteractionFieldsEntry, 206> interaction_fields{{
     {"GalleryPreview", "item_id: text, source_id: text"},
     {"GestureEventArgs", "kind: enumeration, gesture_phase: enumeration, location: point, window_position: point, scale: number, rotation_degrees: number, translation: point, modifiers: enumeration, phase: enumeration, handled: boolean, timestamp_nanoseconds: unsigned_integer"},
     {"HelpLinkActivation", "page: text, kind: enumeration, target: text, fragment: text, bounds: rectangle, handled: boolean"},
+    {"HelpLinkHover", "page: text, link: unsigned_integer optional, kind: enumeration, target: text, fragment: text"},
     {"HelpPrintRequest", "page: text, book: boolean, handled: boolean"},
     {"HelpRequestEvent", "target_stable_id: text, position: point, help_namespace: text, help_string: text, keyword: text, navigator: enumeration, keyboard_initiated: boolean, handled: boolean"},
     {"HelpSectionToggle", "section: unsigned_integer, open: boolean"},

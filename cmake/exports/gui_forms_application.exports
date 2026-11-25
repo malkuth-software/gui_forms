@@ -376,6 +376,7 @@ __ZGVZN9gui_forms13GridTrackList*
 __ZGVZN9gui_forms13GridTrackSize*
 __ZGVZN9gui_forms13HelpBookImage*
 __ZGVZN9gui_forms13HelpLinkEntry*
+__ZGVZN9gui_forms13HelpLinkHover*
 __ZGVZN9gui_forms13HelpPageBlock*
 __ZGVZN9gui_forms13HelpPageImage*
 __ZGVZN9gui_forms13HelpPageModel*
@@ -2119,6 +2120,7 @@ __ZGVZNK9gui_forms13GridTrackList*
 __ZGVZNK9gui_forms13GridTrackSize*
 __ZGVZNK9gui_forms13HelpBookImage*
 __ZGVZNK9gui_forms13HelpLinkEntry*
+__ZGVZNK9gui_forms13HelpLinkHover*
 __ZGVZNK9gui_forms13HelpPageBlock*
 __ZGVZNK9gui_forms13HelpPageImage*
 __ZGVZNK9gui_forms13HelpPageModel*
@@ -4064,6 +4066,7 @@ __ZN9gui_forms13GridTrackList*
 __ZN9gui_forms13GridTrackSize*
 __ZN9gui_forms13HelpBookImage*
 __ZN9gui_forms13HelpLinkEntry*
+__ZN9gui_forms13HelpLinkHover*
 __ZN9gui_forms13HelpPageBlock*
 __ZN9gui_forms13HelpPageImage*
 __ZN9gui_forms13HelpPageModel*
@@ -7445,6 +7448,7 @@ __ZNK[RO]9gui_forms13GridTrackList*
 __ZNK[RO]9gui_forms13GridTrackSize*
 __ZNK[RO]9gui_forms13HelpBookImage*
 __ZNK[RO]9gui_forms13HelpLinkEntry*
+__ZNK[RO]9gui_forms13HelpLinkHover*
 __ZNK[RO]9gui_forms13HelpPageBlock*
 __ZNK[RO]9gui_forms13HelpPageImage*
 __ZNK[RO]9gui_forms13HelpPageModel*
@@ -9188,6 +9192,7 @@ __ZN[KRO]9gui_forms13GridTrackList*
 __ZN[KRO]9gui_forms13GridTrackSize*
 __ZN[KRO]9gui_forms13HelpBookImage*
 __ZN[KRO]9gui_forms13HelpLinkEntry*
+__ZN[KRO]9gui_forms13HelpLinkHover*
 __ZN[KRO]9gui_forms13HelpPageBlock*
 __ZN[KRO]9gui_forms13HelpPageImage*
 __ZN[KRO]9gui_forms13HelpPageModel*
@@ -10931,6 +10936,7 @@ __ZT[VIST]N9gui_forms13GridTrackList*E
 __ZT[VIST]N9gui_forms13GridTrackSize*E
 __ZT[VIST]N9gui_forms13HelpBookImage*E
 __ZT[VIST]N9gui_forms13HelpLinkEntry*E
+__ZT[VIST]N9gui_forms13HelpLinkHover*E
 __ZT[VIST]N9gui_forms13HelpPageBlock*E
 __ZT[VIST]N9gui_forms13HelpPageImage*E
 __ZT[VIST]N9gui_forms13HelpPageModel*E
@@ -12674,6 +12680,7 @@ __ZT[hvc]*9gui_forms13GridTrackList*
 __ZT[hvc]*9gui_forms13GridTrackSize*
 __ZT[hvc]*9gui_forms13HelpBookImage*
 __ZT[hvc]*9gui_forms13HelpLinkEntry*
+__ZT[hvc]*9gui_forms13HelpLinkHover*
 __ZT[hvc]*9gui_forms13HelpPageBlock*
 __ZT[hvc]*9gui_forms13HelpPageImage*
 __ZT[hvc]*9gui_forms13HelpPageModel*
@@ -14417,6 +14424,7 @@ __ZZN9gui_forms13GridTrackList*
 __ZZN9gui_forms13GridTrackSize*
 __ZZN9gui_forms13HelpBookImage*
 __ZZN9gui_forms13HelpLinkEntry*
+__ZZN9gui_forms13HelpLinkHover*
 __ZZN9gui_forms13HelpPageBlock*
 __ZZN9gui_forms13HelpPageImage*
 __ZZN9gui_forms13HelpPageModel*
@@ -16160,6 +16168,7 @@ __ZZNK9gui_forms13GridTrackList*
 __ZZNK9gui_forms13GridTrackSize*
 __ZZNK9gui_forms13HelpBookImage*
 __ZZNK9gui_forms13HelpLinkEntry*
+__ZZNK9gui_forms13HelpLinkHover*
 __ZZNK9gui_forms13HelpPageBlock*
 __ZZNK9gui_forms13HelpPageImage*
 __ZZNK9gui_forms13HelpPageModel*
