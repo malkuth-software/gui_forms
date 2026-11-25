@@ -61,7 +61,7 @@
       design-size="450 210"
       bounds="24 252 450 210">
     <check-box id="gallery.controls.check.0"
-        text="&amp;Classic checkbox"
+        text="C&amp;lassic checkbox"
         indicator-style="classic"
         bounds="24 42 300 28"/>
     <check-box id="gallery.controls.check.1"
