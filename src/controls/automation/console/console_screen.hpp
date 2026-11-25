@@ -101,8 +101,10 @@ public:
     [[nodiscard]] double glow(std::uint64_t key, std::size_t glyph) const noexcept;
     // The runs glowing now, and those that settled in the last advance (to
     // be drawn once more, in their formula colour).
-    [[nodiscard]] const std::vector<ConsoleFade>& fades() const noexcept { return fades_; }
-    [[nodiscard]] const std::vector<ConsoleFade>& settled() const noexcept { return settled_; }
+    [[nodiscard]] const std::vector<ConsoleFade>& fades() const& noexcept { return fades_; }
+    const std::vector<ConsoleFade>& fades() const&& = delete;
+    [[nodiscard]] const std::vector<ConsoleFade>& settled() const& noexcept { return settled_; }
+    const std::vector<ConsoleFade>& settled() const&& = delete;
     // The interval before keystroke `glyph` of row `key`, in seconds.
     [[nodiscard]] static double keystroke_seconds(std::uint64_t key, std::size_t glyph) noexcept;
 
