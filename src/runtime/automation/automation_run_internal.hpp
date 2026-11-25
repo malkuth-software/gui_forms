@@ -98,8 +98,10 @@ private:
     bool client_seen_{false};
     ClientIdentity client_{};
     std::atomic<bool> ended_{false};
-    // The UI thread's: the windows' handles, for the portable shutdown.
-    std::vector<ApplicationWindowHandle> handles_{};
+    // Calls being driven: the run's end waits a moment for them, so a reply
+    // to the call that closed the last window (disconnect) still reaches the
+    // client before the transport stops.
+    std::atomic<int> driving_{0};
     std::uint64_t tool_generation_{};
 
     std::unique_ptr<McpTransport> transport_{};

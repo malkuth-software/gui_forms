@@ -100,6 +100,17 @@ void install_user_input_gate(UserInputGate gate, void* context) noexcept;
 void remove_user_input_gate(void* context) noexcept;
 [[nodiscard]] bool user_input_held(const SurfaceRoot& window, bool press) noexcept;
 
+// The same rule for a native dialog the host runs itself (an NSAlert, a file
+// panel): true when the user's input to it must be held back. `press` is
+// true for a pointer button or key going down; the gate may then offer the
+// user control back (the take-back dialog, which works over the native
+// dialog). Called by the host's own modal loop, on the UI thread, between
+// events. Installed beside the window gate by the same owner;
+// remove_user_input_gate removes both.
+using NativeInputGate = bool (*)(void* context, bool press) noexcept;
+void install_native_input_gate(NativeInputGate gate, void* context) noexcept;
+[[nodiscard]] bool native_input_held(bool press) noexcept;
+
 // The window-ready hook: the automation joins each application window as it
 // becomes ready (study 4.1: every window of a program launched with --mcp
 // is reachable), with its stable ID in the run and its handle (the

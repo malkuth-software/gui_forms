@@ -15,6 +15,7 @@
 #include "../compositor/macos_compositor.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/failure/fail_fast.hpp"
+#include "../../../core/host/session/session_directory.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 
 #include <algorithm>
@@ -488,6 +489,90 @@ void add_escape_clicks_cancel(NSAlert* alert, NSButton* cancel_button) {
     escape.action = @selector(performClick:);
     [escape setAccessibilityElement:NO];
     [alert.window.contentView addSubview:escape];
+}
+
+// Whether the user's `event` must be held back from the alert the host runs
+// while a model holds control (session_directory.hpp, native_input_held):
+// pointer, key and scroll input to the alert itself or to any window that
+// does not work when modal. A panel that works when modal (the take-back
+// dialog, ApplicationWindow::outside_modality) gets its input.
+bool user_event(NSEvent* event) {
+    switch (event.type) {
+    case NSEventTypeLeftMouseDown:
+    case NSEventTypeLeftMouseUp:
+    case NSEventTypeLeftMouseDragged:
+    case NSEventTypeRightMouseDown:
+    case NSEventTypeRightMouseUp:
+    case NSEventTypeRightMouseDragged:
+    case NSEventTypeOtherMouseDown:
+    case NSEventTypeOtherMouseUp:
+    case NSEventTypeOtherMouseDragged:
+    case NSEventTypeKeyDown:
+    case NSEventTypeKeyUp:
+    case NSEventTypeScrollWheel: return true;
+    default: return false;
+    }
+}
+
+bool press_event(NSEvent* event) {
+    const NSEventType type = event.type;
+    return type == NSEventTypeLeftMouseDown || type == NSEventTypeRightMouseDown ||
+        type == NSEventTypeOtherMouseDown || (type == NSEventTypeKeyDown && !event.isARepeat);
+}
+
+bool reaches_outside_modality(NSEvent* event, NSWindow* alert_window) {
+    NSWindow* target = event.window;
+    const bool key = event.type == NSEventTypeKeyDown || event.type == NSEventTypeKeyUp;
+    if (key) target = NSApp.keyWindow;
+    if (target == nil || target == alert_window) return false;
+    return [target isKindOfClass:[NSPanel class]] && static_cast<NSPanel*>(target).worksWhenModal;
+}
+
+// Runs `alert` modally. While a model holds control, the user's input to it
+// is held back and a press offers the take-back dialog, which works over the
+// alert; once the user has taken control back the alert answers the user as
+// usual, and it stays open throughout (the take-back leaves it in place).
+// The loop is the alert's own modal session: it takes each event, holds the
+// user's, and otherwise passes it on only to the alert, a panel that works
+// when modal, or the application itself, as runModal does. With no model
+// holding control it is [alert runModal].
+NSModalResponse run_alert_modal(NSAlert* alert) {
+    if (!gui_forms::detail::native_input_held(false)) {
+        const NSModalResponse plain = [alert runModal];
+        return plain;
+    }
+    [alert layout];
+    NSWindow* const window = alert.window;
+    [window center];
+    NSModalSession session = [NSApp beginModalSessionForWindow:window];
+    NSModalResponse response = NSModalResponseContinue;
+    while (response == NSModalResponseContinue) {
+        @autoreleasepool {
+            NSDate* const until = [NSDate dateWithTimeIntervalSinceNow:0.05];
+            NSEvent* const event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:until
+                                                         inMode:NSModalPanelRunLoopMode dequeue:YES];
+            if (event != nil) {
+                const bool input = user_event(event);
+                const bool outside = input && reaches_outside_modality(event, window);
+                if (input && !outside && gui_forms::detail::native_input_held(press_event(event))) {
+                    // Held: the press offered the take-back dialog.
+                } else if (!input || outside || event.window == window ||
+                           event.type == NSEventTypeKeyDown || event.type == NSEventTypeKeyUp) {
+                    // Keys go to the key window, which is the alert or a
+                    // panel that works when modal.
+                    [NSApp sendEvent:event];
+                } else if (press_event(event)) {
+                    // A press on another window while the alert is up, as
+                    // runModal answers it.
+                    NSBeep();
+                }
+            }
+            response = [NSApp runModalSession:session];
+        }
+    }
+    [NSApp endModalSession:session];
+    [window orderOut:nil];
+    return response;
 }
 
 void schedule_test_panel_cancel(NSSavePanel* panel, bool enabled) {
@@ -1060,7 +1145,7 @@ protected:
                     add_escape_clicks_cancel(alert, cancelButton);
                 }
                 schedule_test_alert_cancel(alert, cancel_dialogs_for_testing_);
-                const NSModalResponse response = [alert runModal];
+                const NSModalResponse response = run_alert_modal(alert);
                 HostMessageDialogResult value;
                 const NSInteger index = response - NSAlertFirstButtonReturn;
                 if (index >= 0 && static_cast<std::size_t>(index) < buttons.size()) {
@@ -1178,7 +1263,7 @@ protected:
                 [alert addButtonWithTitle:@"OK"];
                 [alert addButtonWithTitle:@"Cancel"];
                 schedule_test_alert_cancel(alert, cancel_dialogs_for_testing_);
-                const NSModalResponse response = [alert runModal];
+                const NSModalResponse response = run_alert_modal(alert);
                 HostColorDialogResult value;
                 if (response == NSAlertFirstButtonReturn) {
                     NSColor* color = [well.color colorUsingColorSpace:[NSColorSpace sRGBColorSpace]];

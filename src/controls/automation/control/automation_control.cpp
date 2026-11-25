@@ -248,12 +248,27 @@ bool AutomationControl::gate(void* context, const SurfaceRoot& window, bool pres
     return held;
 }
 
+bool AutomationControl::native_gate(void* context, const bool press) noexcept {
+    AutomationControl& control = *static_cast<AutomationControl*>(context);
+    const bool held = control.state_ == ControlState::model_control;
+    if (held && press) {
+        try {
+            control.offer_take_back();
+        } catch (...) {
+            // A take-back dialog that cannot open drops the press; the next
+            // one offers again.
+        }
+    }
+    return held;
+}
+
 void AutomationControl::enter_model_control(FrameTime now) {
     state_ = ControlState::model_control;
     last_call_ = now;
     ++counters_.holds_begun;
     if (!gate_installed_) {
         gui_forms::detail::install_user_input_gate(&AutomationControl::gate, this);
+        gui_forms::detail::install_native_input_gate(&AutomationControl::native_gate, this);
         gate_installed_ = true;
     }
     if (presenter_ != nullptr) {

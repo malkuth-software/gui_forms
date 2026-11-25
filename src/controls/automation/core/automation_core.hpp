@@ -222,6 +222,20 @@ public:
     [[nodiscard]] std::string window_stable_id(const Window& window) const;
     // The program's handle for `window`, or an empty one.
     [[nodiscard]] ApplicationWindowHandle window_handle(const Window& window) const;
+    // The handles of the program's own windows (not passive popups), for a
+    // disconnect's close.
+    void program_window_handles(std::vector<ApplicationWindowHandle>& handles) const;
+    // The hard disconnect with the program's default, and the transport's
+    // end (a client that crashed or was killed): control returns to the
+    // user, later calls are refused, and every program window is asked to
+    // close as its close box asks. A question the program raises goes to the
+    // user (owner, round 3).
+    void hard_disconnect() noexcept;
+    // Whether a disconnect ended the model's session.
+    [[nodiscard]] bool session_ended() const noexcept { return ended_; }
+    // Ends the session: control returns to the user and the in-use sign
+    // and the band leave the windows.
+    void end_session() noexcept;
 
     // Records who is calling (the tag line, the replies).
     void set_client(const ClientIdentity& client);
@@ -285,6 +299,8 @@ private:
     AutomationControl& control_;
     AutomationSettings settings_;
     std::vector<AutomationWindow> windows_{};
+    // A disconnect ended the session: every later call is refused.
+    bool ended_{};
     std::uint64_t next_window_number_{1U};
     std::vector<std::unique_ptr<RunningCall>> calls_{};
     // The dialogs a model's act opened, by the ID find_open_dialog gives:

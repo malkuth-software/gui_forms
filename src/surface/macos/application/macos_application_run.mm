@@ -287,7 +287,13 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
     } else if (panel) {
         NSPanel* const panelWindow = [[NSPanel alloc] initWithContentRect:frame styleMask:style
                                                                   backing:NSBackingStoreBuffered defer:NO];
-        if (entry.outside_modality) [panelWindow setWorksWhenModal:YES];
+        if (entry.outside_modality) {
+            // Above an alert or modal window it must work over: AppKit
+            // keeps a modal session's window in front of its level, so one
+            // level above it.
+            [panelWindow setWorksWhenModal:YES];
+            [panelWindow setLevel:NSModalPanelWindowLevel + 1];
+        }
         nativeWindow = panelWindow;
     } else {
         nativeWindow = [[NSWindow alloc] initWithContentRect:frame styleMask:style

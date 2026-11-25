@@ -655,6 +655,20 @@ Visible-area guarantee (stage VA):
   tool descriptions say so. Once the user takes control back, questions are
   shown as usual. `act` close on a program window's own ID asks that window
   to close; a window that closes during the call replies `ok`.
+- **Round 3: `disconnect`.** The model ends its session with `disconnect`.
+  `mode` `soft` (the default) asks every program window to close with the
+  program's questions the model's: one asked stops it, nothing closes or
+  shows, and the reply names the work to save; save, then disconnect again.
+  `mode` `hard` ends the session regardless: control returns to the user
+  and the program's save question is shown to the user, or with
+  `discard_unsaved` true the changes are discarded and nothing is asked. A
+  transport that ends with no `disconnect` (a client that crashed or was
+  killed) is a hard disconnect with the default. With the user in control,
+  only the session ends. Later calls are refused.
+- **Round 3: native alerts.** A host alert (an NSAlert on macOS) the program
+  runs while the model holds control holds the user's input; a click on it
+  offers the take-back dialog, which shows above it and works over it, and
+  taking back leaves the alert open for the user.
 - **Round 3: nested loops and modality.** The dispatcher runs a turn one
   item at a time and keeps a wake pending while more work is queued, so a
   callback that runs a nested modal loop no longer strands the rest of the

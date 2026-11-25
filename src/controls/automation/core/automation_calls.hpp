@@ -9,6 +9,7 @@
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace gui_forms::automation {
 
@@ -40,6 +41,8 @@ enum class ActKind : std::uint8_t {
     reveal,
     // A program window asked to close (act close on its own ID).
     close_window,
+    // Every program window asked to close (disconnect).
+    close_windows,
 };
 
 // An act prepared and checked, performed at a later dispatcher turn so that
@@ -71,6 +74,8 @@ struct PreparedAct final {
     std::string dialog_tool{};
     // close_window: the window's handle.
     ApplicationWindowHandle window_handle{};
+    // close_windows: the program's windows.
+    std::vector<ApplicationWindowHandle> window_handles{};
     // reveal: scroll the control into view in every scrolling ancestor.
     // The target is a password field: the reply says only "ok" (study 9.1).
     bool protected_target{};
@@ -169,6 +174,10 @@ struct AutomationCore::RunningCall final {
     // call; whether the call holds the model's questions open.
     gui_forms::detail::ModelQuestionAnswer unsaved{gui_forms::detail::ModelQuestionAnswer::none};
     bool questions_open{};
+    // disconnect: the hard mode, whose program questions go to the user
+    // unless discard_unsaved answers them.
+    bool disconnect_hard{};
+    bool discard_unsaved{};
 };
 
 namespace detail {

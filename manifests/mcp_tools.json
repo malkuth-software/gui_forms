@@ -652,5 +652,33 @@
    "idempotentHint": true,
    "openWorldHint": false
   }
+ },
+ {
+  "name": "disconnect",
+  "title": "Disconnect",
+  "description": "Ends your session and closes the program cleanly. The usual path: save your work with the program's save tool, then disconnect. mode soft (the default) never closes over unsaved work and never shows anything: if the program asks to save, nothing closes, and the reply names what to save; save it, then disconnect again. mode hard ends the session regardless: control returns to the user and the program's own save question is shown to the user, or, with discard_unsaved true, unsaved changes are discarded and nothing is asked. If the user holds control, the program stays open and only your session ends.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "mode": {
+     "type": "string",
+     "enum": [
+      "soft",
+      "hard"
+     ]
+    },
+    "discard_unsaved": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Disconnect",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
  }
 ]

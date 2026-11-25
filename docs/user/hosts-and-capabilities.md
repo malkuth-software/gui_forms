@@ -415,6 +415,11 @@ Windows (Win32)
   call's reply carries it with its choices, and the program stays as it was.
   `on_unsaved` (`save` or `discard`) answers a save question; without it the
   question is cancelled. Save first, then close, needs no question at all.
+  The model ends its session with `disconnect`: soft (the default) closes
+  nothing over unsaved work and names it (save, then disconnect again);
+  hard returns control and shows the program's save question to the user,
+  or discards with `discard_unsaved`. A client that drops without
+  disconnecting counts as hard.
   After the user takes control back, questions are shown as usual. The
   take-back and countdown dialogs stay usable over any modal dialog
   (`ApplicationWindow::outside_modality`).

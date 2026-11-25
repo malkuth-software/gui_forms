@@ -26,6 +26,11 @@ struct InputGateEntry final {
     void* context{};
 };
 
+struct NativeGateEntry final {
+    NativeInputGate gate{};
+    void* context{};
+};
+
 struct RouteObserverEntry final {
     RouteObserver observer{};
     void* context{};
@@ -43,6 +48,7 @@ struct SessionDirectory final {
     stxlib::Mutex mutex{};
     std::vector<WindowSessionEntry> entries{};
     InputGateEntry gate{};
+    NativeGateEntry native_gate{};
     ReadyHookEntry ready{};
     RouteObserverEntry route{};
 };
@@ -173,6 +179,26 @@ void remove_user_input_gate(void* context) noexcept {
     SessionDirectory& table = directory();
     const stxlib::ScopedLock lock(table.mutex);
     if (table.gate.gate != nullptr && table.gate.context == context) table.gate = InputGateEntry{};
+    if (table.native_gate.gate != nullptr && table.native_gate.context == context) table.native_gate = NativeGateEntry{};
+}
+
+void install_native_input_gate(NativeInputGate gate, void* context) noexcept {
+    SessionDirectory& table = directory();
+    const stxlib::ScopedLock lock(table.mutex);
+    table.native_gate = NativeGateEntry{gate, gate == nullptr ? nullptr : context};
+}
+
+bool native_input_held(const bool press) noexcept {
+    SessionDirectory& table = directory();
+    NativeGateEntry gate{};
+    {
+        const stxlib::ScopedLock lock(table.mutex);
+        gate = table.native_gate;
+    }
+    // Called after the lock is released, as user_input_held.
+    if (gate.gate == nullptr) return false;
+    const bool held = gate.gate(gate.context, press);
+    return held;
 }
 
 bool user_input_held(const SurfaceRoot& window, const bool press) noexcept {

@@ -199,6 +199,26 @@ ControlSettings control_settings(const AutomationLaunch& launch) noexcept {
 
 // ---- the run ----------------------------------------------------------------------
 
+namespace {
+
+// Counts a call being driven for as long as it lives.
+struct DrivingCall final {
+    explicit DrivingCall(std::atomic<int>* counted) noexcept : count(counted) { ++(*count); }
+    std::atomic<int>* count{};
+    DrivingCall(const DrivingCall&) = delete;
+    DrivingCall& operator=(const DrivingCall&) = delete;
+    ~DrivingCall() { --(*count); }
+};
+
+// A frame-clock interval as STXlib's Duration, for its sleep.
+stxlib::Duration stxlib_interval(const FrameInterval interval) noexcept {
+    const stxlib::Duration converted = stxlib::Duration::nanoseconds(
+        static_cast<stxlib::i64>(std::chrono::duration_cast<std::chrono::nanoseconds>(interval).count()));
+    return converted;
+}
+
+} // namespace
+
 AutomationRun::AutomationRun(AutomationLaunch launch)
     : launch_(std::move(launch)), control_(control_settings(launch_), &presenter_), core_(control_) {
     presenter_.bind_control(&control_);
@@ -208,6 +228,15 @@ AutomationRun::AutomationRun(AutomationLaunch launch)
 AutomationRun::~AutomationRun() {
     ended_.store(true);
     gui_forms::detail::install_window_ready_hook(nullptr, nullptr);
+    // A call whose window closed under it answers at its next step slice;
+    // up to a second for it, then a moment for the transport to write it.
+    const FrameTime deadline = FrameClock::now() + std::chrono::seconds(1);
+    bool waited = false;
+    while (driving_.load() > 0 && FrameClock::now() < deadline) {
+        waited = true;
+        stxlib::sleep_for(stxlib_interval(stop_slice));
+    }
+    if (waited) stxlib::sleep_for(stxlib_interval(std::chrono::milliseconds(200)));
     // The script and the transport first: their calls end (the windows are
     // gone, so their steps answer window_gone) and their tasks are joined
     // before the core they drive is destroyed.
@@ -252,7 +281,6 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         const bool passive_popup = state != nullptr && (*state).passive_popup;
         if (!run.core_.attach_window(*model, std::string(stable_id), passive_popup, handle)) return;
         run.presenter_.set_windowing(handle, stable_id);
-        run.handles_.push_back(handle);
         bool closing = false;
         bool client_seen = false;
         ClientIdentity client{};
@@ -289,16 +317,6 @@ WindowDispatcher AutomationRun::home_dispatcher() const {
     return WindowDispatcher{};
 }
 
-namespace {
-
-// A frame-clock interval as STXlib's Duration, for its sleep.
-stxlib::Duration stxlib_interval(const FrameInterval interval) noexcept {
-    const stxlib::Duration converted = stxlib::Duration::nanoseconds(
-        static_cast<stxlib::i64>(std::chrono::duration_cast<std::chrono::nanoseconds>(interval).count()));
-    return converted;
-}
-
-} // namespace
 
 bool AutomationRun::wait_for_window(const CallStop* stop) const {
     while (!ended_.load()) {
@@ -313,6 +331,7 @@ bool AutomationRun::wait_for_window(const CallStop* stop) const {
 }
 
 ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json, const CallStop* stop) {
+    const DrivingCall driving(&driving_);
     const ToolReply gone = ToolReply::failure(ToolError::window_gone, "no window is open",
                                               "the program has no window, or is closing");
     WindowDispatcher dispatcher = home_dispatcher();
@@ -348,8 +367,9 @@ ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json
         }
         // A window gone after the call began closed during it: a model's
         // close of the program's last window ends here (round 3).
-        const ToolReply closed = ToolReply::success("ok: the window closed during the call; the program may be "
-                                                    "ending");
+        const ToolReply closed = ToolReply::success(
+            tool == "disconnect" ? "ok: disconnected; every window closed and the program is ending"
+                                 : "ok: the window closed during the call; the program may be ending");
         dispatcher = home_dispatcher();
         if (!dispatcher.window_alive()) return closed;
         try {
@@ -395,15 +415,10 @@ void AutomationRun::post_close_all() {
 }
 
 void AutomationRun::close_all() noexcept {
-    control_.disconnect();
-    for (const ApplicationWindowHandle& handle : handles_) {
-        if (!handle.active()) continue;
-        try {
-            static_cast<void>(handle.request_close());
-        } catch (...) {
-            // A window that cannot be asked closes with the run.
-        }
-    }
+    // The transport ended with no disconnect call (the client crashed or was
+    // killed): a hard disconnect with the program's default, so its save
+    // question goes to the user (owner, round 3).
+    core_.hard_disconnect();
 }
 
 void AutomationRun::serve_when_ready() {

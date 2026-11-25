@@ -277,6 +277,10 @@ public:
 
 private:
     static bool gate(void* context, const SurfaceRoot& window, bool press) noexcept;
+    // The gate for a native dialog the host runs (an NSAlert): held while
+    // the model holds control, and a press offers the take-back dialog at
+    // once (the host's modal loop calls it between events).
+    static bool native_gate(void* context, bool press) noexcept;
     // The one transition out of model_control: the state changes, then the
     // gate, then the presenter (study 8.3: "the state changes first").
     void release(ControlRelease reason) noexcept;

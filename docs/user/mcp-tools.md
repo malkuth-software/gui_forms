@@ -160,3 +160,12 @@ No arguments.
 **Release control.** Gives the program back to the user and ends AI mode. In a shared launch your first act asks the user (a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s pass without a call; a launch with --mcp is yours from the start. Reads never need control.
 
 No arguments.
+
+## `disconnect`
+
+**Disconnect.** Ends your session and closes the program cleanly. The usual path: save your work with the program's save tool, then disconnect. mode soft (the default) never closes over unsaved work and never shows anything: if the program asks to save, nothing closes, and the reply names what to save; save it, then disconnect again. mode hard ends the session regardless: control returns to the user and the program's own save question is shown to the user, or, with discard_unsaved true, unsaved changes are discarded and nothing is asked. If the user holds control, the program stays open and only your session ends.
+
+| Argument | Type | Required | Meaning |
+|---|---|---|---|
+| `mode` | one of `soft`, `hard` | no |  |
+| `discard_unsaved` | boolean | no |  |

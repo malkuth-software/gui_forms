@@ -248,13 +248,24 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "(a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s "
         "pass without a call; a launch with --mcp is yours from the start. Reads never need control.",
         "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}", ToolAccess::read_only));
+    specs.push_back(built_in(
+        "disconnect", "Disconnect",
+        "Ends your session and closes the program cleanly. The usual path: save your work with the program's save "
+        "tool, then disconnect. mode soft (the default) never closes over unsaved work and never shows anything: "
+        "if the program asks to save, nothing closes, and the reply names what to save; save it, then disconnect "
+        "again. mode hard ends the session regardless: control returns to the user and the program's own save "
+        "question is shown to the user, or, with discard_unsaved true, unsaved changes are discarded and nothing "
+        "is asked. If the user holds control, the program stays open and only your session ends.",
+        "{\"type\":\"object\",\"properties\":{\"mode\":{\"type\":\"string\",\"enum\":[\"soft\",\"hard\"]},"
+        "\"discard_unsaved\":{\"type\":\"boolean\"}},\"additionalProperties\":false}",
+        ToolAccess::acting));
 }
 
 bool built_in_name(std::string_view name) noexcept {
     const bool known = name == "windows" || name == "snapshot" || name == "act" || name == "pointer" ||
                        name == "keyboard" || name == "text" || name == "wait" || name == "capture" ||
                        name == "inspect" || name == "batch" || name == "release_control" || name == "find" ||
-                       name == "reset";
+                       name == "reset" || name == "disconnect";
     return known;
 }
 
@@ -499,6 +510,17 @@ bool perform_act(Window& window, const PreparedAct& act, const ClientIdentity& c
         const HostServiceStatus asked = act.window_handle.request_close();
         if (!asked.accepted()) outcome.detail = "the window refused the close request";
         return asked.accepted();
+    }
+    case ActKind::close_windows: {
+        // Copied: a close may end the run that holds the act.
+        const std::vector<ApplicationWindowHandle> handles = act.window_handles;
+        bool asked_all = true;
+        for (const ApplicationWindowHandle& handle : handles) {
+            if (!handle.active()) continue;
+            if (!handle.request_close().accepted()) asked_all = false;
+        }
+        if (!asked_all) outcome.detail = "a window refused the close request";
+        return asked_all;
     }
     case ActKind::reveal: {
         const Control::Ptr target = window.find(act.command_id);
@@ -819,6 +841,31 @@ bool AutomationCore::passive_popup_window(const Window& window) const noexcept {
     return false;
 }
 
+void AutomationCore::program_window_handles(std::vector<ApplicationWindowHandle>& handles) const {
+    for (const AutomationWindow& entry : windows_) {
+        if (!entry.passive_popup && entry.handle.active()) handles.push_back(entry.handle);
+    }
+}
+
+void AutomationCore::end_session() noexcept {
+    ended_ = true;
+    control_.disconnect();
+    if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).disconnected();
+}
+
+void AutomationCore::hard_disconnect() noexcept {
+    end_session();
+    try {
+        std::vector<ApplicationWindowHandle> handles{};
+        program_window_handles(handles);
+        for (const ApplicationWindowHandle& handle : handles) {
+            if (handle.active()) static_cast<void>(handle.request_close());
+        }
+    } catch (...) {
+        // A window that cannot be asked closes with the run.
+    }
+}
+
 ApplicationWindowHandle AutomationCore::window_handle(const Window& window) const {
     for (const AutomationWindow& entry : windows_) {
         if (entry.window.get() == &window) return entry.handle;
@@ -980,6 +1027,7 @@ struct CoreAccess final {
     StepOutcome prepare_wait(RunningCall& call, Window& window, FrameTime now);
     StepOutcome prepare_batch(RunningCall& call, FrameTime now);
     StepOutcome release_control_tool();
+    StepOutcome disconnect_tool(RunningCall& call, FrameTime now);
     // Whether the call acts (and so needs control), and the take step:
     // finished (refused, or still waiting) unless it set control_checked.
     bool needs_control(const RunningCall& call);
@@ -2008,6 +2056,50 @@ StepOutcome CoreAccess::release_control_tool() {
         ToolReply::success("ok: control returned to the user; AI mode ended. Your next act asks the user again"));
 }
 
+// disconnect (owner, round 3). Soft asks every program window to close
+// with the program's questions the model's: one asked stops the close, and
+// the reply names it (finish_reply). Hard gives control back and asks them
+// to close with the questions the user's, or answered No for
+// discard_unsaved. With the user in control, only the session ends.
+StepOutcome CoreAccess::disconnect_tool(RunningCall& call, FrameTime now) {
+    const std::optional<std::string> mode = detail::text_member(call.arguments, "mode");
+    if (mode.has_value() && *mode != "soft" && *mode != "hard") {
+        return StepOutcome::finished(
+            ToolReply::failure(ToolError::invalid_arguments, "no mode " + *mode, "soft or hard"));
+    }
+    call.disconnect_hard = mode.has_value() && *mode == "hard";
+    const std::optional<bool> discard = detail::boolean_member(call.arguments, "discard_unsaved");
+    call.discard_unsaved = discard.has_value() && *discard;
+    if (call.discard_unsaved && !call.disconnect_hard) {
+        return StepOutcome::finished(ToolReply::failure(
+            ToolError::invalid_arguments, "discard_unsaved goes with mode hard",
+            "save first and disconnect again, or disconnect with mode hard and discard_unsaved true"));
+    }
+    AutomationControl& control = core.control();
+    if (control.state() != ControlState::model_control) {
+        core.end_session();
+        return StepOutcome::finished(ToolReply::success(
+            "ok: disconnected; the user holds the program, so it stays open as it is"));
+    }
+    if (call.disconnect_hard && !call.discard_unsaved) {
+        core.hard_disconnect();
+        return StepOutcome::finished(ToolReply::success(
+            "ok: disconnected (hard); control is the user's and every window was asked to close; the program asks "
+            "the user about any unsaved work"));
+    }
+    ToolReply refusal{};
+    if (call_window(call, refusal) == nullptr) return StepOutcome::finished(std::move(refusal));
+    PreparedAct& act = call.act;
+    act.kind = ActKind::close_windows;
+    core.program_window_handles(act.window_handles);
+    act.summary = call.discard_unsaved ? "disconnected (hard); unsaved changes discarded and every window closed"
+                                       : "disconnected; every window closed and the program is ending";
+    call.unsaved = call.discard_unsaved ? gui_forms::detail::ModelQuestionAnswer::discard
+                                        : gui_forms::detail::ModelQuestionAnswer::none;
+    if (call.discard_unsaved) core.end_session();
+    return post_act(call, now);
+}
+
 bool CoreAccess::needs_control(const RunningCall& call) {
     const std::string& tool = call.tool;
     if (tool == "act" || tool == "pointer" || tool == "keyboard" || tool == "reset") return true;
@@ -2124,6 +2216,11 @@ StepOutcome CoreAccess::registry_tool(RunningCall& call, const ToolEntry& entry,
 
 StepOutcome CoreAccess::first_step(RunningCall& call, FrameTime now) {
     const std::string& tool = call.tool;
+    if (core.session_ended()) {
+        return StepOutcome::finished(ToolReply::failure(
+            ToolError::needs_user, "your session ended (disconnect); the program is the user's",
+            "start the program again to connect"));
+    }
     std::string arguments_json{};
     detail::object_without(call.arguments, std::string_view{}, arguments_json);
     // Unknown members are refused, not ignored (MCP round 1).
@@ -2153,6 +2250,7 @@ StepOutcome CoreAccess::first_step(RunningCall& call, FrameTime now) {
     if (tool == "windows") return windows_tool();
     if (tool == "reset") return reset_tool(call, now);
     if (tool == "release_control") return release_control_tool();
+    if (tool == "disconnect") return disconnect_tool(call, now);
     // An act needs control (the owner's control model): its first ask
     // waits on the user's answer.
     if (!call.control_checked && needs_control(call)) {
@@ -2467,7 +2565,10 @@ const char* buttons_names(HostMessageButtons buttons) noexcept {
 
 // The questions the program raised during a call, for its reply: each
 // was the model's, answered and never shown (owner, round 3).
-void append_model_questions(const std::vector<gui_forms::detail::ModelQuestion>& asked, std::string& text) {
+// Appends the questions the program asked during the call; true when one
+// stopped it (a question answered with nothing, a cancel).
+bool append_model_questions(const std::vector<gui_forms::detail::ModelQuestion>& asked, bool disconnecting,
+                            std::string& text) {
     bool stopped = false;
     for (const gui_forms::detail::ModelQuestion& question : asked) {
         if (question.path_dialog) {
@@ -2481,11 +2582,16 @@ void append_model_questions(const std::vector<gui_forms::detail::ModelQuestion>&
                 "; not shown to the user";
         if (question.choice == HostDialogChoice::none && question.buttons != HostMessageButtons::ok) stopped = true;
     }
-    if (stopped) {
+    if (stopped && disconnecting) {
+        text += "\nNothing closed and nothing was shown; the program stays as it was and you keep your session. "
+                "Save the work it names (the program's save tool), then disconnect again; or disconnect with mode "
+                "\"hard\" (the user is asked) or mode \"hard\" and discard_unsaved true.";
+    } else if (stopped) {
         text += "\nThe program stopped there and stays as it was; nothing is left waiting. To go on, save first "
                 "(the program's save tool), then repeat the call; or repeat it with on_unsaved \"save\" or "
                 "\"discard\".";
     }
+    return stopped;
 }
 
 } // namespace
@@ -2495,11 +2601,20 @@ void AutomationCore::finish_reply(RunningCall& call, StepOutcome& outcome) {
     if (finished == nullptr) return;
     ToolReply reply = *finished;
     std::string extra{};
+    const bool disconnecting = call.tool == "disconnect";
     if (call.questions_open) {
         std::vector<gui_forms::detail::ModelQuestion> asked{};
         gui_forms::detail::end_model_questions(call.id.value, asked);
         call.questions_open = false;
-        append_model_questions(asked, extra);
+        if (append_model_questions(asked, disconnecting, extra) && disconnecting) {
+            // A soft disconnect balked: the session goes on.
+            reply = ToolReply::success("not disconnected: the program has unsaved work");
+        }
+    }
+    if (disconnecting && !call.disconnect_hard && reply.success_value() != nullptr &&
+        (*reply.success_value()).text.rfind("ok:", 0) == 0) {
+        // A soft disconnect that went through: the session ends.
+        end_session();
     }
     const std::string notice = control_.take_notice();
     if (!notice.empty()) extra += "\nnote: " + notice;
