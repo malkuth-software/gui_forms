@@ -227,15 +227,13 @@ std::uint64_t console_glyph_hash(std::uint64_t serial, std::size_t glyph) noexce
 ConsoleShade console_shade(ConsoleTone tone, std::uint64_t serial, std::size_t glyph) noexcept {
     const std::uint64_t hash = console_glyph_hash(serial, glyph);
     ConsoleShade shade{};
-    // c clusters: the instruction and the label within 0.10 of 0, a value
-    // within 0.10 of 1, the spread weighted toward the pole (the square of a
-    // uniform).
-    const double spread = unit(hash, 0U);
-    const double offset = 0.10 * spread * spread;
-    shade.c = tone == ConsoleTone::value ? 1.0 - offset : offset;
-    // v hovers around 0.8 (a label's around 0.55): plus or minus 0.04.
+    shade.c = tone == ConsoleTone::value ? 1.0 : 0.0;
+    // conf around 0.8 (a label's around 0.55), plus or minus 0.08, the
+    // spread weighted toward the centre (the mean of two uniforms); v is
+    // max(50, conf * 255) / 255.
     const double centre = tone == ConsoleTone::label ? 0.55 : 0.8;
-    shade.v = centre + 0.08 * (unit(hash, 24U) - 0.5);
+    const double spread = unit(hash, 0U) + unit(hash, 24U) - 1.0;
+    shade.v = std::max(50.0 / 255.0, centre + 0.08 * spread);
     return shade;
 }
 
@@ -285,17 +283,11 @@ void console_wrap(const ConsoleLine& line, std::size_t columns, std::vector<Cons
             }
             if (text[index] != ' ') {
                 const ConsoleTone tone = wrapped ? ConsoleTone::value : span.tone;
-                const std::uint64_t hash = console_glyph_hash(line.serial, glyph);
                 ConsoleGlyph entry{};
                 entry.text = std::string(text.substr(index, end - index));
                 entry.column = column;
                 entry.tone = tone;
                 entry.shade = console_shade(tone, line.serial, glyph);
-                const ConsoleShade fill{entry.shade.c, entry.shade.v * (1.0 - console_grain)};
-                const ConsoleShade raised{entry.shade.c, entry.shade.v * (1.0 + console_grain)};
-                entry.colour = console_colour(fill, hash ^ 0x1dULL);
-                entry.grain = console_colour(raised, hash ^ 0x2eULL);
-                entry.odd = ((hash >> 52U) & 1ULL) != 0ULL;
                 row.glyphs.push_back(std::move(entry));
             }
             ++column;

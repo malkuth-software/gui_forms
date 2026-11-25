@@ -10,8 +10,18 @@
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/engine/motion_clock/motion_clock.hpp"
+#include "gui_forms/paint_framebuffer.hpp"
+#include "gui_forms/resources/image_atlas/image_atlas.hpp"
+
+#include "console_screen.hpp"
 
 #include <algorithm>
+#include <chrono>
+#include <deque>
+#include <map>
+#include <memory>
+#include <span>
 #include <cmath>
 #include <cstddef>
 #include <cstdint>
@@ -56,65 +66,122 @@ FontSpec ConsoleOverlay::console_font() noexcept {
     return font;
 }
 
-// One row of the console: its glyphs at their columns, each in its own
-// colour, and the grain over them: in every band of console_grain_band
-// along the row's height, the glyphs whose parity matches the band's are
-// drawn again in their grain colour, clipped to the band (an ordered dither
-// inside each glyph's fill, its phase seeded per glyph). A row is drawn
-// once when it is added; it takes no input (a press reaches the surface).
-class ConsoleRow final : public Control {
+// The console's glyph atlas: each glyph rasterised once, in Portsmouth
+// Mono at the screen's pixel density, into an alpha mask one cell in size
+// (after the owner's FastMatrixDashboard, whose mask bank holds an H x W
+// float mask per glyph). Built once per face, size and density; a glyph
+// first met later is rasterised then, with the others it arrives with.
+class ConsoleGlyphs final {
 public:
-    ConsoleRow(StableId stable_id, double advance, double baseline, double height, ConsoleGlyphRow row)
-        : Control(std::move(stable_id)), advance_(advance), baseline_(baseline), height_(height),
-          row_(std::move(row)) {}
+    // A new cell (pixels) and baseline: every mask goes.
+    void reset(std::uint32_t cell_width, std::uint32_t cell_height, double baseline, double density) {
+        cell_width_ = cell_width;
+        cell_height_ = cell_height;
+        baseline_ = baseline;
+        density_ = density;
+        masks_.clear();
+    }
 
-    void on_paint(Painter& painter, Rect) override {
-        if (row_.glyphs.empty()) return;
-        const FontSpec font = ConsoleOverlay::console_font();
-        std::vector<TextRun> runs{};
-        runs.reserve(row_.glyphs.size());
-        for (const ConsoleGlyph& glyph : row_.glyphs) {
-            runs.push_back(TextRun{Point{static_cast<double>(glyph.column) * advance_, baseline_}, glyph.text,
-                                   glyph.colour});
+    [[nodiscard]] std::uint32_t cell_width() const noexcept { return cell_width_; }
+    [[nodiscard]] std::uint32_t cell_height() const noexcept { return cell_height_; }
+    [[nodiscard]] double density() const noexcept { return density_; }
+
+    // The mask of `glyph` (cell_width x cell_height coverages, 0 to 1, row
+    // by row), or null before prepare made it.
+    [[nodiscard]] const std::vector<float>* mask(const std::string& glyph) const {
+        const std::map<std::string, std::vector<float>>::const_iterator found = masks_.find(glyph);
+        if (found == masks_.end()) return nullptr;
+        return &(*found).second;
+    }
+
+    // Rasterises those of `wanted` not in the atlas yet, white on clear in
+    // one offscreen frame of the host's renderer, and keeps each cell's
+    // alpha. A glyph the frame cannot be made for gets an empty mask, so it
+    // is not tried again.
+    void prepare(SurfaceRoot& root, const std::vector<std::string>& wanted) {
+        std::vector<std::string> missing{};
+        for (const std::string& glyph : wanted) {
+            if (masks_.find(glyph) != masks_.end()) continue;
+            if (std::find(missing.begin(), missing.end(), glyph) != missing.end()) continue;
+            missing.push_back(glyph);
         }
-        painter.draw_text_runs(font, runs);
-        const double width = arranged_bounds().width;
-        std::size_t band = 0U;
-        for (double top = 0.0; top < height_; top += console_grain_band) {
-            const bool odd = (band % 2U) != 0U;
-            ++band;
-            runs.clear();
-            for (const ConsoleGlyph& glyph : row_.glyphs) {
-                if (glyph.odd != odd) continue;
-                runs.push_back(TextRun{Point{static_cast<double>(glyph.column) * advance_, baseline_}, glyph.text,
-                                       glyph.grain});
+        if (missing.empty() || cell_width_ == 0U || cell_height_ == 0U) return;
+        const std::size_t per_row = 32U;
+        const std::size_t rows = (missing.size() + per_row - 1U) / per_row;
+        const double cell_w = static_cast<double>(cell_width_) / density_;
+        const double cell_h = static_cast<double>(cell_height_) / density_;
+        const Size size{cell_w * static_cast<double>(per_row), cell_h * static_cast<double>(rows)};
+        std::unique_ptr<PaintFramebuffer> frame{};
+        try {
+            frame = root.create_framebuffer(size, density_);
+        } catch (...) {
+            frame.reset();
+        }
+        const std::vector<float> empty(static_cast<std::size_t>(cell_width_) * cell_height_, 0.0F);
+        if (!frame) {
+            for (const std::string& glyph : missing) masks_[glyph] = empty;
+            return;
+        }
+        BorrowedMutableSpan<std::byte> clearing = (*frame).pixels();
+        for (std::size_t index = 0U; index < clearing.size(); ++index) clearing[index] = std::byte{0};
+        if ((*frame).begin(root.image_resources(), Rect{0.0, 0.0, size.width, size.height})) {
+            Painter& painter = (*frame).painter();
+            const FontSpec font = ConsoleOverlay::console_font();
+            for (std::size_t index = 0U; index < missing.size(); ++index) {
+                const double x = cell_w * static_cast<double>(index % per_row);
+                const double y = cell_h * static_cast<double>(index / per_row) + baseline_ / density_;
+                painter.draw_text_utf8(Point{x, y}, missing[index], font, Color{255U, 255U, 255U, 255U});
             }
-            if (runs.empty()) continue;
-            painter.save();
-            painter.clip_rect(Rect{0.0, top, width, console_grain_band});
-            painter.draw_text_runs(font, runs);
-            painter.restore();
+            (*frame).end();
+        }
+        const BorrowedMutableSpan<std::byte> pixels = (*frame).pixels();
+        const std::size_t row_bytes = (*frame).row_bytes();
+        const std::size_t frame_width = (*frame).width();
+        const std::size_t frame_height = (*frame).height();
+        for (std::size_t index = 0U; index < missing.size(); ++index) {
+            std::vector<float> mask = empty;
+            const std::size_t left = (index % per_row) * cell_width_;
+            const std::size_t top = (index / per_row) * cell_height_;
+            for (std::size_t y = 0U; y < cell_height_ && top + y < frame_height; ++y) {
+                for (std::size_t x = 0U; x < cell_width_ && left + x < frame_width; ++x) {
+                    const std::size_t at = (top + y) * row_bytes + (left + x) * 4U + 3U;
+                    if (at >= pixels.size()) continue;
+                    mask[y * cell_width_ + x] = static_cast<float>(std::to_integer<unsigned>(pixels[at])) / 255.0F;
+                }
+            }
+            masks_[missing[index]] = std::move(mask);
         }
     }
 
-    [[nodiscard]] bool hit_test_local(Point) const override { return false; }
-
 private:
-    double advance_{};
+    std::uint32_t cell_width_{};
+    std::uint32_t cell_height_{};
     double baseline_{};
-    double height_{};
-    ConsoleGlyphRow row_{};
+    double density_{1.0};
+    std::map<std::string, std::vector<float>> masks_{};
 };
 
-// The console's root: the darkened layer over the program's client area
-// and its rows, filled from the top like a terminal; once full, the oldest
-// row leaves at the top and the rest move up (their recorded drawing is
-// moved, not repainted). A press on the button's place toggles the console
-// (in case the host keeps the console above the button); a press anywhere
-// else offers take-back.
+// The console's root: the darkened layer over the program's client area and
+// the screen on it, a character grid like a terminal's.
+//
+// The screen model (console_screen.hpp) says which glyphs show. Each row in
+// view is composited into a pixel buffer at the cell's native size (the
+// glyph's mask times the formula's colour, as FastMatrixDashboard's
+// grid_pixels = masks * colours), only the glyphs newly shown, and written
+// into its slots of an ImageAtlas; the paint draws the slots scaled up to
+// the window with linear filtering. That soft scaling is the CRT-like
+// dither the owner asked for: nothing is filtered afterwards.
+//
+// Frames run only while a line is typing or the screen is scrolling (an
+// ambient effect on the window's motion clock); otherwise nothing wakes.
+// The console is its own window, so neither its frames nor its repaints
+// touch the program beneath, and the automation's idle test never sees it.
+//
+// A press on the button's place toggles the console (in case the host keeps
+// the console above the button); a press anywhere else offers take-back.
 class ConsoleSurface;
 
-// A re-wrap posted from arrange, which must not change the tree itself.
+// A rebuild posted from arrange, which must not change the tree itself.
 struct RewrapWork final {
     std::weak_ptr<ConsoleSurface*> surface{};
     void operator()() const noexcept;
@@ -122,28 +189,35 @@ struct RewrapWork final {
 
 class ConsoleSurface final : public Control {
 public:
+    // The buffer's pixels per logical unit at a window scale: half the
+    // window's own, so the scaling softens it, and no less than 0.75.
+    static double density_for(double scale) noexcept { return std::max(0.75, scale * 0.5); }
+
     ConsoleSurface(StableId stable_id, ConsoleOverlay* overlay)
         : Control(std::move(stable_id)), overlay_(overlay),
           self_(gui_forms::detail::make_library_shared<ConsoleSurface*>(this)) {}
     ~ConsoleSurface() override { self_.reset(); }
 
-    // New lines from the record.
+    // New lines from the record: queued to type.
     void take_lines(const std::vector<ConsoleLine>& lines) {
         for (const ConsoleLine& line : lines) {
             lines_.push_back(line);
-            if (columns_ > 0U) wrap_line(line);
+            if (columns_ > 0U) {
+                std::vector<ConsoleGlyphRow> rows{};
+                console_wrap(line, columns_, rows);
+                screen_.queue_line(std::move(rows));
+            }
         }
         if (lines_.size() > kept_lines) {
             lines_.erase(lines_.begin(), lines_.begin() + static_cast<std::ptrdiff_t>(lines_.size() - kept_lines));
         }
-        drop_overflow();
-        invalidate(Dirty::arrange);
+        start_motion();
     }
 
     // Where the text begins (below a button inside the client area) and
     // the button's rectangle, in the surface's own units.
     void set_frame(double text_top, Rect button) {
-        if (text_top != text_top_) invalidate(Dirty::arrange);
+        if (text_top != text_top_) invalidate(Dirty::arrange | Dirty::paint);
         text_top_ = text_top;
         button_ = button;
     }
@@ -151,37 +225,71 @@ public:
     void arrange(Rect final_bounds) override {
         arrange_self(final_bounds);
         measure_face();
+        const SurfaceRoot* const root = attached_surface_root();
+        const double density = density_for(root != nullptr ? (*root).scale() : 1.0);
         const double usable = std::max(0.0, final_bounds.width - 2.0 * console_padding);
-        const std::size_t columns =
-            advance_ > 0.0 ? std::max<std::size_t>(16U, static_cast<std::size_t>(usable / advance_)) : 0U;
         const double text_height = std::max(0.0, final_bounds.height - text_top_ - console_padding);
-        const std::size_t rows =
-            line_height_ > 0.0 ? std::max<std::size_t>(1U, static_cast<std::size_t>(text_height / line_height_)) : 0U;
-        if ((columns != columns_ || rows != visible_rows_) && !rewrap_posted_) {
-            // A new width wraps every kept line again and a new height keeps
-            // the newest rows that fit: at the window's next turn, since
-            // arrange must not change the tree.
+        std::size_t columns = 0U;
+        std::size_t rows = 0U;
+        if (advance_ > 0.0 && line_height_ > 0.0) {
+            columns = std::max<std::size_t>(16U, static_cast<std::size_t>(usable / advance_));
+            rows = std::max<std::size_t>(1U, static_cast<std::size_t>(text_height / line_height_));
+        }
+        const bool changed = columns != columns_ || rows != screen_.visible_rows() || density != density_;
+        if (changed && columns > 0U && !rebuild_posted_) {
             wanted_columns_ = columns;
             wanted_rows_ = rows;
+            wanted_density_ = density;
             SurfaceRoot* const window = attached_surface_root();
             if (window != nullptr) {
                 try {
                     static_cast<void>((*window).begin_invoke(RewrapWork{self_}));
-                    rewrap_posted_ = true;
+                    rebuild_posted_ = true;
                 } catch (...) {
-                    // The window is closing: nothing to wrap for.
+                    // The window is closing: nothing to lay out for.
                 }
             }
-        }
-        for (std::size_t index = 0U; index < rows_.size(); ++index) {
-            const double top = text_top_ + static_cast<double>(index) * line_height_;
-            set_child_layout(rows_[index], Rect{console_padding, top, usable, line_height_});
         }
     }
 
     void on_paint(Painter& painter, Rect) override {
         const Rect bounds{0.0, 0.0, arranged_bounds().width, arranged_bounds().height};
         painter.fill_rect(bounds, console_background);
+        if (screen_.busy()) keep_moving();
+        if (!atlas_ || glyphs_.cell_height() == 0U) return;
+        const double density = glyphs_.density();
+        const double row_height = static_cast<double>(glyphs_.cell_height()) / density;
+        const double slot_width = static_cast<double>((*atlas_).layout().slot_width) / density;
+        const double first = static_cast<double>(screen_.first_visible());
+        painter.save();
+        painter.clip_rect(Rect{0.0, text_top_, bounds.width, std::max(0.0, bounds.height - text_top_)});
+        const std::deque<ConsoleScreenRow>& rows = screen_.rows();
+        for (std::size_t index = 0U; index < rows.size(); ++index) {
+            const double y = text_top_ + (static_cast<double>(index) - first + screen_.scroll()) * row_height;
+            if (y + row_height <= text_top_ || y >= bounds.height) continue;
+            for (std::size_t segment = 0U; segment < segments_; ++segment) {
+                const ImageAtlasSlot slot = (*atlas_).find(slot_key(rows[index].key, segment));
+                if (!slot) continue;
+                const Rect destination{console_padding + slot_width * static_cast<double>(segment), y, slot_width,
+                                       row_height};
+                static_cast<void>((*atlas_).draw(painter, *this, slot, destination));
+            }
+        }
+        painter.restore();
+    }
+
+    bool on_ambient_frame(FrameTime now) override {
+        const double seconds = std::chrono::duration<double>(now - last_frame_).count();
+        last_frame_ = now;
+        if (screen_.advance(seconds)) {
+            sync();
+            invalidate(Dirty::paint);
+        }
+        if (screen_.busy()) return true;
+        // Settled: no more frames until a line arrives.
+        Window* const host = attached_window();
+        if (host != nullptr) (*host).motion_clock().withdraw_control_ambient(*this);
+        return false;
     }
 
     void on_pointer_preview(PointerEvent& event) override {
@@ -198,24 +306,47 @@ public:
         }
     }
 
+    void on_detached_from_window() noexcept override {
+        Window* const host = attached_window();
+        if (host != nullptr) (*host).motion_clock().withdraw_control_ambient(*this);
+        Control::on_detached_from_window();
+    }
+
     void forget_overlay() noexcept { overlay_ = nullptr; }
 
-    // The posted re-wrap: every kept line again, at the size arrange found.
-    void rewrap() {
-        rewrap_posted_ = false;
+    // The posted rebuild: every kept line wrapped again at the new size and
+    // shown at once (a resize does not replay the typing).
+    void rebuild() {
+        rebuild_posted_ = false;
         columns_ = wanted_columns_;
-        visible_rows_ = wanted_rows_;
-        clear_children();
-        rows_.clear();
-        if (columns_ > 0U) {
-            for (const ConsoleLine& line : lines_) wrap_line(line);
+        density_ = wanted_density_;
+        screen_.clear();
+        screen_.set_visible_rows(wanted_rows_);
+        rasters_.clear();
+        const std::uint32_t cell_width = static_cast<std::uint32_t>(std::max(1.0, std::round(advance_ * density_)));
+        const std::uint32_t cell_height =
+            static_cast<std::uint32_t>(std::max(1.0, std::ceil(line_height_ * density_)));
+        if (cell_width != glyphs_.cell_width() || cell_height != glyphs_.cell_height() ||
+            density_ != glyphs_.density()) {
+            glyphs_.reset(cell_width, cell_height, std::round(baseline_ * density_), density_);
         }
-        drop_overflow();
-        invalidate(Dirty::arrange | Dirty::paint);
+        make_atlas();
+        for (const ConsoleLine& line : lines_) {
+            std::vector<ConsoleGlyphRow> rows{};
+            console_wrap(line, columns_, rows);
+            screen_.queue_line(std::move(rows));
+        }
+        screen_.show_all();
+        sync();
+        invalidate(Dirty::paint);
     }
 
 private:
-    // The face's advance and line height, measured once it is attached.
+    static std::uint64_t slot_key(std::uint64_t row, std::size_t segment) noexcept {
+        return row * 16U + static_cast<std::uint64_t>(segment);
+    }
+
+    // The face's advance, line height and baseline, measured once.
     void measure_face() {
         if (advance_ > 0.0) return;
         const FontSpec font = ConsoleOverlay::console_font();
@@ -224,49 +355,166 @@ private:
         advance_ = extent.logical_size.width / 10.0;
         const double height = extent.ascent + extent.descent + extent.line_gap;
         line_height_ = std::ceil(height > 0.0 ? height * 1.15 : ConsoleOverlay::console_font_size * 1.4);
-        // The baseline sits where the line's spare height is shared above
-        // and below the face.
         const double ascent = extent.ascent > 0.0 ? extent.ascent : ConsoleOverlay::console_font_size * 0.8;
-        ascent_ = std::floor((line_height_ - std::max(height, 0.0)) / 2.0 + ascent);
+        baseline_ = std::floor((line_height_ - std::max(height, 0.0)) / 2.0 + ascent);
     }
 
-    // `line` as rows of glyphs (console_wrap), each row a child.
-    void wrap_line(const ConsoleLine& line) {
-        std::vector<ConsoleGlyphRow> rows{};
-        console_wrap(line, columns_, rows);
-        for (ConsoleGlyphRow& row : rows) push_row(std::move(row));
-    }
-
-    void push_row(ConsoleGlyphRow glyphs) {
-        ++row_serial_;
-        const std::shared_ptr<ConsoleRow> row = make_control<ConsoleRow>(
-            StableId(std::string(console_id) + ".row." + std::to_string(row_serial_)), advance_, ascent_,
-            line_height_, std::move(glyphs));
-        add_child(row);
-        rows_.push_back(row);
-    }
-
-    // The oldest rows leave until the rest fit.
-    void drop_overflow() {
-        while (visible_rows_ > 0U && rows_.size() > visible_rows_) {
-            static_cast<void>(remove_child((*rows_.front()).runtime_id()));
-            rows_.erase(rows_.begin());
+    // The atlas of row slots: a row's buffer split into slots no wider than
+    // the atlas allows, enough for the rows in view, the one above them and
+    // two to spare.
+    void make_atlas() {
+        atlas_.reset();
+        SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr || columns_ == 0U) return;
+        const std::uint32_t row_pixels = static_cast<std::uint32_t>(columns_) * glyphs_.cell_width();
+        segments_ = (row_pixels + 1023U) / 1024U;
+        if (segments_ == 0U || segments_ > 16U) return;
+        ImageAtlasLayout layout{};
+        layout.slot_width = (row_pixels + static_cast<std::uint32_t>(segments_) - 1U) /
+                            static_cast<std::uint32_t>(segments_);
+        layout.slot_height = std::min<std::uint32_t>(glyphs_.cell_height(), 1024U);
+        layout.slot_count = static_cast<std::uint32_t>((screen_.visible_rows() + 3U) * segments_);
+        layout.gutter = 1U;
+        layout.users_per_slot = 1U;
+        layout.replacement = ImageAtlasReplacement::least_recently_used;
+        layout.pending_fills = image_atlas_pending_every_slot;
+        try {
+            atlas_ = std::make_unique<ImageAtlas>((*root).resources(), layout);
+        } catch (...) {
+            // The registry's quota or limits: the console shows its layer
+            // alone.
+            atlas_.reset();
         }
     }
 
+    // Brings each row's buffer up to what the screen shows: the glyphs newly
+    // shown are composited and their slots written. Buffers of rows that
+    // left go.
+    void sync() {
+        if (!atlas_) return;
+        SurfaceRoot* const root = attached_surface_root();
+        if (root == nullptr) return;
+        const std::deque<ConsoleScreenRow>& rows = screen_.rows();
+        std::vector<std::string> wanted{};
+        for (const ConsoleScreenRow& row : rows) {
+            for (std::size_t index = 0U; index < row.shown; ++index) wanted.push_back(row.row.glyphs[index].text);
+        }
+        glyphs_.prepare(*root, wanted);
+        const std::uint32_t slot_width = (*atlas_).layout().slot_width;
+        const std::uint32_t cell_width = glyphs_.cell_width();
+        const std::uint32_t cell_height = std::min<std::uint32_t>(glyphs_.cell_height(), 1024U);
+        const std::size_t row_bytes = static_cast<std::size_t>(slot_width) * segments_ * 4U;
+        std::map<std::uint64_t, RowRaster> kept{};
+        for (const ConsoleScreenRow& row : rows) {
+            std::map<std::uint64_t, RowRaster>::iterator found = rasters_.find(row.key);
+            RowRaster raster{};
+            if (found != rasters_.end()) raster = std::move((*found).second);
+            if (raster.pixels.empty()) raster.pixels.assign(row_bytes * cell_height, std::byte{0});
+            if (row.shown > raster.painted) {
+                std::size_t first_segment = segments_;
+                std::size_t last_segment = 0U;
+                for (std::size_t index = raster.painted; index < row.shown; ++index) {
+                    const ConsoleGlyph& glyph = row.row.glyphs[index];
+                    const std::vector<float>* const mask = glyphs_.mask(glyph.text);
+                    const std::size_t left = glyph.column * cell_width;
+                    if (mask == nullptr || left + cell_width > row_bytes / 4U) continue;
+                    composite(raster.pixels, row_bytes, left, *mask, cell_width, cell_height, glyph.shade);
+                    first_segment = std::min(first_segment, left / slot_width);
+                    last_segment = std::max(last_segment, (left + cell_width - 1U) / slot_width);
+                }
+                raster.painted = row.shown;
+                for (std::size_t segment = first_segment; segment <= last_segment && segment < segments_;
+                     ++segment) {
+                    write_slot(row.key, segment, raster.pixels, row_bytes);
+                }
+            }
+            kept[row.key] = std::move(raster);
+        }
+        rasters_ = std::move(kept);
+    }
+
+    // One glyph's cell: its mask times the formula's colour, premultiplied
+    // BGRA, over clear (the layer beneath is the surface's own fill).
+    static void composite(std::vector<std::byte>& pixels, std::size_t row_bytes, std::size_t left,
+                          const std::vector<float>& mask, std::uint32_t cell_width, std::uint32_t cell_height,
+                          ConsoleShade shade) {
+        const ConsoleRgb rgb = console_formula(shade);
+        for (std::uint32_t y = 0U; y < cell_height; ++y) {
+            for (std::uint32_t x = 0U; x < cell_width; ++x) {
+                const float coverage = mask[static_cast<std::size_t>(y) * cell_width + x];
+                const std::size_t at = static_cast<std::size_t>(y) * row_bytes + (left + x) * 4U;
+                pixels[at] = std::byte{static_cast<unsigned char>(std::lround(rgb.b * coverage * 255.0))};
+                pixels[at + 1U] = std::byte{static_cast<unsigned char>(std::lround(rgb.g * coverage * 255.0))};
+                pixels[at + 2U] = std::byte{static_cast<unsigned char>(std::lround(rgb.r * coverage * 255.0))};
+                pixels[at + 3U] = std::byte{static_cast<unsigned char>(std::lround(coverage * 255.0))};
+            }
+        }
+    }
+
+    void write_slot(std::uint64_t row, std::size_t segment, const std::vector<std::byte>& pixels,
+                    std::size_t row_bytes) {
+        const ImageAtlasAcquire acquired = (*atlas_).acquire(slot_key(row, segment));
+        if (!acquired.slot) return;
+        const std::size_t offset = segment * (*atlas_).layout().slot_width * 4U;
+        const std::span<const std::byte> view(pixels.data() + offset, pixels.size() - offset);
+        static_cast<void>((*atlas_).fill(acquired.slot, row_bytes, view));
+    }
+
+    // Starts the frames for typing, or shows everything at once where
+    // motion is off (reduced motion, an occluded window).
+    void start_motion() {
+        Window* const host = attached_window();
+        if (host == nullptr || (*host).motion_clock().ambient_suppressed()) {
+            screen_.show_all();
+            sync();
+            invalidate(Dirty::paint);
+            return;
+        }
+        keep_moving();
+        invalidate(Dirty::paint);
+    }
+
+    // Enlists the frames when they are not running (a paint restarts frames
+    // the clock dropped while the console was not drawn).
+    void keep_moving() {
+        Window* const host = attached_window();
+        if (host == nullptr) return;
+        MotionClock& clock = (*host).motion_clock();
+        if (clock.control_ambient(*this)) return;
+        try {
+            if (clock.enlist_control_ambient(*this, frame_interval)) last_frame_ = clock.now();
+        } catch (...) {
+            // No room for the effect: the lines show at once.
+            screen_.show_all();
+            sync();
+        }
+    }
+
+    struct RowRaster final {
+        std::vector<std::byte> pixels{};
+        std::size_t painted{};
+    };
+
+    static constexpr FrameInterval frame_interval = std::chrono::milliseconds(16);
+
     ConsoleOverlay* overlay_{};
     std::shared_ptr<ConsoleSurface*> self_{};
-    bool rewrap_posted_{};
+    bool rebuild_posted_{};
     std::size_t wanted_columns_{};
     std::size_t wanted_rows_{};
+    double wanted_density_{1.0};
     std::vector<ConsoleLine> lines_{};
-    std::vector<std::shared_ptr<ConsoleRow>> rows_{};
-    std::uint64_t row_serial_{};
+    ConsoleScreen screen_{};
+    ConsoleGlyphs glyphs_{};
+    std::unique_ptr<ImageAtlas> atlas_{};
+    std::size_t segments_{};
+    std::map<std::uint64_t, RowRaster> rasters_{};
+    FrameTime last_frame_{};
     double advance_{};
-    double ascent_{};
+    double baseline_{};
     double line_height_{};
+    double density_{};
     std::size_t columns_{};
-    std::size_t visible_rows_{};
     double text_top_{console_padding};
     Rect button_{};
 };
@@ -275,7 +523,7 @@ void RewrapWork::operator()() const noexcept {
     const std::shared_ptr<ConsoleSurface*> live = surface.lock();
     if (!live) return;
     try {
-        (**live).rewrap();
+        (**live).rebuild();
     } catch (...) {
         // No memory for the rows: the console shows what it had.
     }

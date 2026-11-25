@@ -79,7 +79,7 @@ public:
     static constexpr double button_height = 28.0;
     static constexpr double inset = 10.0;
     // The console face's size (logical units).
-    static constexpr double console_font_size = 12.5;
+    static constexpr double console_font_size = 13.0;
     // The console's face: Portsmouth Mono by family, the owner's console
     // face (never the monospace role's Cousine, which only draws what
     // Portsmouth Mono lacks).

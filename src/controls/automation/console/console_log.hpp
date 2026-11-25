@@ -9,11 +9,11 @@
 //
 // Tones follow the owner's colour formula (console_colour), glyph by
 // glyph: the instruction (the verb and the tool's name, a reply's leading
-// word) is c near 0, orange; values (arguments, reply text) and wrapped
-// continuations are c near 1, green; a session's label is a dimmer orange.
-// console_wrap turns a line into rows of glyphs, each with its own shade
-// and its grain colour, seeded by the glyph's place in the line so that a
-// repaint, a capture and a test all see the same colours.
+// word) is c = 0; values (arguments, reply text) and wrapped continuations
+// are c = 1; a session's label is c = 0, dimmer. Each glyph's v varies.
+// console_wrap turns a line into rows of glyphs, each with its own shade,
+// seeded by the glyph's place in the line so that a repaint, a capture and
+// a test all see the same colours.
 //
 // Thread: record_* from any thread (the transport's handler tasks), the
 // rest from any thread too; one mutex guards the lines. Bounded: the oldest
@@ -128,10 +128,11 @@ struct ConsoleShade final {
 };
 
 // The shade of glyph `glyph` (its code point index in the line) of line
-// `serial` in `tone`: c clusters within 0.1 of 0 (instruction, label) or
-// of 1 (value) and v hovers around 0.8 (0.55 for a label), plus or minus
-// 0.04, each drawn from a hash of the serial and the glyph, so a repaint
-// draws the same colours.
+// `serial` in `tone`, as the owner's FastMatrixDashboard shades a cell:
+// c is 0 for the instruction and a label and 1 for a value; v is the
+// glyph's confidence, max(50/255, conf) with conf drawn around 0.8 (0.55
+// for a label) within plus or minus 0.08, from a hash of the serial and the
+// glyph, so a repaint, a capture and a test draw the same colours.
 [[nodiscard]] ConsoleShade console_shade(ConsoleTone tone, std::uint64_t serial, std::size_t glyph) noexcept;
 // The formula's colour for `shade`, each channel quantized to 8 bits with
 // a triangular dither drawn from `seed`, so neighbouring glyphs of one tone
@@ -147,25 +148,14 @@ struct ConsoleRgb final {
 // The hash console_shade and the glyph's dither draw from.
 [[nodiscard]] std::uint64_t console_glyph_hash(std::uint64_t serial, std::size_t glyph) noexcept;
 
-// The grain inside each glyph: an ordered dither of two levels, v lowered
-// and raised by this fraction, alternating along the glyph's height in
-// bands one logical unit high (console_overlay.cpp). Their mean is the
-// glyph's v.
-inline constexpr double console_grain = 0.06;
-inline constexpr double console_grain_band = 1.0;
-
 // One glyph of a console row: its text (one code point), its column, its
-// tone and shade, its colour (v lowered by console_grain, the glyph's
-// fill) and its grain colour (v raised), drawn over the fill in every
-// other band, the even bands or the odd ones as `odd` says.
+// tone and its shade (the formula's inputs; the screen composites the
+// glyph's mask in the formula's colour).
 struct ConsoleGlyph final {
     std::string text{};
     std::size_t column{};
     ConsoleTone tone{ConsoleTone::value};
     ConsoleShade shade{};
-    Color colour{};
-    Color grain{};
-    bool odd{};
 };
 
 struct ConsoleGlyphRow final {

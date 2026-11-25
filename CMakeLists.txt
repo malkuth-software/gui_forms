@@ -2271,6 +2271,7 @@ if(GUI_FORMS_MCP)
         src/controls/automation/model_extensions/model_inspect_sections.cpp
         src/controls/automation/console/console_log.cpp
         src/controls/automation/console/console_overlay.cpp
+        src/controls/automation/console/console_screen.cpp
         src/controls/automation/presenter/stock_presenter.cpp)
     target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP=1)
     if(GUI_FORMS_MCP_TEST_CONTROLS)
