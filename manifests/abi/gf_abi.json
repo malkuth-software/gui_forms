@@ -3597,6 +3597,11 @@
       "type": "uint32"
     },
     {
+      "name": "GF_AUTOMATION_TOOL_ERROR_EXPECTATION_FAILED",
+      "value": 19,
+      "type": "uint32"
+    },
+    {
       "name": "GF_PAINT_ENDPOINT_MAXIMUM_SIDE",
       "value": 32768,
       "type": "uint32"

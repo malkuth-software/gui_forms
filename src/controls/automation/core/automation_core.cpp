@@ -556,6 +556,47 @@ bool perform_act(Window& window, const PreparedAct& act, const ClientIdentity& c
 // The posted work of an act (study 14: the core never waits for an act's
 // call to return, so a handler's modal loop cannot hold the call). Holds
 // the window weakly: a window closed first runs nothing.
+// After a close act: a native host posts each close request to the UI
+// thread, after the act, so the call waits until those have run before its
+// questions end. Posted twice in turn: the second post comes after a wake
+// asked for once the first ran, so after every close request the act
+// posted, even when the first shared a wake the act's turn already held.
+struct CloseBarrier final {
+    WindowRef window{};
+    std::shared_ptr<ActOutcome> outcome{};
+    int hops{};
+
+    void operator()() const {
+        Window* const target = window.get();
+        if (hops > 0 && target != nullptr) {
+            try {
+                if ((*target).begin_invoke(CloseBarrier{window, outcome, hops - 1}).state() ==
+                    DispatchOperationState::pending) {
+                    return;
+                }
+            } catch (...) {
+                // A window that takes no more work has run its closes.
+            }
+        }
+        (*outcome).closes_delivered = true;
+    }
+};
+
+// Posts the barrier; a window that closed with the act (a close a headless
+// host answers at once) takes no more work, and its closes have run.
+void post_close_barrier(const WindowRef& window, const std::shared_ptr<ActOutcome>& outcome) noexcept {
+    Window* const target = window.get();
+    try {
+        if (target != nullptr &&
+            (*target).begin_invoke(CloseBarrier{window, outcome, 1}).state() == DispatchOperationState::pending) {
+            return;
+        }
+    } catch (...) {
+        // Refused by a closed window, as below.
+    }
+    (*outcome).closes_delivered = true;
+}
+
 struct PostedAct final {
     WindowRef window{};
     PreparedAct act{};
@@ -571,6 +612,9 @@ struct PostedAct final {
         }
         try {
             (*outcome).performed = perform_act(*target, act, client, *outcome);
+            if ((*outcome).performed && (act.kind == ActKind::close_window || act.kind == ActKind::close_windows)) {
+                post_close_barrier(window, outcome);
+            }
         } catch (const std::exception& failure) {
             (*outcome).performed = false;
             (*outcome).detail = std::string("the act failed: ") + failure.what();
@@ -990,6 +1034,16 @@ bool names_a_row_of(std::string_view target, std::string_view list) noexcept {
 
 // ---- running calls ---------------------------------------------------------------------------
 
+// The destructive-act question could not be shown: said truthfully (round
+// 2), never "the user did not allow".
+StepOutcome consent_not_shown(const AutomationControl& control) {
+    const std::string why = control.consent_failure().empty() ? std::string("it could not be shown")
+                                                              : control.consent_failure();
+    return StepOutcome::finished(ToolReply::failure(ToolError::declined,
+                                                    "the destructive-act question was not shown: " + why,
+                                                    "the act did not run; the next destructive act asks again"));
+}
+
 struct CoreAccess final {
     AutomationCore& core;
     using RunningCall = AutomationCore::RunningCall;
@@ -1027,6 +1081,8 @@ struct CoreAccess final {
     StepOutcome prepare_wait(RunningCall& call, Window& window, FrameTime now);
     StepOutcome prepare_batch(RunningCall& call, FrameTime now);
     StepOutcome release_control_tool();
+    bool wait_reached(Window& window, const WaitSpec& wait, FrameTime now, std::string& busy,
+                      std::string& observed);
     StepOutcome disconnect_tool(RunningCall& call, FrameTime now);
     // Whether the call acts (and so needs control), and the take step:
     // finished (refused, or still waiting) unless it set control_checked.
@@ -1544,6 +1600,13 @@ StepOutcome CoreAccess::prepare_act(RunningCall& call, Window& window, FrameTime
     act.destructive = window_destructive(window) || detail::action_destructive_mark(node.stable_id, *action);
     act.dialog_tool = node.dialog_tool;
     act.summary = *action_name + " " + detail::node_reference(node) + " (semantic action)";
+    // A navigator entry or a command-like item offers both: select moves the
+    // selection there and opens nothing, which a model reading the reply
+    // easily takes for the press it meant.
+    if (*action == SemanticAction::select
+        && std::find(node.actions.begin(), node.actions.end(), SemanticAction::press) != node.actions.end()) {
+        act.summary += "; select only selects; press opens it";
+    }
     call.before = std::move(nodes);
     return consent_then_post(call, now);
 }
@@ -1829,15 +1892,9 @@ StepOutcome CoreAccess::consent_then_post(RunningCall& call, FrameTime now) {
         return StepOutcome::resume_at(now + core.settings().poll_interval);
     case ConsentState::unasked:
         // Still unasked after asking: the question could not be shown.
-        break;
+        return consent_not_shown(control);
     }
-    // The question could not be shown: said truthfully (round 2), never
-    // "the user did not allow".
-    const std::string why = control.consent_failure().empty() ? std::string("it could not be shown")
-                                                              : control.consent_failure();
-    return StepOutcome::finished(ToolReply::failure(ToolError::declined,
-                                                    "the destructive-act question was not shown: " + why,
-                                                    "the act did not run; the next destructive act asks again"));
+    return consent_not_shown(control);
 }
 
 StepOutcome CoreAccess::post_act(RunningCall& call, FrameTime now) {
@@ -1884,6 +1941,10 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
         return StepOutcome::finished(ToolReply::failure(ToolError::unsupported_action, outcome.detail,
                                                         "take a new snapshot"));
     }
+    const bool closing = call.act.kind == ActKind::close_window || call.act.kind == ActKind::close_windows;
+    if (closing && !outcome.closes_delivered && window != nullptr && now < call.deadline) {
+        return StepOutcome::resume_at(now + core.settings().poll_interval);
+    }
     std::string busy{};
     bool idle = true;
     std::vector<Window*> windows{};
@@ -1905,6 +1966,8 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
         return StepOutcome::finished(ToolReply::success("ok"));
     }
     text += "ok: " + call.act.summary + "\n";
+    // A disconnect's reply is its outcome; the windows are closing.
+    if (call.act.kind == ActKind::close_windows) return StepOutcome::finished(ToolReply::success(std::move(text)));
     if (window != nullptr) {
         std::vector<FlatNode> after{};
         core.flatten_window(*window, after);
@@ -1995,41 +2058,45 @@ StepOutcome CoreAccess::prepare_wait(RunningCall& call, Window& window, FrameTim
     return wait_step(call, now);
 }
 
+// Whether `wait` is met in `window` now; `busy` says what it still waits
+// for and `observed` what it saw.
+bool CoreAccess::wait_reached(Window& window, const WaitSpec& wait, FrameTime now, std::string& busy,
+                              std::string& observed) {
+    switch (wait.until) {
+    case WaitUntil::frame:
+        if (detail::paint_passes_of(window) > wait.paint_passes) return true;
+        if (detail::window_idle(window, now, core.settings().idle_horizon, busy)) {
+            // Nothing wants a frame: none will come, which is what a frame
+            // wait learns.
+            observed = "no frame was wanted";
+            return true;
+        }
+        return false;
+    case WaitUntil::idle:
+        return detail::window_idle(window, now, core.settings().idle_horizon, busy);
+    case WaitUntil::time:
+        return now >= wait.target_time;
+    case WaitUntil::node: {
+        std::vector<FlatNode> nodes{};
+        core.flatten_window(window, nodes);
+        const bool holds = detail::condition_holds(nodes, wait.condition, observed);
+        busy = observed;
+        return holds;
+    }
+    case WaitUntil::user_step:
+        busy = "the user has not completed [" + wait.user_step + "]";
+        return !user_step_pending(wait.user_step.c_str());
+    }
+    return false;
+}
+
 StepOutcome CoreAccess::wait_step(RunningCall& call, FrameTime now) {
     Window* const window = call.window.get();
     if (window == nullptr) return StepOutcome::finished(ToolReply::failure(ToolError::window_gone, "the window closed"));
     const WaitSpec& wait = call.wait;
     std::string busy{};
     std::string observed{};
-    bool done = false;
-    switch (wait.until) {
-    case WaitUntil::frame:
-        done = detail::paint_passes_of(*window) > wait.paint_passes;
-        if (!done && detail::window_idle(*window, now, core.settings().idle_horizon, busy)) {
-            // Nothing wants a frame: none will come, which is what a frame
-            // wait learns.
-            done = true;
-            observed = "no frame was wanted";
-        }
-        break;
-    case WaitUntil::idle:
-        done = detail::window_idle(*window, now, core.settings().idle_horizon, busy);
-        break;
-    case WaitUntil::time:
-        done = now >= wait.target_time;
-        break;
-    case WaitUntil::node: {
-        std::vector<FlatNode> nodes{};
-        core.flatten_window(*window, nodes);
-        done = detail::condition_holds(nodes, wait.condition, observed);
-        busy = observed;
-        break;
-    }
-    case WaitUntil::user_step:
-        done = !user_step_pending(wait.user_step.c_str());
-        busy = "the user has not completed [" + wait.user_step + "]";
-        break;
-    }
+    const bool done = wait_reached(*window, wait, now, busy, observed);
     const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - call.started).count();
     if (done) {
         std::string text = "ok: waited " + std::to_string(elapsed) + " ms";
@@ -2473,7 +2540,7 @@ StepOutcome CoreAccess::batch_step(RunningCall& call, FrameTime now) {
                 if (call.next_step < total) {
                     hint = "steps " + std::to_string(call.next_step + 1U) + " to " + std::to_string(total) + " not run";
                 }
-                return finish_batch(call, batch_failure(call, ToolError::timeout,
+                return finish_batch(call, batch_failure(call, ToolError::expectation_failed,
                                                         "step " + number + " expect failed: " + observed, hint));
             }
             continue;

@@ -722,6 +722,7 @@ public static class Constants
     public const uint GF_AUTOMATION_TOOL_ERROR_CANCELLED = 16u;
     public const uint GF_AUTOMATION_TOOL_ERROR_BUSY = 17u;
     public const uint GF_AUTOMATION_TOOL_ERROR_INTERNAL = 18u;
+    public const uint GF_AUTOMATION_TOOL_ERROR_EXPECTATION_FAILED = 19u;
     public const uint GF_PAINT_ENDPOINT_MAXIMUM_SIDE = 32768u;
     public const uint GF_CLASS_COMPONENT = 1u;
     public const uint GF_CLASS_CONTROL = 2u;

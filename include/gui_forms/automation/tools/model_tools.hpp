@@ -98,6 +98,9 @@ enum class ModelToolError : std::uint8_t {
     busy,
     // The program failed (an exception at the tool boundary).
     internal,
+    // A batch's expect step found another value or state than it named; the
+    // message gives what it observed.
+    expectation_failed,
 };
 
 // The code's name as the model sees it ("not_found", "protected", ...).

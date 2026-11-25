@@ -2246,6 +2246,8 @@ Enumerations
 
    .. cpp:enumerator:: internal
 
+   .. cpp:enumerator:: expectation_failed
+
 .. cpp:namespace:: gui_forms::automation
 
 .. cpp:enum-class:: ModelToolRegistration

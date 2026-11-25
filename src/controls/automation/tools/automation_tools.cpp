@@ -29,6 +29,7 @@ const char* tool_error_name(ToolError error) noexcept {
     case ToolError::cancelled: return "cancelled";
     case ToolError::busy: return "busy";
     case ToolError::internal: return "internal";
+    case ToolError::expectation_failed: return "expectation_failed";
     }
     // A code outside the enumeration reads as the library's failure.
     return "internal";

@@ -88,6 +88,10 @@ struct ActOutcome final {
     std::string detail{};
     // A registry tool's own reply, when the act was one.
     std::optional<ToolReply> reply{};
+    // A close act: the window's close requests were posted to the UI
+    // thread, and the program's closing handlers have run since (or the
+    // window is gone), so its questions fell inside the call.
+    bool closes_delivered{};
 };
 
 enum class WaitUntil : std::uint8_t {

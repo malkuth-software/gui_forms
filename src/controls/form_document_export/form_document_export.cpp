@@ -94,6 +94,8 @@ struct ProcessExports final {
             into.add(std::move(name), (*static_cast<BindingSource*>(source.source)).shared_from_this());
             return true;
         }
+        // A kind outside FormDocumentSourceKind: refused, as an invalid source.
+        return false;
     } catch (const std::invalid_argument&) {
         return false;
     } catch (const std::bad_weak_ptr&) {

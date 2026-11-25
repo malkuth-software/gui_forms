@@ -685,6 +685,9 @@ void StockPresenter::dialog_chosen(PresenterDialog dialog, bool accepted) {
         if ((*control_).consent() == ConsentState::asking) (*control_).answer_consent(accepted);
         return;
     }
+    // A value outside PresenterDialog: no dialog of the presenter's, nothing
+    // to answer.
+    return;
 }
 
 } // namespace gui_forms::automation

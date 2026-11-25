@@ -510,6 +510,8 @@ bool user_event(NSEvent* event) {
     case NSEventTypeKeyDown:
     case NSEventTypeKeyUp:
     case NSEventTypeScrollWheel: return true;
+    // Every other event type (moves, enter and exit, application, system
+    // and periodic events) is not the user's input to a window, and passes.
     default: return false;
     }
 }
@@ -1413,6 +1415,8 @@ private:
         case NSEventTypeRightMouseDragged:
         case NSEventTypeOtherMouseDown:
         case NSEventTypeOtherMouseDragged: return true;
+        // Every other event type (moves without a button, keys, scrolls,
+        // gestures, system events) starts no drag.
         default: return false;
         }
     }
@@ -1641,6 +1645,8 @@ NSEvent* drag_release_event(NSWindow* window, NSEventType start_type, NSPoint sc
     case NSEventTypeRightMouseDragged: release = NSEventTypeRightMouseUp; break;
     case NSEventTypeOtherMouseDown:
     case NSEventTypeOtherMouseDragged: release = NSEventTypeOtherMouseUp; break;
+    // Any other start (not a press or a drag with a button held) has no
+    // button to release.
     default: return nil;
     }
     const NSPoint location = [window convertPointFromScreen:screen_point];

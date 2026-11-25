@@ -6810,6 +6810,7 @@ typedef uint32_t gf_automation_tool_error;
 #define GF_AUTOMATION_TOOL_ERROR_CANCELLED 16u
 #define GF_AUTOMATION_TOOL_ERROR_BUSY 17u
 #define GF_AUTOMATION_TOOL_ERROR_INTERNAL 18u
+#define GF_AUTOMATION_TOOL_ERROR_EXPECTATION_FAILED 19u
 
 /* One call of a tool, lent to its call callback: the arguments (one JSON
  * object), who is calling as the client states it, the stable ID of the

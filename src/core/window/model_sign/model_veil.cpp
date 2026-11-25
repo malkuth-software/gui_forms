@@ -96,9 +96,28 @@ VeilKind veil_kind(SemanticRole role) noexcept {
     case SemanticRole::tool_tip:
     case SemanticRole::live_region:
         return VeilKind::content;
-    default:
+    case SemanticRole::generic:
+    case SemanticRole::group:
+    case SemanticRole::list_item:
+    case SemanticRole::check_list_item:
+    case SemanticRole::tab_group:
+    case SemanticRole::split_pane:
+    case SemanticRole::date_cell:
+    case SemanticRole::property_group:
+    case SemanticRole::property_row:
+    case SemanticRole::separator:
+    case SemanticRole::pane:
+    case SemanticRole::tab_panel:
+    case SemanticRole::tree_item:
+    case SemanticRole::row:
+    case SemanticRole::cell:
+    case SemanticRole::column_header:
+    case SemanticRole::row_header:
+    case SemanticRole::dialog:
+    case SemanticRole::count:
         return VeilKind::container;
     }
+    return VeilKind::container;
 }
 
 struct VeilVisit final {
