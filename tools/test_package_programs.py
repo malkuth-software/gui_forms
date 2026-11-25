@@ -401,6 +401,30 @@ class StagingTests(unittest.TestCase):
             self.assertIn('RMDir "$INSTDIR\\fonts"', text)
             self.assertIn('VIProductVersion "0.1.7.0"', text)
             self.assertIn('RequestExecutionLevel user', text)
+            self.assertIn('"$INSTDIR\\GUI.Forms Gallery.exe" ""', text)
+
+    def test_explore_shortcut_starts_the_product(self) -> None:
+        # Windows field report D7: the installed Explore started the
+        # developer harness; its shortcut passes --product-only.
+        manifest = pp.load_manifest()
+        explore = manifest.program("explore")
+        self.assertEqual(explore.launch_arguments, ("--product-only",))
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            entry = explore.platforms["windows-x64"]
+            bundle = root / explore.display_name
+            bundle.mkdir()
+            (bundle / entry.executable).write_bytes(b"MZ")
+            packager = pp.Packager(manifest, "windows-x64", root, "0.1.7", root, "abc", False, None, None, True, log=lambda *_: None)
+            script = root / "installer.nsi"
+            packager.write_nsis_script(bundle, explore, entry, root / "setup.exe", script)
+            self.assertIn(f'"$INSTDIR\\{entry.executable}" "--product-only"', script.read_text())
+
+    def test_launch_arguments_are_plain_flags(self) -> None:
+        data = manifest_data()
+        data["programs"][0]["launch_arguments"] = ["--page basics"]
+        with self.assertRaises(pp.ManifestError):
+            pp.validate_manifest(data)
 
 
 class DryRunTests(unittest.TestCase):

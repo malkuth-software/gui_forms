@@ -1,5 +1,6 @@
 #include "file_manager_demoboard/demoboard.hpp"
 #include "smoke_test.hpp"
+#include "usage.hpp"
 #include "gui_forms/platform/macos_host.hpp"
 
 #include <memory>
@@ -8,6 +9,13 @@
 #include <string_view>
 
 int main(int argc, const char* argv[]) {
+    // --help prints the command line instead of starting the program.
+    for (int index = 1; index < argc; ++index) {
+        if (file_manager_demoboard::is_help_argument(argv[index])) {
+            file_manager_demoboard::print_usage(argv[0]);
+            return 0;
+        }
+    }
     std::unique_ptr<gui_forms::Window> product_model = file_manager_demoboard::make_product_window();
     bool product_only = false;
     bool smoke_test = false;

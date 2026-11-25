@@ -383,8 +383,10 @@ with the change that needs it.
 : Packages the programs listed in `packaging/programs.json` from a build
   directory: an `.app` zip and `pkg` installer on macOS, a zip and NSIS
   installer on Windows, a `tar.gz` and Debian package on Linux, plus
-  `SHA256SUMS.txt` and a `packages-<platform>.json` receipt. `--dry-run`
-  prints the plan; `--no-installer` writes archives only.
+  `SHA256SUMS.txt` and a `packages-<platform>.json` receipt. A program's
+  `launch_arguments` go on the Windows Start menu shortcut and the Linux
+  launcher (Explore starts with `--product-only`). `--dry-run` prints the
+  plan; `--no-installer` writes archives only.
   `python3 tools/package_programs.py --build-dir build --version <version> --out dist`
 
 `tools/smoke_package.py`

@@ -5,6 +5,7 @@
     "Each program lists, per platform, the CMake target and the path pattern of what the build directory produces.",
     "A platform entry marked planned=true names a target another workstream still has to add; packaging logs it as skipped when the build directory lacks it and never fails on it.",
     "Font notices: a package carries no face files, since every program reads its faces from the font pack compiled into GUI.Forms; it carries their licences and the attribution in fonts/ (macOS: Contents/Resources/fonts). notices mirror GUI_FORMS_PROGRAM_FONT_NOTICES in CMakeLists.txt; fallback_notices are the Noto licences (GUI_FORMS_FALLBACK_FONT_NOTICES), carried when a program's fallback_fonts is true, which must match the build's GUI_FORMS_INSTALL_FALLBACK_FONTS (whether its pack holds the Noto faces).",
+    "launch_arguments (optional): the plain --flags an installed launcher passes (the Windows Start menu shortcut, the Linux launcher behind the menu entry), for a program whose bare start is a developer harness (Explore: --product-only). A macOS bundle opened from the Finder takes no arguments.",
     "Identifiers: macOS pkg identifier is <vendor.bundle_prefix>.<id>; Debian package is <vendor.deb_prefix>-<id>; Windows uninstall key is <vendor.windows_uninstall_prefix><id> under HKCU."
   ],
   "vendor": {
@@ -93,6 +94,9 @@
           "--product-only"
         ]
       },
+      "launch_arguments": [
+        "--product-only"
+      ],
       "platforms": {
         "macos-arm64": {
           "target": "gui_forms_file_manager_demoboard",

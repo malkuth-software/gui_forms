@@ -241,6 +241,10 @@ class Program:
     # (GUI_FORMS_INSTALL_FALLBACK_FONTS). The runtime works without them,
     # falling back as for any missing face.
     fallback_fonts: bool
+    # The arguments an installed launcher passes (the Windows Start menu
+    # shortcut, the Linux launcher behind the menu entry): a program whose
+    # bare start is a developer harness names the end-user start here.
+    launch_arguments: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -345,6 +349,10 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
         extra = smoke.get("extra_arguments", [])
         _require(isinstance(extra, list) and all(isinstance(argument, str) for argument in extra),
                  where + ": smoke.extra_arguments must be a list of strings")
+        launch = record.get("launch_arguments", [])
+        _require(isinstance(launch, list) and all(isinstance(argument, str) and re.fullmatch(r"--[a-z0-9][a-z0-9-]*", argument)
+                                                  for argument in launch),
+                 where + ": launch_arguments must be a list of plain --flags (no spaces or quotes)")
         platforms_data = record.get("platforms")
         _require(isinstance(platforms_data, dict) and platforms_data, where + ": 'platforms' must be a non-empty object")
         entries: dict[str, PlatformEntry] = {}
@@ -375,7 +383,8 @@ def validate_manifest(data: dict[str, Any]) -> Manifest:
             _require(name in entries, f"{where}: required platform {name} has no platform entry")
             _require(not entries[name].planned, f"{where}: required platform {name} cannot be a planned target")
         programs.append(Program(identifier, display, description, bool(record["enabled"]), status,
-                                tuple(required), automation, dict(smoke), entries, bool(record["fallback_fonts"])))
+                                tuple(required), automation, dict(smoke), entries, bool(record["fallback_fonts"]),
+                                tuple(launch)))
     return Manifest({key: str(value) for key, value in vendor.items()},
                     {"source": [fonts["source"]], "notices": list(fonts["notices"]),
                      "fallback_notices": list(fonts["fallback_notices"])},
@@ -964,6 +973,7 @@ class Packager:
             "@VENDOR@": self.manifest.vendor["name"],
             "@BUNDLE@": str(bundle).replace("/", "\\"),
             "@EXECUTABLE@": entry.executable,
+            "@LAUNCH_ARGUMENTS@": " ".join(program.launch_arguments),
             "@UNINSTALL_KEY@": key,
             "@UNINSTALL_FILES@": "\n".join(files),
             "@UNINSTALL_DIRECTORIES@": "\n".join(removals),
@@ -1106,7 +1116,8 @@ class Packager:
         shutil.copytree(bundle, installed)
         launcher = root / "usr/bin" / deb_name
         launcher.parent.mkdir(parents=True)
-        launcher.write_text(f'#!/bin/sh\nexec "{install_dir}/{entry.executable}" "$@"\n', encoding="utf-8")
+        arguments = "".join(" " + argument for argument in program.launch_arguments)
+        launcher.write_text(f'#!/bin/sh\nexec "{install_dir}/{entry.executable}"{arguments} "$@"\n', encoding="utf-8")
         launcher.chmod(0o755)
         desktop = root / "usr/share/applications" / (deb_name + ".desktop")
         desktop.parent.mkdir(parents=True)
