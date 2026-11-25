@@ -88,18 +88,15 @@ text matches the measured text.
 
 ## What each hook may change
 
-| Hook | Reads | May change |
-|---|---|---|
-| A setter or command | anything | the input it sets; it marks what it dirties (`invalidate`, or `invalidate_declared` for a property) |
-| `measure` | properties, children's sizes | nothing retained |
-| `arrange` | its bounds, the inputs | the kept layout (through the cache), child slots; it never invalidates itself, scrolls or writes a property |
-| `on_paint` | the kept layout | nothing |
-| Pointer moves and hover | the kept layout, `location` | interaction state (the hovered part), and then only on a real change; it repaints what changed |
+[Retained layout](layout.md#retained-layout) states the rule and what the
+window does with a control that breaks it, and
+[Custom layout](layout.md#custom-layout) describes `measure` and `arrange`.
+Around those hooks, a control of its own follows two more:
 
-A control that asks for layout from its own layout or paint never settles.
-[Layout](layout.md#custom-layout) describes `measure` and `arrange`, and
-[Retained layout](layout.md#retained-layout) what the window does with a
-control that breaks these rules.
+- A setter or command changes its input and marks what that dirties:
+  `invalidate`, or `invalidate_declared` for a property.
+- A pointer move reads the kept layout at `location` and changes only
+  interaction state (the hovered part), and only on a real change.
 
 Repaint as little as you can. `invalidate(Rect)` repaints a rectangle,
 `invalidate(Dirty::paint)` the control, and `Dirty::arrange` or
