@@ -190,6 +190,7 @@ bool read_launch_argument(std::string_view argument, const std::string* next, Au
     if (argument == "--mcp-shared") launch.shared = true;
     if (argument == "--mcp-appearance-review") launch.appearance_review = true;
     if (argument == "--mcp-socket") launch.print_socket = true;
+    if (argument == "--help") launch.print_help = true;
     if (argument == "--mcp-script" && next != nullptr) {
         launch.script_path = *next;
         return true;
@@ -864,6 +865,38 @@ void require_library_allocator_if_asked() {
 #endif
 }
 
+// --help: the GUI.Forms options every program takes and how to talk to the
+// program over MCP (docs/user/talk-to-a-program.md), on standard output,
+// status 0. A tester with nothing but the program finds the socket here.
+[[noreturn]] void print_help_and_exit() {
+    const std::string identity = automation_identity();
+    std::fprintf(stdout,
+                 "%s: a GUI.Forms program. It speaks MCP (the Model Context Protocol).\n"
+                 "\n"
+                 "Talk to it while it runs: it listens on a local socket only your user can reach,\n"
+                 "prints \"GUI.Forms: MCP socket: <path>\" on standard error when it starts, and\n"
+                 "asks you in the program before it accepts a connection. The socket speaks MCP\n"
+                 "itself (newline-delimited JSON-RPC); a first line that is not JSON opens a\n"
+                 "plain-text console (help, tools, call <tool> ..., transcript, quit).\n"
+                 "Each running program has <pid>.sock and <pid>.info in its run directory:\n"
+                 "  macOS    ~/Library/Caches/gui-forms/run\n"
+                 "  Linux    $XDG_RUNTIME_DIR/gui-forms, else /tmp/gui-forms-<uid>\n"
+                 "  Windows  %%LOCALAPPDATA%%\\gui-forms\\run\n"
+                 "\n"
+                 "Options:\n"
+                 "  --mcp           start AI-led: an MCP client drives the program over standard\n"
+                 "                  input and output (a client's .mcp.json command)\n"
+                 "  --mcp-shared    as --mcp, with the user asked before the first act\n"
+                 "  --mcp-socket    print the socket of each running instance and exit\n"
+                 "  --help          print this and exit\n"
+                 "GUI_FORMS_MCP_ATTACH=0 turns the socket off.\n"
+                 "\n"
+                 "More: https://gui-forms.readthedocs.io/en/latest/user/talk-to-a-program.html\n",
+                 identity.c_str());
+    std::fflush(stdout);
+    std::_Exit(0);
+}
+
 // --mcp-socket: the socket of each running instance of this program (by its
 // identity), one path a line on standard output, status 0; when none runs,
 // the path a launch would listen at, with "<pid>" for its process ID, and
@@ -902,6 +935,7 @@ AutomationRunScope::AutomationRunScope() {
     outermost_ = true;
     require_library_allocator_if_asked();
     const AutomationLaunch launch = read_automation_launch();
+    if (launch.print_help) print_help_and_exit();
     if (launch.print_socket) print_socket_and_exit();
     // A program launched without a flag still listens for an attach
     // connection (MCP 1.0.5); its windows join nothing until one comes.

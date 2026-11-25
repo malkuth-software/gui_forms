@@ -62,6 +62,9 @@ struct AutomationLaunch final {
     // --mcp-socket: print where this program's attach socket is (each
     // running instance's) or would be, and exit (owner, attach revision 3).
     bool print_socket{};
+    // --help: what the program's GUI.Forms options do and how to talk to it
+    // over MCP, on standard output, then exit.
+    bool print_help{};
     [[nodiscard]] bool requested() const noexcept {
         return mcp || shared || appearance_review || !script_path.empty();
     }

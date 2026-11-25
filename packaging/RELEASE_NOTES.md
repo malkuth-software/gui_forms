@@ -734,7 +734,8 @@ One release folds the work queued after 1.0.4.
   client without the token ends the waiting session. The visible console
   is the one transcript: a JSON session's calls show as `call <tool>
   <args>`, a console's lines as typed, each session's lines labelled by
-  its client and token. `gui-forms-attach` is now a plain relay (its
+  its client and token. Every program's `--help` says it speaks MCP and
+  how to reach its socket. `gui-forms-attach` is now a plain relay (its
   `--list` reads the discovery entries). New page:
   docs/user/talk-to-a-program.md.
 - A new client's session on the same program, without the last session's

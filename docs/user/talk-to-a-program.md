@@ -27,7 +27,7 @@ An entry names the program, its MCP identity, pid, executable, socket, the
 number of tools it serves and the first line of its note for a model. The
 program also prints `GUI.Forms: MCP socket: <path>` on standard error when
 it starts, and `program --mcp-socket` prints the socket of each running
-instance of that program (or, when none runs, the path a launch would use).
+instance of that program (or, when none runs, the path a launch would use). `program --help` says all of this in short.
 `gui-forms-attach --list` lists them all.
 
 ## The console
