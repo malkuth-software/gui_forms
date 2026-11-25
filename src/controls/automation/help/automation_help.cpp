@@ -549,7 +549,11 @@ std::string help_text(std::string_view topic, const std::vector<ToolSpec>& tools
     std::vector<std::string> known{"mcp", "tools", "gui.forms"};
     for (const SectionTopic& entry : section_topics) known.push_back("mcp." + std::string(entry.topic));
     for (const std::string& group : tool_groups(tools)) known.push_back(group);
-    for (const ToolSpec& spec : tools) known.push_back(tool_path(spec, tools));
+    // A tool answers to its name as well as its path, so both are near.
+    for (const ToolSpec& spec : tools) {
+        known.push_back(tool_path(spec, tools));
+        known.push_back(spec.name);
+    }
     std::string nearest{};
     std::size_t best = 0U;
     for (const std::string& name : known) {
