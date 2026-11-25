@@ -125,7 +125,9 @@ relay:
   first act's countdown is the one question. A new connection without the
   token asks again; nothing else is remembered.
 - One client at a time. A new client ends a session waiting for a resume;
-  while a session is connected, another connection waits.
+  while a session is connected, another connection is told `waiting for
+  the current session to end` (a console as a line, MCP as a JSON-RPC
+  error on its initialize) and closed, to try again later.
 - The session's token line, near the top of the instructions, the console's
   banner and help, and a disconnect's reply, reads: `session token: <t>.
   Reconnect with resume <t> (MCP: params.resume) within 120 s; the person

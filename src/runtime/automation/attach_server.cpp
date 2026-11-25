@@ -19,6 +19,12 @@
 //    ends the session (control returns to the user, the program stays
 //    open); any other end leaves it waiting attach_resume_milliseconds for
 //    a resume, after which it ends.
+// A connection made while another is served is never left in silence (the
+// owner, MCP round 4): a waiter thread accepts it and answers "waiting for
+// the current session to end" (a console a line, MCP a JSON-RPC error on
+// its initialize's id) and closes it, so the client knows why and may try
+// again. The waiter runs only while a connection is served, so the two
+// threads never accept at once.
 // The console record (ConsoleLog) is the one transcript: the overlay shows
 // it, a console's `transcript` answers it, and every session's lines carry
 // its label (the client's name and the token's first digits).
@@ -35,6 +41,7 @@
 #include <cstdio>
 #include <memory>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace gui_forms::automation {
@@ -46,6 +53,12 @@ constexpr std::int64_t opening_wait_milliseconds = 60000;
 // JSON-RPC's code for a refused initialize: the implementation-defined
 // server error range.
 constexpr int refused_code = -32001;
+// What a connection made while another is served is told.
+constexpr std::string_view waiting_message = "waiting for the current session to end";
+// How long the waiter waits for a waiting connection's first line, and
+// each slice of its accept, so it ends soon after the served connection.
+constexpr std::int64_t waiting_line_milliseconds = 3000;
+constexpr std::int64_t waiter_slice_milliseconds = 250;
 constexpr std::string_view console_prompt = "gui-forms> ";
 // The longest client name a session's label shows.
 constexpr std::size_t label_name_bytes = 24U;
@@ -335,6 +348,68 @@ void serve_console(AttachServer::State& state, AttachStreams streams) {
     }
 }
 
+// The waiter's state: the server's, and whether the served connection ended.
+struct WaiterState final {
+    AttachServer::State* server{};
+    std::atomic<bool> done{false};
+};
+
+// Answers a connection made while another is served, then closes it.
+void answer_waiting(AttachServer::State& state, AttachStreams streams) {
+    std::string line{};
+    const bool spoke = peek_attach_line(streams, line, waiting_line_milliseconds);
+    const AttachOpening opening = spoke ? read_attach_opening(line) : AttachOpening{};
+    if (opening.json) {
+        std::string taken{};
+        static_cast<void>(read_attach_line(streams.input, taken, maximum_opening_line));
+        static_cast<void>(
+            write_attach_line(streams.output, json_rpc_error_line(opening.id_json, refused_code, waiting_message)));
+    } else {
+        static_cast<void>(write_attach_line(streams.output, std::string(waiting_message) + "\n"));
+    }
+    (*state.run).console_note("socket connection told: " + std::string(waiting_message));
+}
+
+void waiter_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
+    WaiterState& waiter = *static_cast<WaiterState*>(argument);
+    AttachServer::State& state = *waiter.server;
+    while (!waiter.done.load() && !state.stop.load()) {
+        AttachStreams streams{};
+        std::string note{};
+        AttachWait waited = AttachWait::failed;
+        try {
+            waited = (*state.endpoint).accept(streams, note, waiter_slice_milliseconds);
+        } catch (...) {
+            return;
+        }
+        if (waited == AttachWait::timed_out || waited == AttachWait::refused) continue;
+        if (waited != AttachWait::connected) return;
+        try {
+            answer_waiting(state, std::move(streams));
+        } catch (...) {
+            // The connection closes with its streams.
+        }
+    }
+}
+
+// Serves one connection to its end, answering connections made meanwhile.
+void serve_connection(AttachServer::State& state, AttachStreams streams);
+
+void serve_connection_waited(AttachServer::State& state, AttachStreams streams) {
+    WaiterState waiter{};
+    waiter.server = &state;
+    stxlib::OperationResult<stxlib::Thread> started = stxlib::Thread::start(&waiter_thread_main, &waiter);
+    try {
+        serve_connection(state, std::move(streams));
+    } catch (...) {
+        waiter.done.store(true);
+        if (!started.failed()) static_cast<void>((*started.value()).join());
+        throw;
+    }
+    waiter.done.store(true);
+    if (!started.failed()) static_cast<void>((*started.value()).join());
+}
+
 // Serves one connection to its end.
 void serve_connection(AttachServer::State& state, AttachStreams streams) {
     std::string line{};
@@ -383,7 +458,7 @@ void attach_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
                 (*state.run).console_note(note);
                 continue;
             case AttachWait::connected:
-                serve_connection(state, std::move(streams));
+                serve_connection_waited(state, std::move(streams));
                 continue;
             default: // A value outside AttachWait: the endpoint is in no state to go on.
                 return;

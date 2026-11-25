@@ -294,7 +294,8 @@ private:
 // serves one connection at a time: its first line says MCP or the console,
 // the session is resumed or admitted (AutomationRun::admit_connection),
 // then MCP or the console runs over the connection until it ends, and the
-// session waits attach_resume_milliseconds for a resume.
+// session waits attach_resume_milliseconds for a resume. A connection made
+// meanwhile is told "waiting for the current session to end" and closed.
 class AttachServer final {
 public:
     // Null, with `error` set, when the endpoint cannot listen or the thread
