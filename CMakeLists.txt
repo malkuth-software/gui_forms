@@ -1542,7 +1542,7 @@ target_include_directories(gui_forms_lab PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(gui_forms_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
-target_link_libraries(gui_forms_lab PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+target_link_libraries(gui_forms_lab PUBLIC $<BUILD_INTERFACE:gui_forms_controls> $<INSTALL_INTERFACE:GUIForms::Controls>)
 set_target_properties(gui_forms_lab PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME Lab)
 add_library(GUIForms::Lab ALIAS gui_forms_lab)
 if(GUI_FORMS_INSTALL_LAB)
@@ -1573,7 +1573,7 @@ target_include_directories(gui_forms_demo_controls PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(gui_forms_demo_controls PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
-target_link_libraries(gui_forms_demo_controls PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+target_link_libraries(gui_forms_demo_controls PUBLIC $<BUILD_INTERFACE:gui_forms_controls> $<INSTALL_INTERFACE:GUIForms::Controls>)
 set_target_properties(gui_forms_demo_controls PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME DemoControls)
 
 if(GUI_FORMS_BUILD_FORM_COMPILER)
