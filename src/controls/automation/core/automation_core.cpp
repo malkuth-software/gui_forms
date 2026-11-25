@@ -161,10 +161,8 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "\"number\"},\"y\":{\"type\":\"number\"}},\"required\":[\"x\",\"y\"],\"additionalProperties\":"
         "false}";
     const std::string path_point =
-        "{\"type\":\"object\",\"description\":\"With a target, logical pixels from the target's top-left corner "
-        "(as offset); without one, window coordinates (as position)\",\"properties\":{\"x\":{\"type\":"
-        "\"number\"},\"y\":{\"type\":\"number\"}},\"required\":[\"x\",\"y\"],\"additionalProperties\":"
-        "false}";
+        detail::point_schema("With a target, logical pixels from the target's top-left corner (as offset); without "
+                             "one, window coordinates (as position)");
     const std::string wheel_delta =
         "{\"type\":\"object\",\"description\":\"Wheel notches: y -1 scrolls down one notch, y 1 up; x scrolls "
         "sideways. Default {x: 0, y: -1}\",\"properties\":{\"x\":{\"type\":\"number\"},\"y\":{\"type\":"
@@ -219,12 +217,12 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, "
         "drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are "
         "painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so "
-        "you see the program as its user does without a model. points [[x, y], ...] (logical units from the "
-        "captured area's top left, at most 1024) answers the colour at each instead of an image, to check a "
+        "you see the program as its user does without a model. points [{x, y}, ...] (or [x, y] pairs; logical "
+        "units from the captured area's top left, at most 1024) answers the colour at each instead of an image, to check a "
         "drawing cheaply. A read: needs no control.",
         object_schema(targets + ",\"mode\":{\"type\":\"string\",\"enum\":[\"rendered\"]},"
-                                "\"points\":{\"type\":\"array\",\"maxItems\":1024,\"items\":{\"type\":\"array\","
-                                "\"items\":{\"type\":\"number\"},\"minItems\":2,\"maxItems\":2}},"
+                                "\"points\":{\"type\":\"array\",\"maxItems\":1024,\"items\":" +
+                                detail::point_schema("") + "},"
                                 "\"scale\":{\"type\":\"number\"},\"margin\":{\"type\":\"number\"},"
                                 "\"include_overlays\":{\"type\":\"boolean\"},\"popups\":{\"type\":\"boolean\"},"
                                 "\"include_sign\":{\"type\":\"boolean\"}"),
@@ -631,11 +629,10 @@ struct PostedAct final {
 // ---- small parsers --------------------------------------------------------------------
 
 bool read_point(const JsonValue& object, Point& point) {
-    if (object.kind != JsonKind::object) return false;
-    const std::optional<double> x = detail::number_member(object, "x");
-    const std::optional<double> y = detail::number_member(object, "y");
-    if (!x.has_value() || !y.has_value()) return false;
-    point = Point{*x, *y};
+    double x = 0.0;
+    double y = 0.0;
+    if (!detail::point_value(object, x, y)) return false;
+    point = Point{x, y};
     return true;
 }
 
@@ -848,9 +845,15 @@ void AutomationCore::detach_window(const Window& window) noexcept {
 }
 
 void AutomationCore::prune_windows() noexcept {
+    // The presenter's own windows (its dialogs, the console and its button)
+    // are never the model's, however they came to join: they are dropped
+    // here, so no tool lists, counts or finds them (1.0.5 console review:
+    // windows counted the console's button as a popup).
+    const AutomationPresenter* const presenter = control_.presenter();
     std::size_t index = 0U;
     while (index < windows_.size()) {
-        if (windows_[index].window.get() == nullptr) {
+        const Window* const window = windows_[index].window.get();
+        if (window == nullptr || (presenter != nullptr && (*presenter).presenter_window(*window))) {
             windows_.erase(windows_.begin() + static_cast<std::ptrdiff_t>(index));
             continue;
         }
@@ -1211,21 +1214,17 @@ StepOutcome CoreAccess::windows_tool() {
     core.fill_windows(windows);
     if (windows.empty()) return StepOutcome::finished(ToolReply::failure(ToolError::window_gone, "no window is open"));
     std::string text{};
-    std::size_t popups = 0U;
     for (Window* const window : windows) {
         // Only the program's real windows (round 2): tooltip and passive
-        // popup windows are counted, not listed.
-        if (core.passive_popup_window(*window)) {
-            ++popups;
-            continue;
-        }
+        // popup windows are neither listed nor counted (1.0.5 console
+        // review: the count told the model about windows it cannot use).
+        if (core.passive_popup_window(*window)) continue;
         detail::append_window_line(core, *window, text);
         const HostSession* const session = gui_forms::detail::window_session(*window);
         if (session != nullptr && (*session).snapshot().modal_depth != 0U) {
             text.insert(text.size() - 1U, " (waiting on a modal window)");
         }
     }
-    if (popups != 0U) text += std::to_string(popups) + " tooltip or popup window(s) open, not listed\n";
     AutomationControl& control = core.control();
     text += "control: ";
     if (control.settings().appearance_review) {
@@ -1800,7 +1799,7 @@ StepOutcome CoreAccess::prepare_pointer(RunningCall& call, Window& window, Frame
             Point given{};
             if (!read_point(item, given)) {
                 return StepOutcome::finished(
-                    ToolReply::failure(ToolError::invalid_arguments, "each path point is {x, y}"));
+                    ToolReply::failure(ToolError::invalid_arguments, "each path point is {x, y} (or [x, y])"));
             }
             // With a target, in its space (as offset); else window
             // coordinates (round 2: target and path agree).
@@ -2082,7 +2081,10 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
         for (Window* const open : windows) open_now = open_now || core.window_stable_id(*open) == id;
         if (!open_now) text += "closed: window [" + id + "]\n";
     }
-    if (text.size() == effects_start) {
+    // A program tool's own reply says what it did (a drawing changes pixels,
+    // not nodes: 1.0.5 review, plan_paint_draw replied "effect: none").
+    const bool tool_replied = outcome.reply.has_value() && (*outcome.reply).success_value() != nullptr;
+    if (text.size() == effects_start && !tool_replied) {
         text += "effect: none (no node changed, focus did not move, no window opened or closed)\n";
     }
     const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - call.started).count();

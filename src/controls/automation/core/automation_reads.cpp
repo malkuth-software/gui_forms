@@ -555,23 +555,21 @@ void append_hex_byte(unsigned value, std::string& text) {
     text += digits[value & 0x0fU];
 }
 
-// The capture's colour at each [x, y] of `points` (logical units from the
+// The capture's colour at each point {x, y} (or [x, y]) of `points` (logical units from the
 // capture's top left), one line each: "x,y #RRGGBB" (straight colour),
 // with the alpha when it is not opaque, or "outside".
 ToolReply sample_capture(const WindowCapture& capture, const JsonValue& points, const std::string& what) {
     if (points.items.empty() || points.items.size() > maximum_sampled_points) {
         return ToolReply::failure(ToolError::invalid_arguments,
-                                  "points holds 1 to " + std::to_string(maximum_sampled_points) + " [x, y] pairs");
+                                  "points holds 1 to " + std::to_string(maximum_sampled_points) + " points {x, y}");
     }
     std::string text = "colours of " + what + " (logical units from its top left, scale " +
                        number_text(capture.scale) + "):\n";
     for (const JsonValue& point : points.items) {
         double x = 0.0;
         double y = 0.0;
-        if (point.kind != JsonKind::array || point.items.size() != 2U || point.items[0].kind != JsonKind::number ||
-            point.items[1].kind != JsonKind::number || !number_value(point.items[0], x) ||
-            !number_value(point.items[1], y)) {
-            return ToolReply::failure(ToolError::invalid_arguments, "each point is an [x, y] pair of numbers");
+        if (!point_value(point, x, y)) {
+            return ToolReply::failure(ToolError::invalid_arguments, "each point is {x, y} (or an [x, y] pair)");
         }
         text += number_text(x) + "," + number_text(y) + " ";
         const double pixel_x = std::floor(x * capture.scale);

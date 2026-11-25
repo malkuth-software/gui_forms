@@ -71,7 +71,8 @@ def type_text(schema: dict) -> str:
     if kind:
         return str(kind)
     if 'anyOf' in schema or 'oneOf' in schema:
-        return 'one of several shapes'
+        shapes = schema.get('anyOf') or schema.get('oneOf')
+        return ' or '.join(type_text(shape) for shape in shapes)
     return 'any'
 
 

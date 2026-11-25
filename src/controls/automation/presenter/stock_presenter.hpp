@@ -51,6 +51,7 @@
 #include "../control/automation_control.hpp"
 
 #include "gui_forms/application/application.hpp"
+#include "gui_forms/host/windowing/host_windowing.hpp"
 #include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 
@@ -87,6 +88,15 @@ struct ConnectAnswer final {
     std::atomic<ConnectAnswerState> state{ConnectAnswerState::waiting};
 };
 
+// Where a presenter dialog's client area goes (1.0.5 console review: the
+// questions opened at the screen's upper right, one half under a
+// notification): its outer frame centred on the program window's, then
+// moved the least distance into the work area of the screen holding the
+// program window's centre (else the nearest screen's; no monitors: not
+// moved). `dialog` gives the dialog's size and decorations.
+[[nodiscard]] Rect presenter_dialog_place(const HostWindowFrame& owner, const HostWindowFrame& dialog,
+                                          const std::vector<HostMonitor>& monitors) noexcept;
+
 class StockPresenter final : public AutomationPresenter, public ConsoleOverlayListener {
 public:
     StockPresenter();
@@ -98,9 +108,11 @@ public:
     // The control the dialogs answer to. Null detaches it; the run detaches
     // before destroying the control.
     void bind_control(AutomationControl* control) noexcept;
-    // The run's windowing, from the first application window, and that
-    // window's stable ID (the dialogs' owner). Later calls keep the first.
-    void set_windowing(const ApplicationWindowHandle& owner, std::string_view owner_id);
+    // The run's windowing, from the first application window, that
+    // window's stable ID (the dialogs' owner) and its model (which the
+    // console's button avoids covering). Later calls keep the first.
+    void set_windowing(const ApplicationWindowHandle& owner, std::string_view owner_id,
+                       const WindowRef& owner_model = WindowRef{});
     // Appearance review (--mcp-appearance-review, MCP round 1): the windows
     // look as they do without a model, so captures can be compared with the
     // user's view. No band, no title note, no veil, no tag line and no
@@ -193,6 +205,7 @@ private:
     AutomationControl* control_{};
     ApplicationWindowHandle owner_{};
     std::string owner_id_{};
+    WindowRef owner_model_{};
     ClientIdentity client_{};
     bool connected_{};
     bool in_control_{};

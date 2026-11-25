@@ -58,6 +58,33 @@ bool number_value(const JsonValue& value, double& number) {
     return true;
 }
 
+bool point_value(const JsonValue& value, double& x, double& y) {
+    if (value.kind == JsonKind::object) {
+        const std::optional<double> given_x = number_member(value, "x");
+        const std::optional<double> given_y = number_member(value, "y");
+        if (!given_x.has_value() || !given_y.has_value()) return false;
+        x = *given_x;
+        y = *given_y;
+        return true;
+    }
+    if (value.kind != JsonKind::array || value.items.size() != 2U) return false;
+    double read_x = 0.0;
+    double read_y = 0.0;
+    if (!number_value(value.items[0], read_x) || !number_value(value.items[1], read_y)) return false;
+    x = read_x;
+    y = read_y;
+    return true;
+}
+
+std::string point_schema(std::string_view description) {
+    std::string schema = "{\"anyOf\":[{\"type\":\"object\",";
+    if (!description.empty()) schema += "\"description\":\"" + std::string(description) + "\",";
+    schema += "\"properties\":{\"x\":{\"type\":\"number\"},\"y\":{\"type\":\"number\"}},"
+              "\"required\":[\"x\",\"y\"],\"additionalProperties\":false},"
+              "{\"type\":\"array\",\"items\":{\"type\":\"number\"},\"minItems\":2,\"maxItems\":2}]}";
+    return schema;
+}
+
 std::optional<double> number_member(const JsonValue& object, std::string_view name) {
     const JsonValue* const member = kind_member(object, name, JsonKind::number);
     if (member == nullptr) return std::nullopt;

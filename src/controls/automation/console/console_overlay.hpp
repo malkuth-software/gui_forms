@@ -61,6 +61,16 @@ public:
 class ConsoleSurface;
 class ConsoleButton;
 
+// Whether a rectangle of the program window's client area (window-local
+// logical units) would cover program content: a control a user reads or
+// uses. The button's placement asks it (1.0.5 console review: the button
+// covered the ribbon's help button).
+class ConsoleButtonProbe {
+public:
+    virtual ~ConsoleButtonProbe();
+    [[nodiscard]] virtual bool covers(Rect local) const = 0;
+};
+
 class ConsoleOverlay final {
 public:
     // The button's size and its inset from the window's upper right corner,
@@ -82,7 +92,9 @@ public:
     // ID): shows the button (the console stays as the user left it, closed
     // by default). False when the run cannot open it (no windowing, a host
     // without popup windows).
-    bool show(const ApplicationWindowHandle& owner, std::string_view owner_id);
+    // `owner_model` is the window's model, which the button's placement
+    // hit-tests so the button covers no control.
+    bool show(const ApplicationWindowHandle& owner, std::string_view owner_id, const WindowRef& owner_model);
     // AI mode ended: the button and the console close.
     void hide() noexcept;
     // The button's click: opens the console, or closes it.
@@ -94,8 +106,8 @@ public:
     // New lines may be in the record: the open console takes them.
     void refresh();
     // The host reported the program window's frame: moves both windows
-    // when its client rectangle `content` changed.
-    void follow(Rect content);
+    // when it changed.
+    void follow(const HostWindowFrame& frame);
     // A press on the console.
     void console_pressed();
     // A window of the overlay closed (the host closed it).
@@ -106,11 +118,24 @@ public:
     [[nodiscard]] bool button_shown() const noexcept;
     [[nodiscard]] bool console_open() const noexcept;
 
+    // Where the button goes for the program window's `frame` (desktop
+    // logical units), covering no program content: in the title area when
+    // the host measures one tall enough, right-aligned short of the
+    // window's own caption buttons (`caption_reserve` wide); otherwise the
+    // first spot in the client area, from the upper right leftwards and then
+    // a row lower, where `probe` finds no control; with none free (or no
+    // probe), the client area's upper right.
+    [[nodiscard]] static Rect button_place(const HostWindowFrame& frame, double caption_reserve,
+                                           const ConsoleButtonProbe* probe) noexcept;
+    // The width this host's title bar keeps for its caption buttons at the
+    // right (none on macOS, whose buttons are at the left).
+    [[nodiscard]] static double caption_reserve() noexcept;
+    // The console's rectangle: the client area's right part, below the
+    // button when the button is inside the client area.
+    [[nodiscard]] static Rect console_place(Rect content, Rect button) noexcept;
+
 private:
-    // Where the button and the console go for the program window's client
-    // rectangle `content` (desktop logical units).
-    [[nodiscard]] static Rect button_rect(Rect content) noexcept;
-    [[nodiscard]] static Rect console_rect(Rect content) noexcept;
+    [[nodiscard]] Rect button_rect() const;
     // Opens one popup window at `bounds` with `root`; false when refused.
     bool open_popup(bool console, const Control::Ptr& root, Rect bounds, ApplicationWindowHandle& handle,
                     WindowRef& reference);
@@ -125,7 +150,9 @@ private:
     std::shared_ptr<ConsoleOverlay*> self_{};
     ApplicationWindowHandle owner_{};
     std::string owner_id_{};
-    Rect owner_content_{};
+    WindowRef owner_model_{};
+    HostWindowFrame owner_frame_{};
+    Rect button_bounds_{};
     ApplicationWindowHandle button_handle_{};
     WindowRef button_window_{};
     std::shared_ptr<ConsoleButton> button_{};

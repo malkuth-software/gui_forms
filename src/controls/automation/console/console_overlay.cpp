@@ -6,6 +6,7 @@
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/host/windowing/host_windowing.hpp"
+#include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/typography/font_families/font_families.hpp"
 #include "gui_forms/window.hpp"
@@ -349,7 +350,7 @@ struct OwnerFrameReport final {
         const std::shared_ptr<ConsoleOverlay*> live = overlay.lock();
         if (!live) return;
         try {
-            (**live).follow(event.frame.content);
+            (**live).follow(event.frame);
         } catch (...) {
             // A window refused its move: the next report moves it again.
         }
@@ -396,17 +397,105 @@ ConsoleOverlay::~ConsoleOverlay() {
     hide();
 }
 
-Rect ConsoleOverlay::button_rect(Rect content) noexcept {
-    const Rect rect{content.x + content.width - button_width - inset, content.y + inset, button_width, button_height};
+ConsoleButtonProbe::~ConsoleButtonProbe() = default;
+
+namespace {
+
+// The roles of a window's background: a hit on one covers nothing a user
+// reads or uses, unless the control takes an action.
+bool background_role(SemanticRole role) noexcept {
+    return role == SemanticRole::generic || role == SemanticRole::group || role == SemanticRole::pane ||
+           role == SemanticRole::tab_panel || role == SemanticRole::toolbar || role == SemanticRole::menu_bar ||
+           role == SemanticRole::status_bar || role == SemanticRole::separator || role == SemanticRole::tab_group;
+}
+
+// The probe over the program window's model: a rectangle covers content
+// when a hit test at its corners or centre lands on a control that takes
+// an action or is not background.
+class ModelProbe final : public ConsoleButtonProbe {
+public:
+    explicit ModelProbe(Window* window) noexcept : window_(window) {}
+    [[nodiscard]] bool covers(Rect local) const override {
+        const Point points[5] = {{local.x + 1.0, local.y + 1.0},
+                                 {local.x + local.width - 1.0, local.y + 1.0},
+                                 {local.x + 1.0, local.y + local.height - 1.0},
+                                 {local.x + local.width - 1.0, local.y + local.height - 1.0},
+                                 {local.x + local.width / 2.0, local.y + local.height / 2.0}};
+        for (const Point point : points) {
+            const Control::Ptr hit = (*window_).hit_test(point);
+            if (!hit) continue;
+            const SemanticDescriptor descriptor = (*hit).semantic_descriptor();
+            if (!descriptor.actions.empty() || !background_role(descriptor.role)) return true;
+        }
+        return false;
+    }
+
+private:
+    Window* window_{};
+};
+
+// The least title area the button sits in, and the step of the search
+// along the client area.
+constexpr double least_title_button = 20.0;
+constexpr double search_step = 16.0;
+constexpr int search_rows = 6;
+
+} // namespace
+
+double ConsoleOverlay::caption_reserve() noexcept {
+#if defined(__APPLE__)
+    return 0.0;
+#elif defined(_WIN32)
+    // Minimize, maximize and close, about 46 logical units each.
+    return 146.0;
+#else
+    return 110.0;
+#endif
+}
+
+Rect ConsoleOverlay::button_place(const HostWindowFrame& frame, double reserve,
+                                  const ConsoleButtonProbe* probe) noexcept {
+    const Rect content = frame.content;
+    const double title = content.y - frame.outer.y;
+    if (frame.outer_measured && title >= least_title_button + 4.0) {
+        const double height = std::min(button_height, title - 4.0);
+        const double x = frame.outer.x + frame.outer.width - reserve - inset - button_width;
+        // Clear of the title text in the middle of the bar.
+        if (x >= frame.outer.x + frame.outer.width / 2.0 + 40.0) {
+            const Rect rect{x, frame.outer.y + (title - height) / 2.0, button_width, height};
+            return rect;
+        }
+    }
+    const double right = content.x + content.width - inset - button_width;
+    for (int row = 0; row < search_rows; ++row) {
+        const double y = content.y + inset + static_cast<double>(row) * (button_height + inset);
+        if (y + button_height > content.y + content.height) break;
+        for (double x = right; x >= content.x + inset; x -= search_step) {
+            const Rect local{x - content.x, y - content.y, button_width, button_height};
+            if (probe == nullptr || !(*probe).covers(local)) {
+                const Rect rect{x, y, button_width, button_height};
+                return rect;
+            }
+        }
+    }
+    const Rect rect{right, content.y + inset, button_width, button_height};
     return rect;
 }
 
-Rect ConsoleOverlay::console_rect(Rect content) noexcept {
-    const double top = content.y + inset + button_height + 6.0;
+Rect ConsoleOverlay::console_place(Rect content, Rect button) noexcept {
+    const bool inside = button.y >= content.y;
+    const double top = inside ? button.y + button.height + 6.0 : content.y + inset;
     const double height = std::max(80.0, content.y + content.height - inset - top);
     const double width = std::min(std::max(minimum_console_width, content.width * 0.55), content.width - 2.0 * inset);
     const Rect rect{content.x + content.width - inset - std::max(width, 120.0), top, std::max(width, 120.0), height};
     return rect;
+}
+
+Rect ConsoleOverlay::button_rect() const {
+    Window* const model = owner_model_.get();
+    if (model == nullptr) return button_place(owner_frame_, caption_reserve(), nullptr);
+    const ModelProbe probe(model);
+    return button_place(owner_frame_, caption_reserve(), &probe);
 }
 
 bool ConsoleOverlay::open_popup(bool console, const Control::Ptr& root, Rect bounds, ApplicationWindowHandle& handle,
@@ -448,16 +537,19 @@ bool ConsoleOverlay::open_popup(bool console, const Control::Ptr& root, Rect bou
     return true;
 }
 
-bool ConsoleOverlay::show(const ApplicationWindowHandle& owner, std::string_view owner_id) {
+bool ConsoleOverlay::show(const ApplicationWindowHandle& owner, std::string_view owner_id,
+                          const WindowRef& owner_model) {
     if (button_handle_.active()) return true;
     owner_ = owner;
     owner_id_ = std::string(owner_id);
+    owner_model_ = owner_model;
     if (!owner_.active()) return false;
     const HostWindowFrameResult frame = owner_.frame();
     if (!frame.status.accepted()) return false;
-    owner_content_ = frame.frame.content;
+    owner_frame_ = frame.frame;
+    button_bounds_ = button_rect();
     button_ = make_control<ConsoleButton>(StableId(button_id), this);
-    if (!open_popup(false, button_, button_rect(owner_content_), button_handle_, button_window_)) {
+    if (!open_popup(false, button_, button_bounds_, button_handle_, button_window_)) {
         (*button_).forget_overlay();
         button_.reset();
         return false;
@@ -504,7 +596,8 @@ void ConsoleOverlay::toggle_console() {
     }
     if (!button_handle_.active()) return;
     console_ = make_control<ConsoleSurface>(StableId(console_id), this);
-    if (!open_popup(true, console_, console_rect(owner_content_), console_handle_, console_window_)) {
+    if (!open_popup(true, console_, console_place(owner_frame_.content, button_bounds_), console_handle_,
+                    console_window_)) {
         (*console_).forget_overlay();
         console_.reset();
         return;
@@ -522,11 +615,14 @@ void ConsoleOverlay::refresh() {
     (*console_).take_lines(lines);
 }
 
-void ConsoleOverlay::follow(Rect content) {
-    if (!button_handle_.active() || content == owner_content_) return;
-    owner_content_ = content;
-    static_cast<void>(button_handle_.request_frame(button_rect(owner_content_)));
-    if (console_handle_.active()) static_cast<void>(console_handle_.request_frame(console_rect(owner_content_)));
+void ConsoleOverlay::follow(const HostWindowFrame& frame) {
+    if (!button_handle_.active() || frame == owner_frame_) return;
+    owner_frame_ = frame;
+    button_bounds_ = button_rect();
+    static_cast<void>(button_handle_.request_frame(button_bounds_));
+    if (console_handle_.active()) {
+        static_cast<void>(console_handle_.request_frame(console_place(owner_frame_.content, button_bounds_)));
+    }
 }
 
 void ConsoleOverlay::subscribe_follow() noexcept {

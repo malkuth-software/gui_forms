@@ -244,21 +244,33 @@
     "path": {
      "type": "array",
      "items": {
-      "type": "object",
-      "description": "With a target, logical pixels from the target's top-left corner (as offset); without one, window coordinates (as position)",
-      "properties": {
-       "x": {
-        "type": "number"
+      "anyOf": [
+       {
+        "type": "object",
+        "description": "With a target, logical pixels from the target's top-left corner (as offset); without one, window coordinates (as position)",
+        "properties": {
+         "x": {
+          "type": "number"
+         },
+         "y": {
+          "type": "number"
+         }
+        },
+        "required": [
+         "x",
+         "y"
+        ],
+        "additionalProperties": false
        },
-       "y": {
-        "type": "number"
+       {
+        "type": "array",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 2,
+        "maxItems": 2
        }
-      },
-      "required": [
-       "x",
-       "y"
-      ],
-      "additionalProperties": false
+      ]
      },
      "minItems": 1,
      "maxItems": 256
@@ -462,7 +474,7 @@
  {
   "name": "capture",
   "title": "Capture",
-  "description": "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so you see the program as its user does without a model. points [[x, y], ...] (logical units from the captured area's top left, at most 1024) answers the colour at each instead of an image, to check a drawing cheaply. A read: needs no control.",
+  "description": "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so you see the program as its user does without a model. points [{x, y}, ...] (or [x, y] pairs; logical units from the captured area's top left, at most 1024) answers the colour at each instead of an image, to check a drawing cheaply. A read: needs no control.",
   "inputSchema": {
    "type": "object",
    "properties": {
@@ -488,12 +500,32 @@
      "type": "array",
      "maxItems": 1024,
      "items": {
-      "type": "array",
-      "items": {
-       "type": "number"
-      },
-      "minItems": 2,
-      "maxItems": 2
+      "anyOf": [
+       {
+        "type": "object",
+        "properties": {
+         "x": {
+          "type": "number"
+         },
+         "y": {
+          "type": "number"
+         }
+        },
+        "required": [
+         "x",
+         "y"
+        ],
+        "additionalProperties": false
+       },
+       {
+        "type": "array",
+        "items": {
+         "type": "number"
+        },
+        "minItems": 2,
+        "maxItems": 2
+       }
+      ]
      }
     },
     "scale": {

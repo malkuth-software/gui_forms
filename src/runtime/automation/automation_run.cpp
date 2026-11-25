@@ -370,7 +370,7 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
             if (run.presenter_.presenter_window(*model)) return;
             // The presenter's windows (the connection question) are owned
             // by the first program window.
-            if (!passive_popup) run.presenter_.set_windowing(handle, stable_id);
+            if (!passive_popup) run.presenter_.set_windowing(handle, stable_id, (*model).window_ref());
             PendingJoin pending{};
             pending.window = (*model).window_ref();
             pending.stable_id = std::string(stable_id);
@@ -396,7 +396,7 @@ void AutomationRun::join_window(Window& window, std::string_view stable_id, bool
     Window* const model = &window;
     {
         if (!run.core_.attach_window(*model, std::string(stable_id), passive_popup, handle)) return;
-        run.presenter_.set_windowing(handle, stable_id);
+        run.presenter_.set_windowing(handle, stable_id, (*model).window_ref());
         bool closing = false;
         bool client_seen = false;
         ClientIdentity client{};
