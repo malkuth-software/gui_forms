@@ -67,11 +67,14 @@ public:
     // ---- the UI thread ----
 
     [[nodiscard]] AutomationCore& core() noexcept { return core_; }
+    // Starts serving MCP, once, with the tools, commands and note known now
+    // (posted by the first window's join, so it runs after that window's
+    // ready callback). UI thread.
+    void serve_when_ready();
+    // Whether serving has started (no transport: true, nothing to start).
+    [[nodiscard]] bool serving_started() const noexcept;
     // Binds the tools again when their list changed (the registry or the
     // program's commands).
-    // Starts serving MCP, once, with the tools, commands and note known now
-    // (the first window's join). UI thread.
-    void serve_when_ready();
     void sync_tools();
     void close_all() noexcept;
 

@@ -7,6 +7,7 @@
 #include "gui_forms/automation/marks/automation_marks.hpp"
 #include "../../controls/automation/marks/automation_marks_internal.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
+#include "gui_forms/dispatcher/operation/dispatch_operation.hpp"
 #include "gui_forms/window.hpp"
 
 #include <stxlib/clocks.hpp>
@@ -92,6 +93,16 @@ struct CancelWork final {
 struct SyncWork final {
     AutomationRun* run{};
     void operator()() const { (*run).sync_tools(); }
+};
+
+// Serving starts at the UI thread's turn after a window joined
+// (AutomationRun::window_ready).
+struct ServeWork final {
+    AutomationRun* run{};
+    void operator()() const {
+        (*run).serve_when_ready();
+        (*run).sync_tools();
+    }
 };
 
 struct ClientWork final {
@@ -294,9 +305,21 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         // A client seen before this window joined (set_client ignores the
         // same client posted again).
         if (client_seen) run.core_.set_client(client);
-        // Serving starts with the first window, when the program has
-        // registered its tools, commands and note.
-        run.serve_when_ready();
+        // Serving starts at the UI thread's next turn after the first window
+        // joined, not here: the hook runs before the window's ready callback,
+        // which may register the program's tools, commands and note. Until
+        // serving starts nothing reads the client's input, so initialize's
+        // answer and the first tools/list carry the built-in set and the
+        // first window's tools together (1.0.3 served from launch and bound
+        // tools one by one while serving, so a tools/list could see part of
+        // the built-in set: macos-arm64, gui_forms_mcp_launch_tests). Each
+        // window posts until serving starts, so a window that closes before
+        // its turn leaves the next one to start it. A dispatcher that takes
+        // no work starts it now.
+        if (!run.serving_started()) {
+            DispatchOperation posted = (*model).dispatcher().begin_invoke(ServeWork{&run});
+            if (!posted.pending()) run.serve_when_ready();
+        }
         run.sync_tools();
         // The input closed before this window joined, so no close reached
         // it: it closes at the UI thread's next turn, once it is running.
@@ -436,6 +459,11 @@ void AutomationRun::serve_when_ready() {
     if (!(*transport_).serve(automation_identity(), instructions, note, specs, error)) {
         std::fprintf(stderr, "GUI.Forms: MCP is not available: %s\n", error.c_str());
     }
+}
+
+bool AutomationRun::serving_started() const noexcept {
+    const bool started = !transport_ || (*transport_).serving();
+    return started;
 }
 
 void AutomationRun::sync_tools() {
