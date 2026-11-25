@@ -220,8 +220,8 @@ SOCKET unix_socket() noexcept {
     return made;
 }
 
-bool socket_address(const std::string& path, sockaddr_un& address) noexcept {
-    address = sockaddr_un{};
+bool socket_address(const std::string& path, SOCKADDR_UN& address) noexcept {
+    address = SOCKADDR_UN{};
     address.sun_family = AF_UNIX;
     if (path.size() + 1U > sizeof(address.sun_path)) return false;
     std::memcpy(address.sun_path, path.c_str(), path.size() + 1U);
@@ -371,7 +371,7 @@ std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const AttachProgram& prog
     (*state).own = token_user(GetCurrentProcess());
     (*state).path = directory + "\\" + process + std::string(socket_suffix);
     (*state).info_path = directory + "\\" + process + std::string(info_suffix);
-    sockaddr_un address{};
+    SOCKADDR_UN address{};
     if (!socket_address((*state).path, address)) {
         error = "the attach socket's path is too long: " + (*state).path;
         return nullptr;
@@ -386,7 +386,7 @@ std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const AttachProgram& prog
     // Files left under these names by an ended process with the same pid.
     static_cast<void>(DeleteFileW(wide(made.path).c_str()));
     static_cast<void>(DeleteFileW(wide(made.info_path).c_str()));
-    if (bind(made.listener, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) != 0 ||
+    if (bind(made.listener, reinterpret_cast<const SOCKADDR*>(&address), sizeof(address)) != 0 ||
         ::listen(made.listener, listen_backlog) != 0 || !set_blocking(made.listener, false)) {
         error = "the attach socket could not listen at " + made.path + ": " +
                 host_message(static_cast<DWORD>(WSAGetLastError()));
@@ -475,11 +475,11 @@ void AttachEndpoint::interrupt() noexcept {
     State& state = *state_;
     state.interrupted.store(true);
     // Connecting once ends a WSAPoll that waits for a connection.
-    sockaddr_un address{};
+    SOCKADDR_UN address{};
     if (!socket_address(state.path, address)) return;
     const SOCKET poke = unix_socket();
     if (poke == INVALID_SOCKET) return;
-    static_cast<void>(connect(poke, reinterpret_cast<const sockaddr*>(&address), sizeof(address)));
+    static_cast<void>(connect(poke, reinterpret_cast<const SOCKADDR*>(&address), sizeof(address)));
     close_socket(poke);
 }
 
@@ -572,7 +572,7 @@ bool connect_attach_endpoint(const std::string& address, AttachStreams& streams,
         error = "Winsock did not start";
         return false;
     }
-    sockaddr_un socket_name{};
+    SOCKADDR_UN socket_name{};
     if (!socket_address(address, socket_name)) {
         error = "the attach socket's path is too long: " + address;
         return false;
@@ -582,7 +582,7 @@ bool connect_attach_endpoint(const std::string& address, AttachStreams& streams,
         error = "a socket could not be made: " + host_message(static_cast<DWORD>(WSAGetLastError()));
         return false;
     }
-    if (connect(connection, reinterpret_cast<const sockaddr*>(&socket_name), sizeof(socket_name)) != 0) {
+    if (connect(connection, reinterpret_cast<const SOCKADDR*>(&socket_name), sizeof(socket_name)) != 0) {
         error = "the program at " + address +
                 " could not be reached: " + host_message(static_cast<DWORD>(WSAGetLastError()));
         close_socket(connection);

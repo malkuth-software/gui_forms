@@ -377,6 +377,8 @@ void attach_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
             case AttachWait::connected:
                 serve_connection(state, std::move(streams));
                 continue;
+            default: // A value outside AttachWait: the endpoint is in no state to go on.
+                return;
             }
         } catch (const std::exception& failure) {
             std::fprintf(stderr, "GUI.Forms: attach: the connection failed: %s\n", failure.what());
@@ -387,8 +389,6 @@ void attach_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
             if (state.stop.load()) return;
             leave_session(state);
             continue;
-        default: // A value outside AttachWait: the endpoint is in no state to go on.
-            return;
         }
     }
 }
