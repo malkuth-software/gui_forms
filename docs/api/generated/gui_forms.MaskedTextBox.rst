@@ -432,7 +432,7 @@ gui_forms::MaskedTextBox
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 39 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 17 supported, 0 deferred, 0 excluded, 39 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -497,8 +497,8 @@ Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16
      - unclassified (unmatched)
    * - property
      - ``Mask``
-     - none
-     - unclassified (unmatched)
+     - ``mask``
+     - unclassified (untested)
    * - property
      - ``MaskCompleted``
      - ``mask_completed``
@@ -630,6 +630,10 @@ Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16
    * - property
      - GUI.Forms-only
      - ``provider``
+     - supported
+   * - property
+     - ``Control.Text``
+     - ``text``
      - supported
    * - event
      - GUI.Forms-only

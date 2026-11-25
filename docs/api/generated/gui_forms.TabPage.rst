@@ -159,7 +159,7 @@ gui_forms::TabPage
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TabPage``. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 17 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TabPage``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 17 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -250,6 +250,10 @@ Counterpart: ``TabPage``. Members declared here and by the counterpart: 4 suppor
      - ``GetTabPageOfComponent``
      - none
      - unclassified (unmatched)
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
    * - method
      - GUI.Forms-only
      - ``tab_page_property_entries``
