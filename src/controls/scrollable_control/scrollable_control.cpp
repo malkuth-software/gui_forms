@@ -6,6 +6,7 @@
 #include "gui_forms/binding/property_cell_entry/property_cell_entry.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 #include "gui_forms/window.hpp"
+#include "../../core/surface_root/access/surface_tree_access.hpp"
 #include "gui_forms/engine/theme_engine/theme_engine.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "../range_control/scroll_bar/scroll_bar_painting.hpp"
@@ -208,9 +209,10 @@ ScrollSnapshot ScrollableControl::scroll_snapshot() const noexcept {
 }
 
 Size ScrollableControl::content_extent() {
+    const Size painted = painted_content_extent();
     Size extent{
-        std::max(0.0, auto_scroll_min_size.read().width),
-        std::max(0.0, auto_scroll_min_size.read().height)};
+        std::max({0.0, auto_scroll_min_size.read().width, std::isfinite(painted.width) ? painted.width : 0.0}),
+        std::max({0.0, auto_scroll_min_size.read().height, std::isfinite(painted.height) ? painted.height : 0.0})};
     const Insets own_padding = padding.read();
     const std::vector<Control::Ptr> retained = snapshot_layout_children();
     for (const Control::Ptr& child : retained) {
@@ -468,6 +470,13 @@ bool ScrollableControl::apply_axis_value(ScrollOrientation orientation,
     const double next = std::clamp(
         value, axis.minimum_, maximum_offset(orientation));
     if (std::abs(next - old_value) <= comparison_epsilon) return false;
+    // A position moved from this control's own arrange asks for another
+    // arrange: named once (layout liveness); the layout pass ends the loop
+    // it makes.
+    if (surface_root() != nullptr) {
+        static_cast<void>(detail::SurfaceTreeAccess::report_if_arranging(
+            *surface_root(), *this, LayoutDiagnosticCode::scroll_in_own_arrange));
+    }
     axis.value_ = next;
     if (orientation == ScrollOrientation::horizontal) scroll_position_.x = next;
     else scroll_position_.y = next;

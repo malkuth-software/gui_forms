@@ -282,6 +282,8 @@ Related types
      - Storage for one control's published part geometry: ``count`` live records, one per declared part, in declaration order.
    * - :cpp:class:`PartIndex <gui_forms::PartIndex>`
      - Position of a part in its control type's declaration list.
+   * - :cpp:class:`PointerMotionCost <gui_forms::PointerMotionCost>`
+     - The layout work a run of pointer moves caused (layout liveness, see docs/user/layout.md, "Retained layout"): the growth of the window's MetricsSnapshot counters over the moves.
    * - :cpp:class:`RadialLayout <gui_forms::RadialLayout>`
      -  
    * - :cpp:class:`RadialPick <gui_forms::RadialPick>`
@@ -3059,6 +3061,33 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PointerMotionCost final
+
+   ``#include <gui_forms/layout/diagnostics/pointer_motion_probe.hpp>`` (:src:`source <include/gui_forms/layout/diagnostics/pointer_motion_probe.hpp>`)
+
+   The layout work a run of pointer moves caused (layout liveness, see docs/user/layout.md, "Retained layout"): the growth of the window's MetricsSnapshot counters over the moves. A retained window lays out nothing when the pointer only moves; a control that re-flows from its arrange, or keeps asking for layout, shows here at once.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool lays_out_nothing() const noexcept
+
+      Whether the moves caused no layout at all.
+
+   .. cpp:member:: std::uint32_t moves
+
+   .. cpp:member:: std::uint64_t measure_passes
+
+   .. cpp:member:: std::uint64_t arrange_passes
+
+   .. cpp:member:: std::uint64_t controls_measured
+
+   .. cpp:member:: std::uint64_t controls_arranged
+
+   .. cpp:member:: std::uint64_t read_barrier_flushes
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RadialLayout final
 
    ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>`` (:src:`source <include/gui_forms/layout/radial_layout/radial_layout.hpp>`)
@@ -4038,6 +4067,16 @@ Enumerations
 
    .. cpp:enumerator:: content_overflow
 
+   .. cpp:enumerator:: layout_loop
+
+   .. cpp:enumerator:: layout_not_converged
+
+   .. cpp:enumerator:: layout_invalidated_in_measure
+
+   .. cpp:enumerator:: layout_invalidated_in_paint
+
+   .. cpp:enumerator:: scroll_in_own_arrange
+
 .. cpp:namespace:: gui_forms
 
 .. cpp:enum-class:: LayoutDiagnosticSeverity
@@ -4668,6 +4707,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_containing_block_dependents
 
    The most out-of-flow dependents one containing block keeps (PLAN section 3.3); above it the block arranges its whole subtree instead. Value: ``4'096U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/layout/diagnostics/pointer_motion_probe.hpp>`` (:src:`source <include/gui_forms/layout/diagnostics/pointer_motion_probe.hpp>`)
+
+.. cpp:function:: PointerMotionCost measure_pointer_motion(SurfaceRoot& window, Rect area, std::uint32_t moves = 100U)
+
+   For an application's own tests: lays out ``window``, then moves the pointer ``moves`` times over ``area`` (window coordinates) along a fixed path that crosses it, as a hovering user would, and returns the layout work the moves caused. Open the largest content the application ships and scroll to its middle first; a retained window answers lays_out_nothing(). The moves are ordinary pointer events: hover handlers and tooltips run. A hover handler that changes another control's layout (a status bar's text) shows as that control's arrange, which is expected; a large page arranged again is the defect. std::invalid_argument for an area that is not finite or is empty. UI thread.
 
 .. cpp:namespace:: gui_forms
 

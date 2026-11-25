@@ -1,4 +1,5 @@
 #include "tool_tip_subjects.hpp"
+#include "../../surface_root/access/surface_tree_access.hpp"
 
 #include <string>
 #include <vector>
@@ -24,6 +25,18 @@ namespace {
 }
 
 const SemanticNode* node_at(std::vector<SemanticNode>&& nodes, Point point) = delete;
+
+// `control`'s bounds in window coordinates as the last layout pass left
+// them. The pointer's subject is found from the kept layout and never
+// flushes one: a pointer move reads geometry, it does not compute it
+// (docs/user/layout.md, "Retained layout"). Detached, the control's own
+// chain (Control::absolute_bounds, which then flushes nothing either).
+[[nodiscard]] Rect kept_window_bounds(const Control& control) {
+    const BorrowedPointer<SurfaceRoot> root = control.attached_surface_root();
+    if (root == nullptr) return control.absolute_bounds();
+    const Rect bounds = SurfaceTreeAccess::absolute_bounds_of(*root, control);
+    return bounds;
+}
 
 // The first node among `nodes` and their children whose states hold `state`,
 // or null. The pointer is borrowed from `nodes`.
@@ -125,7 +138,7 @@ bool available(const ToolTipSettings& settings, const Control& control) noexcept
 ToolTipSubject resolve_pointer_subject(const Control::Ptr& hovered, Point position,
                                        const ToolTipSettings& settings, const ToolTipCovers& covers) {
     for (Control::Ptr current = hovered; current; current = (*current).parent()) {
-        const Rect bounds = (*current).absolute_bounds();
+        const Rect bounds = kept_window_bounds(*current);
         if (!available(settings, *current)) return nothing_over(bounds);
         if ((*current).publishes_item_tool_tips()) {
             const std::vector<SemanticNode> nodes = (*current).tool_tip_items();
@@ -145,7 +158,7 @@ ToolTipSubject resolve_pointer_subject(const Control::Ptr& hovered, Point positi
             return tool_tip_subject_of(current, {}, (*current).tool_tip_text.read(), bounds);
         }
     }
-    const Rect region = hovered ? (*hovered).absolute_bounds() : Rect{};
+    const Rect region = hovered ? kept_window_bounds(*hovered) : Rect{};
     return nothing_over(region);
 }
 

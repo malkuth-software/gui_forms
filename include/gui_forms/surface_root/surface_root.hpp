@@ -2647,6 +2647,26 @@ private:
     // resolution to its parent is remembered and not recorded.
     void note_containing_block(const Control& child, const Control& ancestor);
     void record_layout_diagnostic(LayoutDiagnostic diagnostic);
+    // Records `code` (one of the layout liveness codes, layout_loop to
+    // scroll_in_own_arrange) against `control`, and writes its one
+    // line to the standard error stream, the first time this window meets
+    // that pair; later calls do nothing. A record that cannot be stored
+    // for want of memory is counted in dropped_layout_diagnostics.
+    void report_layout_liveness(const Control& control, LayoutDiagnosticCode code) noexcept;
+    // Whether the layout pass is arranging `control` now (its arrange or
+    // on_layout).
+    [[nodiscard]] bool arranging_in_layout_pass(const Control& control) const noexcept {
+        return layout_arranging_ == &control;
+    }
+    // Whether `control`, which has just invalidated its own layout from
+    // its arrange in `bounds`, did so before in this flush in the same
+    // bounds (layout_loop); lists it otherwise.
+    [[nodiscard]] bool repeats_self_dirtied_arrange(const Control& control, Rect bounds);
+    // After the flush's last pass: reports each control below `control`
+    // whose layout is still dirty (layout_not_converged) and drops its
+    // request, then summarises the subtree flags again. Suspended
+    // subtrees keep theirs, as the passes did.
+    void drop_unconverged_layout(const Control::Ptr& control) noexcept;
     // The visible-area guarantee's checks (stage VA; window_viewport.cpp).
     // queue_viewport_check lists `owner` for this flush's check, once per
     // flush (Control::viewport_check_pass_); an owner the list has no room
@@ -3142,6 +3162,22 @@ private:
     // null outside them. Observing: the pass holds the control's strong
     // reference for the call.
     const Control* layout_arranging_{};
+    // Layout liveness. The control the layout pass is measuring
+    // (measure_dirty_recursive's measure call), null outside it, observed
+    // as layout_arranging_ is; whether the control being arranged
+    // invalidated its own layout from that arrange or its on_layout (set
+    // by mark_dirty, cleared before each arrange); the controls that did
+    // so in this flush with the bounds they were arranged in (observing,
+    // cleared at each flush, capacity kept); and the codes already
+    // reported, by control (a bit per code from layout_loop).
+    const Control* layout_measuring_{};
+    bool arranging_dirtied_itself_{};
+    struct SelfDirtiedArrange final {
+        const Control* control{};
+        Rect bounds{};
+    };
+    std::vector<SelfDirtiedArrange> self_dirtied_arranges_{};
+    std::unordered_map<std::uint64_t, std::uint32_t> layout_liveness_reported_{};
     // Whether `control`'s current recorded paint draws nothing (a layer
     // that only holds other controls). False when it has no current record.
     [[nodiscard]] bool records_no_paint(const Control& control) const noexcept;

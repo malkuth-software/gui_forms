@@ -507,6 +507,12 @@ gui_forms::ScrollableControl
 
       True for a control that paints content of its own at the scroll position (a text box's lines), which a copy of its children's pixels would not move: its scrolls repaint the viewport. False by default: the scroll position moves only the children this class arranges.
 
+   .. cpp:function:: virtual Size painted_content_extent() const noexcept
+
+      *Protected.*
+
+      The extent of the content this control paints itself (with paints_scrolled_content), in its own unscrolled coordinates. The base arrange scrolls over the larger of it, auto_scroll_min_size and its children's extent, so the scroll position holds across arranges and the control never has to put it back (moving the position from arrange asks for another arrange; see docs/user/layout.md, Retained layout). Zero by default. The base arrange calls it: a control whose content flows to its width flows it before calling the base arrange, when the width or the content changed, and answers from the flow it keeps.
+
    .. cpp:function:: virtual void on_auto_scroll_changed(Point previous_position)
 
       *Protected.*
