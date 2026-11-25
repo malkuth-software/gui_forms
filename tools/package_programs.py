@@ -963,6 +963,16 @@ class Packager:
             elif path.is_dir():
                 directories.append(relative)
         removals = [f'  RMDir "$INSTDIR\\{relative}"' for relative in sorted(directories, key=len, reverse=True)]
+        # The default install root and each folder above it up to the base
+        # ($LOCALAPPDATA\Rainstar\GUI.Forms, then $LOCALAPPDATA\Rainstar), innermost
+        # first; RMDir leaves any that still hold another program.
+        install_root = self.manifest.vendor["windows_install_root"]
+        roots: list[str] = []
+        while "\\" in install_root:
+            roots.append(f'  RMDir "{install_root}"')
+            install_root = install_root.rsplit("\\", 1)[0]
+        # Uninstall key EstimatedSize: the installed size in KiB.
+        size_kb = (sum(path.stat().st_size for path in bundle.rglob("*") if path.is_file()) + 1023) // 1024
         key = "Software\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\" + self.manifest.vendor["windows_uninstall_prefix"] + program.id
         values = {
             "@DISPLAY_NAME@": program.display_name,
@@ -977,6 +987,8 @@ class Packager:
             "@UNINSTALL_KEY@": key,
             "@UNINSTALL_FILES@": "\n".join(files),
             "@UNINSTALL_DIRECTORIES@": "\n".join(removals),
+            "@UNINSTALL_ROOTS@": "\n".join(roots),
+            "@ESTIMATED_SIZE_KB@": str(size_kb),
         }
         for placeholder, value in values.items():
             template = template.replace(placeholder, value)

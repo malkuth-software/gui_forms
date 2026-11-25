@@ -29,6 +29,8 @@ Section "@DISPLAY_NAME@"
   WriteRegStr HKCU "@UNINSTALL_KEY@" "DisplayVersion" "@VERSION@"
   WriteRegStr HKCU "@UNINSTALL_KEY@" "Publisher" "@VENDOR@"
   WriteRegStr HKCU "@UNINSTALL_KEY@" "InstallLocation" "$INSTDIR"
+  WriteRegStr HKCU "@UNINSTALL_KEY@" "DisplayIcon" '$\"$INSTDIR\@EXECUTABLE@$\",0'
+  WriteRegDWORD HKCU "@UNINSTALL_KEY@" "EstimatedSize" @ESTIMATED_SIZE_KB@
   WriteRegStr HKCU "@UNINSTALL_KEY@" "UninstallString" '$\"$INSTDIR\Uninstall.exe$\"'
   WriteRegStr HKCU "@UNINSTALL_KEY@" "QuietUninstallString" '$\"$INSTDIR\Uninstall.exe$\" /S'
   WriteRegDWORD HKCU "@UNINSTALL_KEY@" "NoModify" 1
@@ -36,12 +38,15 @@ Section "@DISPLAY_NAME@"
 SectionEnd
 
 ; Removes only the files this installer wrote and the directories it emptied.
-; A user-selected directory is never removed recursively.
+; A user-selected directory is never removed recursively. The vendor folders
+; above the default install directory go too once no other program is left
+; in them (RMDir removes only an empty directory).
 Section "Uninstall"
 @UNINSTALL_FILES@
 @UNINSTALL_DIRECTORIES@
   Delete "$INSTDIR\Uninstall.exe"
   RMDir "$INSTDIR"
+@UNINSTALL_ROOTS@
   Delete "$SMPROGRAMS\@VENDOR@\@DISPLAY_NAME@.lnk"
   RMDir "$SMPROGRAMS\@VENDOR@"
   DeleteRegKey HKCU "@UNINSTALL_KEY@"

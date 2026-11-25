@@ -401,6 +401,12 @@ class StagingTests(unittest.TestCase):
             self.assertIn('RMDir "$INSTDIR\\fonts"', text)
             self.assertIn('VIProductVersion "0.1.7.0"', text)
             self.assertIn('RequestExecutionLevel user', text)
+            # Windows field report D8: the empty vendor folders go with the
+            # last program, and Apps & features gets an icon and a size.
+            self.assertIn('RMDir "$LOCALAPPDATA\\Rainstar\\GUI.Forms"\n  RMDir "$LOCALAPPDATA\\Rainstar"', text)
+            self.assertNotIn('RMDir "$LOCALAPPDATA"', text)
+            self.assertIn('"DisplayIcon" \'$\\"$INSTDIR\\GUI.Forms Gallery.exe$\\",0\'', text)
+            self.assertIn('"EstimatedSize" 1', text)
             self.assertIn('"$INSTDIR\\GUI.Forms Gallery.exe" ""', text)
 
     def test_explore_shortcut_starts_the_product(self) -> None:
