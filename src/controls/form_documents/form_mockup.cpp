@@ -717,6 +717,31 @@ void FormMockup::clear() {
     }
 }
 
+namespace {
+
+// A theme package's name from a sheet's file name: "claim.theme.css" names
+// the package "claim" (a package name holds lower-case letters, digits and
+// '-' only, starting with a letter or digit); "mockup" when nothing is left.
+std::string mockup_theme_name(std::string_view file) {
+    const std::size_t dot = file.find('.');
+    const std::string_view stem = file.substr(0U, dot);
+    std::string name{};
+    for (const char character : stem) {
+        if (character >= 'A' && character <= 'Z') {
+            name += static_cast<char>(character - 'A' + 'a');
+        } else if ((character >= 'a' && character <= 'z') || (character >= '0' && character <= '9')) {
+            name += character;
+        } else if (!name.empty()) {
+            name += '-';
+        }
+    }
+    while (!name.empty() && name.back() == '-') name.pop_back();
+    if (name.empty() || name.size() > 64U) return std::string("mockup");
+    return name;
+}
+
+} // namespace
+
 ThemeCompileResult FormMockup::set_theme(ThemeBase base, const FormMockupText& sheet) {
     Control& host = *(*state_).host;
     Window* const window = host.attached_window();
@@ -729,7 +754,7 @@ ThemeCompileResult FormMockup::set_theme(ThemeBase base, const FormMockupText& s
     std::vector<ThemePackage> packages{};
     if (!text.empty()) {
         const std::string_view file = text_of(sheet.file);
-        packages.push_back(theme_sheet_package(text, file.empty() ? std::string_view("mockup") : file));
+        packages.push_back(theme_sheet_package(text, mockup_theme_name(file)));
     }
     const std::span<const ThemePackage> listed(packages.data(), packages.size());
     ThemeCompileResult compiled = (*(*window).resources()).compile_theme_packages(listed, ThemeLibrary{}, options);
