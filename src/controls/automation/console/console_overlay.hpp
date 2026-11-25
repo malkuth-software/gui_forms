@@ -78,7 +78,12 @@ public:
     static constexpr double button_width = 128.0;
     static constexpr double button_height = 28.0;
     static constexpr double inset = 10.0;
-    static constexpr double minimum_console_width = 420.0;
+    // The console face's size (logical units).
+    static constexpr double console_font_size = 12.5;
+    // The console's face: Portsmouth Mono by family, the owner's console
+    // face (never the monospace role's Cousine, which only draws what
+    // Portsmouth Mono lacks).
+    [[nodiscard]] static FontSpec console_font() noexcept;
     // `listener` must outlive the overlay.
     explicit ConsoleOverlay(ConsoleOverlayListener* listener);
     ~ConsoleOverlay();
@@ -103,6 +108,9 @@ public:
     // dispatch: each runs at that window's next turn.
     void request_toggle() noexcept;
     void request_press() noexcept;
+    // A press on the button's place inside the console, at the console
+    // window's next turn.
+    void request_console_toggle() noexcept;
     // New lines may be in the record: the open console takes them.
     void refresh();
     // The host reported the program window's frame: moves both windows
@@ -130,9 +138,11 @@ public:
     // The width this host's title bar keeps for its caption buttons at the
     // right (none on macOS, whose buttons are at the left).
     [[nodiscard]] static double caption_reserve() noexcept;
-    // The console's rectangle: the client area's right part, below the
-    // button when the button is inside the client area.
+    // The console's rectangle: the whole client area.
     [[nodiscard]] static Rect console_place(Rect content, Rect button) noexcept;
+    // Where the console's text begins, in its own units: below the button
+    // when the button is inside the client area, else at the top.
+    [[nodiscard]] static double console_text_top(Rect content, Rect button) noexcept;
 
 private:
     [[nodiscard]] Rect button_rect() const;
@@ -140,6 +150,8 @@ private:
     bool open_popup(bool console, const Control::Ptr& root, Rect bounds, ApplicationWindowHandle& handle,
                     WindowRef& reference);
     void close_console() noexcept;
+    // Tells the console where its text begins and where the button is.
+    void frame_console();
     // Subscribes to the run's frame reports for the program window.
     void subscribe_follow() noexcept;
 

@@ -7,10 +7,13 @@
 // model never reads it: it is the human's window onto the traffic, and it
 // is never in a capture.
 //
-// Tones follow the owner's colour formula (console_colour): the
-// instruction (the tool's name, a reply's leading word) is c near 0,
-// orange; values (arguments, reply text) and wrapped continuations are c
-// near 1, green.
+// Tones follow the owner's colour formula (console_colour), glyph by
+// glyph: the instruction (the verb and the tool's name, a reply's leading
+// word) is c near 0, orange; values (arguments, reply text) and wrapped
+// continuations are c near 1, green; a session's label is a dimmer orange.
+// console_wrap turns a line into rows of glyphs, each with its own shade
+// and its grain colour, seeded by the glyph's place in the line so that a
+// repaint, a capture and a test all see the same colours.
 //
 // Thread: record_* from any thread (the transport's handler tasks), the
 // rest from any thread too; one mutex guards the lines. Bounded: the oldest
@@ -35,6 +38,8 @@ enum class ConsoleTone : std::uint8_t {
     instruction,
     // A value, or text wrapped onto a continuation row: c near 1 (green).
     value,
+    // A session's label ("[console ec4c] "): the instruction's c, dimmer.
+    label,
 };
 
 struct ConsoleSpan final {
@@ -77,11 +82,13 @@ public:
     // A line a console session typed, as it was typed (its first word as the
     // instruction).
     void record_typed(std::string_view line);
-    // Its reply: "‹ ok: ..." with the first lines of the text and a note of
-    // each image, or "‹ <error>: message" for a failure.
+    // Its reply: "‹ drew ..." with the first lines of the text and a note
+    // of each image, or "‹ <error>: message" for a failure. The first line's
+    // leading word is the instruction; the rest, and the later lines, are
+    // values.
     void record_reply(const ToolReply& reply);
-    // A line of the run's own ("connected: ...", "disconnected"), all
-    // instruction.
+    // A line of the run's own ("# connected ...", "# disconnected"): its
+    // first word the instruction, the rest a value.
     void record_note(std::string_view note);
 
     // The last line's serial (0 before any).
@@ -110,8 +117,8 @@ private:
 
 // ---- the owner's colour formula ----
 
-// One glyph run's shade: c from 0 (instruction, orange) to 1 (value,
-// green), v the brightness, near 0.8. Over black:
+// One glyph's shade: c from 0 (instruction, orange) to 1 (value, green),
+// v the brightness, near 0.8. Over black:
 //   r = c * 0.5v + (1 - c) * v
 //   g = c * v + (1 - c) * 0.5v
 //   b = c * 0.25v
@@ -120,13 +127,15 @@ struct ConsoleShade final {
     double v{};
 };
 
-// The shade of run `run` of line `serial` in `tone`: c clusters near 0 or
-// near 1 and v hovers around 0.8, each with a slight variation drawn from a
-// hash of the serial and the run, so a repaint draws the same colours.
-[[nodiscard]] ConsoleShade console_shade(ConsoleTone tone, std::uint64_t serial, std::size_t run) noexcept;
+// The shade of glyph `glyph` (its code point index in the line) of line
+// `serial` in `tone`: c clusters within 0.1 of 0 (instruction, label) or
+// of 1 (value) and v hovers around 0.8 (0.55 for a label), plus or minus
+// 0.04, each drawn from a hash of the serial and the glyph, so a repaint
+// draws the same colours.
+[[nodiscard]] ConsoleShade console_shade(ConsoleTone tone, std::uint64_t serial, std::size_t glyph) noexcept;
 // The formula's colour for `shade`, each channel quantized to 8 bits with
-// a triangular dither drawn from `seed` (the run's hash), so neighbouring
-// runs of one tone do not band into identical steps.
+// a triangular dither drawn from `seed`, so neighbouring glyphs of one tone
+// do not band into identical steps.
 [[nodiscard]] Color console_colour(ConsoleShade shade, std::uint64_t seed) noexcept;
 // The formula without dither or quantization, for tests: {r, g, b} in 0..1.
 struct ConsoleRgb final {
@@ -135,7 +144,37 @@ struct ConsoleRgb final {
     double b{};
 };
 [[nodiscard]] ConsoleRgb console_formula(ConsoleShade shade) noexcept;
-// The hash console_shade and console_colour draw from.
-[[nodiscard]] std::uint64_t console_run_hash(std::uint64_t serial, std::size_t run) noexcept;
+// The hash console_shade and the glyph's dither draw from.
+[[nodiscard]] std::uint64_t console_glyph_hash(std::uint64_t serial, std::size_t glyph) noexcept;
+
+// The grain inside each glyph: an ordered dither of two levels, v lowered
+// and raised by this fraction, alternating along the glyph's height in
+// bands one logical unit high (console_overlay.cpp). Their mean is the
+// glyph's v.
+inline constexpr double console_grain = 0.06;
+inline constexpr double console_grain_band = 1.0;
+
+// One glyph of a console row: its text (one code point), its column, its
+// tone and shade, its colour (v lowered by console_grain, the glyph's
+// fill) and its grain colour (v raised), drawn over the fill in every
+// other band, the even bands or the odd ones as `odd` says.
+struct ConsoleGlyph final {
+    std::string text{};
+    std::size_t column{};
+    ConsoleTone tone{ConsoleTone::value};
+    ConsoleShade shade{};
+    Color colour{};
+    Color grain{};
+    bool odd{};
+};
+
+struct ConsoleGlyphRow final {
+    std::vector<ConsoleGlyph> glyphs{};
+};
+
+// `line` as rows of at most `columns` code points (at least 1), appended to
+// `rows`: a row the line wraps onto is all value (the ruling: values and
+// wrapping are green). Spaces take their column and have no glyph.
+void console_wrap(const ConsoleLine& line, std::size_t columns, std::vector<ConsoleGlyphRow>& rows);
 
 } // namespace gui_forms::automation

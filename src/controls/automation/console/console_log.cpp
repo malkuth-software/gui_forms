@@ -44,18 +44,26 @@ std::string one_line(std::string_view text) {
     return line;
 }
 
-// The text's first word with its colon ("ok:", "not disconnected:"), up
-// to the first ": ", as the instruction; the rest as the value. Text
-// without ": " in its first 48 bytes is all value.
+// The text's leading word ("drew", "ok:", "colours:"), up to its first
+// space, as the instruction; the rest as the value. A first word longer
+// than 48 bytes is not a word but a value, and so is all the text.
 void split_lead(std::string_view text, std::vector<ConsoleSpan>& spans) {
-    const std::size_t colon = text.find(": ");
-    if (colon == std::string_view::npos || colon > 48U) {
+    std::size_t space = text.find(' ');
+    if (space == std::string_view::npos) space = text.size();
+    if (space == 0U || space > 48U) {
         spans.push_back(ConsoleSpan{console_clip(text, ConsoleLog::maximum_value_bytes), ConsoleTone::value});
         return;
     }
-    spans.push_back(ConsoleSpan{std::string(text.substr(0U, colon + 1U)), ConsoleTone::instruction});
+    spans.push_back(ConsoleSpan{std::string(text.substr(0U, space)), ConsoleTone::instruction});
+    if (space == text.size()) return;
     spans.push_back(
-        ConsoleSpan{console_clip(text.substr(colon + 1U), ConsoleLog::maximum_value_bytes), ConsoleTone::value});
+        ConsoleSpan{console_clip(text.substr(space), ConsoleLog::maximum_value_bytes), ConsoleTone::value});
+}
+
+// Whether `byte` begins a code point (it is not a UTF-8 continuation byte).
+bool starts_code_point(char byte) noexcept {
+    const bool starts = (static_cast<unsigned char>(byte) & 0xc0U) != 0x80U;
+    return starts;
 }
 
 } // namespace
@@ -91,7 +99,7 @@ void ConsoleLog::set_session(std::string label) {
 void ConsoleLog::label_span(std::vector<ConsoleSpan>& spans) const {
     const stxlib::ScopedLock lock(mutex_);
     if (session_.empty()) return;
-    spans.push_back(ConsoleSpan{"[" + session_ + "] ", ConsoleTone::instruction});
+    spans.push_back(ConsoleSpan{"[" + session_ + "] ", ConsoleTone::label});
 }
 
 void ConsoleLog::record_call(std::string_view tool, std::string_view arguments_json) {
@@ -181,7 +189,8 @@ void ConsoleLog::record_reply(const ToolReply& reply) {
 
 void ConsoleLog::record_note(std::string_view note) {
     std::vector<ConsoleSpan> spans{};
-    spans.push_back(ConsoleSpan{"# " + console_clip(one_line(note), maximum_value_bytes), ConsoleTone::instruction});
+    spans.push_back(ConsoleSpan{"# ", ConsoleTone::instruction});
+    split_lead(one_line(note), spans);
     append(std::move(spans));
 }
 
@@ -210,21 +219,23 @@ std::string ConsoleLog::transcript_text() const {
     return text;
 }
 
-std::uint64_t console_run_hash(std::uint64_t serial, std::size_t run) noexcept {
-    const std::uint64_t hash = mix(mix(serial) ^ (static_cast<std::uint64_t>(run) * 0x2545f4914f6cdd1dULL));
+std::uint64_t console_glyph_hash(std::uint64_t serial, std::size_t glyph) noexcept {
+    const std::uint64_t hash = mix(mix(serial) ^ (static_cast<std::uint64_t>(glyph) * 0x2545f4914f6cdd1dULL));
     return hash;
 }
 
-ConsoleShade console_shade(ConsoleTone tone, std::uint64_t serial, std::size_t run) noexcept {
-    const std::uint64_t hash = console_run_hash(serial, run);
+ConsoleShade console_shade(ConsoleTone tone, std::uint64_t serial, std::size_t glyph) noexcept {
+    const std::uint64_t hash = console_glyph_hash(serial, glyph);
     ConsoleShade shade{};
-    // c clusters: the instruction within 0.10 of 0, a value within 0.10 of
-    // 1, the spread weighted toward the end (the square of a uniform).
+    // c clusters: the instruction and the label within 0.10 of 0, a value
+    // within 0.10 of 1, the spread weighted toward the pole (the square of a
+    // uniform).
     const double spread = unit(hash, 0U);
     const double offset = 0.10 * spread * spread;
-    shade.c = tone == ConsoleTone::instruction ? offset : 1.0 - offset;
-    // v hovers around 0.8: plus or minus 0.04.
-    shade.v = 0.8 + 0.08 * (unit(hash, 24U) - 0.5);
+    shade.c = tone == ConsoleTone::value ? 1.0 - offset : offset;
+    // v hovers around 0.8 (a label's around 0.55): plus or minus 0.04.
+    const double centre = tone == ConsoleTone::label ? 0.55 : 0.8;
+    shade.v = centre + 0.08 * (unit(hash, 24U) - 0.5);
     return shade;
 }
 
@@ -252,6 +263,47 @@ Color console_colour(ConsoleShade shade, std::uint64_t seed) noexcept {
     }
     const Color colour{levels[0], levels[1], levels[2], 255U};
     return colour;
+}
+
+void console_wrap(const ConsoleLine& line, std::size_t columns, std::vector<ConsoleGlyphRow>& rows) {
+    const std::size_t width = std::max<std::size_t>(columns, 1U);
+    ConsoleGlyphRow row{};
+    std::size_t column = 0U;
+    std::size_t glyph = 0U;
+    bool wrapped = false;
+    for (const ConsoleSpan& span : line.spans) {
+        const std::string_view text(span.text);
+        std::size_t index = 0U;
+        while (index < text.size()) {
+            std::size_t end = index + 1U;
+            while (end < text.size() && !starts_code_point(text[end])) ++end;
+            if (column == width) {
+                rows.push_back(std::move(row));
+                row = ConsoleGlyphRow{};
+                column = 0U;
+                wrapped = true;
+            }
+            if (text[index] != ' ') {
+                const ConsoleTone tone = wrapped ? ConsoleTone::value : span.tone;
+                const std::uint64_t hash = console_glyph_hash(line.serial, glyph);
+                ConsoleGlyph entry{};
+                entry.text = std::string(text.substr(index, end - index));
+                entry.column = column;
+                entry.tone = tone;
+                entry.shade = console_shade(tone, line.serial, glyph);
+                const ConsoleShade fill{entry.shade.c, entry.shade.v * (1.0 - console_grain)};
+                const ConsoleShade raised{entry.shade.c, entry.shade.v * (1.0 + console_grain)};
+                entry.colour = console_colour(fill, hash ^ 0x1dULL);
+                entry.grain = console_colour(raised, hash ^ 0x2eULL);
+                entry.odd = ((hash >> 52U) & 1ULL) != 0ULL;
+                row.glyphs.push_back(std::move(entry));
+            }
+            ++column;
+            ++glyph;
+            index = end;
+        }
+    }
+    rows.push_back(std::move(row));
 }
 
 } // namespace gui_forms::automation

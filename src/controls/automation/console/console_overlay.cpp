@@ -28,66 +28,72 @@ namespace {
 
 constexpr std::string_view button_id = "automation.console-button";
 constexpr std::string_view console_id = "automation.console";
-// The console's face and size: Portsmouth Mono, the owner's console face.
-constexpr double console_font_size = 12.5;
-constexpr double console_padding = 10.0;
+constexpr double console_padding = 12.0;
 // The lines the console keeps for re-wrapping when its width changes.
 constexpr std::size_t kept_lines = 400U;
-// Dark, slightly transparent: the panel and the button's pill.
-constexpr Color console_background{10U, 10U, 12U, 214U};
-constexpr Color button_background{10U, 10U, 12U, 232U};
-constexpr Color button_text{230U, 230U, 230U, 255U};
+// The console's layer: black at three quarters over the whole client area,
+// so the program shows faintly through it (the ruling: "a slightly
+// transparent darkened background"). The button's pill is the same black,
+// nearly opaque, its caption the instruction's orange at full v.
+constexpr Color console_background{0U, 0U, 0U, 192U};
+constexpr Color button_background{0U, 0U, 0U, 224U};
 
-FontSpec console_font() noexcept {
-    FontSpec font{};
-    font.role = FontRole::monospace;
-    font.size = console_font_size;
-    font.family = portsmouth_mono_font_family;
-    return font;
-}
-
-// The number of code points in `text` (UTF-8 continuation bytes are not
-// counted): the columns it takes in a monospace face.
-std::size_t columns_of(std::string_view text) noexcept {
-    std::size_t count = 0U;
-    for (const char character : text) {
-        if ((static_cast<unsigned char>(character) & 0xc0U) != 0x80U) ++count;
-    }
-    return count;
-}
-
-// The byte length of the first `columns` code points of `text`.
-std::size_t bytes_for_columns(std::string_view text, std::size_t columns) noexcept {
-    std::size_t seen = 0U;
-    for (std::size_t index = 0U; index < text.size(); ++index) {
-        if ((static_cast<unsigned char>(text[index]) & 0xc0U) != 0x80U) {
-            if (seen == columns) return index;
-            ++seen;
-        }
-    }
-    return text.size();
+Color button_caption() noexcept {
+    const Color colour = console_colour(ConsoleShade{0.0, 0.8}, 0U);
+    return colour;
 }
 
 } // namespace
 
-// One row of the console: glyph runs at their columns, each in its colour.
-// It takes no input (a press reaches the console surface).
+FontSpec ConsoleOverlay::console_font() noexcept {
+    FontSpec font{};
+    // Portsmouth Mono draws every glyph it has. The role only names the
+    // faces that draw what it lacks (FontSpec::family): the monospace
+    // role's Cousine, so a fallback glyph keeps the column.
+    font.family = portsmouth_mono_font_family;
+    font.role = FontRole::monospace;
+    font.size = console_font_size;
+    return font;
+}
+
+// One row of the console: its glyphs at their columns, each in its own
+// colour, and the grain over them: in every band of console_grain_band
+// along the row's height, the glyphs whose parity matches the band's are
+// drawn again in their grain colour, clipped to the band (an ordered dither
+// inside each glyph's fill, its phase seeded per glyph). A row is drawn
+// once when it is added; it takes no input (a press reaches the surface).
 class ConsoleRow final : public Control {
 public:
-    struct Run final {
-        std::string text{};
-        Color colour{};
-        std::size_t column{};
-    };
-
-    ConsoleRow(StableId stable_id, double advance, double baseline, std::vector<Run> runs)
-        : Control(std::move(stable_id)), advance_(advance), baseline_(baseline), runs_(std::move(runs)) {}
+    ConsoleRow(StableId stable_id, double advance, double baseline, double height, ConsoleGlyphRow row)
+        : Control(std::move(stable_id)), advance_(advance), baseline_(baseline), height_(height),
+          row_(std::move(row)) {}
 
     void on_paint(Painter& painter, Rect) override {
-        const FontSpec font = console_font();
-        for (const Run& run : runs_) {
-            painter.draw_text_utf8(Point{static_cast<double>(run.column) * advance_, baseline_}, run.text, font,
-                                   run.colour);
+        if (row_.glyphs.empty()) return;
+        const FontSpec font = ConsoleOverlay::console_font();
+        std::vector<TextRun> runs{};
+        runs.reserve(row_.glyphs.size());
+        for (const ConsoleGlyph& glyph : row_.glyphs) {
+            runs.push_back(TextRun{Point{static_cast<double>(glyph.column) * advance_, baseline_}, glyph.text,
+                                   glyph.colour});
+        }
+        painter.draw_text_runs(font, runs);
+        const double width = arranged_bounds().width;
+        std::size_t band = 0U;
+        for (double top = 0.0; top < height_; top += console_grain_band) {
+            const bool odd = (band % 2U) != 0U;
+            ++band;
+            runs.clear();
+            for (const ConsoleGlyph& glyph : row_.glyphs) {
+                if (glyph.odd != odd) continue;
+                runs.push_back(TextRun{Point{static_cast<double>(glyph.column) * advance_, baseline_}, glyph.text,
+                                       glyph.grain});
+            }
+            if (runs.empty()) continue;
+            painter.save();
+            painter.clip_rect(Rect{0.0, top, width, console_grain_band});
+            painter.draw_text_runs(font, runs);
+            painter.restore();
         }
     }
 
@@ -96,13 +102,16 @@ public:
 private:
     double advance_{};
     double baseline_{};
-    std::vector<Run> runs_{};
+    double height_{};
+    ConsoleGlyphRow row_{};
 };
 
-// The console's root: the dark panel and its rows, filled from the top;
-// once full, the oldest row leaves at the top and the rest move up (their
-// recorded drawing is moved, not repainted). A press anywhere offers
-// take-back.
+// The console's root: the darkened layer over the program's client area
+// and its rows, filled from the top like a terminal; once full, the oldest
+// row leaves at the top and the rest move up (their recorded drawing is
+// moved, not repainted). A press on the button's place toggles the console
+// (in case the host keeps the console above the button); a press anywhere
+// else offers take-back.
 class ConsoleSurface;
 
 // A re-wrap posted from arrange, which must not change the tree itself.
@@ -131,13 +140,21 @@ public:
         invalidate(Dirty::arrange);
     }
 
+    // Where the text begins (below a button inside the client area) and
+    // the button's rectangle, in the surface's own units.
+    void set_frame(double text_top, Rect button) {
+        if (text_top != text_top_) invalidate(Dirty::arrange);
+        text_top_ = text_top;
+        button_ = button;
+    }
+
     void arrange(Rect final_bounds) override {
         arrange_self(final_bounds);
         measure_face();
         const double usable = std::max(0.0, final_bounds.width - 2.0 * console_padding);
         const std::size_t columns =
             advance_ > 0.0 ? std::max<std::size_t>(16U, static_cast<std::size_t>(usable / advance_)) : 0U;
-        const double text_height = std::max(0.0, final_bounds.height - 2.0 * console_padding);
+        const double text_height = std::max(0.0, final_bounds.height - text_top_ - console_padding);
         const std::size_t rows =
             line_height_ > 0.0 ? std::max<std::size_t>(1U, static_cast<std::size_t>(text_height / line_height_)) : 0U;
         if ((columns != columns_ || rows != visible_rows_) && !rewrap_posted_) {
@@ -157,20 +174,28 @@ public:
             }
         }
         for (std::size_t index = 0U; index < rows_.size(); ++index) {
-            const double top = console_padding + static_cast<double>(index) * line_height_;
+            const double top = text_top_ + static_cast<double>(index) * line_height_;
             set_child_layout(rows_[index], Rect{console_padding, top, usable, line_height_});
         }
     }
 
     void on_paint(Painter& painter, Rect) override {
         const Rect bounds{0.0, 0.0, arranged_bounds().width, arranged_bounds().height};
-        painter.fill_rounded_rect(bounds, 8.0, console_background);
+        painter.fill_rect(bounds, console_background);
     }
 
     void on_pointer_preview(PointerEvent& event) override {
         if (event.action != PointerAction::down) return;
         event.handled = true;
-        if (overlay_ != nullptr) (*overlay_).request_press();
+        if (overlay_ == nullptr) return;
+        const Point at = event.position;
+        const bool on_button = at.x >= button_.x && at.x < button_.x + button_.width && at.y >= button_.y &&
+                               at.y < button_.y + button_.height;
+        if (on_button) {
+            (*overlay_).request_console_toggle();
+        } else {
+            (*overlay_).request_press();
+        }
     }
 
     void forget_overlay() noexcept { overlay_ = nullptr; }
@@ -193,63 +218,30 @@ private:
     // The face's advance and line height, measured once it is attached.
     void measure_face() {
         if (advance_ > 0.0) return;
-        const FontSpec font = console_font();
+        const FontSpec font = ConsoleOverlay::console_font();
         const TextExtent extent = measure_text_extent_utf8("0000000000", font);
         if (extent.logical_size.width <= 0.0) return;
         advance_ = extent.logical_size.width / 10.0;
-        ascent_ = extent.ascent > 0.0 ? extent.ascent : console_font_size * 0.8;
         const double height = extent.ascent + extent.descent + extent.line_gap;
-        line_height_ = std::ceil(height > 0.0 ? height * 1.15 : console_font_size * 1.4);
+        line_height_ = std::ceil(height > 0.0 ? height * 1.15 : ConsoleOverlay::console_font_size * 1.4);
+        // The baseline sits where the line's spare height is shared above
+        // and below the face.
+        const double ascent = extent.ascent > 0.0 ? extent.ascent : ConsoleOverlay::console_font_size * 0.8;
+        ascent_ = std::floor((line_height_ - std::max(height, 0.0)) / 2.0 + ascent);
     }
 
-    // `line` as rows of at most columns_ code points: each span's words are
-    // glyph runs, each in its own shade of the span's tone; a row the line
-    // wraps onto is all value (the ruling: values and wrapping are green).
+    // `line` as rows of glyphs (console_wrap), each row a child.
     void wrap_line(const ConsoleLine& line) {
-        std::vector<ConsoleRow::Run> runs{};
-        std::size_t column = 0U;
-        std::size_t run_index = 0U;
-        bool wrapped = false;
-        for (const ConsoleSpan& span : line.spans) {
-            std::string_view rest(span.text);
-            while (!rest.empty()) {
-                // The next word with the spaces after it.
-                std::size_t end = rest.find(' ');
-                end = end == std::string_view::npos ? rest.size() : rest.find_first_not_of(' ', end);
-                if (end == std::string_view::npos) end = rest.size();
-                std::string_view word = rest.substr(0U, end);
-                rest.remove_prefix(end);
-                while (!word.empty()) {
-                    if (column == columns_) {
-                        push_row(std::move(runs));
-                        runs.clear();
-                        column = 0U;
-                        wrapped = true;
-                    }
-                    const std::size_t room = columns_ - column;
-                    const std::size_t take = bytes_for_columns(word, room);
-                    const std::string_view piece = word.substr(0U, take);
-                    word.remove_prefix(take);
-                    const ConsoleTone tone = wrapped ? ConsoleTone::value : span.tone;
-                    const ConsoleShade shade = console_shade(tone, line.serial, run_index);
-                    ConsoleRow::Run run{};
-                    run.text = std::string(piece);
-                    run.colour = console_colour(shade, console_run_hash(line.serial, run_index) ^ 0x1dULL);
-                    run.column = column;
-                    runs.push_back(std::move(run));
-                    column += columns_of(piece);
-                    ++run_index;
-                }
-            }
-        }
-        push_row(std::move(runs));
+        std::vector<ConsoleGlyphRow> rows{};
+        console_wrap(line, columns_, rows);
+        for (ConsoleGlyphRow& row : rows) push_row(std::move(row));
     }
 
-    void push_row(std::vector<ConsoleRow::Run> runs) {
+    void push_row(ConsoleGlyphRow glyphs) {
         ++row_serial_;
         const std::shared_ptr<ConsoleRow> row = make_control<ConsoleRow>(
             StableId(std::string(console_id) + ".row." + std::to_string(row_serial_)), advance_, ascent_,
-            std::move(runs));
+            line_height_, std::move(glyphs));
         add_child(row);
         rows_.push_back(row);
     }
@@ -275,6 +267,8 @@ private:
     double line_height_{};
     std::size_t columns_{};
     std::size_t visible_rows_{};
+    double text_top_{console_padding};
+    Rect button_{};
 };
 
 void RewrapWork::operator()() const noexcept {
@@ -309,11 +303,11 @@ public:
     void on_paint(Painter& painter, Rect) override {
         const Rect bounds{0.0, 0.0, arranged_bounds().width, arranged_bounds().height};
         painter.fill_rounded_rect(bounds, bounds.height / 2.0, button_background);
-        FontSpec font = console_font();
+        FontSpec font = ConsoleOverlay::console_font();
         font.size = 12.0;
         const TextExtent extent = measure_text_extent_utf8("thinking...", font);
         const double baseline = (bounds.height - extent.logical_size.height) / 2.0 + extent.ascent;
-        painter.draw_text_utf8(Point{bounds.height + 6.0, baseline}, "thinking...", font, button_text);
+        painter.draw_text_utf8(Point{bounds.height + 6.0, baseline}, "thinking...", font, button_caption());
     }
 
     void on_pointer_preview(PointerEvent& event) override {
@@ -482,13 +476,14 @@ Rect ConsoleOverlay::button_place(const HostWindowFrame& frame, double reserve,
     return rect;
 }
 
-Rect ConsoleOverlay::console_place(Rect content, Rect button) noexcept {
-    const bool inside = button.y >= content.y;
-    const double top = inside ? button.y + button.height + 6.0 : content.y + inset;
-    const double height = std::max(80.0, content.y + content.height - inset - top);
-    const double width = std::min(std::max(minimum_console_width, content.width * 0.55), content.width - 2.0 * inset);
-    const Rect rect{content.x + content.width - inset - std::max(width, 120.0), top, std::max(width, 120.0), height};
-    return rect;
+Rect ConsoleOverlay::console_place(Rect content, Rect) noexcept {
+    return content;
+}
+
+double ConsoleOverlay::console_text_top(Rect content, Rect button) noexcept {
+    const bool inside = button.y >= content.y && button.y < content.y + content.height;
+    const double top = inside ? button.y + button.height - content.y + 6.0 : 12.0;
+    return top;
 }
 
 Rect ConsoleOverlay::button_rect() const {
@@ -602,8 +597,19 @@ void ConsoleOverlay::toggle_console() {
         console_.reset();
         return;
     }
+    frame_console();
+    // The button stays above the console's layer.
+    static_cast<void>(button_handle_.bring_to_front());
     shown_serial_ = 0U;
     refresh();
+}
+
+void ConsoleOverlay::frame_console() {
+    if (!console_) return;
+    const Rect content = owner_frame_.content;
+    const Rect local_button{button_bounds_.x - content.x, button_bounds_.y - content.y, button_bounds_.width,
+                            button_bounds_.height};
+    (*console_).set_frame(console_text_top(content, button_bounds_), local_button);
 }
 
 void ConsoleOverlay::refresh() {
@@ -622,6 +628,7 @@ void ConsoleOverlay::follow(const HostWindowFrame& frame) {
     static_cast<void>(button_handle_.request_frame(button_bounds_));
     if (console_handle_.active()) {
         static_cast<void>(console_handle_.request_frame(console_place(owner_frame_.content, button_bounds_)));
+        frame_console();
     }
 }
 
@@ -654,6 +661,16 @@ void ConsoleOverlay::request_press() noexcept {
     if (window == nullptr) return;
     try {
         static_cast<void>((*window).begin_invoke(DeferredPress{self_}));
+    } catch (...) {
+        // The console's window stopped taking work: it is closing.
+    }
+}
+
+void ConsoleOverlay::request_console_toggle() noexcept {
+    Window* const window = console_window_.get();
+    if (window == nullptr) return;
+    try {
+        static_cast<void>((*window).begin_invoke(DeferredToggle{self_}));
     } catch (...) {
         // The console's window stopped taking work: it is closing.
     }
