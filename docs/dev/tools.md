@@ -101,7 +101,7 @@ template_harness, checked out beside this repository at the commit
   (owner, 2026-11-17, restated 2026-11-24; the STXlib shield keeps our std
   on our side, and no public signature changes type for the census). The
   baseline, `manifests/std_surface_census.json`, was set to the shipped 1.0
-  surface in 1.0.3. `check` fails when a count differs from it; `update`
+  surface in 1.0.4. `check` fails when a count differs from it; `update`
   lowers it, and records a rise only with `--accept-rise`. The
   `house-style` job reports the result and never fails on it.
   `python3 -I tools/std_surface_census.py check`

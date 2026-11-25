@@ -122,7 +122,7 @@ without `c/`, read with `check_std_rules.py`'s comment and literal
 stripping). It is a change report, not a goal: std types in public
 signatures are fine (owner, 2026-11-17, restated 2026-11-24; D15 V2 to V6
 dropped), so never change a public signature's type for it. The baseline,
-`manifests/std_surface_census.json`, is the shipped 1.0 surface (1.0.3);
+`manifests/std_surface_census.json`, is the shipped 1.0 surface (1.0.4);
 the check fails when a count differs, `python3 -I
 tools/std_surface_census.py update` lowers it, and `update --accept-rise`
 records a rise. CI reports it without blocking. Conversions between the two vocabularies inside

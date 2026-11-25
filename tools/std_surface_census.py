@@ -8,7 +8,7 @@ planning/M2b-owned-vocabulary-migration.md). The owner dropped V2 to V6 on
 2026-11-17 and restated it on 2026-11-24: std types in public signatures
 are fine, the STXlib shield keeps GUI.Forms' std on its own side, and no
 public signature changes type. The census stays as a change report: CI runs
-`check` without blocking, and 1.0.3 rebaselined it to the shipped 1.0
+`check` without blocking, and 1.0.4 rebaselined it to the shipped 1.0
 surface.
 
 The STXlib shield (2026-11-22) adds the thread, lock, stop and file names:
@@ -171,7 +171,7 @@ def census_json(counts: dict[str, NameCount]) -> dict[str, object]:
     document: dict[str, object] = {
         "description": ("Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), "
                         "tools/std_surface_census.py: a change report, not a goal. Rebaselined to the shipped 1.0 "
-                        "surface in 1.0.3 under the owner's ruling of 2026-11-17, restated 2026-11-24 (D15 V2 to V6 "
+                        "surface in 1.0.4 under the owner's ruling of 2026-11-17, restated 2026-11-24 (D15 V2 to V6 "
                         "dropped): std types in public signatures are fine; the STXlib shield keeps GUI.Forms' std "
                         "on its own side, and no public signature changes type for the census. "
                         "Occurrences are compared; headers are reported."),
