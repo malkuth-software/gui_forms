@@ -665,12 +665,10 @@ Visible-area guarantee (stage VA):
   transport that ends with no `disconnect` (a client that crashed or was
   killed) is a hard disconnect with the default. With the user in control,
   only the session ends. Later calls are refused.
-- **Round 3: native alerts.** A host alert (an NSAlert on macOS, a
-  MessageBoxW message box on Windows) the program runs while the model
-  holds control holds the user's input; a click on it offers the take-back
-  dialog, which shows above it and works over it, and taking back leaves
-  the alert open for the user. On Windows a thread WH_MSGFILTER hook holds
-  the box's input, and the take-back and countdown dialogs are topmost.
+- **Round 3: native alerts.** A host alert (an NSAlert on macOS) the program
+  runs while the model holds control holds the user's input; a click on it
+  offers the take-back dialog, which shows above it and works over it, and
+  taking back leaves the alert open for the user.
 - **Round 3: nested loops and modality.** The dispatcher runs a turn one
   item at a time and keeps a wake pending while more work is queued, so a
   callback that runs a nested modal loop no longer strands the rest of the
@@ -683,7 +681,11 @@ Visible-area guarantee (stage VA):
   close before it replies, and a modal window's own ID names it as an act
   target. The take-back dialog's paragraphs sit closer together.
 
-### 1.0.5: the MCP console and attach
+### 1.0.5: the MCP console and attach, HelpBook, layout liveness, mockups and Windows fixes
+
+One release folds the work queued after 1.0.4.
+
+#### The MCP console and attach
 
 - **The console** (owner, 2026-11-24). In AI mode a small dark button with
   a turning spinner and "thinking..." sits in the upper right of the
@@ -721,8 +723,66 @@ Visible-area guarantee (stage VA):
   and `--mcp-script` runs have none.
 - A new client's session on the same program starts over: the
   destructive-act answer given to the last model is asked again.
+- **Native alerts on Windows.** A MessageBoxW message box the program runs
+  while the model holds control holds the user's input, as an NSAlert does
+  on macOS: a thread WH_MSGFILTER hook holds the box's input, a click offers
+  the take-back dialog, and the take-back and countdown dialogs are topmost.
 
-### 1.0.5: STXlib 1.0.4, windows.h's headers complete
+#### Layout and text
+
+- **Layout liveness.** A control that never settles cannot hang its
+  window. A control that invalidates its own layout from its arrange is
+  arranged again once; doing it again in the same bounds is recorded as
+  `layout_loop` and its geometry kept. A layout still dirty after the four
+  passes is recorded as `layout_not_converged` and shown as reached,
+  instead of flushing at every frame and geometry read (docs/user/layout.md,
+  "Retained layout").
+- TextShapeEngine keeps the sorted face candidates of the last eight fonts.
+- BreadcrumbTrail and RibbonGallery keep their layout across arranges.
+- TextBox computes grapheme positions from one shaping of the whole text,
+  so the selection band covers the glyphs as painted.
+- The custom controls guide (docs/user/custom-controls.md) and its LinkPage
+  example (examples/link_page).
+
+#### HelpBook
+
+- HelpBook draws reference pages: tables, definition lists, cards,
+  signatures, captions, find and syntax highlighting. It lays a page out
+  only when its inputs change, states its scroll range when the page
+  changes, and scrolls to an anchor asked for before it has a size. The
+  body is in the content face and code in the monospace role's.
+
+#### Mockups
+
+- `FormMockup` loads a `.form`, its fixture and a theme at run time into a
+  host control, with E8xx diagnostics that give a line and column. The
+  devkit's mockup factory is built on it.
+
+#### Windows
+
+- The title bar follows the window's colour scheme. `run_windows` opens its
+  window inside the work area.
+- The menu bar works from the keyboard, with keyboard cues. White space no
+  longer marks a mnemonic, the programs' controls have spoken names, and
+  the Gallery's access keys are unique.
+- Explore's installed shortcut starts the product, and `--help` prints
+  usage. The installers remove the vendor folders with the last program.
+- CorrespondenceView shows a vertical scroll bar while its content
+  overflows.
+
+#### Library and build
+
+- `library_memory.hpp` keeps only the allocation primitives. Diagnostics,
+  teardown and the program allocator moved to `library_memory_diagnostics.hpp`,
+  `library_teardown.hpp` and `program_allocator.hpp`, with no name or ABI
+  change, so most objects no longer rebuild when those change.
+- The AppKit host tests NSEventType kinds without a switch that hides cases.
+- CI caches a newcomer can use: the locale is out of the keys, and the
+  runtime and SDK archives sit beside the cache.
+  `tools/measure_cache_bootstrap.sh` measures a cold bootstrap against a
+  restored one.
+
+#### STXlib 1.0.4: windows.h's headers complete
 
 - On Windows, STXlib's headers now hold everything the SDK's windows.h
   includes, checked rather than claimed: STXlib's CI fails when a header of
