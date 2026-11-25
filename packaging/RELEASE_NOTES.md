@@ -721,3 +721,23 @@ Visible-area guarantee (stage VA):
   and `--mcp-script` runs have none.
 - A new client's session on the same program starts over: the
   destructive-act answer given to the last model is asked again.
+
+### 1.0.5: STXlib 1.0.4, windows.h's headers complete
+
+- On Windows, STXlib's headers now hold everything the SDK's windows.h
+  includes, checked rather than claimed: STXlib's CI fails when a header of
+  windows.h's default include set lacks a declaration, unless it names the
+  system DLL it leaves out and why (mpr, winspool, winscard, crypt32 and a
+  few others no program here links). `winver.h` includes `verrsrc.h`, so a
+  resource script's `VS_FFI_FILEFLAGSMASK`, `VOS_NT_WINDOWS32` and `VFT_APP`
+  resolve; `dlgs.h`, `cderr.h`, `mmsystem.h`, `nb30.h`, `winperf.h`,
+  `stralign.h` and `mcx.h` are there, as in the SDK.
+- `GetFileVersionInfo` and `VerQueryValue` (version.dll) and `PlaySound`,
+  `timeBeginPeriod` and the waveform audio functions (winmm.dll) are
+  declared, with import lists for both DLLs.
+- `GetProcessMemoryInfo`, `EnumProcesses` and the other psapi.h names map
+  to their `K32` exports in kernel32.dll, as the SDK maps them under
+  `PSAPI_VERSION` 2.
+- The neutral type names (`WNDCLASS`, `LOGFONT`, `STARTUPINFO`,
+  `SHELLEXECUTEINFO`, `FONTENUMPROC`, ...) are defined, as the W form under
+  `UNICODE`; until now only their A and W forms were.
