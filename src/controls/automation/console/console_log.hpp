@@ -164,7 +164,9 @@ struct ConsoleGlyphRow final {
 
 // `line` as rows of at most `columns` code points (at least 1), appended to
 // `rows`: a row the line wraps onto is all value (the ruling: values and
-// wrapping are green). Spaces take their column and have no glyph.
+// wrapping are c = 1), except that brackets, braces, parentheses and quotes
+// ([](){}'") are the instruction wherever they stand (owner, 2026-11-25).
+// Spaces take their column and have no glyph.
 void console_wrap(const ConsoleLine& line, std::size_t columns, std::vector<ConsoleGlyphRow>& rows);
 
 } // namespace gui_forms::automation

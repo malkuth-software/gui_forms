@@ -60,6 +60,14 @@ void split_lead(std::string_view text, std::vector<ConsoleSpan>& spans) {
         ConsoleSpan{console_clip(text.substr(space), ConsoleLog::maximum_value_bytes), ConsoleTone::value});
 }
 
+// Whether `character` is one the console shows as the instruction wherever
+// it stands: a bracket, brace, parenthesis or quote.
+bool console_structural(char character) noexcept {
+    const std::string_view marks = "[](){}'\"";
+    const bool structural = marks.find(character) != std::string_view::npos;
+    return structural;
+}
+
 // Whether `byte` begins a code point (it is not a UTF-8 continuation byte).
 bool starts_code_point(char byte) noexcept {
     const bool starts = (static_cast<unsigned char>(byte) & 0xc0U) != 0x80U;
@@ -283,7 +291,13 @@ void console_wrap(const ConsoleLine& line, std::size_t columns, std::vector<Cons
                 wrapped = true;
             }
             if (text[index] != ' ') {
-                const ConsoleTone tone = wrapped ? ConsoleTone::value : span.tone;
+                ConsoleTone tone = wrapped ? ConsoleTone::value : span.tone;
+                // Brackets, braces, parentheses and quotes are the
+                // instruction wherever they stand (owner, 2026-11-25), inside
+                // arguments and replies too; a label keeps its own tone.
+                if (tone == ConsoleTone::value && end - index == 1U && console_structural(text[index])) {
+                    tone = ConsoleTone::instruction;
+                }
                 ConsoleGlyph entry{};
                 entry.text = std::string(text.substr(index, end - index));
                 entry.column = column;
