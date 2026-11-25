@@ -353,6 +353,9 @@ Bidirectional text inside a text control is the text engine's own.
   scrolls.
 - Multiline `TextBox` reports its document extent through the same base, so
   a text box gets real scroll bars rather than private offsets.
+- A control that paints its own content states its extent with
+  `painted_content_extent` and returns `true` from `paints_scrolled_content`;
+  see [Scrolling content you paint](custom-controls.md#scrolling-content-you-paint).
 
 The three CSS containers scroll with `auto_scroll` and size to fit their
 content with `auto_size`.
@@ -371,7 +374,9 @@ control for another arrange, and the window reports it as
 
 ## Custom layout
 
-A custom control overrides two hooks:
+[Custom controls](custom-controls) walks through a whole custom control: a
+layout kept and keyed by its inputs, paint and input that only read it, and
+the tests that prove it. A custom control overrides two hooks:
 
 ```cpp
 gf::Size measure(gf::Size available) override;        // report preferred size

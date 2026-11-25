@@ -169,6 +169,8 @@ Window options are a plain struct
 ## Where to go next
 
 - [Working with controls](controls) covers the conventions every control shares.
+- [Custom controls](custom-controls) is the guide to writing a control of
+  your own, after checking that none of the stock ones fits.
 - [Retained tree](retained-tree) explains ownership, stable
   identity and disposal in detail.
 - [Forms](forms) and [Converting an existing application](converting-an-app)

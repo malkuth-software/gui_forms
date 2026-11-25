@@ -37,6 +37,7 @@ values-commands-and-binding
 rules
 data-binding
 controls
+custom-controls
 overlays-popups-and-splash
 themes
 theme-language
