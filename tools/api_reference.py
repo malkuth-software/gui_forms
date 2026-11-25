@@ -350,9 +350,16 @@ def extract(compiler: str, include_directories: list[str]) -> Inventory:
             includes.append('#include "' + str(relative) + '"\n')
         translation_text: str = ''.join(includes)
         translation.write_text(translation_text, encoding='utf-8')
-        command: list[str] = [compiler, '-std=c++20', '-x', 'c++']
+        command: list[str] = [compiler, '-std=c++20', '-x', 'c++', '-I' + str(include_root)]
         directory: str
         for directory in include_directories:
+            # A tests tree lists the test cache's copy of GUI.Forms; its
+            # headers would answer first and name files outside this
+            # checkout, which the inventory skips (an empty inventory, then
+            # "Stale contract"). This checkout's include/ stands in for any
+            # other copy's.
+            if Path(directory, 'gui_forms').is_dir() and Path(directory).resolve() != include_root.resolve():
+                continue
             command.append('-I' + directory)
         command.extend(['-fsyntax-only', '-Xclang', '-ast-dump=json', '-Xclang', '-ast-dump-filter=gui_',
                         str(translation)])
