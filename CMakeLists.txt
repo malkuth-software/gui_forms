@@ -6,7 +6,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "GUI.Forms supports Apple silicon arm64 only")
     endif()
 endif()
-project(GUIForms VERSION 1.0.4 LANGUAGES C CXX)
+project(GUIForms VERSION 1.0.5 LANGUAGES C CXX)
 
 # The browser target's compiler is the pinned emsdk's clang
 # (cmake/emscripten.cmake checks the release); every other target is LLVM 22.1.
@@ -2311,16 +2311,31 @@ if(GUI_FORMS_MCP)
         src/controls/automation/core/automation_core.cpp
         src/controls/automation/model_extensions/model_form_tools.cpp
         src/controls/automation/model_extensions/model_inspect_sections.cpp
+        src/controls/automation/console/console_log.cpp
+        src/controls/automation/console/console_overlay.cpp
         src/controls/automation/presenter/stock_presenter.cpp)
     target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP=1)
     if(GUI_FORMS_MCP_TEST_CONTROLS)
         target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP_TEST_CONTROLS=1)
     endif()
     if(TARGET gui_forms_application AND NOT GUI_FORMS_HIGH_INTEGRITY)
+        # The attach endpoint (MCP 1.0.5, attach_endpoint.hpp): a socket or a
+        # pipe only the user can reach, from the platform's own file.
+        if(WIN32)
+            set(_gf_attach_endpoint src/surface/windows/attach/attach_endpoint_windows.cpp)
+        else()
+            set(_gf_attach_endpoint src/surface/posix/attach/attach_endpoint_posix.cpp)
+        endif()
         add_library(gui_forms_automation STATIC
             src/runtime/automation/automation_run.cpp
             src/runtime/automation/automation_script.cpp
+            src/runtime/automation/attach_protocol.cpp
+            src/runtime/automation/attach_server.cpp
+            ${_gf_attach_endpoint}
             src/runtime/automation/mcp_transport.cpp)
+        if(WIN32)
+            target_link_libraries(gui_forms_automation PRIVATE advapi32)
+        endif()
         target_compile_features(gui_forms_automation PUBLIC cxx_std_20)
         target_link_libraries(gui_forms_automation PUBLIC gui_forms_core gui_forms_controls)
         target_compile_definitions(gui_forms_automation PRIVATE GUI_FORMS_MCP_BUILT=1)
@@ -2335,6 +2350,19 @@ if(GUI_FORMS_MCP)
         if(TARGET stxlib::mcp)
             target_link_libraries(gui_forms_automation PRIVATE stxlib::mcp)
             target_compile_definitions(gui_forms_automation PRIVATE GUI_FORMS_MCP_TRANSPORT=1)
+            # gui-forms-attach (tools/attach): the stdio bridge a client starts
+            # from .mcp.json to reach a program that is already running. It
+            # holds the attach protocol and endpoint and nothing else of the
+            # library.
+            add_executable(gui_forms_attach tools/attach/gui_forms_attach.cpp
+                src/runtime/automation/attach_protocol.cpp ${_gf_attach_endpoint})
+            target_compile_features(gui_forms_attach PRIVATE cxx_std_20)
+            target_link_libraries(gui_forms_attach PRIVATE stxlib::mcp stxlib::state)
+            if(WIN32)
+                target_link_libraries(gui_forms_attach PRIVATE advapi32)
+            endif()
+            set_target_properties(gui_forms_attach PROPERTIES OUTPUT_NAME gui-forms-attach)
+            install(TARGETS gui_forms_attach RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         else()
             # MCP on with no transport would configure a program whose --mcp
             # only reports that it has none (cp37: the stx package exported no

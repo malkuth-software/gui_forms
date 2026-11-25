@@ -53,21 +53,37 @@ private:
     const stxlib::Context& context_;
 };
 
+// What the server's events reach: the run, and whether this transport
+// serves an attach connection (MCP 1.0.5) rather than the process's
+// standard streams.
+struct EventsContext final {
+    AutomationRun* run{};
+    bool attached{};
+};
+
 void client_seen(void* context, const stxlib::mcp::ClientIdentity& client) noexcept {
+    const EventsContext& events = *static_cast<const EventsContext*>(context);
     try {
         ClientIdentity identity{};
         identity.client_name = standard_text(client.name());
         identity.client_version = standard_text(client.version());
         identity.model_name = standard_text(client.model());
-        (*static_cast<AutomationRun*>(context)).post_client(identity);
+        if (!events.attached) (*events.run).stdio_client_seen();
+        (*events.run).post_client(identity);
     } catch (...) {
         // Out of memory: the tag line keeps the last name.
     }
 }
 
 void input_ended(void* context) noexcept {
+    const EventsContext& events = *static_cast<const EventsContext*>(context);
+    // An attach connection's end ends its session only: the attach server
+    // sees the server's wait return and ends the core's session; the
+    // program stays open (it was not launched for the model).
+    if (events.attached) return;
     try {
-        (*static_cast<AutomationRun*>(context)).post_close_all();
+        (*events.run).stdio_input_ended();
+        (*events.run).post_close_all();
     } catch (...) {
         // The windows close with the process.
     }
@@ -116,6 +132,7 @@ constexpr stxlib::TextView app_note_uri = "gui://app/note";
 
 struct McpTransport::State final {
     AutomationRun* run{};
+    EventsContext events{};
     std::string identity{};
     std::string instructions{};
     std::string app_note{};
@@ -174,6 +191,28 @@ std::unique_ptr<McpTransport> McpTransport::claim(AutomationRun& run, std::strin
     return std::unique_ptr<McpTransport>(new McpTransport(std::move(state)));
 }
 
+std::unique_ptr<McpTransport> McpTransport::over(AutomationRun& run, AttachStreams streams) {
+    std::unique_ptr<State> state = std::make_unique<State>();
+    (*state).run = &run;
+    (*state).events.attached = true;
+    (*state).streams.input = std::move(streams.input);
+    (*state).streams.output = std::move(streams.output);
+    return std::unique_ptr<McpTransport>(new McpTransport(std::move(state)));
+}
+
+void McpTransport::request_stop() noexcept {
+    // Server::stop is safe from any thread at any time; the attach server
+    // calls this only once serve has returned.
+    if (state_) (*state_).server.stop();
+}
+
+void McpTransport::wait() noexcept {
+    if (!state_ || !serving()) return;
+    static_cast<void>((*state_).server.wait());
+    const stxlib::ScopedLock lock((*state_).mutex);
+    (*state_).serving = false;
+}
+
 bool McpTransport::serve(const std::string& identity, const std::string& instructions, const std::string& app_note,
                          const std::vector<ToolSpec>& specs, std::string& error) {
     State& state = *state_;
@@ -189,7 +228,8 @@ bool McpTransport::serve(const std::string& identity, const std::string& instruc
     stxlib::mcp::ServerOptions options{};
     options.model_meta_key = model_meta_key;
     stxlib::mcp::ServerEvents events{};
-    events.context = state.run;
+    state.events.run = state.run;
+    events.context = &state.events;
     events.client_seen = &client_seen;
     events.input_ended = &input_ended;
     stxlib::OperationResult<stxlib::mcp::Server> created =
@@ -230,10 +270,11 @@ McpTransport::~McpTransport() {
 }
 
 void McpTransport::stop() noexcept {
-    if (!state_) return;
-    if (!(*state_).serving) return;
+    if (!state_ || !serving()) return;
     (*state_).server.stop();
     static_cast<void>((*state_).server.wait());
+    const stxlib::ScopedLock lock((*state_).mutex);
+    (*state_).serving = false;
 }
 
 bool McpTransport::serving() const noexcept {
@@ -284,6 +325,14 @@ std::unique_ptr<McpTransport> McpTransport::claim(AutomationRun&, std::string& e
     error = "this build has no MCP transport (stx_mcp was not found)";
     return nullptr;
 }
+
+std::unique_ptr<McpTransport> McpTransport::over(AutomationRun&, AttachStreams) {
+    return nullptr;
+}
+
+void McpTransport::request_stop() noexcept {}
+
+void McpTransport::wait() noexcept {}
 
 bool McpTransport::serve(const std::string&, const std::string&, const std::string&, const std::vector<ToolSpec>&,
                          std::string& error) {

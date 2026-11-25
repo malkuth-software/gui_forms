@@ -229,6 +229,12 @@ public:
     void user_took_back();
     // The pipe closed, or the automation stops.
     void disconnect() noexcept;
+    // A new client's session on the same run (an attach connection, MCP
+    // 1.0.5): the last client's name, notice and per-launch answer are
+    // forgotten (the destructive-act question is asked again: the answer
+    // was given to another model), and an AI-led launch takes control
+    // again. After disconnect.
+    void begin_session(FrameTime now);
     // How many times the user has taken control back: a call that saw a
     // different count when it began was interrupted.
     [[nodiscard]] std::uint64_t take_backs() const noexcept { return counters_.holds_taken_back; }

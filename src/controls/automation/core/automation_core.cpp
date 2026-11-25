@@ -897,6 +897,12 @@ void AutomationCore::end_session() noexcept {
     if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).disconnected();
 }
 
+void AutomationCore::begin_session(FrameTime now) {
+    if (!ended_) return;
+    ended_ = false;
+    control_.begin_session(now);
+}
+
 void AutomationCore::hard_disconnect() noexcept {
     end_session();
     try {

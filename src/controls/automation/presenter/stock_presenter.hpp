@@ -26,7 +26,17 @@
 //   model's control, Keep Waiting leaves it;
 // - the destructive-act question: "Allow <model> to edit files and perform
 //   potentially destructive acts?", Allow and Don't Allow; closing it is
-//   Don't Allow.
+//   Don't Allow;
+// - the connection question (MCP 1.0.5, attach): for a program launched
+//   without --mcp or --mcp-shared, every connection through the attach
+//   endpoint asks "Allow a connection to this program?", naming the client
+//   as it named itself and saying that name is not verified; Allow and
+//   Don't Allow, no countdown, nothing remembered; closing it is Don't
+//   Allow;
+// - the console overlay (MCP 1.0.5, console_overlay.hpp): in AI mode a
+//   "thinking..." button in the window's upper right opens a terminal-style
+//   record of the MCP traffic, hidden by default; a press on it offers the
+//   take-back dialog.
 //
 // The dialogs are the presenter's own windows (presenter_window): the
 // automation never attaches, reads or drives one, and the user's input to
@@ -37,6 +47,7 @@
 // first. Dialogs are opened through the run's windowing and destroyed with
 // the presenter. Thread: the UI thread of the automation's windows.
 
+#include "../console/console_overlay.hpp"
 #include "../control/automation_control.hpp"
 
 #include "gui_forms/application/application.hpp"
@@ -44,6 +55,7 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 
 #include <array>
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -59,10 +71,23 @@ enum class PresenterDialog : std::uint8_t {
     take,
     take_back,
     consent,
+    connect,
 };
-inline constexpr std::size_t presenter_dialog_count = 3U;
+inline constexpr std::size_t presenter_dialog_count = 4U;
 
-class StockPresenter final : public AutomationPresenter {
+// The answer to one attach connection's question, shared by the presenter
+// and the attach thread that waits on it (attach_server.cpp).
+enum class ConnectAnswerState : std::uint8_t {
+    waiting,
+    allowed,
+    refused,
+};
+
+struct ConnectAnswer final {
+    std::atomic<ConnectAnswerState> state{ConnectAnswerState::waiting};
+};
+
+class StockPresenter final : public AutomationPresenter, public ConsoleOverlayListener {
 public:
     StockPresenter();
     ~StockPresenter() override;
@@ -96,6 +121,25 @@ public:
     void user_step_needed(Window& window, const SemanticNode& node, std::string_view what) override;
     void disconnected() noexcept override;
     [[nodiscard]] bool presenter_window(const SurfaceRoot& window) const noexcept override;
+
+    // ---- MCP 1.0.5 ----
+
+    // The record the console overlay shows (the run's). Borrowed.
+    void set_console_log(const ConsoleLog* log) noexcept { console_.set_log(log); }
+    // New lines may be in the record (the run posts it after recording).
+    void console_changed();
+    // A press on the open console: offers take-back while the model holds
+    // control (ConsoleOverlayListener).
+    void console_pressed() override;
+    [[nodiscard]] const ConsoleOverlay& console() const noexcept { return console_; }
+    [[nodiscard]] ConsoleOverlay& console() noexcept { return console_; }
+    // Asks the user whether `client` (as it named itself) may connect,
+    // answering into `answer`; refused at once when no question can be
+    // shown, or when another connection's question is open.
+    void ask_connect(const ClientIdentity& client, const std::shared_ptr<ConnectAnswer>& answer);
+    // The connection went away, or its question waited too long: the
+    // question closes, answered Don't Allow.
+    void withdraw_connect() noexcept;
 
     // A dialog's buttons and closes (PresenterPanel, DialogClosed).
     // `accepted` is Allow or Take Back Control.
@@ -138,6 +182,11 @@ private:
     // The take question's text for `seconds` left.
     [[nodiscard]] std::string take_text(std::int64_t seconds) const;
     void arm_countdown() noexcept;
+    // Shows the console's button while the model holds control, else
+    // closes the button and the console.
+    void update_console() noexcept;
+    // Answers the open connection question, if any.
+    void answer_connect(bool allowed) noexcept;
 
     // Posted work holds this weakly; reset first in the destructor.
     std::shared_ptr<StockPresenter*> self_{};
@@ -155,6 +204,9 @@ private:
     FrameTime countdown_end_{};
     FrameRequestToken countdown_tick_{};
     std::weak_ptr<Label> countdown_label_{};
+    // The connection question's answer while it is open.
+    std::shared_ptr<ConnectAnswer> connect_answer_{};
+    ConsoleOverlay console_{this};
 };
 
 } // namespace gui_forms::automation

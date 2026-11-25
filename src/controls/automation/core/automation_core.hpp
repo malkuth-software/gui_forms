@@ -236,6 +236,11 @@ public:
     // Ends the session: control returns to the user and the in-use sign
     // and the band leave the windows.
     void end_session() noexcept;
+    // Starts a new client's session after end_session (an attach
+    // connection, MCP 1.0.5): calls are answered again, and the control
+    // starts over (AutomationControl::begin_session). A session that has
+    // not ended is left as it is.
+    void begin_session(FrameTime now);
 
     // Records who is calling (the tag line, the replies).
     void set_client(const ClientIdentity& client);

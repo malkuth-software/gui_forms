@@ -367,9 +367,21 @@ Windows (Win32)
   (or with `GUI_FORMS_MCP=shared` in its environment) serves MCP on its
   standard input and output (only the process that started it can drive
   it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
-  With no flag nothing is served. Attaching to a program the user already
-  has open needs another transport (a local socket); that is a later
-  release.
+  Every program also listens for attach connections, the way a model
+  reaches a program the user already has open (1.0.5): a local endpoint
+  only the same user can reach (a Unix domain socket, mode 0600, in a
+  directory of the user's own with mode 0700; on Windows a named pipe whose
+  DACL grants only the user's SID, remote clients rejected), each peer's
+  user checked again. A client starts the `gui-forms-attach` bridge from
+  `.mcp.json` (`"command": "gui-forms-attach", "args": ["--program",
+  "app.vendor.product"]`; `--list` shows the running programs, and with no
+  `--program` the only one running is chosen). A program launched with
+  `--mcp` or `--mcp-shared` accepts the connection at once; any other asks
+  its user, every connection, naming the client by what the client says
+  and saying that is not verified (Allow or Don't Allow, no countdown,
+  nothing remembered). One client at a time; when an attached client goes,
+  control returns to the user and the program stays open.
+  `GUI_FORMS_MCP_ATTACH=0` turns the endpoint off.
   Reads never need control; acts do (the control model):
   - `--mcp` is AI-led: the model holds control from the start, with no
     question, and keeps it until it calls `release_control` or the user
@@ -393,6 +405,13 @@ Windows (Win32)
     take back control of this program?" with "<model> has not yet released
     the application." Taking back ends control and interrupts the model's
     call; Keep Waiting leaves the model in control.
+  - a "thinking..." button with a turning spinner in the window's upper
+    right; a click opens the console, a terminal-style record of every MCP
+    call and reply in Portsmouth Mono over a slightly transparent dark
+    panel (the instruction orange, values green), and another click closes
+    it. Hidden by default; a press on the console offers take-back. The
+    button and the console are popup windows of their own: never in a
+    capture, and a new line repaints nothing of the program.
 
   While a model is connected, in or out of control:
   - a 5 px accent band on the window's border, with a glint running round

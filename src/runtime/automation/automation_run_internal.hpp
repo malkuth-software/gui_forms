@@ -1,19 +1,24 @@
 #pragma once
 
 // The automation run's class, shared by its parts: the run itself
-// (automation_run.cpp), the MCP transport (mcp_transport.cpp) and the
-// script runner (automation_script.cpp). See automation_run.hpp.
+// (automation_run.cpp), the MCP transport (mcp_transport.cpp), the script
+// runner (automation_script.cpp) and the attach server (attach_server.cpp).
+// See automation_run.hpp.
 
+#include "attach_endpoint.hpp"
 #include "automation_run.hpp"
 
+#include "../../controls/automation/console/console_log.hpp"
 #include "../../controls/automation/control/automation_control.hpp"
 #include "../../controls/automation/core/automation_core.hpp"
 #include "../../controls/automation/presenter/stock_presenter.hpp"
 
 #include "gui_forms/application/application.hpp"
 #include "gui_forms/dispatcher/window_dispatcher/window_dispatcher.hpp"
+#include "gui_forms/window.hpp"
 
 #include <atomic>
+#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <stxlib/threads.hpp>
@@ -33,6 +38,7 @@ public:
 
 class McpTransport;
 class ScriptRunner;
+class AttachServer;
 
 class AutomationRun final {
 public:
@@ -80,7 +86,61 @@ public:
 
     [[nodiscard]] const AutomationLaunch& launch() const noexcept { return launch_; }
 
+    // ---- MCP 1.0.5: the console's record and attach (any thread) ----
+
+    // The record of every call the console shows.
+    [[nodiscard]] ConsoleLog& console_log() noexcept { return console_log_; }
+    // A line of the run's own in the record, and the console told.
+    void console_note(std::string_view note);
+    // Tells the console, at the UI thread's next turn, that the record has
+    // new lines.
+    void post_console();
+    // Whether an attach connection that said `hello` may connect: refused
+    // while another client is connected; accepted at once under --mcp,
+    // --mcp-shared or an appearance review; otherwise the user is asked in
+    // the program (StockPresenter::ask_connect) and this waits for the
+    // answer, refusing when `stop` stops, the run ends, or no answer comes
+    // within connect_question_limit.
+    [[nodiscard]] AttachAnswer admit_connection(const AttachHello& hello, const CallStop* stop);
+    // An accepted connection's session begins: the windows join the core if
+    // they had not (a program launched without a flag joins none until its
+    // first connection), the core starts a new session, and the client is
+    // named as it named itself. False when the run has no window.
+    [[nodiscard]] bool begin_attached_session(const AttachHello& hello);
+    // Serves MCP on `transport` with the tools, commands and note known now,
+    // and binds later changes to it too. False, with `error` set, when the
+    // server cannot start.
+    [[nodiscard]] bool serve_attached(McpTransport& transport, std::string& error);
+    // The attached session ended (its input closed, or the run stops): the
+    // core's session ends and control returns to the user; the program
+    // stays open, since it was not launched for the model.
+    void end_attached_session();
+    // The stdio client named itself, or its input ended (mcp_transport.cpp).
+    void stdio_client_seen() noexcept { stdio_client_seen_.store(true); }
+    void stdio_input_ended() noexcept { stdio_ended_.store(true); }
+    // How long a connection question waits for the user.
+    static constexpr std::chrono::seconds connect_question_limit{180};
+
+    // ---- the UI thread ----
+
+    // A window that became ready before the windows joined (a program
+    // launched without a flag, until its first connection).
+    struct PendingJoin final {
+        WindowRef window{};
+        std::string stable_id{};
+        bool passive_popup{};
+        ApplicationWindowHandle handle{};
+    };
+    // Joins `window` to the core and the presenter.
+    void join_window(Window& window, std::string_view stable_id, bool passive_popup,
+                     const ApplicationWindowHandle& handle);
+    // Joins every pending window still alive; later windows join as they
+    // become ready.
+    void join_pending();
+
 private:
+    // drive's call itself, between its two records.
+    [[nodiscard]] ToolReply drive_call(std::string_view tool, std::string arguments_json, const CallStop* stop);
     // A live window's dispatcher, the oldest first; empty when none is.
     [[nodiscard]] WindowDispatcher home_dispatcher() const;
 
@@ -109,6 +169,19 @@ private:
 
     std::unique_ptr<McpTransport> transport_{};
     std::unique_ptr<ScriptRunner> script_{};
+
+    ConsoleLog console_log_{};
+    // UI thread: whether ready windows join the core now (a launch that
+    // asked for MCP), or wait in pending_ for the first attach connection.
+    bool joins_windows_{};
+    std::vector<PendingJoin> pending_{};
+    std::atomic<bool> stdio_client_seen_{false};
+    std::atomic<bool> stdio_ended_{false};
+    std::atomic<bool> attach_live_{false};
+    // Under mutex_: the attached session's transport while it serves, for
+    // sync_tools.
+    McpTransport* attached_transport_{};
+    std::unique_ptr<AttachServer> attach_{};
 };
 
 // ---- the MCP transport (mcp_transport.cpp) ----
@@ -120,6 +193,11 @@ public:
     // stx_mcp in this build, or the streams cannot be claimed). Serving
     // starts with serve.
     [[nodiscard]] static std::unique_ptr<McpTransport> claim(AutomationRun& run, std::string& error);
+    // Serves over an attach connection's streams instead (MCP 1.0.5): the
+    // input's end ends this session only (the program stays open, and the
+    // attach server ends the core's session), and the client it names is
+    // not the stdio client.
+    [[nodiscard]] static std::unique_ptr<McpTransport> over(AutomationRun& run, AttachStreams streams);
     // Serves MCP as `identity` with `instructions`, the program's note as a
     // resource (none for empty) and `specs` bound before the first message
     // is read, so a client sees them at once and no list_changed for them.
@@ -138,6 +216,12 @@ public:
     void bind_tools(const std::vector<ToolSpec>& specs);
     // Stops serving and waits for the handler tasks.
     void stop() noexcept;
+    // Asks serving to end and returns; wait (or stop) does the rest. Any
+    // thread.
+    void request_stop() noexcept;
+    // Blocks until serving ends: the input ended or failed, the output
+    // failed, or request_stop. Once; the thread that served calls it.
+    void wait() noexcept;
 
     struct State;
 
@@ -145,6 +229,34 @@ private:
     explicit McpTransport(std::unique_ptr<State> state) noexcept;
     std::unique_ptr<State> state_;
 };
+
+// ---- the attach server (attach_server.cpp) ----
+
+// Listens on the attach endpoint (attach_endpoint.hpp) on its own thread and
+// serves one connection at a time: the hello, the admission
+// (AutomationRun::admit_connection), the answer, then MCP over the
+// connection until it ends.
+class AttachServer final {
+public:
+    // Null, with `error` set, when the endpoint cannot listen or the thread
+    // cannot start.
+    [[nodiscard]] static std::unique_ptr<AttachServer> start(AutomationRun& run, std::string& error);
+    // Stops listening, ends a session being served, and joins the thread.
+    ~AttachServer();
+    AttachServer(const AttachServer&) = delete;
+    AttachServer& operator=(const AttachServer&) = delete;
+
+    struct State;
+
+private:
+    explicit AttachServer(std::unique_ptr<State> state) noexcept;
+    std::unique_ptr<State> state_;
+};
+
+// Whether a program launched as `launch` listens for attach connections:
+// every desktop program of a build with MCP (not a high-integrity build,
+// not a script run), unless GUI_FORMS_MCP_ATTACH=0.
+[[nodiscard]] bool attach_wanted(const AutomationLaunch& launch);
 
 // ---- the script runner (automation_script.cpp) ----
 

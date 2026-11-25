@@ -680,3 +680,42 @@ Visible-area guarantee (stage VA):
   the model opened in place. `reset` waits for the dialogs it cancelled to
   close before it replies, and a modal window's own ID names it as an act
   target. The take-back dialog's paragraphs sit closer together.
+
+### 1.0.5: the MCP console and attach
+
+- **The console** (owner, 2026-11-24). In AI mode a small dark button with
+  a turning spinner and "thinking..." sits in the upper right of the
+  program's window; a click opens the console, another closes it. It is
+  hidden by default. The console is a slightly transparent dark panel that
+  fills the window's height like a terminal, in Portsmouth Mono, recording
+  every MCP call and its reply: the instruction in orange, values and
+  wrapped text in green, from the owner's formula (r = c·0.5v + (1−c)·v,
+  g = c·v + (1−c)·0.5v, b = c·0.25v over black, v about 0.8 with a slight
+  variation per glyph run, dithered). A press on the console offers the
+  take-back dialog. The button and the console are their own popup windows
+  owned by the program's window: a new line repaints only the console, they
+  are never in a capture, the automation never reads or drives them, and
+  they follow the window when it moves or is resized.
+- **Attach** (owner, 2026-11-24, revision 2). Every program listens on a
+  local endpoint only its own user can reach: a Unix domain socket, mode
+  0600, in a directory of the user's own with mode 0700 (macOS's per-user
+  temporary directory, `$XDG_RUNTIME_DIR`, else `/tmp/gui-forms-attach-<uid>`;
+  refused when the directory is not private), each peer's user checked
+  again; on Windows a named pipe whose DACL grants only the user's SID,
+  remote clients rejected, each client's token user checked. The new
+  `gui-forms-attach` bridge is what a client starts from `.mcp.json`: it
+  lists the running programs (`--list`), picks one (`--program` with an
+  identity or a pid, or the only one running), names the client as the
+  client named itself, and carries MCP both ways. A program launched with
+  `--mcp` or `--mcp-shared` accepts a connection at once (`--mcp-shared`
+  keeps the first act's countdown; `--mcp` is AI-led). A program launched
+  without a flag asks its user in the program for every connection
+  ("Allow a connection to this program?"), naming the client by what it
+  reports and saying that name is not verified; Allow and Don't Allow, no
+  countdown, nothing remembered. One client at a time. When an attached
+  client goes, its session ends and control returns to the user; the
+  program stays open. Captures always use the engine's own capture.
+  `GUI_FORMS_MCP_ATTACH=0` turns the endpoint off; high-integrity builds
+  and `--mcp-script` runs have none.
+- A new client's session on the same program starts over: the
+  destructive-act answer given to the last model is asked again.

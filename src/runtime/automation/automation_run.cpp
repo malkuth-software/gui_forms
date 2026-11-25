@@ -116,6 +116,65 @@ struct CloseAllWork final {
     void operator()() const noexcept { (*run).close_all(); }
 };
 
+// The console takes new lines from the record (MCP 1.0.5).
+struct ConsoleWork final {
+    StockPresenter* presenter{};
+    void operator()() const noexcept {
+        try {
+            (*presenter).console_changed();
+        } catch (...) {
+            // The console could not take the lines (no memory): the next
+            // record tries again.
+        }
+    }
+};
+
+// An attach connection's question to the user.
+struct AskConnectWork final {
+    StockPresenter* presenter{};
+    ClientIdentity client{};
+    std::shared_ptr<ConnectAnswer> answer{};
+    void operator()() const noexcept {
+        try {
+            (*presenter).ask_connect(client, answer);
+        } catch (...) {
+            // The question could not be shown: refused.
+            (*answer).state.store(ConnectAnswerState::refused);
+        }
+    }
+};
+
+// The question went unanswered too long, or the connection went away.
+struct WithdrawConnectWork final {
+    StockPresenter* presenter{};
+    void operator()() const noexcept { (*presenter).withdraw_connect(); }
+};
+
+struct BeginAttachWork final {
+    AutomationRun* run{};
+    ClientIdentity client{};
+    void operator()() const {
+        (*run).join_pending();
+        (*run).core().begin_session(FrameClock::now());
+        (*run).core().set_client(client);
+    }
+};
+
+struct EndAttachWork final {
+    AutomationRun* run{};
+    void operator()() const noexcept { (*run).core().end_session(); }
+};
+
+struct FillSpecsWork final {
+    AutomationRun* run{};
+    std::vector<ToolSpec>* specs{};
+    std::uint64_t* generation{};
+    void operator()() const {
+        (*run).core().fill_tool_specs(*specs);
+        *generation = (*run).core().tool_generation();
+    }
+};
+
 } // namespace
 
 namespace {
@@ -234,6 +293,10 @@ AutomationRun::AutomationRun(AutomationLaunch launch)
     : launch_(std::move(launch)), control_(control_settings(launch_), &presenter_), core_(control_) {
     presenter_.bind_control(&control_);
     presenter_.set_unsigned(launch_.appearance_review);
+    presenter_.set_console_log(&console_log_);
+    // A launch that asked for MCP joins its windows as they become ready;
+    // one that did not waits for its first attach connection.
+    joins_windows_ = launch_.requested();
 }
 
 AutomationRun::~AutomationRun() {
@@ -248,9 +311,10 @@ AutomationRun::~AutomationRun() {
         stxlib::sleep_for(stxlib_interval(stop_slice));
     }
     if (waited) stxlib::sleep_for(stxlib_interval(std::chrono::milliseconds(200)));
-    // The script and the transport first: their calls end (the windows are
-    // gone, so their steps answer window_gone) and their tasks are joined
-    // before the core they drive is destroyed.
+    // The attach server, the script and the transport first: their calls
+    // end (the windows are gone, so their steps answer window_gone) and
+    // their tasks are joined before the core they drive is destroyed.
+    attach_.reset();
     script_.reset();
     if (transport_) (*transport_).stop();
     transport_.reset();
@@ -277,6 +341,11 @@ void AutomationRun::start() {
         script_ = ScriptRunner::start(*this, launch_.script_path, error);
         if (!script_) std::fprintf(stderr, "GUI.Forms: --mcp-script: %s\n", error.c_str());
     }
+    if (refusal == nullptr && attach_wanted(launch_)) {
+        std::string error{};
+        attach_ = AttachServer::start(*this, error);
+        if (!attach_) std::fprintf(stderr, "GUI.Forms: attach is not available: %s\n", error.c_str());
+    }
     sync_tools();
 }
 
@@ -290,6 +359,38 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         const std::shared_ptr<gui_forms::detail::ApplicationWindowState> state =
             gui_forms::detail::ApplicationHandleAccess::state(handle);
         const bool passive_popup = state != nullptr && (*state).passive_popup;
+        if (!run.joins_windows_) {
+            // No client yet (a program launched without a flag): the window
+            // waits for the first attach connection, and only its
+            // dispatcher is kept, for posting work to the UI thread.
+            if (run.presenter_.presenter_window(*model)) return;
+            // The presenter's windows (the connection question) are owned
+            // by the first program window.
+            if (!passive_popup) run.presenter_.set_windowing(handle, stable_id);
+            PendingJoin pending{};
+            pending.window = (*model).window_ref();
+            pending.stable_id = std::string(stable_id);
+            pending.passive_popup = passive_popup;
+            pending.handle = handle;
+            run.pending_.push_back(std::move(pending));
+            const stxlib::ScopedLock lock(run.mutex_);
+            run.dispatchers_.push_back((*model).dispatcher());
+            return;
+        }
+        run.join_window(*model, stable_id, passive_popup, handle);
+    } catch (const std::exception& failure) {
+        // %.*s takes an int; a longer id is cut at INT_MAX bytes.
+        const std::size_t shown = std::min(stable_id.size(), static_cast<std::size_t>(INT_MAX));
+        std::fprintf(stderr, "GUI.Forms: the automation could not join window %.*s: %s\n",
+                     static_cast<int>(shown), stable_id.data(), failure.what());
+    }
+}
+
+void AutomationRun::join_window(Window& window, std::string_view stable_id, bool passive_popup,
+                                const ApplicationWindowHandle& handle) {
+    AutomationRun& run = *this;
+    Window* const model = &window;
+    {
         if (!run.core_.attach_window(*model, std::string(stable_id), passive_popup, handle)) return;
         run.presenter_.set_windowing(handle, stable_id);
         bool closing = false;
@@ -324,11 +425,29 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         // The input closed before this window joined, so no close reached
         // it: it closes at the UI thread's next turn, once it is running.
         if (closing) static_cast<void>((*model).dispatcher().begin_invoke(CloseAllWork{&run}));
-    } catch (const std::exception& failure) {
-        // %.*s takes an int; a longer id is cut at INT_MAX bytes.
-        const std::size_t shown = std::min(stable_id.size(), static_cast<std::size_t>(INT_MAX));
-        std::fprintf(stderr, "GUI.Forms: the automation could not join window %.*s: %s\n",
-                     static_cast<int>(shown), stable_id.data(), failure.what());
+    }
+}
+
+void AutomationRun::join_pending() {
+    if (joins_windows_) return;
+    joins_windows_ = true;
+    // The dispatchers were kept as the windows became ready; join_window
+    // keeps them again, so the list starts over.
+    {
+        const stxlib::ScopedLock lock(mutex_);
+        dispatchers_.clear();
+    }
+    std::vector<PendingJoin> pending = std::move(pending_);
+    pending_.clear();
+    for (const PendingJoin& entry : pending) {
+        Window* const window = entry.window.get();
+        if (window == nullptr) continue;
+        try {
+            join_window(*window, entry.stable_id, entry.passive_popup, entry.handle);
+        } catch (const std::exception& failure) {
+            std::fprintf(stderr, "GUI.Forms: the automation could not join window %s: %s\n",
+                         entry.stable_id.c_str(), failure.what());
+        }
     }
 }
 
@@ -355,6 +474,30 @@ bool AutomationRun::wait_for_window(const CallStop* stop) const {
 
 ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json, const CallStop* stop) {
     const DrivingCall driving(&driving_);
+    console_log_.record_call(tool, arguments_json);
+    post_console();
+    ToolReply reply = drive_call(tool, std::move(arguments_json), stop);
+    console_log_.record_reply(reply);
+    post_console();
+    return reply;
+}
+
+void AutomationRun::post_console() {
+    const WindowDispatcher dispatcher = home_dispatcher();
+    if (!dispatcher.window_alive()) return;
+    try {
+        static_cast<void>(dispatcher.begin_invoke(ConsoleWork{&presenter_}));
+    } catch (...) {
+        // The window stopped taking work: the console goes with it.
+    }
+}
+
+void AutomationRun::console_note(std::string_view note) {
+    console_log_.record_note(note);
+    post_console();
+}
+
+ToolReply AutomationRun::drive_call(std::string_view tool, std::string arguments_json, const CallStop* stop) {
     const ToolReply gone = ToolReply::failure(ToolError::window_gone, "no window is open",
                                               "the program has no window, or is closing");
     WindowDispatcher dispatcher = home_dispatcher();
@@ -467,13 +610,149 @@ bool AutomationRun::serving_started() const noexcept {
 }
 
 void AutomationRun::sync_tools() {
-    if (!transport_ || !(*transport_).serving()) return;
+    const bool stdio = transport_ && (*transport_).serving();
+    const stxlib::ScopedLock lock(mutex_);
+    const bool attached = attached_transport_ != nullptr;
+    if (!stdio && !attached) return;
     const std::uint64_t generation = core_.tool_generation();
     if (generation == tool_generation_) return;
     tool_generation_ = generation;
     std::vector<ToolSpec> specs{};
     core_.fill_tool_specs(specs);
-    (*transport_).bind_tools(specs);
+    if (stdio) (*transport_).bind_tools(specs);
+    if (attached) (*attached_transport_).bind_tools(specs);
+}
+
+// ---- attach (MCP 1.0.5) ---------------------------------------------------------
+
+namespace {
+
+// The client as an attach hello names it: self-reported, never verified.
+ClientIdentity hello_client(const AttachHello& hello) {
+    ClientIdentity client{};
+    client.client_name = hello.client_name;
+    client.client_version = hello.client_version;
+    return client;
+}
+
+} // namespace
+
+AttachAnswer AutomationRun::admit_connection(const AttachHello& hello, const CallStop* stop) {
+    AttachAnswer answer{};
+    if (attach_live_.load()) {
+        answer.reason = "another client is connected to this program through its attach endpoint";
+        return answer;
+    }
+    if (transport_ && stdio_client_seen_.load() && !stdio_ended_.load()) {
+        answer.reason = "the client that launched this program is connected to it";
+        return answer;
+    }
+    if (launch_.mcp || launch_.shared || launch_.appearance_review) {
+        answer.accepted = true;
+        return answer;
+    }
+    // Launched without a flag: the user is asked, every connection.
+    const WindowDispatcher dispatcher = home_dispatcher();
+    if (!dispatcher.window_alive()) {
+        answer.reason = "the program has no window to ask its user from";
+        return answer;
+    }
+    const std::shared_ptr<ConnectAnswer> asked = gui_forms::detail::make_library_shared<ConnectAnswer>();
+    try {
+        static_cast<void>(dispatcher.begin_invoke(AskConnectWork{&presenter_, hello_client(hello), asked}));
+    } catch (...) {
+        answer.reason = "the program could not ask its user";
+        return answer;
+    }
+    const FrameTime deadline = FrameClock::now() + connect_question_limit;
+    while ((*asked).state.load() == ConnectAnswerState::waiting) {
+        const bool gave_up = ended_.load() || (stop != nullptr && (*stop).stopped()) || FrameClock::now() >= deadline;
+        if (gave_up) {
+            const WindowDispatcher home = home_dispatcher();
+            if (home.window_alive()) {
+                try {
+                    static_cast<void>(home.begin_invoke(WithdrawConnectWork{&presenter_}));
+                } catch (...) {
+                    // The window is closing: the question goes with it.
+                }
+            }
+            answer.reason = "the user did not answer";
+            return answer;
+        }
+        stxlib::sleep_for(stxlib_interval(stop_slice));
+    }
+    answer.accepted = (*asked).state.load() == ConnectAnswerState::allowed;
+    if (!answer.accepted) answer.reason = "the user did not allow the connection";
+    return answer;
+}
+
+bool AutomationRun::begin_attached_session(const AttachHello& hello) {
+    const WindowDispatcher dispatcher = home_dispatcher();
+    if (!dispatcher.window_alive()) return false;
+    try {
+        if (dispatcher.invoke(BeginAttachWork{this, hello_client(hello)}) != DispatchInvokeResult::completed) {
+            return false;
+        }
+    } catch (const std::exception& failure) {
+        std::fprintf(stderr, "GUI.Forms: attach: the session could not begin: %s\n", failure.what());
+        return false;
+    }
+    attach_live_.store(true);
+    console_note("connected through the attach endpoint: " +
+                 (hello.client_name.empty() ? std::string("a client") : hello.client_name) +
+                 " (the name is the client's own, not verified)");
+    return true;
+}
+
+bool AutomationRun::serve_attached(McpTransport& transport, std::string& error) {
+    std::vector<ToolSpec> specs{};
+    std::uint64_t generation = 0U;
+    const WindowDispatcher dispatcher = home_dispatcher();
+    if (!dispatcher.window_alive()) {
+        error = "the program has no window";
+        return false;
+    }
+    if (dispatcher.invoke(FillSpecsWork{this, &specs, &generation}) != DispatchInvokeResult::completed) {
+        error = "the program's windows are closing";
+        return false;
+    }
+    std::string instructions(base_instructions);
+    const std::string note = detail::app_note_copy();
+    if (!note.empty()) {
+        instructions += "\n\nHow this program works (its own note, also the resource gui://app/note):\n";
+        instructions += note;
+    }
+    if (!transport.serve(automation_identity(), instructions, note, specs, error)) return false;
+    const stxlib::ScopedLock lock(mutex_);
+    attached_transport_ = &transport;
+    return true;
+}
+
+void AutomationRun::end_attached_session() {
+    {
+        const stxlib::ScopedLock lock(mutex_);
+        attached_transport_ = nullptr;
+    }
+    if (!attach_live_.exchange(false)) return;
+    console_note("disconnected");
+    const WindowDispatcher dispatcher = home_dispatcher();
+    if (!dispatcher.window_alive()) return;
+    try {
+        static_cast<void>(dispatcher.invoke(EndAttachWork{this}));
+    } catch (...) {
+        // The window closed meanwhile: the session ends with the run.
+    }
+}
+
+bool attach_wanted(const AutomationLaunch& launch) {
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    if (!launch.script_path.empty()) return false;
+    const bool wanted = environment_value("GUI_FORMS_MCP_ATTACH") != "0";
+    return wanted;
+#else
+    static_cast<void>(launch);
+    return false;
+#endif
 }
 
 // ---- the scope ---------------------------------------------------------------------
@@ -508,7 +787,9 @@ AutomationRunScope::AutomationRunScope() {
     outermost_ = true;
     require_library_allocator_if_asked();
     const AutomationLaunch launch = read_automation_launch();
-    if (!launch.requested()) return;
+    // A program launched without a flag still listens for an attach
+    // connection (MCP 1.0.5); its windows join nothing until one comes.
+    if (!launch.requested() && !attach_wanted(launch)) return;
     try {
         run_ = std::make_unique<AutomationRun>(launch);
         (*run_).start();
