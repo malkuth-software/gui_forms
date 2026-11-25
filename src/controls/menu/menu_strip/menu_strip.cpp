@@ -69,6 +69,44 @@ std::string escaped_title(std::string_view title) {
     return escaped;
 }
 
+// Where `text`'s mnemonic lands in its displayed text (parse_mnemonic_text):
+// the byte offset and length of the scalar the first '&' marks, which
+// keyboard cues underline. Absent when `text` marks none.
+struct MnemonicSpan final {
+    std::size_t offset{};
+    std::size_t length{};
+};
+
+stxlib::Optional<MnemonicSpan> displayed_mnemonic(std::string_view text) {
+    const MnemonicText parsed = parse_mnemonic_text(text);
+    if (parsed.mnemonic.absent()) return stxlib::Optional<MnemonicSpan>::none();
+    // The display drops each single '&' and halves each '&&': walk both.
+    std::size_t displayed = 0U;
+    for (std::size_t offset = 0U; offset < text.size();) {
+        if (text[offset] != '&') {
+            const std::size_t length = std::max<std::size_t>(decode_utf8_scalar(text, Utf8Offset(offset)).length, 1U);
+            displayed += length;
+            offset += length;
+            continue;
+        }
+        if (offset + 1U < text.size() && text[offset + 1U] == '&') {
+            ++displayed;
+            offset += 2U;
+            continue;
+        }
+        ++offset;
+        if (offset >= text.size()) break;
+        const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
+        const std::size_t length = std::max<std::size_t>(decoded.length, 1U);
+        if (is_mnemonic(decoded.scalar, text) && decoded.scalar == *parsed.mnemonic.value()) {
+            return stxlib::Optional<MnemonicSpan>::of(MnemonicSpan{displayed, length});
+        }
+        displayed += length;
+        offset += length;
+    }
+    return stxlib::Optional<MnemonicSpan>::none();
+}
+
 // Appends the window list to a menu about to open: a separator after the
 // menu's own rows, one row per MDI child of `window`'s document area (the
 // active one checked) up to nine, and "More Windows..." past them. Nothing
@@ -158,6 +196,9 @@ void MenuStrip::on_overlay_item_invoked(
         std::string(stable_id().value()),
         items_[*active].stable_id, invocation};
     item_invoked_.emit(forwarded);
+    // A command chosen from a menu entered from the keyboard gives the
+    // focus back, unless a handler moved it or dropped the strip.
+    if (is_alive() && focused_ && !focus_return_.expired()) leave_menu_bar();
 }
 
 void MenuStrip::on_overlay_open_changed(bool open_state) {
@@ -442,6 +483,7 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
     rule.bounds = {0.0, std::max(0.0, surface.height - 1.5), surface.width, 1.0};
     paint_part(painter, *this, rule);
     const std::vector<Rect> bounds = item_bounds();
+    const bool cues = keyboard_cues_shown();
     for (std::size_t index = 0; index < items_.size(); ++index) {
         if (!items_[index].visible) continue;
         const Rect item = bounds[index];
@@ -479,9 +521,25 @@ void MenuStrip::on_paint(Painter& painter, Rect) {
         label.states = plate_states;
         label.text = lend_paint_text(text);
         label.font = item_font;
-        paint_text_part_at(painter, *this, label,
-                           {text_x, item.y + std::max(item_font.size, item.height * 0.5 + item_font.size * 0.35)},
-                           std::max(0.0, item.x + item.width - text_x));
+        const double baseline = item.y + std::max(item_font.size, item.height * 0.5 + item_font.size * 0.35);
+        paint_text_part_at(painter, *this, label, {text_x, baseline}, std::max(0.0, item.x + item.width - text_x));
+        if (!cues || !use_mnemonic.read()) continue;
+        // The keyboard cue: the mnemonic's scalar underlined, in the
+        // label's ink (the menu_item family's glyph colour).
+        const stxlib::Optional<MnemonicSpan> marked = displayed_mnemonic(items_[index].text);
+        const MnemonicSpan* const span = marked.value();
+        if (span == nullptr) continue;
+        const std::string_view shown(text);
+        const double before = resolve_text_layout_utf8(shown.substr(0U, (*span).offset), item_font).logical_size.width;
+        const double through =
+            resolve_text_layout_utf8(shown.substr(0U, (*span).offset + (*span).length), item_font).logical_size.width;
+        PartPaint underline;
+        underline.family = ControlVisualRole::menu_item;
+        underline.role = PartRole::glyph;
+        underline.mark = PartMark::underline;
+        underline.states = plate_states;
+        underline.bounds = {text_x + before, baseline + 1.5, std::max(1.0, through - before), 1.0};
+        paint_part(painter, *this, underline);
     }
     const std::size_t* const hot_item = hot_index_.value();
     if (focused_ && active_index_.absent() && hot_item != nullptr) {
@@ -647,15 +705,137 @@ void MenuStrip::on_key_down(KeyEventArgs& arguments) {
                arguments.physical_key == PhysicalKey::space) {
         static_cast<void>(open(*current));
     } else if (arguments.physical_key == PhysicalKey::escape) {
-        close();
+        // Escape closes an open menu, then leaves the menu bar.
+        if (is_open()) close();
+        else leave_menu_bar();
     } else {
         return;
     }
     arguments.handled = true;
 }
 
+void MenuStrip::on_key_press(KeyPressEventArgs& arguments) {
+    Control::on_key_press(arguments);
+    if (arguments.handled || !focused_ || is_open() || arguments.key_char == 0U) return;
+    const char32_t character = static_cast<char32_t>(arguments.key_char);
+    stxlib::Optional<std::size_t> chosen{};
+    for (std::size_t index = 0U; index < items_.size() && chosen.absent(); ++index) {
+        if (!items_[index].visible || !items_[index].enabled) continue;
+        if (use_mnemonic.read() && is_mnemonic(character, items_[index].text)) chosen.set(index);
+    }
+    for (std::size_t index = 0U; index < items_.size() && chosen.absent(); ++index) {
+        if (!items_[index].visible || !items_[index].enabled) continue;
+        if (is_first_letter(character, use_mnemonic.read() ? items_[index].text : escaped_title(items_[index].text))) {
+            chosen.set(index);
+        }
+    }
+    const std::size_t* const index = chosen.value();
+    if (index == nullptr) return;
+    set_hot(chosen);
+    static_cast<void>(open(*index));
+    arguments.handled = true;
+}
+
+void MenuStrip::on_attached_to_window() {
+    Control::on_attached_to_window();
+    Window* const host = window();
+    if (host == nullptr) return;
+    key_state_subscription_ = (*host).key_state_changed().subscribe(
+        *this, Delegate<const KeyStateChange&>::bind<MenuStrip, &MenuStrip::on_window_key_state>(*this));
+}
+
+void MenuStrip::on_detached_from_window() noexcept {
+    key_state_subscription_.disconnect();
+    focus_return_.reset();
+    alt_tap_armed_ = false;
+    Control::on_detached_from_window();
+}
+
+bool MenuStrip::is_window_menu_bar() const {
+    Window* const host = window();
+    if (host == nullptr || !effectively_visible() || !effectively_enabled()) return false;
+    const Control::Ptr main = (*host).main_menu_strip();
+    if (main) return main.get() == this;
+    // The first visible strip in tree order, found with an explicit stack
+    // (no recursion over the control tree).
+    std::vector<Control::Ptr> pending{};
+    const Control::Ptr root = (*host).root();
+    if (root) pending.push_back(root);
+    while (!pending.empty()) {
+        const Control::Ptr control = pending.back();
+        pending.pop_back();
+        if (!(*control).effectively_visible()) continue;
+        if (dynamic_cast<const MenuStrip*>(control.get()) != nullptr) return control.get() == this;
+        const Control::ChildView children = (*control).children();
+        for (std::size_t index = children.size(); index > 0U; --index) pending.push_back(children[index - 1U]);
+    }
+    return false;
+}
+
+void MenuStrip::on_window_key_state(const KeyStateChange& change) {
+    if (!is_alive()) return;
+    const bool alt_key = change.physical_key == PhysicalKey::left_alt || change.physical_key == PhysicalKey::right_alt;
+    if (change.down) {
+        if (alt_key) {
+            // Alt alone: with Shift, Control or the logo key it is a chord,
+            // and AltGr arrives as Control+Alt.
+            alt_tap_armed_ = change.modifiers == Modifier::none || change.modifiers == Modifier::alt;
+            invalidate(Dirty::paint);
+            return;
+        }
+        alt_tap_armed_ = false;
+        if (change.physical_key == PhysicalKey::f10 && change.modifiers == Modifier::none && is_window_menu_bar()) {
+            if (focused_) leave_menu_bar();
+            else enter_menu_bar();
+        }
+        return;
+    }
+    if (!alt_key) return;
+    const bool tapped = alt_tap_armed_ && !change.released_by_deactivation;
+    alt_tap_armed_ = false;
+    invalidate(Dirty::paint);
+    if (!tapped || !is_window_menu_bar()) return;
+    if (focused_) leave_menu_bar();
+    else enter_menu_bar();
+}
+
+void MenuStrip::enter_menu_bar() {
+    Window* const host = window();
+    if (host == nullptr) return;
+    const Control::Ptr previous = (*host).focused_control();
+    const Control::Ptr lifetime = shared_from_this();
+    if (!(*host).request_focus(lifetime)) return;
+    // A focus handler that dropped the strip or moved the focus on.
+    if (!is_alive() || !focused_) return;
+    if (previous.get() != this) focus_return_ = previous;
+    invalidate(Dirty::paint | Dirty::semantics);
+}
+
+void MenuStrip::leave_menu_bar() {
+    if (is_open()) close();
+    const Control::Ptr back = focus_return_.lock();
+    focus_return_.reset();
+    hot_index_.reset();
+    invalidate(Dirty::paint | Dirty::semantics);
+    Window* const host = window();
+    if (host == nullptr || !focused_) return;
+    // request_focus refuses a control of another window (eligible).
+    if (back && back.get() != this && (*host).request_focus(back)) return;
+    // Nothing to give the focus back to: the next tab stop takes it.
+    static_cast<void>((*host).move_focus(true));
+}
+
+bool MenuStrip::keyboard_cues_shown() const {
+    Window* const host = window();
+    if (host == nullptr) return false;
+    const bool alt_held = (*host).is_key_down(PhysicalKey::left_alt) || (*host).is_key_down(PhysicalKey::right_alt);
+    const bool keyboard_focus = focused_ && (*host).focus_cue_visible();
+    return alt_held || keyboard_focus;
+}
+
 void MenuStrip::on_focus_changed(bool focused) {
     focused_ = focused;
+    if (!focused_) focus_return_.reset();
     if (focused_ && hot_index_.absent()) {
         for (std::size_t index = 0; index < items_.size(); ++index) {
             if (items_[index].visible && items_[index].enabled) {
@@ -819,6 +999,7 @@ bool MenuStrip::process_mnemonic_self(char32_t character) {
     const std::string selected_id = items_[selected].stable_id;
     const Control::Ptr lifetime = shared_from_this();
     Window* const shown_in = window();
+    const Control::Ptr previous = shown_in ? (*shown_in).focused_control() : Control::Ptr{};
     if (shown_in && !(*shown_in).request_focus(lifetime)) {
         // The mnemonic is still owned, but prevent-mode validation may reject
         // the focus transaction that would authorize opening the overlay.
@@ -826,6 +1007,8 @@ bool MenuStrip::process_mnemonic_self(char32_t character) {
     }
     // A handler that closed or left the window: the mnemonic was taken.
     if (!is_alive() || window() != shown_in) return true;
+    // The command chosen gives the focus back (leave_menu_bar).
+    if (focused_ && previous && previous.get() != this && focus_return_.expired()) focus_return_ = previous;
     const stxlib::Optional<std::size_t> again = find_top_level(items_, selected_id);
     if (again.absent()) return true;
     set_hot(again);

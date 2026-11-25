@@ -3522,13 +3522,13 @@ std::shared_ptr<ProductLifetime> wire_product(const ProductRefs& refs) {
                                     CommandBindingOptions{false, true, true});
 
     (*refs.menu_strip).set_items({
-        {"fm.menu.file", "File", {
+        {"fm.menu.file", "&File", {
             {"file.new-folder", MenuItemKind::command, new_folder},
             {"file.open", MenuItemKind::command, open},
             {"file.separator.properties", MenuItemKind::separator},
             {"file.properties", MenuItemKind::command, folder_properties},
         }},
-        {"fm.menu.home", "Home", {
+        {"fm.menu.home", "H&ome", {
             {"home.open", MenuItemKind::command, open},
             {"home.separator.clipboard", MenuItemKind::separator},
             {"home.cut", MenuItemKind::command, cut},
@@ -3542,32 +3542,32 @@ std::shared_ptr<ProductLifetime> wire_product(const ProductRefs& refs) {
             {"home.rename", MenuItemKind::command, rename},
             {"home.properties", MenuItemKind::command, properties},
         }},
-        {"fm.menu.edit", "Edit", {
+        {"fm.menu.edit", "&Edit", {
             {"edit.select-all", MenuItemKind::command, select_all},
             {"edit.separator.clipboard", MenuItemKind::separator},
             {"edit.cut", MenuItemKind::command, cut},
             {"edit.copy", MenuItemKind::command, copy},
             {"edit.paste", MenuItemKind::command, paste},
         }},
-        {"fm.menu.view", "View", {
+        {"fm.menu.view", "&View", {
             {"view.mode", MenuItemKind::command, view},
             {"view.sort", MenuItemKind::command, sort},
             {"view.separator.properties", MenuItemKind::separator},
             {"view.properties", MenuItemKind::check, toggle_selection},
         }},
-        {"fm.menu.go", "Go", {
+        {"fm.menu.go", "&Go", {
             {"go.back", MenuItemKind::command, nav_back},
             {"go.forward", MenuItemKind::command, nav_forward},
             {"go.up", MenuItemKind::command, nav_up},
         }},
-        {"fm.menu.commands", "Commands", {
+        {"fm.menu.commands", "&Commands", {
             {"commands.new-folder", MenuItemKind::command, new_folder},
             {"commands.select-all", MenuItemKind::command, select_all},
             {"commands.separator.properties", MenuItemKind::separator},
             {"commands.folder-properties", MenuItemKind::command,
              folder_properties},
         }},
-        {"fm.menu.help", "Help", {
+        {"fm.menu.help", "&Help", {
             {"help.about", MenuItemKind::command, about},
         }},
     });

@@ -207,21 +207,21 @@ void CorrespondenceShell::build_menu() {
             folder_commands_[index]));
     }
     std::vector<MenuStripItemSpec> items;
-    items.push_back({"correspondence.menu.file", "File",
+    items.push_back({"correspondence.menu.file", "&File",
                      {menu_item("correspondence.menu.file.new", new_message_command_)}});
-    items.push_back({"correspondence.menu.edit", "Edit",
+    items.push_back({"correspondence.menu.edit", "&Edit",
                      {menu_item("correspondence.menu.edit.mark-unread", mark_unread_command_),
                       menu_item("correspondence.menu.edit.flag", flag_command_),
                       separator("correspondence.menu.edit.separator"),
                       menu_item("correspondence.menu.edit.search", search_command_)}});
-    items.push_back({"correspondence.menu.view", "View", std::move(view_items)});
-    items.push_back({"correspondence.menu.message", "Message",
+    items.push_back({"correspondence.menu.view", "&View", std::move(view_items)});
+    items.push_back({"correspondence.menu.message", "&Message",
                      {menu_item("correspondence.menu.message.reply", reply_command_),
                       menu_item("correspondence.menu.message.forward", forward_command_),
                       separator("correspondence.menu.message.separator"),
                       menu_item("correspondence.menu.message.archive", archive_command_),
                       menu_item("correspondence.menu.message.delete", delete_command_)}});
-    items.push_back({"correspondence.menu.help", "Help",
+    items.push_back({"correspondence.menu.help", "&Help",
                      {menu_item("correspondence.menu.help.about", about_command_)}});
     (*menu_).set_items(std::move(items));
     add_child(menu_);
