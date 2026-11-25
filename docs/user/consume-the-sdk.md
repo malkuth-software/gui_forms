@@ -5,9 +5,9 @@ are no private include paths, no archive filenames to list and no generated
 glue: `find_package` resolves the components you ask for, and fails at
 configure time, naming the build that provides it, when the prefix lacks one.
 
-With the devkit ([Get started](get-started)) the SDK is the prebuilt one at
-`.sdk/gui-forms-sdk` in its workspace, and the devkit's CMake module puts it
-on the package path. The components and functions below are the same.
+With the devkit ([Get started](get-started)) the SDK is the prebuilt one
+that `build.py` unpacks at `.sdk/gui-forms-sdk` in your app, and the
+devkit's CMake module puts it on the package path. The components and functions below are the same.
 
 ## Minimal consumer project
 

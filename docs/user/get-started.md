@@ -4,114 +4,128 @@
 You build GUI.Forms applications with the devkit,
 [malkuth-software/gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit).
 You do not build GUI.Forms itself: the devkit fetches a prebuilt GUI.Forms
-SDK and a compiler cache, and builds only your code. This page takes you from
-an empty machine to a running program, then to an app of your own.
+SDK and builds only your code. This page takes you from an empty machine to
+a running app of your own.
 
 ## The devkit
 
 The devkit is a public, MIT-licensed repository that holds:
 
-- the **devkit harness** (`harness/`): the bootstrap, the SDK fetch, the
-  compiler cache restore, the build guard, the app template and its
-  reference app;
+- the **devkit harness** (`harness/`): the bootstrap, the app template and
+  its reference app, the SDK fetch, the build guard and the checks;
 - **Pocket Reference** (`pocket_reference/`), the demonstrator views
-  (`views/`) and the programs (`programs/`), all built against the same SDK
-  your app uses.
+  (`views/`) and the programs (`programs/`), built against the same SDK your
+  app uses.
 
-`devkit.toml` pins GUI.Forms by major version (1) with a floor. A build takes
-the newest green GUI.Forms build in that range: the newest build whose SDK
-and cache are published for every platform. GUI.Forms makes no breaking
-change within a major, so the devkit follows each new build without a pin
-change.
+An app pins GUI.Forms by major version with a floor, in its `devkit.toml`. A
+build takes the newest green GUI.Forms build in that range: the newest build
+whose SDK is published for every platform. GUI.Forms makes no breaking
+change within a major, so an app follows new builds without a pin change.
 
 You need Git, Python 3.11 or later, CMake 3.25 or later, Ninja and ccache.
-On Windows you also need Git for Windows, whose Git Bash runs the scripts.
+On macOS and Linux you also need LLVM 22.1.8 (clang) on `PATH`. On Windows
+you need Git for Windows, whose Git Bash runs the bootstrap; the build
+restores the LLVM toolchain itself.
 
 ## 1. Bootstrap
 
-One command clones the devkit and sets up its workspace: the pinned LLVM 22
-toolchain, the C++ runtime, the compiler cache and the build environment.
+Clone the devkit.
 
 macOS:
 
 ```sh
-git clone https://github.com/malkuth-software/gui_forms_devkit && sh gui_forms_devkit/harness/bootstrap.sh --workspace gui_forms_devkit --project gui_forms_devkit
+git clone https://github.com/malkuth-software/gui_forms_devkit
 ```
 
 Linux:
 
 ```sh
-git clone https://github.com/malkuth-software/gui_forms_devkit && sh gui_forms_devkit/harness/bootstrap.sh --workspace gui_forms_devkit --project gui_forms_devkit
+git clone https://github.com/malkuth-software/gui_forms_devkit
 ```
 
 Windows (PowerShell):
 
 ```powershell
-git clone https://github.com/malkuth-software/gui_forms_devkit; powershell -File gui_forms_devkit\harness\bootstrap.ps1 --workspace gui_forms_devkit --project gui_forms_devkit
+git clone https://github.com/malkuth-software/gui_forms_devkit
 ```
 
-Add `--dry-run` to see every step without changing anything. Running the
-command again updates the workspace instead of starting over. On Linux the
-bootstrap prints the packages to install with `sudo` rather than installing
-them itself.
+## 2. Create your app
 
-The bootstrap writes the build environment to `.ci/local-build-env.sh` (and
-`.ci/local-build-env.ps1` for PowerShell). Load it in every shell you build
-from, so the compiler and the cache settings match the ones the cache was
-made with.
+The bootstrap's `new-app` command makes an app from the devkit's template
+in a new directory, copies the devkit into it at `.devkit/`, and makes the
+first commit with `git init`. It pushes nothing and adds no remote.
 
-## 2. Build
-
-The build fetches the prebuilt SDK and compiles only the devkit's own code;
-GUI.Forms is not compiled.
-
-macOS:
+macOS and Linux:
 
 ```sh
-cd gui_forms_devkit
-. .ci/local-build-env.sh
-python3 -B harness/harness/resolve_gui_forms.py resolve
-python3 -B harness/harness/resolve_gui_forms.py fetch --platform macos-arm64
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=harness/harness/cmake/llvm22.cmake
-cmake --build build
-```
-
-Linux (on an arm64 machine, use `--platform linux-arm64`):
-
-```sh
-cd gui_forms_devkit
-. .ci/local-build-env.sh
-python3 -B harness/harness/resolve_gui_forms.py resolve
-python3 -B harness/harness/resolve_gui_forms.py fetch --platform linux-x64
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=harness/harness/cmake/llvm22.cmake
-cmake --build build
+sh gui_forms_devkit/harness/bootstrap.sh new-app hello_forms --license mit
 ```
 
 Windows (PowerShell):
 
 ```powershell
-cd gui_forms_devkit
-. .ci\local-build-env.ps1
-python -B harness/harness/resolve_gui_forms.py resolve
-python -B harness/harness/resolve_gui_forms.py fetch --platform windows-x64
+powershell -File gui_forms_devkit\harness\bootstrap.ps1 new-app hello_forms --license mit
 ```
 
-On Windows the configure step takes GUI.Forms' Windows toolchain file with
-its own C++ runtime. The devkit's CI prepares it (its `windows-own-runtime`
-action); the harness has no local command for it yet.
+The name is in snake case. The app goes in `./hello_forms` unless you name
+a directory after it. `--title` sets the window title, `--license` picks
+`mit`, `proprietary`, `polyform-noncommercial` or `none` (the default), and
+`--strict` turns on the devkit's stricter house checks. `--dry-run` shows
+what it would write.
 
-`resolve` picks the GUI.Forms build and records it in
-`.ci/gui_forms-resolved.json`. `fetch` downloads that build's SDK, checks its
-SHA-256 and unpacks it at `.sdk/gui-forms-sdk`. The SDK is always unpacked at
-that path, whatever the build, so the compiler cache keeps hitting when
-GUI.Forms moves on.
+The app holds:
+
+| Path | What |
+|---|---|
+| `src/`, `tests/` | a greeter form, its entry point, the form's test and the interaction test, which holds hover and drag to no layout work |
+| `reference/` | the reference custom control, a retained control to copy when you write your own |
+| `CMakeLists.txt`, `build.py` | the build against the prebuilt SDK, with the build guard |
+| `devkit.toml` | the GUI.Forms pin (major and floor) and the checks' profile |
+| `harness.toml`, `harness.lock` | the project file the devkit's tools read, and the devkit commit the app uses |
+| `AGENTS.md`, `CLAUDE.md` | the rules for building on GUI.Forms, for you and for any coding agent you work with |
+
+## 3. Build
+
+macOS and Linux:
+
+```sh
+cd hello_forms
+python3 build.py --jobs 4
+```
+
+Windows (PowerShell):
+
+```powershell
+cd hello_forms
+python build.py --jobs 4
+```
+
+`build.py` resolves the GUI.Forms pin to one build, downloads that build's
+SDK, checks its SHA-256 and unpacks it at `.sdk/gui-forms-sdk`. It then sets
+up the toolchain and the C++ runtime, writes the build environment to
+`.ci/local-build-env.sh` (and `.ps1`), configures with CMake and Ninja,
+builds and runs the tests. GUI.Forms is not compiled.
+
+The first build on macOS and Linux also builds the C++ runtime once, which
+takes several minutes. On Windows it restores GUI.Forms' published LLVM
+toolchain and its own C++ runtime, and builds the runtime only when no
+published one fits. To do that Windows step on its own, run
+`powershell -File .devkit\harness\bootstrap.ps1 own-runtime --workspace .`
+in the app after a first build: it prints the runtime settings and the
+`CMAKE_TOOLCHAIN_FILE` to configure with.
+
+Later builds stay on the same GUI.Forms build until you move them with
+`python3 build.py --resolve`; `--floor` builds against the floor itself.
+`--configure-only`, `--no-tests` and `--dry-run` do what they say.
+`python3 build.py check` runs the checks for house style, lifetime rules and
+retained mode over `src`, `tests` and `reference`.
 
 ### The build guard
 
-The devkit's CMake module (`harness/harness/cmake/DevkitBuildGuard.cmake`)
-checks the build when configuring ends and again before the first compile.
-If the build would compile GUI.Forms, or would not use the prebuilt SDK and
-the restored compiler cache, it stops with:
+The devkit's CMake module (`DevkitBuildGuard.cmake`, included by the app's
+`CMakeLists.txt`) checks the build when configuring ends and again before
+the first compile. If the build would compile GUI.Forms, or would not use
+the prebuilt SDK and the compiler cache, it stops with:
 
 ```text
 devkit build guard: likely misconfiguration preventing efficient incremental building.
@@ -120,126 +134,69 @@ devkit build guard: likely misconfiguration preventing efficient incremental bui
 Each finding below that line names what does not match and how to fix it.
 The usual causes:
 
-- the SDK is missing or is not the resolved build: run `resolve` and
-  `fetch` again;
-- the build environment is not loaded, so the compiler, the ccache settings
-  or the locale differ from the ones the cache was made with: load
-  `.ci/local-build-env.sh` (or `.ps1`) and configure again;
+- the SDK is missing or is not the resolved build: run
+  `python3 build.py --resolve`;
+- the compiler, the ccache settings or the locale differ from the ones the
+  SDK was built with, usually because a build ran outside `build.py` without
+  the build environment: load `.ci/local-build-env.sh` (or `.ps1`) first;
 - ccache is not installed, or is not the compiler launcher;
 - a GUI.Forms source tree is on the build's path, so its sources would be
   compiled.
 
-The guard works the same when an IDE runs the build. A missing C++ runtime
-on macOS or Linux is a warning, not a stop: the bootstrap builds one, once
-per workspace. To build anyway, configure with
+The guard works the same when an IDE runs the build: configure once with
+`python3 build.py --configure-only`, then point the IDE at the build
+directory. A missing C++ runtime on macOS or Linux is a warning, not a stop.
+To build anyway, run `python3 build.py --allow-full-build`, configure with
 `-DGUI_FORMS_DEVKIT_ALLOW_FULL_BUILD=ON` or set
-`GUI_FORMS_DEVKIT_ALLOW_FULL_BUILD=1` in the environment, and expect a much
-longer build.
+`GUI_FORMS_DEVKIT_ALLOW_FULL_BUILD=1`, and expect a much longer build.
 
-## 3. Run
-
-Pocket Reference opens on the GUI.Forms reference.
+## 4. Run
 
 macOS:
 
 ```sh
-open build/pocket_reference/PocketReference.app
+open .build/native-macos-arm64/hello_forms.app
 ```
 
-Linux:
+Linux (on arm64, `native-linux-arm64`):
 
 ```sh
-build/pocket_reference/PocketReference
+.build/native-linux-x64/hello_forms
 ```
 
 Windows:
 
 ```powershell
-build\pocket_reference\PocketReference.exe
+.build\native-windows-x64\hello_forms.exe
 ```
 
-The same build holds the Gallery, Explore, Correspondence and the other
-demonstrators under `build/programs/`.
+## Pocket Reference and the demonstrators
 
-## 4. Your own app
+The devkit builds its own programs the same way. One command sets up its
+workspace and builds Pocket Reference, the Gallery, Explore, Correspondence
+and the other demonstrators against the prebuilt SDK.
 
-The devkit's app template (`harness/templates/app/`) is what every app
-starts from. Its reference app, `harness/example_app/`, is the template
-filled in: a greeter form, its test, the interaction test that holds hover
-and drag to no layout work, and `reference/`, the retained custom control to
-copy when you write your own. The template's `AGENTS.md` carries the rules
-in its "Building on GUI.Forms" section, for you and for any coding agent you
-work with.
-
-The harness's `new_app` command, which turns the template into a new
-repository, works on Malkuth's own repositories only. Until it can create an
-app in yours, start from the reference app's sources, beside the devkit:
+macOS and Linux:
 
 ```sh
-mkdir hello_forms && cp -R gui_forms_devkit/harness/example_app/src gui_forms_devkit/harness/example_app/tests gui_forms_devkit/harness/example_app/reference hello_forms/
+sh gui_forms_devkit/harness/bootstrap.sh --workspace gui_forms_devkit --project gui_forms_devkit
 ```
 
-Give it a `CMakeLists.txt` that builds through the devkit's module, so it
-uses the same SDK, cache and build guard:
+Windows (PowerShell):
 
-```cmake
-cmake_minimum_required(VERSION 3.25)
-project(HelloForms LANGUAGES CXX)
-
-include("${GUI_FORMS_DEVKIT_WORKSPACE}/harness/harness/cmake/DevkitBuildGuard.cmake")
-gui_forms_devkit_use_sdk()
-gui_forms_devkit_cache_launcher()
-
-set(CMAKE_NO_SYSTEM_FROM_IMPORTED ON)
-find_package(GUIForms 1.0 CONFIG REQUIRED COMPONENTS Application Controls)
-enable_testing()
-
-add_executable(greeter_tests src/greeter.cpp tests/greeter_tests.cpp)
-target_compile_features(greeter_tests PRIVATE cxx_std_20)
-target_include_directories(greeter_tests PRIVATE src)
-target_link_libraries(greeter_tests PRIVATE GUIForms::Controls)
-add_test(NAME greeter_tests COMMAND greeter_tests)
-
-add_executable(interaction_tests src/greeter.cpp reference/link_page.cpp reference/sample_document.cpp
-    tests/interaction_tests.cpp)
-target_compile_features(interaction_tests PRIVATE cxx_std_20)
-target_include_directories(interaction_tests PRIVATE src reference)
-target_link_libraries(interaction_tests PRIVATE GUIForms::Controls)
-add_test(NAME interaction_tests COMMAND interaction_tests)
-
-add_executable(hello_forms src/greeter.cpp src/main.cpp)
-target_compile_features(hello_forms PRIVATE cxx_std_20)
-target_include_directories(hello_forms PRIVATE src)
-target_link_libraries(hello_forms PRIVATE GUIForms::Application)
-if(APPLE)
-    set_target_properties(hello_forms PROPERTIES MACOSX_BUNDLE TRUE)
-    set(hello_forms_fonts "$<TARGET_BUNDLE_CONTENT_DIR:hello_forms>/Resources/fonts")
-else()
-    set(hello_forms_fonts "$<TARGET_FILE_DIR:hello_forms>/fonts")
-endif()
-add_custom_command(TARGET hello_forms POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory "${GUIForms_FONT_DIR}" "${hello_forms_fonts}")
-
-gui_forms_devkit_build_guard()
+```powershell
+powershell -File gui_forms_devkit\harness\bootstrap.ps1 --workspace gui_forms_devkit --project gui_forms_devkit
 ```
 
-Then, from the directory that holds `gui_forms_devkit/` and `hello_forms/`
-(macOS and Linux):
-
-```sh
-. gui_forms_devkit/.ci/local-build-env.sh
-cmake -S hello_forms -B hello_forms/build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=gui_forms_devkit/harness/harness/cmake/llvm22.cmake -DGUI_FORMS_DEVKIT_WORKSPACE="$PWD/gui_forms_devkit"
-cmake --build hello_forms/build
-ctest --test-dir hello_forms/build
-```
-
-Run it with `open hello_forms/build/hello_forms.app` on macOS, or
-`hello_forms/build/hello_forms` on Linux.
+Pocket Reference is then at
+`gui_forms_devkit/.build/native-<platform>/pocket_reference/` and the other
+programs under `programs/` beside it.
 
 ## Next
 
-- [Your first window](first-window) builds the shape GUI.Forms recommends:
-  a form document, the model it binds, a theme and an event handler.
+- [Your first window](first-window) builds the shape GUI.Forms recommends
+  in your app: a form document, the model it binds, a theme and an event
+  handler.
 - [Custom controls](custom-controls) is the tutorial for writing a control
   of your own, after checking that no stock control fits.
 - [Mockups](mockups) shows a form and a theme from files alone, with no

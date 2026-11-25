@@ -102,7 +102,7 @@ certutil -hashfile gui-forms-gallery-<version>-windows-x64.zip SHA256
 
 ## Build it yourself instead
 
-Bootstrap the devkit and build it: [Get started](get-started) gives one
-command per platform for each step. The build fetches the prebuilt SDK, so
-GUI.Forms itself is not compiled, and the programs land under
-`build/programs/` beside Pocket Reference.
+Clone the devkit and run its bootstrap:
+[Pocket Reference and the demonstrators](get-started.md#pocket-reference-and-the-demonstrators)
+gives the command for each platform. The build fetches the prebuilt SDK, so
+GUI.Forms itself is not compiled.

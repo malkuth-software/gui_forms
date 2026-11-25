@@ -26,15 +26,17 @@ notes/
 
 ## 1. Get the SDK
 
-Bootstrap and build the devkit as
+Make an app with the devkit and build it once, as
 [Get started](https://gui-forms.readthedocs.io/en/latest/user/get-started.html)
-describes. It fetches the prebuilt SDK to `gui_forms_devkit/.sdk/gui-forms-sdk`,
+describes. Its build fetches the prebuilt SDK to `<app>/.sdk/gui-forms-sdk`,
 a prefix holding `include/gui_forms/`, the libraries, `lib/cmake/GUIForms/`
 and `share/GUIForms/fonts/` (the font licences), and the toolchain file every
-consumer is configured with is `gui_forms_devkit/harness/harness/cmake/llvm22.cmake`.
+consumer is configured with is `<app>/.devkit/harness/harness/cmake/llvm22.cmake`
+(on Windows, the `CMAKE_TOOLCHAIN_FILE` the build environment names).
 Below, `/path/to/sdk` and `/path/to/llvm22.cmake` stand for those two paths.
-Load the devkit's build environment (`. gui_forms_devkit/.ci/local-build-env.sh`)
-in the shell you build from.
+Load the app's build environment (`. <app>/.ci/local-build-env.sh`) in the
+shell you build from. Simpler still: put this tutorial's files in that app
+and let its `build.py` build them.
 
 ## 2. The CMake project
 

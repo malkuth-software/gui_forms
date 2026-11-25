@@ -6,12 +6,13 @@ recommends: a form document says what exists, a model holds the state it
 binds, a theme package gives it its look, and program code attaches the
 behaviour.
 
-It continues from [Get started](get-started), in the app made there
-(`hello_forms/`): the form goes in `forms/`, the model header in `src/`, the
-theme in `themes/greeter/`, and the `main.cpp` below replaces `src/main.cpp`.
-In `CMakeLists.txt`, the program's sources become `src/main.cpp` alone and
-the two calls below follow it. Build and run it as before; the tests keep
-the reference app's greeter.
+It continues from [Get started](get-started), in the app `new-app` made
+there (`hello_forms/`): the form goes in `forms/`, the model header in
+`src/`, the theme in `themes/greeter/`, and the `main.cpp` below replaces
+`src/main.cpp`. In `CMakeLists.txt`, the program's sources become
+`src/main.cpp` alone and the two calls below follow its `add_executable`.
+Build and run it as before, with `python3 build.py --jobs 4`; the tests keep
+the template's greeter.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>

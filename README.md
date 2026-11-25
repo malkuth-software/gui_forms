@@ -246,40 +246,40 @@ of any kind in use.
 
 You build GUI.Forms applications with the devkit,
 [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit).
-It fetches a prebuilt GUI.Forms SDK and a compiler cache and builds only
-your code: GUI.Forms itself is never compiled.
+It fetches a prebuilt GUI.Forms SDK and builds only your code: GUI.Forms
+itself is never compiled.
 [Get started](https://gui-forms.readthedocs.io/en/latest/user/get-started.html)
-walks through each step, including your own app.
+walks through each step.
 
-Bootstrap (macOS and Linux):
+macOS and Linux:
 
 ```sh
-git clone https://github.com/malkuth-software/gui_forms_devkit && sh gui_forms_devkit/harness/bootstrap.sh --workspace gui_forms_devkit --project gui_forms_devkit
+git clone https://github.com/malkuth-software/gui_forms_devkit
+sh gui_forms_devkit/harness/bootstrap.sh new-app hello_forms --license mit
+cd hello_forms
+python3 build.py --jobs 4
 ```
 
-Bootstrap (Windows, PowerShell):
+Windows (PowerShell):
 
 ```powershell
-git clone https://github.com/malkuth-software/gui_forms_devkit; powershell -File gui_forms_devkit\harness\bootstrap.ps1 --workspace gui_forms_devkit --project gui_forms_devkit
+git clone https://github.com/malkuth-software/gui_forms_devkit
+powershell -File gui_forms_devkit\harness\bootstrap.ps1 new-app hello_forms --license mit
+cd hello_forms
+python build.py --jobs 4
 ```
 
-Build and run (macOS; on Linux use `--platform linux-x64` or `linux-arm64`
-and run `build/pocket_reference/PocketReference`):
-
-```sh
-cd gui_forms_devkit
-. .ci/local-build-env.sh
-python3 -B harness/harness/resolve_gui_forms.py resolve
-python3 -B harness/harness/resolve_gui_forms.py fetch --platform macos-arm64
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=harness/harness/cmake/llvm22.cmake
-cmake --build build
-open build/pocket_reference/PocketReference.app
-```
+`new-app` makes the app from the devkit's template, with `git init` and a
+first commit; it pushes nothing. `build.py` fetches the prebuilt SDK,
+builds and runs the tests. The program is then at
+`.build/native-<platform>/hello_forms` (`hello_forms.app` on macOS,
+`hello_forms.exe` on Windows).
 
 If the build stops with "devkit build guard: likely misconfiguration
 preventing efficient incremental building", it would have compiled
-GUI.Forms or missed the cache; each finding under that line says what to
-fix ([The build guard](https://gui-forms.readthedocs.io/en/latest/user/get-started.html#the-build-guard)).
+GUI.Forms or missed the SDK or the cache; each finding under that line says
+what to fix
+([The build guard](https://gui-forms.readthedocs.io/en/latest/user/get-started.html#the-build-guard)).
 
 Then:
 
