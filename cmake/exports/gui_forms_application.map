@@ -880,6 +880,7 @@
     _ZGVZN9gui_forms17PartRasterRequest*;
     _ZGVZN9gui_forms17PieSliceSelection*;
     _ZGVZN9gui_forms17PlotHeatmapSeries*;
+    _ZGVZN9gui_forms17PointerMotionCost*;
     _ZGVZN9gui_forms17PopupContainerBox*;
     _ZGVZN9gui_forms17PresentationLayer*;
     _ZGVZN9gui_forms17PresentationPopup*;
@@ -2628,6 +2629,7 @@
     _ZGVZNK9gui_forms17PartRasterRequest*;
     _ZGVZNK9gui_forms17PieSliceSelection*;
     _ZGVZNK9gui_forms17PlotHeatmapSeries*;
+    _ZGVZNK9gui_forms17PointerMotionCost*;
     _ZGVZNK9gui_forms17PopupContainerBox*;
     _ZGVZNK9gui_forms17PresentationLayer*;
     _ZGVZNK9gui_forms17PresentationPopup*;
@@ -4786,6 +4788,7 @@
     _ZN9gui_forms17PartRasterRequest*;
     _ZN9gui_forms17PieSliceSelection*;
     _ZN9gui_forms17PlotHeatmapSeries*;
+    _ZN9gui_forms17PointerMotionCost*;
     _ZN9gui_forms17PopupContainerBox*;
     _ZN9gui_forms17PresentationLayer*;
     _ZN9gui_forms17PresentationPopup*;
@@ -5851,6 +5854,8 @@
     _ZN9gui_forms22locale_file_error_nameE*;
     _ZN9gui_forms22measure_available_sizeB*;
     _ZN9gui_forms22measure_available_sizeE*;
+    _ZN9gui_forms22measure_pointer_motionB*;
+    _ZN9gui_forms22measure_pointer_motionE*;
     _ZN9gui_forms22nearest_device_monitorB*;
     _ZN9gui_forms22nearest_device_monitorE*;
     _ZN9gui_forms22overflow_outline_styleB*;
@@ -7964,6 +7969,7 @@
     _ZNK[RO]9gui_forms17PartRasterRequest*;
     _ZNK[RO]9gui_forms17PieSliceSelection*;
     _ZNK[RO]9gui_forms17PlotHeatmapSeries*;
+    _ZNK[RO]9gui_forms17PointerMotionCost*;
     _ZNK[RO]9gui_forms17PopupContainerBox*;
     _ZNK[RO]9gui_forms17PresentationLayer*;
     _ZNK[RO]9gui_forms17PresentationPopup*;
@@ -9712,6 +9718,7 @@
     _ZN[KRO]9gui_forms17PartRasterRequest*;
     _ZN[KRO]9gui_forms17PieSliceSelection*;
     _ZN[KRO]9gui_forms17PlotHeatmapSeries*;
+    _ZN[KRO]9gui_forms17PointerMotionCost*;
     _ZN[KRO]9gui_forms17PopupContainerBox*;
     _ZN[KRO]9gui_forms17PresentationLayer*;
     _ZN[KRO]9gui_forms17PresentationPopup*;
@@ -11460,6 +11467,7 @@
     _ZT[VIST]N9gui_forms17PartRasterRequest*E;
     _ZT[VIST]N9gui_forms17PieSliceSelection*E;
     _ZT[VIST]N9gui_forms17PlotHeatmapSeries*E;
+    _ZT[VIST]N9gui_forms17PointerMotionCost*E;
     _ZT[VIST]N9gui_forms17PopupContainerBox*E;
     _ZT[VIST]N9gui_forms17PresentationLayer*E;
     _ZT[VIST]N9gui_forms17PresentationPopup*E;
@@ -13208,6 +13216,7 @@
     _ZT[hvc]*9gui_forms17PartRasterRequest*;
     _ZT[hvc]*9gui_forms17PieSliceSelection*;
     _ZT[hvc]*9gui_forms17PlotHeatmapSeries*;
+    _ZT[hvc]*9gui_forms17PointerMotionCost*;
     _ZT[hvc]*9gui_forms17PopupContainerBox*;
     _ZT[hvc]*9gui_forms17PresentationLayer*;
     _ZT[hvc]*9gui_forms17PresentationPopup*;
@@ -14956,6 +14965,7 @@
     _ZZN9gui_forms17PartRasterRequest*;
     _ZZN9gui_forms17PieSliceSelection*;
     _ZZN9gui_forms17PlotHeatmapSeries*;
+    _ZZN9gui_forms17PointerMotionCost*;
     _ZZN9gui_forms17PopupContainerBox*;
     _ZZN9gui_forms17PresentationLayer*;
     _ZZN9gui_forms17PresentationPopup*;
@@ -16704,6 +16714,7 @@
     _ZZNK9gui_forms17PartRasterRequest*;
     _ZZNK9gui_forms17PieSliceSelection*;
     _ZZNK9gui_forms17PlotHeatmapSeries*;
+    _ZZNK9gui_forms17PointerMotionCost*;
     _ZZNK9gui_forms17PopupContainerBox*;
     _ZZNK9gui_forms17PresentationLayer*;
     _ZZNK9gui_forms17PresentationPopup*;

@@ -8,7 +8,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 
 | Supported | Deferred | Excluded | Unclassified | GUI.Forms-only |
 |---|---|---|---|---|
-| 2506 | 3 | 370 | 4150 | 2637 |
+| 2521 | 3 | 370 | 4147 | 2649 |
 
 ## GUI.Forms types
 
@@ -26,7 +26,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `TokenBox` | GUI.Forms-only | 12 | 0 | 0 | 2 | 14 |
 | `SearchField` | GUI.Forms-only | 7 | 0 | 0 | 5 | 12 |
 | `ButtonTextBox` | GUI.Forms-only | 10 | 0 | 0 | 6 | 16 |
-| `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 38 | 7 |
+| `MaskedTextBox` | `MaskedTextBox` | 16 | 0 | 0 | 39 | 8 |
 | `RichTextBox` | `RichTextBox` | 26 | 0 | 2 | 55 | 20 |
 | `Label` | `Label` | 7 | 0 | 1 | 36 | 9 |
 | `TextBlock` | GUI.Forms-only | 3 | 0 | 0 | 7 | 10 |
@@ -88,7 +88,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `NavigationPane` | GUI.Forms-only | 19 | 0 | 0 | 2 | 21 |
 | `DockSite` | GUI.Forms-only | 53 | 0 | 0 | 6 | 59 |
 | `DockNavigator` | GUI.Forms-only | 10 | 0 | 0 | 4 | 14 |
-| `TabPage` | `TabPage` | 4 | 0 | 0 | 16 | 0 |
+| `TabPage` | `TabPage` | 4 | 0 | 0 | 17 | 1 |
 | `FlexPanel` | GUI.Forms-only | 5 | 0 | 0 | 2 | 7 |
 | `GridPanel` | GUI.Forms-only | 11 | 0 | 0 | 3 | 14 |
 | `BlockPanel` | GUI.Forms-only | 7 | 0 | 0 | 4 | 11 |
@@ -102,8 +102,8 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `Splitter` | `Splitter` | 9 | 0 | 0 | 19 | 5 |
 | `CommandOverflowPanel` | GUI.Forms-only | 2 | 0 | 0 | 4 | 6 |
 | `MasterDetailView` | GUI.Forms-only | 11 | 0 | 0 | 1 | 12 |
-| `ScrollableControl` | `ScrollableControl` | 16 | 0 | 0 | 20 | 17 |
-| `ScrollBar` | `ScrollBar` | 12 | 0 | 0 | 24 | 6 |
+| `ScrollableControl` | `ScrollableControl` | 18 | 0 | 0 | 19 | 18 |
+| `ScrollBar` | `ScrollBar` | 13 | 0 | 0 | 23 | 6 |
 | `HScrollBar` | `HScrollBar` | 1 | 0 | 0 | 0 | 0 |
 | `VScrollBar` | `VScrollBar` | 1 | 0 | 0 | 1 | 0 |
 | `MenuStrip` | `MenuStrip` | 13 | 0 | 0 | 8 | 10 |
@@ -164,7 +164,7 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `ImageList` | `ImageList` | 16 | 0 | 0 | 14 | 19 |
 | `ErrorProvider` | `ErrorProvider` | 14 | 0 | 0 | 17 | 9 |
 | `HelpProvider` | `HelpProvider` | 16 | 0 | 0 | 7 | 10 |
-| `HelpBook` | GUI.Forms-only | 9 | 0 | 0 | 17 | 26 |
+| `HelpBook` | GUI.Forms-only | 21 | 0 | 0 | 14 | 35 |
 | `HelpBookViewer` | GUI.Forms-only | 28 | 0 | 0 | 14 | 42 |
 | `HelpBookSystem` | `Help` | 35 | 0 | 0 | 11 | 43 |
 | `SemanticFeedback` | GUI.Forms-only | 7 | 0 | 0 | 1 | 8 |
@@ -318,5 +318,5 @@ Every GUI.Forms control and every property, event and method on each, against it
 | `no-entry` | 497 |
 | `review` | 13 |
 | `unmatched` | 1588 |
-| `untested` | 977 |
+| `untested` | 974 |
 | `w-open` | 5 |

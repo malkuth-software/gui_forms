@@ -375,6 +375,20 @@ gui_forms::MenuStrip
 
       *Protected.*
 
+   .. cpp:function:: void on_key_press(KeyPressEventArgs& arguments) override
+
+      *Protected.*
+
+      In menu-bar mode (the strip focused, no menu open) a letter opens the item it marks as mnemonic, or else the item it starts, as Windows' menu bar does.
+
+   .. cpp:function:: void on_attached_to_window() override
+
+      *Protected.*
+
+   .. cpp:function:: void on_detached_from_window() noexcept override
+
+      *Protected.*
+
    .. cpp:function:: void append_interactions(std::vector<InteractionDeclaration>& interactions) const override
 
       *Protected.*

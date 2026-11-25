@@ -439,7 +439,7 @@ gui_forms::HelpBook
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 18 supported, 0 deferred, 0 excluded, 17 unclassified; 35 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 21 supported, 0 deferred, 0 excluded, 14 unclassified; 35 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -509,7 +509,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
    * - method
      - GUI.Forms-only
      - ``block_top``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``clear_find``
@@ -533,7 +533,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
    * - method
      - GUI.Forms-only
      - ``link_bounds``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``mark_visited``
@@ -577,7 +577,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 18 s
    * - method
      - GUI.Forms-only
      - ``show_page``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``show_record``
