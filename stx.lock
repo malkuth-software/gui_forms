@@ -38,6 +38,11 @@
 # 418c396 is stx main after stx PR #12 (stx 1.0.3): STXlib 1.0.3 (98cff2b:
 # the secure stdio family and _scprintf in the Windows C library headers),
 # and every package at version 1.0.3.
+#
+# 77f5280 is stx main after stx PR #13 (stx 1.0.4): STXlib 1.0.4 (ce44834:
+# windows.h's default include set complete, Winsock 2 and AF_UNIX for the
+# attach endpoint, and an empty m.lib in the own runtime), and every package
+# at version 1.0.4.
 [stx]
 repository = "malkuth-software/stx"
-commit = "418c39672709ebc4c4885a21324d06081d8f78dd"
+commit = "77f528014b26146de859b15a450a781117a25b6c"

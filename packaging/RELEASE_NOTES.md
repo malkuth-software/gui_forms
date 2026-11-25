@@ -838,3 +838,8 @@ One release folds the work queued after 1.0.4.
 - The neutral type names (`WNDCLASS`, `LOGFONT`, `STARTUPINFO`,
   `SHELLEXECUTEINFO`, `FONTENUMPROC`, ...) are defined, as the W form under
   `UNICODE`; until now only their A and W forms were.
+- Winsock 2 and `AF_UNIX` are declared (`winsock2.h`, `ws2def.h`,
+  `ws2tcpip.h`, `afunix.h`, with an import list for ws2_32.dll), which the
+  attach endpoint needs on Windows, and the own runtime ships an empty
+  `m.lib`, so a link line that names the maths library needs no workaround.
+- GUI.Forms builds with stx 1.0.4 on STXlib 1.0.4.
