@@ -12,7 +12,7 @@ on:
   # The daily full run on main reuses nothing: every native job validates
   # afresh, and the deployment and docs jobs build and test everything.
   # (The Sanitizers job runs only when requested by hand; see its comment.) It is the backstop for what a push to main carries from the
-  # merged pull request's run (tools/release_tests.py, tools/ci_tree_receipt.py):
+  # merged pull request's run (tools/ci_tree_receipt.py):
   # the name match of tools/native_tests.py and the change selection of
   # tools/change_selection.py. It publishes nothing.
   # It runs only when main changed since the last successful scheduled run,
