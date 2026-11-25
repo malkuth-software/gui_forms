@@ -232,8 +232,11 @@ public:
         std::size_t columns = 0U;
         std::size_t rows = 0U;
         if (advance_ > 0.0 && line_height_ > 0.0) {
+            // The rows are as tall as the paint draws them: a whole number
+            // of buffer pixels at this density, scaled back.
+            const double row_height = std::max(1.0, std::ceil(line_height_ * density)) / density;
             columns = std::max<std::size_t>(16U, static_cast<std::size_t>(usable / advance_));
-            rows = std::max<std::size_t>(1U, static_cast<std::size_t>(text_height / line_height_));
+            rows = std::max<std::size_t>(1U, static_cast<std::size_t>(text_height / row_height));
         }
         const bool changed = columns != columns_ || rows != screen_.visible_rows() || density != density_;
         if (changed && columns > 0U && !rebuild_posted_) {
@@ -564,9 +567,20 @@ public:
     }
 
     void on_pointer_preview(PointerEvent& event) override {
-        if (event.action != PointerAction::up || event.button != PointerButton::primary) return;
+        if (event.button != PointerButton::primary) return;
+        if (event.action == PointerAction::down) {
+            pressed_ = true;
+            event.handled = true;
+            return;
+        }
+        if (event.action != PointerAction::up) return;
         event.handled = true;
-        if (overlay_ != nullptr) (*overlay_).request_toggle();
+        // Only a click that began on the button toggles: a release left
+        // over from a press elsewhere (one that opened the button under
+        // the pointer) does nothing.
+        const bool clicked = pressed_;
+        pressed_ = false;
+        if (clicked && overlay_ != nullptr) (*overlay_).request_toggle();
     }
 
     void forget_overlay() noexcept { overlay_ = nullptr; }
@@ -574,6 +588,7 @@ public:
 private:
     ConsoleOverlay* overlay_{};
     std::shared_ptr<Spinner> spinner_{};
+    bool pressed_{};
 };
 
 namespace {

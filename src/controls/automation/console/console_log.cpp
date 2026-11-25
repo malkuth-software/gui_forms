@@ -228,12 +228,13 @@ ConsoleShade console_shade(ConsoleTone tone, std::uint64_t serial, std::size_t g
     const std::uint64_t hash = console_glyph_hash(serial, glyph);
     ConsoleShade shade{};
     shade.c = tone == ConsoleTone::value ? 1.0 : 0.0;
-    // conf around 0.8 (a label's around 0.55), plus or minus 0.08, the
-    // spread weighted toward the centre (the mean of two uniforms); v is
-    // max(50, conf * 255) / 255.
-    const double centre = tone == ConsoleTone::label ? 0.55 : 0.8;
+    // conf around 0.9 (a label's around 0.62, as dim against it as 0.55
+    // against 0.8), plus or minus 0.12, the spread weighted toward the
+    // centre (the sum of two uniforms less 1); v is max(50, conf * 255) /
+    // 255, at most 1 (owner, 2026-11-25: "brighter, a bit more variation").
+    const double centre = tone == ConsoleTone::label ? 0.62 : 0.9;
     const double spread = unit(hash, 0U) + unit(hash, 24U) - 1.0;
-    shade.v = std::max(50.0 / 255.0, centre + 0.08 * spread);
+    shade.v = std::clamp(centre + 0.12 * spread, 50.0 / 255.0, 1.0);
     return shade;
 }
 

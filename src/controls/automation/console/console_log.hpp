@@ -130,8 +130,8 @@ struct ConsoleShade final {
 // The shade of glyph `glyph` (its code point index in the line) of line
 // `serial` in `tone`, as the owner's FastMatrixDashboard shades a cell:
 // c is 0 for the instruction and a label and 1 for a value; v is the
-// glyph's confidence, max(50/255, conf) with conf drawn around 0.8 (0.55
-// for a label) within plus or minus 0.08, from a hash of the serial and the
+// glyph's confidence, max(50/255, conf) at most 1, with conf drawn around
+// 0.9 (0.62 for a label) within plus or minus 0.12, from a hash of the serial and the
 // glyph, so a repaint, a capture and a test draw the same colours.
 [[nodiscard]] ConsoleShade console_shade(ConsoleTone tone, std::uint64_t serial, std::size_t glyph) noexcept;
 // The formula's colour for `shade`, each channel quantized to 8 bits with
