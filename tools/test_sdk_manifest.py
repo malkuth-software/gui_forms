@@ -3,10 +3,12 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import sdk_manifest  # noqa: E402
@@ -84,7 +86,9 @@ class AssembleTests(unittest.TestCase):
             sdk_manifest.assemble('1.0.4', REVISION, records)
 
     def test_the_command_line_reads_records_from_artifact_folders(self) -> None:
-        with tempfile.TemporaryDirectory() as directory:
+        # The macOS record names the SDK version; SDK_VERSION gives it where no
+        # xcrun is (the Linux job runs this test).
+        with tempfile.TemporaryDirectory() as directory, mock.patch.dict(os.environ, {'SDK_VERSION': '26.0'}):
             root: Path = Path(directory)
             platform: str
             for platform in sdk_manifest.PLATFORMS:
