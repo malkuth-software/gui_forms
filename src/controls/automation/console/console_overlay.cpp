@@ -25,8 +25,8 @@ ConsoleOverlayListener::~ConsoleOverlayListener() = default;
 
 namespace {
 
-constexpr const char* button_id = "automation.console-button";
-constexpr const char* console_id = "automation.console";
+constexpr std::string_view button_id = "automation.console-button";
+constexpr std::string_view console_id = "automation.console";
 // The console's face and size: Portsmouth Mono, the owner's console face.
 constexpr double console_font_size = 12.5;
 constexpr double console_padding = 10.0;
@@ -145,7 +145,7 @@ public:
             // arrange must not change the tree.
             wanted_columns_ = columns;
             wanted_rows_ = rows;
-            SurfaceRoot* const window = attached_surface_root().get();
+            SurfaceRoot* const window = attached_surface_root();
             if (window != nullptr) {
                 try {
                     static_cast<void>((*window).begin_invoke(RewrapWork{self_}));

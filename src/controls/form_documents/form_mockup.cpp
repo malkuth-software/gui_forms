@@ -406,7 +406,7 @@ std::shared_ptr<BindingSource> MockupLoad::record_source(detail::FormMockupGener
     for (const form_language::FixtureRecords& records : fixture_.records) {
         if (records.name == name) written = &records;
     }
-    Window* const window = (*state_.host).window();
+    Window* const window = (*state_.host).attached_window();
     if (window == nullptr) {
         const SourcePosition position = written != nullptr ? (*written).position : SourcePosition{};
         report(DiagnosticCode::form_binding_source_refused, written != nullptr ? fixture_source_ : document_,
@@ -647,7 +647,7 @@ void MockupLoad::report(DiagnosticCode code, const ThemeSource& source, SourcePo
         if (old_root && (*old_root).parent() == nullptr) host.add_child(old_root);
     }
     host.resume_layout(true);
-    Window* const window = host.window();
+    Window* const window = host.attached_window();
     if (shown && window != nullptr) {
         // A button that is no dialog command is left unset: a mockup is
         // shown, not refused, for want of one.
@@ -719,7 +719,7 @@ void FormMockup::clear() {
 
 ThemeCompileResult FormMockup::set_theme(ThemeBase base, const FormMockupText& sheet) {
     Control& host = *(*state_).host;
-    Window* const window = host.window();
+    Window* const window = host.attached_window();
     if (window == nullptr) throw std::logic_error("FormMockup::set_theme: the host is in no window");
     ThemeCompileOptions options{};
     options.controls = stock_control_anatomies();
