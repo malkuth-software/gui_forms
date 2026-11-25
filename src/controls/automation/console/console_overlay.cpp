@@ -205,7 +205,7 @@ public:
             if (columns_ > 0U) {
                 std::vector<ConsoleGlyphRow> rows{};
                 console_wrap(line, columns_, rows);
-                screen_.queue_line(std::move(rows));
+                screen_.queue_line(std::move(rows), begins_entry(line));
             }
         }
         if (lines_.size() > kept_lines) {
@@ -342,7 +342,7 @@ public:
         for (const ConsoleLine& line : lines_) {
             std::vector<ConsoleGlyphRow> rows{};
             console_wrap(line, columns_, rows);
-            screen_.queue_line(std::move(rows));
+            screen_.queue_line(std::move(rows), false);
         }
         screen_.show_all();
         sync();
@@ -350,6 +350,20 @@ public:
     }
 
 private:
+    struct RowRaster final {
+        std::vector<std::byte> pixels{};
+        std::size_t painted{};
+    };
+
+    // Whether `line` begins an entry (a call, a typed line, a note), not a
+    // reply's line ("‹ ..." or an indented continuation).
+    static bool begins_entry(const ConsoleLine& line) {
+        if (line.spans.empty()) return true;
+        const std::string& first = line.spans.front().text;
+        const bool reply = first.rfind("\u2039", 0U) == 0U || first.rfind("  ", 0U) == 0U;
+        return !reply;
+    }
+
     static std::uint64_t slot_key(std::uint64_t row, std::size_t segment) noexcept {
         return row * 16U + static_cast<std::uint64_t>(segment);
     }
@@ -409,7 +423,6 @@ private:
         }
         glyphs_.prepare(*root, wanted);
         const std::uint32_t slot_width = (*atlas_).layout().slot_width;
-        const std::uint32_t cell_width = glyphs_.cell_width();
         const std::uint32_t cell_height = std::min<std::uint32_t>(glyphs_.cell_height(), 1024U);
         const std::size_t row_bytes = static_cast<std::size_t>(slot_width) * segments_ * 4U;
         std::map<std::uint64_t, RowRaster> kept{};
@@ -418,35 +431,57 @@ private:
             RowRaster raster{};
             if (found != rasters_.end()) raster = std::move((*found).second);
             if (raster.pixels.empty()) raster.pixels.assign(row_bytes * cell_height, std::byte{0});
-            if (row.shown > raster.painted) {
-                std::size_t first_segment = segments_;
-                std::size_t last_segment = 0U;
-                for (std::size_t index = raster.painted; index < row.shown; ++index) {
-                    const ConsoleGlyph& glyph = row.row.glyphs[index];
-                    const std::vector<float>* const mask = glyphs_.mask(glyph.text);
-                    const std::size_t left = glyph.column * cell_width;
-                    if (mask == nullptr || left + cell_width > row_bytes / 4U) continue;
-                    composite(raster.pixels, row_bytes, left, *mask, cell_width, cell_height, glyph.shade);
-                    first_segment = std::min(first_segment, left / slot_width);
-                    last_segment = std::max(last_segment, (left + cell_width - 1U) / slot_width);
+            // The glyphs newly shown, and those whose glow changed.
+            std::size_t first_segment = segments_;
+            std::size_t last_segment = 0U;
+            const std::size_t painted = std::min(raster.painted, row.shown);
+            composite_range(raster, row, painted, row.shown, first_segment, last_segment);
+            raster.painted = row.shown;
+            for (const ConsoleFade& fade : screen_.fades()) {
+                if (fade.key == row.key) {
+                    composite_range(raster, row, fade.first, std::min(fade.last, painted), first_segment,
+                                    last_segment);
                 }
-                raster.painted = row.shown;
-                for (std::size_t segment = first_segment; segment <= last_segment && segment < segments_;
-                     ++segment) {
-                    write_slot(row.key, segment, raster.pixels, row_bytes);
+            }
+            for (const ConsoleFade& fade : screen_.settled()) {
+                if (fade.key == row.key) {
+                    composite_range(raster, row, fade.first, std::min(fade.last, row.shown), first_segment,
+                                    last_segment);
                 }
+            }
+            for (std::size_t segment = first_segment; segment <= last_segment && segment < segments_; ++segment) {
+                write_slot(row.key, segment, raster.pixels, row_bytes);
             }
             kept[row.key] = std::move(raster);
         }
         rasters_ = std::move(kept);
     }
 
-    // One glyph's cell: its mask times the formula's colour, premultiplied
-    // BGRA, over clear (the layer beneath is the surface's own fill).
+    // Composites glyphs [first, last) of `row` into its raster, each in its
+    // colour at its glow now, and widens the segments touched.
+    void composite_range(RowRaster& raster, const ConsoleScreenRow& row, std::size_t first, std::size_t last,
+                         std::size_t& first_segment, std::size_t& last_segment) {
+        const std::uint32_t slot_width = (*atlas_).layout().slot_width;
+        const std::uint32_t cell_width = glyphs_.cell_width();
+        const std::uint32_t cell_height = std::min<std::uint32_t>(glyphs_.cell_height(), 1024U);
+        const std::size_t row_bytes = static_cast<std::size_t>(slot_width) * segments_ * 4U;
+        for (std::size_t index = first; index < last && index < row.row.glyphs.size(); ++index) {
+            const ConsoleGlyph& glyph = row.row.glyphs[index];
+            const std::vector<float>* const mask = glyphs_.mask(glyph.text);
+            const std::size_t left = glyph.column * cell_width;
+            if (mask == nullptr || left + cell_width > row_bytes / 4U) continue;
+            const ConsoleRgb rgb = console_glow(glyph.shade, screen_.glow(row.key, index));
+            composite(raster.pixels, row_bytes, left, *mask, cell_width, cell_height, rgb);
+            first_segment = std::min<std::size_t>(first_segment, left / slot_width);
+            last_segment = std::max<std::size_t>(last_segment, (left + cell_width - 1U) / slot_width);
+        }
+    }
+
+    // One glyph's cell: its mask times its colour, premultiplied BGRA, over
+    // clear (the layer beneath is the surface's own fill).
     static void composite(std::vector<std::byte>& pixels, std::size_t row_bytes, std::size_t left,
                           const std::vector<float>& mask, std::uint32_t cell_width, std::uint32_t cell_height,
-                          ConsoleShade shade) {
-        const ConsoleRgb rgb = console_formula(shade);
+                          ConsoleRgb rgb) {
         for (std::uint32_t y = 0U; y < cell_height; ++y) {
             for (std::uint32_t x = 0U; x < cell_width; ++x) {
                 const float coverage = mask[static_cast<std::size_t>(y) * cell_width + x];
@@ -497,11 +532,6 @@ private:
             sync();
         }
     }
-
-    struct RowRaster final {
-        std::vector<std::byte> pixels{};
-        std::size_t painted{};
-    };
 
     static constexpr FrameInterval frame_interval = std::chrono::milliseconds(16);
 

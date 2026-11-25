@@ -256,6 +256,22 @@ ConsoleRgb console_formula(ConsoleShade shade) noexcept {
     return rgb;
 }
 
+ConsoleRgb console_glow(ConsoleShade shade, double glow) noexcept {
+    const ConsoleRgb settled = console_formula(shade);
+    const double amount = std::clamp(glow, 0.0, 1.0);
+    if (amount <= 0.0) return settled;
+    const ConsoleRgb full = console_formula(ConsoleShade{shade.c, 1.0});
+    // Lit: the hue at full brightness, lightened 45% of the way to white.
+    const double lighten = 0.45;
+    const ConsoleRgb lit{full.r + (1.0 - full.r) * lighten, full.g + (1.0 - full.g) * lighten,
+                         full.b + (1.0 - full.b) * lighten};
+    ConsoleRgb rgb{};
+    rgb.r = settled.r + (lit.r - settled.r) * amount;
+    rgb.g = settled.g + (lit.g - settled.g) * amount;
+    rgb.b = settled.b + (lit.b - settled.b) * amount;
+    return rgb;
+}
+
 Color console_colour(ConsoleShade shade, std::uint64_t seed) noexcept {
     const ConsoleRgb rgb = console_formula(shade);
     const std::uint64_t noise = mix(seed ^ 0x5851f42d4c957f2dULL);

@@ -145,6 +145,11 @@ struct ConsoleRgb final {
     double b{};
 };
 [[nodiscard]] ConsoleRgb console_formula(ConsoleShade shade) noexcept;
+// A value glyph's colour as it appears lit (owner, 2026-11-25: green
+// "brighter then dim to the correct colour"): at `glow` 1 the formula at
+// v = 1 lightened towards white, at 0 exactly console_formula(shade), and
+// a straight mix between.
+[[nodiscard]] ConsoleRgb console_glow(ConsoleShade shade, double glow) noexcept;
 // The hash console_shade and the glyph's dither draw from.
 [[nodiscard]] std::uint64_t console_glyph_hash(std::uint64_t serial, std::size_t glyph) noexcept;
 
