@@ -113,7 +113,8 @@ public:
     [[nodiscard]] const HelpPageModel& page() const& noexcept { return page_; }
     const HelpPageModel& page() const&& = delete;
     // Scrolls so the anchored block is at the top, opening the sections
-    // around it. Returns false when no block has the anchor.
+    // around it; before the book has a size, the first arrange that gives
+    // it one scrolls there. Returns false when no block has the anchor.
     bool scroll_to_anchor(std::string_view anchor);
 
     void set_section_open(std::size_t section, bool open);
@@ -441,6 +442,9 @@ private:
     std::vector<FindMatch> matches_{};
     std::size_t current_match_{};
     bool pending_reveal_{};
+    // An anchor asked for before the book had a size, scrolled to by the
+    // first arrange that gives it one.
+    std::string pending_anchor_{};
     // What the screen layout was made from, so arrange lays out again only
     // when it changed.
     FontSpec layout_font_{};

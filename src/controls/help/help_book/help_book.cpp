@@ -250,6 +250,7 @@ void HelpBook::show_page(HelpPageModel page, std::string_view anchor) {
     matches_.clear();
     current_match_ = 0U;
     pending_reveal_ = false;
+    pending_anchor_.clear();
     relayout();
     static_cast<void>(scroll_to(Point{0.0, 0.0}));
     if (!anchor.empty()) static_cast<void>(scroll_to_anchor(anchor));
@@ -284,6 +285,12 @@ bool HelpBook::scroll_to_anchor(std::string_view anchor) {
     if (block.absent()) return false;
     // Open every section around the block, innermost outward.
     if (open_sections_around((*block.value()))) relayout();
+    if (viewport_rectangle().height <= 0.0) {
+        // No size yet: the first arrange that gives one scrolls there.
+        pending_anchor_ = std::string(anchor);
+        return true;
+    }
+    pending_anchor_.clear();
     const stxlib::Optional<double> found_top = block_top((*block.value()));
     const double* const top = found_top.value();
     if (top == nullptr) return false;
@@ -1416,6 +1423,11 @@ void HelpBook::arrange(Rect final_bounds) {
     relayout_if_changed();
     arrange_scroll_viewport(client, Size{layout_.extent, layout_.height});
     Control::arrange(final_bounds);
+    if (!pending_anchor_.empty() && viewport_rectangle().height > 0.0) {
+        const std::string anchor = std::move(pending_anchor_);
+        pending_anchor_.clear();
+        static_cast<void>(scroll_to_anchor(anchor));
+    }
     if (pending_reveal_ && final_bounds.height > 0.0) {
         pending_reveal_ = false;
         reveal_current_match();
