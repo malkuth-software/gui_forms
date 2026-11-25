@@ -700,6 +700,10 @@ std::string AutomationRun::admit_connection(const AttachClient& client, const Ca
     if (transport_ && stdio_client_seen_.load() && !stdio_ended_.load()) {
         return "the client that launched this program is connected to it";
     }
+    // A client that connects as soon as the socket appears waits for the
+    // first window, as the launching client's session does (serving starts
+    // after the first window's ready callback); the server's stop ends the wait.
+    if (!wait_for_window(stop)) return "the program is closing";
     if (launch_.mcp || launch_.shared || launch_.appearance_review) return std::string{};
     // Launched without a flag: the user is asked, every connection.
     const WindowDispatcher dispatcher = home_dispatcher();
