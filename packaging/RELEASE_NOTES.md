@@ -700,35 +700,26 @@ One release folds the work queued after 1.0.4.
   owned by the program's window: a new line repaints only the console, they
   are never in a capture, the automation never reads or drives them, and
   they follow the window when it moves or is resized.
-- **Attach** (owner, 2026-11-24, revision 2). Every program listens on a
-  local endpoint only its own user can reach: a Unix domain socket, mode
-  0600, in a directory of the user's own with mode 0700 (macOS's per-user
-  temporary directory, `$XDG_RUNTIME_DIR`, else `/tmp/gui-forms-attach-<uid>`;
-  refused when the directory is not private), each peer's user checked
-  again; on Windows a named pipe whose DACL grants only the user's SID,
-  remote clients rejected, each client's token user checked. The new
-  `gui-forms-attach` bridge is what a client starts from `.mcp.json`: it
-  lists the running programs (`--list`), picks one (`--program` with an
-  identity or a pid, or the only one running), names the client as the
-  client named itself, and carries MCP both ways. A program launched with
-  `--mcp` or `--mcp-shared` accepts a connection at once (`--mcp-shared`
-  keeps the first act's countdown; `--mcp` is AI-led). A program launched
-  without a flag asks its user in the program for every connection
-  ("Allow a connection to this program?"), naming the client by what it
-  reports and saying that name is not verified; Allow and Don't Allow, no
-  countdown, nothing remembered. One client at a time. When an attached
-  client goes, its session ends and control returns to the user; the
-  program stays open. Captures always use the engine's own capture.
-  `GUI_FORMS_MCP_ATTACH=0` turns the endpoint off; high-integrity builds
-  and `--mcp-script` runs have none.
-- **Attach, revision 3** (owner, 2026-11-25): "claude then simply starts a
+- **Attach** (owner, 2026-11-24). Every program listens on a local
+  socket only its own user can reach, each peer's user checked again by
+  the kernel. A program launched with `--mcp` or `--mcp-shared` accepts a
+  connection at once (`--mcp-shared` keeps the first act's countdown;
+  `--mcp` is AI-led). A program launched without a flag asks its user in
+  the program for every connection ("Allow a connection to this
+  program?"), naming the client by what it reports and saying that name is
+  not verified; Allow and Don't Allow, no countdown, nothing remembered.
+  One client at a time. When an attached client goes, its session ends and
+  control returns to the user; the program stays open. Captures always use
+  the engine's own capture. `GUI_FORMS_MCP_ATTACH=0` turns the endpoint
+  off; high-integrity builds and `--mcp-script` runs have none.
+- **The socket speaks MCP** (owner, 2026-11-25): "claude then simply starts a
   console session to the program. and that becomes mcp itself." The
   socket speaks MCP itself (newline-delimited JSON-RPC, MCP's stdio
   framing), so a client needs no bridge; a first line that is not JSON
   opens a plain-text console on the same socket (`help`, `tools`,
   `call <tool> <json or key=value ...>`, `transcript`, `resume <token>`,
   `quit`), whose replies are the tools' MCP text. AF_UNIX on every desktop
-  host, Windows included (the named pipe is gone). The run directory is
+  host, Windows included. The run directory is
   `~/Library/Caches/gui-forms/run` (macOS), `$XDG_RUNTIME_DIR/gui-forms`
   else `/tmp/gui-forms-<uid>` (Linux), `%LOCALAPPDATA%\gui-forms\run`
   (Windows, a protected DACL for the user's SID), with `<pid>.sock` and a
@@ -746,8 +737,9 @@ One release folds the work queued after 1.0.4.
   its client and token. `gui-forms-attach` is now a plain relay (its
   `--list` reads the discovery entries). New page:
   docs/user/talk-to-a-program.md.
-- A new client's session on the same program starts over: the
-  destructive-act answer given to the last model is asked again.
+- A new client's session on the same program, without the last session's
+  token, starts over: the destructive-act answer given to the last model is
+  asked again.
 - **Native alerts on Windows.** A MessageBoxW message box the program runs
   while the model holds control holds the user's input, as an NSAlert does
   on macOS: a thread WH_MSGFILTER hook holds the box's input, a click offers
