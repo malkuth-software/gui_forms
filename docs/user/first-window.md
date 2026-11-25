@@ -6,7 +6,7 @@ recommends: a form document says what exists, a model holds the state it
 binds, a theme package gives it its look, and program code attaches the
 behaviour.
 
-It continues from [Get started](get-started), in the app `new-app` made
+It continues from [Get started](get-started.md), in the app `new-app` made
 there (`hello_forms/`): the form goes in `forms/`, the model header in
 `src/`, the theme in `themes/greeter/`, and the `main.cpp` below replaces
 `src/main.cpp`. In `CMakeLists.txt`, the program's sources become

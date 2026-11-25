@@ -3,7 +3,7 @@
 ```{note}
 This page builds GUI.Forms itself from source, for contributors. You do not
 need it to build an application: apps build against the prebuilt SDK the
-devkit fetches. See [Get started](get-started).
+devkit fetches. See [Get started](get-started.md).
 ```
 
 GUI.Forms is distributed as source. You build it once with the pinned LLVM 22

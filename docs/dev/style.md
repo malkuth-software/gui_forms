@@ -31,5 +31,5 @@ changed. A control never invalidates its own layout from `measure`,
 `arrange`, `on_layout` or `on_paint`: an imperative control that lays out
 everything on every call, on top of a retained toolkit, is how an
 application hangs. The window catches the violations and reports them as
-layout diagnostics; [Layout](../user/layout#retained-layout) has the
+layout diagnostics; [Layout](../user/layout.md#retained-layout) has the
 rules and what the window does.
