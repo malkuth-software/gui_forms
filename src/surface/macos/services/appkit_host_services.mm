@@ -1411,18 +1411,12 @@ private:
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     // Whether AppKit can start a drag from an event of `type`: a press or a
     // move with a button held.
+    // NSEventType is AppKit's open set of event kinds: a test of the six
+    // kinds, not a switch over them all.
     static bool drag_start_event(NSEventType type) noexcept {
-        switch (type) {
-        case NSEventTypeLeftMouseDown:
-        case NSEventTypeLeftMouseDragged:
-        case NSEventTypeRightMouseDown:
-        case NSEventTypeRightMouseDragged:
-        case NSEventTypeOtherMouseDown:
-        case NSEventTypeOtherMouseDragged: return true;
-        // Every other event type (moves without a button, keys, scrolls,
-        // gestures, system events) starts no drag.
-        default: return false;
-        }
+        return type == NSEventTypeLeftMouseDown || type == NSEventTypeLeftMouseDragged ||
+               type == NSEventTypeRightMouseDown || type == NSEventTypeRightMouseDragged ||
+               type == NSEventTypeOtherMouseDown || type == NSEventTypeOtherMouseDragged;
     }
 
     static NSDragOperation native_drag_operations(gui_forms::DragEffect effects) noexcept {
@@ -1641,17 +1635,18 @@ namespace gui_forms::host::detail {
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 NSEvent* drag_release_event(NSWindow* window, NSEventType start_type, NSPoint screen_point) {
     if (window == nil) return nil;
+    // The release of the button that started the drag; any other kind of
+    // event started none (NSEventType is AppKit's open set, so a chain, not
+    // a switch over every kind).
     NSEventType release = NSEventTypeLeftMouseUp;
-    switch (start_type) {
-    case NSEventTypeLeftMouseDown:
-    case NSEventTypeLeftMouseDragged: release = NSEventTypeLeftMouseUp; break;
-    case NSEventTypeRightMouseDown:
-    case NSEventTypeRightMouseDragged: release = NSEventTypeRightMouseUp; break;
-    case NSEventTypeOtherMouseDown:
-    case NSEventTypeOtherMouseDragged: release = NSEventTypeOtherMouseUp; break;
-    // Any other start (not a press or a drag with a button held) has no
-    // button to release.
-    default: return nil;
+    if (start_type == NSEventTypeLeftMouseDown || start_type == NSEventTypeLeftMouseDragged) {
+        release = NSEventTypeLeftMouseUp;
+    } else if (start_type == NSEventTypeRightMouseDown || start_type == NSEventTypeRightMouseDragged) {
+        release = NSEventTypeRightMouseUp;
+    } else if (start_type == NSEventTypeOtherMouseDown || start_type == NSEventTypeOtherMouseDragged) {
+        release = NSEventTypeOtherMouseUp;
+    } else {
+        return nil;
     }
     const NSPoint location = [window convertPointFromScreen:screen_point];
     NSEvent* const event = [NSEvent mouseEventWithType:release
