@@ -904,9 +904,9 @@
       {"kind": "method", "winforms": null, "gui_forms": "select_token", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/token_box_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "token_index", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/token_box_tests.cpp"}
     ]},
-    {"type": "SearchField", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/data_workbench_tests.cpp", "members": [
+    {"type": "SearchField", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "busy", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "property", "winforms": null, "gui_forms": "editor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_workbench_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "editor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "placeholder_text", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "cleared", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp"},
@@ -916,7 +916,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "initialize_control_tree", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "on_text_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "search_field_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": null, "gui_forms": "search_now", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_workbench_tests.cpp"}
+      {"kind": "method", "winforms": null, "gui_forms": "search_now", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gallery_pages/devexpress-demos_tests.cpp"}
     ]},
     {"type": "ButtonTextBox", "winforms": null, "gui_forms_base": "Control", "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "buttons", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/button_text_box_tests.cpp"},
@@ -2546,7 +2546,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "shared_row", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/data_grid_view_workload_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "written", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
-    {"type": "ChoiceGroup", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/data_workbench_tests.cpp", "members": [
+    {"type": "ChoiceGroup", "winforms": null, "gui_forms_base": "Panel", "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "items", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "presentation", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "event", "winforms": null, "gui_forms": "activated", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
@@ -5573,7 +5573,7 @@
       {"kind": "property", "winforms": null, "gui_forms": "focus_regions", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/dock_auto_hide_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "focus_scope_depth", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/auto_complete_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "focused_control", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/abi/cpp/gf_abi_cpp_wrappers.cpp"},
-      {"kind": "property", "winforms": null, "gui_forms": "gesture_input_requested", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/code_zoom_tests.cpp"},
+      {"kind": "property", "winforms": null, "gui_forms": "gesture_input_requested", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gesture_event_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "has_live_surface_presentations", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": null, "gui_forms": "host_close_reason", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/application_native_tests.cpp", "constraints": "Fails empty (before the host session accepts the closed event (states constructed, attached, close_authorized)), unchanged. Returns stxlib::Optional<HostCloseReason>, owned by the caller."},
       {"kind": "property", "winforms": null, "gui_forms": "host_lifecycle_phase", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/host_protocol_tests.cpp"},
@@ -5696,7 +5696,7 @@
       {"kind": "method", "winforms": null, "gui_forms": "dismiss_toast", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/display_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "dispatch_context_request", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/collection_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "dispatch_drag", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/control_raiser_tests.cpp"},
-      {"kind": "method", "winforms": null, "gui_forms": "dispatch_gesture", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/code_zoom_tests.cpp"},
+      {"kind": "method", "winforms": null, "gui_forms": "dispatch_gesture", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/gesture_event_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "dispatch_host_hover", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/mouse_events_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "dispatch_key", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/abi/events/gf_abi_event_fields.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "dispatch_pointer", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/anatomy_tests.cpp"},
