@@ -1,7 +1,7 @@
 #pragma once
 
-// Stage MCP G6's model tools: `forms.export`, `forms.validate`,
-// `forms.apply` and `forms.revert` over the process's form documents, on
+// Stage MCP G6's model tools: `forms_export`, `forms_validate`,
+// `forms_apply` and `forms_revert` over the process's form documents, on
 // the UI thread, on the window the call names, against the process's
 // registry schema (src/controls/form_catalog). The first
 // register_form_document registers them (the build toggle

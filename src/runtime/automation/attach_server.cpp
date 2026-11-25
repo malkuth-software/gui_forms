@@ -313,6 +313,9 @@ void serve_console(AttachServer::State& state, AttachStreams streams) {
         case ConsoleVerb::unknown:
             answer = "error: " + command.error;
             break;
+        default: // A verb outside ConsoleVerb is answered as an unknown one.
+            answer = "error: " + command.error;
+            break;
         }
         if (quit) {
             static_cast<void>(write_attach_line(streams.output, "session ended\n"));

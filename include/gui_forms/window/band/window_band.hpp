@@ -243,7 +243,7 @@ enum class WindowCornerShape : std::uint8_t {
 //   11's DWM preference and window state; a macOS window in full screen or
 //   without a frame, which is square);
 // - layout_region: macOS 26's public layout regions, the corner adaptation
-//   of the content view's safe area (NSViewLayoutRegion);
+//   of the content view's safe area (the layout region API);
 // - private_getter: AppKit's private radius getter, read at run time where
 //   no public source reports it (GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS);
 // - unknown: nothing reported; the shape is unknown and the band square.
