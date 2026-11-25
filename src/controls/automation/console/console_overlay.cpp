@@ -254,7 +254,12 @@ public:
 
     void on_paint(Painter& painter, Rect) override {
         const Rect bounds{0.0, 0.0, arranged_bounds().width, arranged_bounds().height};
-        painter.fill_rect(bounds, console_background);
+        // Where the host grants no transparency (Reduce Transparency, no
+        // compositor), the layer is opaque black, a terminal's screen,
+        // rather than three quarters of black over the window's backplane.
+        const SurfaceRoot* const root = attached_surface_root();
+        const bool clear = root != nullptr && (*root).backdrop_grant().granted != WindowBackdrop::opaque;
+        painter.fill_rect(bounds, clear ? console_background : Color{0U, 0U, 0U, 255U});
         if (screen_.busy()) keep_moving();
         if (!atlas_ || glyphs_.cell_height() == 0U) return;
         const double density = glyphs_.density();
