@@ -467,6 +467,11 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         ex_style = ex_style | WS_EX_TOPMOST;
         (*window_slot.state).mark_splash();
     }
+    // A window outside modality (the take-back and countdown dialogs) stays
+    // above a message box the program runs, as macOS raises such panels to
+    // NSModalPanelWindowLevel + 1; the box disables its owner, not the
+    // windows the owner owns, so the dialog stays enabled over it.
+    if (window_slot.outside_modality) ex_style = ex_style | WS_EX_TOPMOST;
     const double initial_scale = query_scale(owner);
     const Size initial_size = entry.options.capture_size.has_value()
         ? *entry.options.capture_size : entry.options.initial_size;
@@ -491,6 +496,8 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         return outcome;
     }
     report_native_frame(id, window);
+    // The message box hook passes this window's input (message_input_hook).
+    if (window_slot.outside_modality) mark_outside_modality(window);
     if (floating) follow_owner_caption_scheme(owner, window);
     // A popup's alpha surface shows its content's shape and shadow alone:
     // no DWM border or rounding around its clear pixels.

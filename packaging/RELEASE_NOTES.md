@@ -665,10 +665,12 @@ Visible-area guarantee (stage VA):
   transport that ends with no `disconnect` (a client that crashed or was
   killed) is a hard disconnect with the default. With the user in control,
   only the session ends. Later calls are refused.
-- **Round 3: native alerts.** A host alert (an NSAlert on macOS) the program
-  runs while the model holds control holds the user's input; a click on it
-  offers the take-back dialog, which shows above it and works over it, and
-  taking back leaves the alert open for the user.
+- **Round 3: native alerts.** A host alert (an NSAlert on macOS, a
+  MessageBoxW message box on Windows) the program runs while the model
+  holds control holds the user's input; a click on it offers the take-back
+  dialog, which shows above it and works over it, and taking back leaves
+  the alert open for the user. On Windows a thread WH_MSGFILTER hook holds
+  the box's input, and the take-back and countdown dialogs are topmost.
 - **Round 3: nested loops and modality.** The dispatcher runs a turn one
   item at a time and keeps a wake pending while more work is queued, so a
   callback that runs a nested modal loop no longer strands the rest of the
