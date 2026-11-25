@@ -3,6 +3,8 @@
 #include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/label.hpp"
 #include "gui_forms/event/event/event.hpp"
+#include "gui_forms/host/windowing/desktop_coordinates.hpp"
+#include "gui_forms/host/windowing/host_windowing.hpp"
 #include "gui_forms/surface_root/requests/surface_requests.hpp"
 #include "gui_forms/window.hpp"
 #include "gui_forms/window/band/window_band.hpp"
@@ -11,6 +13,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstddef>
 #include <string>
 #include <utility>
 
@@ -52,6 +55,7 @@ const char* dialog_id(PresenterDialog dialog) noexcept {
     case PresenterDialog::take: return "automation.take";
     case PresenterDialog::take_back: return "automation.take-back";
     case PresenterDialog::consent: return "automation.question";
+    case PresenterDialog::connect: return "automation.connect";
     }
     return "automation.question";
 }
@@ -61,6 +65,7 @@ const char* dialog_title(PresenterDialog dialog) noexcept {
     case PresenterDialog::take: return "Allow a model to take control?";
     case PresenterDialog::take_back: return "Take back control?";
     case PresenterDialog::consent: return "Allow destructive acts?";
+    case PresenterDialog::connect: return "Allow a connection?";
     }
     return "Allow destructive acts?";
 }
@@ -150,6 +155,22 @@ private:
 };
 
 // A dialog's closed callback (ApplicationWindowOptions::closed).
+// A dialog's ready callback: the dialog moves over the program window
+// (presenter_dialog_place).
+struct CentreOnOwner final {
+    ApplicationWindowHandle owner{};
+    void operator()(Window&, ApplicationWindowHandle dialog) const {
+        const HostWindowFrameResult owner_frame = owner.frame();
+        const HostWindowFrameResult dialog_frame = dialog.frame();
+        if (!owner_frame.status.accepted() || !dialog_frame.status.accepted()) return;
+        const HostMonitorResult screens = dialog.windows().monitors();
+        const std::vector<HostMonitor> none{};
+        const Rect content = presenter_dialog_place(owner_frame.frame, dialog_frame.frame,
+                                                    screens.status.accepted() ? screens.monitors : none);
+        static_cast<void>(dialog.request_frame(content));
+    }
+};
+
 struct DialogClosed final {
     StockPresenter* presenter{};
     PresenterDialog dialog{};
@@ -193,17 +214,49 @@ StockPresenter::~StockPresenter() {
     close_dialog_now(PresenterDialog::take);
     close_dialog_now(PresenterDialog::take_back);
     close_dialog_now(PresenterDialog::consent);
+    close_dialog_now(PresenterDialog::connect);
+    answer_connect(false);
     disconnected();
+    console_.hide();
 }
 
 void StockPresenter::bind_control(AutomationControl* control) noexcept {
     control_ = control;
 }
 
-void StockPresenter::set_windowing(const ApplicationWindowHandle& owner, std::string_view owner_id) {
+Rect presenter_dialog_place(const HostWindowFrame& owner, const HostWindowFrame& dialog,
+                            const std::vector<HostMonitor>& monitors) noexcept {
+    // The dialog's decorations left of and above its client area.
+    const double left = dialog.content.x - dialog.outer.x;
+    const double top = dialog.content.y - dialog.outer.y;
+    const double width = dialog.outer.width;
+    const double height = dialog.outer.height;
+    const Rect anchor = owner.outer.width > 0.0 && owner.outer.height > 0.0 ? owner.outer : owner.content;
+    const Point centre{anchor.x + anchor.width / 2.0, anchor.y + anchor.height / 2.0};
+    Rect outer{centre.x - width / 2.0, centre.y - height / 2.0, width, height};
+    if (!monitors.empty()) {
+        std::size_t chosen = monitors.size();
+        for (std::size_t index = 0U; index < monitors.size(); ++index) {
+            if (monitors[index].work_area.contains(centre)) {
+                chosen = index;
+                break;
+            }
+        }
+        if (chosen == monitors.size()) {
+            chosen = nearest_logical_monitor(monitors, DesktopLogicalPoint{centre.x, centre.y});
+        }
+        outer = fit_to_work_area(outer, monitors[chosen].work_area);
+    }
+    const Rect content{outer.x + left, outer.y + top, dialog.content.width, dialog.content.height};
+    return content;
+}
+
+void StockPresenter::set_windowing(const ApplicationWindowHandle& owner, std::string_view owner_id,
+                                   const WindowRef& owner_model) {
     if (owner_.active()) return;
     owner_ = owner;
     owner_id_ = std::string(owner_id);
+    owner_model_ = owner_model;
 }
 
 StockPresenter::BandWindow* StockPresenter::find_band(const Window& window) noexcept {
@@ -325,6 +378,7 @@ void StockPresenter::client_changed(const ClientIdentity& client) {
         show_sign(*window);
         if ((*window).active()) show_tag_line(*window, tag_line_moment);
     }
+    update_console();
 }
 
 void StockPresenter::activity(Window& window, AutomationActivity activity) {
@@ -423,6 +477,7 @@ void StockPresenter::control_changed(ControlState state, const ClientIdentity& c
         Window* const window = entry.window.get();
         if (window != nullptr) show_sign(*window);
     }
+    update_console();
     if (!in_control_) close_dialog(PresenterDialog::take_back);
     if (state != ControlState::asking) {
         countdown_tick_.disconnect();
@@ -551,6 +606,7 @@ void StockPresenter::disconnected() noexcept {
         if (window == nullptr) continue;
         show_sign(*window);
     }
+    update_console();
 }
 
 bool StockPresenter::presenter_window(const SurfaceRoot& window) const noexcept {
@@ -558,7 +614,63 @@ bool StockPresenter::presenter_window(const SurfaceRoot& window) const noexcept 
         const SurfaceRoot* const own = dialog.get();
         if (own != nullptr && own == &window) return true;
     }
-    return false;
+    return console_.owns(window);
+}
+
+void StockPresenter::update_console() noexcept {
+    const bool shown = connected_ && in_control_ && !unsigned_;
+    if (!shown) {
+        console_.hide();
+        return;
+    }
+    try {
+        static_cast<void>(console_.show(owner_, owner_id_, owner_model_));
+    } catch (...) {
+        // The button could not open (no memory, a refusing host): AI mode
+        // still shows on the window itself.
+    }
+}
+
+void StockPresenter::console_changed() {
+    console_.refresh();
+}
+
+void StockPresenter::console_pressed() {
+    if (control_ == nullptr || (*control_).state() != ControlState::model_control) return;
+    (*control_).offer_take_back();
+}
+
+void StockPresenter::ask_connect(const ClientIdentity& client, const std::shared_ptr<ConnectAnswer>& answer) {
+    if (!answer) return;
+    if (connect_answer_) {
+        // One question at a time: the attach thread takes one connection at
+        // a time, so this is a second asker; refused.
+        (*answer).state.store(ConnectAnswerState::refused);
+        return;
+    }
+    std::string name = client.client_name.empty() ? std::string("A program") : client.client_name;
+    if (!client.client_version.empty()) name += " " + client.client_version;
+    connect_answer_ = answer;
+    std::string why{};
+    const bool opened = open_dialog(
+        PresenterDialog::connect, "Allow a connection to this program?",
+        "\u201c" + name + "\u201d asks to connect to this program and use it. That name is what the connecting "
+        "program says about itself; it is not verified. Allow only a connection you started.",
+        "Nothing is remembered: every connection asks again.", why);
+    // Nobody can be asked: refused (a question that cannot be shown is
+    // never Allow).
+    if (!opened) answer_connect(false);
+}
+
+void StockPresenter::withdraw_connect() noexcept {
+    answer_connect(false);
+    close_dialog(PresenterDialog::connect);
+}
+
+void StockPresenter::answer_connect(bool allowed) noexcept {
+    if (!connect_answer_) return;
+    (*connect_answer_).state.store(allowed ? ConnectAnswerState::allowed : ConnectAnswerState::refused);
+    connect_answer_.reset();
 }
 
 bool StockPresenter::dialog_open(PresenterDialog dialog) const noexcept {
@@ -599,6 +711,7 @@ bool StockPresenter::open_dialog(PresenterDialog dialog, const std::string& head
     entry.options.minimum_size = dialog_size;
     entry.options.minimizable = false;
     entry.options.closed = DialogClosed{this, dialog};
+    entry.options.ready = CentreOnOwner{owner_};
     // Set before opening: the gate asks presenter_window for the dialog's
     // first input, which may come during open_window.
     dialogs_[index] = reference;
@@ -654,6 +767,11 @@ void StockPresenter::dialog_closed(PresenterDialog dialog) noexcept {
     const bool by_user = handle.active();
     handle = ApplicationWindowHandle{};
     dialogs_[index] = WindowRef{};
+    // Closing the connection question, by the user or not, is Don't Allow.
+    if (dialog == PresenterDialog::connect) {
+        answer_connect(false);
+        return;
+    }
     if (!by_user || control_ == nullptr) return;
     try {
         // Closing the take question or the destructive-act question is
@@ -671,6 +789,9 @@ void StockPresenter::dialog_closed(PresenterDialog dialog) noexcept {
 }
 
 void StockPresenter::dialog_chosen(PresenterDialog dialog, bool accepted) {
+    // The answer first: the close that follows answers Don't Allow only
+    // when nothing was chosen.
+    if (dialog == PresenterDialog::connect) answer_connect(accepted);
     close_dialog(dialog);
     if (control_ == nullptr) return;
     switch (dialog) {
@@ -683,6 +804,9 @@ void StockPresenter::dialog_chosen(PresenterDialog dialog, bool accepted) {
         return;
     case PresenterDialog::consent:
         if ((*control_).consent() == ConsentState::asking) (*control_).answer_consent(accepted);
+        return;
+    case PresenterDialog::connect:
+        // Answered above, before the close.
         return;
     }
     // A value outside PresenterDialog: no dialog of the presenter's, nothing

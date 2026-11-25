@@ -75,8 +75,8 @@ Before committing, run the spelling check over everything you touched; the
 finding:
 
 ```text
-python3 -B tools/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz
-python3 -B tools/check_lifetime_rules.py include src lab demo examples tools file_manager_demoboard
+python3 -B tools/check_house_style.py include src lab demo examples tools fuzz
+python3 -B tools/check_lifetime_rules.py include src lab demo examples tools
 python3 -B tools/export_annotations.py check
 python3 -B tools/control_registry.py members --check
 python3 -B tools/abi_class_tables.py --check
@@ -189,22 +189,24 @@ tool); the planning files are authoritative where they differ.
 
 ## Consumers inside this repository
 
-The control gallery (`demo/`) began as the first proving slice; it is now one
-consumer among others and is held to the same public seams.
+The Gallery model (`demo/`, `src/controls/gallery/`) began as the first
+proving slice; it is now one consumer among others and is held to the same
+public seams. The SDK installs it as the `GalleryModel` component.
 
-The separately specified `file_manager_demoboard/` is an admitted first-party
-consumer: it reproduces the File Manager interface using deterministic
-in-memory fixtures and only public GUI.Forms seams. It is still not the
-shipping frontend, may not read the real filesystem or parent sources at
-runtime, and may not implement missing reusable GUI.Forms capabilities inside
-the consumer project. Its local `AGENTS.md` is mandatory for work in that
-directory.
+The programs live in
+[gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit): the
+Gallery executables and their host mains, the labs, the demonstrators
+(process control, data workbench, touch start, code zoom), Correspondence,
+the File Manager demoboard (Explore) and their packaging. They build against
+the installed SDK, in lockstep with each green revision of this repository
+(`native.yml`'s `devkit-dispatch` job), so a change here that breaks them
+shows in the devkit's lockstep run.
 
 ## Hard boundaries
 
 - C++20 is admitted. Objective-C++ is admitted only in the macOS host adapter
-  (`src/surface/macos/`) and the macOS program entry points in
-  `src/host/macos/`.
+  (`src/surface/macos/`); the macOS program entry points are
+  gui_forms_devkit's.
 - No .NET, Java, browser engine, or Godot dependency.
 - GUI.Forms has no GPU capability. Do not compile, link, initialize, probe, or
   expose Ganesh, Graphite, GL, Vulkan, Metal, Direct3D, Dawn, or WebGPU.
@@ -271,13 +273,11 @@ directory.
   `src/surface/web/page/web_host.js` and the hosted page shell `web/paint/`.
 - Native Windows code lives under `src/surface/windows/`; its program entry
   points under `src/host/windows/`.
-- Native Linux code lives under `src/surface/linux/`; its program entry
-  points and platform-neutral rules under `src/host/linux/`.
-- Demonstrations and their provisional static descriptions live under `demo/`;
+- Native Linux code lives under `src/surface/linux/`; its platform-neutral
+  rules under `src/host/linux/`. Program entry points are gui_forms_devkit's.
+- The Gallery model and its page documents live under `demo/`;
   authoritative Web.Forms language work lives in the sibling `web_forms/`
   project and consumes only an explicitly negotiated public manifest.
-- The standalone fixture-backed File Manager consumer specification and its
-  eventual installed-package consumer live under `file_manager_demoboard/`.
 - Tests live in their own repository, `malkuth-software/gui_forms_tests`
   (owner, 2026-10-29 and 2026-11-17), with the test CMake, the test-only
   tools, goldens and fixtures, the engine gate and the sanitizer runs. They

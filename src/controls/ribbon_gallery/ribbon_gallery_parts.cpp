@@ -64,6 +64,8 @@ void RibbonGallery::rebuild_lines() {
     lines_.clear();
     const double scale = effective_text_scale();
     const double row_height = cell_height(item_size.read(), show_labels.read(), scale);
+    lines_scale_ = scale;
+    lines_row_height_ = row_height;
     const std::size_t columns = active_columns();
     const bool grouped = form_ == RibbonGalleryForm::drop_down && !categories_.empty();
     lines_.reserve(order_.size() / columns + categories_.size() + 1U);
@@ -137,6 +139,14 @@ bool RibbonGallery::lines_agree() const noexcept {
     }
     if (next != order_.size()) return false;
     return lines_.empty() ? first_line_ == 0U : first_line_ < lines_.size();
+}
+
+bool RibbonGallery::lines_current() const noexcept {
+    const double scale = effective_text_scale();
+    if (scale != lines_scale_) return false;
+    if (cell_height(item_size.read(), show_labels.read(), scale) != lines_row_height_) return false;
+    const bool agree = lines_agree();
+    return agree;
 }
 
 namespace {

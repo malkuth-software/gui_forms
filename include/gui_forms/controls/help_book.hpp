@@ -39,6 +39,18 @@ struct GUI_FORMS_API HelpLinkActivation final {
     bool handled{};
 };
 
+// The pointer moved onto a link, or off every link. `link` indexes the
+// page's links, or is none once the pointer is over no link; `kind`,
+// `target` and `fragment` are that link's (empty for none). An owner shows
+// the target in its status bar.
+struct GUI_FORMS_API HelpLinkHover final {
+    std::string page{};
+    stxlib::Optional<std::size_t> link{};
+    HelpLinkKind kind{HelpLinkKind::external};
+    std::string target{};
+    std::string fragment{};
+};
+
 // A collapsible section was opened or closed.
 struct GUI_FORMS_API HelpSectionToggle final {
     std::size_t section{};
@@ -55,16 +67,35 @@ struct GUI_FORMS_API HelpBookLabels final {
 };
 
 // HelpBook: the paper topic pane (help system study, sections 3 and 6; Plan
-// Paint's docked help book). It shows one help page: the title over a rule,
-// then the body's blocks on paper, with collapsible sections under topic
-// bars, callouts on darker paper, stable-ID links and PNG images. It scrolls
-// vertically; it never opens a link itself, but raises link_activated.
+// Paint's docked help book; Pocket Reference's page). It shows one help
+// page: the title over a rule, then the body's blocks on paper, with
+// collapsible sections under topic bars, callouts on darker paper, tables,
+// definition lists, code blocks and signatures coloured by stxlib::syntax,
+// linked cards, stable-ID links and PNG images. It scrolls vertically, and
+// sideways when a code block is wider than the page; it never opens a link
+// itself, but raises link_activated, and link_hovered as the pointer moves
+// over links. Find in page marks a query's matches.
 //
-// The paper's look is the theme's (parts paper, title, rule, body, close,
-// and the topic item system's topic_bar and expander); until the theme
-// language gives help-book rules, the parts are drawn with the tooltip
-// family (the paper), the menu-item family (topic bars), the card family
-// (callouts) and the link families.
+// Text is set with leading: body lines are 1.5 times the body size,
+// headings 1.3 times, and every run on a line, code and links included,
+// sits on the line's one baseline. Body text is in the content role's face;
+// inline code and code blocks are in the monospace role's, and inline code
+// is sized so its x-height matches the body's, on a chip.
+//
+// The book lays its page out again only when the page, the open sections,
+// the font, the text metrics, the device scale or the wrap width change;
+// hover, presses and scrolling repaint. It states its own scroll extent in
+// arrange, so re-arranging keeps the scroll position.
+//
+// The paper's look is the theme's (parts paper, title, rule, body, close, the
+// content parts code_span, code_block, signature, signature_bar, table_header,
+// table_cell, card, find_match (the match find stands on in the current state)
+// and the syntax parts keyword, type, function, string, number, comment and
+// directive, and the topic item system's topic_bar and expander); until the
+// theme language gives help-book rules, the parts are drawn with the tooltip
+// family (the paper and text), the menu-item family (topic bars), the card
+// family (callouts, cells and cards), the panel family (header cells and code
+// chips), the selection family (find marks) and the link families.
 //
 // Keyboard: Tab and Shift+Tab move through the links and topic bars (past
 // the last, focus leaves the book), Enter and Space follow or toggle,
@@ -83,7 +114,8 @@ public:
     [[nodiscard]] const HelpPageModel& page() const& noexcept { return page_; }
     const HelpPageModel& page() const&& = delete;
     // Scrolls so the anchored block is at the top, opening the sections
-    // around it. Returns false when no block has the anchor.
+    // around it; before the book has a size, the first arrange that gives
+    // it one scrolls there. Returns false when no block has the anchor.
     bool scroll_to_anchor(std::string_view anchor);
 
     void set_section_open(std::size_t section, bool open);
@@ -96,6 +128,18 @@ public:
     [[nodiscard]] const HelpBookLabels& labels() const noexcept { return labels_; }
     // Words to mark with the search highlight, folded (fold_help_text).
     void set_highlight(std::vector<std::string> folded_words);
+    // Find in page: marks every match of `query` in the page's text (ASCII
+    // letters folded unless `match_case`), within one run of text, and makes
+    // the first the current match, scrolled into view and its sections
+    // opened. An empty query marks nothing. Returns the number of matches.
+    std::size_t find(std::string_view query, bool match_case);
+    // Makes the next (or previous) match current, wrapping, and scrolls to it.
+    void find_next();
+    void find_previous();
+    void clear_find();
+    [[nodiscard]] std::size_t find_count() const noexcept { return matches_.size(); }
+    // The current match, counted from 1, or 0 when there is none.
+    [[nodiscard]] std::size_t find_position() const noexcept;
     // Topic targets shown as visited links.
     void set_visited(std::vector<std::string> targets);
     void mark_visited(std::string_view target);
@@ -112,9 +156,16 @@ public:
     [[nodiscard]] Event<HelpLinkActivation&>& link_activated() noexcept { return link_activated_; }
     [[nodiscard]] Event<>& close_requested() noexcept { return close_requested_; }
     [[nodiscard]] Event<const HelpSectionToggle&>& section_toggled() noexcept { return section_toggled_; }
+    [[nodiscard]] Event<const HelpLinkHover&>& link_hovered() noexcept { return link_hovered_; }
 
     // The page's content height when laid out at the current width.
     [[nodiscard]] double content_height() const noexcept { return layout_.height; }
+    // The page's content width: the width it is laid out at, or more when a
+    // code block is wider.
+    [[nodiscard]] double content_width() const noexcept { return layout_.extent; }
+    // How many times the screen layout has been made (a diagnostic counter):
+    // hover and scrolling leave it unchanged.
+    [[nodiscard]] std::uint64_t layout_passes() const noexcept { return layout_passes_; }
     // The block's top in content coordinates, or none when it is hidden.
     [[nodiscard]] stxlib::Optional<double> block_top(std::size_t block) const noexcept;
     // The link's box in local coordinates (scroll applied), or none when it
@@ -153,6 +204,23 @@ public:
         PartGeometry rule;
         PartGeometry close;
         PartGeometry body;
+        // The content parts repeat; each publishes its first laid instance,
+        // or nothing when the page has none.
+        PartGeometry code_span;
+        PartGeometry code_block;
+        PartGeometry signature;
+        PartGeometry signature_bar;
+        PartGeometry table_header;
+        PartGeometry table_cell;
+        PartGeometry card;
+        PartGeometry find_match;
+        PartGeometry keyword;
+        PartGeometry type;
+        PartGeometry function;
+        PartGeometry string;
+        PartGeometry number;
+        PartGeometry comment;
+        PartGeometry directive;
     };
     [[nodiscard]] Parts parts() const;
     // One topic item: a collapsible section's bar and expander, or one
@@ -187,6 +255,11 @@ private:
     void handle_mouse(MouseEventArgs& arguments);
     // What a laid-out piece of text is.
     enum class PieceKind : std::uint8_t { text, link, marker, label };
+    // A code piece's syntax part (stxlib::syntax kinds onto the parts), or
+    // none for text that is not coloured.
+    enum class TokenPart : std::uint8_t { none, keyword, type, function, string, number, comment, directive };
+    // What a laid-out box behind text is.
+    enum class BoxKind : std::uint8_t { code_span, signature, signature_bar, table_header, table_cell, card };
     // One laid-out piece of text on one line: a byte range of a run, or of
     // one of the layout's own texts (`own`, an index into
     // LaidOut::marker_texts: a list marker, a callout's label, a printed
@@ -201,7 +274,24 @@ private:
         Rect bounds{};
         double baseline{};
         FontSpec font{};
+        // Drawn in the muted ink (a caption, a card's line, a comment).
+        bool secondary{};
+        TokenPart token{TokenPart::none};
+        // Inline code, set on a chip (LaidOut::boxes), and the chip's padding
+        // before and after the code: none where the code is held by an
+        // opening bracket before it or punctuation after it, which hugs it.
+        bool chip{};
+        double chip_lead{};
+        double chip_trail{};
         bool highlighted{};
+    };
+    // A box painted behind a block's text: a code chip, a signature's face
+    // and bar, a table cell or a card, in content coordinates. A card's
+    // `link` is its title's link: the card follows it and is hot with it.
+    struct LaidBox final {
+        BoxKind kind{BoxKind::code_span};
+        Rect bounds{};
+        stxlib::Optional<std::size_t> link{};
     };
     // One laid-out block: its box, the callout or code face around it, a
     // collapsible heading's bar and expander, an image's box, and its pieces
@@ -216,6 +306,9 @@ private:
         stxlib::Optional<std::size_t> section{};
         std::size_t first_piece{};
         std::size_t piece_count{};
+        // Its boxes: LaidOut::boxes from first_box, box_count of them.
+        std::size_t first_box{};
+        std::size_t box_count{};
     };
     // One line's top and height, for print pagination.
     struct LaidLine final {
@@ -231,6 +324,8 @@ private:
     // between passes so a steady page allocates nothing.
     struct LaidOut final {
         double width{};
+        // The content's width: `width`, or more when a code block is wider.
+        double extent{};
         double height{};
         Rect title{};
         double title_baseline{};
@@ -239,6 +334,7 @@ private:
         Rect body{};
         std::vector<LaidBlock> blocks{};
         std::vector<LaidPiece> pieces{};
+        std::vector<LaidBox> boxes{};
         std::vector<LaidLine> lines{};
         // The layout's own texts, which pieces name by index (LaidPiece::own).
         std::vector<std::string> marker_texts{};
@@ -248,22 +344,83 @@ private:
     struct LayoutMode final {
         bool print{};
     };
+    // The fonts of one layout pass, resolved once: the body, and the code
+    // font sized so its x-height matches the body's (code_scale times the
+    // size of the text around it).
+    struct LayoutFonts final {
+        FontSpec body{};
+        FontSpec code{};
+        double code_scale{1.0};
+    };
+    // One flow of runs into lines: HelpPageModel::runs from first_run,
+    // run_count of them, set in `base` from `left`, wrapped at `width`
+    // unless `wraps` is false, in lines of `line_factor` times the base
+    // size.
+    struct RunFlow final {
+        std::size_t first_run{};
+        std::size_t run_count{};
+        MarkdownAlignment alignment{MarkdownAlignment::left};
+        double left{};
+        double width{};
+        FontSpec base{};
+        double line_factor{1.5};
+        bool secondary{};
+        bool wraps{true};
+    };
+    // A find match: bytes begin to end of run `run`.
+    struct FindMatch final {
+        std::size_t run{};
+        std::size_t begin{};
+        std::size_t end{};
+    };
 
     void lay_out(double width, LayoutMode mode, LaidOut& laid) const;
-    void lay_out_block(std::size_t block_index, double left, double width, double& top, LayoutMode mode,
-                       LaidOut& laid) const;
-    void lay_out_runs(std::size_t block_index, double left, double width, double& top, FontSpec base,
-                      LayoutMode mode, LaidOut& laid) const;
+    void lay_out_block(std::size_t block_index, const LayoutFonts& fonts, double left, double width, double& top,
+                       LayoutMode mode, LaidOut& laid) const;
+    void lay_out_runs(const RunFlow& flow, const LayoutFonts& fonts, double& top, LayoutMode mode,
+                      LaidOut& laid) const;
+    // Places the code of runs first_run to first_run + run_count, line by
+    // line, coloured as `language`, from (`left`, `top`); wraps at `width`
+    // when it is above zero. Returns the right edge of the widest line.
+    double lay_out_code(std::size_t first_run, std::size_t run_count, HelpCodeLanguage language, FontSpec font,
+                        double left, double width, double& top, LaidOut& laid) const;
+    // Lays out the table rows from block first to block end, or the cards.
+    void lay_out_table(std::size_t first, std::size_t end, const LayoutFonts& fonts, double left, double width,
+                       double& top, LayoutMode mode, LaidOut& laid) const;
+    void lay_out_cards(std::size_t first, std::size_t end, const LayoutFonts& fonts, double left, double width,
+                       double& top, LayoutMode mode, LaidOut& laid) const;
     [[nodiscard]] bool block_shown(std::size_t block, LayoutMode mode) const noexcept;
     [[nodiscard]] FontSpec body_font() const noexcept;
-    [[nodiscard]] FontSpec run_font(const HelpPageRun& run, FontSpec base) const noexcept;
+    [[nodiscard]] LayoutFonts layout_fonts() const;
+    [[nodiscard]] FontSpec run_font(const HelpPageRun& run, FontSpec base, const LayoutFonts& fonts) const noexcept;
+    // The page title's font: the body's, larger than a level-one heading
+    // and semibold.
+    [[nodiscard]] FontSpec title_font() const noexcept;
     [[nodiscard]] FontSpec heading_font(std::size_t level) const noexcept;
     [[nodiscard]] double text_width(std::string_view text, FontSpec font) const;
     [[nodiscard]] const HelpBookImage* find_image(std::string_view name) const noexcept;
     [[nodiscard]] std::string_view piece_text(const LaidOut& laid, std::size_t piece) const noexcept;
     void paint_laid(Painter& painter, const LaidOut& laid, Point offset, LayoutMode mode) const;
+    // Lays the page out now (the page or what shows of it changed). Outside
+    // arrange, a layout whose size changed states the new scroll range at
+    // once and marks arrange, so a scroll right after reaches the page.
     void relayout();
+    // Lays the page out only when what the layout is made from changed since
+    // the last one: the wrap width, the body font (the theme's), the text
+    // metrics provider or the device scale. A change of the page or of what
+    // shows of it lays out at once (relayout), so arrange, hover and pointer
+    // moves cost no layout while these hold.
+    void relayout_if_changed();
     [[nodiscard]] stxlib::Optional<std::size_t> link_at(Point local) const noexcept;
+    // The block whose runs or cells hold run `run`, or none.
+    [[nodiscard]] stxlib::Optional<std::size_t> block_of_run(std::size_t run) const noexcept;
+    // Opens every collapsed section around block `block`; true when one opened.
+    bool open_sections_around(std::size_t block);
+    // The current match's box in content coordinates, or none when it is not
+    // laid out.
+    [[nodiscard]] stxlib::Optional<Rect> match_rect(const FindMatch& match) const;
+    void reveal_current_match();
+    void emit_hover();
     [[nodiscard]] stxlib::Optional<std::size_t> section_bar_at(Point local) const noexcept;
     // Whether `held` (a hovered, pressed or focused index) holds `index`.
     [[nodiscard]] static bool holds(const stxlib::Optional<std::size_t>& held, std::size_t index) noexcept;
@@ -288,12 +445,30 @@ private:
     stxlib::Optional<std::size_t> pressed_link_{};
     stxlib::Optional<std::size_t> pressed_section_{};
     stxlib::Optional<std::size_t> focused_stop_{};
+    // Find in page: the matches in run order, the current one, and a reveal
+    // asked for before the book had its size, made at the next arrange.
+    std::vector<FindMatch> matches_{};
+    std::size_t current_match_{};
+    bool pending_reveal_{};
+    // An anchor asked for before the book had a size, scrolled to by the
+    // first arrange that gives it one.
+    std::string pending_anchor_{};
+    // What the screen layout was made from, so arrange lays out again only
+    // when it changed.
+    FontSpec layout_font_{};
+    const TextMetricsProvider* layout_provider_{};
+    double layout_scale_{};
+    // True while arrange runs: a layout there states its extent itself, so
+    // it marks no arrange.
+    bool arranging_{};
+    std::uint64_t layout_passes_{};
     bool close_visible_{};
     bool close_hovered_{};
     bool focused_{};
     Event<HelpLinkActivation&> link_activated_;
     Event<> close_requested_;
     Event<const HelpSectionToggle&> section_toggled_;
+    Event<const HelpLinkHover&> link_hovered_;
 };
 
 } // namespace gui_forms

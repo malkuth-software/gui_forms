@@ -15,7 +15,7 @@
 #
 # ELF: the NEEDED entries (`objdump -p`). Mach-O: `otool -L`. PE: the DLL
 # Name entries (`objdump -p`). This is a refusal list of the libraries the
-# build could wrongly leave shared; tools/package_programs.py checks shipped
+# build could wrongly leave shared; gui_forms_devkit's programs/tools/package_programs.py checks shipped
 # packages against the platforms' system libraries as well. The binaries are
 # separated by '|', since a CMake list's ';' does not survive a -D argument
 # on every generator.

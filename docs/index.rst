@@ -10,7 +10,7 @@ GUI.Forms documentation
 
    User Guide <user/index>
    API reference <api/index>
-   Building from source <building/index>
+   Contributors: build from source <building/index>
    Development <dev/index>
    Release notes <release/index>
 
@@ -52,18 +52,18 @@ the repository by ``tools/code_statistics.py`` and reported on every push to
         Getting started
         ^^^
 
-        New to GUI.Forms? Your first window takes one class and one
-        function. It introduces controls, ownership and event handlers, and
-        links to the rest of the guide.
+        New to GUI.Forms? The devkit bootstraps your machine, fetches the
+        prebuilt SDK and builds a first program in a few commands; then your
+        first window introduces forms, models, themes and event handlers.
 
         +++
 
-        .. button-ref:: user/first-window
+        .. button-ref:: user/get-started
             :expand:
             :color: secondary
             :click-parent:
 
-            To your first window
+            Get started
 
     .. grid-item-card::
         :img-top: _static/index-images/user_guide.svg

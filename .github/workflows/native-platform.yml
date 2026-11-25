@@ -1,7 +1,7 @@
 name: GUI.Forms native platform
 # One platform's native job: build, install, smoke check, test cache, object
 # cache and evidence (the tests run in malkuth-software/gui_forms_tests). native.yml calls it
-# once per platform, so each platform's programs job (release.yml) can start as
+# once per platform, so each platform's deployment job (release.yml) can start as
 # soon as its own native job passes instead of waiting for all four. Every
 # github.* value (event, ref, sha, run) is the calling run's.
 on:
@@ -283,11 +283,16 @@ jobs:
           echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
           echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
-          # These relaxations served the tests' shared precompiled headers,
-          # which went to gui_forms_tests with the tests (its tests.yml keeps
-          # the same setting). Nothing here compiles a precompiled header or
-          # reads __DATE__ or __TIME__, so they change nothing; kept equal.
-          echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
+          # pch_defines and time_macros served the tests' shared precompiled
+          # headers, which went to gui_forms_tests with the tests (its
+          # tests.yml keeps the same setting); nothing here compiles a
+          # precompiled header or reads __DATE__ or __TIME__. locale keeps
+          # LANG and LC_* out of every key: clang translates no message, so
+          # the locale changes no output, and a machine whose locale differs
+          # from the runner's still hits (the Windows field test, 2026-11-24:
+          # LANG alone missed every object). The same in native.yml,
+          # native-platform.yml and release.yml, so their caches stay one.
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros,locale" >> "$GITHUB_ENV"
           # One full tree's objects are 0.9 to 1.2 GB; a smaller limit evicts
           # during the build (the check efficiency audit, 2b). The saved cache is
           # still only this build's working set (ci_cache.py evict).
@@ -477,7 +482,7 @@ jobs:
       # working set, not every generation up to CCACHE_MAXSIZE
       # (notes:planning/BUILD_SIZE_PLAN_2026-10-23.md, step 1). On every event: a
       # native job builds everything (no change selection), so the set is
-      # complete, and the archive the programs job, a stacked pull request's
+      # complete, and the archive the deployment job, a stacked pull request's
       # seed and a consumer download is about 25 MB instead of 600. Only after
       # a build that passed, or on a pull request after its build step ran at
       # all (the pull request's own save below); a job that reused a validation
@@ -519,6 +524,36 @@ jobs:
           else
             tar -czf gui-forms-cache-${{ inputs.platform }}.tar.gz .ccache cache-manifest.json
           fi
+          # Beside the cache (publish_cache.py; ci.runtime_asset_prefix): the
+          # C++ runtime its objects were compiled against, which a fresh
+          # machine would otherwise build for minutes (2 to 3 on Windows,
+          # where it lived only in an Actions cache: field test G6).
+          if [ "$RUNNER_OS" = Windows ] && [ -f .ci/own-runtime/stamp.json ]; then
+            tar -czf gui-forms-runtime-${{ inputs.platform }}.tar.gz .ci/own-runtime
+          elif [ "$RUNNER_OS" = Linux ] && [ -f "$GUI_FORMS_LLVM_RUNTIME/runtime-manifest.json" ]; then
+            tar -czf gui-forms-runtime-${{ inputs.platform }}.tar.gz ".build/toolchain/$(basename "$GUI_FORMS_LLVM_RUNTIME")"
+          fi
+          # The installed SDK (ci.sdk_asset_prefix), which an application pinned
+          # to this commit links instead of compiling GUI.Forms. A pull request
+          # installs none.
+          if [ -n "$(find .build/native-${{ inputs.platform }}/gui-forms-sdk -name GUIFormsConfig.cmake 2>/dev/null)" ]; then
+            tar -czf gui-forms-sdk-${{ inputs.platform }}.tar.gz -C .build/native-${{ inputs.platform }} gui-forms-sdk
+          fi
+      # This platform's record for gui-forms-sdk-manifest.json (tools/sdk_manifest.py):
+      # the compiler and compile environment that built the installed SDK, whose
+      # GalleryModel, Lab and DemoControls components gui_forms_devkit's programs
+      # link. native.yml's devkit-dispatch joins the four records once every
+      # platform passed. A pull request installs no SDK and records none.
+      - name: Record the installed SDK for the devkit's manifest
+        if: steps.promotion.outputs.reused != 'true' && github.event_name != 'pull_request'
+        run: |
+          python -B gui_forms/tools/sdk_manifest.py record --platform "${{ inputs.platform }}" --cache-manifest cache-manifest.json --output gui-forms-sdk-record-${{ inputs.platform }}.json
+      - uses: actions/upload-artifact@v4
+        if: steps.promotion.outputs.reused != 'true' && github.event_name != 'pull_request'
+        with:
+          name: gui-forms-sdk-record-${{ inputs.platform }}
+          path: gui-forms-sdk-record-${{ inputs.platform }}.json
+          retention-days: 30
       - name: Prove archived macOS runtimes after relocation
         if: steps.promotion.outputs.reused != 'true' && (runner.os == 'macOS' && steps.reuse.outputs.reused != 'true')
         run: python gui_forms/tools/prove_macos_runtime_restore.py --archive gui-forms-cache-macos-arm64.tar.gz --executable .build/native-macos-arm64/gui-forms/gui_forms_form_compiler --expect-exit 2

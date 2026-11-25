@@ -542,15 +542,61 @@ public:
         }
     }
 
+    // candidates()'s answers for the last few fonts (layout liveness: a page measured word by
+    // word asked for the same font's candidates thousands of times, and each answer sorted
+    // every face). An answer depends on the font's role, weight, slant, language and family
+    // order, and on the faces: it holds while face_revision is the one it was made at. Adding,
+    // opening or giving a language to a face advances face_revision.
+    struct KeptCandidates final {
+        std::uint64_t revision{};
+        FontRole role{FontRole::control};
+        std::uint16_t weight{};
+        bool italic{};
+        TextLanguage language{};
+        FontFamilyOrder order{};
+        std::vector<Face*> faces{};
+    };
+    static constexpr std::size_t kept_candidate_fonts = 8U;
+    std::array<KeptCandidates, kept_candidate_fonts> kept_candidates{};
+    std::size_t next_kept_candidates{};
+    // Zero is never a face revision, so an empty entry never matches.
+    std::uint64_t face_revision{1U};
+
+    [[nodiscard]] static bool same_order(const FontFamilyOrder& left, const FontFamilyOrder& right) noexcept {
+        if (left.count != right.count) return false;
+        for (std::size_t index = 0U; index < left.count; ++index) {
+            if (left.families[index].value != right.families[index].value) return false;
+        }
+        return true;
+    }
+
     [[nodiscard]] std::vector<Face*> candidates(FontSpec font) {
         open_app_families(font);
+        const FacePreference preference{font};
+        for (const KeptCandidates& kept : kept_candidates) {
+            if (kept.revision == face_revision && kept.role == font.role && kept.weight == font.weight &&
+                kept.italic == font.italic && kept.language == font.language &&
+                same_order(kept.order, preference.order)) {
+                return kept.faces;
+            }
+        }
         std::vector<Face*> result{};
         result.reserve(faces.size());
-        const FacePreference preference{font};
         for (Face& face : faces) {
             if (admits(face, font, preference.order)) result.push_back(&face);
         }
         std::stable_sort(result.begin(), result.end(), preference);
+        // Admission may have opened a lazy face, which advanced face_revision: the answer is
+        // kept at the revision it was made under.
+        KeptCandidates& slot = kept_candidates[next_kept_candidates];
+        next_kept_candidates = (next_kept_candidates + 1U) % kept_candidate_fonts;
+        slot.faces = result;
+        slot.revision = face_revision;
+        slot.role = font.role;
+        slot.weight = font.weight;
+        slot.italic = font.italic;
+        slot.language = font.language;
+        slot.order = preference.order;
         return result;
     }
 
@@ -663,6 +709,7 @@ public:
     // Loads and opens a lazy face. The loader is released once it has answered, so a face
     // that cannot be opened is not loaded again; a throwing loader is kept for a retry.
     [[nodiscard]] bool open_lazy(Face& face) {
+        ++face_revision;
         LazyFaceBytes loaded = face.loader();
         gui_forms::detail::TypefaceBorrow typeface{};
         if (loaded.owner && !loaded.bytes.empty() && loaded.bytes.size() <= maximum_face_bytes) {
@@ -698,6 +745,7 @@ public:
         // Family-name allocation and vector growth can both throw; the borrow
         // is released with this frame until the face holds it.
         const FontFaceId id{next_face_id++};
+        ++face_revision;
         Face& face = faces.emplace_back(id, role, weight, italic, !role.has_value(), std::string{}, std::move(owned));
         // Nothing below throws but the name's allocation, which leaves an
         // unnamed face.
@@ -714,6 +762,7 @@ public:
         if (bounded_face_limit != 0 && faces.size() == bounded_face_limit) return std::nullopt;
         if (!load || coverage.empty() || faces.size() >= maximum_faces) return std::nullopt;
         const FontFaceId id{next_face_id++};
+        ++face_revision;
         Face& face = faces.emplace_back(id, std::nullopt, weight, italic, true, std::string{},
                                         std::shared_ptr<const void>{});
         face.coverage = coverage;
@@ -728,6 +777,7 @@ public:
             return std::nullopt;
         }
         const FontFaceId id{next_face_id++};
+        ++face_revision;
         Face& face = faces.emplace_back(id, std::nullopt, weight, italic, false, std::string{},
                                         std::shared_ptr<const void>{});
         face.loader = std::move(load);
@@ -1149,6 +1199,7 @@ bool TextShapeEngine::set_face_language(const FontFaceId id, const TextLanguage 
         if (face.id != id) continue;
         if (face.role || face.named_family.value != 0U) return false;
         face.language = language;
+        ++(*impl_).face_revision;
         return true;
     }
     return false;

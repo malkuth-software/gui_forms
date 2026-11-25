@@ -938,6 +938,7 @@ stxlib::Optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& p
     const std::uint64_t lease_epoch = surface_epoch_;
     const std::uint64_t generation_before = display_generation_;
     ++paint_leases_started_;
+    lease_settling_revision_ = settling_revision_;
     in_paint_ = true;
     dirty_after_render_ = false;
     std::uint64_t visited_nodes = 0;
@@ -1085,6 +1086,9 @@ stxlib::Optional<PaintReceipt> SurfaceRoot::paint_rectangles_in_frame(Painter& p
     in_paint_ = false;
     if (invalidation_overlay_ != nullptr) attribute_painted_damage(painted);
     ++paint_leases_completed_;
+    // The settling work asked for before the pass is drawn; work asked for
+    // during it keeps the window wanting a frame.
+    if (lease_settling_revision_ > painted_settling_revision_) painted_settling_revision_ = lease_settling_revision_;
     rendered_revision_ = lease_revision;
 
     // Damage that arrived while callbacks were running belongs to the next

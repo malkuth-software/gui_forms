@@ -4,6 +4,7 @@
 #include "../../../core/application/application_state.hpp"
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
 #include "../../../runtime/automation/automation_run.hpp"
+#include "../../../core/host/session/session_directory.hpp"
 #endif
 #include "../accessibility/windows_accessibility.hpp"
 #include "../services/windows_clipboard_image.hpp"
@@ -786,11 +787,118 @@ private:
     HHOOK hook_{};
 };
 
+// Take-back over a message box (the macOS reference: run_alert_modal in
+// appkit_host_services.mm; owner, round 3). While a model holds control, a
+// box the program runs outside a model call must not answer the user's raw
+// input: the user's press offers the take-back dialog instead
+// (session_directory.hpp, native_input_held), and that dialog, a window
+// outside modality, stays usable and on top over the box. Taking back only
+// changes the control state: the box stays open and then answers the user.
+//
+// MessageBoxW runs its own modal loop, which hands every message it takes,
+// for any window of the thread, to the thread's WH_MSGFILTER hooks
+// (CallMsgFilter, code MSGF_DIALOGBOX) before the box sees it; a hook that
+// returns nonzero has processed it, so the box never does. The hook below
+// asks the gate for each user input message (buttons, keys, the wheel) not
+// meant for a window outside modality, and swallows it while the gate holds;
+// everything else (posted work, timers, paint, the take-back dialog's own
+// input) passes, so the program keeps running and the dialog works. The
+// gate is asked per message, so after the user takes back the same box
+// passes the user's clicks and keys and answers them. A box raised during a
+// model call never shows: the model-questions seam in
+// HostServices::show_dialog answers it, on every host.
+
+// Marks a window outside modality (ApplicationWindow::outside_modality: the
+// presenter's take-back and countdown dialogs) for the hook; removed in
+// WM_DESTROY.
+constexpr wchar_t outside_modality_property[] = L"GUIForms.OutsideModality";
+
+void mark_outside_modality(HWND window) noexcept {
+    static_cast<void>(SetPropW(window, outside_modality_property, reinterpret_cast<HANDLE>(static_cast<INT_PTR>(1))));
+}
+
+void unmark_outside_modality(HWND window) noexcept {
+    static_cast<void>(RemovePropW(window, outside_modality_property));
+}
+
+// Whether `window` (or the top-level window holding it) is outside modality.
+bool outside_modality_window(HWND window) noexcept {
+    if (window == nullptr) return false;
+    const HWND top_level = GetAncestor(window, GA_ROOT);
+    return top_level != nullptr && GetPropW(top_level, outside_modality_property) != nullptr;
+}
+
+// The user's input messages the hook holds: mouse buttons in the client and
+// non-client areas, keys and their characters, and the wheel. Pointer moves
+// pass (they answer nothing).
+bool user_input_message(UINT message) noexcept {
+    switch (message) {
+    case WM_LBUTTONDOWN: case WM_LBUTTONUP: case WM_LBUTTONDBLCLK:
+    case WM_RBUTTONDOWN: case WM_RBUTTONUP: case WM_RBUTTONDBLCLK:
+    case WM_MBUTTONDOWN: case WM_MBUTTONUP: case WM_MBUTTONDBLCLK:
+    case WM_XBUTTONDOWN: case WM_XBUTTONUP: case WM_XBUTTONDBLCLK:
+    case WM_NCLBUTTONDOWN: case WM_NCLBUTTONUP: case WM_NCLBUTTONDBLCLK:
+    case WM_NCRBUTTONDOWN: case WM_NCRBUTTONUP: case WM_NCRBUTTONDBLCLK:
+    case WM_NCMBUTTONDOWN: case WM_NCMBUTTONUP: case WM_NCMBUTTONDBLCLK:
+    case WM_NCXBUTTONDOWN: case WM_NCXBUTTONUP: case WM_NCXBUTTONDBLCLK:
+    case WM_KEYDOWN: case WM_KEYUP: case WM_SYSKEYDOWN: case WM_SYSKEYUP:
+    case WM_CHAR: case WM_SYSCHAR: case WM_DEADCHAR: case WM_SYSDEADCHAR:
+    case WM_MOUSEWHEEL: case WM_MOUSEHWHEEL: return true;
+    default: return false;
+    }
+}
+
+// A press: a button going down (a double-click's second press included) or
+// a key going down that is not an auto-repeat (lParam bit 30, the previous
+// key state).
+bool press_message(const MSG& message) noexcept {
+    switch (message.message) {
+    case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK: case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
+    case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK: case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
+    case WM_NCLBUTTONDOWN: case WM_NCLBUTTONDBLCLK: case WM_NCRBUTTONDOWN: case WM_NCRBUTTONDBLCLK:
+    case WM_NCMBUTTONDOWN: case WM_NCMBUTTONDBLCLK: case WM_NCXBUTTONDOWN: case WM_NCXBUTTONDBLCLK: return true;
+    case WM_KEYDOWN: case WM_SYSKEYDOWN: return (static_cast<std::uint64_t>(message.lParam) & (1ULL << 30U)) == 0U;
+    default: return false;
+    }
+}
+
+// The WH_MSGFILTER hook: runs on this thread inside the box's modal loop.
+LRESULT CALLBACK message_input_hook(int code, WPARAM wparam, LPARAM lparam) noexcept {
+    const bool dialog_loop = code == MSGF_DIALOGBOX || code == MSGF_MESSAGEBOX;
+    if (dialog_loop && lparam != 0) {
+        const MSG& message = *reinterpret_cast<const MSG*>(lparam);
+        if (user_input_message(message.message) && !outside_modality_window(message.hwnd) &&
+            gui_forms::detail::native_input_held(press_message(message))) {
+            return 1;
+        }
+    }
+    return CallNextHookEx(nullptr, code, wparam, lparam);
+}
+
+// Holds the hook for one MessageBoxW call; unhooks on every exit. Installed
+// whether or not a model holds control when the box opens, so a model that
+// takes control while the box is up is held too; with no gate installed
+// (no automation) the hook passes everything.
+class MessageInputHoldScope final {
+public:
+    MessageInputHoldScope() noexcept
+        : hook_(SetWindowsHookExW(WH_MSGFILTER, message_input_hook, nullptr, GetCurrentThreadId())) {}
+    MessageInputHoldScope(const MessageInputHoldScope&) = delete;
+    MessageInputHoldScope& operator=(const MessageInputHoldScope&) = delete;
+    ~MessageInputHoldScope() {
+        if (hook_ != nullptr) UnhookWindowsHookEx(hook_);
+    }
+
+private:
+    HHOOK hook_{};
+};
+
 HostDialogResult native_message_dialog(HWND owner, std::uint64_t request_id,
                                        const HostMessageDialogRequest& request) {
     const std::wstring title = wide_from_utf8(request.title);
     const std::wstring message = wide_from_utf8(request.message);
     const MessageIconScope icon(request);
+    const MessageInputHoldScope held;
     const int native_result = MessageBoxW(owner, message.c_str(), title.c_str(),
                                           native_message_style(request));
     HostMessageDialogResult value;
@@ -2038,6 +2146,7 @@ public:
             }
             case WM_DESTROY:
                 accessibility_.detach();
+                unmark_outside_modality(hwnd_);
                 break;
             default:
                 return DefWindowProcW(hwnd_, message, wparam, lparam);
@@ -2354,6 +2463,7 @@ public:
         case WM_QUERYENDSESSION: return query_end_session();
         case WM_ENDSESSION: return end_session(wparam != FALSE);
         case WM_DESTROY:
+            unmark_outside_modality(hwnd_);
             stop_manipulation();
             (*title_state_).window = nullptr;
             (*size_state_).host = nullptr;
@@ -2946,6 +3056,7 @@ private:
     void collect_damage() {
         // Nothing to collect for a destroyed window (A-gf-host-03-F8).
         if (hwnd_ == nullptr) return;
+        follow_caption_scheme();
         report_display_timing();
         sync_manipulation();
         static_cast<void>((*model_).poll_frame_schedule(FrameClock::now()));
@@ -2978,6 +3089,22 @@ private:
             live_frame_due_ = false;
             live_clock_deadline_ = 0;
         }
+    }
+
+    // The caption follows the window's colour scheme (Windows field report
+    // D9): dark while the window presents its dark scheme, light otherwise
+    // and in high contrast, whose caption is the system's. Checked after
+    // every event the window handles (collect_damage), which covers a
+    // scheme the program sets and one an automatic scheme takes from
+    // WM_SETTINGCHANGE "ImmersiveColorSet". Written only when it changes,
+    // so a light window never writes the attribute and a caption the
+    // program set itself stays until the scheme changes.
+    void follow_caption_scheme() noexcept {
+        const PresentationSettings& settings = (*model_).presentation_settings();
+        const bool dark = settings.colour_scheme == ColourScheme::dark && !settings.high_contrast;
+        if (dark == caption_dark_) return;
+        caption_dark_ = dark;
+        gui_forms::host::detail::apply_windows_caption_scheme(hwnd_, dark);
     }
 
     // Arms the model's next wake (audit N63): one nearer than
@@ -4243,6 +4370,9 @@ private:
 #endif
     HWND hwnd_{};
     bool full_screen_{};
+    // Whether the caption was last drawn dark (follow_caption_scheme); a
+    // new window's caption is light.
+    bool caption_dark_{};
     LONG_PTR restore_style_{};
     WINDOWPLACEMENT restore_placement_{};
     WindowsRaster raster_;
@@ -4600,6 +4730,9 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
         if (SUCCEEDED(com_status)) CoUninitialize();
         return 5;
     }
+    // A capture keeps the size it asked for, and a popup the place its
+    // program gave it; every other window opens inside the work area.
+    if (!options.capture_size.has_value() && !options.popup_window) fit_direct_frame_to_work_area(window);
     state.show_with(SW_SHOWNORMAL);
     UpdateWindow(window);
     if (options.close_after_launch_for_testing) {

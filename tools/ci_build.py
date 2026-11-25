@@ -10,7 +10,7 @@ build runs no test of its own: its smoke check is the installed SDK's
 (the notice and import checks, and the installed reference examples).
 
 GUI.Forms' own build driver: its fetch scripts, configure options, SDK
-checks and gallery option. The product-independent steps (run, configure,
+checks. The product-independent steps (run, configure,
 test selection, sanitizer options, build records) are template_harness's
 harness/ci_build_steps.py, reached through tools/harness_link.py (the
 harness beside this checkout, at the commit harness.lock pins). File Manager
@@ -48,13 +48,13 @@ def check_windows_sdk_imports(sdk: Path) -> None:
     (cmake/llvm22-windows-msvc-own.cmake), so a DLL or program imports
     Windows system DLLs, ucrtbase.dll and GUI.Forms' own DLLs only; the
     forbidden names (Microsoft, GCC and LLVM runtimes, the api-ms-win-crt
-    forwarders) are package_programs.py's. CMake's and meson's own probes
+    forwarders) are package_notices.py's. CMake's and meson's own probes
     (CMakeFiles, meson-private: compiler checks linked with the tools'
     defaults, never shipped) are not looked at. Prints each image's non-system imports. A program
     that consumes GUI.Forms points own_runtime.py evidence --dlls at its
     build tree to check its programs the same way.
     """
-    from package_programs import WINDOWS_FORBIDDEN_RUNTIME_DLL, WINDOWS_SYSTEM_DLLS
+    from package_notices import WINDOWS_FORBIDDEN_RUNTIME_DLL, WINDOWS_SYSTEM_DLLS
     objdump: str | None = shutil.which('objdump') or shutil.which('llvm-objdump')
     if objdump is None:
         raise RuntimeError('objdump (or llvm-objdump) is needed to check the installed DLLs')
@@ -81,10 +81,10 @@ def check_windows_sdk_imports(sdk: Path) -> None:
 
 def check_installed_notices(sdk: Path) -> None:
     """Fail unless the installed SDK carries THIRD_PARTY_NOTICES.md and no GPL
-    text (the rules of package_programs.py). FreeType is no longer built
+    text (the rules of package_notices.py). FreeType is no longer built
     (STXlib's glyph library since 2026-11-16), so no FreeType credit is
     required."""
-    from package_programs import GPL_TITLE, NOTICES_NAME
+    from package_notices import GPL_TITLE, NOTICES_NAME
     licences: Path = sdk / 'share' / 'licenses' / 'GUIForms'
     notices: Path = licences / NOTICES_NAME
     if not notices.is_file():
@@ -96,20 +96,6 @@ def check_installed_notices(sdk: Path) -> None:
         if path.is_file() and GPL_TITLE.search(path.read_text(encoding='utf-8', errors='replace')):
             raise RuntimeError(f'the installed {path.name} carries a GNU General Public License text')
     print(f'installed notices checked: {notices.relative_to(sdk)}', flush=True)
-
-
-def gallery_enabled(flag: bool, environ: dict[str, str]) -> bool:
-    """Resolve whether the demo programs are configured.
-
-    The default stays OFF: CI builds the toolkit, the Gallery model and
-    the test cache (GUI_FORMS_BUILD_GALLERY_MODEL follows it). The
-    release pipeline passes --gallery or sets GUI_FORMS_CI_BUILD_GALLERY to
-    1/true/on/yes to add the Gallery and lab executables.
-    """
-    if flag:
-        return True
-    value: str = environ.get('GUI_FORMS_CI_BUILD_GALLERY', '').strip().lower()
-    return value in ('1', 'true', 'on', 'yes')
 
 
 def report_stx_package(toolkit: Path, restored: bool) -> None:
@@ -227,14 +213,14 @@ def check_subdirectory_consumer(host: str, build: Path, toolkit: Path, jobs: int
         '-DGUI_FORMS_BUILD_AUDIO=ON', '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx',
         # The probe needs neither; leaving them out keeps the second
         # configure short.
-        '-DGUI_FORMS_LOCALIZABLE_PLUGIN=OFF', '-DGUI_FORMS_BUILD_GALLERY=OFF',
+        '-DGUI_FORMS_LOCALIZABLE_PLUGIN=OFF', '-DGUI_FORMS_BUILD_GALLERY_MODEL=OFF',
         *host_options(host), *stx_options(stx_prefix, ''))
     run('cmake', '--build', consumer, '--parallel', str(jobs), '--target', 'subdirectory_consumer_probe')
     suffix: str = '.exe' if host == 'windows' else ''
     run(consumer / ('subdirectory_consumer_probe' + suffix))
 
 
-def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
+def build_toolkit(host: str, build: Path, sdk: Path, jobs: int,
                   sanitize: bool = False, debug_info: str = 'lines', install_only: bool = False,
                   test_cache: Path | None = None, platform_label: str = '') -> None:
     """Build the tree, install it into sdk, check the install, and pack the test cache.
@@ -290,11 +276,6 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
         # 2026-11-11); the plain tree compiles the plain views.
         options.append('-DGUI_FORMS_CHECKED_BORROWS=ON')
         os.environ.update(sanitizer_environment)
-    # The installed reference examples generate every Gallery page document
-    # with the installed Gallery form compiler, against GUIForms::Lab and
-    # GUIForms::DemoControls (audit F9), so the SDK this build installs
-    # carries the lab and the Gallery model.
-    options.extend(['-DGUI_FORMS_INSTALL_LAB=ON', '-DGUI_FORMS_INSTALL_GALLERY_MODEL=ON'])
     # The text masks, as build_sdk.py --features all builds them: the
     # tests' SDK-consumer link test (gui_forms_sdk_consumer_link) then links
     # GUIForms::TextMasks from the installed Application archive, which the
@@ -314,7 +295,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
     options.append('-DGUI_FORMS_WARNINGS_AS_ERRORS=ON')
     configure: list[str] = [
         'cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(toolkit), '-G', 'Ninja',
-        *toolkit_options(ROOT / 'gui_forms', sdk, gallery, True), *options]
+        *toolkit_options(ROOT / 'gui_forms', sdk, True), *options]
     configure_tree(toolkit, configure)
     report_stx_package(toolkit, os.environ.get('GUI_FORMS_STX_PACKAGE_RESTORED', '') == 'true')
     build_logged(toolkit, sanitize, '--parallel', str(jobs))
@@ -404,9 +385,6 @@ def main() -> None:
                              'pack no test cache: a consumer\'s smoke build at a tested pin')
     parser.add_argument('--test-cache', type=Path,
                         help='pack the test cache (tools/test_cache.py) into this directory')
-    parser.add_argument('--gallery', action='store_true',
-                        help='also configure GUI_FORMS_BUILD_GALLERY=ON '
-                             '(or set GUI_FORMS_CI_BUILD_GALLERY=1); default OFF')
     parser.add_argument('--high-integrity', action='store_true',
                         help='build the high-integrity tree (cmake/HighIntegrity.cmake) in '
                              'gui-forms-high-integrity')
@@ -417,7 +395,7 @@ def main() -> None:
         parser.error('--jobs must be positive')
     if args.install_only and (args.sanitize or args.test_cache):
         parser.error('--install-only builds and installs the plain tree and packs nothing')
-    if args.high_integrity and (args.sanitize or args.install_only or args.gallery):
+    if args.high_integrity and (args.sanitize or args.install_only):
         parser.error('--high-integrity builds its own tree; it takes only --jobs, --test-cache and '
                      '--allow-clipboard-text')
     if args.allow_clipboard_text and not args.high_integrity:
@@ -448,7 +426,7 @@ def main() -> None:
         build_high_integrity(host, build, args.jobs, args.allow_clipboard_text, test_cache, platform_label)
         return
     build_toolkit(host, build, build / 'gui-forms-sdk', args.jobs,
-                  gallery_enabled(args.gallery, dict(os.environ)), args.sanitize, debug_info, args.install_only,
+                  args.sanitize, debug_info, args.install_only,
                   test_cache, platform_label)
 
 

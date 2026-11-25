@@ -50,10 +50,10 @@ def definitions(command: list[str]) -> dict[str, str]:
     return result
 
 
-# The options ci_build adds for the installed reference examples (audit F9).
-# CI's tree also builds the text masks, for the SDK-consumer link test (tools/ci_build.py).
-CI_EXAMPLE_OPTIONS: tuple[str, ...] = ("GUI_FORMS_INSTALL_LAB", "GUI_FORMS_INSTALL_GALLERY_MODEL",
-                                       "GUI_FORMS_BUILD_TEXT_MASKS")
+# The option CI's tree adds: the text masks, for the SDK-consumer link test
+# (tools/ci_build.py). The Gallery model, the lab and the demonstration
+# controls are in every SDK (toolkit_configure.toolkit_options).
+CI_EXAMPLE_OPTIONS: tuple[str, ...] = ("GUI_FORMS_BUILD_TEXT_MASKS",)
 
 
 def ci_configure(host: str, build: Path) -> list[str]:
@@ -83,10 +83,8 @@ class ConfigureOptionTests(unittest.TestCase):
                 ci: dict[str, str] = definitions(ci_configure(build_sdk.TARGET_HOSTS[target], build))
                 sdk: dict[str, str] = definitions(build_sdk.configure_command(
                     target, build_sdk.ROOT, build / "sdk-tree", build / "prefix"))
-                # CI's SDK also installs the lab library and the Gallery
-                # model, which its installed reference examples generate the
-                # Gallery pages against (audit F9); the default SDK leaves
-                # them to --features all.
+                # CI's SDK also builds the text masks; the default SDK
+                # leaves them to --features all.
                 name: str
                 for name in CI_EXAMPLE_OPTIONS:
                     self.assertEqual(ci.pop(name, None), "ON")
@@ -107,7 +105,12 @@ class ConfigureOptionTests(unittest.TestCase):
                         self.assertEqual((ci[name], sdk[name]), DIFFERENT_BY_DESIGN[name])
                     else:
                         self.assertEqual(sdk[name], ci[name], name)
-                self.assertEqual(sdk["GUI_FORMS_BUILD_GALLERY"], "OFF")
+                # Every SDK installs the Gallery model and what it links
+                # (cp14 decision 1): gui_forms_devkit builds the programs from it.
+                for name in ("GUI_FORMS_BUILD_GALLERY_MODEL", "GUI_FORMS_INSTALL_GALLERY_MODEL",
+                             "GUI_FORMS_INSTALL_LAB"):
+                    self.assertEqual(sdk[name], "ON", name)
+                self.assertNotIn("GUI_FORMS_BUILD_GALLERY", sdk)
                 self.assertEqual(sdk["CMAKE_INSTALL_PREFIX"], str(build / "prefix"))
 
     def test_all_features_add_only_the_optional_components(self) -> None:
@@ -119,9 +122,7 @@ class ConfigureOptionTests(unittest.TestCase):
                 "windows-x64", build_sdk.ROOT, build / "tree", build / "prefix", "all")
         self.assertEqual(every[:len(default)], default)
         self.assertEqual(definitions(every[len(default):]), {
-            "GUI_FORMS_BUILD_TEXT_MASKS": "ON", "GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT": "ON",
-            "GUI_FORMS_BUILD_GALLERY_MODEL": "ON",
-            "GUI_FORMS_INSTALL_GALLERY_MODEL": "ON", "GUI_FORMS_INSTALL_LAB": "ON"})
+            "GUI_FORMS_BUILD_TEXT_MASKS": "ON", "GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT": "ON"})
         self.assertNotIn("-DGUI_FORMS_BUILD_PREPARED_TEXT=ON", every)
 
     def test_the_default_features_add_nothing(self) -> None:

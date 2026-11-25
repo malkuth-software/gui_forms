@@ -23,20 +23,20 @@ struct ModelToolSpec final {
 inline constexpr std::array<std::string_view, 3U> inspect_additions = {"summary", "layout", "resources"};
 
 inline constexpr std::array<ModelToolSpec, 4U> forms_tool_specs = {{
-    {"forms.export",
-     "Returns the form document of a window as the program has it (the applied one after forms.apply).",
+    {"forms_export",
+     "Returns the form document of a window as the program has it (the applied one after forms_apply).",
      R"({"type":"object","properties":{"window":{"type":"string"}},"required":["window"]})", true, false},
-    {"forms.validate",
+    {"forms_validate",
      "Checks a candidate form document against the program's registry and the sources it exposes to the window; "
      "returns the diagnostics.",
      R"({"type":"object","properties":{"window":{"type":"string"},"document":{"type":"string"}},"required":["window","document"]})",
      true, false},
-    {"forms.apply",
+    {"forms_apply",
      "Replaces a window's structure, or the control named by target, with a valid form document, keeping its "
      "bindings to the program's data and commands. A document that does not validate or load changes nothing.",
      R"({"type":"object","properties":{"window":{"type":"string"},"document":{"type":"string"},"target":{"type":"string"}},"required":["window","document"]})",
      false, true},
-    {"forms.revert", "Puts a window back to the form it was built from.",
+    {"forms_revert", "Puts a window back to the form it was built from.",
      R"({"type":"object","properties":{"window":{"type":"string"}},"required":["window"]})", false, true},
 }};
 

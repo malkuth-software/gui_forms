@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -3699,7 +3700,15 @@ void SurfaceRoot::mark_dirty(Control& control, Dirty requested_dirty) {
         layout_dirty_ = true;
         if (in_layout_) {
             second_layout_pass_requested_ = true;
+            // Layout liveness: a control asking for its own layout again
+            // from the layout callback that is computing it.
+            if (layout_arranging_ == &control) arranging_dirtied_itself_ = true;
+            if (layout_measuring_ == &control) {
+                report_layout_liveness(control, LayoutDiagnosticCode::layout_invalidated_in_measure);
+            }
         }
+        // Paint reads the kept layout; it never changes it.
+        if (in_paint_) report_layout_liveness(control, LayoutDiagnosticCode::layout_invalidated_in_paint);
     }
     if (has_dirty(requested_dirty, Dirty::hit_test)) {
         hit_test_dirty_ = true;
@@ -4609,13 +4618,13 @@ void SurfaceRoot::acknowledge_paint_wake_if_damage_drained() noexcept {
     }
     if (!damage_remains) {
         paint_wake_pending_ = false;
-        settling_paint_pending_ = false;
+        painted_settling_revision_ = settling_revision_;
     }
 }
 
 void SurfaceRoot::touch_paint() noexcept {
     ++content_revision_;
-    if (ambient_wake_depth_ == 0U) settling_paint_pending_ = true;
+    if (ambient_wake_depth_ == 0U) ++settling_revision_;
     if (in_paint_) dirty_after_render_ = true;
     request_paint_wake();
 }
@@ -4841,6 +4850,7 @@ void SurfaceRoot::flush_layout_in_frame() {
     // A new check sequence: each owner is checked once in this flush.
     ++viewport_check_sequence_;
     viewport_checks_.clear();
+    self_dirtied_arranges_.clear();
     try {
         std::uint32_t pass = 0;
         do {
@@ -4886,10 +4896,18 @@ void SurfaceRoot::flush_layout_in_frame() {
         // arranged are checked against their viewports (stage VA).
         check_viewports();
 
-        const bool overlay_layout_dirty = has_popup_layout_dirty();
         if (has_any_runnable_layout_dirty()) {
             metrics_.record_pass_limit_hit();
+            // The passes did not converge: the controls still dirty are
+            // named once and their requests dropped, so the window keeps
+            // the layout it reached rather than flushing again at every
+            // frame and every geometry read (layout liveness).
+            drop_unconverged_layout(root_);
+            for (const std::shared_ptr<gui_forms::detail::OverlayAttachment>& overlay : overlays_) {
+                if (const Control::Ptr overlay_root = (*overlay).overlay()) drop_unconverged_layout(overlay_root);
+            }
         }
+        const bool overlay_layout_dirty = has_popup_layout_dirty();
         layout_dirty_ = has_dirty((*root_).subtree_dirty_, Dirty::layout) ||
                         overlay_layout_dirty;
         hit_test_dirty_ = layout_dirty_;
@@ -4907,6 +4925,8 @@ void SurfaceRoot::flush_layout_in_frame() {
                         has_popup_layout_dirty();
         hit_test_dirty_ = layout_dirty_;
         second_layout_pass_requested_ = false;
+        layout_measuring_ = nullptr;
+        arranging_dirtied_itself_ = false;
         in_layout_ = false;
         throw;
     }
@@ -5018,12 +5038,15 @@ void SurfaceRoot::measure_dirty_recursive(const Control::Ptr& control,
             // client size of infinity is admitted by resize but is no
             // layout constraint; it is measured uncached, as before.
             const LayoutConstraint constraint = layout_constraint_at_most(available);
+            layout_measuring_ = control.get();
             if (valid_layout_constraint(constraint)) {
                 static_cast<void>((*control).measure_for_layout(constraint));
             } else {
                 static_cast<void>((*control).measure(available));
             }
+            layout_measuring_ = nullptr;
         } catch (...) {
+            layout_measuring_ = nullptr;
             (*control).add_dirty(Dirty::measure | Dirty::arrange);
             (*control).subtree_dirty_ |= Dirty::measure | Dirty::arrange;
             throw;
@@ -5085,6 +5108,7 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             // from its published slot, and would undo it.
             const ArrangingMark arranging{layout_arranging_, layout_arranging_};
             layout_arranging_ = control.get();
+            arranging_dirtied_itself_ = false;
             try {
                 (*control).arrange(final_bounds);
             } catch (...) {
@@ -5101,6 +5125,16 @@ void SurfaceRoot::arrange_dirty_recursive(const Control::Ptr& control,
             if (!(*control).is_alive() || (*control).surface_root_ != this) {
                 if (scroll_translating_ == control.get()) scroll_translating_ = nullptr;
                 return;
+            }
+        }
+        // A control that asked for its own layout again from this arrange
+        // is arranged again once; asking again in the same bounds is a
+        // loop, which ends here, keeping the geometry this arrange left.
+        if (arranging_dirtied_itself_ && has_dirty((*control).dirty_, Dirty::layout)) {
+            arranging_dirtied_itself_ = false;
+            if (repeats_self_dirtied_arrange(*control, final_bounds)) {
+                report_layout_liveness(*control, LayoutDiagnosticCode::layout_loop);
+                (*control).clear_dirty(Dirty::layout);
             }
         }
         // The visible-area check after the passes (stage VA): this control
@@ -5231,6 +5265,59 @@ void SurfaceRoot::record_layout_diagnostic(LayoutDiagnostic diagnostic) {
         return;
     }
     layout_diagnostics_.push_back(std::move(diagnostic));
+}
+
+void SurfaceRoot::report_layout_liveness(const Control& control, LayoutDiagnosticCode code) noexcept {
+    const std::uint32_t bit = 1U << (static_cast<std::uint32_t>(code) -
+                                     static_cast<std::uint32_t>(LayoutDiagnosticCode::layout_loop));
+    try {
+        std::uint32_t& reported = layout_liveness_reported_[control.runtime_id().value];
+        if ((reported & bit) != 0U) return;
+        reported |= bit;
+        LayoutDiagnostic diagnostic{};
+        diagnostic.code = code;
+        diagnostic.severity = layout_diagnostic_severity(code);
+        diagnostic.child = std::string(control.stable_id().value());
+        record_layout_diagnostic(std::move(diagnostic));
+    } catch (const std::bad_alloc&) {
+        ++dropped_layout_diagnostics_;
+        return;
+    }
+#if !defined(GUI_FORMS_HIGH_INTEGRITY)
+    const std::string_view name = layout_diagnostic_code_name(code);
+    const std::string_view id = control.stable_id().value();
+    // Both are short names; a longer one is not printed (the diagnostic is kept).
+    if (name.size() > static_cast<std::size_t>(INT_MAX) || id.size() > static_cast<std::size_t>(INT_MAX)) return;
+    std::fprintf(stderr, "gui-forms: layout diagnostic %.*s: control '%.*s' (docs/user/layout.md, Retained layout)\n",
+                 static_cast<int>(name.size()), name.data(), static_cast<int>(id.size()), id.data());
+#endif
+}
+
+bool SurfaceRoot::repeats_self_dirtied_arrange(const Control& control, Rect bounds) {
+    for (const SelfDirtiedArrange& entry : self_dirtied_arranges_) {
+        if (entry.control == &control && entry.bounds == bounds) return true;
+    }
+    self_dirtied_arranges_.push_back(SelfDirtiedArrange{&control, bounds});
+    return false;
+}
+
+// Recurses once per control level: bounded by maximum_control_tree_depth
+// (control.hpp), within its stack budget of 4 KiB per level.
+void SurfaceRoot::drop_unconverged_layout(const Control::Ptr& control) noexcept {
+    if (!control || (*control).layout_suspend_depth_ != 0U ||
+        !has_dirty((*control).subtree_dirty_, Dirty::layout)) {
+        return;
+    }
+    if (has_dirty((*control).dirty_, Dirty::layout)) {
+        report_layout_liveness(*control, LayoutDiagnosticCode::layout_not_converged);
+        (*control).clear_dirty(Dirty::layout);
+    }
+    for (const Control::Ptr& child : (*control).children_) drop_unconverged_layout(child);
+    Dirty summary = (*control).dirty_;
+    for (const Control::Ptr& child : (*control).children_) {
+        if (child) summary |= (*child).subtree_dirty_;
+    }
+    (*control).subtree_dirty_ = summary;
 }
 
 bool SurfaceRoot::refuse_arrange_outside_slot(const Control& control) noexcept {

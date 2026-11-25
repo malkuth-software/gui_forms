@@ -680,3 +680,166 @@ Visible-area guarantee (stage VA):
   the model opened in place. `reset` waits for the dialogs it cancelled to
   close before it replies, and a modal window's own ID names it as an act
   target. The take-back dialog's paragraphs sit closer together.
+
+### 1.0.5: the MCP console and attach, HelpBook, layout liveness, mockups and Windows fixes
+
+One release folds the work queued after 1.0.4.
+
+#### The MCP console and attach
+
+- **The console** (owner, 2026-11-24). In AI mode a small dark button with
+  a turning spinner and "thinking..." sits in the upper right of the
+  program's window; a click opens the console, another closes it. It is
+  hidden by default. The console is a slightly transparent dark panel that
+  fills the window's height like a terminal, in Portsmouth Mono, recording
+  every MCP call and its reply: the instruction in orange, values and
+  wrapped text in green, from the owner's formula (r = c·0.5v + (1−c)·v,
+  g = c·v + (1−c)·0.5v, b = c·0.25v over black, v about 0.8 with a slight
+  variation per glyph run, dithered). A press on the console offers the
+  take-back dialog. The button and the console are their own popup windows
+  owned by the program's window: a new line repaints only the console, they
+  are never in a capture, the automation never reads or drives them, and
+  they follow the window when it moves or is resized.
+- **Attach** (owner, 2026-11-24). Every program listens on a local
+  socket only its own user can reach, each peer's user checked again by
+  the kernel. A program launched with `--mcp` or `--mcp-shared` accepts a
+  connection at once (`--mcp-shared` keeps the first act's countdown;
+  `--mcp` is AI-led). A program launched without a flag asks its user in
+  the program for every connection ("Allow a connection to this
+  program?"), naming the client by what it reports and saying that name is
+  not verified; Allow and Don't Allow, no countdown, nothing remembered.
+  One client at a time. When an attached client goes, its session ends and
+  control returns to the user; the program stays open. Captures always use
+  the engine's own capture. `GUI_FORMS_MCP_ATTACH=0` turns the endpoint
+  off; high-integrity builds and `--mcp-script` runs have none.
+- **The socket speaks MCP** (owner, 2026-11-25): "claude then simply starts a
+  console session to the program. and that becomes mcp itself." The
+  socket speaks MCP itself (newline-delimited JSON-RPC, MCP's stdio
+  framing), so a client needs no bridge; a first line that is not JSON
+  opens a plain-text console on the same socket (`help`, `tools`,
+  `call <tool> <json or key=value ...>`, `transcript`, `resume <token>`,
+  `quit`), whose replies are the tools' MCP text. AF_UNIX on every desktop
+  host, Windows included. The run directory is
+  `~/Library/Caches/gui-forms/run` (macOS), `$XDG_RUNTIME_DIR/gui-forms`
+  else `/tmp/gui-forms-<uid>` (Linux), `%LOCALAPPDATA%\gui-forms\run`
+  (Windows, a protected DACL for the user's SID), with `<pid>.sock` and a
+  discovery entry `<pid>.info` (name, identity, pid, executable, socket,
+  tool count, the note's first line); ended processes' entries are removed
+  by the next listing. The program prints `GUI.Forms: MCP socket: <path>`
+  on standard error, and `--mcp-socket` prints the socket of each running
+  instance and exits. Sessions survive reconnects: initialize's
+  instructions carry a session token, and for 120 seconds after a
+  connection drops, `params.resume` on initialize (or `resume <token>` in
+  the console) takes the session back without a new question; a new
+  client without the token ends the waiting session. The visible console
+  is the one transcript: a JSON session's calls show as `call <tool>
+  <args>`, a console's lines as typed, each session's lines labelled by
+  its client and token. Every program's `--help` says it speaks MCP and
+  how to reach its socket. `gui-forms-attach` is now a plain relay (its
+  `--list` reads the discovery entries). New page:
+  docs/user/talk-to-a-program.md.
+- A new client's session on the same program, without the last session's
+  token, starts over: the destructive-act answer given to the last model is
+  asked again.
+- **Native alerts on Windows.** A MessageBoxW message box the program runs
+  while the model holds control holds the user's input, as an NSAlert does
+  on macOS: a thread WH_MSGFILTER hook holds the box's input, a click offers
+  the take-back dialog, and the take-back and countdown dialogs are topmost.
+
+#### MCP round 4 fixes (after the round-3 drawing trial)
+
+- The default window of a call is a program window: a tooltip's or passive popup's window holding the activation is never it (a hidden 1x1 tooltip window had become the default after the first act), and the program window then reads as active in `windows` and `snapshot`.
+- Acts settle while AI mode's stripes move: a paint completes the settling work it started with even when an ambient effect keeps damage coming, so generic acts (select, pointer, keyboard) no longer wait out their 5 seconds with "a frame is wanted".
+- `snapshot` marks a dialog's default button (`default`: `Button::default_button` or the window's accept button) and cancel button (`cancel`: the window's cancel button or a button whose dialog result is cancel).
+- Act replies name their effect: a window that closed (`closed: window [id]`), a modal that gave way, or `effect: none` when nothing changed.
+- A batch holds up to 512 steps (was 64).
+- `capture` takes `points` and answers the colour at each point instead of an image, so a model can check a drawing without a full capture.
+
+#### Layout and text
+
+- **Layout liveness.** A control that never settles cannot hang its
+  window. A control that invalidates its own layout from its arrange is
+  arranged again once; doing it again in the same bounds is recorded as
+  `layout_loop` and its geometry kept. A layout still dirty after the four
+  passes is recorded as `layout_not_converged` and shown as reached,
+  instead of flushing at every frame and geometry read (docs/user/layout.md,
+  "Retained layout").
+- TextShapeEngine keeps the sorted face candidates of the last eight fonts.
+- BreadcrumbTrail and RibbonGallery keep their layout across arranges.
+- TextBox computes grapheme positions from one shaping of the whole text,
+  so the selection band covers the glyphs as painted.
+- The custom controls guide (docs/user/custom-controls.md) and its LinkPage
+  example (examples/link_page).
+
+#### HelpBook
+
+- HelpBook draws reference pages: tables, definition lists, cards,
+  signatures, captions, find and syntax highlighting. It lays a page out
+  only when its inputs change, states its scroll range when the page
+  changes, and scrolls to an anchor asked for before it has a size. The
+  body is in the content face and code in the monospace role's.
+
+#### Mockups
+
+- `FormMockup` loads a `.form`, its fixture and a theme at run time into a
+  host control, with E8xx diagnostics that give a line and column. The
+  devkit's mockup factory is built on it.
+
+#### Windows
+
+- The title bar follows the window's colour scheme. `run_windows` opens its
+  window inside the work area.
+- The menu bar works from the keyboard, with keyboard cues. White space no
+  longer marks a mnemonic, the programs' controls have spoken names, and
+  the Gallery's access keys are unique.
+- Explore's installed shortcut starts the product, and `--help` prints
+  usage. The installers remove the vendor folders with the last program.
+- CorrespondenceView shows a vertical scroll bar while its content
+  overflows.
+
+#### The programs move to gui_forms_devkit
+
+- The Gallery, Correspondence, Explore, the labs and their installers now
+  live in malkuth-software/gui_forms_devkit, which builds and releases them
+  against this release's SDK. GUI.Forms publishes the SDK manifest the
+  devkit resolves (`gui-forms-sdk-manifest.json` beside each build's SDK,
+  cache and runtime archives) and installs the Gallery model as an SDK
+  component. `GUI_FORMS_BUILD_GALLERY` and `tools/release_tests.py` are
+  gone.
+
+#### Library and build
+
+- `library_memory.hpp` keeps only the allocation primitives. Diagnostics,
+  teardown and the program allocator moved to `library_memory_diagnostics.hpp`,
+  `library_teardown.hpp` and `program_allocator.hpp`, with no name or ABI
+  change, so most objects no longer rebuild when those change.
+- The AppKit host tests NSEventType kinds without a switch that hides cases.
+- CI caches a newcomer can use: the locale is out of the keys, and the
+  runtime and SDK archives sit beside the cache.
+  `tools/measure_cache_bootstrap.sh` measures a cold bootstrap against a
+  restored one.
+
+#### STXlib 1.0.4: windows.h's headers complete
+
+- On Windows, STXlib's headers now hold everything the SDK's windows.h
+  includes, checked rather than claimed: STXlib's CI fails when a header of
+  windows.h's default include set lacks a declaration, unless it names the
+  system DLL it leaves out and why (mpr, winspool, winscard, crypt32 and a
+  few others no program here links). `winver.h` includes `verrsrc.h`, so a
+  resource script's `VS_FFI_FILEFLAGSMASK`, `VOS_NT_WINDOWS32` and `VFT_APP`
+  resolve; `dlgs.h`, `cderr.h`, `mmsystem.h`, `nb30.h`, `winperf.h`,
+  `stralign.h` and `mcx.h` are there, as in the SDK.
+- `GetFileVersionInfo` and `VerQueryValue` (version.dll) and `PlaySound`,
+  `timeBeginPeriod` and the waveform audio functions (winmm.dll) are
+  declared, with import lists for both DLLs.
+- `GetProcessMemoryInfo`, `EnumProcesses` and the other psapi.h names map
+  to their `K32` exports in kernel32.dll, as the SDK maps them under
+  `PSAPI_VERSION` 2.
+- The neutral type names (`WNDCLASS`, `LOGFONT`, `STARTUPINFO`,
+  `SHELLEXECUTEINFO`, `FONTENUMPROC`, ...) are defined, as the W form under
+  `UNICODE`; until now only their A and W forms were.
+- Winsock 2 and `AF_UNIX` are declared (`winsock2.h`, `ws2def.h`,
+  `ws2tcpip.h`, `afunix.h`, with an import list for ws2_32.dll), which the
+  attach endpoint needs on Windows, and the own runtime ships an empty
+  `m.lib`, so a link line that names the maths library needs no workaround.
+- GUI.Forms builds with stx 1.0.4 on STXlib 1.0.4.

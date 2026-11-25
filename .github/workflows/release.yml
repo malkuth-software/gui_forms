@@ -1,21 +1,25 @@
-name: GUI.Forms programs and release
-# Builds the demonstration programs (packaging/programs.json) with the Gallery and
-# the File Manager demoboard enabled, packs the programs test cache (the tests
-# run in malkuth-software/gui_forms_tests), packages each program, installs
-# and smoke-launches the packages on the runner, and publishes a tested `v*`
-# release from main. Pull requests stop after the smoke. Toolchain and cache
-# restoration mirror native.yml so the published compiler cache can match.
+name: GUI.Forms release
+# Builds the deployment tree (the toolkit and the Gallery model, without the
+# reference arithmetic), packs its test cache (the tests run in
+# malkuth-software/gui_forms_tests), packages the C ABI library and the source
+# SDK, and publishes a tested `v*` release from main. Pull requests stop after
+# the build. Toolchain and cache restoration mirror native.yml so the
+# published compiler cache can match. The demonstration programs (the
+# Gallery, the labs, the demonstrators, Correspondence and Explore) and their
+# packages are malkuth-software/gui_forms_devkit's, which builds them against
+# each green revision (native.yml's devkit-dispatch job).
 #
 # Pushes to main and pull requests run this workflow from native.yml, once per
 # platform (platform), after that platform's native job (from_native): the
-# programs job then adds the objects the native job just compiled for the same
-# tree (the native cache archive), so the toolkit and tests are compiled once
-# per platform and run, rather than twice. A push to main also adds the objects
-# the programs job of the run that tested its tree created, so main links and
-# packages that tree without compiling it again. native.yml then publishes, once all
-# four have packaged (publish-release.yml). native.yml's daily scheduled run on
-# main calls it the same way and publishes nothing. Tags, manual dispatch and the
-# weekly prune still start it directly, with only the Actions caches.
+# deployment job then adds the objects the native job just compiled for the
+# same tree (the native cache archive), so the toolkit is compiled once per
+# platform rather than twice. A push to main also adds the objects the
+# deployment job of the run that tested its tree created, so main links and
+# packages that tree without compiling it again. native.yml then publishes,
+# once all four have built (publish-release.yml). native.yml's daily scheduled
+# run on main calls it the same way and publishes nothing. Tags, manual
+# dispatch and the weekly prune still start it directly, with only the
+# Actions caches.
 on:
   workflow_call:
     inputs:
@@ -24,7 +28,7 @@ on:
         type: boolean
         default: false
       platform:
-        description: Build only this platform's programs, and leave publishing to the caller
+        description: Build only this platform, and leave publishing to the caller
         type: string
         default: ''
     outputs:
@@ -39,7 +43,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the tested packages from main
+        description: Publish the tested SDK from main
         type: boolean
         default: false
   schedule:
@@ -83,7 +87,7 @@ jobs:
       - name: Test the packaging tools
         run: |
           python3 -B -m unittest discover -s tools -p test_publication_version.py
-          python3 -B -m unittest discover -s tools -p test_package_programs.py
+          python3 -B -m unittest discover -s tools -p test_package_notices.py
           python3 -B -m unittest discover -s tools -p test_package_sdk.py
           python3 -B -m unittest discover -s tools -p test_package_abi_library.py
           python3 -B -m unittest discover -s tools -p test_build_sdk.py
@@ -115,10 +119,10 @@ jobs:
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
               output.write("matrix=" + json.dumps({"include": chosen}) + chr(10))
           EOF
-  programs:
+  deployment:
     needs: prepare
     # The workflow's own permissions (contents: read, above) bound what a caller
-    # grants, so the job that publishes the programs test cache to the release
+    # grants, so the job that publishes the deployment test cache to the release
     # test-cache-<commit> (tools/test_cache.py publish) asks for contents: write itself.
     permissions:
       contents: write
@@ -266,11 +270,16 @@ jobs:
           echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
           echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
-          # These relaxations served the tests' shared precompiled headers,
-          # which went to gui_forms_tests with the tests (its tests.yml keeps
-          # the same setting). Nothing here compiles a precompiled header or
-          # reads __DATE__ or __TIME__, so they change nothing; kept equal.
-          echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
+          # pch_defines and time_macros served the tests' shared precompiled
+          # headers, which went to gui_forms_tests with the tests (its
+          # tests.yml keeps the same setting); nothing here compiles a
+          # precompiled header or reads __DATE__ or __TIME__. locale keeps
+          # LANG and LC_* out of every key: clang translates no message, so
+          # the locale changes no output, and a machine whose locale differs
+          # from the runner's still hits (the Windows field test, 2026-11-24:
+          # LANG alone missed every object). The same in native.yml,
+          # native-platform.yml and release.yml, so their caches stay one.
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros,locale" >> "$GITHUB_ENV"
           echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
           # Before the cache is restored: tools/ci_cache.py evict keeps the
           # entries used after this moment.
@@ -281,9 +290,9 @@ jobs:
         id: objects
         with:
           path: .ccache
-          key: gui-programs-objects-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/CMakeLists.txt', 'gui_forms/cmake/**', 'gui_forms/include/**', 'gui_forms/src/**', 'gui_forms/demo/**', 'gui_forms/file_manager_demoboard/**') }}
+          key: gui-deployment-objects-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/CMakeLists.txt', 'gui_forms/cmake/**', 'gui_forms/include/**', 'gui_forms/src/**', 'gui_forms/demo/**', 'gui_forms/lab/**') }}
           restore-keys: |
-            gui-programs-objects-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-
+            gui-deployment-objects-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-
             gui-objects-v2-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-
             gui-objects-v2-${{ matrix.platform }}-
       # Restored on every run, saved only on main (below): a pull request's
@@ -312,7 +321,7 @@ jobs:
           tar -xzf .ci/native-cache/gui-forms-cache-${{ matrix.platform }}.tar.gz .ccache
           tar -xzf .ci/native-cache/gui-forms-cache-${{ matrix.platform }}.tar.gz -O cache-manifest.json > .ci/native-manifest.json
           rm -rf .ci/native-cache
-      # --- build, as tools/ci_build.py configures it, plus the programs ------------
+      # --- build, as tools/ci_build.py configures it, with the shipped arithmetic ---
       # The CPU renderer (stx_skia) and the text stack come from the stx package
       # (cmake/Stx.cmake), restored from the cache the platform's native job
       # keeps under the same key, and built while configuring only when no
@@ -334,7 +343,7 @@ jobs:
         with:
           path: .ci/stx-package
           key: gui-stx-package-v1-${{ matrix.platform }}-${{ steps.compiler.outputs.identity }}-${{ hashFiles('gui_forms/stx.lock', 'gui_forms/cmake/Stx.cmake', 'gui_forms/cmake/stx_package/**', 'gui_forms/cmake/llvm22.cmake', 'gui_forms/cmake/llvm22-windows-msvc.cmake', 'gui_forms/cmake/llvm22-windows-msvc-own.cmake', 'gui_forms/tools/toolkit_configure.py') }}
-      - name: Configure the programs
+      - name: Configure the deployment tree
         run: |
           # A deployment build: GUI_FORMS_REFERENCE_ARITHMETIC=OFF, so what ships
           # contracts floating point as the compiler chooses (owner, 2026-11-16).
@@ -353,9 +362,8 @@ jobs:
             $renderer \
             -DGUI_FORMS_TEST_CACHE=ON -DGUI_FORMS_REFERENCE_ARITHMETIC=OFF \
             -DGUI_FORMS_BUILD_AUDIO=ON -DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx \
-            -DGUI_FORMS_BUILD_GALLERY=ON -DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON \
             -DGUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"
-      - name: Build the programs
+      - name: Build the deployment tree
         id: compile
         run: |
           ccache --zero-stats
@@ -369,14 +377,14 @@ jobs:
       # Where the build's time went (tools/ninja_phases.py): evidence, never a gate.
       - name: Report the build's phases
         if: always()
-        run: python gui_forms/tools/ninja_phases.py "$BUILD_DIR" --title "programs-${{ matrix.platform }} build" --out "$GITHUB_STEP_SUMMARY"
-      # The programs test cache (tools/test_cache.py, kind programs): this
-      # deployment tree with the Gallery and the demoboard, which
-      # malkuth-software/gui_forms_tests runs its program tests against (every
-      # test but the byte-exact ones, label reference_arithmetic, which the
-      # reference caches cover). Published per commit on a push to main or to
+        run: python gui_forms/tools/ninja_phases.py "$BUILD_DIR" --title "deployment-${{ matrix.platform }} build" --out "$GITHUB_STEP_SUMMARY"
+      # The deployment test cache (tools/test_cache.py, kind programs, the name
+      # gui_forms_tests fetches it by): this deployment tree with the Gallery
+      # model, which malkuth-software/gui_forms_tests runs its deployment tests
+      # against (every test but the byte-exact ones, label reference_arithmetic,
+      # which the reference caches cover). Published per commit on a push to main or to
       # a checkpoint branch, as the native jobs publish theirs.
-      - name: Pack the programs test cache
+      - name: Pack the deployment test cache
         run: python gui_forms/tools/test_cache.py pack --build-dir "$BUILD_DIR" --platform "${{ matrix.platform }}" --kind programs --output .ci/test-cache
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
@@ -385,7 +393,7 @@ jobs:
           compression-level: 0
           overwrite: true
           retention-days: 30
-      - name: Publish the programs test cache for this commit
+      - name: Publish the deployment test cache for this commit
         if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/checkpoint/'))
         shell: bash
         env:
@@ -405,12 +413,12 @@ jobs:
           find .ccache -type f | LC_ALL=C sort > "$RUNNER_TEMP/ccache-after.txt"
           LC_ALL=C comm -13 "$RUNNER_TEMP/ccache-before.txt" "$RUNNER_TEMP/ccache-after.txt" | grep -v -e '/stats$' -e '\.lock$' -e '/tmp/' > "$RUNNER_TEMP/ccache-new.txt" || true
           echo "$(wc -l < "$RUNNER_TEMP/ccache-new.txt") new compiler cache files"
-          tar -cf gui-programs-objects-${{ matrix.platform }}.tar -T "$RUNNER_TEMP/ccache-new.txt"
+          tar -cf gui-deployment-objects-${{ matrix.platform }}.tar -T "$RUNNER_TEMP/ccache-new.txt"
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         if: success() && inputs.from_native && (github.event_name == 'pull_request' || github.event_name == 'merge_group')
         with:
-          name: gui-programs-objects-${{ matrix.platform }}
-          path: gui-programs-objects-${{ matrix.platform }}.tar
+          name: gui-deployment-objects-${{ matrix.platform }}
+          path: gui-deployment-objects-${{ matrix.platform }}.tar
           compression-level: 0
           retention-days: 7
       # The caches are saved after the build and its tests passed, or the tests
@@ -440,7 +448,7 @@ jobs:
           key: ${{ steps.dependencies.outputs.cache-primary-key }}
       # The saved cache is this build's working set, not every generation up
       # to CCACHE_MAXSIZE (notes:planning/BUILD_SIZE_PLAN_2026-10-23.md, step 1).
-      # The programs build compiles everything, so the set is complete.
+      # The deployment build compiles everything, so the set is complete.
       - name: Keep only the compiler cache entries this build used
         if: success() && github.event_name != 'pull_request' && github.ref == 'refs/heads/main' && steps.objects.outputs.cache-hit != 'true'
         run: python gui_forms/tools/ci_cache.py evict --since "$GUI_FORMS_JOB_START"
@@ -472,23 +480,6 @@ jobs:
           path: dist-abi/gui-forms-abi-*.zip
           compression-level: 0
           if-no-files-found: error
-      # --- package, then install and launch what was packaged -----------------------
-      - name: Package the programs
-        if: ${{ !(inputs.from_native && github.event_name == 'pull_request') }}
-        run: |
-          extra=""
-          if [ "$RUNNER_OS" = macOS ]; then extra="--runtime $GUI_FORMS_LLVM_RUNTIME"; fi
-          if [ "$RUNNER_OS" = Windows ]; then extra="--runtime-dir /clang64/bin"; fi
-          python gui_forms/tools/package_programs.py --platform "${{ matrix.platform }}" --build-dir "$BUILD_DIR" \
-            --version "$RELEASE_VERSION" --out dist --revision "${{ github.sha }}" $extra
-      - name: Install and launch the packaged programs
-        if: ${{ !(inputs.from_native && github.event_name == 'pull_request') }}
-        run: |
-          if [ "$RUNNER_OS" = Linux ]; then
-            xvfb-run -a -s "-screen 0 1280x1024x24 -noreset" python gui_forms/tools/smoke_package.py --platform "${{ matrix.platform }}" --dist dist --build-dir "$BUILD_DIR" --install
-          else
-            python gui_forms/tools/smoke_package.py --platform "${{ matrix.platform }}" --dist dist --build-dir "$BUILD_DIR" --install
-          fi
       # The source SDK is platform-neutral, so one leg writes it: this tested
       # commit's tree plus the pinned sources the build above configured from.
       # In the push to main that runs the native jobs, each of them has
@@ -504,34 +495,17 @@ jobs:
           python gui_forms/tools/package_sdk.py --version "$RELEASE_VERSION" --revision "${{ github.sha }}" --out dist \
             --checkout "stx=$BUILD_DIR/_deps/gui_forms_stx-src" --checkout "miniaudio=$miniaudio" --fetch-missing $COMPILER_CACHE
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: ${{ !(inputs.from_native && github.event_name == 'pull_request') }}
+        if: matrix.platform == 'linux-x64' && !(inputs.from_native && github.event_name == 'pull_request')
         with:
-          name: gui-forms-programs-${{ matrix.platform }}
-          path: |
-            dist/*.zip
-            dist/*.pkg
-            dist/*.exe
-            dist/*.tar.gz
-            dist/*.deb
+          name: gui-forms-release-${{ matrix.platform }}
+          path: dist/*.tar.gz
           compression-level: 0
-          # Linux legs may package nothing until their program mains exist.
-          if-no-files-found: ${{ runner.os == 'Linux' && 'warn' || 'error' }}
-      # upload-artifact roots an artifact at the common ancestor of its paths, and
-      # the release job reads packages-*.json from the top of the merged receipts.
-      # Every receipts path stays under dist/.
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        if: always()
-        with:
-          name: gui-forms-receipts-${{ matrix.platform }}
-          path: |
-            dist/packages-*.json
-            dist/smoke-*.json
-          if-no-files-found: warn
+          if-no-files-found: error
   # A call for one platform leaves publishing to its caller, which waits for
   # all four.
   release:
     if: inputs.platform == '' && needs.prepare.outputs.publish == 'true'
-    needs: [prepare, programs]
+    needs: [prepare, deployment]
     uses: ./.github/workflows/publish-release.yml
     with:
       tag: ${{ needs.prepare.outputs.tag }}

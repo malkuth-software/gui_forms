@@ -154,6 +154,16 @@ void AutomationControl::disconnect() noexcept {
     if (consent_ == ConsentState::asking) consent_ = ConsentState::declined;
 }
 
+void AutomationControl::begin_session(FrameTime now) {
+    disconnect();
+    client_ = ClientIdentity{};
+    notice_.clear();
+    consent_ = ConsentState::unasked;
+    consent_failure_.clear();
+    offer_posted_ = false;
+    begin_ai_led(now);
+}
+
 std::string AutomationControl::take_notice() {
     std::string notice = std::move(notice_);
     notice_.clear();

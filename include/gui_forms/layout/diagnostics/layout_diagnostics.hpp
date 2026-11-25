@@ -38,6 +38,31 @@ enum class LayoutDiagnosticCode : std::uint16_t {
     // warning when the overflow is answered, an error when it is not; the
     // code's own severity (layout_diagnostic_severity) is the warning.
     content_overflow = 203,
+    // Layout liveness (docs/user/layout.md, "Retained layout"). Each is
+    // recorded once per control and code for the window's lifetime, with
+    // one line on the standard error stream; `child` names the control,
+    // `ancestor` is empty. All are errors.
+    //
+    // A control invalidated its own layout from its arrange (or on_layout)
+    // in two arranges of one flush, both in the same bounds: arranging it
+    // again would do the same. The flush stops arranging it and keeps the
+    // geometry its last arrange left.
+    layout_loop = 204,
+    // Layout was still dirty after the flush's last pass
+    // (MetricsSnapshot::bounded_pass_limit_hits): each control still
+    // dirty is named, and its layout request is dropped, so the window
+    // shows the last layout it reached instead of laying out again at
+    // every frame and every geometry read.
+    layout_not_converged = 205,
+    // A control invalidated its own layout from its measure.
+    layout_invalidated_in_measure = 206,
+    // A control's layout was invalidated while the window painted.
+    layout_invalidated_in_paint = 207,
+    // A ScrollableControl moved its own scroll position from its arrange
+    // (scroll_to, scroll_by or a set value), which asks for another
+    // arrange. A control painting its own content states its extent
+    // (ScrollableControl::painted_content_extent) so the position holds.
+    scroll_in_own_arrange = 208,
 };
 
 [[nodiscard]] GUI_FORMS_API LayoutDiagnosticSeverity layout_diagnostic_severity(LayoutDiagnosticCode code) noexcept;

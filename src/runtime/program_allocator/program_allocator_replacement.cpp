@@ -43,28 +43,29 @@
 //
 // Threads and the process's ends: STXlib's allocator serves any thread at
 // any time, before main (its state is constant-initialised), during a
-// thread's exit and during static destruction. On Windows, once
-// ExitProcess has stopped the other threads, an allocation the calling
-// thread's cached blocks cannot serve returns null (stxlib/memory.hpp,
-// "Process end"). The C ABI library's static destructors run there, at its
-// DLL_PROCESS_DETACH, so the library marks its teardown from its DllMain
+// thread's exit and during static destruction. On Windows, once ExitProcess
+// has stopped the other threads, an allocation the calling thread's cached
+// blocks cannot serve returns null (stxlib/memory.hpp, "Process end"). The C
+// ABI library's static destructors run there, at its DLL_PROCESS_DETACH, so
+// the library marks its teardown from its DllMain
 // (src/surface/windows/abi/c_abi_module_teardown.cpp) and from then on a
 // refused block comes from GUI.Forms' teardown reserve without calling the
 // new-handler; one the reserve cannot hold ends the process through
 // stxlib::fail_fast with a record, so no std::bad_alloc ever leaves a
-// destructor there (allocation/library_memory, "A module's end"). Every
-// delete succeeds then: STXlib's release returns at process end, and a
-// reserve block is left where it is. A program that opts in runs its
-// static destructors before ExitProcess stops its threads, so its teardown
-// is never marked and a refusal there is true exhaustion, as on Linux and
-// macOS, where no thread is stopped at exit or dlclose: __cxa_finalize runs
-// the module's destructors (a dlclose, or exit's atexit handlers) while
-// STXlib's allocator serves as before.
+// destructor there (allocation/library_memory/library_teardown.hpp, "A
+// module's end"). Every delete succeeds then: STXlib's release returns at
+// process end, and a reserve block is left where it is. A program that opts
+// in runs its static destructors before ExitProcess stops its threads, so
+// its teardown is never marked and a refusal there is true exhaustion, as on
+// Linux and macOS, where no thread is stopped at exit or dlclose:
+// __cxa_finalize runs the module's destructors (a dlclose, or exit's atexit
+// handlers) while STXlib's allocator serves as before.
 //
 // The program links GUIForms::Memory (the teardown reserve is
 // gui_forms::detail's; gui_forms_use_library_allocator links it).
 
-#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "gui_forms/allocation/library_memory/library_teardown.hpp"
+#include "gui_forms/allocation/library_memory/program_allocator.hpp"
 
 #include <stxlib/memory.hpp>
 

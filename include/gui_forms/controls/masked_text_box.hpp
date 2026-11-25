@@ -192,6 +192,12 @@ private:
     Event<bool> overwrite_mode_changed_;
     Event<const MaskValidation&> type_validation_completed_;
     // property_codemod begin MaskedTextBox (tools/property_families/masked_text_box.json; generated, do not edit)
+public:
+    // MaskedTextBox's property table: Panel's entries, then its own.
+    static constexpr std::size_t masked_text_box_property_count = Panel::panel_property_count + 2U;
+    [[nodiscard]] static const std::array<PropertyEntry, masked_text_box_property_count>& masked_text_box_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
 protected:
     // on_<property>_changed runs after a changed write's store and touch and
     // raises the change event (the class is final: nothing overrides it in

@@ -60,12 +60,21 @@ inline constexpr bool form_component_alone = std::is_base_of_v<Component, Type> 
                                              !std::is_base_of_v<Control, Type> &&
                                              std::is_default_constructible_v<Type>;
 
+// A TabControl's document children: a TabPage becomes a page (add_page),
+// anything else is left to add_child. The loader's FormChildAdopter.
+[[nodiscard]] bool adopt_tab_page(Control& owner, const Control::Ptr& child);
+
 template <typename Type>
 void add_catalog_type(const FormCatalogEntry& entry, form_language::FormSchema& schema) {
     if constexpr (form_control_alone<Type>) {
         form_language::FormSchemaType type = form_language::form_control_type<Type>(std::string(entry.id));
         type.cpp_type = "gui_forms::" + std::string(entry.cpp_type);
         type.header = std::string(entry.header);
+        if (entry.id == "tab_control") {
+            type.adopt_child = &adopt_tab_page;
+            type.adopted_type = "gui_forms::TabPage";
+            type.adopt_method = "add_page";
+        }
         schema.types.push_back(std::move(type));
     } else if constexpr (form_component_alone<Type>) {
         form_language::FormSchemaType type = form_language::form_component_type<Type>(std::string(entry.id));

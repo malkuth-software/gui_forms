@@ -449,7 +449,7 @@ def command_study(arguments):
 
 def corpus_scalars():
     scalars = {}
-    for top in ("demo", "file_manager_demoboard", "examples", "src/controls", "assets/locales"):
+    for top in ("demo", "lab", "examples", "src/controls", "assets/locales"):
         root = os.path.join(REPOSITORY, top)
         for directory, _, files in os.walk(root):
             for name in files:

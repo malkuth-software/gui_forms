@@ -1,5 +1,11 @@
 # Install
 
+```{note}
+This page builds GUI.Forms itself from source, for contributors. You do not
+need it to build an application: apps build against the prebuilt SDK the
+devkit fetches. See [Get started](get-started.md).
+```
+
 GUI.Forms is distributed as source. You build it once with the pinned LLVM 22
 toolchain, install it to a prefix, and consume that prefix from your own CMake
 project through `find_package(GUIForms)`. This page gets you from an empty
@@ -195,7 +201,7 @@ message saying which build provides it.
 | `CAbi` | `GUIForms::CAbi` | A native host is enabled: the C ABI library, which links `Application` |
 | `CAbiConformance` | `GUIForms::CAbiConformance` | With `CAbi`: the C ABI conformance kit ([Running the C ABI conformance kit](c-abi-conformance-kit)) |
 | `HostedClient` | `GUIForms::HostedClient` | On macOS, Linux and Windows: the library a hosted content program links, and nothing of the interface ([Content surfaces](content-surfaces.md)) |
-| `GalleryModel`, `Lab`, `DemoControls` | `GUIForms::GalleryModel`, `::Lab`, `::DemoControls` | `GUI_FORMS_INSTALL_GALLERY_MODEL` with `GUI_FORMS_INSTALL_LAB` (`build_sdk.py --features all`): the Gallery's model, for a project that builds the Gallery program from an installed SDK |
+| `GalleryModel`, `Lab`, `DemoControls` | `GUIForms::GalleryModel`, `::Lab`, `::DemoControls` | Every SDK (`GUI_FORMS_INSTALL_GALLERY_MODEL` with `GUI_FORMS_INSTALL_LAB`, on by default): the Gallery's model, which [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit) builds the Gallery program from |
 
 `TextMasks` is an interface on `Application`, which already contains the
 text-mask service. Link it beside `Application`, never beside `Core`; see
@@ -278,9 +284,8 @@ as in [Verify the installation](#verify-the-installation).
 `all`
 : The default set, plus every optional component a product may link:
   `TextMasks` (`GUI_FORMS_BUILD_TEXT_MASKS`), `AudioLoopTransport`
-  (`GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT`), and `GalleryModel` with `Lab` and
-  `DemoControls` (`GUI_FORMS_INSTALL_GALLERY_MODEL`,
-  `GUI_FORMS_INSTALL_LAB`). One such install serves every product;
+  (`GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT`). The default set already carries
+  `GalleryModel` with `Lab` and `DemoControls`. One such install serves every product;
   template_harness's lockstep build uses it.
 
 The prepared-text service (`GUI_FORMS_BUILD_PREPARED_TEXT`) is in neither

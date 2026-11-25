@@ -1,5 +1,7 @@
 The help topic pane: one help page on paper, with its title over a rule,
-collapsible sections under topic bars, callouts, links and PNG images.
+collapsible sections under topic bars, callouts, links and PNG images,
+tables, definition lists, code coloured by token, signatures and linked
+cards, with find in page.
 
 The book shows a `HelpPageModel` and scrolls vertically. It never opens a
 link itself: it raises `link_activated`, and its owner decides; a
@@ -28,6 +30,16 @@ focused_stop
     focus stops (links in reading order, bars among them), or none.
 content_height
     The page's content height when laid out at the current width.
+content_width
+    The page's content width: the wrap width, or more where a code block's
+    lines are wider, which the book scrolls sideways.
+find_count
+    How many matches the current find has.
+find_position
+    The current match, counted from 1, or 0 when there is none.
+layout_passes
+    How many times the screen layout has been made, for tests that prove a
+    pointer move, a hover or a re-arrange lays nothing out.
 
 Events
 ------
@@ -41,6 +53,10 @@ close_requested
 section_toggled
     Raised when a collapsible section is opened or closed, with a
     `HelpSectionToggle`.
+link_hovered
+    Raised when the pointer moves onto a link or off every link, with a
+    `HelpLinkHover`: the page, the link's index or none, and its kind,
+    target and fragment, for an owner's status bar. It costs no layout.
 
 Methods
 -------
@@ -88,6 +104,12 @@ print_break_positions
 paint_print_band
     Paints a band of the print layout, from a top to a height in content
     coordinates, at an origin on a painter, clipped to the band.
+find
+    Marks every match of a query in the page's text (ASCII case folded
+    unless matching case), makes the first the current one and scrolls it
+    into view, opening the sections around it; returns the number of
+    matches. `find_next` and `find_previous` move the current match, wrapping
+    at the ends, and `clear_find` drops the marks.
 
 See Also
 --------
@@ -101,8 +123,21 @@ Tab and Shift+Tab move through the links and topic bars (past the last,
 focus leaves the book), Enter and Space follow a link or toggle a section,
 and the arrows, Page Up, Page Down, Home and End scroll.
 
+The book lays its page out again only when the page, the open sections,
+the font, the text metrics, the device scale or the wrap width change;
+hover, presses and scrolling repaint. Lines are one and a half times the
+body size apart, every run on a line shares one baseline. Body text is set
+in the content role's face and code in the monospace role's; inline code is
+sized to the body's x-height, on a chip.
+
 The paper's look is the theme's: the parts ``paper``, ``title``, ``rule``,
-``body`` and ``close``, and the topic items' ``topic_bar`` and
-``expander``. Until a theme gives rules for them, they are drawn with the
-tool-tip family (the paper), the menu-item family (topic bars), the card
-family (callouts) and the link families.
+``body`` and ``close``; the content parts ``code_span``, ``code_block``,
+``signature``, ``signature_bar``, ``table_header``, ``table_cell``,
+``card`` (hot under the pointer) and ``find_match`` (the current match in
+the current state); the syntax parts ``keyword``, ``type``, ``function``,
+``string``, ``number``, ``comment`` and ``directive``; and the topic
+items' ``topic_bar`` and ``expander``. Until a theme gives rules for them,
+they are drawn with the tool-tip family (the paper), the menu-item family
+(topic bars), the card family (callouts, cells and cards), the panel family
+(header cells and code chips), the selection family (find marks) and the
+link families.

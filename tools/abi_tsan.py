@@ -134,7 +134,7 @@ def main() -> int:
     if host == 'macos':
         options.append('-DCMAKE_OBJCXX_FLAGS_RELEASE=' + BUILD_TYPE_FLAGS)
     configure: list[str] = ['cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(tree), '-G', 'Ninja',
-                            *toolkit_options(ROOT / 'gui_forms', build / 'gui-forms-sdk', False, True), *options]
+                            *toolkit_options(ROOT / 'gui_forms', build / 'gui-forms-sdk', True), *options]
     configure_tree(tree, configure)
     require_instrumented(tree)
     # The tests link the toolkit's libraries, its generated headers and its

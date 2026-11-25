@@ -60,6 +60,15 @@ gui_forms::TabPage
 
       It also has every member of :cpp:class:`Control <gui_forms::Control>` and :cpp:class:`Component <gui_forms::Component>`: geometry, layout, visibility, focus, input routing, painting and disposal.
 
+   .. rubric:: Methods
+
+   .. list-table::
+      :class: autosummary longtable
+      :widths: 35 65
+
+      * - :cpp:func:`tab_page_property_entries <gui_forms::TabPage::tab_page_property_entries>`
+        -  
+
    .. seealso::
 
       :cpp:class:`TabControl <gui_forms::TabControl>`
@@ -131,15 +140,26 @@ gui_forms::TabPage
       below ``-1``.
 
 
+   .. rubric:: Methods
+
+   .. cpp:function:: static const std::array<PropertyEntry, tab_page_property_count>& tab_page_property_entries() noexcept
+
+
    .. rubric:: Extension points
 
    .. cpp:function:: SemanticDescriptor semantic_descriptor() const override
 
    .. cpp:function:: const ControlAnatomy& anatomy() const noexcept override
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
+   .. cpp:member:: constexpr std::size_t tab_page_property_count
+
+      TabPage's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 1U``.
+
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``TabPage``. Members declared here and by the counterpart: 4 supported, 0 deferred, 0 excluded, 16 unclassified; 0 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``TabPage``. Members declared here and by the counterpart: 5 supported, 0 deferred, 0 excluded, 17 unclassified; 1 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -230,3 +250,11 @@ Counterpart: ``TabPage``. Members declared here and by the counterpart: 4 suppor
      - ``GetTabPageOfComponent``
      - none
      - unclassified (unmatched)
+   * - property
+     - ``Control.Text``
+     - ``text``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``tab_page_property_entries``
+     - unclassified (untested)

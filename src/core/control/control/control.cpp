@@ -624,6 +624,22 @@ BindingValue Control::current_enum_property_value(
     return current_enum_property_value_impl(std::move(enumeration), value);
 }
 
+namespace {
+
+// Whether a scalar after '&' can be a mnemonic. White space cannot: no key
+// types it with Alt that is not taken (Alt+Space opens the window menu), and
+// an access key of " " names nothing (Windows field report D6: a caption
+// "ARRANGE & INSPECT" reported the access key "Alt+ "). The '&' is still
+// dropped from the displayed text, as Windows Forms drops it.
+bool mnemonic_target(char32_t scalar) noexcept {
+    const bool white = scalar == U' ' || scalar == U'\t' || scalar == U'\n' || scalar == U'\r' ||
+                       scalar == U'\u00A0' || scalar == U'\u2007' || scalar == U'\u202F' || scalar == U'\u3000' ||
+                       (scalar >= U'\u2000' && scalar <= U'\u200A');
+    return !white;
+}
+
+} // namespace
+
 MnemonicText parse_mnemonic_text(std::string_view text) {
     MnemonicText result;
     result.display_text.reserve(text.size());
@@ -648,7 +664,7 @@ MnemonicText parse_mnemonic_text(std::string_view text) {
         const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
         const std::size_t length = decoded.length;
         const char32_t scalar = decoded.scalar;
-        if (result.mnemonic.absent()) result.mnemonic.set(scalar);
+        if (result.mnemonic.absent() && mnemonic_target(scalar)) result.mnemonic.set(scalar);
         result.display_text.append(text.substr(offset, length));
         offset += length;
     }
@@ -668,7 +684,12 @@ std::string mnemonic_access_key(std::string_view text) {
         }
         ++offset;
         if (offset >= text.size()) break;
-        const std::size_t length = decode_utf8_scalar(text, Utf8Offset(offset)).length;
+        const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
+        const std::size_t length = decoded.length;
+        if (!mnemonic_target(decoded.scalar)) {
+            offset += std::max<std::size_t>(length, 1U);
+            continue;
+        }
         const std::string key(text.substr(offset, length));
         return key;
     }
@@ -692,8 +713,8 @@ bool is_mnemonic(char32_t character, std::string_view text) noexcept {
         const Utf8ScalarDecode decoded = decode_utf8_scalar(text, Utf8Offset(offset));
         const std::size_t length = decoded.length;
         const char32_t scalar = decoded.scalar;
-        if (fold_mnemonic(character) == fold_mnemonic(scalar)) return true;
-        offset += length;
+        if (mnemonic_target(scalar) && fold_mnemonic(character) == fold_mnemonic(scalar)) return true;
+        offset += std::max<std::size_t>(length, 1U);
     }
     return false;
 }
@@ -708,8 +729,12 @@ bool is_first_letter(char32_t character, std::string_view text) noexcept {
                 offset += 2U;
                 continue;
             }
-            // A marked mnemonic: the text answers its mnemonic instead.
-            if (offset + 1U < text.size()) return false;
+            // A marked mnemonic: the text answers its mnemonic instead. A
+            // mark on white space marks none (mnemonic_target).
+            if (offset + 1U < text.size() &&
+                mnemonic_target(decode_utf8_scalar(text, Utf8Offset(offset + 1U)).scalar)) {
+                return false;
+            }
             ++offset;
             continue;
         }

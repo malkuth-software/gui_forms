@@ -38,6 +38,8 @@ constexpr std::array<std::string_view, 4> collection_row_ids{
     "gallery.collection.gamma", "gallery.collection.delta"};
 
 constexpr Color backplane_wash = Color::rgba(222, 235, 247);
+// The same blue-grey wash for the dark scheme, under its light ink.
+constexpr Color backplane_wash_dark = Color::rgba(34, 42, 50);
 
 [[nodiscard]] BasicControlStyle gallery_basic_style(bool quiet) noexcept
 {
@@ -177,7 +179,7 @@ void GalleryContext::synchronize(std::string_view cause)
     }
 
     (*gallery.gallery_command_status).text =
-        drop_status.empty() ? "Portable core · Host 0.4 · reusable controls" : drop_status;
+        drop_status.empty() ? "Portable core · reusable controls" : drop_status;
     (*pages.gallery_value_label).text = format_percent(state.progress_value);
     // Diagnostics are live instrumentation, not a snapshot captured when the
     // panel opens: every retained interaction is observable on the next frame.
@@ -331,6 +333,14 @@ void arm(RuleSet& rules, const RuleTrigger& trigger, GalleryContext& context,
 
 } // namespace
 
+void GalleryContext::follow_colour_scheme(const PresentationSettings& settings)
+{
+    const bool dark = settings.colour_scheme == ColourScheme::dark;
+    SurfaceMaterial backplane;
+    backplane.fills = {MaterialFillLayer::solid(dark ? backplane_wash_dark : backplane_wash)};
+    (*pages.gallery_backplane).material = std::move(backplane);
+}
+
 void GalleryContext::attach(GalleryWindow& gallery_window)
 {
     window = &gallery_window;
@@ -353,9 +363,9 @@ void GalleryContext::attach(GalleryWindow& gallery_window)
     for (const std::string_view row_id : collection_row_ids) row_ids.emplace_back(row_id);
     (*pages.gallery_collection).set_item_stable_ids(std::move(row_ids));
     (*pages.gallery_collection).select_index(0U);
-    SurfaceMaterial backplane;
-    backplane.fills = {MaterialFillLayer::solid(backplane_wash)};
-    (*pages.gallery_backplane).material = std::move(backplane);
+    follow_colour_scheme(gallery.presentation_settings());
+    presentation_changed_ = gallery.presentation_changed().subscribe(
+        Delegate<const PresentationSettings&>::bind<GalleryContext, &GalleryContext::follow_colour_scheme>(*this));
     collection_drop_ = (*pages.gallery_collection).dropped().subscribe(
         Delegate<const std::string&>::bind<GalleryContext, &GalleryContext::collection_dropped>(*this));
 

@@ -2,11 +2,11 @@
   "description": "Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), tools/std_surface_census.py: a change report, not a goal. Rebaselined to the shipped 1.0 surface in 1.0.4 under the owner's ruling of 2026-11-17, restated 2026-11-24 (D15 V2 to V6 dropped): std types in public signatures are fine; the STXlib shield keeps GUI.Forms' std on its own side, and no public signature changes type for the census. Occurrences are compared; headers are reported.",
   "names": {
     "string": {
-      "occurrences": 1822,
+      "occurrences": 1826,
       "headers": 281
     },
     "vector": {
-      "occurrences": 1352,
+      "occurrences": 1356,
       "headers": 249
     },
     "shared_ptr": {
@@ -50,12 +50,12 @@
       "headers": 1
     },
     "string_view": {
-      "occurrences": 935,
+      "occurrences": 936,
       "headers": 209
     },
     "span": {
-      "occurrences": 852,
-      "headers": 237
+      "occurrences": 854,
+      "headers": 238
     },
     "thread": {
       "occurrences": 0,

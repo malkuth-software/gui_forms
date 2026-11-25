@@ -54,25 +54,219 @@ struct HelpAttributeLine final {
     return false;
 }
 
-// Copies `body` into `prepared` with each help attribute line blanked to
-// spaces (so every source offset stays where it was and the line reads as
-// blank), recording the lines in `attributes`.
-void prepare_body(std::string_view body, std::string& prepared, std::vector<HelpAttributeLine>& attributes) {
+// A pipe table found by the pre-pass: where its first line starts in the
+// source, and its rows' cell texts, the header row first. Its rows come
+// before the first block that starts after `line_start`.
+struct HelpTableLines final {
+    std::size_t line_start{};
+    std::vector<std::vector<std::string>> rows{};
+};
+
+// The lines of `body` the pre-pass reads: each line's start and end
+// (without its line feed).
+struct SourceLine final {
+    std::size_t begin{};
+    std::size_t end{};
+};
+
+// Whether `line` opens or closes a fenced code block.
+[[nodiscard]] bool fence_line(std::string_view line) noexcept {
+    const std::string_view trimmed = trim_line(line);
+    return trimmed.substr(0U, 3U) == "```" || trimmed.substr(0U, 3U) == "~~~";
+}
+
+// Whether `line` is indented as code (four or more leading spaces).
+[[nodiscard]] bool indented_code_line(std::string_view line) noexcept {
+    std::size_t spaces = 0U;
+    while (spaces < line.size() && line[spaces] == ' ') ++spaces;
+    return spaces >= 4U || (!line.empty() && line[0] == '\t');
+}
+
+// Whether `line` is a pipe table's delimiter row: pipes, dashes, colons and
+// spaces only, with a dash and a pipe.
+[[nodiscard]] bool table_delimiter_line(std::string_view line) noexcept {
+    const std::string_view trimmed = trim_line(line);
+    bool dash = false;
+    bool pipe = false;
+    for (const char character : trimmed) {
+        if (character == '-') {
+            dash = true;
+        } else if (character == '|') {
+            pipe = true;
+        } else if (character != ':' && character != ' ') {
+            return false;
+        }
+    }
+    return dash && pipe;
+}
+
+// Whether `line` holds a cell separator: a '|' outside a code span and not
+// escaped.
+[[nodiscard]] bool table_row_line(std::string_view line) noexcept {
+    bool code = false;
+    for (std::size_t index = 0U; index < line.size(); ++index) {
+        if (line[index] == '\\') {
+            ++index;
+        } else if (line[index] == '`') {
+            code = !code;
+        } else if (line[index] == '|' && !code) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Splits a table row into its cells' texts, trimmed, the outer pipes
+// dropped and each escaped pipe read as a pipe. `cells` is replaced.
+void split_table_row(std::string_view line, std::vector<std::string>& cells) {
+    cells.clear();
+    std::string_view trimmed = trim_line(line);
+    if (!trimmed.empty() && trimmed.front() == '|') trimmed.remove_prefix(1U);
+    if (!trimmed.empty() && trimmed.back() == '|' && (trimmed.size() < 2U || trimmed[trimmed.size() - 2U] != '\\')) {
+        trimmed.remove_suffix(1U);
+    }
+    std::string cell;
+    bool code = false;
+    for (std::size_t index = 0U; index < trimmed.size(); ++index) {
+        const char character = trimmed[index];
+        if (character == '\\' && index + 1U < trimmed.size() && trimmed[index + 1U] == '|') {
+            cell.push_back('|');
+            ++index;
+            continue;
+        }
+        if (character == '`') code = !code;
+        if (character == '|' && !code) {
+            cells.push_back(std::string(trim_line(cell)));
+            cell.clear();
+            continue;
+        }
+        cell.push_back(character);
+    }
+    cells.push_back(std::string(trim_line(cell)));
+}
+
+// Copies `body` into `prepared` with each help attribute line and each pipe
+// table's lines blanked to spaces (so every source offset stays where it
+// was and the line reads as blank), recording the attribute lines in
+// `attributes` and the tables in `tables`. Lines inside fenced or indented
+// code are left alone.
+void prepare_body(std::string_view body, std::string& prepared, std::vector<HelpAttributeLine>& attributes,
+                  std::vector<HelpTableLines>& tables) {
     prepared.assign(body);
     attributes.clear();
+    tables.clear();
+    std::vector<SourceLine> lines;
     std::size_t begin = 0U;
     while (begin < body.size()) {
         std::size_t end = body.find('\n', begin);
         if (end == std::string_view::npos) end = body.size();
-        HelpAttributeLine attribute{};
-        if (read_attribute_line(body.substr(begin, end - begin), attribute)) {
-            for (std::size_t index = begin; index < end; ++index) {
-                if (prepared[index] != '\r') prepared[index] = ' ';
-            }
-            attribute.line_end = end;
-            attributes.push_back(attribute);
-        }
+        lines.push_back(SourceLine{begin, end});
         begin = end + 1U;
+    }
+    bool fenced = false;
+    std::vector<std::string> cells;
+    std::size_t index = 0U;
+    while (index < lines.size()) {
+        const SourceLine line = lines[index];
+        const std::string_view text = body.substr(line.begin, line.end - line.begin);
+        if (fence_line(text)) fenced = !fenced;
+        if (fenced || indented_code_line(text)) {
+            ++index;
+            continue;
+        }
+        HelpAttributeLine attribute{};
+        if (read_attribute_line(text, attribute)) {
+            for (std::size_t at = line.begin; at < line.end; ++at) {
+                if (prepared[at] != '\r') prepared[at] = ' ';
+            }
+            attribute.line_end = line.end;
+            attributes.push_back(attribute);
+            ++index;
+            continue;
+        }
+        const bool table_starts = table_row_line(text) && index + 1U < lines.size() &&
+                                  table_delimiter_line(body.substr(lines[index + 1U].begin,
+                                                                   lines[index + 1U].end - lines[index + 1U].begin));
+        if (!table_starts) {
+            ++index;
+            continue;
+        }
+        HelpTableLines table{};
+        table.line_start = line.begin;
+        split_table_row(text, cells);
+        table.rows.push_back(cells);
+        std::size_t last = index + 1U;
+        while (last + 1U < lines.size()) {
+            const SourceLine row = lines[last + 1U];
+            const std::string_view row_text = body.substr(row.begin, row.end - row.begin);
+            if (trim_line(row_text).empty() || !table_row_line(row_text)) break;
+            split_table_row(row_text, cells);
+            table.rows.push_back(cells);
+            ++last;
+        }
+        for (std::size_t at = line.begin; at < lines[last].end; ++at) {
+            if (prepared[at] != '\r' && prepared[at] != '\n') prepared[at] = ' ';
+        }
+        tables.push_back(std::move(table));
+        index = last + 1U;
+    }
+}
+
+// Appends the runs of `text`, read as inline markdown, to `page`, and its
+// links to the page's links. An unreadable cell is kept as plain text.
+void append_inline_runs(std::string_view text, HelpPageModel& page, const MarkdownLimits& limits) {
+    if (text.empty()) return;
+    MarkdownDocument document{};
+    const MarkdownParseResult parsed = parse_markdown(text, document, limits);
+    if (!parsed.succeeded()) {
+        HelpPageRun run{};
+        run.text = std::string(text);
+        page.runs.push_back(std::move(run));
+        return;
+    }
+    const std::size_t first_link = page.links.size();
+    for (const MarkdownLink& link : document.links) {
+        const HelpLinkTarget target = classify_help_link(link.target, link.title);
+        page.links.push_back(HelpPageLink{target.kind, target.target, target.fragment, {}});
+    }
+    for (const MarkdownBlock& block : document.blocks) {
+        for (std::size_t index = 0U; index < block.span_count; ++index) {
+            const MarkdownSpan& span = document.spans[block.first_span + index];
+            HelpPageRun run{};
+            run.text = span.text;
+            run.bold = span.style.bold;
+            run.italic = span.style.italic;
+            run.code = span.style.code;
+            run.underline = span.style.underline;
+            run.strikethrough = span.style.strikethrough;
+            run.line_break = span.kind == MarkdownSpanKind::line_break;
+            const std::size_t* const link = span.link.value();
+            if (link != nullptr) run.link.set(first_link + *link);
+            page.runs.push_back(std::move(run));
+        }
+    }
+}
+
+// Appends `table`'s rows to `page` as table rows in `section`, the first a
+// header row.
+void append_table(const HelpTableLines& table, stxlib::Optional<std::size_t> section, HelpPageModel& page,
+                  const MarkdownLimits& limits) {
+    for (std::size_t row = 0U; row < table.rows.size(); ++row) {
+        HelpPageBlock block{};
+        block.kind = HelpPageBlockKind::table_row;
+        block.header = row == 0U;
+        block.section = section;
+        block.first_run = page.runs.size();
+        block.first_cell = page.cells.size();
+        for (const std::string& text : table.rows[row]) {
+            HelpPageCell cell{};
+            cell.first_run = page.runs.size();
+            append_inline_runs(text, page, limits);
+            cell.run_count = page.runs.size() - cell.first_run;
+            page.cells.push_back(cell);
+        }
+        block.cell_count = page.cells.size() - block.first_cell;
+        page.blocks.push_back(std::move(block));
     }
 }
 
@@ -150,6 +344,7 @@ void HelpPageModel::clear() noexcept {
     fallback = false;
     blocks.clear();
     runs.clear();
+    cells.clear();
     links.clear();
     images.clear();
     sections.clear();
@@ -183,7 +378,8 @@ MarkdownParseResult build_help_page(std::string_view stable_id, std::string_view
     page.title = std::string(title);
     std::string prepared;
     std::vector<HelpAttributeLine> attributes;
-    prepare_body(body, prepared, attributes);
+    std::vector<HelpTableLines> tables;
+    prepare_body(body, prepared, attributes, tables);
     MarkdownDocument document{};
     const MarkdownParseResult parsed = parse_markdown(prepared, document, limits);
     if (!parsed.succeeded()) return parsed;
@@ -197,9 +393,18 @@ MarkdownParseResult build_help_page(std::string_view stable_id, std::string_view
     for (const MarkdownImage& image : document.images) page.images.push_back(HelpPageImage{image.source, {}});
 
     std::size_t next_attribute = 0U;
+    std::size_t next_table = 0U;
     std::vector<OpenSection> open_sections;
     std::string heading_text;
     for (const MarkdownBlock& source_block : document.blocks) {
+        // The tables that stand before this block.
+        while (next_table < tables.size() && tables[next_table].line_start < source_block.source.start.value()) {
+            const stxlib::Optional<std::size_t> section = open_sections.empty()
+                                                              ? stxlib::Optional<std::size_t>::none()
+                                                              : stxlib::Optional<std::size_t>::of(open_sections.back().section);
+            append_table(tables[next_table], section, page, limits);
+            ++next_table;
+        }
         HelpPageBlock block{};
         block.kind = page_kind(source_block.kind);
         block.level = source_block.level;
@@ -267,6 +472,13 @@ MarkdownParseResult build_help_page(std::string_view stable_id, std::string_view
             }
         }
         page.blocks.push_back(std::move(block));
+    }
+    while (next_table < tables.size()) {
+        const stxlib::Optional<std::size_t> section = open_sections.empty()
+                                                          ? stxlib::Optional<std::size_t>::none()
+                                                          : stxlib::Optional<std::size_t>::of(open_sections.back().section);
+        append_table(tables[next_table], section, page, limits);
+        ++next_table;
     }
     for (const OpenSection& open : open_sections) page.sections[open.section].end = page.blocks.size();
     return parsed;

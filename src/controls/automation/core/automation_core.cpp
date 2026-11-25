@@ -7,6 +7,7 @@
 
 #include "gui_forms/automation/marks/automation_marks.hpp"
 #include "gui_forms/commands/command/command.hpp"
+#include "gui_forms/controls/button.hpp"
 #include "gui_forms/controls/content_surface.hpp"
 #include "gui_forms/controls/scrollable_control.hpp"
 #include "gui_forms/host/session/host_session.hpp"
@@ -69,7 +70,7 @@ ToolSpec built_in(const char* name, const char* title, const char* description, 
 // expect guard with exactly these members.
 std::string batch_schema() {
     std::string schema =
-        "{\"type\":\"object\",\"properties\":{\"steps\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":64,"
+        "{\"type\":\"object\",\"properties\":{\"steps\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":512,"
         // One step schema, since the MCP server takes no anyOf (STXlib's
         // supported subset): a tool step names tool and carries that tool's
         // arguments beside it; an expect step names expect and takes only
@@ -109,7 +110,8 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "snapshot", "Snapshot",
         "The control tree as an outline: role, name, [stable ID], states, value, the actions each node takes and "
         "what its press opens (needs_user: it opens a dialog the user answers; instead= names a tool that does the "
-        "same without one). A virtualised list says how many rows it does not show. Narrow it with root and filter; "
+        "same without one; default and cancel: the buttons Enter and Escape press). A virtualised list says how "
+        "many rows it does not show. Narrow it with root and filter; "
         "actions false leaves the actions out. A read: needs no control.",
         object_schema("\"root\":{\"type\":\"string\"},\"filter\":{\"type\":\"string\"},"
                       "\"limit\":{\"type\":\"integer\",\"minimum\":1},\"bounds\":{\"type\":\"boolean\"},"
@@ -159,10 +161,8 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "\"number\"},\"y\":{\"type\":\"number\"}},\"required\":[\"x\",\"y\"],\"additionalProperties\":"
         "false}";
     const std::string path_point =
-        "{\"type\":\"object\",\"description\":\"With a target, logical pixels from the target's top-left corner "
-        "(as offset); without one, window coordinates (as position)\",\"properties\":{\"x\":{\"type\":"
-        "\"number\"},\"y\":{\"type\":\"number\"}},\"required\":[\"x\",\"y\"],\"additionalProperties\":"
-        "false}";
+        detail::point_schema("With a target, logical pixels from the target's top-left corner (as offset); without "
+                             "one, window coordinates (as position)");
     const std::string wheel_delta =
         "{\"type\":\"object\",\"description\":\"Wheel notches: y -1 scrolls down one notch, y 1 up; x scrolls "
         "sideways. Default {x: 0, y: -1}\",\"properties\":{\"x\":{\"type\":\"number\"},\"y\":{\"type\":"
@@ -217,8 +217,12 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, "
         "drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are "
         "painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so "
-        "you see the program as its user does without a model. A read: needs no control.",
+        "you see the program as its user does without a model. points [{x, y}, ...] (or [x, y] pairs; logical "
+        "units from the captured area's top left, at most 1024) answers the colour at each instead of an image, to check a "
+        "drawing cheaply. A read: needs no control.",
         object_schema(targets + ",\"mode\":{\"type\":\"string\",\"enum\":[\"rendered\"]},"
+                                "\"points\":{\"type\":\"array\",\"maxItems\":1024,\"items\":" +
+                                detail::point_schema("") + "},"
                                 "\"scale\":{\"type\":\"number\"},\"margin\":{\"type\":\"number\"},"
                                 "\"include_overlays\":{\"type\":\"boolean\"},\"popups\":{\"type\":\"boolean\"},"
                                 "\"include_sign\":{\"type\":\"boolean\"}"),
@@ -240,7 +244,7 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "batch", "Batch",
         "Several steps in one call with one combined reply: each step is {\"tool\": name, ...that tool's arguments} "
         "or an expect guard {\"expect\": \"node\"|\"visual\", target, state, value, exists, drawn}; the batch stops at "
-        "the first failure or unmet expectation. terse gives each act's changes as counts.",
+        "the first failure or unmet expectation; at most 512 steps. terse gives each act's changes as counts.",
         batch_schema(), ToolAccess::acting));
     specs.push_back(built_in(
         "release_control", "Release control",
@@ -625,11 +629,10 @@ struct PostedAct final {
 // ---- small parsers --------------------------------------------------------------------
 
 bool read_point(const JsonValue& object, Point& point) {
-    if (object.kind != JsonKind::object) return false;
-    const std::optional<double> x = detail::number_member(object, "x");
-    const std::optional<double> y = detail::number_member(object, "y");
-    if (!x.has_value() || !y.has_value()) return false;
-    point = Point{*x, *y};
+    double x = 0.0;
+    double y = 0.0;
+    if (!detail::point_value(object, x, y)) return false;
+    point = Point{x, y};
     return true;
 }
 
@@ -842,9 +845,15 @@ void AutomationCore::detach_window(const Window& window) noexcept {
 }
 
 void AutomationCore::prune_windows() noexcept {
+    // The presenter's own windows (its dialogs, the console and its button)
+    // are never the model's, however they came to join: they are dropped
+    // here, so no tool lists, counts or finds them (1.0.5 console review:
+    // windows counted the console's button as a popup).
+    const AutomationPresenter* const presenter = control_.presenter();
     std::size_t index = 0U;
     while (index < windows_.size()) {
-        if (windows_[index].window.get() == nullptr) {
+        const Window* const window = windows_[index].window.get();
+        if (window == nullptr || (presenter != nullptr && (*presenter).presenter_window(*window))) {
             windows_.erase(windows_.begin() + static_cast<std::ptrdiff_t>(index));
             continue;
         }
@@ -862,10 +871,22 @@ Window* AutomationCore::find_window(std::string_view name) {
     prune_windows();
     if (windows_.empty()) return nullptr;
     if (name.empty()) {
+        // The default is a program window, never a tooltip's or a passive
+        // popup's (MCP round 3: after the first act a hidden 1x1 tooltip
+        // window was active, and snapshot {} read it instead of [main]).
+        // The active program window first, else the newest modal one (the
+        // dialog waiting on its answer), else the first.
+        Window* modal = nullptr;
+        Window* first = nullptr;
         for (const AutomationWindow& entry : windows_) {
             Window* const window = entry.window.get();
-            if ((*window).active()) return window;
+            if (entry.passive_popup) continue;
+            if (window_active(*window)) return window;
+            if (first == nullptr) first = window;
+            if (gui_forms::detail::shown_modally(*window)) modal = window;
         }
+        if (modal != nullptr) return modal;
+        if (first != nullptr) return first;
         return windows_.front().window.get();
     }
     for (const AutomationWindow& entry : windows_) {
@@ -876,6 +897,27 @@ Window* AutomationCore::find_window(std::string_view name) {
         if ((*window).text.read() == name) return window;
     }
     return nullptr;
+}
+
+bool AutomationCore::window_active(const Window& window) const {
+    if (window.active()) return true;
+    // A passive popup of this window (a tooltip, ID "<window>/tool-tip.N")
+    // holding the activation leaves the window itself the active one to a
+    // model, which never names the popup.
+    std::string owner_prefix{};
+    for (const AutomationWindow& entry : windows_) {
+        if (entry.window.get() == &window) {
+            if (entry.passive_popup) return false;
+            owner_prefix = entry.stable_id + "/";
+        }
+    }
+    if (owner_prefix.size() < 2U) return false;
+    for (const AutomationWindow& entry : windows_) {
+        const Window* const popup = entry.window.get();
+        if (!entry.passive_popup || popup == nullptr || !(*popup).active()) continue;
+        if (entry.stable_id.compare(0U, owner_prefix.size(), owner_prefix) == 0) return true;
+    }
+    return false;
 }
 
 bool AutomationCore::passive_popup_window(const Window& window) const noexcept {
@@ -895,6 +937,12 @@ void AutomationCore::end_session() noexcept {
     ended_ = true;
     control_.disconnect();
     if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).disconnected();
+}
+
+void AutomationCore::begin_session(FrameTime now) {
+    if (!ended_) return;
+    ended_ = false;
+    control_.begin_session(now);
 }
 
 void AutomationCore::hard_disconnect() noexcept {
@@ -928,10 +976,47 @@ void AutomationCore::set_client(const ClientIdentity& client) {
     control_.set_client(client);
 }
 
+namespace {
+
+// The runtime IDs of a window's default and cancel buttons (FlatNode::
+// default_button, cancel_button), walking its tree with a work list.
+void find_dialog_buttons(Window& window, std::vector<std::uint64_t>& defaults, std::vector<std::uint64_t>& cancels) {
+    const Control::Ptr accept = window.accept_button();
+    const Control::Ptr cancel = window.cancel_button();
+    if (accept) defaults.push_back((*accept).runtime_id().value);
+    if (cancel) cancels.push_back((*cancel).runtime_id().value);
+    std::vector<Control::Ptr> work{};
+    const Control::Ptr root = window.root();
+    if (root) work.push_back(root);
+    while (!work.empty()) {
+        const Control::Ptr control = std::move(work.back());
+        work.pop_back();
+        if (const Button* const button = dynamic_cast<const Button*>(control.get())) {
+            if ((*button).default_button.read()) defaults.push_back((*button).runtime_id().value);
+            if ((*button).dialog_result.read() == DialogResult::cancel) cancels.push_back((*button).runtime_id().value);
+        }
+        for (std::size_t index = 0U; index < (*control).child_count(); ++index) {
+            Control::Ptr child = (*control).child_at(index);
+            if (child) work.push_back(std::move(child));
+        }
+    }
+}
+
+} // namespace
+
 void AutomationCore::flatten_window(Window& window, std::vector<FlatNode>& nodes) {
     const SemanticSnapshot snapshot = window.semantic_snapshot();
     const InteractionSnapshot interaction = window.interaction_snapshot();
     detail::flatten_snapshot(snapshot, interaction, nodes);
+    std::vector<std::uint64_t> defaults{};
+    std::vector<std::uint64_t> cancels{};
+    find_dialog_buttons(window, defaults, cancels);
+    if (defaults.empty() && cancels.empty()) return;
+    for (FlatNode& node : nodes) {
+        if (node.is_virtual) continue;
+        node.default_button = std::find(defaults.begin(), defaults.end(), node.runtime_id) != defaults.end();
+        node.cancel_button = std::find(cancels.begin(), cancels.end(), node.runtime_id) != cancels.end();
+    }
 }
 
 std::uint64_t AutomationCore::tool_generation() const {
@@ -1129,21 +1214,17 @@ StepOutcome CoreAccess::windows_tool() {
     core.fill_windows(windows);
     if (windows.empty()) return StepOutcome::finished(ToolReply::failure(ToolError::window_gone, "no window is open"));
     std::string text{};
-    std::size_t popups = 0U;
     for (Window* const window : windows) {
         // Only the program's real windows (round 2): tooltip and passive
-        // popup windows are counted, not listed.
-        if (core.passive_popup_window(*window)) {
-            ++popups;
-            continue;
-        }
+        // popup windows are neither listed nor counted (1.0.5 console
+        // review: the count told the model about windows it cannot use).
+        if (core.passive_popup_window(*window)) continue;
         detail::append_window_line(core, *window, text);
         const HostSession* const session = gui_forms::detail::window_session(*window);
         if (session != nullptr && (*session).snapshot().modal_depth != 0U) {
             text.insert(text.size() - 1U, " (waiting on a modal window)");
         }
     }
-    if (popups != 0U) text += std::to_string(popups) + " tooltip or popup window(s) open, not listed\n";
     AutomationControl& control = core.control();
     text += "control: ";
     if (control.settings().appearance_review) {
@@ -1718,7 +1799,7 @@ StepOutcome CoreAccess::prepare_pointer(RunningCall& call, Window& window, Frame
             Point given{};
             if (!read_point(item, given)) {
                 return StepOutcome::finished(
-                    ToolReply::failure(ToolError::invalid_arguments, "each path point is {x, y}"));
+                    ToolReply::failure(ToolError::invalid_arguments, "each path point is {x, y} (or [x, y])"));
             }
             // With a target, in its space (as offset); else window
             // coordinates (round 2: target and path agree).
@@ -1907,7 +1988,10 @@ StepOutcome CoreAccess::post_act(RunningCall& call, FrameTime now) {
     std::vector<Window*> windows{};
     core.fill_windows(windows);
     call.windows_before.clear();
-    for (Window* const open : windows) call.windows_before.push_back(core.window_stable_id(*open));
+    for (Window* const open : windows) {
+        // Tooltip windows come and go with the pointer; no model names them.
+        if (!core.passive_popup_window(*open)) call.windows_before.push_back(core.window_stable_id(*open));
+    }
     call.outcome = gui_forms::detail::make_library_shared<ActOutcome>();
     // A question the program raises from here to the reply is the model's,
     // a close's prompt included, which comes after the act returns.
@@ -1968,6 +2052,9 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
     text += "ok: " + call.act.summary + "\n";
     // A disconnect's reply is its outcome; the windows are closing.
     if (call.act.kind == ActKind::close_windows) return StepOutcome::finished(ToolReply::success(std::move(text)));
+    // Where the act's effects start: with none, the reply says so (round 3:
+    // keyboard Escape replied a bare ok).
+    const std::size_t effects_start = text.size();
     if (window != nullptr) {
         std::vector<FlatNode> after{};
         core.flatten_window(*window, after);
@@ -1988,6 +2075,17 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
         const std::string id = core.window_stable_id(*open);
         if (std::find(call.windows_before.begin(), call.windows_before.end(), id) != call.windows_before.end()) continue;
         text += "opened: window \"" + (*open).text.read() + "\" [" + id + "]\n";
+    }
+    for (const std::string& id : call.windows_before) {
+        bool open_now = false;
+        for (Window* const open : windows) open_now = open_now || core.window_stable_id(*open) == id;
+        if (!open_now) text += "closed: window [" + id + "]\n";
+    }
+    // A program tool's own reply says what it did (a drawing changes pixels,
+    // not nodes: 1.0.5 review, plan_paint_draw replied "effect: none").
+    const bool tool_replied = outcome.reply.has_value() && (*outcome.reply).success_value() != nullptr;
+    if (text.size() == effects_start && !tool_replied) {
+        text += "effect: none (no node changed, focus did not move, no window opened or closed)\n";
     }
     const std::int64_t elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - call.started).count();
     const std::uint64_t frames = window == nullptr ? 0U : detail::paint_passes_of(*window) - call.paint_passes_before;

@@ -260,13 +260,17 @@ class ReleaseTests(unittest.TestCase):
         self.assertEqual(publish.expected_sdk_archive(VERSION), "gui-forms-sdk-0.2.1-source.tar.gz")
 
     def test_the_release_notes_name_the_source_sdk(self) -> None:
-        program: dict[str, Any] = {"id": "gallery", "display_name": "GUI.Forms Gallery", "status": "packaged",
-                                   "artifacts": {"archive": "gallery.zip"}}
-        notes: str = publish.release_notes(VERSION, "0" * 40, "malkuth-software/gui_forms",
-                                           {"windows-x64": {"programs": [program]}}, [])
+        notes: str = publish.release_notes(VERSION, "0" * 40, "malkuth-software/gui_forms", [])
         self.assertIn("## SDK", notes)
         self.assertIn("`gui-forms-sdk-0.2.1-source.tar.gz`", notes)
         self.assertIn("tools/build_sdk.py --target", notes)
+        self.assertIn("GUIForms::GalleryModel", notes)
+
+    def test_the_release_points_at_the_devkit_for_the_programs(self) -> None:
+        notes: str = publish.release_notes(VERSION, "0" * 40, "malkuth-software/gui_forms", ["ctest-linux-x64.xml"])
+        self.assertIn("gui_forms_devkit", notes)
+        self.assertIn("`ctest-linux-x64.xml`", notes)
+        self.assertNotIn("| Program |", notes)
 
 
 if __name__ == "__main__":

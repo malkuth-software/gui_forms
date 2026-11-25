@@ -26,13 +26,17 @@ notes/
 
 ## 1. Get the SDK
 
-You need an installed GUI.Forms SDK and the toolchain it was built with
-(LLVM 22, through the SDK's `cmake/llvm22.cmake`). Build and install it from
-source as the [Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
-page describes; the result is a prefix such as `/path/to/sdk` holding
-`include/gui_forms/`, the libraries, `lib/cmake/GUIForms/` and
-`share/GUIForms/fonts/` (the font licences). Keep the path of `cmake/llvm22.cmake`: every
-consumer project is configured with the same toolchain file.
+Make an app with the devkit and build it once, as
+[Get started](https://gui-forms.readthedocs.io/en/latest/user/get-started.html)
+describes. Its build fetches the prebuilt SDK to `<app>/.sdk/gui-forms-sdk`,
+a prefix holding `include/gui_forms/`, the libraries, `lib/cmake/GUIForms/`
+and `share/GUIForms/fonts/` (the font licences), and the toolchain file every
+consumer is configured with is `<app>/.devkit/harness/harness/cmake/llvm22.cmake`
+(on Windows, the `CMAKE_TOOLCHAIN_FILE` the build environment names).
+Below, `/path/to/sdk` and `/path/to/llvm22.cmake` stand for those two paths.
+Load the app's build environment (`. <app>/.ci/local-build-env.sh`) in the
+shell you build from. Simpler still: put this tutorial's files in that app
+and let its `build.py` build them.
 
 ## 2. The CMake project
 
@@ -330,7 +334,7 @@ Configure with the SDK's prefix and the same toolchain file, then build:
 ```sh
 cmake -S notes -B notes/build -G Ninja -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH=/path/to/sdk \
-    -DCMAKE_TOOLCHAIN_FILE=/path/to/gui_forms/cmake/llvm22.cmake
+    -DCMAKE_TOOLCHAIN_FILE=/path/to/llvm22.cmake
 cmake --build notes/build
 ```
 

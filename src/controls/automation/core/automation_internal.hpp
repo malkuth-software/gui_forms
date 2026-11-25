@@ -42,6 +42,13 @@ using gui_forms::detail::JsonValue;
 [[nodiscard]] const JsonValue* kind_member(const JsonValue& object, std::string_view name, JsonKind kind);
 // A number's text as a double; false for text that is not one.
 [[nodiscard]] bool number_value(const JsonValue& value, double& number);
+// A point: {x, y}, the canonical form every tool documents, or the pair
+// [x, y], which every tool also takes (1.0.5 review: capture took pairs and
+// Plan Paint's tools objects). False for anything else.
+[[nodiscard]] bool point_value(const JsonValue& value, double& x, double& y);
+// The schema of a point as point_value reads it: the object form with
+// `description`, or a pair.
+[[nodiscard]] std::string point_schema(std::string_view description);
 // Writes `value` as JSON text, appending to `text`. Recurses once per level:
 // a value read with argument_limits() is at most 32 levels deep (the
 // reader refuses deeper), about 200 bytes of stack a level.

@@ -1,5 +1,7 @@
 #include "gui_forms/forms/form_documents/form_documents.hpp"
 
+#include "form_documents_detail.hpp"
+
 #include "../form_catalog/form_catalog.hpp"
 
 #include "../../core/form_language/form_loader/form_window_loader.hpp"
@@ -18,57 +20,6 @@
 
 namespace gui_forms {
 
-namespace detail {
-
-// A schema's types, borrowed by the schema object.
-struct FormDocumentSchemaState final {
-    const form_language::FormSchema* schema{};
-};
-
-// One diagnostic as the check keeps it: the record, and its code's label
-// (made per record by the diagnostics' formatter).
-struct FormDocumentCheckRecord final {
-    theme_language::ThemeDiagnostic record{};
-    std::string label{};
-};
-
-struct FormDocumentCheckState final {
-    FormDocumentCheckState() noexcept = default;
-
-    bool compiled{};
-    std::size_t errors{};
-    std::vector<FormDocumentCheckRecord> records{};
-};
-
-// A loaded window, with the components only the load owns, and its title.
-struct FormDocumentWindowState final {
-    FormDocumentWindowState() noexcept = default;
-
-    // Declared before the window, which ends first.
-    std::vector<Component::Ptr> components{};
-    std::unique_ptr<Window> window{};
-    std::string title{};
-};
-
-struct FormDocumentAccess final {
-    [[nodiscard]] static const FormDocumentSchemaState* state(const FormDocumentSchema& schema) noexcept {
-        return schema.state_;
-    }
-    [[nodiscard]] static FormDocumentSchema* make_schema(const FormDocumentSchemaState* state) {
-        return new FormDocumentSchema(state);
-    }
-    [[nodiscard]] static FormDocumentCheck make_check(stxlib::Unique<FormDocumentCheckState> state) noexcept {
-        FormDocumentCheck check(std::move(state));
-        return check;
-    }
-    [[nodiscard]] static FormDocumentWindow make_window(stxlib::Unique<FormDocumentWindowState> state,
-                                                        FormDocumentCheck check) noexcept {
-        FormDocumentWindow window(std::move(state), std::move(check));
-        return window;
-    }
-};
-
-} // namespace detail
 
 namespace {
 
@@ -89,18 +40,22 @@ template <typename Element>
     return view;
 }
 
+} // namespace
+
+namespace detail {
+
 // The diagnostics kept, in order; empty when the state could not be made.
-[[nodiscard]] stxlib::Unique<detail::FormDocumentCheckState> check_state(
+stxlib::Unique<FormDocumentCheckState> form_document_check_state(
     const theme_language::ThemeDiagnosticList& diagnostics, bool compiled) {
-    stxlib::OperationResult<stxlib::Unique<detail::FormDocumentCheckState>> made =
-        stxlib::Unique<detail::FormDocumentCheckState>::make();
-    if (made.failed()) return stxlib::Unique<detail::FormDocumentCheckState>();
-    stxlib::Unique<detail::FormDocumentCheckState> state = std::move(made).take_value();
+    stxlib::OperationResult<stxlib::Unique<FormDocumentCheckState>> made =
+        stxlib::Unique<FormDocumentCheckState>::make();
+    if (made.failed()) return stxlib::Unique<FormDocumentCheckState>();
+    stxlib::Unique<FormDocumentCheckState> state = std::move(made).take_value();
     (*state).compiled = compiled;
     (*state).errors = diagnostics.error_count();
     (*state).records.reserve(diagnostics.records().size());
     for (const theme_language::ThemeDiagnostic& record : diagnostics.records()) {
-        detail::FormDocumentCheckRecord kept{};
+        FormDocumentCheckRecord kept{};
         kept.record = record;
         kept.label = theme_language::diagnostic_code_label(record.code);
         (*state).records.push_back(std::move(kept));
@@ -109,12 +64,12 @@ template <typename Element>
 }
 
 // The schema's types; the registry's when the schema holds none.
-[[nodiscard]] const form_language::FormSchema& schema_of(const detail::FormDocumentSchemaState* state) {
+const form_language::FormSchema& form_document_schema(const FormDocumentSchemaState* state) {
     if (state == nullptr || (*state).schema == nullptr) return form_catalog::process_registry_schema();
     return *(*state).schema;
 }
 
-} // namespace
+} // namespace detail
 
 // ----- FormDocumentType -----
 
@@ -223,9 +178,9 @@ FormDocumentCheck check_form_document(const FormDocumentSchema& schema, const ch
     form_language::FormModel model{};
     theme_language::ThemeDiagnosticList diagnostics{};
     const form_language::FormModelOutcome built =
-        form_language::read_form_model(source, syntax, schema_of(detail::FormDocumentAccess::state(schema)), model, diagnostics);
+        form_language::read_form_model(source, syntax, detail::form_document_schema(detail::FormDocumentAccess::state(schema)), model, diagnostics);
     const bool compiled = built == form_language::FormModelOutcome::model_built;
-    return detail::FormDocumentAccess::make_check(check_state(diagnostics, compiled));
+    return detail::FormDocumentAccess::make_check(detail::form_document_check_state(diagnostics, compiled));
 }
 
 // ----- FormDocumentWindow -----
@@ -255,10 +210,10 @@ FormDocumentWindow load_form_document_window(const FormDocumentSchema& schema, c
     const form_language::FormSources sources{};
     theme_language::ThemeDiagnosticList diagnostics{};
     form_language::LoadedWindowResult loaded = form_language::load_window(
-        text_of(file, file_bytes), text_of(document, document_bytes), schema_of(detail::FormDocumentAccess::state(schema)), sources,
+        text_of(file, file_bytes), text_of(document, document_bytes), detail::form_document_schema(detail::FormDocumentAccess::state(schema)), sources,
         diagnostics);
     const bool made = static_cast<bool>(loaded);
-    FormDocumentCheck check = detail::FormDocumentAccess::make_check(check_state(diagnostics, made));
+    FormDocumentCheck check = detail::FormDocumentAccess::make_check(detail::form_document_check_state(diagnostics, made));
     if (!made) {
         return detail::FormDocumentAccess::make_window(stxlib::Unique<detail::FormDocumentWindowState>(),
                                                        std::move(check));

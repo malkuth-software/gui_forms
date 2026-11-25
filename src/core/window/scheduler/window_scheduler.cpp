@@ -26,7 +26,7 @@ bool SurfaceRoot::needs_frame() const noexcept {
 }
 
 bool SurfaceRoot::needs_settling_frame() const noexcept {
-    const bool wanted = settling_paint_pending_ && paint_pending();
+    const bool wanted = settling_revision_ != painted_settling_revision_ && paint_pending();
     return wanted;
 }
 

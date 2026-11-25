@@ -17,27 +17,8 @@ import ci_build
 import ci_build_steps
 
 
-class GalleryOptionTests(unittest.TestCase):
-    def test_default_is_off(self) -> None:
-        self.assertFalse(ci_build.gallery_enabled(False, {}))
-
-    def test_flag_turns_gallery_on(self) -> None:
-        self.assertTrue(ci_build.gallery_enabled(True, {}))
-
-    def test_environment_turns_gallery_on(self) -> None:
-        value: str
-        for value in ('1', 'true', 'ON', ' yes '):
-            self.assertTrue(ci_build.gallery_enabled(False, {'GUI_FORMS_CI_BUILD_GALLERY': value}), value)
-
-    def test_environment_other_values_keep_default(self) -> None:
-        value: str
-        for value in ('', '0', 'false', 'off', 'maybe'):
-            self.assertFalse(ci_build.gallery_enabled(False, {'GUI_FORMS_CI_BUILD_GALLERY': value}), value)
-
-
 CHECKOUT: Path = Path(__file__).resolve().parents[1]
-FIRST_PARTY_DIRECTORIES: tuple[str, ...] = ('include', 'src', 'demo', 'examples',
-                                            'file_manager_demoboard')
+FIRST_PARTY_DIRECTORIES: tuple[str, ...] = ('include', 'src', 'demo', 'examples', 'lab')
 SOURCE_SUFFIXES: tuple[str, ...] = ('.c', '.cc', '.cpp', '.h', '.hpp', '.inc', '.m', '.mm')
 
 

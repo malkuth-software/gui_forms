@@ -26,7 +26,17 @@
 //   model's control, Keep Waiting leaves it;
 // - the destructive-act question: "Allow <model> to edit files and perform
 //   potentially destructive acts?", Allow and Don't Allow; closing it is
-//   Don't Allow.
+//   Don't Allow;
+// - the connection question (MCP 1.0.5, attach): for a program launched
+//   without --mcp or --mcp-shared, every connection through the attach
+//   endpoint asks "Allow a connection to this program?", naming the client
+//   as it named itself and saying that name is not verified; Allow and
+//   Don't Allow, no countdown, nothing remembered; closing it is Don't
+//   Allow;
+// - the console overlay (MCP 1.0.5, console_overlay.hpp): in AI mode a
+//   "thinking..." button in the window's upper right opens a terminal-style
+//   record of the MCP traffic, hidden by default; a press on it offers the
+//   take-back dialog.
 //
 // The dialogs are the presenter's own windows (presenter_window): the
 // automation never attaches, reads or drives one, and the user's input to
@@ -37,13 +47,16 @@
 // first. Dialogs are opened through the run's windowing and destroyed with
 // the presenter. Thread: the UI thread of the automation's windows.
 
+#include "../console/console_overlay.hpp"
 #include "../control/automation_control.hpp"
 
 #include "gui_forms/application/application.hpp"
+#include "gui_forms/host/windowing/host_windowing.hpp"
 #include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 
 #include <array>
+#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -59,10 +72,32 @@ enum class PresenterDialog : std::uint8_t {
     take,
     take_back,
     consent,
+    connect,
 };
-inline constexpr std::size_t presenter_dialog_count = 3U;
+inline constexpr std::size_t presenter_dialog_count = 4U;
 
-class StockPresenter final : public AutomationPresenter {
+// The answer to one attach connection's question, shared by the presenter
+// and the attach thread that waits on it (attach_server.cpp).
+enum class ConnectAnswerState : std::uint8_t {
+    waiting,
+    allowed,
+    refused,
+};
+
+struct ConnectAnswer final {
+    std::atomic<ConnectAnswerState> state{ConnectAnswerState::waiting};
+};
+
+// Where a presenter dialog's client area goes (1.0.5 console review: the
+// questions opened at the screen's upper right, one half under a
+// notification): its outer frame centred on the program window's, then
+// moved the least distance into the work area of the screen holding the
+// program window's centre (else the nearest screen's; no monitors: not
+// moved). `dialog` gives the dialog's size and decorations.
+[[nodiscard]] Rect presenter_dialog_place(const HostWindowFrame& owner, const HostWindowFrame& dialog,
+                                          const std::vector<HostMonitor>& monitors) noexcept;
+
+class StockPresenter final : public AutomationPresenter, public ConsoleOverlayListener {
 public:
     StockPresenter();
     ~StockPresenter() override;
@@ -73,9 +108,11 @@ public:
     // The control the dialogs answer to. Null detaches it; the run detaches
     // before destroying the control.
     void bind_control(AutomationControl* control) noexcept;
-    // The run's windowing, from the first application window, and that
-    // window's stable ID (the dialogs' owner). Later calls keep the first.
-    void set_windowing(const ApplicationWindowHandle& owner, std::string_view owner_id);
+    // The run's windowing, from the first application window, that
+    // window's stable ID (the dialogs' owner) and its model (which the
+    // console's button avoids covering). Later calls keep the first.
+    void set_windowing(const ApplicationWindowHandle& owner, std::string_view owner_id,
+                       const WindowRef& owner_model = WindowRef{});
     // Appearance review (--mcp-appearance-review, MCP round 1): the windows
     // look as they do without a model, so captures can be compared with the
     // user's view. No band, no title note, no veil, no tag line and no
@@ -96,6 +133,25 @@ public:
     void user_step_needed(Window& window, const SemanticNode& node, std::string_view what) override;
     void disconnected() noexcept override;
     [[nodiscard]] bool presenter_window(const SurfaceRoot& window) const noexcept override;
+
+    // ---- MCP 1.0.5 ----
+
+    // The record the console overlay shows (the run's). Borrowed.
+    void set_console_log(const ConsoleLog* log) noexcept { console_.set_log(log); }
+    // New lines may be in the record (the run posts it after recording).
+    void console_changed();
+    // A press on the open console: offers take-back while the model holds
+    // control (ConsoleOverlayListener).
+    void console_pressed() override;
+    [[nodiscard]] const ConsoleOverlay& console() const noexcept { return console_; }
+    [[nodiscard]] ConsoleOverlay& console() noexcept { return console_; }
+    // Asks the user whether `client` (as it named itself) may connect,
+    // answering into `answer`; refused at once when no question can be
+    // shown, or when another connection's question is open.
+    void ask_connect(const ClientIdentity& client, const std::shared_ptr<ConnectAnswer>& answer);
+    // The connection went away, or its question waited too long: the
+    // question closes, answered Don't Allow.
+    void withdraw_connect() noexcept;
 
     // A dialog's buttons and closes (PresenterPanel, DialogClosed).
     // `accepted` is Allow or Take Back Control.
@@ -138,12 +194,18 @@ private:
     // The take question's text for `seconds` left.
     [[nodiscard]] std::string take_text(std::int64_t seconds) const;
     void arm_countdown() noexcept;
+    // Shows the console's button while the model holds control, else
+    // closes the button and the console.
+    void update_console() noexcept;
+    // Answers the open connection question, if any.
+    void answer_connect(bool allowed) noexcept;
 
     // Posted work holds this weakly; reset first in the destructor.
     std::shared_ptr<StockPresenter*> self_{};
     AutomationControl* control_{};
     ApplicationWindowHandle owner_{};
     std::string owner_id_{};
+    WindowRef owner_model_{};
     ClientIdentity client_{};
     bool connected_{};
     bool in_control_{};
@@ -155,6 +217,9 @@ private:
     FrameTime countdown_end_{};
     FrameRequestToken countdown_tick_{};
     std::weak_ptr<Label> countdown_label_{};
+    // The connection question's answer while it is open.
+    std::shared_ptr<ConnectAnswer> connect_answer_{};
+    ConsoleOverlay console_{this};
 };
 
 } // namespace gui_forms::automation

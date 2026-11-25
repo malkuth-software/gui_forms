@@ -98,6 +98,48 @@ const ControlAnatomy& TabPage::anatomy() const noexcept {
 
 // property_codemod begin TabPage (tools/property_families/tab_page.json; generated, do not edit)
 
+namespace {
+
+PropertyDescriptor tab_page_text_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Appearance";
+    descriptor.description = "The text its tab shows.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics | Dirty::measure;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_tab_page_text() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        tab_page_text_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, TabPage::tab_page_property_count>& TabPage::tab_page_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 1U> own{{
+        {"text", &describe_tab_page_text,
+         &read_cell_entry<TabPage, decltype(&TabPage::text), &TabPage::text>,
+         &write_cell_entry<TabPage, decltype(&TabPage::text), &TabPage::text>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "TabPage's property table names a property twice");
+    static const std::array<PropertyEntry, tab_page_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> TabPage::property_table() const noexcept {
+    const std::array<PropertyEntry, tab_page_property_count>& entries = tab_page_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
 // property_codemod end TabPage
 
 } // namespace gui_forms

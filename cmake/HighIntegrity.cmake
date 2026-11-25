@@ -87,10 +87,8 @@ set(_gf_high_integrity_settings
     "GUI_FORMS_BUILD_PREPARED_TEXT|OFF|BOOL|the prepared-text service is a development service"
     "GUI_FORMS_BUILD_TEXT_MASKS|OFF|BOOL|the text-mask service is a development service"
     "GUI_FORMS_ENABLE_WAYLAND_PRESENT|OFF|BOOL|the presentation shim's direct paths are not compiled"
-    "GUI_FORMS_BUILD_GALLERY|OFF|BOOL|the Gallery calls entries this configuration removes"
     "GUI_FORMS_BUILD_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
     "GUI_FORMS_INSTALL_GALLERY_MODEL|OFF|BOOL|the Gallery model calls entries this configuration removes"
-    "GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD|OFF|BOOL|the demoboard calls entries this configuration removes"
     "STXLIB_MATH_DISPATCH|OFF|BOOL|STXlib's math takes one code path, chosen at build time"
     "GUI_FORMS_LTO|ON|BOOL|link-time optimisation prunes across modules where the toolchain allows")
 if(NOT _gf_high_integrity_sanitized)

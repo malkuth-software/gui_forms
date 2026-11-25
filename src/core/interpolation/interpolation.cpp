@@ -84,7 +84,7 @@ Status from_engine(const stxlib::OperationStatus& status) noexcept {
         return Status::sample_out_of_range;
     case stxlib::ErrorKind::out_of_memory:
         return Status::out_of_memory;
-    default:
+    default: // Unsupported and the rest cannot follow this seam's checks (above).
         return Status::numerical_failure;
     }
 }

@@ -8,9 +8,9 @@ found in the [API reference](../api/index).
 :caption: Getting started
 :maxdepth: 1
 
-install
-download
+get-started
 first-window
+download
 application-and-windows
 consume-the-sdk
 c-abi-conformance-kit
@@ -29,6 +29,7 @@ debugging
 text-engine
 properties
 forms
+mockups
 input-and-focus
 mouse-events
 relative-pointer
@@ -37,6 +38,7 @@ values-commands-and-binding
 rules
 data-binding
 controls
+custom-controls
 overlays-popups-and-splash
 themes
 theme-language
@@ -65,6 +67,7 @@ threading
 lifecycle
 hosts-and-capabilities
 mcp-tools
+talk-to-a-program
 presentation
 content-surfaces
 factory-bundle

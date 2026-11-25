@@ -4,7 +4,7 @@
 Stage 1 of the borrow sanitizer plan (notes planning/borrow_sanitizer/,
 owner ruling 2026-11-11: report-only first, then gating). Configures a
 build tree of its own, as tools/ci_build.py configures the plain tree
-(Release, cmake/llvm22.cmake, gallery and tests on), with CXXFLAGS and
+(Release, cmake/llvm22.cmake, the Gallery model and tests on), with CXXFLAGS and
 OBJCXXFLAGS set to the lint flags (CMake folds them into the toolchain
 file's flags at the first configure), builds everything with `ninja -k 0`,
 and reports the lifetime findings, deduplicated by file, line, column and
@@ -87,7 +87,7 @@ def configure(tree: Path, stx_prefix: str) -> bool:
     environment['CXXFLAGS'] = FLAGS
     environment['OBJCXXFLAGS'] = FLAGS
     command: list[str] = ['cmake', '-S', str(SOURCE), '-B', str(tree), '-G', 'Ninja',
-                          *toolkit_configure.toolkit_options(SOURCE, tree / 'sdk', True, True),
+                          *toolkit_configure.toolkit_options(SOURCE, tree / 'sdk', True),
                           *toolkit_configure.host_options(host_name()),
                           *toolkit_configure.stx_options(stx_prefix, os.environ.get('GUI_FORMS_STX_PACKAGE_DIR', ''))]
     with open(tree / 'lifetime-lint-configure.log', 'w', encoding='utf-8') as log:

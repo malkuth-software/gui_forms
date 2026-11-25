@@ -80,6 +80,15 @@ public:
         const bool refused = root.refuse_arrange_outside_slot(control);
         return refused;
     }
+    // Layout liveness (SurfaceRoot::report_layout_liveness): records `code`
+    // against `control` once when the layout pass is arranging it now, and
+    // returns whether it was. ScrollableControl asks it when its position
+    // moves, the one holder besides Control.
+    static bool report_if_arranging(SurfaceRoot& root, const Control& control, LayoutDiagnosticCode code) noexcept {
+        if (!root.arranging_in_layout_pass(control)) return false;
+        root.report_layout_liveness(control, code);
+        return true;
+    }
     static void change_paint_plane(SurfaceRoot& root, Control& control, PaintPlane plane) {
         root.change_paint_plane(control, plane);
     }

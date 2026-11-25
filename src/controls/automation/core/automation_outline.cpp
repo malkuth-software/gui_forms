@@ -158,6 +158,9 @@ void append_states(const FlatNode& node, std::string& text) {
         text += entry.name;
     }
     if (node.modal) text += " modal";
+    // Enter presses the default button and Escape the cancel button.
+    if (node.default_button) text += " default";
+    if (node.cancel_button) text += " cancel";
     if (node.hovered) text += " hovered";
     if (node.pressed) text += " pressed";
     // An opener needs the user (MCP round 1): the dialog it opens is the
@@ -558,7 +561,7 @@ void append_diff(std::span<const FlatNode> before, std::span<const FlatNode> aft
         removed_label = "obscured: ";
     }
     if (scoped && !options.scope_before.empty()) {
-        text += "the modal [" + options.scope_before + "] no longer scopes the tree\n";
+        text += "the modal [" + options.scope_before + "] closed or gave way: it no longer scopes the tree\n";
         added_label = "revealed: ";
     }
     append_subtree_changes(after, before_index, added_label, maximum_entries, options.terse, text);

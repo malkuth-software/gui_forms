@@ -403,7 +403,7 @@ void take_mcp_arguments(int& argc, char** argv) noexcept {
         const char* const argument = argv[read];
         const std::string_view text = argument == nullptr ? std::string_view{} : std::string_view(argument);
         if (text == "--mcp" || text == "--mcp-shared" || text == "--model-directed" ||
-            text == "--mcp-appearance-review") {
+            text == "--mcp-appearance-review" || text == "--mcp-socket") {
             keep_taken_argument(text);
             ++read;
             continue;

@@ -246,6 +246,16 @@ HostServiceStatus apply_windows_border_colour(HWND window, stxlib::Optional<Colo
     return {};
 }
 
+void apply_windows_caption_scheme(HWND window, bool dark) noexcept {
+    const DwmFunctions& functions = dwm();
+    if (window == nullptr || functions.set_attribute == nullptr) return;
+    // DWMWA_USE_IMMERSIVE_DARK_MODE by its value: the SDK headers before
+    // 10.0.22000 do not name it.
+    constexpr DWORD immersive_dark_mode = 20U;
+    const BOOL value = dark ? TRUE : FALSE;
+    static_cast<void>(functions.set_attribute(window, immersive_dark_mode, &value, sizeof(value)));
+}
+
 HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreference preference) noexcept {
     HostWindowCornersResult result{};
     const DwmFunctions& functions = dwm();

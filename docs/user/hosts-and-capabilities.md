@@ -367,9 +367,29 @@ Windows (Win32)
   (or with `GUI_FORMS_MCP=shared` in its environment) serves MCP on its
   standard input and output (only the process that started it can drive
   it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
-  With no flag nothing is served. Attaching to a program the user already
-  has open needs another transport (a local socket); that is a later
-  release.
+  Every program also listens on a socket of its own, the way a model
+  reaches a program the user already has open (1.0.5): a Unix domain
+  socket (AF_UNIX on Windows too) that only the same user can reach, in
+  the user's run directory (`~/Library/Caches/gui-forms/run` on macOS,
+  `$XDG_RUNTIME_DIR/gui-forms` on Linux, `%LOCALAPPDATA%\gui-forms\run`
+  on Windows; 0700, or a DACL granting only the user's SID), each peer's
+  user checked again. The socket speaks MCP itself (newline-delimited
+  JSON-RPC), and a first line that is not JSON opens a plain-text console
+  (`help`, `tools`, `call <tool> ...`, `transcript`, `resume <token>`,
+  `quit`), so `nc -U`, socat or a few lines of Python are a complete
+  client: [Talk to a running program](talk-to-a-program.md). Beside each
+  socket `<pid>.info` says what listens on it; the program prints its
+  socket on standard error, and `program --mcp-socket` prints it.
+  A session survives a dropped connection for 120 seconds: initialize
+  returns a token (in the instructions), and a later connection resumes
+  with it. A program launched with `--mcp` or `--mcp-shared` accepts a
+  new session at once; any other asks its user, every session, naming the
+  client by what the client says and saying that is not verified (Allow or
+  Don't Allow, no countdown, nothing remembered). One client at a time;
+  when a session ends, control returns to the user and the program stays
+  open. `gui-forms-attach` remains as a stdio bridge for a client that
+  must start one from `.mcp.json`. `GUI_FORMS_MCP_ATTACH=0` turns the
+  socket off.
   Reads never need control; acts do (the control model):
   - `--mcp` is AI-led: the model holds control from the start, with no
     question, and keeps it until it calls `release_control` or the user
@@ -393,6 +413,13 @@ Windows (Win32)
     take back control of this program?" with "<model> has not yet released
     the application." Taking back ends control and interrupts the model's
     call; Keep Waiting leaves the model in control.
+  - a "thinking..." button with a turning spinner in the window's upper
+    right; a click opens the console, a terminal-style record of every MCP
+    call and reply in Portsmouth Mono over a slightly transparent dark
+    panel (the instruction orange, values green), and another click closes
+    it. Hidden by default; a press on the console offers take-back. The
+    button and the console are popup windows of their own: never in a
+    capture, and a new line repaints nothing of the program.
 
   While a model is connected, in or out of control:
   - a 5 px accent band on the window's border, with a glint running round

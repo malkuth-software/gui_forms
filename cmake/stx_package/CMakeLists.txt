@@ -76,7 +76,7 @@ add_subdirectory("${GUI_FORMS_STX_SOURCE_DIR}/stx_skia" stx_skia)
 
 # The stx source's data the GUI.Forms build and its packages read: the
 # markdown corpus, and every licence file packaging/licenses.json names under
-# $STX, at its path in the stx source (package_programs.py reads them there
+# $STX, at its path in the stx source (gui_forms_devkit's package_programs.py and tools/package_notices.py read them there
 # when no stx checkout is at hand).
 install(DIRECTORY "${GUI_FORMS_STX_SOURCE_DIR}/stx_rtf2md/tests/corpus/"
     DESTINATION ${CMAKE_INSTALL_DATADIR}/stx_text/rtf2md_corpus)

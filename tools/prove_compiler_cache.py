@@ -69,7 +69,7 @@ def build(root: Path, cache: Path, name: str, jobs: int,
             '-DGUI_FORMS_ENABLE_MACOS_HOST=OFF',
             '-DGUI_FORMS_ENABLE_WINDOWS_HOST=OFF',
             '-DGUI_FORMS_ENABLE_LINUX_HOST=OFF',
-            '-DGUI_FORMS_BUILD_GALLERY=OFF',
+            '-DGUI_FORMS_BUILD_GALLERY_MODEL=OFF',
             '-DCMAKE_C_COMPILER_LAUNCHER=ccache',
             '-DCMAKE_CXX_COMPILER_LAUNCHER=ccache',
             '-DCMAKE_CXX_FLAGS=' + flags]

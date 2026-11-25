@@ -551,6 +551,12 @@ void FormGenerator::write_objects(std::string& out, ObjectAccess access) const {
             out += "        (*" + object_reference(parent, access) + ".slot()).add_child(" + pointer + ");\n";
             continue;
         }
+        // A TabControl makes a TabPage child a page (FormSchemaType::adopt_method).
+        const FormSchemaType& parent_type = type_of(parent);
+        if (!parent_type.adopted_type.empty() && parent_type.adopted_type == type.cpp_type) {
+            out += "        " + object_reference(parent, access) + "." + parent_type.adopt_method + "(" + pointer + ");\n";
+            continue;
+        }
         out += "        " + object_reference(parent, access) + ".add_child(" + pointer + ");\n";
     }
     // Spans before any placement (study 10.9).

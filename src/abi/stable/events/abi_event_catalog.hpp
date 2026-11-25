@@ -1494,6 +1494,7 @@ void read_field(EventFields& fields, std::string_view name, GestureEventArgs& va
 void append_field(EventFields& fields, std::string_view name, const GradientStop& value);
 void append_field(EventFields& fields, std::string_view name, const HelpLinkActivation& value);
 void read_field(EventFields& fields, std::string_view name, HelpLinkActivation& value);
+void append_field(EventFields& fields, std::string_view name, const HelpLinkHover& value);
 void append_field(EventFields& fields, std::string_view name, const HelpPrintRequest& value);
 void read_field(EventFields& fields, std::string_view name, HelpPrintRequest& value);
 void append_field(EventFields& fields, std::string_view name, const HelpRequestEvent& value);
@@ -2549,6 +2550,16 @@ inline void read_field(EventFields& fields, std::string_view name, HelpLinkActiv
     read_field(fields, "fragment", value.fragment);
     read_field(fields, "bounds", value.bounds);
     read_field(fields, "handled", value.handled);
+    fields.leave(prefix);
+}
+
+inline void append_field(EventFields& fields, std::string_view name, const HelpLinkHover& value) {
+    const EventFieldPrefix prefix = fields.enter(name);
+    append_field(fields, "page", value.page);
+    append_field(fields, "link", value.link);
+    append_field(fields, "kind", value.kind);
+    append_field(fields, "target", value.target);
+    append_field(fields, "fragment", value.fragment);
     fields.leave(prefix);
 }
 
@@ -5943,6 +5954,15 @@ inline SubscriptionToken connect_node_canvas_link_connected(Component& source, c
     return token;
 }
 
+inline SubscriptionToken connect_help_book_link_hovered(Component& source, const EventSink& sink) {
+    HelpBook* typed = dynamic_cast<HelpBook*>(&source);
+    if (typed == nullptr) {
+        return SubscriptionToken{};
+    }
+    SubscriptionToken token = subscribe_forwarded((*typed).link_hovered(), sink);
+    return token;
+}
+
 inline SubscriptionToken connect_binding_source_list_changed(Component& source, const EventSink& sink) {
     BindingSource* typed = dynamic_cast<BindingSource*>(&source);
     if (typed == nullptr) {
@@ -7594,7 +7614,7 @@ inline SubscriptionToken connect_business_card_website_requested(Component& sour
 }
 
 // By interaction name, then the most derived declaring type first.
-inline constexpr std::array<EventConnector, 397> event_connectors{{
+inline constexpr std::array<EventConnector, 398> event_connectors{{
     {"action_clicked", "Callout", &connect_callout_action_clicked},
     {"action_invoked", "Toast", &connect_toast_action_invoked},
     {"activated", "Card", &connect_card_activated},
@@ -7810,6 +7830,7 @@ inline constexpr std::array<EventConnector, 397> event_connectors{{
     {"link_activated", "HelpBook", &connect_help_book_link_activated},
     {"link_clicked", "RichTextBox", &connect_rich_text_box_link_clicked},
     {"link_connected", "NodeCanvas", &connect_node_canvas_link_connected},
+    {"link_hovered", "HelpBook", &connect_help_book_link_hovered},
     {"list_changed", "BindingSource", &connect_binding_source_list_changed},
     {"loaded", "UserControl", &connect_user_control_loaded},
     {"mask_changed", "MaskedTextBox", &connect_masked_text_box_mask_changed},

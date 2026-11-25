@@ -2957,7 +2957,7 @@ Counterpart: ``Control``. Members declared here and by the counterpart: 259 supp
      - unclassified (unmatched)
    * - property
      - ``Text``
-     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``RichTextBox``, ``Label``, ``ComboBox``, ``CheckBox``, ``RadioButton``, ``GroupBox``
+     - on ``ButtonBase``, ``Button``, ``LinkLabel``, ``TextBox``, ``MaskedTextBox``, ``RichTextBox``, ``Label``, ``ComboBox``, ``CheckBox``, ``RadioButton``, ``GroupBox``, ``TabPage``
      - unclassified (carried)
    * - property
      - ``Top``

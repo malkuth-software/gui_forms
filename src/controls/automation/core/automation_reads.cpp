@@ -444,7 +444,7 @@ void append_window_line(AutomationCore& core, Window& window, std::string& text)
         append_json_string(title, text);
     }
     text += " [" + core.window_stable_id(window) + "]";
-    if (window.active()) text += " active";
+    if (core.window_active(window)) text += " active";
     text += " " + number_text(size.width) + "x" + number_text(size.height) + "\n";
 }
 
@@ -545,6 +545,64 @@ ToolReply text_read_tool(AutomationCore& core, Window& window, const JsonValue& 
     return reply;
 }
 
+namespace {
+
+constexpr std::size_t maximum_sampled_points = 1024U;
+
+void append_hex_byte(unsigned value, std::string& text) {
+    static const char digits[] = "0123456789ABCDEF";
+    text += digits[(value >> 4U) & 0x0fU];
+    text += digits[value & 0x0fU];
+}
+
+// The capture's colour at each point {x, y} (or [x, y]) of `points` (logical units from the
+// capture's top left), one line each: "x,y #RRGGBB" (straight colour),
+// with the alpha when it is not opaque, or "outside".
+ToolReply sample_capture(const WindowCapture& capture, const JsonValue& points, const std::string& what) {
+    if (points.items.empty() || points.items.size() > maximum_sampled_points) {
+        return ToolReply::failure(ToolError::invalid_arguments,
+                                  "points holds 1 to " + std::to_string(maximum_sampled_points) + " points {x, y}");
+    }
+    std::string text = "colours of " + what + " (logical units from its top left, scale " +
+                       number_text(capture.scale) + "):\n";
+    for (const JsonValue& point : points.items) {
+        double x = 0.0;
+        double y = 0.0;
+        if (!point_value(point, x, y)) {
+            return ToolReply::failure(ToolError::invalid_arguments, "each point is {x, y} (or an [x, y] pair)");
+        }
+        text += number_text(x) + "," + number_text(y) + " ";
+        const double pixel_x = std::floor(x * capture.scale);
+        const double pixel_y = std::floor(y * capture.scale);
+        if (!(pixel_x >= 0.0) || !(pixel_y >= 0.0) || pixel_x >= static_cast<double>(capture.pixel_width) ||
+            pixel_y >= static_cast<double>(capture.pixel_height)) {
+            text += "outside\n";
+            continue;
+        }
+        const std::size_t offset =
+            (static_cast<std::size_t>(pixel_y) * capture.pixel_width + static_cast<std::size_t>(pixel_x)) * 4U;
+        if (offset + 4U > capture.bgra.size()) {
+            text += "outside\n";
+            continue;
+        }
+        const unsigned alpha = std::to_integer<unsigned>(capture.bgra[offset + 3U]);
+        unsigned channels[3] = {std::to_integer<unsigned>(capture.bgra[offset + 2U]),
+                                std::to_integer<unsigned>(capture.bgra[offset + 1U]),
+                                std::to_integer<unsigned>(capture.bgra[offset])};
+        // The capture is premultiplied; the colour named is straight.
+        if (alpha != 0U && alpha != 255U) {
+            for (unsigned& channel : channels) channel = std::min(255U, (channel * 255U + alpha / 2U) / alpha);
+        }
+        text += '#';
+        for (const unsigned channel : channels) append_hex_byte(channel, text);
+        if (alpha != 255U) text += " alpha " + std::to_string(alpha);
+        text += '\n';
+    }
+    return ToolReply::success(std::move(text));
+}
+
+} // namespace
+
 ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& arguments) {
     const std::optional<std::string> mode = text_member(arguments, "mode");
     if (mode.has_value() && *mode == "presented") {
@@ -614,6 +672,10 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
     if (index == no_parent && (!with_popups.has_value() || *with_popups)) {
         composited = composite_popups(core, window, *capture, popups);
     }
+    // The colours at given points instead of the image (round 3: a model
+    // checking its drawing needs a few pixels, not a PNG).
+    const JsonValue* const points = kind_member(arguments, "points", JsonKind::array);
+    if (points != nullptr) return sample_capture(*capture, *points, what);
     ToolImage image{};
     if (!encode_window_capture_png(*capture, image.bytes)) {
         return ToolReply::failure(ToolError::internal, "the capture could not be encoded");

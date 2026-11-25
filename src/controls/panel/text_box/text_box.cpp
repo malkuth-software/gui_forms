@@ -18,6 +18,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cmath>
+#include <vector>
 #include <optional>
 #include <stdexcept>
 #include <utility>
@@ -897,8 +898,8 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         ? utf8_scalar(use_system_password_character.read() ? U'\u2022'
                                                      : password_character.read())
         : std::string{};
-    // The positions measure every grapheme prefix of the presentation, n
-    // measurements of up to n bytes, with this painter. They depend only on
+    // The positions come from one shaping of the presentation with this
+    // painter (its cluster advances). They depend only on
     // what the painter measures with (measurement_identity: the window's
     // provider for the frames' recording painters, the painter itself
     // otherwise), the text revision, the presentation, the font and the
@@ -924,17 +925,43 @@ void TextBox::on_paint(Painter& painter, Rect damage) {
         layout_offsets_.reserve(count + 1U);
         const bool masked = password_protected();
         const std::string_view presentation(presented);
-        // The last prefix is the whole presentation: its measurement serves
-        // the text parts, so the text is measured once.
+        // Each grapheme boundary sits where one shaping of the whole
+        // presentation, the shaping the text is painted with, puts it: the
+        // sum of its clusters' advances up to the boundary. Measuring each
+        // prefix alone shaped every prefix afresh, and a prefix ending in
+        // punctuation or a space between CJK and an emoji took another
+        // font run's advances than the painted text did, so the selection
+        // band missed the glyphs it selected (Windows field report D11).
+        // The whole presentation is measured once, for the text parts.
+        // A painter whose advances do not add up to the text's measured
+        // width (one that measures each scalar alone in another way) keeps
+        // the prefix measurements.
+        std::vector<double> advances(presentation.size(), 0.0);
+        presented_size = painter.measure_text_utf8(presentation, content_font);
+        bool shaped = !presentation.empty() &&
+            painter.fill_cluster_advances_utf8(presentation, content_font, advances) !=
+                TextResolutionStatus::invalid_request;
+        if (shaped) {
+            double total = 0.0;
+            for (const double advance : advances) total += advance;
+            shaped = std::abs(total - presented_size.width) <= 0.01 * std::max(1.0, presented_size.width);
+        }
+        double advanced = 0.0;
+        std::size_t summed = 0U;
         for (std::size_t index = 0U; index <= count; ++index) {
             const Utf8Offset offset = (*editing_).store().utf8_offset(GraphemeIndex(index));
             layout_offsets_.push_back(offset.value());
-            const std::size_t presentation_offset = masked
-                ? index * mask.size() : offset.value();
-            const std::string_view prefix = presentation.substr(0U, presentation_offset);
-            const Size prefix_size = painter.measure_text_utf8(prefix, content_font);
-            layout_positions_.push_back(prefix_size.width);
-            presented_size = prefix_size;
+            const std::size_t presentation_offset = std::min(presentation.size(), masked
+                ? index * mask.size() : offset.value());
+            if (index == count) {
+                layout_positions_.push_back(presented_size.width);
+            } else if (shaped) {
+                for (; summed < presentation_offset; ++summed) advanced += advances[summed];
+                layout_positions_.push_back(advanced);
+            } else {
+                const std::string_view prefix = presentation.substr(0U, presentation_offset);
+                layout_positions_.push_back(painter.measure_text_utf8(prefix, content_font).width);
+            }
         }
         layout_measurement_ = measured_with;
         layout_revision_ = revision;

@@ -242,80 +242,61 @@ inspired by mimalloc, with TLSF for its free runs. Each has an ancestry in
 the named libraries but does not resemble them, is faster than the
 frameworks it derives from, and by design is less likely to facilitate bugs
 of any kind in use.
-## Get it
+## Quick start
 
-- **Programs:** every release on the
-  [Releases page](https://github.com/malkuth-software/gui_forms/releases/latest)
-  carries the Gallery (every stock control, page by page), Explore and
-  Correspondence for macOS arm64, Windows x64 and Linux x64 and arm64, with
-  `SHA256SUMS.txt`. Builds are not code-signed: see
-  [Download](https://gui-forms.readthedocs.io/en/latest/user/download.html)
-  for opening them on each platform.
-- **SDK:** the same release carries the source SDK,
-  `gui-forms-sdk-<version>-source.tar.gz`, which you build and install for
-  your platform.
-- **New project:** [`malkuth-software/template_harness`](https://github.com/malkuth-software/template_harness)
-  starts an application on the SDK with the pinned toolchain.
+You build GUI.Forms applications with the devkit,
+[gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit).
+It fetches a prebuilt GUI.Forms SDK and builds only your code: GUI.Forms
+itself is never compiled.
+[Get started](https://gui-forms.readthedocs.io/en/latest/user/get-started.html)
+walks through each step.
 
-## Build it
-
-Prerequisites are CMake 3.25+, Ninja, LLVM 22.1 and Python 3.12+ (on
-Windows, LLVM 22's clang and lld; `tools/own_runtime.py` builds the C and
-C++ runtime).
-[Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
-covers each platform's preparation. Then:
+macOS and Linux:
 
 ```sh
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake
-cmake --build build --parallel
-cmake --install build --prefix ~/gui-forms-sdk
+git clone https://github.com/malkuth-software/gui_forms_devkit
+sh gui_forms_devkit/harness/bootstrap.sh new-app hello_forms --license mit
+cd hello_forms
+python3 build.py --jobs 4
 ```
 
-On Linux add `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. The tests live in
-[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
-which builds them against the test cache this repository's CI publishes for
-each commit, so a test change never recompiles the toolkit.
+Windows (PowerShell):
 
-## Your first window
-
-A minimal program against the installed SDK:
-
-<!-- numbers:start -->
-```cmake
-cmake_minimum_required(VERSION 3.25)
-project(hello LANGUAGES CXX)
-find_package(GUIForms 1.0 CONFIG REQUIRED)
-add_executable(hello main.cpp)
-target_link_libraries(hello PRIVATE GUIForms::Application)
-```
-<!-- numbers:end -->
-
-```cpp
-#include <gui_forms/application.hpp>
-#include <gui_forms/gui_forms.hpp>
-
-#include <memory>
-
-namespace gf = gui_forms;
-
-int main() {
-    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
-    if (!created) return 1;
-    std::shared_ptr<gf::Label> label =
-        gf::make_control<gf::Label>(gf::StableId("hello.label"), "Hello from GUI.Forms");
-    std::unique_ptr<gf::Window> window = std::make_unique<gf::Window>(label, gf::Size{320.0, 120.0});
-    gf::ApplicationWindowOptions options{};
-    options.title = "Hello";
-    const gf::ApplicationResult result = (*created.application).run(std::move(window), options);
-    return result.accepted() ? 0 : 1;
-}
+```powershell
+git clone https://github.com/malkuth-software/gui_forms_devkit
+powershell -File gui_forms_devkit\harness\bootstrap.ps1 new-app hello_forms --license mit
+cd hello_forms
+python build.py --jobs 4
 ```
 
-[Your first window](https://gui-forms.readthedocs.io/en/latest/user/first-window.html)
-builds the recommended shape: a form document that generates a typed window
-class, a model it binds, a theme package and an event handler.
-[Consume the SDK](https://gui-forms.readthedocs.io/en/latest/user/consume-the-sdk.html)
-lists the CMake components.
+`new-app` makes the app from the devkit's template, with `git init` and a
+first commit; it pushes nothing. `build.py` fetches the prebuilt SDK,
+builds and runs the tests. The program is then at
+`.build/native-<platform>/hello_forms` (`hello_forms.app` on macOS,
+`hello_forms.exe` on Windows).
+
+If the build stops with "devkit build guard: likely misconfiguration
+preventing efficient incremental building", it would have compiled
+GUI.Forms or missed the SDK or the cache; each finding under that line says
+what to fix
+([The build guard](https://gui-forms.readthedocs.io/en/latest/user/get-started.html#the-build-guard)).
+
+Then:
+
+- [Your first window](https://gui-forms.readthedocs.io/en/latest/user/first-window.html):
+  a form document that generates a typed window class, a model it binds, a
+  theme and an event handler.
+- [Custom controls](https://gui-forms.readthedocs.io/en/latest/user/custom-controls.html):
+  the tutorial for a retained control of your own.
+- [Mockups](https://gui-forms.readthedocs.io/en/latest/user/mockups.html):
+  try a form and a theme from files alone, without compiling.
+- [Talk to a running program](https://gui-forms.readthedocs.io/en/latest/user/talk-to-a-program.html):
+  every GUI.Forms program speaks MCP.
+
+The Gallery, Explore, Correspondence and the other demonstrators are built
+and released by the devkit too. Builds are not code-signed: see
+[Download](https://gui-forms.readthedocs.io/en/latest/user/download.html)
+for opening them on each platform.
 
 ## Other languages
 
@@ -351,8 +332,31 @@ do is reported at run time and listed in
   editor with traditional menus and its own dialogs.
 - [Pocket Library](https://github.com/falseywinchnet/books): a reading
   room of 746 books, built on the same shell as PlaySuite.
-- In this repository: the Gallery, Explore and Correspondence
-  ([`demo/`](demo/), [`file_manager_demoboard/`](file_manager_demoboard/)).
+- [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit):
+  the Gallery, Explore, Correspondence and the demonstrators. This repository
+  keeps the Gallery model ([`demo/`](demo/)), which the SDK installs.
+
+## Build GUI.Forms from source (contributors)
+
+You do not need this to build an application; the devkit's prebuilt SDK
+covers that. To work on GUI.Forms itself you need CMake 3.25+, Ninja, LLVM
+22.1 and Python 3.12+ (on Windows, LLVM 22's clang and lld;
+`tools/own_runtime.py` builds the C and C++ runtime).
+[Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
+covers each platform's preparation. Then:
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake
+cmake --build build --parallel
+cmake --install build --prefix ~/gui-forms-sdk
+```
+
+On Linux add `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Every release also carries
+the source SDK, `gui-forms-sdk-<version>-source.tar.gz`, with
+`SHA256SUMS.txt`. The tests live in
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
+which builds them against the test cache this repository's CI publishes for
+each commit, so a test change never recompiles the toolkit.
 
 ## Learn more
 
@@ -529,7 +533,7 @@ do is reported at run time and listed in
 
 CI must pass on every platform. C++ follows the
 [house style](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
-run `python3 -B tools/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz`
+run `python3 -B tools/check_house_style.py include src lab demo examples tools fuzz`
 and the other checks that [`AGENTS.md`](AGENTS.md) lists before you push. See
 the [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
 

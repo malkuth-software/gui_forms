@@ -70,6 +70,10 @@ public:
     // Not a rule: CollectionList::dropped() is outside the rule vocabulary
     // and carries its summary, so it stays a subscription.
     void collection_dropped(const std::string& summary);
+    // The basics page's backplane wash in the window's colour scheme: a
+    // literal light wash stayed under the dark scheme's light ink (Windows
+    // field report D2, contrast 1.05:1).
+    void follow_colour_scheme(const PresentationSettings& settings);
 
     // The controls the relief style and a reset reach: the command strip,
     // the four page groups and the diagnostics.
@@ -80,6 +84,7 @@ private:
 
     // Ends before the model and the window's controls (declared last).
     SubscriptionToken collection_drop_;
+    SubscriptionToken presentation_changed_;
 };
 
 } // namespace gui_forms::gallery

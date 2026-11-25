@@ -357,9 +357,25 @@ Bidirectional text inside a text control is the text engine's own.
 The three CSS containers scroll with `auto_scroll` and size to fit their
 content with `auto_size`.
 
+A control that paints scrolling content of its own, with no children to
+measure (a page of flowed text), overrides `paints_scrolled_content` to
+return true and `painted_content_extent` to return the extent of what it
+paints. The base `arrange` scrolls over the larger of that extent,
+`auto_scroll_min_size` and the children's extent, so the scroll position
+holds across arranges. Flow the content in `arrange` before calling the
+base `arrange`, and only when the width or the content changed; answer
+`painted_content_extent` from the flow you keep. Do not put the position
+back with `scroll_to` from `arrange`: moving the position marks the
+control for another arrange, and the window reports it as
+`scroll_in_own_arrange` (see [Retained layout](#retained-layout)).
+[Scrolling content you paint](custom-controls.md#scrolling-content-you-paint)
+shows it in a whole control.
+
 ## Custom layout
 
-A custom control overrides two hooks:
+[Custom controls](custom-controls) walks through a whole custom control: a
+layout kept and keyed by its inputs, paint and input that only read it, and
+the tests that prove it. A custom control overrides two hooks:
 
 ```cpp
 gf::Size measure(gf::Size available) override;        // report preferred size
@@ -371,8 +387,8 @@ control can also override `measure_intrinsic(const gf::LayoutConstraint&)`.
 
 Keep `measure` free of retained mutations: read children's preferred sizes
 and your own properties to compute a size. Mutations can request another
-pass. A layout that keeps invalidating itself eventually hits the bounded
-pass limit and reports `bounded_pass_limit_hits`.
+pass. A layout that keeps invalidating itself is stopped; see
+[Retained layout](#retained-layout) below.
 
 In `arrange`, call `arrange_self(final_bounds)` to commit your own geometry,
 then `set_child_layout(child, rect)` to assign each child's layout slot.
@@ -387,6 +403,61 @@ in `layout_diagnostics()` and counts in `layout_arrange_refusals`.
 Declare the layout effects of your properties with `invalidate_declared`
 (see [Update scopes and dirtiness](update-scopes-and-dirtiness)), so that
 changing a property re-measures only when it has to.
+
+## Retained layout
+
+GUI.Forms is a retained-mode toolkit, and a control's layout is retained
+too:
+
+- Layout is computed when one of its inputs changes (the content, the
+  size given to `arrange`, the wrap width, the font, the scale) and kept.
+  A control that flows text keeps the flowed lines and positions it
+  computed until one of those inputs changes.
+- Paint, hover, tooltips, hit testing and pointer input read the kept
+  layout. They never flow content again, and never invalidate layout.
+- `arrange` flows content again only when the bounds it was given or the
+  content changed since the last time. Compare `final_bounds` with the
+  bounds of the last flow and return early when nothing changed.
+- A control does not invalidate its own layout from `measure`,
+  `arrange`, `on_layout` or `on_paint`. Something that does work out in
+  `arrange`, such as a scroll position kept across a new flow, is applied
+  within that arrange; asking for another layout from there starts the
+  next arrange, which asks again.
+
+The window enforces this in every build:
+
+- A control that invalidates its own layout from its arrange is arranged
+  again once in the same flush. If it does it again in the same bounds,
+  the flush stops arranging it, keeps the geometry its last arrange left,
+  and records `layout_loop`.
+- A flush runs at most four passes. When layout is still dirty after the
+  fourth (`bounded_pass_limit_hits`), every control still dirty is
+  recorded as `layout_not_converged` and its request is dropped: the
+  window shows the last layout it reached. It does not lay out again at
+  every frame or every geometry read; the control is laid out again when
+  something invalidates it.
+- A control that invalidates its own layout from `measure` is recorded
+  as `layout_invalidated_in_measure`, a layout invalidation while the
+  window paints as `layout_invalidated_in_paint`, and a `ScrollableControl`
+  moving its own scroll position from its arrange as
+  `scroll_in_own_arrange`.
+- Finding the control under the pointer for a tooltip reads the kept
+  layout and flushes none.
+
+Each of these is recorded once per control in `layout_diagnostics()`
+(an error naming the control's stable identity) and written once to the
+standard error stream as `gui-forms: layout diagnostic <code>: control
+'<id>'`. A control that trips one breaks the rules above; fix the control.
+
+To prove it in your own tests, call `measure_pointer_motion`
+(`gui_forms/layout/diagnostics/pointer_motion_probe.hpp`): open the largest
+content your application ships, scroll to its middle, and check that 100
+pointer moves over it lay out nothing (`PointerMotionCost::lays_out_nothing`,
+from the window's `measure_passes`, `arrange_passes`, `controls_measured`,
+`controls_arranged` and `read_barrier_flushes`). A hover handler that
+changes another control's layout, such as a status bar's text, shows up
+as that control's arrange; measure over an area where it does not fire, or
+compare `controls_arranged` with what you expect.
 
 ## The visible-area guarantee
 

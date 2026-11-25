@@ -165,6 +165,12 @@ protected:
     void on_mouse_move(MouseEventArgs& arguments) override;
     void on_mouse_leave() override;
     void on_key_down(KeyEventArgs& arguments) override;
+    // In menu-bar mode (the strip focused, no menu open) a letter opens the
+    // item it marks as mnemonic, or else the item it starts, as Windows'
+    // menu bar does.
+    void on_key_press(KeyPressEventArgs& arguments) override;
+    void on_attached_to_window() override;
+    void on_detached_from_window() noexcept override;
 
     void append_interactions(std::vector<InteractionDeclaration>& interactions) const override;
     void on_dispose() noexcept override;
@@ -199,6 +205,24 @@ private:
     // the same coding).
     [[nodiscard]] std::uint8_t frame_button_at(Point local) const;
     void set_frame_hot(std::uint8_t button);
+    // Menu-bar keyboard entry (Windows field report D13), as Windows and
+    // Windows Forms give a window's menu bar: Alt pressed and released with
+    // no other key between, or F10, focuses the window's menu bar with its
+    // first item hot; the same again, or Escape with no menu open, gives
+    // the focus back to the control that had it, as does a command chosen
+    // from a menu so entered (or opened by its mnemonic). The window's menu
+    // bar is its main menu strip (Window::main_menu_strip), or without one
+    // the first visible strip in the window's tree order. The raw key
+    // states come from the window (SurfaceRoot::key_state_changed), so no
+    // control's handling of Alt or F10 is needed.
+    void on_window_key_state(const KeyStateChange& change);
+    [[nodiscard]] bool is_window_menu_bar() const;
+    void enter_menu_bar();
+    void leave_menu_bar();
+    // Whether the strip underlines its mnemonics: while Alt is held, and
+    // while the strip has the focus from the keyboard (Windows' keyboard
+    // cues).
+    [[nodiscard]] bool keyboard_cues_shown() const;
 
     std::vector<MenuStripItemSpec> items_{};
     std::unique_ptr<ContextMenu> overlay_{};
@@ -211,6 +235,15 @@ private:
     std::unique_ptr<detail::MenuStripMergeHistory> merge_history_{};
     SubscriptionToken overlay_invoked_{};
     SubscriptionToken overlay_changed_{};
+    // The window's raw key states (on_window_key_state), while attached.
+    SubscriptionToken key_state_subscription_{};
+    // The control that had the focus when the strip took it from the
+    // keyboard (enter_menu_bar, a mnemonic), given it back by
+    // leave_menu_bar; observes only, and is dropped when the strip loses
+    // the focus some other way.
+    Control::WeakPtr focus_return_{};
+    // Alt went down alone and nothing else has gone down since.
+    bool alt_tap_armed_{};
     Event<const MenuStripInvocation&> item_invoked_{};
     Event<stxlib::Optional<std::size_t>> open_changed_{};
     // The maximized MDI child's buttons: shown, hot and pressed.

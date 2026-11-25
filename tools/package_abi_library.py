@@ -13,7 +13,7 @@ One archive per platform, gui-forms-abi-<version>-<platform>.zip:
   ABI_LIBRARY.json          schema, version, revision, platform, ABI major
                             and minor, the library's name and SHA-256
   licenses/                 the notices the program packages carry for this
-                            platform (tools/package_programs.py copy_notices,
+                            platform (tools/package_notices.py copy_notices,
                             packaging/licenses.json: GUI.Forms' own licence,
                             THIRD_PARTY_NOTICES.md and each component's),
                             which redistributing the library needs
@@ -118,12 +118,9 @@ def license_entries(licenses: Path) -> list[tuple[str, bytes, bool]]:
 
 def copy_program_notices(platform: str, build_dir: Path, version: str, revision: str, runtime: Path | None,
                          runtime_dir: Path | None, destination: Path) -> None:
-    """The third-party notices tools/package_programs.py copies into a program package for platform."""
-    import package_programs
-    packager: package_programs.Packager = package_programs.Packager(
-        None, platform, build_dir, version, destination.parent, revision, False, runtime, runtime_dir, False,
-        log=print)
-    packager.copy_notices(destination)
+    """The third-party notices a program package carries for platform (tools/package_notices.py)."""
+    import package_notices
+    package_notices.copy_notices(platform, build_dir, destination, runtime, runtime_dir, log=print)
 
 
 def package(build_dir: Path, platform: str, version: str, revision: str, out: Path, manifest_path: Path,
@@ -191,9 +188,9 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--out", type=Path, default=Path("dist-abi"))
     parser.add_argument("--manifest", type=Path, default=MANIFEST)
     parser.add_argument("--runtime", type=Path, default=None,
-                        help="the macOS LLVM runtime prefix, as package_programs.py takes it (its notices)")
+                        help="the macOS LLVM runtime prefix (its notices; tools/package_notices.py)")
     parser.add_argument("--runtime-dir", type=Path, default=None,
-                        help="the Windows runtime directory, as package_programs.py takes it (its notices)")
+                        help="the Windows runtime directory (its notices; tools/package_notices.py)")
     parser.add_argument("--check", type=Path, default=None, help="check this existing archive; write nothing")
     args: argparse.Namespace = parser.parse_args(argv)
     try:

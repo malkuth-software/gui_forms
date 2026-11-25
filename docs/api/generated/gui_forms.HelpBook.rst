@@ -13,7 +13,7 @@ gui_forms::HelpBook
 
    ``#include <gui_forms/controls/help_book.hpp>`` (:src:`source <include/gui_forms/controls/help_book.hpp>`)
 
-   The help topic pane: one help page on paper, with its title over a rule, collapsible sections under topic bars, callouts, links and PNG images.
+   The help topic pane: one help page on paper, with its title over a rule, collapsible sections under topic bars, callouts, links and PNG images, tables, definition lists, code coloured by token, signatures and linked cards, with find in page.
 
    .. gf-preview:: controls/help_book
       :alt: A HelpBook as the stock specimen shows it, in the windows-professional theme.
@@ -45,12 +45,26 @@ gui_forms::HelpBook
          default), translated with the program's text. :cpp:func:`set_labels <gui_forms::HelpBook::set_labels>` changes
          them.
 
+      **find_count** : ``std::size_t``, read-only
+         How many matches the current find has.
+
+      **find_position** : ``std::size_t``, read-only
+         The current match, counted from 1, or 0 when there is none.
+
       **focused_stop** : ``stxlib::Optional<std::size_t>``, read-only
          The link or topic bar keyboard focus is on, as an index into the book's
          focus stops (links in reading order, bars among them), or none.
 
       **content_height** : ``double``, read-only
          The page's content height when laid out at the current width.
+
+      **content_width** : ``double``, read-only
+         The page's content width: the wrap width, or more where a code block's
+         lines are wider, which the book scrolls sideways.
+
+      **layout_passes** : ``std::uint64_t``, read-only
+         How many times the screen layout has been made, for tests that prove a
+         pointer move, a hover or a re-arrange lays nothing out.
 
       **parts** : ``Parts``, read-only
 
@@ -68,6 +82,11 @@ gui_forms::HelpBook
       **section_toggled** : ``Event<const HelpSectionToggle&>``
          Raised when a collapsible section is opened or closed, with a
          :cpp:class:`HelpSectionToggle <gui_forms::HelpSectionToggle>`.
+
+      **link_hovered** : ``Event<const HelpLinkHover&>``
+         Raised when the pointer moves onto a link or off every link, with a
+         :cpp:class:`HelpLinkHover <gui_forms::HelpLinkHover>`: the page, the link's index or none, and its kind,
+         target and fragment, for an owner's status bar. It costs no layout.
 
    :Inherited:
 
@@ -88,6 +107,14 @@ gui_forms::HelpBook
       * - :cpp:func:`scroll_to_anchor <gui_forms::HelpBook::scroll_to_anchor>`
         - Scrolls so the anchored block is at the top, opening the sections around it; false when no block has the anchor.
       * - :cpp:func:`section_open <gui_forms::HelpBook::section_open>`
+        -  
+      * - :cpp:func:`find <gui_forms::HelpBook::find>`
+        - Marks every match of a query in the page's text (ASCII case folded unless matching case), makes the first the current one and scrolls it into view, opening the sections around it; returns the number of matches.
+      * - :cpp:func:`find_next <gui_forms::HelpBook::find_next>`
+        - Makes the next (or previous) match current, wrapping, and scrolls to it.
+      * - :cpp:func:`find_previous <gui_forms::HelpBook::find_previous>`
+        -  
+      * - :cpp:func:`clear_find <gui_forms::HelpBook::clear_find>`
         -  
       * - :cpp:func:`mark_visited <gui_forms::HelpBook::mark_visited>`
         -  
@@ -135,11 +162,24 @@ gui_forms::HelpBook
    focus leaves the book), Enter and Space follow a link or toggle a section,
    and the arrows, Page Up, Page Down, Home and End scroll.
 
+   The book lays its page out again only when the page, the open sections,
+   the font, the text metrics, the device scale or the wrap width change;
+   hover, presses and scrolling repaint. Lines are one and a half times the
+   body size apart, every run on a line shares one baseline. Body text is set
+   in the content role's face and code in the monospace role's; inline code is
+   sized to the body's x-height, on a chip.
+
    The paper's look is the theme's: the parts ``paper``, ``title``, ``rule``,
-   ``body`` and ``close``, and the topic items' ``topic_bar`` and
-   ``expander``. Until a theme gives rules for them, they are drawn with the
-   tool-tip family (the paper), the menu-item family (topic bars), the card
-   family (callouts) and the link families.
+   ``body`` and ``close``; the content parts ``code_span``, ``code_block``,
+   ``signature``, ``signature_bar``, ``table_header``, ``table_cell``,
+   ``card`` (hot under the pointer) and ``find_match`` (the current match in
+   the current state); the syntax parts ``keyword``, ``type``, ``function``,
+   ``string``, ``number``, ``comment`` and ``directive``; and the topic
+   items' ``topic_bar`` and ``expander``. Until a theme gives rules for them,
+   they are drawn with the tool-tip family (the paper), the menu-item family
+   (topic bars), the card family (callouts, cells and cards), the panel family
+   (header cells and code chips), the selection family (find marks) and the
+   link families.
 
 
    .. rubric:: Construction
@@ -173,6 +213,14 @@ gui_forms::HelpBook
 
       Sets :cpp:func:`labels <gui_forms::HelpBook::labels>`; see the property's description above.
 
+   .. cpp:function:: std::size_t find_count() const noexcept
+
+      How many matches the current find has.
+
+   .. cpp:function:: std::size_t find_position() const noexcept
+
+      The current match, counted from 1, or 0 when there is none.
+
    .. cpp:function:: stxlib::Optional<std::size_t> focused_stop() const noexcept
 
       The link or topic bar keyboard focus is on, as an index into the book's
@@ -181,6 +229,16 @@ gui_forms::HelpBook
    .. cpp:function:: double content_height() const noexcept
 
       The page's content height when laid out at the current width.
+
+   .. cpp:function:: double content_width() const noexcept
+
+      The page's content width: the wrap width, or more where a code block's
+      lines are wider, which the book scrolls sideways.
+
+   .. cpp:function:: std::uint64_t layout_passes() const noexcept
+
+      How many times the screen layout has been made, for tests that prove a
+      pointer move, a hover or a re-arrange lays nothing out.
 
    .. cpp:function:: Parts parts() const
 
@@ -203,6 +261,12 @@ gui_forms::HelpBook
       Raised when a collapsible section is opened or closed, with a
       :cpp:class:`HelpSectionToggle <gui_forms::HelpSectionToggle>`.
 
+   .. cpp:function:: Event<const HelpLinkHover&>& link_hovered() noexcept
+
+      Raised when the pointer moves onto a link or off every link, with a
+      :cpp:class:`HelpLinkHover <gui_forms::HelpLinkHover>`: the page, the link's index or none, and its kind,
+      target and fragment, for an owner's status bar. It costs no layout.
+
 
    .. rubric:: Methods
 
@@ -224,6 +288,22 @@ gui_forms::HelpBook
       it; false when no block has the anchor.
 
    .. cpp:function:: bool section_open(std::size_t section) const
+
+   .. cpp:function:: std::size_t find(std::string_view query, bool match_case)
+
+      Marks every match of a query in the page's text (ASCII case folded
+      unless matching case), makes the first the current one and scrolls it
+      into view, opening the sections around it; returns the number of
+      matches. :cpp:func:`find_next <gui_forms::HelpBook::find_next>` and :cpp:func:`find_previous <gui_forms::HelpBook::find_previous>` move the current match, wrapping
+      at the ends, and :cpp:func:`clear_find <gui_forms::HelpBook::clear_find>` drops the marks.
+
+   .. cpp:function:: void find_next()
+
+      Makes the next (or previous) match current, wrapping, and scrolls to it.
+
+   .. cpp:function:: void find_previous()
+
+   .. cpp:function:: void clear_find()
 
    .. cpp:function:: void mark_visited(std::string_view target)
 
@@ -359,7 +439,7 @@ gui_forms::HelpBook
 
 .. rubric:: Windows Forms correspondence
 
-No Windows Forms counterpart. Members declared here and by the counterpart: 9 supported, 0 deferred, 0 excluded, 17 unclassified; 26 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+No Windows Forms counterpart. Members declared here and by the counterpart: 21 supported, 0 deferred, 0 excluded, 14 unclassified; 35 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -380,12 +460,28 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
      - supported
    * - property
      - GUI.Forms-only
+     - ``content_width``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``find_count``
+     - supported
+   * - property
+     - GUI.Forms-only
+     - ``find_position``
+     - supported
+   * - property
+     - GUI.Forms-only
      - ``focused_stop``
      - supported
    * - property
      - GUI.Forms-only
      - ``labels``
      - unclassified (untested)
+   * - property
+     - GUI.Forms-only
+     - ``layout_passes``
+     - supported
    * - property
      - GUI.Forms-only
      - ``page``
@@ -400,6 +496,10 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
      - supported
    * - event
      - GUI.Forms-only
+     - ``link_hovered``
+     - supported
+   * - event
+     - GUI.Forms-only
      - ``section_toggled``
      - unclassified (untested)
    * - method
@@ -409,7 +509,23 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
    * - method
      - GUI.Forms-only
      - ``block_top``
-     - unclassified (untested)
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``clear_find``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``find``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``find_next``
+     - supported
+   * - method
+     - GUI.Forms-only
+     - ``find_previous``
+     - supported
    * - method
      - GUI.Forms-only
      - ``layout_for_print``
@@ -417,7 +533,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
    * - method
      - GUI.Forms-only
      - ``link_bounds``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``mark_visited``
@@ -461,7 +577,7 @@ No Windows Forms counterpart. Members declared here and by the counterpart: 9 su
    * - method
      - GUI.Forms-only
      - ``show_page``
-     - unclassified (untested)
+     - supported
    * - method
      - GUI.Forms-only
      - ``show_record``

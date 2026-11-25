@@ -104,7 +104,9 @@ contract.
 ## Extension objects
 
 There are several ways to put your own behaviour into a window. Pick the
-smallest one that does the job.
+smallest one that does the job, after checking that no stock control does it
+([Custom controls](../user/custom-controls) has the search, the rules a
+control of your own follows, and a tested example).
 
 | You need | Use | You implement |
 |---|---|---|

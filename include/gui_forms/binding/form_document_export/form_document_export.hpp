@@ -4,8 +4,8 @@
 // section 18.2): with the build toggle GUI_FORMS_FORM_EXPORT on,
 // gui_forms_add_form runs the form compiler with --export-document, and the
 // generated code registers each form it makes here: its document's text and
-// the program's members it binds. The automation tools `forms.export`,
-// `forms.validate`, `forms.apply` and `forms.revert` then read the document
+// the program's members it binds. The automation tools `forms_export`,
+// `forms_validate`, `forms_apply` and `forms_revert` then read the document
 // back and may replace the form's structure with a candidate bound to those
 // same members, and to nothing else. Off (the default), nothing registers
 // and the program carries no document.

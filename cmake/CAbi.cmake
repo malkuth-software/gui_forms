@@ -248,9 +248,9 @@ if(WIN32)
     # The module's DllMain marks its teardown at DLL_PROCESS_DETACH, before
     # the CRT runs its static destructors, so an allocation STXlib's
     # allocator refuses there comes from the teardown reserve or fails fast
-    # with a record, never std::bad_alloc (allocation/library_memory, "A
-    # module's end"). It is the library's alone: the objects linked
-    # statically beside Application have no DllMain.
+    # with a record, never std::bad_alloc (allocation/library_memory/
+    # library_teardown.hpp, "A module's end"). It is the library's alone:
+    # the objects linked statically beside Application have no DllMain.
     set(_gf_abi_teardown_source "${CMAKE_CURRENT_SOURCE_DIR}/src/surface/windows/abi/c_abi_module_teardown.cpp")
     target_sources(gui_forms_abi PRIVATE "${_gf_abi_teardown_source}")
     set_source_files_properties("${_gf_abi_teardown_source}" PROPERTIES

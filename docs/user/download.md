@@ -1,14 +1,18 @@
 # Download
 
-GUI.Forms ships three demonstration programs so you can see the toolkit
-before you build it. Every push to `main` that passes the build and a launch
-of each packaged program is published as a release on the project's GitHub
-Releases page, tagged `vX.Y.Z`, where X.Y is the package version (now
-{{ gf_version }}). If no `v` release is listed yet, build the programs
-yourself; see [Build it yourself instead](#build-it-yourself-instead).
+GUI.Forms has demonstration programs so you can see the toolkit before you
+build it. They are built and released by
+[gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit), the
+companion repository, against each green GUI.Forms revision. GUI.Forms' own
+releases (tagged `vX.Y.Z`, where X.Y is the package version, now
+{{ gf_version }}) carry the source SDK; see
+[The source SDK](install.md#the-source-sdk). If no devkit release is listed
+yet, build the programs yourself; see
+[Build it yourself instead](#build-it-yourself-instead).
 
-The `build-<sha>` pre-releases on the same page are compiler-cache archives
-used by CI and by downstream projects. They are not application downloads.
+The `build-<sha>` pre-releases on GUI.Forms' Releases page carry the
+prebuilt SDKs and compiler caches that CI and the devkit fetch. They are not
+application downloads.
 
 ## The three programs
 
@@ -19,7 +23,7 @@ GUI.Forms Gallery
   status line reports what the last interaction did.
 
 GUI.Forms Explore (preview)
-: A file-explorer interface built from `file_manager_demoboard/` over
+: A file-explorer interface built from the devkit's File Manager demoboard over
   deterministic in-memory fixtures. It never reads the real filesystem. It
   exercises panels, trees, details views, breadcrumbs, menus and dialogs in
   one composed window. The preview label is literal: the demoboard's own
@@ -32,12 +36,13 @@ GUI.Forms Correspondence
   `CorrespondenceView`, `MenuStrip` and `CommandBar` into a three-pane
   layout. It is a demonstration, not a mail client.
 
-All three are built from `demo/` and `file_manager_demoboard/` using only the
-public headers, so anything they do is available to your application.
+All three are built against the installed SDK using only the public headers
+and the Gallery model the SDK installs, so anything they do is available to
+your application.
 
 ## What a release contains
 
-Each program is published for four platforms:
+The devkit publishes each program for four platforms:
 
 | Platform | Archive | Installer |
 |---|---|---|
@@ -47,10 +52,10 @@ Each program is published for four platforms:
 
 File names follow `gui-forms-<program>-<version>-<platform>`, for example
 `gui-forms-gallery-<version>-windows-x64.zip`. Each release also carries
-`SHA256SUMS.txt`, the packaging and smoke receipts the pipeline produced, and
-the source SDK, `gui-forms-sdk-<version>-source.tar.gz`, from which you build
-GUI.Forms for your own platform (see
-[The source SDK](install.md#the-source-sdk)).
+`SHA256SUMS.txt` and the packaging and smoke receipts the pipeline produced.
+GUI.Forms' own release carries the source SDK,
+`gui-forms-sdk-<version>-source.tar.gz`, from which you build GUI.Forms for
+your own platform (see [The source SDK](install.md#the-source-sdk)).
 
 ## Platform notes
 
@@ -76,7 +81,7 @@ Linux
 Every program can prove itself from a terminal. `--smoke-test` presents one
 frame, closes itself, prints the close receipt and the line
 `GUI.Forms window smoke passed`, and exits with status 0. This is the check
-the release pipeline runs on every package. If no frame is presented within
+the devkit's release pipeline runs on every package. If no frame is presented within
 ten seconds, for example because the window stayed hidden behind other
 windows or on a Space that is not shown, the program still closes but prints
 `GUI.Forms window smoke failed: no frame was presented` and exits with status 1.
@@ -97,6 +102,7 @@ certutil -hashfile gui-forms-gallery-<version>-windows-x64.zip SHA256
 
 ## Build it yourself instead
 
-[Building from source](../building/index) produces the Gallery and Correspondence
-on a machine with the LLVM 22 toolchain;
-`-DGUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD=ON` adds Explore.
+Clone the devkit and run its bootstrap:
+[Pocket Reference and the demonstrators](get-started.md#pocket-reference-and-the-demonstrators)
+gives the command for each platform. The build fetches the prebuilt SDK, so
+GUI.Forms itself is not compiled.

@@ -1,8 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=@DISPLAY_NAME@
-Comment=@SUMMARY@
-Exec=@LAUNCHER@
-Icon=@ICON@
-Categories=Development;
-Terminal=false

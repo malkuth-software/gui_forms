@@ -3,6 +3,9 @@
 // test-only observer, and the teardown reserve.
 
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "gui_forms/allocation/library_memory/library_memory_diagnostics.hpp"
+#include "gui_forms/allocation/library_memory/library_teardown.hpp"
+#include "gui_forms/allocation/library_memory/program_allocator.hpp"
 
 #include <stxlib/error.hpp>
 #include <stxlib/fail_fast.hpp>

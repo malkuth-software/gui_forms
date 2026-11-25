@@ -313,8 +313,9 @@ void RibbonGallery::scroll_to_line(std::size_t line) {
 
 void RibbonGallery::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
-    // Scale or font changes reach the line heights here.
-    rebuild_lines();
+    // Scale or font changes reach the line heights here; lines laid out at
+    // the current scale and row height are kept.
+    if (!lines_current()) rebuild_lines();
     const Geometry layout = geometry();
     // Keep the last page full: the first line is at most the one from which
     // the remaining lines fill the viewport.

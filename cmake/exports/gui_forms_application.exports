@@ -92,6 +92,7 @@ __ZGVZN9gui_forms10FontChoice*
 __ZGVZN9gui_forms10FontDialog*
 __ZGVZN9gui_forms10FontFaceId*
 __ZGVZN9gui_forms10FormLayout*
+__ZGVZN9gui_forms10FormMockup*
 __ZGVZN9gui_forms10GridMargin*
 __ZGVZN9gui_forms10HScrollBar*
 __ZGVZN9gui_forms10HelpTarget*
@@ -262,6 +263,7 @@ __ZGVZN9gui_forms12GradientStop*
 __ZGVZN9gui_forms12GrayTextMask*
 __ZGVZN9gui_forms12GridItemArea*
 __ZGVZN9gui_forms12HatchPattern*
+__ZGVZN9gui_forms12HelpPageCell*
 __ZGVZN9gui_forms12HelpPageLink*
 __ZGVZN9gui_forms12HelpProvider*
 __ZGVZN9gui_forms12HostServices*
@@ -375,6 +377,7 @@ __ZGVZN9gui_forms13GridTrackList*
 __ZGVZN9gui_forms13GridTrackSize*
 __ZGVZN9gui_forms13HelpBookImage*
 __ZGVZN9gui_forms13HelpLinkEntry*
+__ZGVZN9gui_forms13HelpLinkHover*
 __ZGVZN9gui_forms13HelpPageBlock*
 __ZGVZN9gui_forms13HelpPageImage*
 __ZGVZN9gui_forms13HelpPageModel*
@@ -466,6 +469,7 @@ __ZGVZN9gui_forms14EffectRegistry*
 __ZGVZN9gui_forms14FlexItemLayout*
 __ZGVZN9gui_forms14FlexItemResult*
 __ZGVZN9gui_forms14FontFamilyFace*
+__ZGVZN9gui_forms14FormMockupText*
 __ZGVZN9gui_forms14FractionFactor*
 __ZGVZN9gui_forms14GalleryCommand*
 __ZGVZN9gui_forms14GalleryPreview*
@@ -593,6 +597,7 @@ __ZGVZN9gui_forms15EventStatistics*
 __ZGVZN9gui_forms15FontDeclaration*
 __ZGVZN9gui_forms15FontFamilyOrder*
 __ZGVZN9gui_forms15FontFamilyStack*
+__ZGVZN9gui_forms15FormMockupEvent*
 __ZGVZN9gui_forms15FramePollResult*
 __ZGVZN9gui_forms15GraphLoadResult*
 __ZGVZN9gui_forms15GraphSaveResult*
@@ -833,6 +838,7 @@ __ZGVZN9gui_forms17FocusScopeOptions*
 __ZGVZN9gui_forms17FontFallbackMatch*
 __ZGVZN9gui_forms17FontFamilyStackId*
 __ZGVZN9gui_forms17FormDocumentCheck*
+__ZGVZN9gui_forms17FormMockupHandler*
 __ZGVZN9gui_forms17FrameRequestToken*
 __ZGVZN9gui_forms17GenericFontFamily*
 __ZGVZN9gui_forms17GridTemplateAreas*
@@ -872,6 +878,7 @@ __ZGVZN9gui_forms17ObjectDetailsSort*
 __ZGVZN9gui_forms17PartRasterRequest*
 __ZGVZN9gui_forms17PieSliceSelection*
 __ZGVZN9gui_forms17PlotHeatmapSeries*
+__ZGVZN9gui_forms17PointerMotionCost*
 __ZGVZN9gui_forms17PopupContainerBox*
 __ZGVZN9gui_forms17PresentationLayer*
 __ZGVZN9gui_forms17PresentationPopup*
@@ -1834,6 +1841,7 @@ __ZGVZNK9gui_forms10FontChoice*
 __ZGVZNK9gui_forms10FontDialog*
 __ZGVZNK9gui_forms10FontFaceId*
 __ZGVZNK9gui_forms10FormLayout*
+__ZGVZNK9gui_forms10FormMockup*
 __ZGVZNK9gui_forms10GridMargin*
 __ZGVZNK9gui_forms10HScrollBar*
 __ZGVZNK9gui_forms10HelpTarget*
@@ -2004,6 +2012,7 @@ __ZGVZNK9gui_forms12GradientStop*
 __ZGVZNK9gui_forms12GrayTextMask*
 __ZGVZNK9gui_forms12GridItemArea*
 __ZGVZNK9gui_forms12HatchPattern*
+__ZGVZNK9gui_forms12HelpPageCell*
 __ZGVZNK9gui_forms12HelpPageLink*
 __ZGVZNK9gui_forms12HelpProvider*
 __ZGVZNK9gui_forms12HostServices*
@@ -2117,6 +2126,7 @@ __ZGVZNK9gui_forms13GridTrackList*
 __ZGVZNK9gui_forms13GridTrackSize*
 __ZGVZNK9gui_forms13HelpBookImage*
 __ZGVZNK9gui_forms13HelpLinkEntry*
+__ZGVZNK9gui_forms13HelpLinkHover*
 __ZGVZNK9gui_forms13HelpPageBlock*
 __ZGVZNK9gui_forms13HelpPageImage*
 __ZGVZNK9gui_forms13HelpPageModel*
@@ -2208,6 +2218,7 @@ __ZGVZNK9gui_forms14EffectRegistry*
 __ZGVZNK9gui_forms14FlexItemLayout*
 __ZGVZNK9gui_forms14FlexItemResult*
 __ZGVZNK9gui_forms14FontFamilyFace*
+__ZGVZNK9gui_forms14FormMockupText*
 __ZGVZNK9gui_forms14FractionFactor*
 __ZGVZNK9gui_forms14GalleryCommand*
 __ZGVZNK9gui_forms14GalleryPreview*
@@ -2335,6 +2346,7 @@ __ZGVZNK9gui_forms15EventStatistics*
 __ZGVZNK9gui_forms15FontDeclaration*
 __ZGVZNK9gui_forms15FontFamilyOrder*
 __ZGVZNK9gui_forms15FontFamilyStack*
+__ZGVZNK9gui_forms15FormMockupEvent*
 __ZGVZNK9gui_forms15FramePollResult*
 __ZGVZNK9gui_forms15GraphLoadResult*
 __ZGVZNK9gui_forms15GraphSaveResult*
@@ -2575,6 +2587,7 @@ __ZGVZNK9gui_forms17FocusScopeOptions*
 __ZGVZNK9gui_forms17FontFallbackMatch*
 __ZGVZNK9gui_forms17FontFamilyStackId*
 __ZGVZNK9gui_forms17FormDocumentCheck*
+__ZGVZNK9gui_forms17FormMockupHandler*
 __ZGVZNK9gui_forms17FrameRequestToken*
 __ZGVZNK9gui_forms17GenericFontFamily*
 __ZGVZNK9gui_forms17GridTemplateAreas*
@@ -2614,6 +2627,7 @@ __ZGVZNK9gui_forms17ObjectDetailsSort*
 __ZGVZNK9gui_forms17PartRasterRequest*
 __ZGVZNK9gui_forms17PieSliceSelection*
 __ZGVZNK9gui_forms17PlotHeatmapSeries*
+__ZGVZNK9gui_forms17PointerMotionCost*
 __ZGVZNK9gui_forms17PopupContainerBox*
 __ZGVZNK9gui_forms17PresentationLayer*
 __ZGVZNK9gui_forms17PresentationPopup*
@@ -3630,6 +3644,7 @@ __ZN9gui_forms10FontChoice*
 __ZN9gui_forms10FontDialog*
 __ZN9gui_forms10FontFaceId*
 __ZN9gui_forms10FormLayout*
+__ZN9gui_forms10FormMockup*
 __ZN9gui_forms10GridMargin*
 __ZN9gui_forms10HScrollBar*
 __ZN9gui_forms10HelpTarget*
@@ -3888,6 +3903,7 @@ __ZN9gui_forms12GradientStop*
 __ZN9gui_forms12GrayTextMask*
 __ZN9gui_forms12GridItemArea*
 __ZN9gui_forms12HatchPattern*
+__ZN9gui_forms12HelpPageCell*
 __ZN9gui_forms12HelpPageLink*
 __ZN9gui_forms12HelpProvider*
 __ZN9gui_forms12HostServices*
@@ -4061,6 +4077,7 @@ __ZN9gui_forms13GridTrackList*
 __ZN9gui_forms13GridTrackSize*
 __ZN9gui_forms13HelpBookImage*
 __ZN9gui_forms13HelpLinkEntry*
+__ZN9gui_forms13HelpLinkHover*
 __ZN9gui_forms13HelpPageBlock*
 __ZN9gui_forms13HelpPageImage*
 __ZN9gui_forms13HelpPageModel*
@@ -4170,6 +4187,7 @@ __ZN9gui_forms14EffectRegistry*
 __ZN9gui_forms14FlexItemLayout*
 __ZN9gui_forms14FlexItemResult*
 __ZN9gui_forms14FontFamilyFace*
+__ZN9gui_forms14FormMockupText*
 __ZN9gui_forms14FractionFactor*
 __ZN9gui_forms14GalleryCommand*
 __ZN9gui_forms14GalleryPreview*
@@ -4355,6 +4373,7 @@ __ZN9gui_forms15EventStatistics*
 __ZN9gui_forms15FontDeclaration*
 __ZN9gui_forms15FontFamilyOrder*
 __ZN9gui_forms15FontFamilyStack*
+__ZN9gui_forms15FormMockupEvent*
 __ZN9gui_forms15FramePollResult*
 __ZN9gui_forms15GraphLoadResult*
 __ZN9gui_forms15GraphSaveResult*
@@ -4727,6 +4746,7 @@ __ZN9gui_forms17FocusScopeOptions*
 __ZN9gui_forms17FontFallbackMatch*
 __ZN9gui_forms17FontFamilyStackId*
 __ZN9gui_forms17FormDocumentCheck*
+__ZN9gui_forms17FormMockupHandler*
 __ZN9gui_forms17FrameRequestToken*
 __ZN9gui_forms17GenericFontFamily*
 __ZN9gui_forms17GridTemplateAreas*
@@ -4766,6 +4786,7 @@ __ZN9gui_forms17ObjectDetailsSort*
 __ZN9gui_forms17PartRasterRequest*
 __ZN9gui_forms17PieSliceSelection*
 __ZN9gui_forms17PlotHeatmapSeries*
+__ZN9gui_forms17PointerMotionCost*
 __ZN9gui_forms17PopupContainerBox*
 __ZN9gui_forms17PresentationLayer*
 __ZN9gui_forms17PresentationPopup*
@@ -5831,6 +5852,8 @@ __ZN9gui_forms22locale_file_error_nameB*
 __ZN9gui_forms22locale_file_error_nameE*
 __ZN9gui_forms22measure_available_sizeB*
 __ZN9gui_forms22measure_available_sizeE*
+__ZN9gui_forms22measure_pointer_motionB*
+__ZN9gui_forms22measure_pointer_motionE*
 __ZN9gui_forms22nearest_device_monitorB*
 __ZN9gui_forms22nearest_device_monitorE*
 __ZN9gui_forms22overflow_outline_styleB*
@@ -7158,6 +7181,7 @@ __ZNK[RO]9gui_forms10FontChoice*
 __ZNK[RO]9gui_forms10FontDialog*
 __ZNK[RO]9gui_forms10FontFaceId*
 __ZNK[RO]9gui_forms10FormLayout*
+__ZNK[RO]9gui_forms10FormMockup*
 __ZNK[RO]9gui_forms10GridMargin*
 __ZNK[RO]9gui_forms10HScrollBar*
 __ZNK[RO]9gui_forms10HelpTarget*
@@ -7328,6 +7352,7 @@ __ZNK[RO]9gui_forms12GradientStop*
 __ZNK[RO]9gui_forms12GrayTextMask*
 __ZNK[RO]9gui_forms12GridItemArea*
 __ZNK[RO]9gui_forms12HatchPattern*
+__ZNK[RO]9gui_forms12HelpPageCell*
 __ZNK[RO]9gui_forms12HelpPageLink*
 __ZNK[RO]9gui_forms12HelpProvider*
 __ZNK[RO]9gui_forms12HostServices*
@@ -7441,6 +7466,7 @@ __ZNK[RO]9gui_forms13GridTrackList*
 __ZNK[RO]9gui_forms13GridTrackSize*
 __ZNK[RO]9gui_forms13HelpBookImage*
 __ZNK[RO]9gui_forms13HelpLinkEntry*
+__ZNK[RO]9gui_forms13HelpLinkHover*
 __ZNK[RO]9gui_forms13HelpPageBlock*
 __ZNK[RO]9gui_forms13HelpPageImage*
 __ZNK[RO]9gui_forms13HelpPageModel*
@@ -7532,6 +7558,7 @@ __ZNK[RO]9gui_forms14EffectRegistry*
 __ZNK[RO]9gui_forms14FlexItemLayout*
 __ZNK[RO]9gui_forms14FlexItemResult*
 __ZNK[RO]9gui_forms14FontFamilyFace*
+__ZNK[RO]9gui_forms14FormMockupText*
 __ZNK[RO]9gui_forms14FractionFactor*
 __ZNK[RO]9gui_forms14GalleryCommand*
 __ZNK[RO]9gui_forms14GalleryPreview*
@@ -7659,6 +7686,7 @@ __ZNK[RO]9gui_forms15EventStatistics*
 __ZNK[RO]9gui_forms15FontDeclaration*
 __ZNK[RO]9gui_forms15FontFamilyOrder*
 __ZNK[RO]9gui_forms15FontFamilyStack*
+__ZNK[RO]9gui_forms15FormMockupEvent*
 __ZNK[RO]9gui_forms15FramePollResult*
 __ZNK[RO]9gui_forms15GraphLoadResult*
 __ZNK[RO]9gui_forms15GraphSaveResult*
@@ -7899,6 +7927,7 @@ __ZNK[RO]9gui_forms17FocusScopeOptions*
 __ZNK[RO]9gui_forms17FontFallbackMatch*
 __ZNK[RO]9gui_forms17FontFamilyStackId*
 __ZNK[RO]9gui_forms17FormDocumentCheck*
+__ZNK[RO]9gui_forms17FormMockupHandler*
 __ZNK[RO]9gui_forms17FrameRequestToken*
 __ZNK[RO]9gui_forms17GenericFontFamily*
 __ZNK[RO]9gui_forms17GridTemplateAreas*
@@ -7938,6 +7967,7 @@ __ZNK[RO]9gui_forms17ObjectDetailsSort*
 __ZNK[RO]9gui_forms17PartRasterRequest*
 __ZNK[RO]9gui_forms17PieSliceSelection*
 __ZNK[RO]9gui_forms17PlotHeatmapSeries*
+__ZNK[RO]9gui_forms17PointerMotionCost*
 __ZNK[RO]9gui_forms17PopupContainerBox*
 __ZNK[RO]9gui_forms17PresentationLayer*
 __ZNK[RO]9gui_forms17PresentationPopup*
@@ -8900,6 +8930,7 @@ __ZN[KRO]9gui_forms10FontChoice*
 __ZN[KRO]9gui_forms10FontDialog*
 __ZN[KRO]9gui_forms10FontFaceId*
 __ZN[KRO]9gui_forms10FormLayout*
+__ZN[KRO]9gui_forms10FormMockup*
 __ZN[KRO]9gui_forms10GridMargin*
 __ZN[KRO]9gui_forms10HScrollBar*
 __ZN[KRO]9gui_forms10HelpTarget*
@@ -9070,6 +9101,7 @@ __ZN[KRO]9gui_forms12GradientStop*
 __ZN[KRO]9gui_forms12GrayTextMask*
 __ZN[KRO]9gui_forms12GridItemArea*
 __ZN[KRO]9gui_forms12HatchPattern*
+__ZN[KRO]9gui_forms12HelpPageCell*
 __ZN[KRO]9gui_forms12HelpPageLink*
 __ZN[KRO]9gui_forms12HelpProvider*
 __ZN[KRO]9gui_forms12HostServices*
@@ -9183,6 +9215,7 @@ __ZN[KRO]9gui_forms13GridTrackList*
 __ZN[KRO]9gui_forms13GridTrackSize*
 __ZN[KRO]9gui_forms13HelpBookImage*
 __ZN[KRO]9gui_forms13HelpLinkEntry*
+__ZN[KRO]9gui_forms13HelpLinkHover*
 __ZN[KRO]9gui_forms13HelpPageBlock*
 __ZN[KRO]9gui_forms13HelpPageImage*
 __ZN[KRO]9gui_forms13HelpPageModel*
@@ -9274,6 +9307,7 @@ __ZN[KRO]9gui_forms14EffectRegistry*
 __ZN[KRO]9gui_forms14FlexItemLayout*
 __ZN[KRO]9gui_forms14FlexItemResult*
 __ZN[KRO]9gui_forms14FontFamilyFace*
+__ZN[KRO]9gui_forms14FormMockupText*
 __ZN[KRO]9gui_forms14FractionFactor*
 __ZN[KRO]9gui_forms14GalleryCommand*
 __ZN[KRO]9gui_forms14GalleryPreview*
@@ -9401,6 +9435,7 @@ __ZN[KRO]9gui_forms15EventStatistics*
 __ZN[KRO]9gui_forms15FontDeclaration*
 __ZN[KRO]9gui_forms15FontFamilyOrder*
 __ZN[KRO]9gui_forms15FontFamilyStack*
+__ZN[KRO]9gui_forms15FormMockupEvent*
 __ZN[KRO]9gui_forms15FramePollResult*
 __ZN[KRO]9gui_forms15GraphLoadResult*
 __ZN[KRO]9gui_forms15GraphSaveResult*
@@ -9641,6 +9676,7 @@ __ZN[KRO]9gui_forms17FocusScopeOptions*
 __ZN[KRO]9gui_forms17FontFallbackMatch*
 __ZN[KRO]9gui_forms17FontFamilyStackId*
 __ZN[KRO]9gui_forms17FormDocumentCheck*
+__ZN[KRO]9gui_forms17FormMockupHandler*
 __ZN[KRO]9gui_forms17FrameRequestToken*
 __ZN[KRO]9gui_forms17GenericFontFamily*
 __ZN[KRO]9gui_forms17GridTemplateAreas*
@@ -9680,6 +9716,7 @@ __ZN[KRO]9gui_forms17ObjectDetailsSort*
 __ZN[KRO]9gui_forms17PartRasterRequest*
 __ZN[KRO]9gui_forms17PieSliceSelection*
 __ZN[KRO]9gui_forms17PlotHeatmapSeries*
+__ZN[KRO]9gui_forms17PointerMotionCost*
 __ZN[KRO]9gui_forms17PopupContainerBox*
 __ZN[KRO]9gui_forms17PresentationLayer*
 __ZN[KRO]9gui_forms17PresentationPopup*
@@ -10642,6 +10679,7 @@ __ZT[VIST]N9gui_forms10FontChoice*E
 __ZT[VIST]N9gui_forms10FontDialog*E
 __ZT[VIST]N9gui_forms10FontFaceId*E
 __ZT[VIST]N9gui_forms10FormLayout*E
+__ZT[VIST]N9gui_forms10FormMockup*E
 __ZT[VIST]N9gui_forms10GridMargin*E
 __ZT[VIST]N9gui_forms10HScrollBar*E
 __ZT[VIST]N9gui_forms10HelpTarget*E
@@ -10812,6 +10850,7 @@ __ZT[VIST]N9gui_forms12GradientStop*E
 __ZT[VIST]N9gui_forms12GrayTextMask*E
 __ZT[VIST]N9gui_forms12GridItemArea*E
 __ZT[VIST]N9gui_forms12HatchPattern*E
+__ZT[VIST]N9gui_forms12HelpPageCell*E
 __ZT[VIST]N9gui_forms12HelpPageLink*E
 __ZT[VIST]N9gui_forms12HelpProvider*E
 __ZT[VIST]N9gui_forms12HostServices*E
@@ -10925,6 +10964,7 @@ __ZT[VIST]N9gui_forms13GridTrackList*E
 __ZT[VIST]N9gui_forms13GridTrackSize*E
 __ZT[VIST]N9gui_forms13HelpBookImage*E
 __ZT[VIST]N9gui_forms13HelpLinkEntry*E
+__ZT[VIST]N9gui_forms13HelpLinkHover*E
 __ZT[VIST]N9gui_forms13HelpPageBlock*E
 __ZT[VIST]N9gui_forms13HelpPageImage*E
 __ZT[VIST]N9gui_forms13HelpPageModel*E
@@ -11016,6 +11056,7 @@ __ZT[VIST]N9gui_forms14EffectRegistry*E
 __ZT[VIST]N9gui_forms14FlexItemLayout*E
 __ZT[VIST]N9gui_forms14FlexItemResult*E
 __ZT[VIST]N9gui_forms14FontFamilyFace*E
+__ZT[VIST]N9gui_forms14FormMockupText*E
 __ZT[VIST]N9gui_forms14FractionFactor*E
 __ZT[VIST]N9gui_forms14GalleryCommand*E
 __ZT[VIST]N9gui_forms14GalleryPreview*E
@@ -11143,6 +11184,7 @@ __ZT[VIST]N9gui_forms15EventStatistics*E
 __ZT[VIST]N9gui_forms15FontDeclaration*E
 __ZT[VIST]N9gui_forms15FontFamilyOrder*E
 __ZT[VIST]N9gui_forms15FontFamilyStack*E
+__ZT[VIST]N9gui_forms15FormMockupEvent*E
 __ZT[VIST]N9gui_forms15FramePollResult*E
 __ZT[VIST]N9gui_forms15GraphLoadResult*E
 __ZT[VIST]N9gui_forms15GraphSaveResult*E
@@ -11383,6 +11425,7 @@ __ZT[VIST]N9gui_forms17FocusScopeOptions*E
 __ZT[VIST]N9gui_forms17FontFallbackMatch*E
 __ZT[VIST]N9gui_forms17FontFamilyStackId*E
 __ZT[VIST]N9gui_forms17FormDocumentCheck*E
+__ZT[VIST]N9gui_forms17FormMockupHandler*E
 __ZT[VIST]N9gui_forms17FrameRequestToken*E
 __ZT[VIST]N9gui_forms17GenericFontFamily*E
 __ZT[VIST]N9gui_forms17GridTemplateAreas*E
@@ -11422,6 +11465,7 @@ __ZT[VIST]N9gui_forms17ObjectDetailsSort*E
 __ZT[VIST]N9gui_forms17PartRasterRequest*E
 __ZT[VIST]N9gui_forms17PieSliceSelection*E
 __ZT[VIST]N9gui_forms17PlotHeatmapSeries*E
+__ZT[VIST]N9gui_forms17PointerMotionCost*E
 __ZT[VIST]N9gui_forms17PopupContainerBox*E
 __ZT[VIST]N9gui_forms17PresentationLayer*E
 __ZT[VIST]N9gui_forms17PresentationPopup*E
@@ -12384,6 +12428,7 @@ __ZT[hvc]*9gui_forms10FontChoice*
 __ZT[hvc]*9gui_forms10FontDialog*
 __ZT[hvc]*9gui_forms10FontFaceId*
 __ZT[hvc]*9gui_forms10FormLayout*
+__ZT[hvc]*9gui_forms10FormMockup*
 __ZT[hvc]*9gui_forms10GridMargin*
 __ZT[hvc]*9gui_forms10HScrollBar*
 __ZT[hvc]*9gui_forms10HelpTarget*
@@ -12554,6 +12599,7 @@ __ZT[hvc]*9gui_forms12GradientStop*
 __ZT[hvc]*9gui_forms12GrayTextMask*
 __ZT[hvc]*9gui_forms12GridItemArea*
 __ZT[hvc]*9gui_forms12HatchPattern*
+__ZT[hvc]*9gui_forms12HelpPageCell*
 __ZT[hvc]*9gui_forms12HelpPageLink*
 __ZT[hvc]*9gui_forms12HelpProvider*
 __ZT[hvc]*9gui_forms12HostServices*
@@ -12667,6 +12713,7 @@ __ZT[hvc]*9gui_forms13GridTrackList*
 __ZT[hvc]*9gui_forms13GridTrackSize*
 __ZT[hvc]*9gui_forms13HelpBookImage*
 __ZT[hvc]*9gui_forms13HelpLinkEntry*
+__ZT[hvc]*9gui_forms13HelpLinkHover*
 __ZT[hvc]*9gui_forms13HelpPageBlock*
 __ZT[hvc]*9gui_forms13HelpPageImage*
 __ZT[hvc]*9gui_forms13HelpPageModel*
@@ -12758,6 +12805,7 @@ __ZT[hvc]*9gui_forms14EffectRegistry*
 __ZT[hvc]*9gui_forms14FlexItemLayout*
 __ZT[hvc]*9gui_forms14FlexItemResult*
 __ZT[hvc]*9gui_forms14FontFamilyFace*
+__ZT[hvc]*9gui_forms14FormMockupText*
 __ZT[hvc]*9gui_forms14FractionFactor*
 __ZT[hvc]*9gui_forms14GalleryCommand*
 __ZT[hvc]*9gui_forms14GalleryPreview*
@@ -12885,6 +12933,7 @@ __ZT[hvc]*9gui_forms15EventStatistics*
 __ZT[hvc]*9gui_forms15FontDeclaration*
 __ZT[hvc]*9gui_forms15FontFamilyOrder*
 __ZT[hvc]*9gui_forms15FontFamilyStack*
+__ZT[hvc]*9gui_forms15FormMockupEvent*
 __ZT[hvc]*9gui_forms15FramePollResult*
 __ZT[hvc]*9gui_forms15GraphLoadResult*
 __ZT[hvc]*9gui_forms15GraphSaveResult*
@@ -13125,6 +13174,7 @@ __ZT[hvc]*9gui_forms17FocusScopeOptions*
 __ZT[hvc]*9gui_forms17FontFallbackMatch*
 __ZT[hvc]*9gui_forms17FontFamilyStackId*
 __ZT[hvc]*9gui_forms17FormDocumentCheck*
+__ZT[hvc]*9gui_forms17FormMockupHandler*
 __ZT[hvc]*9gui_forms17FrameRequestToken*
 __ZT[hvc]*9gui_forms17GenericFontFamily*
 __ZT[hvc]*9gui_forms17GridTemplateAreas*
@@ -13164,6 +13214,7 @@ __ZT[hvc]*9gui_forms17ObjectDetailsSort*
 __ZT[hvc]*9gui_forms17PartRasterRequest*
 __ZT[hvc]*9gui_forms17PieSliceSelection*
 __ZT[hvc]*9gui_forms17PlotHeatmapSeries*
+__ZT[hvc]*9gui_forms17PointerMotionCost*
 __ZT[hvc]*9gui_forms17PopupContainerBox*
 __ZT[hvc]*9gui_forms17PresentationLayer*
 __ZT[hvc]*9gui_forms17PresentationPopup*
@@ -14126,6 +14177,7 @@ __ZZN9gui_forms10FontChoice*
 __ZZN9gui_forms10FontDialog*
 __ZZN9gui_forms10FontFaceId*
 __ZZN9gui_forms10FormLayout*
+__ZZN9gui_forms10FormMockup*
 __ZZN9gui_forms10GridMargin*
 __ZZN9gui_forms10HScrollBar*
 __ZZN9gui_forms10HelpTarget*
@@ -14296,6 +14348,7 @@ __ZZN9gui_forms12GradientStop*
 __ZZN9gui_forms12GrayTextMask*
 __ZZN9gui_forms12GridItemArea*
 __ZZN9gui_forms12HatchPattern*
+__ZZN9gui_forms12HelpPageCell*
 __ZZN9gui_forms12HelpPageLink*
 __ZZN9gui_forms12HelpProvider*
 __ZZN9gui_forms12HostServices*
@@ -14409,6 +14462,7 @@ __ZZN9gui_forms13GridTrackList*
 __ZZN9gui_forms13GridTrackSize*
 __ZZN9gui_forms13HelpBookImage*
 __ZZN9gui_forms13HelpLinkEntry*
+__ZZN9gui_forms13HelpLinkHover*
 __ZZN9gui_forms13HelpPageBlock*
 __ZZN9gui_forms13HelpPageImage*
 __ZZN9gui_forms13HelpPageModel*
@@ -14500,6 +14554,7 @@ __ZZN9gui_forms14EffectRegistry*
 __ZZN9gui_forms14FlexItemLayout*
 __ZZN9gui_forms14FlexItemResult*
 __ZZN9gui_forms14FontFamilyFace*
+__ZZN9gui_forms14FormMockupText*
 __ZZN9gui_forms14FractionFactor*
 __ZZN9gui_forms14GalleryCommand*
 __ZZN9gui_forms14GalleryPreview*
@@ -14627,6 +14682,7 @@ __ZZN9gui_forms15EventStatistics*
 __ZZN9gui_forms15FontDeclaration*
 __ZZN9gui_forms15FontFamilyOrder*
 __ZZN9gui_forms15FontFamilyStack*
+__ZZN9gui_forms15FormMockupEvent*
 __ZZN9gui_forms15FramePollResult*
 __ZZN9gui_forms15GraphLoadResult*
 __ZZN9gui_forms15GraphSaveResult*
@@ -14867,6 +14923,7 @@ __ZZN9gui_forms17FocusScopeOptions*
 __ZZN9gui_forms17FontFallbackMatch*
 __ZZN9gui_forms17FontFamilyStackId*
 __ZZN9gui_forms17FormDocumentCheck*
+__ZZN9gui_forms17FormMockupHandler*
 __ZZN9gui_forms17FrameRequestToken*
 __ZZN9gui_forms17GenericFontFamily*
 __ZZN9gui_forms17GridTemplateAreas*
@@ -14906,6 +14963,7 @@ __ZZN9gui_forms17ObjectDetailsSort*
 __ZZN9gui_forms17PartRasterRequest*
 __ZZN9gui_forms17PieSliceSelection*
 __ZZN9gui_forms17PlotHeatmapSeries*
+__ZZN9gui_forms17PointerMotionCost*
 __ZZN9gui_forms17PopupContainerBox*
 __ZZN9gui_forms17PresentationLayer*
 __ZZN9gui_forms17PresentationPopup*
@@ -15868,6 +15926,7 @@ __ZZNK9gui_forms10FontChoice*
 __ZZNK9gui_forms10FontDialog*
 __ZZNK9gui_forms10FontFaceId*
 __ZZNK9gui_forms10FormLayout*
+__ZZNK9gui_forms10FormMockup*
 __ZZNK9gui_forms10GridMargin*
 __ZZNK9gui_forms10HScrollBar*
 __ZZNK9gui_forms10HelpTarget*
@@ -16038,6 +16097,7 @@ __ZZNK9gui_forms12GradientStop*
 __ZZNK9gui_forms12GrayTextMask*
 __ZZNK9gui_forms12GridItemArea*
 __ZZNK9gui_forms12HatchPattern*
+__ZZNK9gui_forms12HelpPageCell*
 __ZZNK9gui_forms12HelpPageLink*
 __ZZNK9gui_forms12HelpProvider*
 __ZZNK9gui_forms12HostServices*
@@ -16151,6 +16211,7 @@ __ZZNK9gui_forms13GridTrackList*
 __ZZNK9gui_forms13GridTrackSize*
 __ZZNK9gui_forms13HelpBookImage*
 __ZZNK9gui_forms13HelpLinkEntry*
+__ZZNK9gui_forms13HelpLinkHover*
 __ZZNK9gui_forms13HelpPageBlock*
 __ZZNK9gui_forms13HelpPageImage*
 __ZZNK9gui_forms13HelpPageModel*
@@ -16242,6 +16303,7 @@ __ZZNK9gui_forms14EffectRegistry*
 __ZZNK9gui_forms14FlexItemLayout*
 __ZZNK9gui_forms14FlexItemResult*
 __ZZNK9gui_forms14FontFamilyFace*
+__ZZNK9gui_forms14FormMockupText*
 __ZZNK9gui_forms14FractionFactor*
 __ZZNK9gui_forms14GalleryCommand*
 __ZZNK9gui_forms14GalleryPreview*
@@ -16369,6 +16431,7 @@ __ZZNK9gui_forms15EventStatistics*
 __ZZNK9gui_forms15FontDeclaration*
 __ZZNK9gui_forms15FontFamilyOrder*
 __ZZNK9gui_forms15FontFamilyStack*
+__ZZNK9gui_forms15FormMockupEvent*
 __ZZNK9gui_forms15FramePollResult*
 __ZZNK9gui_forms15GraphLoadResult*
 __ZZNK9gui_forms15GraphSaveResult*
@@ -16609,6 +16672,7 @@ __ZZNK9gui_forms17FocusScopeOptions*
 __ZZNK9gui_forms17FontFallbackMatch*
 __ZZNK9gui_forms17FontFamilyStackId*
 __ZZNK9gui_forms17FormDocumentCheck*
+__ZZNK9gui_forms17FormMockupHandler*
 __ZZNK9gui_forms17FrameRequestToken*
 __ZZNK9gui_forms17GenericFontFamily*
 __ZZNK9gui_forms17GridTemplateAreas*
@@ -16648,6 +16712,7 @@ __ZZNK9gui_forms17ObjectDetailsSort*
 __ZZNK9gui_forms17PartRasterRequest*
 __ZZNK9gui_forms17PieSliceSelection*
 __ZZNK9gui_forms17PlotHeatmapSeries*
+__ZZNK9gui_forms17PointerMotionCost*
 __ZZNK9gui_forms17PopupContainerBox*
 __ZZNK9gui_forms17PresentationLayer*
 __ZZNK9gui_forms17PresentationPopup*

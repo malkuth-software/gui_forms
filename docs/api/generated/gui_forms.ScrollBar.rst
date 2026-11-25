@@ -312,7 +312,7 @@ gui_forms::ScrollBar
 
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``ScrollBar``. Members declared here and by the counterpart: 12 supported, 0 deferred, 0 excluded, 24 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``ScrollBar``. Members declared here and by the counterpart: 13 supported, 0 deferred, 0 excluded, 23 unclassified; 6 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -378,7 +378,7 @@ Counterpart: ``ScrollBar``. Members declared here and by the counterpart: 12 sup
    * - event
      - ``Click``
      - ``click``
-     - unclassified (untested)
+     - supported
    * - event
      - ``DoubleClick``
      - ``double_click``

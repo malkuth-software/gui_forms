@@ -19,3 +19,17 @@ the same subset semantically over a build's compilation database; maintainers
 run it locally, CI does not (see [Repository tools](tools.md)). Everything
 else here, including ownership, lifetimes, failure states and kernel
 structure, is checked in review.
+
+## Retained layout
+
+GUI.Forms is retained mode, and so is every control's layout. Layout is
+computed when its inputs change (content, the size given to `arrange`, the
+wrap width, the font, the scale) and kept. Paint, hover, tooltips and
+pointer input read the kept layout and never flow content again. `arrange`
+flows content again only when the bounds it was given, or the content,
+changed. A control never invalidates its own layout from `measure`,
+`arrange`, `on_layout` or `on_paint`: an imperative control that lays out
+everything on every call, on top of a retained toolkit, is how an
+application hangs. The window catches the violations and reports them as
+layout diagnostics; [Layout](../user/layout.md#retained-layout) has the
+rules and what the window does.

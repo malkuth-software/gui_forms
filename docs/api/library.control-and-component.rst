@@ -174,6 +174,14 @@ Related types
      - One type a document may name, borrowed from its schema.
    * - :cpp:class:`FormDocumentWindow <gui_forms::FormDocumentWindow>`
      - A document loaded into a window, to look at: the window, the document's title, and the load's check.
+   * - :cpp:class:`FormMockup <gui_forms::FormMockup>`
+     -  
+   * - :cpp:class:`FormMockupEvent <gui_forms::FormMockupEvent>`
+     - One recorded event.
+   * - :cpp:class:`FormMockupHandler <gui_forms::FormMockupHandler>`
+     - One declared handler of the shown tree: ``on-click="save_claim"`` on ``claim.save``, or a command binding's source (interaction ``invoked``).
+   * - :cpp:class:`FormMockupText <gui_forms::FormMockupText>`
+     - One text a mockup reads: its file name, for the diagnostics, and its UTF-8 bytes.
    * - :cpp:class:`FractionFactor <gui_forms::FractionFactor>`
      -  
    * - :cpp:class:`GridAvailableExtent <gui_forms::GridAvailableExtent>`
@@ -282,6 +290,8 @@ Related types
      - Storage for one control's published part geometry: ``count`` live records, one per declared part, in declaration order.
    * - :cpp:class:`PartIndex <gui_forms::PartIndex>`
      - Position of a part in its control type's declaration list.
+   * - :cpp:class:`PointerMotionCost <gui_forms::PointerMotionCost>`
+     - The layout work a run of pointer moves caused (layout liveness, see docs/user/layout.md, "Retained layout"): the growth of the window's MetricsSnapshot counters over the moves.
    * - :cpp:class:`RadialLayout <gui_forms::RadialLayout>`
      -  
    * - :cpp:class:`RadialPick <gui_forms::RadialPick>`
@@ -2036,6 +2046,131 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: FormMockup final
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit FormMockup(Control& host)
+
+      A mockup shown in ``host``, which it borrows: a control the program keeps in its window (a panel), whose children the mockup replaces. Declare the mockup after the host, so it ends first.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool shown() const noexcept
+
+      Whether a tree is shown, and how many loads have succeeded.
+
+   .. cpp:function:: stxlib::u64 generation() const noexcept
+
+   .. cpp:function:: const FormDocumentCheck& check() const& noexcept
+
+      The last load's diagnostics, document's and fixture's together, in the order found; warnings only after a load that succeeded.
+
+   .. cpp:function:: stxlib::View<char> title() const& noexcept
+
+      The shown form's title and client size; empty and zero for a control root, a form that sets none, or no tree.
+
+   .. cpp:function:: Size client_size() const noexcept
+
+   .. cpp:function:: stxlib::usize handler_count() const noexcept
+
+      The shown tree's commands, in the order the document first binds them, then its declared handlers, in document order.
+
+   .. cpp:function:: stxlib::usize event_count() const noexcept
+
+      The events kept, oldest first.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: FormMockupLoadOutcome load(const FormDocumentSchema& schema, const FormMockupText& document, const FormMockupText& fixture)
+
+      Reads ``document`` and ``fixture`` (an empty text for none), loads them against ``schema`` and, when nothing is refused, shows the new tree in place of the old one in one step. The document's root may be a form (its control is shown; its accept and cancel buttons are given to the host's window) or a control. A record set or tree the fixture fills needs the host in a window. Events recorded so far are kept.
+
+   .. cpp:function:: void clear()
+
+      Removes the shown tree, if any.
+
+   .. cpp:function:: FormMockupHandler handler(stxlib::usize index) const& noexcept
+
+      The handler at ``index`` (below handler_count()); empty past the end.
+
+   .. cpp:function:: FormMockupEvent event(stxlib::usize index) const& noexcept
+
+      The event at ``index`` (below event_count()); empty past the end.
+
+   .. cpp:function:: void clear_events() noexcept
+
+   .. cpp:function:: ThemeCompileResult set_theme(ThemeBase base, const FormMockupText& sheet)
+
+      The theme the shown tree uses: ``sheet`` (a theme sheet's text; empty for none) compiled onto ``base``, set as the host's theme override (Control::set_theme_override), so that only the mockup's tree shows it. A refused sheet changes nothing; the result holds its diagnostics. Needs the host in a window, whose resources compile it.
+
+   .. cpp:function:: void set_event_sink(FormMockupEventSink sink, void* context) noexcept
+
+      Calls ``sink`` with ``context`` after each event is recorded; a null sink stops it. ``context`` must outlive the mockup or the next call.
+
+   .. cpp:member:: constexpr stxlib::usize kept_events
+
+      The events kept; older ones are dropped, newer ones still counted. Default: ``1024U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FormMockupEvent final
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+   One recorded event. Texts borrowed from the mockup until the event is dropped (clear_events, or kept_events newer ones).
+
+   .. cpp:member:: stxlib::u64 sequence
+
+      Counts every event since the mockup was made, from 1.
+
+   .. cpp:member:: stxlib::View<char> handler
+
+   .. cpp:member:: stxlib::View<char> stable_id
+
+   .. cpp:member:: stxlib::View<char> interaction
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FormMockupHandler final
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+   One declared handler of the shown tree: ``on-click="save_claim"`` on ``claim.save``, or a command binding's source (interaction ``invoked``). Texts borrowed from the mockup until its next load or clear.
+
+   .. cpp:member:: stxlib::View<char> handler
+
+   .. cpp:member:: stxlib::View<char> stable_id
+
+      The object's stable ID; a command's source name for a command.
+
+   .. cpp:member:: stxlib::View<char> interaction
+
+      As registered: ``click``, ``checked_changed``, ``invoked``.
+
+   .. cpp:member:: bool observed
+
+      Whether the mockup records it. False for an interaction the object's type does not raise, or one the mockup cannot observe (listed, never refused): the base control's click, double_click, mouse_enter, mouse_hover and mouse_leave, a button's clicked (its click too, raised by every activation, perform_click included), every ``<property>_changed`` of a property the control has, and every command's invoked are observed.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FormMockupText final
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+   One text a mockup reads: its file name, for the diagnostics, and its UTF-8 bytes. Both borrowed for the call that takes it. An empty text is an empty fixture or sheet.
+
+   .. cpp:member:: stxlib::View<char> file
+
+   .. cpp:member:: stxlib::View<char> text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: FractionFactor final
 
    ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
@@ -3059,6 +3194,33 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:struct:: PointerMotionCost final
+
+   ``#include <gui_forms/layout/diagnostics/pointer_motion_probe.hpp>`` (:src:`source <include/gui_forms/layout/diagnostics/pointer_motion_probe.hpp>`)
+
+   The layout work a run of pointer moves caused (layout liveness, see docs/user/layout.md, "Retained layout"): the growth of the window's MetricsSnapshot counters over the moves. A retained window lays out nothing when the pointer only moves; a control that re-flows from its arrange, or keeps asking for layout, shows here at once.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool lays_out_nothing() const noexcept
+
+      Whether the moves caused no layout at all.
+
+   .. cpp:member:: std::uint32_t moves
+
+   .. cpp:member:: std::uint64_t measure_passes
+
+   .. cpp:member:: std::uint64_t arrange_passes
+
+   .. cpp:member:: std::uint64_t controls_measured
+
+   .. cpp:member:: std::uint64_t controls_arranged
+
+   .. cpp:member:: std::uint64_t read_barrier_flushes
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:struct:: RadialLayout final
 
    ``#include <gui_forms/layout/radial_layout/radial_layout.hpp>`` (:src:`source <include/gui_forms/layout/radial_layout/radial_layout.hpp>`)
@@ -3854,6 +4016,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FormMockupLoadOutcome
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+   .. cpp:enumerator:: loaded
+
+   .. cpp:enumerator:: refused
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: GetChildAtPointSkip
 
    ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
@@ -4037,6 +4209,16 @@ Enumerations
    .. cpp:enumerator:: arrange_outside_slot
 
    .. cpp:enumerator:: content_overflow
+
+   .. cpp:enumerator:: layout_loop
+
+   .. cpp:enumerator:: layout_not_converged
+
+   .. cpp:enumerator:: layout_invalidated_in_measure
+
+   .. cpp:enumerator:: layout_invalidated_in_paint
+
+   .. cpp:enumerator:: scroll_in_own_arrange
 
 .. cpp:namespace:: gui_forms
 
@@ -4633,6 +4815,14 @@ Functions, constants and aliases
 
 .. cpp:namespace:: gui_forms
 
+``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+.. cpp:type:: FormMockupEventSink = void (*)(void* context, const FormMockupEvent& event)
+
+   Called on the UI thread after each event is recorded, for a log or a console; ``event`` is borrowed for the call. It must not load or clear the mockup that called it.
+
+.. cpp:namespace:: gui_forms
+
 ``#include <gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`` (:src:`source <include/gui_forms/layout/block_flow_solver/block_flow_solver.hpp>`)
 
 .. cpp:function:: BlockFlowSolveOutcome solve_block_flow(const BlockFlowContainerInput& container, std::span<const BlockFlowItemInput> items, BlockFlowLayoutWorkspace& workspace)
@@ -4668,6 +4858,14 @@ Functions, constants and aliases
 .. cpp:var:: constexpr std::size_t maximum_containing_block_dependents
 
    The most out-of-flow dependents one containing block keeps (PLAN section 3.3); above it the block arranges its whole subtree instead. Value: ``4'096U``.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/layout/diagnostics/pointer_motion_probe.hpp>`` (:src:`source <include/gui_forms/layout/diagnostics/pointer_motion_probe.hpp>`)
+
+.. cpp:function:: PointerMotionCost measure_pointer_motion(SurfaceRoot& window, Rect area, std::uint32_t moves = 100U)
+
+   For an application's own tests: lays out ``window``, then moves the pointer ``moves`` times over ``area`` (window coordinates) along a fixed path that crosses it, as a hovering user would, and returns the layout work the moves caused. Open the largest content the application ships and scroll to its middle first; a retained window answers lays_out_nothing(). The moves are ordinary pointer events: hover handlers and tooltips run. A hover handler that changes another control's layout (a status bar's text) shows as that control's arrange, which is expected; a large page arranged again is the defect. std::invalid_argument for an area that is not finite or is empty. UI thread.
 
 .. cpp:namespace:: gui_forms
 

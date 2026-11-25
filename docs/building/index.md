@@ -1,5 +1,11 @@
 # Build from source
 
+```{note}
+This section is for contributors to GUI.Forms. You do not need it to build
+an application: apps build against the prebuilt SDK the devkit fetches. See
+[Get started](../user/get-started).
+```
+
 [Installation](../user/install) gives the shortest route to an installed SDK. This page
 covers the full build: options, dependencies, the test cache the tests build
 against, the demonstration programs, Windows build constraints and the
@@ -31,7 +37,7 @@ library is not libc++ 22. The Clang plugin
 distribution's libstdc++, because the compiler it loads into links that.
 Linux programs, like Windows ones, carry libc++ statically: each
 executable and shared library holds its own copy, and a program package
-depends on no C++ runtime library. `tools/package_programs.py` refuses a
+depends on no C++ runtime library. gui_forms_devkit's `programs/tools/package_programs.py` refuses a
 Linux package in which any binary still needs `libc++`, `libc++abi` or
 `libunwind` as a shared library.
 Then:
@@ -52,7 +58,6 @@ from the font pack compiled into it. On Linux the gallery needs
 
 | Option | Default | Effect |
 |---|---|---|
-| `GUI_FORMS_BUILD_GALLERY` | ON when top level | Build the control gallery demonstration |
 | `GUI_FORMS_TEST_CACHE` | OFF | Describe the tree for the test cache (`cmake/TestCache.cmake`); `tools/test_cache.py pack` packs it for [gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests), and `tools/ci_build.py` turns it on |
 | `GUI_FORMS_ENABLE_SKIA` | ON | Link the private CPU-only renderer (`stx_skia`), the renderer on every host |
 | `GUI_FORMS_ENABLE_MACOS_HOST` | ON on macOS | Build the AppKit host and `GUIForms::Application` |
@@ -60,7 +65,6 @@ from the font pack compiled into it. On Linux the gallery needs
 | `GUI_FORMS_ENABLE_LINUX_HOST` | OFF | Build the X11 host; requires Linux and Skia |
 | `GUI_FORMS_BUILD_AUDIO` | OFF | Build `GUIForms::Audio` |
 | `GUI_FORMS_AUDIO_VORBIS_BACKEND` | `stx` | Ogg decoder: `stx` or `stb` |
-| `GUI_FORMS_BUILD_FILE_MANAGER_DEMOBOARD` | OFF | Build the fixture-backed explorer consumer |
 | `GUI_FORMS_INSTALL_FALLBACK_FONTS` | ON | Embed the nine Noto fallback faces in the font pack, and install their OFL texts as the `fallback_fonts` component (see [Fallback fonts](#fallback-fonts)) |
 | `GUI_FORMS_DEVELOPMENT_FONT_DIRECTORY` | OFF | Development builds only: read the bundled faces from `GUI_FORMS_FONT_DIR` or else this checkout's `assets/fonts` before the embedded pack (see [Embedded font pack](#embedded-font-pack)) |
 | `GUI_FORMS_FONTPACK_TOOL` | empty | A host-built `stx_fontpack` tool for a cross build, which cannot run the one it compiles |
@@ -74,8 +78,8 @@ from the font pack compiled into it. On Linux the gallery needs
 | `GUI_FORMS_WARNINGS_AS_ERRORS` | OFF | Fail the build on any compiler warning in the library and its programs; `tools/ci_build.py`, and so every CI build, turns it on |
 | `GUI_FORMS_CHECKED_BORROWS` | OFF | Check borrowed views against their owners; the sanitizer tree (`ci_build.py --sanitize`) turns it on. It changes the borrowed types, so a program and its consumers are built one way |
 | `GUI_FORMS_BUILD_FORM_COMPILER` | ON (OFF when cross-compiling) | Build and install the form compiler that `gui_forms_add_form` runs |
-| `GUI_FORMS_BUILD_GALLERY_MODEL` | as `GUI_FORMS_TEST_CACHE` | Build the Gallery model (the control specimen catalogue), which the tests read |
-| `GUI_FORMS_INSTALL_GALLERY_MODEL`, `GUI_FORMS_INSTALL_LAB` | OFF | Install the Gallery model and the lab controls (`GalleryModel`, `Lab`, `DemoControls` components); `tools/build_sdk.py --features all` sets them |
+| `GUI_FORMS_BUILD_GALLERY_MODEL` | ON when top level or for the test cache (OFF when cross-compiling) | Build the Gallery model (the control specimen catalogue), which the tests read and the SDK installs |
+| `GUI_FORMS_INSTALL_GALLERY_MODEL`, `GUI_FORMS_INSTALL_LAB` | as `GUI_FORMS_BUILD_GALLERY_MODEL` | Install the Gallery model and the lab controls (`GalleryModel`, `Lab`, `DemoControls` components), which [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit) builds the Gallery and the demonstrators from; `tools/build_sdk.py` and `tools/ci_build.py` set them |
 | `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
 | `GUI_FORMS_EFFECT_VERIFY_REQUIRED` | OFF | Fail the configure when effect programs cannot be verified, instead of building them unverified; Linux CI sets it |
 | `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
@@ -272,7 +276,7 @@ runtime statically and imports Windows system DLLs only, the C library
 among them as `ucrtbase.dll` by name. Every GUI.Forms library and STXlib's
 state are static archives linked into the program, so it is one module
 (owner decision, 2026-11-15) and `llvm-objdump -p <binary>` lists only
-Windows system DLLs. `tools/package_programs.py` fails a package whose
+Windows system DLLs. gui_forms_devkit's `programs/tools/package_programs.py` fails a package whose
 binaries import any other DLL: a GUI.Forms, STXlib or bundled library, a
 Microsoft C or C++ runtime (msvcrt, vcruntime, msvcp, the api-ms-win-crt
 forwarders), or a GCC or LLVM runtime.
@@ -313,7 +317,7 @@ Release links prune what a program does not reach: sources are compiled
 with `-ffunction-sections -fdata-sections` and linked with `--gc-sections`
 (`-dead_strip` on macOS). `GUI_FORMS_LTO` (default on) adds link-time
 optimisation where the toolchain is pinned for it (LLVM 22's lld on every
-platform). `tools/package_programs.py` strips the shipped binaries. On macOS
+platform). gui_forms_devkit's `programs/tools/package_programs.py` strips the shipped binaries. On macOS
 the C++ runtime is linked statically when the pinned runtime tree carries
 `libc++.a` and `libc++abi.a` (`GUI_FORMS_STATIC_CXX_RUNTIME`); until then a
 macOS package bundles the LLVM runtime dylibs and nothing else.
@@ -379,7 +383,7 @@ directory `GUI_FORMS_FONT_DIR` names, or else this checkout's `assets/fonts`,
 and falls back to the pack; shipped builds leave it off. GUI.Drawing's raster
 C API reads the same pack, so no face file is installed, copied beside a
 module, put in a program's bundle or folder, or packaged by
-`tools/package_programs.py`: only the licences and the attribution.
+gui_forms_devkit's `programs/tools/package_programs.py`: only the licences and the attribution.
 
 ### Fallback fonts
 
@@ -399,11 +403,11 @@ attribution, `fallback_fonts` the Noto OFL texts (`OFL-Noto.txt`,
   `cmake --install build --component fonts` and
   `--component fallback_fonts`. The installed package sets
   `GUIForms_FALLBACK_FONTS` to the producer's choice.
-- **App packages.** Each program in `packaging/programs.json` sets
+- **App packages.** A program packaged by gui_forms_devkit
+  (`programs/tools/package_programs.py`, from `programs/packaging/programs.json`) sets
   `"fallback_fonts": true` or `false`, which must match the build's
-  `GUI_FORMS_INSTALL_FALLBACK_FONTS`, and `tools/package_programs.py` stages
-  the Noto licences to match. A package carries no face file. Every in-tree
-  program currently sets `true`.
+  `GUI_FORMS_INSTALL_FALLBACK_FONTS`, and the packager stages the Noto
+  licences to match. A package carries no face file.
 - **Without them.** The runtime does not need the fallback faces. With
   `GUI_FORMS_INSTALL_FALLBACK_FONTS=OFF` the pack leaves them out too
   (`assets/fonts/font-pack-without-fallback.manifest`). They are
@@ -445,6 +449,7 @@ breaks a boundary fails there before it reaches review.
 ```{toctree}
 :hidden:
 
+../user/install
 fast-builds
 reusing-ci-caches
 template-harness

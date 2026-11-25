@@ -12,7 +12,7 @@ No arguments.
 
 ## `snapshot`
 
-**Snapshot.** The control tree as an outline: role, name, [stable ID], states, value, the actions each node takes and what its press opens (needs_user: it opens a dialog the user answers; instead= names a tool that does the same without one). A virtualised list says how many rows it does not show. Narrow it with root and filter; actions false leaves the actions out. A read: needs no control.
+**Snapshot.** The control tree as an outline: role, name, [stable ID], states, value, the actions each node takes and what its press opens (needs_user: it opens a dialog the user answers; instead= names a tool that does the same without one; default and cancel: the buttons Enter and Escape press). A virtualised list says how many rows it does not show. Narrow it with root and filter; actions false leaves the actions out. A read: needs no control.
 
 | Argument | Type | Required | Meaning |
 |---|---|---|---|
@@ -70,7 +70,7 @@ No arguments.
 | `action` | one of `move`, `hover`, `click`, `double_click`, `right_click`, `down`, `up`, `drag`, `wheel` | no |  |
 | `offset` | object | no | Logical pixels from the target's top-left corner (its bounds as snapshot bounds gives them) |
 | `position` | object | no | Window coordinates: logical pixels from the top-left corner of the window's content area, the space of snapshot bounds |
-| `path` | array of object | no |  |
+| `path` | array of object or array of number | no |  |
 | `button` | one of `primary`, `secondary`, `middle` | no |  |
 | `modifiers` | array of string | no |  |
 | `delta` | object | no | Wheel notches: y -1 scrolls down one notch, y 1 up; x scrolls sideways. Default {x: 0, y: -1} |
@@ -85,7 +85,7 @@ No arguments.
 | `window` | string | no | a window's stable ID or title; default the active window |
 | `target` | string | no | a node's stable ID, or #r<n> for a runtime ID |
 | `within` | string | no | an ancestor's stable ID, when the target's ID repeats |
-| `keys` | string or array | no |  |
+| `keys` | string or array of string | no |  |
 | `text` | string | no |  |
 | `composition` | object | no |  |
 | `terse` | boolean | no |  |
@@ -120,7 +120,7 @@ No arguments.
 
 ## `capture`
 
-**Capture.** A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so you see the program as its user does without a model. A read: needs no control.
+**Capture.** A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so you see the program as its user does without a model. points [{x, y}, ...] (or [x, y] pairs; logical units from the captured area's top left, at most 1024) answers the colour at each instead of an image, to check a drawing cheaply. A read: needs no control.
 
 | Argument | Type | Required | Meaning |
 |---|---|---|---|
@@ -128,6 +128,7 @@ No arguments.
 | `target` | string | no | a node's stable ID, or #r<n> for a runtime ID |
 | `within` | string | no | an ancestor's stable ID, when the target's ID repeats |
 | `mode` | one of `rendered` | no |  |
+| `points` | array of object or array of number | no |  |
 | `scale` | number | no |  |
 | `margin` | number | no |  |
 | `include_overlays` | boolean | no |  |
@@ -147,7 +148,7 @@ No arguments.
 
 ## `batch`
 
-**Batch.** Several steps in one call with one combined reply: each step is {"tool": name, ...that tool's arguments} or an expect guard {"expect": "node"|"visual", target, state, value, exists, drawn}; the batch stops at the first failure or unmet expectation. terse gives each act's changes as counts.
+**Batch.** Several steps in one call with one combined reply: each step is {"tool": name, ...that tool's arguments} or an expect guard {"expect": "node"|"visual", target, state, value, exists, drawn}; the batch stops at the first failure or unmet expectation; at most 512 steps. terse gives each act's changes as counts.
 
 | Argument | Type | Required | Meaning |
 |---|---|---|---|

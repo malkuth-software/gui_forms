@@ -45,6 +45,8 @@ lab
 - **Member manifest** counts every control's properties, events and methods
   against Windows Forms: supported, deferred, excluded or not yet classified.
   Each control's API reference page lists its own.
+- [Custom controls](custom-controls) is the guide for when none of them
+  fits: how to search for one first, and how to write your own.
 - The [API reference](../api/index) lists every public type, member and
   enumeration, with one page per function category for the controls.
 

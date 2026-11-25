@@ -67,11 +67,12 @@ def type_text(schema: dict) -> str:
         inner = type_text(items) if items else 'any'
         return 'array of ' + inner
     if isinstance(kind, list):
-        return ' or '.join(str(part) for part in kind)
+        return ' or '.join(type_text({**schema, 'type': part}) for part in kind)
     if kind:
         return str(kind)
     if 'anyOf' in schema or 'oneOf' in schema:
-        return 'one of several shapes'
+        shapes = schema.get('anyOf') or schema.get('oneOf')
+        return ' or '.join(type_text(shape) for shape in shapes)
     return 'any'
 
 

@@ -1449,6 +1449,7 @@
         {"name": "keywords", "kind": "text", "category": "Help", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "layout_direction", "kind": "enumeration", "category": "Layout", "enumeration": "layout_direction", "choices": ["inherit", "left_to_right", "right_to_left"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "hidden"},
         {"name": "margin", "kind": "insets", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "mask", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "maximum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "minimum_size", "kind": "size", "category": "Layout", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "name", "kind": "text", "category": "Design", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
@@ -1456,6 +1457,7 @@
         {"name": "right_to_left", "kind": "enumeration", "category": "Appearance", "enumeration": "right_to_left", "choices": ["no", "yes", "inherit"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "wheel_scrolls", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"}
@@ -8666,6 +8668,7 @@
         {"name": "right_to_left", "kind": "enumeration", "category": "Appearance", "enumeration": "right_to_left", "choices": ["no", "yes", "inherit"], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_index", "kind": "unsigned_integer", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tab_stop", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
+        {"name": "text", "kind": "text", "category": "Appearance", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"},
         {"name": "tool_tip_text", "kind": "text", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "visible", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": true, "nullable": false, "serialization": "visible"},
         {"name": "wheel_scrolls", "kind": "boolean", "category": "Behavior", "enumeration": null, "choices": [], "readable": true, "writable": true, "bindable": false, "nullable": false, "serialization": "visible"}
@@ -14661,7 +14664,22 @@
         {"name": "title", "role": "label", "composed_from": null, "states": []},
         {"name": "rule", "role": "divider", "composed_from": null, "states": []},
         {"name": "close", "role": "glyph", "composed_from": null, "states": []},
-        {"name": "body", "role": "content", "composed_from": null, "states": []}
+        {"name": "body", "role": "content", "composed_from": null, "states": []},
+        {"name": "code_span", "role": "chip", "composed_from": null, "states": []},
+        {"name": "code_block", "role": "well", "composed_from": null, "states": []},
+        {"name": "signature", "role": "face", "composed_from": null, "states": []},
+        {"name": "signature_bar", "role": "keyline", "composed_from": null, "states": []},
+        {"name": "table_header", "role": "face", "composed_from": null, "states": []},
+        {"name": "table_cell", "role": "face", "composed_from": null, "states": []},
+        {"name": "card", "role": "face", "composed_from": null, "states": ["hot"]},
+        {"name": "find_match", "role": "selection", "composed_from": null, "states": ["current"]},
+        {"name": "keyword", "role": "label", "composed_from": null, "states": []},
+        {"name": "type", "role": "label", "composed_from": null, "states": []},
+        {"name": "function", "role": "label", "composed_from": null, "states": []},
+        {"name": "string", "role": "label", "composed_from": null, "states": []},
+        {"name": "number", "role": "label", "composed_from": null, "states": []},
+        {"name": "comment", "role": "label", "composed_from": null, "states": []},
+        {"name": "directive", "role": "label", "composed_from": null, "states": []}
       ],
       "states": ["normal", "pressed", "captured", "enabled", "disabled", "focused", "focus_visible"],
       "custom_states": [],
@@ -14773,7 +14791,8 @@
         {"name": "scroll", "payload": "ScrollEvent", "mutable_payload": true},
         {"name": "link_activated", "payload": "HelpLinkActivation", "mutable_payload": true},
         {"name": "close_requested", "payload": "", "mutable_payload": false},
-        {"name": "section_toggled", "payload": "HelpSectionToggle", "mutable_payload": false}
+        {"name": "section_toggled", "payload": "HelpSectionToggle", "mutable_payload": false},
+        {"name": "link_hovered", "payload": "HelpLinkHover", "mutable_payload": false}
       ]
     },
     {

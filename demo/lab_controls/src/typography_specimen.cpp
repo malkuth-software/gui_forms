@@ -112,6 +112,7 @@ void TypographySpecimen::on_paint(Painter& painter, Rect) {
     const Rect bounds = client_rectangle();
     const FontSpec effective = text_font(font.read());
     const PainterLineResolver resolve{painter, effective};
+    // retained-mode: allow unguarded-text-flow (a lab specimen of one short sample shows what the painter's engine resolves)
     const std::vector<std::string> lines = wrap_lines(
         text.read(), std::max(0.0, bounds.width - 20.0), wrap_text.read(), resolve);
     std::vector<ResolvedTextLayout> resolved_lines;

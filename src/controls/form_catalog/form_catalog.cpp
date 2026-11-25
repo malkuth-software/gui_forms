@@ -4,7 +4,20 @@
 
 #include "form_registry_catalog.hpp"
 
+#include "gui_forms/controls/tab_control.hpp"
+#include "gui_forms/controls/tab_page.hpp"
+
+#include <memory>
+
 namespace gui_forms::form_catalog {
+
+bool adopt_tab_page(Control& owner, const Control::Ptr& child) {
+    TabControl* const tabs = dynamic_cast<TabControl*>(&owner);
+    const std::shared_ptr<TabPage> page = std::dynamic_pointer_cast<TabPage>(child);
+    if (tabs == nullptr || !page) return false;
+    (*tabs).add_page(page);
+    return true;
+}
 
 void add_registry_types(form_language::FormSchema& schema) {
     schema.types.reserve(schema.types.size() + form_catalog.size() + 1U);

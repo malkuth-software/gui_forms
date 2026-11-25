@@ -20,7 +20,7 @@
 //
 // Exit status 0 on success; 1 with a message on stderr otherwise.
 
-#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "gui_forms/allocation/library_memory/program_allocator.hpp"
 
 #include <stxlib/memory.hpp>
 

@@ -159,6 +159,17 @@ protected:
     // would not move: its scrolls repaint the viewport. False by default:
     // the scroll position moves only the children this class arranges.
     [[nodiscard]] virtual bool paints_scrolled_content() const noexcept { return false; }
+    // The extent of the content this control paints itself (with
+    // paints_scrolled_content), in its own unscrolled coordinates. The
+    // base arrange scrolls over the larger of it, auto_scroll_min_size and
+    // its children's extent, so the scroll position holds across arranges
+    // and the control never has to put it back (moving the position from
+    // arrange asks for another arrange; see docs/user/layout.md, Retained
+    // layout). Zero by default. The base arrange calls it: a control whose
+    // content flows to its width flows it before calling the base arrange,
+    // when the width or the content changed, and answers from the flow it
+    // keeps.
+    [[nodiscard]] virtual Size painted_content_extent() const noexcept { return Size{}; }
     // Runs after a changed auto_scroll write, once the scroll state is
     // updated and a moved position reported; `previous_position` is the
     // scroll position before the write (turning auto scroll off returns it

@@ -287,7 +287,7 @@ struct BindAttributes final {
 class ModelBuilder final {
 public:
     ModelBuilder(const ThemeSource& source, const FormSyntax& syntax, const FormSchema& schema,
-                 ThemeDiagnosticList& diagnostics) noexcept;
+                 const FormModelOptions& options, ThemeDiagnosticList& diagnostics) noexcept;
 
     // Fills `scratch`; returns whether no defect was found.
     [[nodiscard]] bool run(FormModel& scratch);
@@ -332,6 +332,12 @@ private:
     // written on it.
     void read_attribute(const XmlElement& element, std::uint32_t index, std::uint32_t attribute, ObjectIndex owner,
                         WrittenNames& written_names, FormModel& scratch);
+    // A declared handler `written` (an `on-` attribute the object's type
+    // has no property of) with the value `value`, written at `name_offset`
+    // on `owner`, an object of `type`; admitted only under
+    // FormModelOptions::admit_handlers.
+    void read_handler(std::string_view written, std::string_view value, std::size_t name_offset, ObjectIndex owner,
+                      const FormSchemaType& type, FormModel& scratch);
     // Makes the attribute's value the one the value readers read: its
     // tokens, its text and where it was written. False, with an E807
     // reported, when the theme tokenizer finds a lexical defect in it.
@@ -378,6 +384,7 @@ private:
     const ThemeSource& source_;
     const FormSyntax& syntax_;
     const FormSchema& schema_;
+    const FormModelOptions& options_;
     ThemeDiagnosticList& diagnostics_;
     SourcePositionCursor cursor_;
     std::unordered_set<std::string> identities_{};
@@ -397,8 +404,8 @@ private:
 };
 
 ModelBuilder::ModelBuilder(const ThemeSource& source, const FormSyntax& syntax, const FormSchema& schema,
-                           ThemeDiagnosticList& diagnostics) noexcept
-    : source_(source), syntax_(syntax), schema_(schema), diagnostics_(diagnostics),
+                           const FormModelOptions& options, ThemeDiagnosticList& diagnostics) noexcept
+    : source_(source), syntax_(syntax), schema_(schema), options_(options), diagnostics_(diagnostics),
       cursor_(syntax.lines, source.text), tokens_(value_buffer_.tokens), numbers_(value_buffer_.numbers) {}
 
 bool ModelBuilder::run(FormModel& scratch) {
@@ -754,7 +761,12 @@ void ModelBuilder::read_attribute(const XmlElement& element, std::uint32_t index
         }
     }
     // A handler reference is refused (E816); a property whose name begins
-    // with "on" (a ToggleSwitch's on_text) is not one.
+    // with "on" (a ToggleSwitch's on_text) is not one. A mockup's document
+    // declares handlers that record themselves instead.
+    if (!property && written.starts_with(handler_prefix) && options_.admit_handlers) {
+        read_handler(written, text, name_offset, owner, type, scratch);
+        return;
+    }
     if (!property && written.starts_with(handler_prefix)) {
         report(DiagnosticCode::form_handler_removed, name_offset, stable_id, written,
                "a form names no program code: attach the behaviour from program logic");
@@ -1000,6 +1012,21 @@ std::size_t ModelBuilder::token_offset(std::uint32_t token) const noexcept {
     const std::size_t inside = token < tokens_.size() ? tokens_[token].offset.value : text_.size();
     const std::size_t offset = value_offset_ + inside;
     return offset;
+}
+
+void ModelBuilder::read_handler(std::string_view written, std::string_view value, std::size_t name_offset,
+                                ObjectIndex owner, const FormSchemaType& type, FormModel& scratch) {
+    const std::string_view interaction_written = written.substr(handler_prefix.size());
+    const std::optional<std::string> registered = registered_from_kebab(interaction_written);
+    FormHandler handler{};
+    handler.object = owner;
+    handler.interaction = registered ? *registered : std::string(interaction_written);
+    handler.handler = value.empty() ? std::string(written) : std::string(value);
+    for (const std::string& declared : type.interactions) {
+        if (declared == handler.interaction) handler.raised = true;
+    }
+    handler.position = cursor_.locate(ByteOffset{static_cast<std::uint32_t>(name_offset)});
+    scratch.handlers.push_back(std::move(handler));
 }
 
 std::size_t ModelBuilder::element_offset(std::uint32_t index) const noexcept {
@@ -1587,8 +1614,16 @@ const PropertyDescriptor& form_property_descriptor(const FormSchema& schema, con
 FormModelOutcome build_form_model(const theme_language::ThemeSource& source, const FormSyntax& syntax,
                                   const FormSchema& schema, FormModel& model,
                                   theme_language::ThemeDiagnosticList& diagnostics) {
+    const FormModelOptions defaults{};
+    const FormModelOutcome outcome = build_form_model(source, syntax, schema, defaults, model, diagnostics);
+    return outcome;
+}
+
+FormModelOutcome build_form_model(const theme_language::ThemeSource& source, const FormSyntax& syntax,
+                                  const FormSchema& schema, const FormModelOptions& options, FormModel& model,
+                                  theme_language::ThemeDiagnosticList& diagnostics) {
     FormModel scratch{};
-    ModelBuilder builder(source, syntax, schema, diagnostics);
+    ModelBuilder builder(source, syntax, schema, options, diagnostics);
     if (!builder.run(scratch)) return FormModelOutcome::refused;
     model = std::move(scratch);
     return FormModelOutcome::model_built;
@@ -1597,8 +1632,16 @@ FormModelOutcome build_form_model(const theme_language::ThemeSource& source, con
 FormModelOutcome read_form_model(const theme_language::ThemeSource& source, FormSyntax& syntax,
                                  const FormSchema& schema, FormModel& model,
                                  theme_language::ThemeDiagnosticList& diagnostics) {
+    const FormModelOptions defaults{};
+    const FormModelOutcome outcome = read_form_model(source, syntax, schema, defaults, model, diagnostics);
+    return outcome;
+}
+
+FormModelOutcome read_form_model(const theme_language::ThemeSource& source, FormSyntax& syntax,
+                                 const FormSchema& schema, const FormModelOptions& options, FormModel& model,
+                                 theme_language::ThemeDiagnosticList& diagnostics) {
     if (read_form_syntax(source, syntax, diagnostics) != FormSyntaxOutcome::read) return FormModelOutcome::refused;
-    const FormModelOutcome outcome = build_form_model(source, syntax, schema, model, diagnostics);
+    const FormModelOutcome outcome = build_form_model(source, syntax, schema, options, model, diagnostics);
     return outcome;
 }
 
