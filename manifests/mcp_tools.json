@@ -244,33 +244,29 @@
     "path": {
      "type": "array",
      "items": {
-      "anyOf": [
-       {
-        "type": "object",
-        "description": "With a target, logical pixels from the target's top-left corner (as offset); without one, window coordinates (as position)",
-        "properties": {
-         "x": {
-          "type": "number"
-         },
-         "y": {
-          "type": "number"
-         }
-        },
-        "required": [
-         "x",
-         "y"
-        ],
-        "additionalProperties": false
+      "type": [
+       "object",
+       "array"
+      ],
+      "description": "With a target, logical pixels from the target's top-left corner (as offset); without one, window coordinates (as position)",
+      "properties": {
+       "x": {
+        "type": "number"
        },
-       {
-        "type": "array",
-        "items": {
-         "type": "number"
-        },
-        "minItems": 2,
-        "maxItems": 2
+       "y": {
+        "type": "number"
        }
-      ]
+      },
+      "required": [
+       "x",
+       "y"
+      ],
+      "additionalProperties": false,
+      "items": {
+       "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
      },
      "minItems": 1,
      "maxItems": 256
@@ -500,32 +496,28 @@
      "type": "array",
      "maxItems": 1024,
      "items": {
-      "anyOf": [
-       {
-        "type": "object",
-        "properties": {
-         "x": {
-          "type": "number"
-         },
-         "y": {
-          "type": "number"
-         }
-        },
-        "required": [
-         "x",
-         "y"
-        ],
-        "additionalProperties": false
+      "type": [
+       "object",
+       "array"
+      ],
+      "properties": {
+       "x": {
+        "type": "number"
        },
-       {
-        "type": "array",
-        "items": {
-         "type": "number"
-        },
-        "minItems": 2,
-        "maxItems": 2
+       "y": {
+        "type": "number"
        }
-      ]
+      },
+      "required": [
+       "x",
+       "y"
+      ],
+      "additionalProperties": false,
+      "items": {
+       "type": "number"
+      },
+      "minItems": 2,
+      "maxItems": 2
      }
     },
     "scale": {

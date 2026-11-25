@@ -85,7 +85,7 @@ No arguments.
 | `window` | string | no | a window's stable ID or title; default the active window |
 | `target` | string | no | a node's stable ID, or #r<n> for a runtime ID |
 | `within` | string | no | an ancestor's stable ID, when the target's ID repeats |
-| `keys` | string or array | no |  |
+| `keys` | string or array of string | no |  |
 | `text` | string | no |  |
 | `composition` | object | no |  |
 | `terse` | boolean | no |  |

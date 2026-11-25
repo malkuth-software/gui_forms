@@ -77,11 +77,14 @@ bool point_value(const JsonValue& value, double& x, double& y) {
 }
 
 std::string point_schema(std::string_view description) {
-    std::string schema = "{\"anyOf\":[{\"type\":\"object\",";
+    // Both shapes in one schema, since the MCP server takes no anyOf
+    // (STXlib's supported subset): properties and required check an object,
+    // items and the counts an array, and the type list admits only those two.
+    std::string schema = "{\"type\":[\"object\",\"array\"],";
     if (!description.empty()) schema += "\"description\":\"" + std::string(description) + "\",";
     schema += "\"properties\":{\"x\":{\"type\":\"number\"},\"y\":{\"type\":\"number\"}},"
-              "\"required\":[\"x\",\"y\"],\"additionalProperties\":false},"
-              "{\"type\":\"array\",\"items\":{\"type\":\"number\"},\"minItems\":2,\"maxItems\":2}]}";
+              "\"required\":[\"x\",\"y\"],\"additionalProperties\":false,"
+              "\"items\":{\"type\":\"number\"},\"minItems\":2,\"maxItems\":2}";
     return schema;
 }
 
