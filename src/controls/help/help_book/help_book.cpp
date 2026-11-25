@@ -24,7 +24,10 @@ namespace {
 constexpr double paper_left = 12.0;
 constexpr double paper_top = 12.0;
 constexpr double paper_right = 12.0;
-constexpr double title_size = 18.0;
+// The page title against the body, and its weight: the title reads as the
+// page's first heading, larger than any heading in the body.
+constexpr double title_scale = 1.7;
+constexpr std::uint16_t title_weight = 600;
 constexpr double body_size = 18.0;
 constexpr double close_size = 24.0;
 constexpr double close_title_left = 48.0;
@@ -60,6 +63,8 @@ constexpr double chip_padding_factor = 0.25;
 constexpr double chip_above_factor = 0.95;
 constexpr double chip_below_factor = 0.3;
 constexpr double chip_radius = 3.0;
+// The chip beside code that has no padding on that side.
+constexpr double chip_hairline = 1.0;
 // The code font's size against the text around it is kept within these, so
 // a face with odd metrics cannot make it tiny or huge.
 constexpr double minimum_code_scale = 0.8;
@@ -99,7 +104,9 @@ struct LayoutRun final {
     bool link{};
     bool own{};
     bool chip{};
-    double padding{};
+    // A chip run's padding before and after its text.
+    double lead{};
+    double trail{};
 };
 
 [[nodiscard]] bool line_end_byte(char character) noexcept {
@@ -117,6 +124,19 @@ struct LayoutRun final {
     if (index >= text.size()) return true;
     const unsigned char byte = static_cast<unsigned char>(text[index]);
     return (byte & 0xC0U) != 0x80U;
+}
+
+// Punctuation that holds inline code without a gap: an opening bracket
+// before it, and after it a comma, stop, colon, semicolon, closing bracket,
+// question or exclamation mark, or a quote.
+[[nodiscard]] bool opening_punctuation(char character) noexcept {
+    return character == '(' || character == '[' || character == '{';
+}
+
+[[nodiscard]] bool closing_punctuation(char character) noexcept {
+    return character == ',' || character == '.' || character == ':' || character == ';' || character == ')' ||
+           character == ']' || character == '}' || character == '?' || character == '!' || character == '\'' ||
+           character == '"';
 }
 
 [[nodiscard]] char fold_ascii(char character, bool match_case) noexcept {
@@ -510,6 +530,13 @@ HelpBook::LayoutFonts HelpBook::layout_fonts() const {
     return fonts;
 }
 
+FontSpec HelpBook::title_font() const noexcept {
+    FontSpec font = body_font();
+    font.size = std::round(font.size * title_scale);
+    font.weight = title_weight;
+    return font;
+}
+
 FontSpec HelpBook::heading_font(std::size_t level) const noexcept {
     FontSpec font = body_font();
     const std::size_t clamped = std::min<std::size_t>(level, heading_scales.size() - 1U);
@@ -581,7 +608,6 @@ void HelpBook::lay_out_runs(const RunFlow& flow, const LayoutFonts& fonts, doubl
         layout_run.joined_start = joined.size();
         layout_run.link = run.link.present();
         layout_run.chip = run.code && !run.line_break && !run.text.empty();
-        layout_run.padding = layout_run.chip ? std::round(layout_run.font.size * chip_padding_factor) : 0.0;
         joined.append(layout_run.text);
         runs.push_back(layout_run);
         const bool link_ends = run.link.present() &&
@@ -606,6 +632,16 @@ void HelpBook::lay_out_runs(const RunFlow& flow, const LayoutFonts& fonts, doubl
     // whose storage moved only if the vector reallocated, so take them again.
     for (LayoutRun& run : runs) {
         if (run.own) run.text = std::string_view(laid.marker_texts[run.run]);
+    }
+    // A chip's padding, except beside punctuation that holds the code: an
+    // opening bracket before it, or a comma, stop, colon or closing bracket
+    // after it, which hugs the chip as it would plain text.
+    for (LayoutRun& run : runs) {
+        if (!run.chip) continue;
+        const double padding = std::round(run.font.size * chip_padding_factor);
+        const std::size_t after = run.joined_start + run.text.size();
+        run.lead = run.joined_start > 0U && opening_punctuation(joined[run.joined_start - 1U]) ? 0.0 : padding;
+        run.trail = after < joined.size() && closing_punctuation(joined[after]) ? 0.0 : padding;
     }
     std::vector<LineBreakOpportunity> opportunities(joined.size(), LineBreakOpportunity::prohibited);
     if (!joined.empty()) {
@@ -671,9 +707,12 @@ void HelpBook::lay_out_runs(const RunFlow& flow, const LayoutFonts& fonts, doubl
                     ++last;
                 }
                 const LaidPiece& finish = (*laid).pieces[last];
-                const double padding = std::round(start.font.size * chip_padding_factor);
-                const Rect chip{start.bounds.x - padding, line_top + baseline - chip_above,
-                                finish.bounds.right() - start.bounds.x + 2.0 * padding, chip_above + chip_below};
+                // A side without padding (punctuation hugs it, or the line
+                // breaks inside the code) keeps a hairline of chip.
+                const double lead = std::max(start.chip_lead, chip_hairline);
+                const double trail = std::max(finish.chip_trail, chip_hairline);
+                const Rect chip{start.bounds.x - lead, line_top + baseline - chip_above,
+                                finish.bounds.right() - start.bounds.x + lead + trail, chip_above + chip_below};
                 (*laid).boxes.push_back(LaidBox{BoxKind::code_span, chip, {}});
                 piece = last + 1U;
             }
@@ -705,8 +744,8 @@ void HelpBook::lay_out_runs(const RunFlow& flow, const LayoutFonts& fonts, doubl
                 const std::size_t stop = std::min(run_end, to);
                 if (begin >= stop) continue;
                 width += (*book).text_width(run.text.substr(begin - run_begin, stop - begin), run.font);
-                if (run.chip && begin == run_begin) width += run.padding;
-                if (run.chip && stop == run_end) width += run.padding;
+                if (run.chip && begin == run_begin) width += run.lead;
+                if (run.chip && stop == run_end) width += run.trail;
             }
             return width;
         }
@@ -757,12 +796,14 @@ void HelpBook::lay_out_runs(const RunFlow& flow, const LayoutFonts& fonts, doubl
             const std::size_t begin = std::max(run_begin, position);
             const std::size_t stop = std::min(run_end, visible_end);
             if (begin >= stop) continue;
-            if (run.chip && begin == run_begin) line_x += run.padding;
+            if (run.chip && begin == run_begin) line_x += run.lead;
             const double piece_width = text_width(run.text.substr(begin - run_begin, stop - begin), run.font);
             LaidPiece piece{};
             piece.font = run.font;
             piece.secondary = flow.secondary;
             piece.chip = run.chip;
+            piece.chip_lead = run.chip && begin == run_begin ? run.lead : 0.0;
+            piece.chip_trail = run.chip && stop == run_end ? run.trail : 0.0;
             if (run.own) {
                 piece.kind = PieceKind::label;
                 piece.own = run.run;
@@ -786,7 +827,7 @@ void HelpBook::lay_out_runs(const RunFlow& flow, const LayoutFonts& fonts, doubl
             }
             laid.pieces.push_back(piece);
             line_x += piece_width;
-            if (run.chip && stop == run_end) line_x += run.padding;
+            if (run.chip && stop == run_end) line_x += run.trail;
             line_open = true;
         }
         if (forced) {
@@ -1307,9 +1348,9 @@ void HelpBook::lay_out(double width, LayoutMode mode, LaidOut& laid) const {
     // The close "x" at the upper left, then the title and its rule.
     const bool close_shown = close_visible_ && !mode.print;
     const double title_left = close_shown ? close_title_left : paper_left;
-    FontSpec title_font = text_font(FontSpec{FontRole::control, title_size, 400, false});
+    const FontSpec page_title_font = title_font();
     const LineBoxMetrics title_metrics =
-        line_box_metrics(resolve_text_layout_utf8(" ", title_font), stxlib::Optional<double>::none());
+        line_box_metrics(resolve_text_layout_utf8(" ", page_title_font), stxlib::Optional<double>::none());
     laid.close = close_shown ? Rect{paper_left, top, close_size, close_size} : Rect{};
     const double title_height = std::max(title_metrics.height, close_shown ? close_size : 0.0);
     laid.title = Rect{title_left, top, std::max(0.0, width - paper_right - title_left), title_height};
@@ -1527,7 +1568,7 @@ void HelpBook::paint_laid(Painter& painter, const LaidOut& laid, Point offset, L
         PartPaint title{};
         title.family = ControlVisualRole::tool_tip;
         title.role = PartRole::label;
-        title.font = text_font(FontSpec{FontRole::control, title_size, 400, false});
+        title.font = title_font();
         title.text = lend_paint_text(page_.title);
         // A fallback page's title is drawn in the secondary tone: the page
         // came, at least in part, from the program's built-in language.

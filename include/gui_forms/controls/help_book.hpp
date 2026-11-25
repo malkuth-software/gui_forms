@@ -276,8 +276,12 @@ private:
         // Drawn in the muted ink (a caption, a card's line, a comment).
         bool secondary{};
         TokenPart token{TokenPart::none};
-        // Inline code, set on a chip (LaidOut::boxes).
+        // Inline code, set on a chip (LaidOut::boxes), and the chip's padding
+        // before and after the code: none where the code is held by an
+        // opening bracket before it or punctuation after it, which hugs it.
         bool chip{};
+        double chip_lead{};
+        double chip_trail{};
         bool highlighted{};
     };
     // A box painted behind a block's text: a code chip, a signature's face
@@ -388,6 +392,9 @@ private:
     [[nodiscard]] FontSpec body_font() const noexcept;
     [[nodiscard]] LayoutFonts layout_fonts() const;
     [[nodiscard]] FontSpec run_font(const HelpPageRun& run, FontSpec base, const LayoutFonts& fonts) const noexcept;
+    // The page title's font: the body's, larger than a level-one heading
+    // and semibold.
+    [[nodiscard]] FontSpec title_font() const noexcept;
     [[nodiscard]] FontSpec heading_font(std::size_t level) const noexcept;
     [[nodiscard]] double text_width(std::string_view text, FontSpec font) const;
     [[nodiscard]] const HelpBookImage* find_image(std::string_view name) const noexcept;
