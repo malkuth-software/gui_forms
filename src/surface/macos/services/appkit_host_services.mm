@@ -223,8 +223,11 @@ struct CornerReading final {
     gui_forms::WindowCornerSource source{gui_forms::WindowCornerSource::unknown};
 };
 
-CornerReading titled_window_corner_radius(NSWindow* window) noexcept {
+CornerReading titled_window_corner_radius([[maybe_unused]] NSWindow* window) noexcept {
     CornerReading reading{};
+    // NSViewLayoutRegion is in the macOS 26 SDK; a build with an older SDK
+    // (CI's macos-15 image) leaves the reading to the fallbacks below.
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
     NSView* const content = window.contentView;
     if (@available(macOS 26.0, *)) {
         if (content != nil) {
@@ -241,6 +244,7 @@ CornerReading titled_window_corner_radius(NSWindow* window) noexcept {
             }
         }
     }
+#endif
 #if defined(GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS)
     const SEL getter = NSSelectorFromString(@"_effectiveCornerRadius");
     if ([window respondsToSelector:getter]) {
