@@ -50,6 +50,11 @@ public:
     bool paced_to_display{};
     // The interval asked for, before pacing; zero asks for every refresh.
     FrameInterval requested_interval{};
+    // An ambient effect's wake: the user sees it, but it never holds the
+    // window from settling (the window band's march or sweep, which the
+    // automation's in-use sign runs while a model acts and waits for idle).
+    // SurfaceRoot::next_settling_wake leaves it out.
+    bool ambient{};
 
 private:
     bool connected_{true};

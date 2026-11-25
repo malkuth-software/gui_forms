@@ -84,6 +84,8 @@ static_assert(GF_AUTOMATION_ACTION_CLOSE == static_cast<std::uint32_t>(SemanticA
 static_assert(GF_AUTOMATION_TOOL_ERROR_PROTECTED_CONTENT ==
               static_cast<std::uint32_t>(ModelToolError::protected_content));
 static_assert(GF_AUTOMATION_TOOL_ERROR_INTERNAL == static_cast<std::uint32_t>(ModelToolError::internal));
+static_assert(GF_AUTOMATION_TOOL_ERROR_EXPECTATION_FAILED ==
+              static_cast<std::uint32_t>(ModelToolError::expectation_failed));
 
 constexpr gf_automation_tool_flags known_tool_flags =
     GF_AUTOMATION_TOOL_DESTRUCTIVE | GF_AUTOMATION_TOOL_ANY_THREAD | GF_AUTOMATION_TOOL_SETTLES;
@@ -498,7 +500,7 @@ gf_status GF_CALL automation_reply_image(void* reply, const std::uint8_t* bytes,
 }
 
 gf_status reply_fail_body(void* reply, gf_automation_tool_error error, gf_utf8_view message, gf_utf8_view hint) {
-    if (reply == nullptr || error > GF_AUTOMATION_TOOL_ERROR_INTERNAL) {
+    if (reply == nullptr || error > GF_AUTOMATION_TOOL_ERROR_EXPECTATION_FAILED) {
         return fail(GF_STATUS_INVALID_ARGUMENT, reply_fail_slot, "a call's token and a known error");
     }
     std::string message_text{};

@@ -1344,6 +1344,7 @@ NativeWindow::NativeWindow(Runtime &host, LinuxApplicationWindow source)
   if (entry.popup.present())
     mark_transient((*entry.popup.value()));
   utility = entry.tool_window || entry.floating != HostWindowFloating::none;
+  outside_modality = entry.outside_modality;
   if (utility) {
     // Set while unmapped, so the window manager reads them when it first
     // manages the window (EWMH: clients set _NET_WM_STATE directly before
@@ -1888,6 +1889,14 @@ void NativeWindow::event(XEvent &event) {
     // button's press, which the host reports after the press itself.
     if (pointer.action == PointerAction::down && pointer.button == PointerButton::secondary)
       static_cast<void>(dispatch(HostContextRequestEvent{ContextRequestOrigin::pointer, pointer.position}));
+    // The automation's X cursor over every control while a model holds
+    // control (SurfaceRoot::model_cursor).
+    CursorImagesPtr model_images{};
+    CursorKind model_fallback = CursorKind::arrow;
+    if ((*entry.model).model_cursor(model_images, model_fallback)) {
+      static_cast<void>((*services).set_custom_cursor(model_images, scale, model_fallback));
+      return;
+    }
     const Control::Ptr captured = (*entry.model).captured_control();
     const Control::Ptr target = captured ? captured : (*entry.model).hit_test(pointer.position);
     static_cast<void>((*services).set_custom_cursor(
@@ -3151,6 +3160,7 @@ int run_linux(std::unique_ptr<gui_forms::Window> window,
   // The window joins the automation once the host is ready
   // (gui_forms::detail::DirectRunWindow); nothing happens without one.
   gui_forms::detail::DirectRunWindow direct_window{};
+  gui_forms::detail::adopt_opening_title(*window, options.title);
   options.host_ready = direct_window.wrap(*window, "main", std::move(options.host_ready));
   std::vector<LinuxApplicationWindow> windows;
   LinuxApplicationWindow entry;

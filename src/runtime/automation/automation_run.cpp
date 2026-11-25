@@ -1,10 +1,13 @@
 #include "automation_run_internal.hpp"
 
+#include "../../core/application/application_state.hpp"
 #include "../../core/host/session/session_directory.hpp"
 
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/automation/marks/automation_marks.hpp"
+#include "../../controls/automation/marks/automation_marks_internal.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"
+#include "gui_forms/dispatcher/operation/dispatch_operation.hpp"
 #include "gui_forms/window.hpp"
 
 #include <stxlib/clocks.hpp>
@@ -22,6 +25,7 @@
 #include <cstdlib>
 #include <exception>
 #include <utility>
+#include <vector>
 #include <stxlib/threads.hpp>
 
 namespace gui_forms::automation {
@@ -91,6 +95,16 @@ struct SyncWork final {
     void operator()() const { (*run).sync_tools(); }
 };
 
+// Serving starts at the UI thread's turn after a window joined
+// (AutomationRun::window_ready).
+struct ServeWork final {
+    AutomationRun* run{};
+    void operator()() const {
+        (*run).serve_when_ready();
+        (*run).sync_tools();
+    }
+};
+
 struct ClientWork final {
     AutomationRun* run{};
     ClientIdentity client{};
@@ -104,28 +118,69 @@ struct CloseAllWork final {
 
 } // namespace
 
+namespace {
+
+// One launch argument read into `launch`; `next` is the argument after it
+// (null for none). True when it took `next` too.
+bool read_launch_argument(std::string_view argument, const std::string* next, AutomationLaunch& launch) {
+    // --model-directed is --mcp's old name (model.directed folds into the
+    // AI-led launch, owner's control model of 2026-11-24).
+    if (argument == "--mcp" || argument == "--model-directed") launch.mcp = true;
+    if (argument == "--mcp-shared") launch.shared = true;
+    if (argument == "--mcp-appearance-review") launch.appearance_review = true;
+    if (argument == "--mcp-script" && next != nullptr) {
+        launch.script_path = *next;
+        return true;
+    }
+    return false;
+}
+
+void read_launch_arguments(const std::vector<std::string>& arguments, AutomationLaunch& launch) {
+    for (std::size_t index = 0U; index < arguments.size(); ++index) {
+        const std::string* const next = index + 1U < arguments.size() ? &arguments[index + 1U] : nullptr;
+        if (read_launch_argument(arguments[index], next, launch)) ++index;
+    }
+}
+
+} // namespace
+
 AutomationLaunch read_automation_launch() {
     AutomationLaunch launch{};
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
     const stxlib::OperationResult<stxlib::ProcessArguments> read = stxlib::process_arguments();
     if (read.succeeded()) {
         const stxlib::ProcessArguments& host = *read.value();
+        std::vector<std::string> arguments{};
         for (stxlib::usize index = 1; index < host.count(); ++index) {
             const stxlib::View<char> bytes = host.argument(index).bytes();
-            const std::string_view argument(bytes.data(), static_cast<std::size_t>(bytes.count()));
-            if (argument == "--mcp") launch.mcp = true;
-            if (argument == "--model-directed") launch.model_directed = true;
-            if (argument == "--mcp-script" && index + 1 < host.count()) {
-                const stxlib::View<char> path = host.argument(index + 1).bytes();
-                launch.script_path.assign(path.data(), static_cast<std::size_t>(path.count()));
-                ++index;
-            }
+            arguments.emplace_back(bytes.data(), static_cast<std::size_t>(bytes.count()));
         }
+        read_launch_arguments(arguments, launch);
     }
-    if (environment_value("GUI_FORMS_MCP") == "1") launch.mcp = true;
+    // What a program took from its argv first (on macOS the process's own
+    // arguments are that argv, edited in place).
+    read_launch_arguments(detail::taken_mcp_arguments(), launch);
+    const std::string variable = environment_value("GUI_FORMS_MCP");
+    if (variable == "1") launch.mcp = true;
+    if (variable == "shared") launch.shared = true;
+    // Both asked: AI-led, the stronger.
+    if (launch.mcp) launch.shared = false;
 #endif
     return launch;
 }
+
+const char* automation_launch_refusal(const AutomationLaunch& launch, bool test_controls) noexcept {
+    if (launch.appearance_review && !test_controls) {
+        return "--mcp-appearance-review is not available in this build (debug and test builds only)";
+    }
+    return nullptr;
+}
+
+// What every program tells a model first; the program's own note follows.
+constexpr std::string_view base_instructions =
+    "A GUI.Forms program. Read it with windows and snapshot; act with act, pointer and keyboard; each act replies "
+    "with what changed. Destructive acts ask the user once per launch. Dialogs a model opens are closed as Cancel, "
+    "never submitted; one the program opened is the user's to answer.";
 
 std::string automation_identity() {
     const std::string_view own(mcp_identity_override());
@@ -139,17 +194,60 @@ std::string automation_identity() {
     return identity;
 }
 
+// The launch's control settings: --mcp and a script are AI-led (a script
+// has no user to ask), --mcp-shared is the default control model, and an
+// appearance review needs no control.
+namespace {
+
+ControlSettings control_settings(const AutomationLaunch& launch) noexcept {
+    ControlSettings settings{};
+    settings.ai_led = launch.mcp || (!launch.shared && !launch.script_path.empty());
+    settings.appearance_review = launch.appearance_review;
+    return settings;
+}
+
+} // namespace
+
 // ---- the run ----------------------------------------------------------------------
 
+namespace {
+
+// Counts a call being driven for as long as it lives.
+struct DrivingCall final {
+    explicit DrivingCall(std::atomic<int>* counted) noexcept : count(counted) { ++(*count); }
+    std::atomic<int>* count{};
+    DrivingCall(const DrivingCall&) = delete;
+    DrivingCall& operator=(const DrivingCall&) = delete;
+    ~DrivingCall() { --(*count); }
+};
+
+// A frame-clock interval as STXlib's Duration, for its sleep.
+stxlib::Duration stxlib_interval(const FrameInterval interval) noexcept {
+    const stxlib::Duration converted = stxlib::Duration::nanoseconds(
+        static_cast<stxlib::i64>(std::chrono::duration_cast<std::chrono::nanoseconds>(interval).count()));
+    return converted;
+}
+
+} // namespace
+
 AutomationRun::AutomationRun(AutomationLaunch launch)
-    : launch_(std::move(launch)), control_(ControlSettings{launch_.model_directed}, &presenter_),
-      core_(control_) {
+    : launch_(std::move(launch)), control_(control_settings(launch_), &presenter_), core_(control_) {
     presenter_.bind_control(&control_);
+    presenter_.set_unsigned(launch_.appearance_review);
 }
 
 AutomationRun::~AutomationRun() {
     ended_.store(true);
     gui_forms::detail::install_window_ready_hook(nullptr, nullptr);
+    // A call whose window closed under it answers at its next step slice;
+    // up to a second for it, then a moment for the transport to write it.
+    const FrameTime deadline = FrameClock::now() + std::chrono::seconds(1);
+    bool waited = false;
+    while (driving_.load() > 0 && FrameClock::now() < deadline) {
+        waited = true;
+        stxlib::sleep_for(stxlib_interval(stop_slice));
+    }
+    if (waited) stxlib::sleep_for(stxlib_interval(std::chrono::milliseconds(200)));
     // The script and the transport first: their calls end (the windows are
     // gone, so their steps answer window_gone) and their tasks are joined
     // before the core they drive is destroyed.
@@ -162,10 +260,17 @@ AutomationRun::~AutomationRun() {
 
 void AutomationRun::start() {
     gui_forms::detail::install_window_ready_hook(&AutomationRun::window_ready, this);
-    if (launch_.mcp) {
+    // AI-led: the model holds control from the start.
+    control_.begin_ai_led(FrameClock::now());
+    const char* const refusal = automation_launch_refusal(launch_, test_controls_built());
+    if (refusal != nullptr) {
+        // Refused outright: a review launch never falls back to a signed
+        // one, nor a release build to an unsigned one.
+        std::fprintf(stderr, "GUI.Forms: %s\n", refusal);
+    } else if (launch_.mcp || launch_.shared || launch_.appearance_review) {
         std::string error{};
-        transport_ = McpTransport::start(*this, automation_identity(), error);
-        if (!transport_) std::fprintf(stderr, "GUI.Forms: --mcp is not available: %s\n", error.c_str());
+        transport_ = McpTransport::claim(*this, error);
+        if (!transport_) std::fprintf(stderr, "GUI.Forms: MCP is not available: %s\n", error.c_str());
     }
     if (!launch_.script_path.empty()) {
         std::string error{};
@@ -182,14 +287,38 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
     // (attach_application_window's callers).
     Window* const model = static_cast<Window*>(&window);
     try {
-        if (!run.core_.attach_window(*model, std::string(stable_id))) return;
+        const std::shared_ptr<gui_forms::detail::ApplicationWindowState> state =
+            gui_forms::detail::ApplicationHandleAccess::state(handle);
+        const bool passive_popup = state != nullptr && (*state).passive_popup;
+        if (!run.core_.attach_window(*model, std::string(stable_id), passive_popup, handle)) return;
         run.presenter_.set_windowing(handle, stable_id);
-        run.handles_.push_back(handle);
         bool closing = false;
+        bool client_seen = false;
+        ClientIdentity client{};
         {
             const stxlib::ScopedLock lock(run.mutex_);
             run.dispatchers_.push_back((*model).dispatcher());
             closing = run.closing_;
+            client_seen = run.client_seen_;
+            client = run.client_;
+        }
+        // A client seen before this window joined (set_client ignores the
+        // same client posted again).
+        if (client_seen) run.core_.set_client(client);
+        // Serving starts at the UI thread's next turn after the first window
+        // joined, not here: the hook runs before the window's ready callback,
+        // which may register the program's tools, commands and note. Until
+        // serving starts nothing reads the client's input, so initialize's
+        // answer and the first tools/list carry the built-in set and the
+        // first window's tools together (1.0.3 served from launch and bound
+        // tools one by one while serving, so a tools/list could see part of
+        // the built-in set: macos-arm64, gui_forms_mcp_launch_tests). Each
+        // window posts until serving starts, so a window that closes before
+        // its turn leaves the next one to start it. A dispatcher that takes
+        // no work starts it now.
+        if (!run.serving_started()) {
+            DispatchOperation posted = (*model).dispatcher().begin_invoke(ServeWork{&run});
+            if (!posted.pending()) run.serve_when_ready();
         }
         run.sync_tools();
         // The input closed before this window joined, so no close reached
@@ -211,16 +340,6 @@ WindowDispatcher AutomationRun::home_dispatcher() const {
     return WindowDispatcher{};
 }
 
-namespace {
-
-// A frame-clock interval as STXlib's Duration, for its sleep.
-stxlib::Duration stxlib_interval(const FrameInterval interval) noexcept {
-    const stxlib::Duration converted = stxlib::Duration::nanoseconds(
-        static_cast<stxlib::i64>(std::chrono::duration_cast<std::chrono::nanoseconds>(interval).count()));
-    return converted;
-}
-
-} // namespace
 
 bool AutomationRun::wait_for_window(const CallStop* stop) const {
     while (!ended_.load()) {
@@ -235,6 +354,7 @@ bool AutomationRun::wait_for_window(const CallStop* stop) const {
 }
 
 ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json, const CallStop* stop) {
+    const DrivingCall driving(&driving_);
     const ToolReply gone = ToolReply::failure(ToolError::window_gone, "no window is open",
                                               "the program has no window, or is closing");
     WindowDispatcher dispatcher = home_dispatcher();
@@ -268,11 +388,16 @@ ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json
             }
             return ToolReply::failure(ToolError::cancelled, "the client cancelled the call");
         }
+        // A window gone after the call began closed during it: a model's
+        // close of the program's last window ends here (round 3).
+        const ToolReply closed = ToolReply::success(
+            tool == "disconnect" ? "ok: disconnected; every window closed and the program is ending"
+                                 : "ok: the window closed during the call; the program may be ending");
         dispatcher = home_dispatcher();
-        if (!dispatcher.window_alive()) return gone;
+        if (!dispatcher.window_alive()) return closed;
         try {
             if (dispatcher.invoke(StepWork{&core_, start.id, &outcome}) != DispatchInvokeResult::completed) {
-                return gone;
+                return closed;
             }
         } catch (const std::exception& failure) {
             return ToolReply::failure(ToolError::internal, failure.what());
@@ -288,6 +413,13 @@ ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json
 }
 
 void AutomationRun::post_client(const ClientIdentity& client) {
+    {
+        // Kept before the dispatcher is looked up: a window that joins
+        // between the two takes the client as it joins (window_ready).
+        const stxlib::ScopedLock lock(mutex_);
+        client_seen_ = true;
+        client_ = client;
+    }
     const WindowDispatcher dispatcher = home_dispatcher();
     if (!dispatcher.window_alive()) return;
     static_cast<void>(dispatcher.begin_invoke(ClientWork{this, client}));
@@ -306,19 +438,36 @@ void AutomationRun::post_close_all() {
 }
 
 void AutomationRun::close_all() noexcept {
-    control_.disconnect();
-    for (const ApplicationWindowHandle& handle : handles_) {
-        if (!handle.active()) continue;
-        try {
-            static_cast<void>(handle.request_close());
-        } catch (...) {
-            // A window that cannot be asked closes with the run.
-        }
+    // The transport ended with no disconnect call (the client crashed or was
+    // killed): a hard disconnect with the program's default, so its save
+    // question goes to the user (owner, round 3).
+    core_.hard_disconnect();
+}
+
+void AutomationRun::serve_when_ready() {
+    if (!transport_ || (*transport_).serving()) return;
+    std::vector<ToolSpec> specs{};
+    core_.fill_tool_specs(specs);
+    tool_generation_ = core_.tool_generation();
+    std::string instructions(base_instructions);
+    const std::string note = detail::app_note_copy();
+    if (!note.empty()) {
+        instructions += "\n\nHow this program works (its own note, also the resource gui://app/note):\n";
+        instructions += note;
+    }
+    std::string error{};
+    if (!(*transport_).serve(automation_identity(), instructions, note, specs, error)) {
+        std::fprintf(stderr, "GUI.Forms: MCP is not available: %s\n", error.c_str());
     }
 }
 
+bool AutomationRun::serving_started() const noexcept {
+    const bool started = !transport_ || (*transport_).serving();
+    return started;
+}
+
 void AutomationRun::sync_tools() {
-    if (!transport_) return;
+    if (!transport_ || !(*transport_).serving()) return;
     const std::uint64_t generation = core_.tool_generation();
     if (generation == tool_generation_) return;
     tool_generation_ = generation;

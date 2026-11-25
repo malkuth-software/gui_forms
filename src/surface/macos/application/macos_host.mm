@@ -69,8 +69,9 @@ HostCapabilities macos_capabilities() {
                 HostCapability::transient_surfaces |
                 // Corners are reported, never shaped: AppKit has no public
                 // corner API, so the report is square in full screen and for
-                // a borderless window, and unknown otherwise
-                // (apply_window_corners_impl in appkit_host_services.mm).
+                // a borderless window, and rounded by the release's known
+                // radius for a titled one (apply_window_corners_impl in
+                // appkit_host_services.mm).
                 HostCapability::window_corners |
                 HostCapability::window_state_reports |
                 // The screen's safe area in full screen (macOS 12 and
@@ -85,7 +86,7 @@ HostCapabilities macos_capabilities() {
                 // Addresses open through NSWorkspace (open_url_impl).
                 HostCapability::open_url,
             macos_key_map()};
-    capabilities.window_corner_shapes = WindowCornerShapes{true, false};
+    capabilities.window_corner_shapes = WindowCornerShapes{true, true};
     // locale: the user's locale and calendar from CoreFoundation, the
     // formats chosen in System Settings included (read_macos_locale).
     // A high-integrity build reads none of the user's settings
@@ -197,6 +198,7 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
     // The window joins the automation once the host is ready
     // (gui_forms::detail::DirectRunWindow); nothing happens without one.
     gui_forms::detail::DirectRunWindow direct_window{};
+    gui_forms::detail::adopt_opening_title(*model, options.title);
     options.host_ready = direct_window.wrap(*model, "main", std::move(options.host_ready));
     int exitCode = 0;
     @autoreleasepool {

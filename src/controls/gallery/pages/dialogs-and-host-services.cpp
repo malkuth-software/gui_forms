@@ -1,4 +1,7 @@
 #include "pages.hpp"
+#include "../../../core/json/json_reader/json_reader.hpp"
+#include "gui_forms/automation/marks/automation_marks.hpp"
+#include "gui_forms/automation/tools/model_tools.hpp"
 #include "gui_forms/components/color_dialog/color_dialog.hpp"
 #include "gui_forms/components/context_menu/context_menu.hpp"
 #include "gui_forms/components/folder_browser_dialog/folder_browser_dialog.hpp"
@@ -38,6 +41,9 @@ namespace gui_forms::gallery::pages {
 class HostServicesPage final : public gui_forms::Component {
 public:
     HostServicesPage(const std::shared_ptr<Surface>& body);
+    ~HostServicesPage() override;
+    HostServicesPage(const HostServicesPage&) = delete;
+    HostServicesPage& operator=(const HostServicesPage&) = delete;
 
 private:
     struct MessageCase final {
@@ -75,6 +81,15 @@ private:
     void on_font_closed(const FontDialogResult& result);
     void on_font_applied(const FontSpec& font);
     void build_task_dialog();
+    // The dialogs' forms for a model (MCP round 1): each sample dialog's
+    // command as a tool with arguments and no dialog, and its opener marked.
+    void register_model_forms();
+    static void new_folder_tool(void* context, const automation::ModelToolCall& call,
+                                automation::ModelToolReply& reply);
+    static void export_evidence_tool(void* context, const automation::ModelToolCall& call,
+                                     automation::ModelToolReply& reply);
+    static void choose_font_tool(void* context, const automation::ModelToolCall& call,
+                                 automation::ModelToolReply& reply);
     void on_show_task_dialog();
     void on_task_dialog_closed(const TaskDialogResult& result);
     void on_show_input_box();
@@ -163,6 +178,159 @@ HostServicesPage::HostServicesPage(const std::shared_ptr<Surface>& body) {
     build_services();
     build_task_dialog();
     build_notify_icon();
+    register_model_forms();
+}
+
+HostServicesPage::~HostServicesPage() {
+    static_cast<void>(automation::unregister_model_tool("gallery.new_folder"));
+    static_cast<void>(automation::unregister_model_tool("gallery.export_evidence"));
+    static_cast<void>(automation::unregister_model_tool("gallery.choose_font"));
+}
+
+namespace {
+
+constexpr const char* new_folder_schema =
+    "{\"type\":\"object\",\"properties\":{\"name\":{\"type\":\"string\",\"minLength\":1,\"maxLength\":64}},"
+    "\"required\":[\"name\"],\"additionalProperties\":false}";
+constexpr const char* export_evidence_schema =
+    "{\"type\":\"object\",\"properties\":{\"format\":{\"type\":\"string\",\"enum\":[\"zip\",\"folder\"]},"
+    "\"open_afterwards\":{\"type\":\"boolean\"}},\"required\":[\"format\"],\"additionalProperties\":false}";
+constexpr const char* choose_font_schema =
+    "{\"type\":\"object\",\"properties\":{\"size\":{\"type\":\"number\",\"minimum\":6,\"maximum\":72},"
+    "\"weight\":{\"type\":\"integer\",\"minimum\":100,\"maximum\":900},\"italic\":{\"type\":\"boolean\"}},"
+    "\"additionalProperties\":false}";
+
+// A tool call's arguments as one JSON object; false, failing the reply,
+// for anything else.
+bool read_tool_arguments(const automation::ModelToolCall& call, gui_forms::detail::JsonValue& arguments,
+                         automation::ModelToolReply& reply) {
+    gui_forms::detail::JsonReadResult read =
+        gui_forms::detail::read_json(std::string_view(call.arguments_json, call.arguments_bytes));
+    if (!read || read.root.kind != gui_forms::detail::JsonKind::object) {
+        reply.fail(automation::ModelToolError::invalid_arguments, "the arguments are not one JSON object", nullptr);
+        return false;
+    }
+    arguments = std::move(read.root);
+    return true;
+}
+
+void reply_text(automation::ModelToolReply& reply, const std::string& text) {
+    static_cast<void>(reply.text(text.data(), text.size()));
+}
+
+} // namespace
+
+void HostServicesPage::register_model_forms() {
+    automation::ModelToolSpec folder{};
+    folder.name = "gallery.new_folder";
+    folder.title = "New folder";
+    folder.description = "Names the new folder, as the Input box... dialog does, without the dialog.";
+    folder.input_schema = new_folder_schema;
+    folder.access = automation::ModelToolAccess::acting;
+    folder.settles = true;
+    static_cast<void>(automation::register_model_tool(folder, &HostServicesPage::new_folder_tool, this));
+    automation::ModelToolSpec evidence{};
+    evidence.name = "gallery.export_evidence";
+    evidence.title = "Export evidence";
+    evidence.description = "Exports the evidence bundle as one archive (zip) or a folder of files, as the task "
+                           "dialog's Export does, without the dialog.";
+    evidence.input_schema = export_evidence_schema;
+    evidence.access = automation::ModelToolAccess::acting;
+    evidence.settles = true;
+    static_cast<void>(automation::register_model_tool(evidence, &HostServicesPage::export_evidence_tool, this));
+    automation::ModelToolSpec font{};
+    font.name = "gallery.choose_font";
+    font.title = "Choose font";
+    font.description = "Sets the sample's font size, weight and slant, as the Choose font... dialog's OK does, "
+                       "without the dialog.";
+    font.input_schema = choose_font_schema;
+    font.access = automation::ModelToolAccess::acting;
+    font.settles = true;
+    static_cast<void>(automation::register_model_tool(font, &HostServicesPage::choose_font_tool, this));
+    static_cast<void>(automation::set_opens_dialog("gallery.host.input-box.show", true, "gallery.new_folder"));
+    static_cast<void>(automation::set_opens_dialog("gallery.host.task-dialog.show", true, "gallery.export_evidence"));
+    static_cast<void>(automation::set_opens_dialog("gallery.host.font.choose", true, "gallery.choose_font"));
+    static_cast<void>(automation::set_opens_dialog("gallery.host.exception-dialog.show", true, nullptr));
+    for (std::size_t index = 0U; index < message_cases.size(); ++index) {
+        const std::string id = "gallery.host.message." + std::to_string(index);
+        static_cast<void>(automation::set_opens_dialog(id.c_str(), true, nullptr));
+    }
+    for (std::size_t index = 0U; index < path_labels.size(); ++index) {
+        const std::string id = "gallery.host.dialog." + std::to_string(index);
+        static_cast<void>(automation::set_opens_dialog(id.c_str(), true, nullptr));
+    }
+}
+
+void HostServicesPage::new_folder_tool(void* context, const automation::ModelToolCall& call,
+                                       automation::ModelToolReply& reply) {
+    HostServicesPage& page = *static_cast<HostServicesPage*>(context);
+    gui_forms::detail::JsonValue arguments{};
+    if (!read_tool_arguments(call, arguments, reply)) return;
+    const gui_forms::detail::JsonValue* const name = arguments.find("name");
+    if (name == nullptr || (*name).kind != gui_forms::detail::JsonKind::string || (*name).text.empty() ||
+        (*name).text.size() > 64U) {
+        reply.fail(automation::ModelToolError::invalid_arguments, "name is 1 to 64 bytes of text", nullptr);
+        return;
+    }
+    page.folder_name_ = (*name).text;
+    (*page.status_).text = "New folder named " + page.folder_name_ + " · by a model, without the input box";
+    reply_text(reply, "the new folder is " + page.folder_name_);
+}
+
+void HostServicesPage::export_evidence_tool(void* context, const automation::ModelToolCall& call,
+                                            automation::ModelToolReply& reply) {
+    HostServicesPage& page = *static_cast<HostServicesPage*>(context);
+    gui_forms::detail::JsonValue arguments{};
+    if (!read_tool_arguments(call, arguments, reply)) return;
+    const gui_forms::detail::JsonValue* const format = arguments.find("format");
+    const bool known = format != nullptr && (*format).kind == gui_forms::detail::JsonKind::string &&
+                       ((*format).text == "zip" || (*format).text == "folder");
+    if (!known) {
+        reply.fail(automation::ModelToolError::invalid_arguments, "format is zip or folder", nullptr);
+        return;
+    }
+    const gui_forms::detail::JsonValue* const open = arguments.find("open_afterwards");
+    const bool open_afterwards = open != nullptr && (*open).kind == gui_forms::detail::JsonKind::boolean &&
+                                 (*open).boolean;
+    (*page.status_).text = "Evidence exported · " + (*format).text + (open_afterwards ? " · open afterwards" : "") +
+                           " · by a model, without the task dialog";
+    reply_text(reply, "exported the evidence as " + (*format).text);
+}
+
+void HostServicesPage::choose_font_tool(void* context, const automation::ModelToolCall& call,
+                                        automation::ModelToolReply& reply) {
+    HostServicesPage& page = *static_cast<HostServicesPage*>(context);
+    gui_forms::detail::JsonValue arguments{};
+    if (!read_tool_arguments(call, arguments, reply)) return;
+    FontSpec font = (*page.font_sample_).resolved_font();
+    const gui_forms::detail::JsonValue* const size = arguments.find("size");
+    if (size != nullptr) {
+        double value = 0.0;
+        const bool number = (*size).kind == gui_forms::detail::JsonKind::number &&
+                            std::sscanf((*size).text.c_str(), "%lf", &value) == 1 && value >= 6.0 && value <= 72.0;
+        if (!number) {
+            reply.fail(automation::ModelToolError::invalid_arguments, "size is a number from 6 to 72", nullptr);
+            return;
+        }
+        font.size = value;
+    }
+    const gui_forms::detail::JsonValue* const weight = arguments.find("weight");
+    if (weight != nullptr) {
+        unsigned int value = 0U;
+        const bool number = (*weight).kind == gui_forms::detail::JsonKind::number &&
+                            std::sscanf((*weight).text.c_str(), "%u", &value) == 1 && value >= 100U && value <= 900U;
+        if (!number) {
+            reply.fail(automation::ModelToolError::invalid_arguments, "weight is a whole number from 100 to 900",
+                       nullptr);
+            return;
+        }
+        font.weight = static_cast<std::uint16_t>(value);
+    }
+    const gui_forms::detail::JsonValue* const italic = arguments.find("italic");
+    if (italic != nullptr && (*italic).kind == gui_forms::detail::JsonKind::boolean) font.italic = (*italic).boolean;
+    (*page.font_sample_).font = stxlib::Optional<FontSpec>::of(font);
+    reply_text(reply, "the sample's font is " + std::to_string(font.size) + " px, weight " +
+                          std::to_string(font.weight) + (font.italic ? ", italic" : ""));
 }
 
 // The document's root is a declared boundary only: its children move into

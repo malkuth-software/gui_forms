@@ -249,7 +249,10 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         NSWindowStyleMaskResizable;
     // A floating document is an ordinary titled window that minimizes with
     // its main window, not on its own; a floating tool is a utility panel.
-    const bool panel = entry.tool_window || kind == gui_forms::HostWindowKind::floating_tool;
+    // A window outside application modality is a panel too: AppKit gives
+    // events during a modal session or a system alert only to panels that
+    // work when modal (ApplicationWindow::outside_modality).
+    const bool panel = entry.tool_window || entry.outside_modality || kind == gui_forms::HostWindowKind::floating_tool;
     if (kind != gui_forms::HostWindowKind::floating_document) {
         if (!panel && entry.options.minimizable) style |= NSWindowStyleMaskMiniaturizable;
         else style |= NSWindowStyleMaskUtilityWindow;
@@ -282,8 +285,16 @@ MacApplicationRun::OpenOutcome MacApplicationRun::open(MacApplicationWindow entr
         }
         nativeWindow = popupPanel;
     } else if (panel) {
-        nativeWindow = [[NSPanel alloc] initWithContentRect:frame styleMask:style
-                                                    backing:NSBackingStoreBuffered defer:NO];
+        NSPanel* const panelWindow = [[NSPanel alloc] initWithContentRect:frame styleMask:style
+                                                                  backing:NSBackingStoreBuffered defer:NO];
+        if (entry.outside_modality) {
+            // Above an alert or modal window it must work over: AppKit
+            // keeps a modal session's window in front of its level, so one
+            // level above it.
+            [panelWindow setWorksWhenModal:YES];
+            [panelWindow setLevel:NSModalPanelWindowLevel + 1];
+        }
+        nativeWindow = panelWindow;
     } else {
         nativeWindow = [[NSWindow alloc] initWithContentRect:frame styleMask:style
                                                      backing:NSBackingStoreBuffered defer:NO];

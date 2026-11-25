@@ -245,6 +245,7 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     (*bridge).floating = source.floating != HostWindowFloating::none;
     detail::ApplicationWindowState& state = *(*bridge).state;
     state.can_hide = !primary;
+    state.passive_popup = source.popup.present() && ((*source.popup.value())).focus == HostPopupFocus::passive;
     state.stable_id = source.stable_id;
     state.run = run;
     if ((*bridge).options.frame_changed) state.frame_changed = FrameChanged{bridge};
@@ -255,9 +256,11 @@ NativeWindow prepare_one(ApplicationWindow& source, BridgeScope& scope,
     entry.stable_id = std::move(source.stable_id);
     entry.owner_id = std::move(source.owner_id);
     entry.tool_window = source.tool_window;
+    entry.outside_modality = source.outside_modality;
     entry.floating = source.floating;
     entry.popup = source.popup;
     entry.model = std::move(source.model);
+    detail::adopt_opening_title(*entry.model, (*bridge).options.title);
     // One key map for the application's windows, floating ones included
     // (owner decision DK-44).
     (*entry.model).set_key_bindings((*run).key_bindings);

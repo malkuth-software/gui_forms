@@ -194,11 +194,12 @@ jobs:
           # copied at 60dea8f; tools/std_rules_allowance.txt only shrinks.
           python3 -B -m unittest discover -s tools -p test_check_std_rules.py
           python3 -I tools/check_std_rules.py --config tools/std_rules.toml
-          # D15 (stage V0): the std:: census of the C++ surface only falls
-          # (manifests/std_surface_census.json).
+          # The std:: census of the C++ surface (manifests/std_surface_census.json)
+          # is a change report: std types in public signatures are fine (owner,
+          # 2026-11-17, restated 2026-11-24; D15 V2 to V6 dropped), so it reports
+          # and never blocks.
           python3 -B -m unittest discover -s tools -p test_std_surface_census.py
-          # Compile-only landing of #483 (owner, 2026-11-17): the census reports, it does not block.
-          python3 -I tools/std_surface_census.py check || echo "std_surface_census: reported, not blocking (compile-only landing)"
+          python3 -I tools/std_surface_census.py check || echo "std_surface_census: reported, not blocking (a change report)"
           # Every public declaration carries its library's export macro.
           python3 -B tools/export_annotations.py check
           # 1.0 condition 3: every control and member, supported, deferred or excluded.
@@ -248,6 +249,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      # The MCP tool reference page renders from manifests/mcp_tools.json
+      # (tools/mcp_tool_reference.py); this part needs no build.
+      - name: Check the MCP tool reference against its manifest
+        working-directory: gui_forms
+        run: python3 -B tools/mcp_tool_reference.py --check
       - name: Find an earlier build of this tree's documentation
         id: receipt
         if: github.event_name != 'schedule'

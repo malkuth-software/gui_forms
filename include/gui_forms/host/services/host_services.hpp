@@ -225,6 +225,14 @@ public:
     // cannot comply (it rounds regardless, or cannot round) reports its
     // actual corners with `complied` false.
     [[nodiscard]] HostWindowCornersResult apply_window_corners(WindowCornerPreference preference);
+    // Colours the platform's own window border (Windows 11:
+    // DWMWA_BORDER_COLOR), or restores the system's colour for none. The
+    // automation's in-use sign joins it while a model drives the window
+    // (MCP round 1). Refused as unsupported where the platform draws no
+    // coloured border of its own (the default), as wrong_thread off the UI
+    // thread and after_shutdown once shut down; a refusal leaves the border
+    // as it was.
+    [[nodiscard]] HostServiceStatus apply_system_border_colour(stxlib::Optional<Color> colour);
     // Applies the named chrome properties of `chrome` to the window
     // (Window's chrome properties): applied lists those the platform
     // honoured; the others leave the native window as it was. Any value
@@ -320,6 +328,9 @@ protected:
     // window_corners. The default refuses as unsupported with unknown
     // corners.
     [[nodiscard]] virtual HostWindowCornersResult apply_window_corners_impl(WindowCornerPreference preference);
+    // Called on the UI thread before shutdown. The default refuses as
+    // unsupported.
+    [[nodiscard]] virtual HostServiceStatus apply_system_border_colour_impl(stxlib::Optional<Color> colour);
     // Called with fields the host supports (supported_window_chrome), at
     // least one. The default applies nothing.
     [[nodiscard]] virtual HostWindowChromeResult apply_window_chrome_impl(const WindowChrome& chrome,

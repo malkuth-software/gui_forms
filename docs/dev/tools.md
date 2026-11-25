@@ -97,11 +97,13 @@ template_harness, checked out beside this repository at the commit
 : Counts the standard vocabulary at the C++ surface (`std::string`,
   `std::vector`, the ownership pointers, `std::optional`,
   `std::string_view`, `std::span`, qualified, in `include/gui_forms/` without
-  `c/`), which STXlib's owned vocabulary replaces. The baseline,
-  `manifests/std_surface_census.json`, is a ratchet: `check` fails when a
-  count rises, and also when one falls until `update` lowers it in the same
-  change; `update` refuses to raise a count. The `house-style` job reports
-  its result without failing for now.
+  `c/`). It is a change report: std types in public signatures are fine
+  (owner, 2026-11-17, restated 2026-11-24; the STXlib shield keeps our std
+  on our side, and no public signature changes type for the census). The
+  baseline, `manifests/std_surface_census.json`, was set to the shipped 1.0
+  surface in 1.0.4. `check` fails when a count differs from it; `update`
+  lowers it, and records a rise only with `--accept-rise`. The
+  `house-style` job reports the result and never fails on it.
   `python3 -I tools/std_surface_census.py check`
 
 `tools/lifetime_lint.py`

@@ -5,15 +5,20 @@
 // read-only tools and the conditions of wait and expect).
 
 #include "automation_internal.hpp"
+#include "../../../core/host/session/session_directory.hpp"
 
 #include <memory>
 #include <optional>
+#include <vector>
 
 namespace gui_forms::automation {
 
 enum class CallPhase : std::uint8_t {
     // Parsed; its first step runs next.
     starting,
+    // An act waits for the user's answer to the take question (the owner's
+    // control model, 2026-11-24).
+    awaiting_control,
     // A destructive act waits for the user's answer (study 10).
     awaiting_consent,
     // An act was posted; the call waits for it and for idle (study 7.4).
@@ -22,6 +27,9 @@ enum class CallPhase : std::uint8_t {
     waiting,
     // A batch runs its steps.
     batch,
+    // reset waits for the dialogs it cancelled to close (round 3: a modal
+    // window closes after its nested loop ends, not at the key).
+    resetting,
 };
 
 enum class ActKind : std::uint8_t {
@@ -30,6 +38,11 @@ enum class ActKind : std::uint8_t {
     input,
     selection,
     registry,
+    reveal,
+    // A program window asked to close (act close on its own ID).
+    close_window,
+    // Every program window asked to close (disconnect).
+    close_windows,
 };
 
 // An act prepared and checked, performed at a later dispatcher turn so that
@@ -56,6 +69,14 @@ struct PreparedAct final {
     ToolEntry entry{};
     std::string arguments_json{};
     bool destructive{};
+    // The target opens a dialog: the program's dialog-free tool for it, or
+    // empty, named when the dialog opens.
+    std::string dialog_tool{};
+    // close_window: the window's handle.
+    ApplicationWindowHandle window_handle{};
+    // close_windows: the program's windows.
+    std::vector<ApplicationWindowHandle> window_handles{};
+    // reveal: scroll the control into view in every scrolling ancestor.
     // The target is a password field: the reply says only "ok" (study 9.1).
     bool protected_target{};
 };
@@ -67,6 +88,10 @@ struct ActOutcome final {
     std::string detail{};
     // A registry tool's own reply, when the act was one.
     std::optional<ToolReply> reply{};
+    // A close act: the window's close requests were posted to the UI
+    // thread, and the program's closing handlers have run since (or the
+    // window is gone), so its questions fell inside the call.
+    bool closes_delivered{};
 };
 
 enum class WaitUntil : std::uint8_t {
@@ -109,6 +134,15 @@ struct AutomationCore::RunningCall final {
     PreparedAct act{};
     std::shared_ptr<ActOutcome> outcome{};
     std::vector<FlatNode> before{};
+    // The open dialog and the modal scope before the act (empty: none),
+    // to tell what the act opened.
+    std::string dialog_before{};
+    std::string scope_before{};
+    // The reply gives the act's changes as counts.
+    bool terse{};
+    // act names a row its list does not show: resolve_for_act gave the
+    // list's node, and the act goes to the row by its ID through the list.
+    bool offscreen{};
     std::vector<std::string> windows_before{};
     std::uint64_t paint_passes_before{};
     WaitSpec wait{};
@@ -121,6 +155,33 @@ struct AutomationCore::RunningCall final {
     std::string transcript{};
     std::vector<ToolImage> images{};
     bool stop_on_error{true};
+    // The user's take-backs when the call began: a different count later
+    // means the user took control back while it ran.
+    std::uint64_t take_backs_at_start{};
+    // The act's control: checked (it may act), the take question asked for
+    // it (and how many questions were answered before), and whether this
+    // act's question gave the model control (its reply then carries a
+    // snapshot, saving the model a call).
+    bool control_checked{};
+    bool asked_control{};
+    std::uint64_t takes_answered_before{};
+    bool took_control{};
+    // The batch's steps' structured transcript (round 2): a JSON array.
+    std::string steps_json{};
+    // reset's report so far, and the dialogs it cancelled that were still
+    // open, as window and dialog IDs.
+    std::string reset_done{};
+    std::string reset_left{};
+    std::vector<std::string> reset_windows{};
+    std::vector<std::string> reset_dialogs{};
+    // on_unsaved: the answer to a question the program raises during the
+    // call; whether the call holds the model's questions open.
+    gui_forms::detail::ModelQuestionAnswer unsaved{gui_forms::detail::ModelQuestionAnswer::none};
+    bool questions_open{};
+    // disconnect: the hard mode, whose program questions go to the user
+    // unless discard_unsaved answers them.
+    bool disconnect_hard{};
+    bool discard_unsaved{};
 };
 
 namespace detail {

@@ -352,6 +352,48 @@ public:
     // (the icon decoded to premultiplied BGRA8, empty when none or when the
     // image could not be decoded).
     [[nodiscard]] WindowChrome chrome() const;
+    // A note the host shows after the window's text in its title bar: the
+    // automation's in-use sign (" — Claude Opus 5.5 is using this")
+    // while a model is connected. It is not part of `text`, so a program
+    // that reads or writes its title never sees it, and clearing it shows
+    // the text alone again. NUL-terminated UTF-8 (null clears it), at most
+    // 1024 bytes, read during the call; std::invalid_argument for anything
+    // else, changing nothing. UI thread.
+    void set_title_note(const char* note);
+    // The note shown now; empty for none. Valid until the next
+    // set_title_note.
+    [[nodiscard]] const char* title_note() const noexcept;
+    // Draws the window's content with `saturation` of its colour (the
+    // automation's wash while a model drives the window, MCP round 1;
+    // ThemeDefinition::model_wash_saturation): 1, the default, draws it as
+    // it is and costs nothing; below 1 the root's paint group carries a
+    // saturate colour filter, after the root's own effect (a root effect
+    // with a colour table keeps its own and is not washed). The band, the
+    // window's overlays and its popup windows keep their colour; forced
+    // high contrast draws no wash. Clamped to [0, 1]; a non-finite value
+    // throws std::invalid_argument, changing nothing. The whole window
+    // repaints when it changes. UI thread.
+    void set_content_wash(double saturation);
+    [[nodiscard]] double content_wash() const noexcept;
+    // The automation's AI-mode veil (owner, 2026-11-24), shown while a
+    // model holds control: grey barber-pole stripes, the progress bar's
+    // marching stripes in grey, over the window's control surfaces
+    // (buttons, fields, lists, scroll bars, tabs, menus, toolbars), never
+    // over content (a canvas, an image, a document); and the X cursor over
+    // the whole window (SurfaceRoot::model_cursor). The stripes move and
+    // come to rest under reduced motion, with ambient motion off and while
+    // the window is occluded; forced high contrast draws none. Their motion
+    // is ambient, so the window still settles. Captures leave the veil out
+    // unless asked (WindowCaptureOptions::include_model_sign). UI thread.
+    void set_model_veil(bool shown);
+    [[nodiscard]] bool model_veil() const noexcept;
+    // How many times the veil's stripes have moved, for tests.
+    [[nodiscard]] std::uint64_t model_veil_frames() const noexcept;
+    // The platform's own window border in `colour`, or the system's colour
+    // for none (HostServices::apply_system_border_colour: Windows 11 colours
+    // its border, other hosts have none to colour). Applied now when a host
+    // is attached, and again when one attaches. UI thread.
+    void set_system_border_colour(stxlib::Optional<Color> colour);
 
     // -- the multiple document interface (DK decisions 60 to 63;
     // window_document_area.hpp) --
@@ -446,6 +488,8 @@ private:
     void apply_window_chrome(WindowChromeFields fields);
     WindowChromeFields written_chrome_{};
     WindowChromeFields applied_chrome_{};
+    // set_system_border_colour's colour, applied on each host attachment.
+    stxlib::Optional<Color> system_border_colour_{};
 
     friend class SurfaceRoot;
     friend class HostSession;

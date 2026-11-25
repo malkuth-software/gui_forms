@@ -262,6 +262,7 @@ bool SurfaceDesk::add(const SurfaceDeskLayerInit& init) {
     entry.resizable = init.resizable;
     entry.minimizable = init.minimizable;
     entry.title_bar = init.title_bar;
+    entry.outside_modality = init.outside_modality;
     entry.content = clamped(entry, init.content);
     const std::size_t at = band_end(band(entry));
     layers_.push_back(entry);
@@ -640,7 +641,7 @@ void SurfaceDesk::begin_modal(HostWindowId modal) {
     scope.blocked.reserve(layers_.size());
     for (std::size_t index = 0U; index < layers_.size(); ++index) {
         const HostWindowId candidate = layers_[index].id;
-        if (owned_by(candidate, modal)) continue;
+        if (owned_by(candidate, modal) || layers_[index].outside_modality) continue;
         scope.blocked.push_back(candidate);
     }
     modals_.push_back(std::move(scope));

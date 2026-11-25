@@ -90,8 +90,15 @@ void state_section(void* context, const InspectRequest& request, std::string& te
         return;
     }
     const VisualControlStateSnapshot& state = (*record).state;
+    // The snapshot's node may take focus through a part the control hides
+    // (a search field's inner editor): said so, so the two reads agree
+    // (MCP round 1).
+    const bool node_focusable = has_semantic_state((*request.node).states, SemanticState::focusable);
+    std::string focusable = yes_no(state.focusable || node_focusable);
+    if (node_focusable && !state.focusable) focusable += " (through an inner part; the control itself is not)";
+    if (!node_focusable && state.focusable) focusable += " (the control; its node does not take focus)";
     text += "visible " + std::string(yes_no(state.effectively_visible)) + ", enabled " +
-            yes_no(state.effectively_enabled) + ", focusable " + yes_no(state.focusable) + ", hovered " +
+            yes_no(state.effectively_enabled) + ", focusable " + focusable + ", hovered " +
             yes_no(state.hovered) + ", pressed " + yes_no(state.pressed) + ", captured " +
             yes_no(state.pointer_captured) + ", status " + visual_status_name(state.visual_status) + "\n";
     text += "theme " + (*record).theme_id + ((*record).theme_override ? " (overridden)" : "") + ", plane " +
@@ -139,6 +146,12 @@ void paint_section(void* context, const InspectRequest& request, std::string& te
     const VisualControlInspection* const record = find_record(snapshot, (*request.control).runtime_id().value);
     if (record == nullptr) {
         text += "no paint record for the node's control\n";
+        return;
+    }
+    if (!(*record).display_chunk.present()) {
+        // No recording at all is not "0 operations" (MCP round 1).
+        text += "no paint recorded for this control: it draws nothing of its own (its look may come from its "
+                "children or its parent), or it has not been painted yet\n";
         return;
     }
     text += std::to_string((*record).total_display_operations) + " paint operations" +
@@ -395,11 +408,13 @@ bool window_idle(Window& window, FrameTime now, std::chrono::milliseconds horizo
         busy = std::to_string(dispatcher.pending) + " posted callbacks waiting";
         return false;
     }
-    if (window.needs_frame()) {
+    // The band's motion (the in-use sign itself) and any ambient animation
+    // never hold idle: neither their frames nor their wakes.
+    if (window.needs_settling_frame()) {
         busy = "a frame is wanted (layout, paint or animation)";
         return false;
     }
-    const stxlib::Optional<FrameTime> wake = window.next_wake();
+    const stxlib::Optional<FrameTime> wake = window.next_settling_wake();
     if (const FrameTime* const due = wake.value()) {
         if (*due < now + horizon) {
             const std::int64_t milliseconds =
@@ -418,8 +433,16 @@ std::uint64_t paint_passes_of(const Window& window) {
 
 void append_window_line(AutomationCore& core, Window& window, std::string& text) {
     const Size size = window.client_size();
-    text += "window ";
-    append_json_string(window.text.read(), text);
+    // A window run modally reads as the dialog it is (round 2), its
+    // controls under it.
+    text += gui_forms::detail::shown_modally(window) ? "dialog (modal window) " : "window ";
+    const std::string title = window.text.read();
+    if (title.empty()) {
+        // An empty title reads as one, not as a missing value (MCP round 1).
+        text += "(untitled)";
+    } else {
+        append_json_string(title, text);
+    }
     text += " [" + core.window_stable_id(window) + "]";
     if (window.active()) text += " active";
     text += " " + number_text(size.width) + "x" + number_text(size.height) + "\n";
@@ -451,6 +474,8 @@ ToolReply snapshot_tool(AutomationCore& core, Window& window, const JsonValue& a
     }
     const std::optional<bool> bounds = boolean_member(arguments, "bounds");
     options.with_bounds = bounds.has_value() && *bounds;
+    const std::optional<bool> actions = boolean_member(arguments, "actions");
+    options.with_actions = !actions.has_value() || *actions;
     std::string text{};
     append_window_line(core, window, text);
     append_outline(nodes, options, text);
@@ -470,18 +495,27 @@ ToolReply text_read_tool(AutomationCore& core, Window& window, const JsonValue& 
         return ToolReply::failure(ToolError::protected_content, node_reference(node) + " is a password field",
                                   "its value is never read; type into it with keyboard if told to fill it");
     }
-    if (node.is_virtual) {
-        return ToolReply::failure(ToolError::unsupported_action, node_reference(node) + " publishes no text",
-                                  "text is published on a control's own node");
-    }
     SemanticTextLayout layout{};
-    const SemanticTextResult result = window.semantic_text_layout(RuntimeId{node.runtime_id}, layout);
+    const SemanticTextResult result = node.is_virtual ? SemanticTextResult::no_text
+                                                      : window.semantic_text_layout(RuntimeId{node.runtime_id}, layout);
     if (result == SemanticTextResult::stale_identity) {
         return ToolReply::failure(ToolError::stale_identity, node_reference(node) + " is gone", "take a new snapshot");
     }
     if (result != SemanticTextResult::done) {
-        return ToolReply::failure(ToolError::unsupported_action,
-                                  node_reference(node) + ": " + semantic_text_result_name(result));
+        // Not editable text: the node's whole name, value and description
+        // (MCP round 1: a label cut in the outline, static text).
+        const SemanticSnapshot snapshot = window.semantic_snapshot();
+        const SemanticNode* const source = find_semantic_node(snapshot, node.runtime_id);
+        std::string text = node_reference(node) + " " + semantic_role_name(node.role) + "\nname ";
+        append_json_string(node.name, text);
+        text += "\nvalue ";
+        append_json_string(node.value, text);
+        if (source != nullptr && !(*source).description.empty()) {
+            text += "\ndescription ";
+            append_json_string((*source).description, text);
+        }
+        text += '\n';
+        return ToolReply::success(std::move(text));
     }
     std::string text = node_reference(node) + " value ";
     append_json_string(node.value, text);
@@ -525,12 +559,18 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
     if (!resolve_optional_target(nodes, arguments, index, refusal)) return refusal;
     const std::optional<double> scale = number_member(arguments, "scale");
     const std::optional<bool> overlays = boolean_member(arguments, "include_overlays");
+    // The in-use sign (the band, AI mode's stripes) only when asked: by
+    // default the model sees the program as the user does without a model
+    // (round 2: captures were near-greyscale while a model was connected).
+    const std::optional<bool> with_sign = boolean_member(arguments, "include_sign");
+    const bool sign = with_sign.has_value() && *with_sign;
     std::optional<WindowCapture> capture{};
     Point origin{};
     std::string what{};
     if (index == no_parent) {
         WindowCaptureOptions options{};
         options.include_overlays = !overlays.has_value() || *overlays;
+        options.include_model_sign = sign;
         if (scale.has_value() && *scale > 0.0 && *scale <= 8.0) options.scale = *scale;
         capture = window.capture_window(options);
         what = "window [" + core.window_stable_id(window) + "]";
@@ -551,6 +591,7 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
         }
         ControlCaptureOptions options{};
         options.include_overlays = !overlays.has_value() || *overlays;
+        options.include_model_sign = sign;
         if (scale.has_value() && *scale > 0.0 && *scale <= 8.0) options.scale = *scale;
         const std::optional<double> margin = number_member(arguments, "margin");
         if (margin.has_value() && *margin >= 0.0 && *margin <= 64.0) options.margin = *margin;
@@ -580,7 +621,7 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
     ToolSuccess success{};
     success.text = "capture of " + what + ": " + std::to_string((*capture).pixel_width) + "x" +
                    std::to_string((*capture).pixel_height) + " px at scale " + number_text((*capture).scale) +
-                   " (rendered)";
+                   (sign ? " (rendered, with the in-use sign)" : " (rendered, without the in-use sign)");
     if (composited != 0U) success.text += " with its popup windows over it: " + popups;
     success.images.push_back(std::move(image));
     ToolReply reply = ToolReply::success(std::move(success));

@@ -107,7 +107,7 @@ public:
     // `decorated` false for a popup: no title bar or border, so its outer
     // frame is its client area.
     void create_native(HostWindowId window, std::string_view stable_id, Rect content,
-                       Size minimum_size, bool decorated);
+                       Size minimum_size, bool decorated, bool outside_modality);
     void remove_native(HostWindowId window) noexcept;
     void set_native_visible(HostWindowId window, bool visible);
     // Moves or resizes the native window as the user would and reports it.
@@ -136,6 +136,8 @@ private:
         Size minimum_size{};
         bool visible{};
         bool decorated{true};
+        // ApplicationWindow::outside_modality: never blocked by run_modal.
+        bool outside_modality{};
     };
     [[nodiscard]] NativeWindow* native(HostWindowId window) noexcept;
     [[nodiscard]] const NativeWindow* native(HostWindowId window) const noexcept;

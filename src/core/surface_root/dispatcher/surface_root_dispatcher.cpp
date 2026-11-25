@@ -85,21 +85,43 @@ DispatchDrainResult SurfaceRoot::drain_posted_work(std::size_t maximum_callbacks
             "GUI.Forms dispatch turn callback bound is invalid");
     }
 
-    std::vector<std::shared_ptr<detail::DispatchWork>> turn;
+    // The turn is a FIFO snapshot: the work queued now, up to the bound, by
+    // its last post sequence. Each item leaves the queue only when it runs,
+    // so a callback that runs a nested loop (a modal dialog) leaves the rest
+    // of the turn queued, where the nested loop's turns reach it; taken out
+    // as one batch, it waited behind the nested loop (round 3: an MCP act's
+    // step behind Plan Paint's modal Resize dialog).
+    std::uint64_t last_sequence = 0U;
     {
         const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
         (*dispatcher_state_).wake_pending = false;
         const std::size_t count = std::min(
             maximum_callbacks, (*dispatcher_state_).queue.size());
-        turn.reserve(count);
-        for (std::size_t index = 0U; index < count; ++index) {
-            turn.push_back(std::move((*dispatcher_state_).queue.front()));
-            (*dispatcher_state_).queue.pop_front();
-        }
+        if (count != 0U) last_sequence = (*(*dispatcher_state_).queue[count - 1U]).sequence;
     }
 
     DispatchDrainResult result;
-    for (const std::shared_ptr<gui_forms::detail::DispatchWork>& work : turn) {
+    while (last_sequence != 0U) {
+        std::shared_ptr<gui_forms::detail::DispatchWork> work;
+        {
+            const stxlib::ScopedLock lock((*dispatcher_state_).mutex);
+            if ((*dispatcher_state_).queue.empty() ||
+                (*(*dispatcher_state_).queue.front()).sequence > last_sequence) {
+                break;
+            }
+            // Work still queued behind this callback keeps a wake pending
+            // while it runs: if it enters a nested loop, that loop's turns
+            // drain the queue. The wake this turn answered covered work
+            // posted before it, and nothing else would wake the nested loop
+            // for that work. Asked before the pop, so a throwing wake leaves
+            // the work queued.
+            if ((*dispatcher_state_).queue.size() > 1U && (*dispatcher_state_).accepting &&
+                (*dispatcher_state_).wake && !(*dispatcher_state_).wake_pending) {
+                detail::wake_host_locked(*dispatcher_state_);
+            }
+            work = std::move((*dispatcher_state_).queue.front());
+            (*dispatcher_state_).queue.pop_front();
+        }
         DispatchOperationState expected = DispatchOperationState::pending;
         if (!(*work).state.compare_exchange(
                 expected, DispatchOperationState::running,

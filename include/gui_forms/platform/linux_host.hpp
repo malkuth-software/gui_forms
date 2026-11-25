@@ -83,6 +83,8 @@ struct GUI_FORMS_API LinuxApplicationWindow final {
   std::unique_ptr<Window> model;
   LinuxHostOptions options;
   bool tool_window{};
+  // See ApplicationWindow::outside_modality.
+  bool outside_modality{};
   // See ApplicationWindow::floating.
   HostWindowFloating floating{HostWindowFloating::none};
   // A native popup window (ApplicationWindow::popup); none for every

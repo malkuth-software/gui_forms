@@ -558,3 +558,125 @@ Visible-area guarantee (stage VA):
 - `tools/check_mcp_launch.py` names the exit status of a program that does
   not answer. It waits for a window's tools, which appear when the window
   joins the automation.
+
+### 1.0.4: MCP rounds 1 to 3, the control model
+
+- **Launching.** `--mcp` is an AI-led launch: the model holds control from
+  its first call, with no question and no return after idle.
+  `--mcp-shared` (or `GUI_FORMS_MCP=shared`) is the shared launch: the user
+  keeps the program until the model's first act. With no flag nothing is
+  served. `--model-directed` is the old name of `--mcp`.
+  `automation::take_mcp_arguments` removes all of these from `argv`.
+  Attaching to a program the user already has open needs a transport other
+  than standard input and output (a local socket); that is a later release.
+- **The control model** (owner, 2026-11-24). Reads never need control. In a
+  shared launch the model's first act asks the user in the program, with a
+  10 s countdown that allows when it ends; the act waits for the answer,
+  runs once allowed, and its reply carries the window's snapshot. Don't
+  Allow refuses the act ("the user declined"), and the next act asks again.
+  Later acts run at once. Control returns to the user when the model calls
+  `release_control`, after 30 s without a call (shared launches only), or
+  when the user takes it back; the model's next reply says which.
+- **AI mode, the in-use sign.** While the model holds control, every
+  control surface of the window (buttons, fields, lists, toolbars: not
+  content such as a canvas, an image or a document) is covered by grey
+  barber-pole stripes that move slowly (still under reduced motion, none in
+  high contrast), the cursor over the window is an X, and the user's input
+  never reaches the program: a click anywhere shows "Do you want to take
+  back control of this program?" ("<model> has not yet released the
+  application."). Taking back ends control at once and interrupts the
+  model's call; Keep Waiting leaves the model in control. The 5 px accent
+  band with its glint stays while a model is connected, and the title says
+  "— <model> is connected", or "is in control" in AI mode. Captures leave
+  the sign out unless `include_sign` asks for it.
+  `--mcp-appearance-review` (debug and test builds) shows none of it.
+  The round-1 grey wash is gone; `ThemeDefinition::model_wash_saturation`
+  and `Window::set_content_wash` remain and are unused by the automation.
+- **Tools (round 2).** Tool names have no dots: commands are `command_<id>`
+  and program tools use underscores (`register_model_tool` refuses a dot).
+  `release_control` is new and reserved. Pointer arguments are typed with
+  their coordinate space (`target_point`, `window_point`, `path_point`,
+  `wheel_delta`); pointer takes a target or a position, not both, and a
+  drag's path is read in the target's space. A failed `batch` returns every
+  step as JSON (`{"steps":[...]}`) beside the message. `expect` with nothing
+  to check and `wait` on a user step the program never declared are
+  refused. `keyboard` replies with what changed, as `act` does. `windows`
+  lists only real windows, counts tooltip and popup windows, reads a
+  window run modally as a dialog, and says who holds control. The served
+  tool list is the same all launch long (no `tools/list_changed` for state
+  changes), and commands sharing a stable ID are one tool. The destructive
+  act question, when it cannot be shown, fails the act with the reason.
+- **For programs.** `set_model_app_note` gives a model the program's own
+  note, in the server's instructions and as the `gui://app/note` resource.
+  `set_model_pending_state` names state that floats (a shape not yet
+  placed) in every reply with how to settle it.
+- **Input.** The model's injected pointer events carry their own pointer
+  identity; the user's idle pointer never feeds the model's drag, and the
+  user's press ends it. Idle waits ignore the sign's motion and ambient
+  animation. A tooltip window no longer gets the sign (it opened nested
+  tooltip windows, 65 deep).
+- **Window corners** are reported with their source
+  (`WindowCornerReport::source`: `platform`, `layout_region`,
+  `private_getter` or `unknown`). macOS 26 reads the corner from layout
+  regions; earlier macOS reads `-[NSWindow _effectiveCornerRadius]`, behind
+  the CMake option `GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS` (on; off in
+  high-integrity builds; turn it off for sandboxed or App Store builds). A
+  window whose corner no source reports is drawn square.
+- **Dialogs and models.** A model closes a dialog its own act opened as
+  Cancel and never submits one; a window run modally is a dialog whatever
+  its root's role. Controls that open a dialog are marked
+  `needs_user` with their dialog-free tool (`set_opens_dialog`). The new
+  `reset` tool closes the model's dialogs, popups, menus and tooltips and
+  releases held input. A native alert is reported as `native`, never as a
+  tooltip's window.
+- **Tools.** Unknown argument keys are refused; `batch` is served again
+  (its schema had left the MCP server's subset); new `find`; per-node
+  actions, rows a list does not show (reached by ID), `scroll_into_view`
+  and full text. The tool reference is generated from a running program
+  (`tools/mcp_tool_reference.py`, docs: MCP tools), and CI's docs job
+  checks it.
+- **The std census is a change report.** `manifests/std_surface_census.json`
+  is rebaselined to the shipped 1.0 surface. Standard types in public
+  signatures are part of 1.0 (owner, 2026-11-17, restated 2026-11-24): no
+  public signature changes type for the census, and CI reports it without
+  blocking. `tools/std_surface_census.py update --accept-rise` records a
+  rise.
+- Configuring a build directory reached through a symbolic link no longer
+  refuses to rebuild its own stx package (the package's owner and the tree
+  are compared by their real paths).
+- **Round 3: the program's questions belong to the model.** While the
+  model's call runs, a question the program raises (save changes, a file or
+  colour dialog opened through the host) is answered for the model and never
+  shown. A message is cancelled unless the call says otherwise: `act` and
+  the command tools take `on_unsaved` (`save` answers Yes, `discard` No).
+  The reply carries the question, its choices and the answer, and says the
+  program stopped there and stays as it was, with nothing left waiting. The
+  smooth path is save first (the program's own save tool), then close; the
+  tool descriptions say so. Once the user takes control back, questions are
+  shown as usual. `act` close on a program window's own ID asks that window
+  to close; a window that closes during the call replies `ok`.
+- **Round 3: `disconnect`.** The model ends its session with `disconnect`.
+  `mode` `soft` (the default) asks every program window to close with the
+  program's questions the model's: one asked stops it, nothing closes or
+  shows, and the reply names the work to save; save, then disconnect again.
+  `mode` `hard` ends the session regardless: control returns to the user
+  and the program's save question is shown to the user, or with
+  `discard_unsaved` true the changes are discarded and nothing is asked. A
+  transport that ends with no `disconnect` (a client that crashed or was
+  killed) is a hard disconnect with the default. With the user in control,
+  only the session ends. Later calls are refused.
+- **Round 3: native alerts.** A host alert (an NSAlert on macOS) the program
+  runs while the model holds control holds the user's input; a click on it
+  offers the take-back dialog, which shows above it and works over it, and
+  taking back leaves the alert open for the user.
+- **Round 3: nested loops and modality.** The dispatcher runs a turn one
+  item at a time and keeps a wake pending while more work is queued, so a
+  callback that runs a nested modal loop no longer strands the rest of the
+  turn (an act that opened a dialog from posted work hung for 60 s).
+  `ApplicationWindow::outside_modality` keeps a window interactive under
+  any modal state at any depth (macOS panels that work when modal; the
+  Windows, X11, surface-desk and headless modal loops skip it); the
+  take-back and countdown dialogs use it, and taking back leaves a dialog
+  the model opened in place. `reset` waits for the dialogs it cancelled to
+  close before it replies, and a modal window's own ID names it as an act
+  target. The take-back dialog's paragraphs sit closer together.

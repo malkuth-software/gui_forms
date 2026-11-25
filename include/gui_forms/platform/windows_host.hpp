@@ -87,6 +87,8 @@ struct GUI_FORMS_API WindowsApplicationWindow final {
     std::unique_ptr<Window> model;
     WindowsHostOptions options;
     bool tool_window{};
+    // See ApplicationWindow::outside_modality.
+    bool outside_modality{};
     // See ApplicationWindow::floating.
     HostWindowFloating floating{HostWindowFloating::none};
     // A native popup window (ApplicationWindow::popup); none for every

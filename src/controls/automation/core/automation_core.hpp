@@ -29,6 +29,7 @@
 #include "../control/automation_control.hpp"
 #include "../tools/automation_tools.hpp"
 
+#include "gui_forms/application/application.hpp"
 #include "gui_forms/scheduler/types/scheduler_types.hpp"
 #include "gui_forms/semantics/types/semantic_types.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
@@ -152,6 +153,18 @@ struct FlatNode final {
     std::size_t subtree_size{1U};
     bool hovered{};
     bool pressed{};
+    // Pressing it opens a popup (a menu, a drop-down).
+    bool has_popup{};
+    // A row's place in its whole set, 1-based, and the set's size, when the
+    // node publishes them (0: none); a virtualised list shows a window of
+    // its rows and counts them all.
+    std::size_t position_in_set{};
+    std::size_t set_size{};
+    // It opens a dialog the user answers (MCP round 1): marked with
+    // set_opens_dialog, or a name ending in "..." or the ellipsis; with the
+    // program's dialog-free tool for it, when it has one.
+    bool opens_dialog{};
+    std::string dialog_tool{};
     [[nodiscard]] bool protected_content() const noexcept {
         const bool hidden = has_semantic_state(states, SemanticState::protected_content);
         return hidden;
@@ -165,6 +178,12 @@ inline constexpr std::size_t no_parent = static_cast<std::size_t>(-1);
 struct AutomationWindow final {
     WindowRef window{};
     std::string stable_id{};
+    // A passive popup window (a tooltip): listed and captured, never taken
+    // for a dialog.
+    bool passive_popup{};
+    // The program's handle for the window (act close on its ID asks it to
+    // close); empty for a window a test attached without one.
+    ApplicationWindowHandle handle{};
 };
 
 class AutomationCore final {
@@ -186,8 +205,12 @@ public:
     // Joins `window` to the automation under `stable_id` (empty: the core
     // names it "window.<n>"); a window joined already keeps its entry. The
     // presenter's own windows are refused (false). Leaves on its own when
-    // the window is destroyed.
-    bool attach_window(Window& window, std::string stable_id);
+    // the window is destroyed. `passive_popup` marks a popup window that
+    // never takes focus (ApplicationWindowState::passive_popup).
+    bool attach_window(Window& window, std::string stable_id, bool passive_popup = false,
+                       ApplicationWindowHandle handle = ApplicationWindowHandle{});
+    // Whether `window` joined as a passive popup window.
+    [[nodiscard]] bool passive_popup_window(const Window& window) const noexcept;
     void detach_window(const Window& window) noexcept;
     // The live windows, oldest first. Borrowed for the current call.
     void fill_windows(std::vector<Window*>& windows);
@@ -197,6 +220,22 @@ public:
     [[nodiscard]] Window* find_window(std::string_view name);
     // The stable ID the window was attached with; empty when it is not.
     [[nodiscard]] std::string window_stable_id(const Window& window) const;
+    // The program's handle for `window`, or an empty one.
+    [[nodiscard]] ApplicationWindowHandle window_handle(const Window& window) const;
+    // The handles of the program's own windows (not passive popups), for a
+    // disconnect's close.
+    void program_window_handles(std::vector<ApplicationWindowHandle>& handles) const;
+    // The hard disconnect with the program's default, and the transport's
+    // end (a client that crashed or was killed): control returns to the
+    // user, later calls are refused, and every program window is asked to
+    // close as its close box asks. A question the program raises goes to the
+    // user (owner, round 3).
+    void hard_disconnect() noexcept;
+    // Whether a disconnect ended the model's session.
+    [[nodiscard]] bool session_ended() const noexcept { return ended_; }
+    // Ends the session: control returns to the user and the in-use sign
+    // and the band leave the windows.
+    void end_session() noexcept;
 
     // Records who is calling (the tag line, the replies).
     void set_client(const ClientIdentity& client);
@@ -250,12 +289,27 @@ private:
     void prune_windows() noexcept;
     // Tells the presenter when no call runs any more.
     void note_calls_finished() noexcept;
+    // A finished top-level call's reply gains what the model must know
+    // whatever it called (round 2 and the owner's control model): the
+    // notice that the user took control back or that control returned, the
+    // program's pending states, and, for the act whose question gave the
+    // model control, the window's snapshot.
+    void finish_reply(RunningCall& call, StepOutcome& outcome);
 
     AutomationControl& control_;
     AutomationSettings settings_;
     std::vector<AutomationWindow> windows_{};
+    // A disconnect ended the session: every later call is refused.
+    bool ended_{};
     std::uint64_t next_window_number_{1U};
     std::vector<std::unique_ptr<RunningCall>> calls_{};
+    // The dialogs a model's act opened, by the ID find_open_dialog gives:
+    // the model may close them (as Cancel), never submit them (MCP round 1).
+    std::vector<std::string> model_dialogs_{};
+    // Each command tool's spec as first seen, for the launch (round 2:
+    // stable specs, so tools/list_changed goes out only when a command
+    // comes or goes).
+    std::vector<ToolSpec> command_specs_{};
     std::uint64_t next_call_{1U};
     // A ring of route_trace_capacity events across windows; route_next_ is
     // the slot written next.

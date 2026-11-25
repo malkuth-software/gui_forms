@@ -77,7 +77,7 @@ class StdSurfaceCensusTests(unittest.TestCase):
         self.assertEqual(counts["vector"].headers, 1)
 
     def test_check_passes_on_equal_and_fails_on_rise_or_fall(self) -> None:
-        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline), 0)
+        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline, False), 0)
         self.assertEqual(std_surface_census.command_check(self.surface, self.baseline), 0)
         (self.surface / "core" / "more.hpp").write_text("std::span<int> s;\n", encoding="utf-8")
         self.assertEqual(std_surface_census.command_check(self.surface, self.baseline), 1)
@@ -85,17 +85,20 @@ class StdSurfaceCensusTests(unittest.TestCase):
         (self.surface / "core" / "other.hpp").write_text("\n", encoding="utf-8")
         self.assertEqual(std_surface_census.command_check(self.surface, self.baseline), 1)
 
-    def test_update_lowers_but_never_raises(self) -> None:
-        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline), 0)
+    def test_update_lowers_and_raises_only_when_asked(self) -> None:
+        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline, False), 0)
         (self.surface / "core" / "other.hpp").write_text("\n", encoding="utf-8")
-        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline), 0)
+        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline, False), 0)
         lowered = json.loads(self.baseline.read_text(encoding="utf-8"))
         self.assertEqual(lowered["names"]["optional"]["occurrences"], 2)
         (self.surface / "core" / "other.hpp").write_text("std::optional<int> a; std::optional<int> b;\n",
                                                          encoding="utf-8")
-        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline), 1)
+        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline, False), 1)
         kept = json.loads(self.baseline.read_text(encoding="utf-8"))
         self.assertEqual(kept["names"]["optional"]["occurrences"], 2)
+        self.assertEqual(std_surface_census.command_update(self.surface, self.baseline, True), 0)
+        raised = json.loads(self.baseline.read_text(encoding="utf-8"))
+        self.assertEqual(raised["names"]["optional"]["occurrences"], 4)
 
 
 if __name__ == "__main__":

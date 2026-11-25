@@ -437,6 +437,10 @@ Related types
 
    .. cpp:member:: bool tool_window
 
+   .. cpp:member:: bool outside_modality
+
+      Outside application modality: the window takes the user's input while a modal window or a system alert runs, at any depth, as no other window does. For the automation's take and take-back questions, which must answer whatever modal state a model has opened.
+
    .. cpp:member:: HostWindowFloating floating
 
       A floating window (stage DK decisions 1, 10 and 11): owned by the primary window (owner_id names it; tool_window stays false), no taskbar button, minimized with it, above it only, moved with it and clamped to the work area of the screen it lands on. A floating tool also hides while the application is inactive; a floating document does not. The policy decides when the window is on screen; show and hide on its handle say whether it is wanted. See HostWindowKindTraits. Default: ``{HostWindowFloating::none}``.
@@ -1876,6 +1880,10 @@ Related types
 
       Asks the platform to shape the window's corners (capability window_corners) and reports what they are afterwards. Refused as unsupported, with unknown corners, without the capability; refused as invalid_argument for a value outside the enumeration. A platform that cannot comply (it rounds regardless, or cannot round) reports its actual corners with ``complied`` false.
 
+   .. cpp:function:: HostServiceStatus apply_system_border_colour(stxlib::Optional<Color> colour)
+
+      Colours the platform's own window border (Windows 11: DWMWA_BORDER_COLOR), or restores the system's colour for none. The automation's in-use sign joins it while a model drives the window (MCP round 1). Refused as unsupported where the platform draws no coloured border of its own (the default), as wrong_thread off the UI thread and after_shutdown once shut down; a refusal leaves the border as it was.
+
    .. cpp:function:: HostWindowChromeResult apply_window_chrome(const WindowChrome& chrome, WindowChromeFields fields)
 
       Applies the named chrome properties of ``chrome`` to the window (Window's chrome properties): applied lists those the platform honoured; the others leave the native window as it was. Any value passes through as given (Window validates); refused as invalid_argument for a field outside WindowChromeFields, wrong_thread off the UI thread, after_shutdown once shut down. No capability bit: what each host can do is supported_window_chrome.
@@ -2062,6 +2070,12 @@ Related types
       *Protected.*
 
       Called with a known preference when the host advertises window_corners. The default refuses as unsupported with unknown corners.
+
+   .. cpp:function:: virtual HostServiceStatus apply_system_border_colour_impl(stxlib::Optional<Color> colour)
+
+      *Protected.*
+
+      Called on the UI thread before shutdown. The default refuses as unsupported.
 
    .. cpp:function:: virtual HostWindowChromeResult apply_window_chrome_impl(const WindowChrome& chrome, WindowChromeFields fields)
 
@@ -2990,6 +3004,10 @@ Related types
 
    .. cpp:member:: bool tool_window
 
+   .. cpp:member:: bool outside_modality
+
+      See ApplicationWindow::outside_modality.
+
    .. cpp:member:: HostWindowFloating floating
 
       See ApplicationWindow::floating. Default: ``{HostWindowFloating::none}``.
@@ -3097,6 +3115,10 @@ Related types
    .. cpp:member:: MacHostOptions options
 
    .. cpp:member:: bool tool_window
+
+   .. cpp:member:: bool outside_modality
+
+      See ApplicationWindow::outside_modality.
 
    .. cpp:member:: HostWindowFloating floating
 
@@ -3317,6 +3339,10 @@ Related types
    .. cpp:member:: SurfaceHostOptions options
 
    .. cpp:member:: bool tool_window
+
+   .. cpp:member:: bool outside_modality
+
+      See ApplicationWindow::outside_modality.
 
    .. cpp:member:: HostWindowFloating floating
 
@@ -3776,6 +3802,10 @@ Related types
    .. cpp:member:: WindowsHostOptions options
 
    .. cpp:member:: bool tool_window
+
+   .. cpp:member:: bool outside_modality
+
+      See ApplicationWindow::outside_modality.
 
    .. cpp:member:: HostWindowFloating floating
 

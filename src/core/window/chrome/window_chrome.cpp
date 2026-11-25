@@ -1,6 +1,7 @@
 // Window's chrome properties (gui_forms/window/chrome): validation, the
 // request a host receives, and the icon's decode.
 
+#include "../model_sign/model_sign_state.hpp"
 #include "gui_forms/window.hpp"
 
 #include "gui_forms/host/services/host_services.hpp"
@@ -130,6 +131,7 @@ WindowChromeFields Window::supported_chrome() const noexcept {
 WindowChrome Window::chrome() const {
     WindowChrome request{};
     request.text = text.read();
+    if (model_sign_) request.text += (*model_sign_).title_note;
     if (icon.read().value != 0U) {
         const stxlib::Optional<ImageResourceView> found = image_resources().find(icon.read());
         if (found.present()) request.icon = decode_icon((*found.value()));
@@ -155,6 +157,28 @@ void Window::apply_window_chrome(WindowChromeFields fields) {
     // The fields asked for now leave the applied set, then those the host
     // applied join it.
     applied_chrome_.bits = (applied_chrome_.bits & ~wanted.bits) | result.applied.bits;
+}
+
+void Window::set_title_note(const char* note) {
+    require_root_thread("window title note");
+    std::string given = note == nullptr ? std::string{} : std::string(note);
+    constexpr std::size_t maximum_note_bytes = 1024U;
+    if (given.size() > maximum_note_bytes || !valid_window_text(given)) {
+        throw std::invalid_argument("GUI.Forms window title note must be UTF-8 without NUL, at most 1024 bytes");
+    }
+    if (!model_sign_ && given.empty()) return;
+    detail::ModelSignState& sign = model_sign_state();
+    if (given == sign.title_note) return;
+    sign.title_note = std::move(given);
+    // The title the host shows is the text and the note: sent as a text
+    // write, which an unwritten text becomes from here on.
+    written_chrome_.add(WindowChromeField::text);
+    apply_window_chrome(WindowChromeFields{static_cast<std::uint32_t>(WindowChromeField::text)});
+}
+
+const char* Window::title_note() const noexcept {
+    if (!model_sign_) return "";
+    return (*model_sign_).title_note.c_str();
 }
 
 // The hooks: each validates (std::invalid_argument, changing nothing) or,

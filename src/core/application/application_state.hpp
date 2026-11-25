@@ -11,6 +11,10 @@ struct ApplicationWindowState final {
     bool ready{};
     bool closed{};
     bool can_hide{};
+    // A passive popup window (a tooltip, a Splash, a menu panel that never
+    // takes focus): never a dialog, so the automation does not take one for
+    // the window a modal call left free (find_open_dialog).
+    bool passive_popup{};
     // The window's stable id and, once it is ready, its identity in the run.
     std::string stable_id{};
     HostWindowId id{};
@@ -135,6 +139,12 @@ void revoke_window_state(ApplicationWindowState& state) noexcept;
 // automation's close at the end of its input) and reports the rest
 // unsupported. Made, used and destroyed on the host's UI thread; destroyed
 // after the run loop ends, which revokes the state.
+// Gives `window` the title its host opens it with as its text when the
+// program wrote none, so the program and the automation read the title the
+// user sees (an empty title is left alone). The host's UI thread, before the
+// window attaches to its host.
+void adopt_opening_title(Window& window, std::string_view title);
+
 class DirectRunWindow final {
 public:
     using HostReady = std::function<void(std::function<void()> wake, std::function<void()> request_close,

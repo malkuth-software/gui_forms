@@ -44,14 +44,30 @@
 namespace gui_forms::automation {
 
 struct AutomationLaunch final {
-    // --mcp or GUI_FORMS_MCP=1.
+    // --mcp or GUI_FORMS_MCP=1: AI-led (the owner's control model,
+    // 2026-11-24): the model holds control from the start, with no
+    // countdown and no return after idle. --model-directed is its old name.
     bool mcp{};
-    // --model-directed: direct_begin is allowed (study 8.3).
-    bool model_directed{};
+    // --mcp-shared or GUI_FORMS_MCP=shared: MCP in the default control
+    // model: the program runs normally, reads need nothing, and a model's
+    // first act asks the user with a 10-second countdown that allows.
+    bool shared{};
+    // --mcp-appearance-review: --mcp with no in-use sign (MCP round 1), so
+    // the windows look as they do to a user without a model. Debug and test
+    // builds only (GUI_FORMS_MCP_TEST_CONTROLS); another
+    // build refuses the launch's MCP and says so on standard error.
+    bool appearance_review{};
     // --mcp-script <file>; empty for none.
     std::string script_path{};
-    [[nodiscard]] bool requested() const noexcept { return mcp || !script_path.empty(); }
+    [[nodiscard]] bool requested() const noexcept {
+        return mcp || shared || appearance_review || !script_path.empty();
+    }
 };
+
+// Why `launch` cannot run as asked in a build that does or does not have
+// the test controls (`test_controls`), or null when it can: appearance
+// review needs them. Static text.
+[[nodiscard]] const char* automation_launch_refusal(const AutomationLaunch& launch, bool test_controls) noexcept;
 
 // The launch as the process was started. Empty in a build without
 // GUI_FORMS_MCP, and in a high-integrity build (which reads no environment

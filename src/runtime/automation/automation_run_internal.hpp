@@ -67,6 +67,12 @@ public:
     // ---- the UI thread ----
 
     [[nodiscard]] AutomationCore& core() noexcept { return core_; }
+    // Starts serving MCP, once, with the tools, commands and note known now
+    // (posted by the first window's join, so it runs after that window's
+    // ready callback). UI thread.
+    void serve_when_ready();
+    // Whether serving has started (no transport: true, nothing to start).
+    [[nodiscard]] bool serving_started() const noexcept;
     // Binds the tools again when their list changed (the registry or the
     // program's commands).
     void sync_tools();
@@ -89,9 +95,16 @@ private:
     // afterwards closes as it joins (a client that closes the input before
     // the first window is ready would otherwise leave the program running).
     bool closing_{false};
+    // Under mutex_: the client last seen, kept for a window that joins
+    // later (MCP round 1: a client names itself in initialize, usually
+    // before the first window is ready, and the sign never showed).
+    bool client_seen_{false};
+    ClientIdentity client_{};
     std::atomic<bool> ended_{false};
-    // The UI thread's: the windows' handles, for the portable shutdown.
-    std::vector<ApplicationWindowHandle> handles_{};
+    // Calls being driven: the run's end waits a moment for them, so a reply
+    // to the call that closed the last window (disconnect) still reaches the
+    // client before the transport stops.
+    std::atomic<int> driving_{0};
     std::uint64_t tool_generation_{};
 
     std::unique_ptr<McpTransport> transport_{};
@@ -102,16 +115,25 @@ private:
 
 class McpTransport final {
 public:
-    // Claims standard input and output and serves MCP as `identity`; null,
-    // with `error` set, when it cannot (no stx_mcp in this build, or the
-    // streams cannot be claimed).
-    [[nodiscard]] static std::unique_ptr<McpTransport> start(AutomationRun& run, const std::string& identity,
-                                                              std::string& error);
+    // Claims standard input and output for MCP, so nothing the program
+    // prints reaches them; null, with `error` set, when it cannot (no
+    // stx_mcp in this build, or the streams cannot be claimed). Serving
+    // starts with serve.
+    [[nodiscard]] static std::unique_ptr<McpTransport> claim(AutomationRun& run, std::string& error);
+    // Serves MCP as `identity` with `instructions`, the program's note as a
+    // resource (none for empty) and `specs` bound before the first message
+    // is read, so a client sees them at once and no list_changed for them.
+    // Once; false, with `error` set, when the server cannot start.
+    [[nodiscard]] bool serve(const std::string& identity, const std::string& instructions,
+                             const std::string& app_note, const std::vector<ToolSpec>& specs, std::string& error);
+    [[nodiscard]] bool serving() const noexcept;
     ~McpTransport();
     McpTransport(const McpTransport&) = delete;
     McpTransport& operator=(const McpTransport&) = delete;
 
-    // Binds `specs` as the server's tools, unbinding the ones gone. Any
+    // Binds `specs` as the server's tools: unbinds the ones gone or
+    // changed and binds the new or changed ones, leaving the rest (each bind
+    // and unbind sends the client list_changed). Nothing before serve. Any
     // thread.
     void bind_tools(const std::vector<ToolSpec>& specs);
     // Stops serving and waits for the handler tasks.

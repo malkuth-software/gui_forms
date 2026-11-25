@@ -50,7 +50,7 @@ whole record for logs.
 | `compositor_notifications` | compositor and preference changes reported at run time | yes | yes | yes |
 | `presentation_preferences` | the host's high contrast and reduced transparency fed to each window; its light or dark preference and accent and highlight colours reported (Windows only so far) | yes | yes | no |
 | `transient_surfaces` | tooltips and the splashscreen in Splash windows, menus, drop-downs and pickers in Popup windows, each the host's own window beside its owner; translucent with the library's shadow and fade (C: `GF_HOST_CAPABILITY_TRANSIENT_SURFACES`, kinds in `gf_host_capabilities.transient_surfaces`) | yes | yes | yes (opaque, with no shadow or fade, without a compositing manager: `opaque_transient_surfaces`, `GF_TRANSIENT_SURFACE_OPAQUE`) |
-| `window_corners` | the window's corners shaped on request and reported (`Window::set_corner_preference`), which the window outer band follows; the host squares a maximized, snapped or full-screen window's; the shapes it may report are `HostCapabilities::window_corner_shapes` (C: `GF_HOST_CAPABILITY_WINDOW_CORNERS`, shapes in `gf_host_capabilities.window_corner_shapes`; see [the window band](window-band.md)) | reported only: square in full screen and for a borderless window, unknown otherwise (the band draws square) | yes (Windows 11; square before) | no (square) |
+| `window_corners` | the window's corners shaped on request and reported (`Window::set_corner_preference`), which the window outer band follows; the host squares a maximized, snapped or full-screen window's; the shapes it may report are `HostCapabilities::window_corner_shapes` (C: `GF_HOST_CAPABILITY_WINDOW_CORNERS`, shapes in `gf_host_capabilities.window_corner_shapes`; see [the window band](window-band.md)) | reported only (read, never set): square in full screen and for a borderless window; otherwise rounded with the radius macOS 26's layout regions report, or before 26 AppKit's private getter (build option `GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS`), or unknown (the band draws square); the report names its source | yes (Windows 11; square before) | no (square) |
 | `window_state_reports` | the native window's state reported (`HostWindowStateEvent`): full screen, which hides a band declared `WindowBandFullScreen::hides`, and the maximize, snap and restore changes that can reshape its corners (C: `GF_HOST_CAPABILITY_WINDOW_STATE_REPORTS`) | yes | yes (full screen: a captionless window covering its monitor) | yes (`_NET_WM_STATE_FULLSCREEN`, or the host's own fallback) |
 | `locale` | the platform's locale (`HostCapabilities::locale`: date and time patterns, month and weekday names, AM and PM, number separators, first day of the week), which seeds the application's locale for the DateTimePicker, MonthCalendar and NumericUpDown (host protocol version 14) | yes (CFLocale) | yes (the user's locale through `GetLocaleInfoEx`, with their Region overrides) | yes (the POSIX locale the environment names) |
 | `hosted_content` | a sub-surface program in its own process (`make_hosted_content`, [Content surfaces](content-surfaces.md)): frames through shared memory, input through a channel, its crash leaving the application running (C ABI `GF_HOST_CAPABILITY_HOSTED_CONTENT`, since 1.4) | yes | yes | yes |
@@ -363,12 +363,68 @@ Windows (Win32)
   directory `GUI_FORMS_FONT_DIR` names or the checkout's `assets/fonts`. If
   the pack does not open, the renderer name says so and no text metrics
   provider is installed. Automation is the library's MCP integration, the
-  same on every host: a program launched with `--mcp` serves MCP on its
+  same on every host. A program launched with `--mcp` or `--mcp-shared`
+  (or with `GUI_FORMS_MCP=shared` in its environment) serves MCP on its
   standard input and output (only the process that started it can drive
   it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
+  With no flag nothing is served. Attaching to a program the user already
+  has open needs another transport (a local socket); that is a later
+  release.
+  Reads never need control; acts do (the control model):
+  - `--mcp` is AI-led: the model holds control from the start, with no
+    question, and keeps it until it calls `release_control` or the user
+    takes it back.
+  - `--mcp-shared` leaves the user in control until the model's first act.
+    That act asks in the program whether the model may take control, with a
+    10 s countdown that allows when it ends; the act waits for the answer.
+    Don't Allow refuses the act and says so; the next act asks again. Once
+    allowed, the act runs and its reply carries the window's snapshot, and
+    later acts run at once. Control returns after 30 s without a call, on
+    `release_control`, or when the user takes it back.
+  - The model's next reply says when control came back, and why.
+
+  While the model holds control (AI mode), each window shows it:
+  - grey barber-pole stripes over the window's control surfaces (buttons,
+    fields, lists, toolbars; not content such as a canvas, an image or a
+    document), moving slowly; still with reduced motion, and none in high
+    contrast;
+  - an X cursor over the window;
+  - the user's input is held back: a click anywhere shows "Do you want to
+    take back control of this program?" with "<model> has not yet released
+    the application." Taking back ends control and interrupts the model's
+    call; Keep Waiting leaves the model in control.
+
+  While a model is connected, in or out of control:
+  - a 5 px accent band on the window's border, with a glint running round
+    it while the model reads or acts (with reduced motion, a tint change
+    instead);
+  - the model's name in its title ("is connected", or "is in control");
+  - on Windows 11, the system border in the accent, restored on disconnect.
+
+  Captures leave the sign out unless the capture asks for it
+  (`include_sign`). None of it costs anything while no model is connected.
+  A debug or test build also takes `--mcp-appearance-review`, which serves
+  MCP with none of this, so the windows look exactly as they do to a user without a
+  model (for reviewing the interface's appearance from captures); a release
+  build refuses it, says so on standard error and serves no MCP.
   This holds for a program run by `Application::run` and for one that calls
   its host's single-window entry (`host::run_macos`, `run_windows`,
   `run_linux`) directly; that window joins as `main`.
+  While the model's call runs, a question the program raises (save
+  changes, a file or colour dialog) is the model's: it is never shown, the
+  call's reply carries it with its choices, and the program stays as it was.
+  `on_unsaved` (`save` or `discard`) answers a save question; without it the
+  question is cancelled. Save first, then close, needs no question at all.
+  The model ends its session with `disconnect`: soft (the default) closes
+  nothing over unsaved work and names it (save, then disconnect again);
+  hard returns control and shows the program's save question to the user,
+  or discards with `discard_unsaved`. A client that drops without
+  disconnecting counts as hard.
+  After the user takes control back, questions are shown as usual. The
+  take-back and countdown dialogs stay usable over any modal dialog
+  (`ApplicationWindow::outside_modality`).
+  The built-in tools and their arguments are listed in [MCP tools](mcp-tools.md),
+  generated from a built program.
   A program declares its own model tools and inspect sections beside the
   built-in ones with `register_model_tool` and
   `register_model_inspect_section` (`gui_forms/automation/tools/model_tools.hpp`;

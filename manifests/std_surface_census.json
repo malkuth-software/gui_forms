@@ -1,20 +1,20 @@
 {
-  "description": "Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), tools/std_surface_census.py. D15 and Q2, and the STXlib shield's thread, lock, stop and file names: every count only falls, and V6 ends at zero. Occurrences are ratcheted; headers are reported.",
+  "description": "Qualified std:: names at GUI.Forms' C++ surface (include/gui_forms/ without c/), tools/std_surface_census.py: a change report, not a goal. Rebaselined to the shipped 1.0 surface in 1.0.4 under the owner's ruling of 2026-11-17, restated 2026-11-24 (D15 V2 to V6 dropped): std types in public signatures are fine; the STXlib shield keeps GUI.Forms' std on its own side, and no public signature changes type for the census. Occurrences are compared; headers are reported.",
   "names": {
     "string": {
-      "occurrences": 1771,
-      "headers": 271
+      "occurrences": 1822,
+      "headers": 281
     },
     "vector": {
-      "occurrences": 1343,
-      "headers": 244
+      "occurrences": 1352,
+      "headers": 249
     },
     "shared_ptr": {
       "occurrences": 787,
-      "headers": 180
+      "headers": 184
     },
     "weak_ptr": {
-      "occurrences": 97,
+      "occurrences": 99,
       "headers": 47
     },
     "make_shared": {
@@ -42,7 +42,7 @@
       "headers": 1
     },
     "optional": {
-      "occurrences": 200,
+      "occurrences": 199,
       "headers": 61
     },
     "nullopt": {
@@ -50,12 +50,12 @@
       "headers": 1
     },
     "string_view": {
-      "occurrences": 914,
-      "headers": 205
+      "occurrences": 935,
+      "headers": 209
     },
     "span": {
-      "occurrences": 874,
-      "headers": 235
+      "occurrences": 852,
+      "headers": 237
     },
     "thread": {
       "occurrences": 0,

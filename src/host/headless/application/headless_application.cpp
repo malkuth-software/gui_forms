@@ -204,6 +204,8 @@ HostServiceStatus HeadlessWindowing::run_modal_impl(HostWindowId window) {
     const std::size_t blocked_before = blocked_.size();
     for (std::size_t index = 0U; index < natives_.size(); ++index) {
         const HostWindowId candidate = natives_[index].id;
+        // A window outside application modality is never blocked.
+        if (natives_[index].outside_modality) continue;
         bool owned_by_modal = false;
         HostWindowId current = candidate;
         for (std::size_t depth = 0U; depth <= maximum_windows && current.valid(); ++depth) {
@@ -230,13 +232,14 @@ HostServiceStatus HeadlessWindowing::run_modal_impl(HostWindowId window) {
 }
 
 void HeadlessWindowing::create_native(HostWindowId window, std::string_view stable_id,
-                                      Rect content, Size minimum_size, bool decorated) {
+                                      Rect content, Size minimum_size, bool decorated, bool outside_modality) {
     NativeWindow entry;
     entry.id = window;
     entry.stable_id.assign(stable_id);
     entry.content = content;
     entry.minimum_size = minimum_size;
     entry.decorated = decorated;
+    entry.outside_modality = outside_modality;
     natives_.push_back(std::move(entry));
     order_.insert(order_.begin(), window);
     std::ostringstream line;
@@ -659,7 +662,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     }
     if (!owner.valid() && kind != HostWindowKind::primary) ++placements_;
     windowing_.create_native(window.id, window.stable_id, content, window.options.minimum_size,
-                             popup.absent());
+                             popup.absent(), source.outside_modality);
     {
         std::ostringstream line;
         line << "open id=" << window.id.value << " kind=" << host_window_kind_name(kind)
@@ -678,6 +681,7 @@ ApplicationWindowOpenResult HeadlessApplication::open(ApplicationWindow&& source
     state.stable_id = window.stable_id;
     state.run = run_;
     state.can_hide = kind != HostWindowKind::primary;
+    state.passive_popup = popup.present() && ((*popup.value())).focus == HostPopupFocus::passive;
     state.request_close = HeadlessRequestClose{this, window.id};
     if (floating) {
         // The floating policy decides when the window is on screen.

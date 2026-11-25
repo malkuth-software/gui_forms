@@ -95,12 +95,28 @@ inline constexpr double maximum_band_width = 32.0;
 // `cycling` blends between the rest and lit colours along a cosine,
 // starting lit, repainting the strips at band_cycling_frames_per_second,
 // and rests lit under the same conditions.
+// `sweeping` moves along the band's outline (the automation's in-use sign,
+// MCP round 1): the band draws its rest colour, and over it a glint of the
+// lit colour (band_glint_fraction of the outline, fading behind) runs one
+// lap a cycle, repainting at band_cycling_frames_per_second. Under reduced
+// motion, with ambient motion off, or while the window is occluded, the
+// glint is replaced by a tint change: the whole band draws its rest colour
+// moved band_still_tint of the way to the lit colour. A pixel changes at
+// most twice a cycle, so the flash limiter's frequency bounds it too. It
+// needs one width on every edge and no texture; a band without either
+// draws its lit colour.
 enum class WindowBandState : std::uint8_t {
     rest,
     lit,
     flashing,
     cycling,
+    sweeping,
 };
+
+// A sweeping band's glint, as a share of the outline's length, and how far
+// a still sweeping band's tint moves from the rest colour to the lit one.
+inline constexpr double band_glint_fraction = 0.22;
+inline constexpr double band_still_tint = 0.35;
 
 // The flash limiter (study section 5, WCAG 2.3.1): at most this many
 // luminance transitions a second, whatever the theme or the application
@@ -217,13 +233,37 @@ enum class WindowCornerShape : std::uint8_t {
 // meaningful only for `rounded`. `complied` is false when the platform
 // could not do as asked (it rounds regardless, or cannot round), so the
 // band follows `shape`, not the preference.
+// `top_square` says that the client area's top corners meet a title bar
+// the host draws (a titled window on macOS), so they stay square however
+// the window's frame is rounded; the band then rounds its bottom corners
+// only.
+// Where a host's corner report came from (ACTIVE_BORDER_STUDY ruling 4:
+// the band follows only what the host can say):
+// - platform: the platform shapes the window and states its shape (Windows
+//   11's DWM preference and window state; a macOS window in full screen or
+//   without a frame, which is square);
+// - layout_region: macOS 26's public layout regions, the corner adaptation
+//   of the content view's safe area (NSViewLayoutRegion);
+// - private_getter: AppKit's private radius getter, read at run time where
+//   no public source reports it (GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS);
+// - unknown: nothing reported; the shape is unknown and the band square.
+enum class WindowCornerSource : std::uint8_t {
+    unknown,
+    platform,
+    layout_region,
+    private_getter,
+};
+
 struct GUI_FORMS_API WindowCornerReport final {
     WindowCornerShape shape{WindowCornerShape::unknown};
     double radius{};
     bool complied{};
+    bool top_square{};
+    WindowCornerSource source{WindowCornerSource::unknown};
 
     friend bool operator==(const WindowCornerReport& left, const WindowCornerReport& right) noexcept {
-        return left.shape == right.shape && left.radius == right.radius && left.complied == right.complied;
+        return left.shape == right.shape && left.radius == right.radius && left.complied == right.complied &&
+               left.top_square == right.top_square && left.source == right.source;
     }
 };
 
@@ -242,6 +282,7 @@ struct GUI_FORMS_API WindowCornerShapes final {
 
 [[nodiscard]] GUI_FORMS_API const char* window_corner_preference_name(WindowCornerPreference preference) noexcept;
 [[nodiscard]] GUI_FORMS_API const char* window_corner_shape_name(WindowCornerShape shape) noexcept;
+[[nodiscard]] GUI_FORMS_API const char* window_corner_source_name(WindowCornerSource source) noexcept;
 
 // A window's band as it stands (Window::band_snapshot): whether it is
 // declared and reserved, the reserved widths (snapped, logical units), the
@@ -273,6 +314,12 @@ struct GUI_FORMS_API WindowBandSnapshot final {
     // The cycle frames the strips have been damaged for, counted from the
     // window's creation.
     std::uint64_t cycle_frames{};
+    // Whether a march or a sweep moves now (not stilled), how far round it
+    // is (a fraction of one cycle, in [0, 1)), and the frames it has
+    // damaged the strips for, counted from the window's creation.
+    bool moving{};
+    double motion_phase{};
+    std::uint64_t motion_frames{};
 };
 
 // What a window's shaping can rely on (Window::shaping_report; the owner's

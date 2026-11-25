@@ -64,6 +64,7 @@ converting-an-app
 threading
 lifecycle
 hosts-and-capabilities
+mcp-tools
 presentation
 content-surfaces
 factory-bundle

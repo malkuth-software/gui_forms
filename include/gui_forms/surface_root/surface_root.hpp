@@ -21,6 +21,7 @@
 #include "gui_forms/host/compositor/window_backdrop.hpp"
 #include "gui_forms/window/backdrop/backdrop_chain.hpp"
 #include "gui_forms/window/band/window_band.hpp"
+#include "gui_forms/types/paint_path/paint_path.hpp"
 #include "gui_forms/host/cursor_interaction/cursor_interaction.hpp"
 #include "gui_forms/layout/diagnostics/layout_diagnostics.hpp"
 #include "gui_forms/layout/viewport_fit/viewport_fit.hpp"
@@ -53,6 +54,7 @@
 #include <vector>
 
 #include <stxlib/optional.hpp>
+#include <stxlib/unique.hpp>
 #include <stxlib/vector.hpp>
 #include <stxlib/view.hpp>
 
@@ -79,6 +81,7 @@ namespace detail {
 // tools/layout_probe/surface_root_layout_probe.py: reads the members'
 // offsets as two libraries compile them.
 struct SurfaceRootLayoutProbe;
+struct ModelSignState;
 struct LiveSurfaceIdleWake;
 class OverlayAttachment;
 class AcceleratorAttachment;
@@ -428,6 +431,10 @@ struct GUI_FORMS_API ControlSnapshot final {
 // What Window::capture_window draws (owner request 2026-11-09, the product
 // ports: screenshots and tests).
 struct GUI_FORMS_API WindowCaptureOptions final {
+    // The automation's in-use sign (the band, the AI-mode veil): off by
+    // default, so a capture shows the program as the user sees it without a
+    // model (MCP round 2); on draws it as the screen shows it.
+    bool include_model_sign{};
     // The window's in-surface overlays (menus, drop-downs, tooltips and
     // other overlays opened in it), composited over its content as
     // presented. Off, the capture shows the content beneath them. Windows
@@ -441,6 +448,9 @@ struct GUI_FORMS_API WindowCaptureOptions final {
 // What Window::capture_control draws (owner request 2026-11-11, the theme
 // palette): one control and its descendants as the window lays them out.
 struct GUI_FORMS_API ControlCaptureOptions final {
+    // The automation's AI-mode veil over the subtree, as
+    // WindowCaptureOptions::include_model_sign: off by default.
+    bool include_model_sign{};
     // Device pixels per logical unit; 0 takes the window's own scale.
     double scale{};
     // Logical units added around the control's bounds on every side, for
@@ -1071,6 +1081,14 @@ public:
     [[nodiscard]] bool request_content_scroll(Control& owner, Rect local_area, Point offset);
     [[nodiscard]] bool needs_frame() const noexcept;
     [[nodiscard]] stxlib::Optional<FrameTime> next_wake() const noexcept;
+    // next_wake without the ambient effects' wakes (the band's march or
+    // sweep): when the window's own work next wants a frame, for a caller
+    // waiting for it to settle (the automation's idle).
+    [[nodiscard]] stxlib::Optional<FrameTime> next_settling_wake() const noexcept;
+    // needs_frame without the frames only ambient effects want (the band's
+    // glint, any work an ambient wake runs): whether the window's own work
+    // still wants a frame, for a caller waiting for it to settle.
+    [[nodiscard]] bool needs_settling_frame() const noexcept;
     [[nodiscard]] FrameRequestToken schedule_paint(const Control::Ptr& control,
                                                    FrameTime deadline);
     [[nodiscard]] FrameRequestToken schedule_ui_timer(
@@ -1687,6 +1705,12 @@ public:
     [[nodiscard]] VisualInspectionSnapshot visual_inspection_snapshot(
         VisualInspectionOptions options = {});
     [[nodiscard]] SemanticSnapshot semantic_snapshot();
+    // The cursor the window shows wherever the pointer is, over every
+    // control's own: the automation's X cursor while the AI-mode veil shows
+    // (Window::set_model_veil), drawn by GUI.Forms with `fallback` for a
+    // host that cannot show an image. False, setting nothing, otherwise.
+    // Each host asks it before the hit control's cursor.
+    [[nodiscard]] bool model_cursor(CursorImagesPtr& images, CursorKind& fallback) const;
     [[nodiscard]] std::uint64_t semantic_generation() const noexcept {
         return semantic_generation_;
     }
@@ -1927,6 +1951,9 @@ private:
     // MetricsSnapshot::internal_wakes_refused; it does not throw.
     [[nodiscard]] FrameRequestToken request_one_shot_wake(
         FrameTime deadline, std::function<void(FrameTime)> callback);
+    // request_one_shot_wake for an ambient effect (ScheduledFrameRequest::
+    // ambient): next_settling_wake leaves it out.
+    [[nodiscard]] FrameRequestToken request_ambient_wake(FrameTime deadline, std::function<void(FrameTime)> callback);
     // The input state, made on first use (a window that sees no input
     // allocates none).
     detail::InteractionState& interaction_state();
@@ -2739,6 +2766,15 @@ private:
     // neither is null. The copy is kept on the control while the shown
     // effect is the same.
     [[nodiscard]] std::shared_ptr<const PaintGroupEffect> painted_content_effect(Control& control);
+    // Begins the content wash's group over `bounds` (Window::set_content_wash):
+    // the application's planes are drawn inside it, the overlays and the
+    // band after it. False, beginning nothing, without a wash, in high
+    // contrast, or for a window that starts each frame clear (a non-opaque
+    // backdrop, whose cleared pixels a source-over group would not clear).
+    [[nodiscard]] bool begin_content_wash(Painter& candidate, Rect bounds);
+    // The in-use sign's state, made on first use (out of memory throws
+    // std::bad_alloc).
+    [[nodiscard]] detail::ModelSignState& model_sign_state();
     [[nodiscard]] bool eligible(const Control::Ptr& control) const noexcept;
     [[nodiscard]] bool move_focus_after(const Control::Ptr& origin);
     void set_focus_cue_visible(bool visible);
@@ -2767,6 +2803,11 @@ private:
     // The window outer band (Window::declare_band; gui_forms/window/band/
     // window_band.hpp). Only a Window declares one, so a sub-surface's
     // stays undeclared and reserves nothing.
+    // The content wash (Window::set_content_wash): 1 for none.
+    double content_wash_{1.0};
+    // The in-use sign's title note and composed wash; empty until a model
+    // first signs the window (src/core/window/model_sign/).
+    stxlib::Unique<detail::ModelSignState> model_sign_{};
     struct BandRecord final {
         bool declared{};
         WindowBandOptions options{};
@@ -2790,8 +2831,20 @@ private:
         bool cycling{};
         FrameTime cycle_start{};
         std::uint64_t cycle_frames{};
-        // The limited frequency of the running flash or cycle (cycles a
-        // second); 0 when neither runs.
+        // Whether a march or a sweep moves now, when it started, how far
+        // round it is (a fraction of a cycle) and the frames it has damaged
+        // the strips for.
+        bool moving{};
+        // What the strips draw: rest or lit (plain), or marching or
+        // sweeping (the pattern along the outline), resolved by
+        // refresh_band (high contrast, a texture or differing edges draw
+        // plain).
+        WindowBandState drawn_state{WindowBandState::rest};
+        FrameTime motion_start{};
+        double motion_phase{};
+        std::uint64_t motion_frames{};
+        // The limited frequency of the running flash, cycle, march or
+        // sweep (cycles a second); 0 when none runs.
         double frequency{};
         // Whether the strips draw appearance.texture (declared, reserved
         // and not high contrast).
@@ -3376,6 +3429,10 @@ private:
     FrameTime last_presentation_time_{};
     std::function<void()> paint_wake_handler_;
     bool paint_wake_pending_{};
+    // Ambient wakes running now (their invalidations do not hold settling),
+    // and whether paint not made by one is still waiting to be drawn.
+    std::uint32_t ambient_wake_depth_{};
+    bool settling_paint_pending_{true};
     std::function<void()> schedule_wake_handler_;
     // A schedule wake was handed to the host and its poll has not run yet.
     bool schedule_wake_pending_{};
@@ -3429,12 +3486,29 @@ private:
     // Draws the band over every plane, clipped to each painted rectangle
     // (paint_rectangles' last step).
     void paint_band(detail::RecordingPainter& candidate, std::span<const Rect> painted);
+    // Draws a march's or a sweep's pattern along `outline` (the band's
+    // centre line), `width` wide, inside paint_band's clip.
+    void paint_band_pattern(detail::RecordingPainter& candidate, PaintPathView outline, double width);
+    // next_wake's search, leaving out ambient wakes when `settling`.
+    [[nodiscard]] stxlib::Optional<FrameTime> earliest_wake(bool settling) const noexcept;
     // The motion wake: a flash changes phase, or a cycle moves a frame;
     // the strips are damaged, and the next wake is armed while the motion
     // still runs.
     void band_flash_due(FrameTime now);
     // The flash wake's target (window_band.cpp).
     struct BandFlashWake;
+    // The AI-mode veil (Window::set_model_veil, model_veil.cpp): gathers
+    // the control surfaces it stripes; damages them; starts or stops its
+    // motion as the motion settings allow (called with refresh_band); the
+    // motion's wake, its interval and its target; and its painting over
+    // the application's planes, clipped to each painted rectangle.
+    void gather_veil_surfaces(detail::ModelSignState& sign);
+    void damage_veil(const detail::ModelSignState& sign);
+    void refresh_veil_motion();
+    [[nodiscard]] FrameInterval veil_step() const noexcept;
+    void veil_motion_due(FrameTime now);
+    void paint_model_veil(detail::RecordingPainter& candidate, std::span<const Rect> painted);
+    struct VeilWake;
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.

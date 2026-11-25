@@ -3,6 +3,7 @@
 #include "gui_forms/window.hpp"
 #include "../../surface_root/requests/alert_route.hpp"
 #include "../session/drag_items.hpp"
+#include "../session/session_directory.hpp"
 
 #include <stxlib/optional.hpp>
 #include <algorithm>
@@ -347,6 +348,20 @@ HostWindowCornersResult HostServices::apply_window_corners_impl(WindowCornerPref
     static_cast<void>(preference);
     HostWindowCornersResult refused{};
     refused.status.error = HostServiceError::unsupported;
+    return refused;
+}
+
+HostServiceStatus HostServices::apply_system_border_colour(stxlib::Optional<Color> colour) {
+    if (stxlib::current_thread() != ui_thread_) return reject(HostServiceError::wrong_thread);
+    if (snapshot_.shutdown) return reject(HostServiceError::after_shutdown);
+    const HostServiceStatus status = apply_system_border_colour_impl(colour);
+    return status;
+}
+
+HostServiceStatus HostServices::apply_system_border_colour_impl(stxlib::Optional<Color> colour) {
+    static_cast<void>(colour);
+    HostServiceStatus refused{};
+    refused.error = HostServiceError::unsupported;
     return refused;
 }
 
@@ -913,6 +928,20 @@ HostDialogResult HostServices::show_dialog(const HostDialogRequest& request) {
     }
 
     ++snapshot_.dialog_requests;
+    // While a model's call runs, the program's question is the model's: it
+    // is answered from the call's argument and never shown (owner, round 3).
+    try {
+        if (detail::answer_model_question(request, result)) {
+            ++snapshot_.dialog_completions;
+            snapshot_.dialog_cancellations +=
+                dialog_outcome(result.payload) == HostDialogOutcome::cancelled ? 1U : 0U;
+            return result;
+        }
+    } catch (...) {
+        result = {{HostServiceError::backend_failure}, request.request_id, HostMessageDialogResult{}};
+        ++snapshot_.rejected_requests;
+        return result;
+    }
     revoke_cursor_interaction(CursorError::denied);
     modal_stack_.push_back(request.request_id);
     snapshot_.modal_depth = static_cast<std::uint32_t>(modal_stack_.size());

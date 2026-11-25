@@ -82,30 +82,30 @@ static void marks(gf_kit* kit) {
 static void tools(gf_kit* kit) {
     automation_counts counts;
     memset(&counts, 0, sizeof(counts));
-    gf_automation_tool tool = blank_tool("kit.automation.echo", &counts);
+    gf_automation_tool tool = blank_tool("kit_automation_echo", &counts);
     gf_kit_status(kit, (*kit).automation.register_tool(&tool), GF_STATUS_OK, "register a tool");
     gf_kit_status(kit, (*kit).automation.register_tool(&tool), GF_STATUS_INVALID_STATE, "a name is registered once");
     gf_automation_tool shadow = blank_tool("snapshot", &counts);
     gf_kit_status(kit, (*kit).automation.register_tool(&shadow), GF_STATUS_INVALID_STATE,
                   "a built-in tool's name is refused");
-    gf_automation_tool off_thread = blank_tool("kit.automation.off", &counts);
+    gf_automation_tool off_thread = blank_tool("kit_automation_off", &counts);
     off_thread.access = GF_AUTOMATION_TOOL_ACTING;
     off_thread.flags = GF_AUTOMATION_TOOL_ANY_THREAD;
     gf_kit_status(kit, (*kit).automation.register_tool(&off_thread), GF_STATUS_INVALID_ARGUMENT,
                   "an acting tool runs on the UI thread");
-    gf_automation_tool short_record = blank_tool("kit.automation.short", &counts);
+    gf_automation_tool short_record = blank_tool("kit_automation_short", &counts);
     short_record.struct_size = 16u;
     gf_kit_status(kit, (*kit).automation.register_tool(&short_record), GF_STATUS_INVALID_ARGUMENT,
                   "a short tool record is refused");
-    gf_automation_tool no_call = blank_tool("kit.automation.silent", &counts);
+    gf_automation_tool no_call = blank_tool("kit_automation_silent", &counts);
     no_call.call = NULL;
     gf_kit_status(kit, (*kit).automation.register_tool(&no_call), GF_STATUS_INVALID_ARGUMENT,
                   "a tool needs its call");
     gf_kit_check(kit, counts.releases == 0u, "refused registrations are not released");
-    gf_kit_status(kit, (*kit).automation.unregister_tool(gf_kit_text("kit.automation.echo")), GF_STATUS_OK,
+    gf_kit_status(kit, (*kit).automation.unregister_tool(gf_kit_text("kit_automation_echo")), GF_STATUS_OK,
                   "unregister the tool");
     gf_kit_check(kit, counts.releases == 1u && counts.calls == 0u, "the tool is released once");
-    gf_kit_status(kit, (*kit).automation.unregister_tool(gf_kit_text("kit.automation.echo")), GF_STATUS_NOT_FOUND,
+    gf_kit_status(kit, (*kit).automation.unregister_tool(gf_kit_text("kit_automation_echo")), GF_STATUS_NOT_FOUND,
                   "an unregistered tool is not found");
     gf_kit_status(kit, (*kit).automation.reply_text(NULL, gf_kit_text("x")), GF_STATUS_INVALID_ARGUMENT,
                   "a reply needs a call's token");

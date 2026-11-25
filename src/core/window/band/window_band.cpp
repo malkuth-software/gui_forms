@@ -160,9 +160,115 @@ struct ResolvedBand final {
     Color lit{transparent_colour};
     bool flashing{};
     bool cycling{};
+    bool moving{};
     double frequency{};
     bool textured{};
+    WindowBandState drawn_state{WindowBandState::rest};
 };
+
+bool moving_state(WindowBandState state) noexcept {
+    const bool moving = state == WindowBandState::sweeping;
+    return moving;
+}
+
+// The band's centre line as a path: the rectangle `rect` with each corner
+// rounded by its radius in `radii` (0 keeps it square), clockwise from the
+// end of the top-left corner, closed. Sized for its largest case: a move,
+// four corners and a close; an arc takes three points.
+struct BandOutline final {
+    std::array<PaintPathVerb, 6> verbs{};
+    std::array<Point, 13> points{};
+    std::size_t verb_count{};
+    std::size_t point_count{};
+
+    [[nodiscard]] PaintPathView view() const& noexcept {
+        const PaintPathView path{std::span<const PaintPathVerb>(verbs.data(), verb_count),
+                                 std::span<const Point>(points.data(), point_count)};
+        return path;
+    }
+    PaintPathView view() const&& = delete;
+};
+
+// Appends a corner of the outline: a straight line to `corner` for a
+// radius of 0, else a quarter arc about `centre` from `start_degrees`
+// (clockwise, y down, from +x).
+void append_outline_corner(BandOutline& outline, Point corner, Point centre, double radius, double start_degrees) {
+    if (radius <= 0.0) {
+        outline.verbs[outline.verb_count] = PaintPathVerb::line_to;
+        ++outline.verb_count;
+        outline.points[outline.point_count] = corner;
+        ++outline.point_count;
+        return;
+    }
+    outline.verbs[outline.verb_count] = PaintPathVerb::arc_to;
+    ++outline.verb_count;
+    outline.points[outline.point_count] = centre;
+    outline.points[outline.point_count + 1U] = Point{radius, radius};
+    outline.points[outline.point_count + 2U] = Point{start_degrees, 90.0};
+    outline.point_count += 3U;
+}
+
+void fill_band_outline(Rect rect, PaintCornerRadii radii, BandOutline& outline) {
+    const double right = rect.x + rect.width;
+    const double bottom = rect.y + rect.height;
+    outline.verb_count = 0U;
+    outline.point_count = 0U;
+    outline.verbs[0] = PaintPathVerb::move_to;
+    outline.points[0] = Point{rect.x + radii.top_left, rect.y};
+    outline.verb_count = 1U;
+    outline.point_count = 1U;
+    append_outline_corner(outline, Point{right, rect.y}, Point{right - radii.top_right, rect.y + radii.top_right},
+                          radii.top_right, -90.0);
+    append_outline_corner(outline, Point{right, bottom},
+                          Point{right - radii.bottom_right, bottom - radii.bottom_right}, radii.bottom_right, 0.0);
+    append_outline_corner(outline, Point{rect.x, bottom}, Point{rect.x + radii.bottom_left, bottom - radii.bottom_left},
+                          radii.bottom_left, 90.0);
+    append_outline_corner(outline, Point{rect.x, rect.y}, Point{rect.x + radii.top_left, rect.y + radii.top_left},
+                          radii.top_left, 180.0);
+    outline.verbs[outline.verb_count] = PaintPathVerb::close;
+    ++outline.verb_count;
+}
+
+// The radii of the band's centre line, half the band's `width` in from the
+// client area's edge: the host's radius less that half on each rounded
+// corner (the top ones stay square below a title bar), no more than half
+// the line's shorter side; all 0 when the corners are not rounded.
+PaintCornerRadii band_centre_radii(const WindowCornerReport& corners, double width, Size line) noexcept {
+    PaintCornerRadii radii{};
+    if (corners.shape != WindowCornerShape::rounded || corners.radius <= 0.0) return radii;
+    const double limit = std::max(std::min(line.width, line.height) * 0.5, 0.0);
+    const double radius = std::min(std::max(corners.radius - width * 0.5, 0.0), limit);
+    radii.bottom_right = radius;
+    radii.bottom_left = radius;
+    if (!corners.top_square) {
+        radii.top_left = radius;
+        radii.top_right = radius;
+    }
+    return radii;
+}
+
+bool any_radius(PaintCornerRadii radii) noexcept {
+    const bool any = radii.top_left > 0.0 || radii.top_right > 0.0 || radii.bottom_right > 0.0 ||
+                     radii.bottom_left > 0.0;
+    return any;
+}
+
+// `from` moved `share` of the way to `to`, channel by channel.
+Color mixed_colour(Color from, Color to, double share) noexcept {
+    const double keep = 1.0 - share;
+    const Color colour{static_cast<std::uint8_t>(std::lround(from.red * keep + to.red * share)),
+                       static_cast<std::uint8_t>(std::lround(from.green * keep + to.green * share)),
+                       static_cast<std::uint8_t>(std::lround(from.blue * keep + to.blue * share)),
+                       static_cast<std::uint8_t>(std::lround(from.alpha * keep + to.alpha * share))};
+    return colour;
+}
+
+Color with_alpha_share(Color colour, double share) noexcept {
+    const double alpha = std::clamp(static_cast<double>(colour.alpha) * share, 0.0, 255.0);
+    Color shaded = colour;
+    shaded.alpha = static_cast<std::uint8_t>(std::lround(alpha));
+    return shaded;
+}
 
 // One strip's texture as a material: the texture's one fill layer, square
 // and borderless.
@@ -209,7 +315,8 @@ bool window_band_texture_valid(const WindowBandTexture& texture) noexcept {
 
 bool window_band_appearance_valid(const WindowBandAppearance& appearance) noexcept {
     const bool known = appearance.state == WindowBandState::rest || appearance.state == WindowBandState::lit ||
-                       appearance.state == WindowBandState::flashing || appearance.state == WindowBandState::cycling;
+                       appearance.state == WindowBandState::flashing || appearance.state == WindowBandState::cycling ||
+                       appearance.state == WindowBandState::sweeping;
     bool role = false;
     switch (appearance.lit_role) {
     case WindowBandColourRole::theme:
@@ -250,6 +357,16 @@ const char* window_corner_shape_name(WindowCornerShape shape) noexcept {
     return "unknown";
 }
 
+const char* window_corner_source_name(WindowCornerSource source) noexcept {
+    switch (source) {
+    case WindowCornerSource::unknown: return "unknown";
+    case WindowCornerSource::platform: return "platform";
+    case WindowCornerSource::layout_region: return "layout_region";
+    case WindowCornerSource::private_getter: return "private_getter";
+    }
+    return "unknown";
+}
+
 // --- The surface side -------------------------------------------------------
 
 Rect SurfaceRoot::content_rect() const noexcept {
@@ -286,6 +403,8 @@ void SurfaceRoot::damage_band_strips(Insets widths) {
 }
 
 void SurfaceRoot::refresh_band() {
+    // The AI-mode veil moves or rests by the same motion settings.
+    refresh_veil_motion();
     const Window* const window = root_ ? (*root_).attached_window() : nullptr;
     if (window == nullptr || theme_ == nullptr) return;
     ResolvedBand resolved{};
@@ -336,12 +455,36 @@ void SurfaceRoot::refresh_band() {
                 if (resolved.flashing || resolved.cycling) resolved.frequency = pose.frequency;
             }
             resolved.textured = appearance.texture.present();
+            resolved.drawn_state = appearance.state == WindowBandState::rest ? WindowBandState::rest
+                                                                             : WindowBandState::lit;
+            if (moving_state(appearance.state)) {
+                // A march or a sweep: drawn as one stroke along the outline,
+                // so one width on every edge and no texture; it moves at
+                // most maximum_band_frequency cycles a second and stands
+                // still where the limiter rests motion.
+                const double frequency = std::min(appearance.frequency, maximum_band_frequency);
+                const bool patterned = uniform_edges(asked) && !resolved.textured;
+                if (patterned) resolved.drawn_state = appearance.state;
+                resolved.moving = patterned && !motion_clock_.ambient_suppressed() &&
+                                  frequency >= minimum_active_border_frequency;
+                if (resolved.moving) resolved.frequency = frequency;
+            }
         }
         resolved.reserved = snapped_band_edges(asked, scale_);
-        if (!any_edge(resolved.reserved)) resolved.textured = false;
+        if (!any_edge(resolved.reserved)) {
+            resolved.textured = false;
+            resolved.moving = false;
+        }
     }
 
     const bool was_cycling = band_.cycling;
+    const bool was_moving = band_.moving;
+    const bool pattern_changed = band_.drawn_state != resolved.drawn_state;
+    if (resolved.moving && !(was_moving && band_.frequency == resolved.frequency)) {
+        // A march or sweep starts, or changes speed, from where it stands.
+        const std::chrono::duration<double> into(band_.motion_phase / resolved.frequency);
+        band_.motion_start = motion_clock_.now() - std::chrono::duration_cast<FrameInterval>(into);
+    }
     if (!resolved.flashing) band_.lit_phase = true;
     Color drawn = resolved.lit;
     if (band_.appearance.state == WindowBandState::rest) drawn = resolved.rest;
@@ -363,12 +506,15 @@ void SurfaceRoot::refresh_band() {
 
     const Insets previous_widths = band_.reserved;
     const Color previous_drawn = band_.drawn;
+    const Color previous_rest = band_.rest;
     const bool previous_textured = band_.textured;
     band_.rest = resolved.rest;
     band_.lit = resolved.lit;
     band_.drawn = drawn;
     band_.flashing = resolved.flashing;
     band_.cycling = resolved.cycling;
+    band_.moving = resolved.moving;
+    band_.drawn_state = resolved.drawn_state;
     band_.frequency = resolved.frequency;
     band_.textured = resolved.textured;
     if (!(resolved.reserved == previous_widths)) {
@@ -382,25 +528,39 @@ void SurfaceRoot::refresh_band() {
         mark_child_layout_slot(*root_);
         mark_resized_measure(*root_, old_slot.width != new_slot.width, old_slot.height != new_slot.height);
         touch_paint();
-    } else if (!(drawn == previous_drawn) || previous_textured != resolved.textured) {
+    } else if (!(drawn == previous_drawn) || previous_textured != resolved.textured || pattern_changed ||
+               !(band_.rest == previous_rest)) {
         damage_band_strips(band_.reserved);
     }
 
-    if (!band_.flashing && !band_.cycling) {
+    if (!band_.flashing && !band_.cycling && !band_.moving) {
         band_.flash_wake.disconnect();
         return;
     }
     // A motion that changed kind waits a whole step of the new kind.
-    if (band_.cycling != was_cycling) band_.flash_wake.disconnect();
+    if (band_.cycling != was_cycling || band_.moving != was_moving) band_.flash_wake.disconnect();
     if (band_.flash_wake.connected()) return;
-    const FrameInterval step = band_.cycling ? band_cycle_interval() : band_flash_half_period(band_.frequency);
+    const FrameInterval step =
+        band_.cycling || band_.moving ? band_cycle_interval() : band_flash_half_period(band_.frequency);
     const FrameTime next = motion_clock_.now() + step;
-    band_.flash_wake = request_one_shot_wake(next, BandFlashWake{this});
+    // The band's motion is ambient: it never holds the window from
+    // settling (next_settling_wake), whatever runs it.
+    band_.flash_wake = request_ambient_wake(next, BandFlashWake{this});
 }
 
 void SurfaceRoot::band_flash_due(FrameTime now) {
     band_.flash_wake.disconnect();
-    if ((!band_.flashing && !band_.cycling) || !any_edge(band_.reserved)) return;
+    if ((!band_.flashing && !band_.cycling && !band_.moving) || !any_edge(band_.reserved)) return;
+    if (band_.moving) {
+        // The pattern's place on the motion clock: a fraction of a cycle.
+        const std::chrono::duration<double> elapsed = now - band_.motion_start;
+        const double cycles = elapsed.count() * band_.frequency;
+        band_.motion_phase = cycles - std::floor(cycles);
+        ++band_.motion_frames;
+        damage_band_strips(band_.reserved);
+        band_.flash_wake = request_ambient_wake(now + band_cycle_interval(), BandFlashWake{this});
+        return;
+    }
     if (band_.cycling) {
         ActiveBorderPose pose{};
         pose.lit = band_.lit;
@@ -414,7 +574,7 @@ void SurfaceRoot::band_flash_due(FrameTime now) {
             band_.drawn = drawn;
             damage_band_strips(band_.reserved);
         }
-        band_.flash_wake = request_one_shot_wake(now + band_cycle_interval(), BandFlashWake{this});
+        band_.flash_wake = request_ambient_wake(now + band_cycle_interval(), BandFlashWake{this});
         return;
     }
     band_.lit_phase = !band_.lit_phase;
@@ -423,7 +583,7 @@ void SurfaceRoot::band_flash_due(FrameTime now) {
     damage_band_strips(band_.reserved);
     // The next change half a period after this one; refresh_band keeps it,
     // or disconnects it when the flash was stilled meanwhile.
-    band_.flash_wake = request_one_shot_wake(now + band_flash_half_period(band_.frequency), BandFlashWake{this});
+    band_.flash_wake = request_ambient_wake(now + band_flash_half_period(band_.frequency), BandFlashWake{this});
     refresh_band();
 }
 
@@ -432,10 +592,19 @@ void SurfaceRoot::paint_band(detail::RecordingPainter& candidate, std::span<cons
     const bool coloured = band_.drawn.alpha != 0U;
     if (!any_edge(widths) || (!coloured && !band_.textured)) return;
     const Rect client{0.0, 0.0, client_size_.width, client_size_.height};
-    // One stroke along a rounded outline needs one width on every side; a
-    // band of differing edges draws square strips.
-    const bool rounded = band_.corners.shape == WindowCornerShape::rounded && band_.corners.radius > 0.0 &&
-                         uniform_edges(widths) && !band_.textured;
+    // One stroke along the outline (rounded where the host rounds the
+    // window, the pattern of a march or a sweep) needs one width on every
+    // side; a band of differing edges or a texture draws square strips.
+    const double width = widths.left;
+    const double half = width * 0.5;
+    const Rect line{client.x + half, client.y + half, std::max(client.width - width, 0.0),
+                    std::max(client.height - width, 0.0)};
+    const PaintCornerRadii radii = band_centre_radii(band_.corners, width, Size{line.width, line.height});
+    const bool stroked = uniform_edges(widths) && !band_.textured;
+    const bool patterned = stroked && moving_state(band_.drawn_state);
+    const bool rounded = stroked && any_radius(radii);
+    BandOutline outline{};
+    if (patterned) fill_band_outline(line, radii, outline);
     const std::array<Rect, 4> strips = band_strips(client_size_, widths);
     const Rect content = content_rect();
     std::optional<SurfaceMaterial> texture{};
@@ -445,15 +614,12 @@ void SurfaceRoot::paint_band(detail::RecordingPainter& candidate, std::span<cons
         if (content.contains(rectangle)) continue;
         candidate.save();
         candidate.clip_rect(rectangle);
-        if (rounded) {
+        if (patterned) {
+            paint_band_pattern(candidate, outline.view(), width);
+        } else if (rounded) {
             // One stroke along the window's rounded outline: centred half
-            // the width in, its radius as much smaller.
-            const double width = widths.left;
-            const double half = width * 0.5;
-            const Rect path{client.x + half, client.y + half, std::max(client.width - width, 0.0),
-                            std::max(client.height - width, 0.0)};
-            const double radius = std::max(band_.corners.radius - half, 0.0);
-            candidate.stroke_rounded_rect(path, radius, band_.drawn, width);
+            // the width in, its radii as much smaller.
+            candidate.stroke_rounded_rect_corners(line, radii, band_.drawn, width);
         } else {
             for (const Rect& strip : strips) {
                 const Rect touched = Rect::intersection(strip, rectangle);
@@ -464,6 +630,37 @@ void SurfaceRoot::paint_band(detail::RecordingPainter& candidate, std::span<cons
             }
         }
         candidate.restore();
+    }
+}
+
+void SurfaceRoot::paint_band_pattern(detail::RecordingPainter& candidate, PaintPathView outline, double width) {
+    // The rest colour under the whole outline, then the lit pattern over it.
+    StrokeStyle base{};
+    base.width = width;
+    base.join = StrokeJoin::round;
+    if (!band_.moving) {
+        // Motion stilled (reduced motion, ambient motion off, occluded):
+        // a tint change in place of the glint.
+        base.color = mixed_colour(band_.rest, band_.lit, band_still_tint);
+        if (base.color.alpha != 0U) candidate.stroke_path(outline, base);
+        return;
+    }
+    if (band_.rest.alpha != 0U) {
+        base.color = band_.rest;
+        candidate.stroke_path(outline, base);
+    }
+    // A glint whose head runs one lap a cycle, fading over three layers
+    // behind it: the whole glint faint, its front two thirds stronger, its
+    // front third full.
+    constexpr std::array<double, 3> lengths{1.0, 2.0 / 3.0, 1.0 / 3.0};
+    constexpr std::array<double, 3> shares{0.35, 0.6, 1.0};
+    StrokeStyle glint = base;
+    glint.cap = StrokeCap::round;
+    for (std::size_t layer = 0U; layer < lengths.size(); ++layer) {
+        const double length = band_glint_fraction * lengths[layer];
+        glint.color = with_alpha_share(band_.lit, shares[layer]);
+        glint.trim = StrokeTrim{0.0, length, band_.motion_phase - length};
+        candidate.stroke_path(outline, glint);
     }
 }
 
@@ -515,6 +712,9 @@ WindowBandSnapshot Window::band_snapshot() const noexcept {
     snapshot.corners = band_.corners;
     snapshot.flash_changes = band_.flash_changes;
     snapshot.cycle_frames = band_.cycle_frames;
+    snapshot.moving = band_.moving;
+    snapshot.motion_phase = band_.motion_phase;
+    snapshot.motion_frames = band_.motion_frames;
     return snapshot;
 }
 
@@ -556,8 +756,18 @@ void Window::set_corner_preference(WindowCornerPreference preference) {
     apply_corner_preference();
 }
 
+void Window::set_system_border_colour(stxlib::Optional<Color> colour) {
+    require_root_thread("system border colour");
+    system_border_colour_ = colour;
+    if (host_services_ != nullptr) static_cast<void>((*host_services_).apply_system_border_colour(colour));
+}
+
 void Window::apply_corner_preference() {
     WindowCornerReport report{};
+    // A border colour set before the host attached reaches it now.
+    if (host_services_ != nullptr && system_border_colour_.present()) {
+        static_cast<void>((*host_services_).apply_system_border_colour(system_border_colour_));
+    }
     if (host_services_ != nullptr) {
         const HostWindowCornersResult applied = (*host_services_).apply_window_corners(band_.corner_preference);
         report = applied.report;

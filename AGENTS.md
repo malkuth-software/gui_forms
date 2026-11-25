@@ -115,15 +115,17 @@ native code), and fails on any finding its shrink-only allowance
 count, or allow one use in the source with `// std-rules: allow(<rule>)
 <reason>`; never raise a count.
 
-The seventh (D15, stage V0) counts the standard vocabulary D15 and its Q2
-replace at the C++ surface (`std::string`, `std::vector`, the ownership
-pointers, `std::optional`, `std::string_view`, `std::span`; qualified names
-in `include/gui_forms/` without `c/`, read with `check_std_rules.py`'s
-comment and literal stripping). The baseline,
-`manifests/std_surface_census.json`, is a ratchet: the check fails when a
-count rises, and also when one falls, until `python3 -I
-tools/std_surface_census.py update` lowers it in the same change (update
-refuses to raise a count). Conversions between the two vocabularies inside
+The seventh counts the standard vocabulary at the C++ surface
+(`std::string`, `std::vector`, the ownership pointers, `std::optional`,
+`std::string_view`, `std::span`; qualified names in `include/gui_forms/`
+without `c/`, read with `check_std_rules.py`'s comment and literal
+stripping). It is a change report, not a goal: std types in public
+signatures are fine (owner, 2026-11-17, restated 2026-11-24; D15 V2 to V6
+dropped), so never change a public signature's type for it. The baseline,
+`manifests/std_surface_census.json`, is the shipped 1.0 surface (1.0.4);
+the check fails when a count differs, `python3 -I
+tools/std_surface_census.py update` lowers it, and `update --accept-rise`
+records a rise. CI reports it without blocking. Conversions between the two vocabularies inside
 GUI.Forms go through the private bridge, `src/platform/stxlib_bridge.hpp`.
 
 `stx_skia/` and what remains of the third-party data (the Unicode data) live

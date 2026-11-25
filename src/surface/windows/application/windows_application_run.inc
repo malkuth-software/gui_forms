@@ -25,6 +25,8 @@ struct WindowsRunSlot final {
     // never reaches destroyed(); reclaim releases it all the same.
     bool never_created{};
     bool print_metrics_on_close{};
+    // ApplicationWindow::outside_modality: run_modal never disables it.
+    bool outside_modality{};
     std::function<void(std::string_view metrics_json, std::string_view host_json)> final_snapshot{};
     std::string capture_path{};
 };
@@ -400,6 +402,7 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
     window_slot.stable_id = entry.stable_id;
     window_slot.initial = !runtime;
     window_slot.floating = floating;
+    window_slot.outside_modality = entry.outside_modality;
     window_slot.print_metrics_on_close = entry.options.print_metrics_on_close;
     window_slot.final_snapshot = entry.options.final_snapshot;
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
@@ -751,6 +754,7 @@ HostServiceStatus WindowsApplicationRun::run_modal_impl(HostWindowId window) {
         if (!candidate.state || (*candidate.state).destroyed()) continue;
         const HWND native_window = (*candidate.state).native_window();
         if (native_window == nullptr || native_window == modal_native) continue;
+        if (candidate.outside_modality) continue;
         if (!IsWindowEnabled(native_window)) continue;
         bool owned_by_modal = false;
         for (HWND owner_native = GetWindow(native_window, GW_OWNER); owner_native != nullptr;

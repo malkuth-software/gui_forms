@@ -2,6 +2,7 @@
 #import <CoreGraphics/CoreGraphics.h>
 #import <CoreVideo/CoreVideo.h>
 #import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#include <objc/message.h>
 
 #include "macos_host.hpp"
 #include "appkit_clipboard_image.hpp"
@@ -14,6 +15,7 @@
 #include "../compositor/macos_compositor.hpp"
 #include "../../../core/damage/device_damage/device_damage.hpp"
 #include "../../../core/failure/fail_fast.hpp"
+#include "../../../core/host/session/session_directory.hpp"
 #include "../../../render/skia/raster/skia_raster.hpp"
 
 #include <algorithm>
@@ -21,6 +23,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <exception>
 #include <memory>
 #include <optional>
@@ -200,6 +203,66 @@ void run_file_filter_filter_changed(GuiFormsFileFilterSwitch* object, NSPopUpBut
 @end
 
 namespace {
+
+// A titled window's corner radius, read only (owner, 2026-11-24: never
+// set or override the corner mask, never subclass the theme frame; WebKit
+// and Firefox gave that up for its WindowServer cost on macOS 26), with
+// where it came from. In order:
+// - macOS 26: the content view's layout regions. The safe area with
+//   vertical corner adaptation keeps content out of the bottom corners by
+//   exactly their radius beyond the plain safe area (measured on 26.7: 16
+//   for a plain titled window, 26 with a toolbar, matching the frame);
+// - before that, with GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS:
+//   -[NSWindow _effectiveCornerRadius], looked up with respondsToSelector:
+//   and never linked;
+// - otherwise unknown (the band draws square).
+// A window in full screen is square whatever these say (the layout region
+// still reports the windowed radius there); the caller checks first.
+struct CornerReading final {
+    double radius{};
+    gui_forms::WindowCornerSource source{gui_forms::WindowCornerSource::unknown};
+};
+
+CornerReading titled_window_corner_radius([[maybe_unused]] NSWindow* window) noexcept {
+    CornerReading reading{};
+    // NSViewLayoutRegion is in the macOS 26 SDK; a build with an older SDK
+    // (CI's macos-15 image) leaves the reading to the fallbacks below.
+#if MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
+    NSView* const content = window.contentView;
+    if (@available(macOS 26.0, *)) {
+        if (content != nil) {
+            NSViewLayoutRegion* const adapted =
+                [NSViewLayoutRegion safeAreaLayoutRegionWithCornerAdaptation:NSViewLayoutRegionAdaptivityAxisVertical];
+            NSViewLayoutRegion* const plain =
+                [NSViewLayoutRegion safeAreaLayoutRegionWithCornerAdaptation:NSViewLayoutRegionAdaptivityAxisNone];
+            const CGFloat radius = [content edgeInsetsForLayoutRegion:adapted].bottom -
+                                   [content edgeInsetsForLayoutRegion:plain].bottom;
+            if (radius > 0.0 && std::isfinite(radius)) {
+                reading.radius = static_cast<double>(radius);
+                reading.source = gui_forms::WindowCornerSource::layout_region;
+                return reading;
+            }
+        }
+    }
+#endif
+#if defined(GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS)
+    const SEL getter = NSSelectorFromString(@"_effectiveCornerRadius");
+    if ([window respondsToSelector:getter]) {
+        NSMethodSignature* const signature = [window methodSignatureForSelector:getter];
+        const char* const returned = signature == nil ? "" : [signature methodReturnType];
+        // Only a getter that returns a CGFloat is read.
+        if (std::strcmp(returned, @encode(CGFloat)) == 0) {
+            CGFloat (*const read)(id, SEL) = reinterpret_cast<CGFloat (*)(id, SEL)>(objc_msgSend);
+            const CGFloat radius = read(window, getter);
+            if (radius > 0.0 && std::isfinite(radius)) {
+                reading.radius = static_cast<double>(radius);
+                reading.source = gui_forms::WindowCornerSource::private_getter;
+            }
+        }
+    }
+#endif
+    return reading;
+}
 
 // The logical size of GUI.Forms' message icon (stock_alert_icon_image).
 constexpr CGFloat alert_icon_points = 32.0;
@@ -432,6 +495,92 @@ void add_escape_clicks_cancel(NSAlert* alert, NSButton* cancel_button) {
     [alert.window.contentView addSubview:escape];
 }
 
+// Whether the user's `event` must be held back from the alert the host runs
+// while a model holds control (session_directory.hpp, native_input_held):
+// pointer, key and scroll input to the alert itself or to any window that
+// does not work when modal. A panel that works when modal (the take-back
+// dialog, ApplicationWindow::outside_modality) gets its input.
+bool user_event(NSEvent* event) {
+    switch (event.type) {
+    case NSEventTypeLeftMouseDown:
+    case NSEventTypeLeftMouseUp:
+    case NSEventTypeLeftMouseDragged:
+    case NSEventTypeRightMouseDown:
+    case NSEventTypeRightMouseUp:
+    case NSEventTypeRightMouseDragged:
+    case NSEventTypeOtherMouseDown:
+    case NSEventTypeOtherMouseUp:
+    case NSEventTypeOtherMouseDragged:
+    case NSEventTypeKeyDown:
+    case NSEventTypeKeyUp:
+    case NSEventTypeScrollWheel: return true;
+    // Every other event type (moves, enter and exit, application, system
+    // and periodic events) is not the user's input to a window, and passes.
+    default: return false;
+    }
+}
+
+bool press_event(NSEvent* event) {
+    const NSEventType type = event.type;
+    return type == NSEventTypeLeftMouseDown || type == NSEventTypeRightMouseDown ||
+        type == NSEventTypeOtherMouseDown || (type == NSEventTypeKeyDown && !event.isARepeat);
+}
+
+bool reaches_outside_modality(NSEvent* event, NSWindow* alert_window) {
+    NSWindow* target = event.window;
+    const bool key = event.type == NSEventTypeKeyDown || event.type == NSEventTypeKeyUp;
+    if (key) target = NSApp.keyWindow;
+    if (target == nil || target == alert_window) return false;
+    return [target isKindOfClass:[NSPanel class]] && static_cast<NSPanel*>(target).worksWhenModal;
+}
+
+// Runs `alert` modally. While a model holds control, the user's input to it
+// is held back and a press offers the take-back dialog, which works over the
+// alert; once the user has taken control back the alert answers the user as
+// usual, and it stays open throughout (the take-back leaves it in place).
+// The loop is the alert's own modal session: it takes each event, holds the
+// user's, and otherwise passes it on only to the alert, a panel that works
+// when modal, or the application itself, as runModal does. With no model
+// holding control it is [alert runModal].
+NSModalResponse run_alert_modal(NSAlert* alert) {
+    if (!gui_forms::detail::native_input_held(false)) {
+        const NSModalResponse plain = [alert runModal];
+        return plain;
+    }
+    [alert layout];
+    NSWindow* const window = alert.window;
+    [window center];
+    NSModalSession session = [NSApp beginModalSessionForWindow:window];
+    NSModalResponse response = NSModalResponseContinue;
+    while (response == NSModalResponseContinue) {
+        @autoreleasepool {
+            NSDate* const until = [NSDate dateWithTimeIntervalSinceNow:0.05];
+            NSEvent* const event = [NSApp nextEventMatchingMask:NSEventMaskAny untilDate:until
+                                                         inMode:NSModalPanelRunLoopMode dequeue:YES];
+            if (event != nil) {
+                const bool input = user_event(event);
+                const bool outside = input && reaches_outside_modality(event, window);
+                if (input && !outside && gui_forms::detail::native_input_held(press_event(event))) {
+                    // Held: the press offered the take-back dialog.
+                } else if (!input || outside || event.window == window ||
+                           event.type == NSEventTypeKeyDown || event.type == NSEventTypeKeyUp) {
+                    // Keys go to the key window, which is the alert or a
+                    // panel that works when modal.
+                    [NSApp sendEvent:event];
+                } else if (press_event(event)) {
+                    // A press on another window while the alert is up, as
+                    // runModal answers it.
+                    NSBeep();
+                }
+            }
+            response = [NSApp runModalSession:session];
+        }
+    }
+    [NSApp endModalSession:session];
+    [window orderOut:nil];
+    return response;
+}
+
 void schedule_test_panel_cancel(NSSavePanel* panel, bool enabled) {
     if (!enabled) {
         return;
@@ -534,16 +683,15 @@ protected:
         return applied;
     }
 
-    // The window's corners, reported and never shaped (the active border
-    // study, section 3): AppKit has no public API to round or square a
-    // window, and none that reports the radius it uses. What is known is
-    // reported: a full-screen window and a borderless one have square
-    // corners. A titled window's are rounded by a radius that differs by
-    // release and style, so they are reported unknown and the band draws
-    // square inside them. `complied` says whether the window is as asked:
-    // `system` always, `square` where the corners are square, `round` never
-    // (a rounded titled window is not known to be rounded by a radius the
-    // band could follow).
+    // Corners: AppKit has no public corner API and never reshapes a window,
+    // so only what the window is can be reported. A full-screen window and a
+    // borderless one have square corners. A titled window is rounded by the
+    // radius its release draws (titled_window_corner_radius), and its
+    // client area's top corners meet the title bar, so they stay square
+    // (WindowCornerReport::top_square); a window whose content runs under a
+    // transparent title bar is rounded at all four. `complied` says whether
+    // the window is as asked: `system` always, `square` where the corners
+    // are square, `round` where they are rounded.
     gui_forms::HostWindowCornersResult apply_window_corners_impl(
         gui_forms::WindowCornerPreference preference) override {
         gui_forms::HostWindowCornersResult result{};
@@ -551,6 +699,7 @@ protected:
         NSWindow* const window = view == nil ? nil : view.window;
         const bool asked_system = preference == gui_forms::WindowCornerPreference::system;
         const bool asked_square = preference == gui_forms::WindowCornerPreference::square;
+        const bool asked_round = preference == gui_forms::WindowCornerPreference::round;
         if (window == nil) {
             result.report.complied = asked_system;
             return result;
@@ -560,11 +709,22 @@ protected:
         const bool borderless = (mask & NSWindowStyleMaskTitled) == 0;
         if (full_screen || borderless) {
             result.report.shape = gui_forms::WindowCornerShape::square;
+            result.report.source = gui_forms::WindowCornerSource::platform;
             result.report.complied = asked_system || asked_square;
-        } else {
-            result.report.shape = gui_forms::WindowCornerShape::unknown;
-            result.report.complied = asked_system;
+            return result;
         }
+        const CornerReading reading = titled_window_corner_radius(window);
+        if (reading.source == gui_forms::WindowCornerSource::unknown) {
+            // No source says how round the window is: unknown, drawn square
+            // (ACTIVE_BORDER_STUDY ruling 4).
+            result.report.complied = asked_system;
+            return result;
+        }
+        result.report.shape = gui_forms::WindowCornerShape::rounded;
+        result.report.radius = reading.radius;
+        result.report.source = reading.source;
+        result.report.top_square = (mask & NSWindowStyleMaskFullSizeContentView) == 0;
+        result.report.complied = asked_system || asked_round;
         return result;
     }
 
@@ -991,7 +1151,7 @@ protected:
                     add_escape_clicks_cancel(alert, cancelButton);
                 }
                 schedule_test_alert_cancel(alert, cancel_dialogs_for_testing_);
-                const NSModalResponse response = [alert runModal];
+                const NSModalResponse response = run_alert_modal(alert);
                 HostMessageDialogResult value;
                 const NSInteger index = response - NSAlertFirstButtonReturn;
                 if (index >= 0 && static_cast<std::size_t>(index) < buttons.size()) {
@@ -1109,7 +1269,7 @@ protected:
                 [alert addButtonWithTitle:@"OK"];
                 [alert addButtonWithTitle:@"Cancel"];
                 schedule_test_alert_cancel(alert, cancel_dialogs_for_testing_);
-                const NSModalResponse response = [alert runModal];
+                const NSModalResponse response = run_alert_modal(alert);
                 HostColorDialogResult value;
                 if (response == NSAlertFirstButtonReturn) {
                     NSColor* color = [well.color colorUsingColorSpace:[NSColorSpace sRGBColorSpace]];
@@ -1259,6 +1419,8 @@ private:
         case NSEventTypeRightMouseDragged:
         case NSEventTypeOtherMouseDown:
         case NSEventTypeOtherMouseDragged: return true;
+        // Every other event type (moves without a button, keys, scrolls,
+        // gestures, system events) starts no drag.
         default: return false;
         }
     }
@@ -1487,6 +1649,8 @@ NSEvent* drag_release_event(NSWindow* window, NSEventType start_type, NSPoint sc
     case NSEventTypeRightMouseDragged: release = NSEventTypeRightMouseUp; break;
     case NSEventTypeOtherMouseDown:
     case NSEventTypeOtherMouseDragged: release = NSEventTypeOtherMouseUp; break;
+    // Any other start (not a press or a drag with a button held) has no
+    // button to release.
     default: return nil;
     }
     const NSPoint location = [window convertPointFromScreen:screen_point];

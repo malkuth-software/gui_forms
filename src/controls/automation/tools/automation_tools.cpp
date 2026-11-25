@@ -29,6 +29,7 @@ const char* tool_error_name(ToolError error) noexcept {
     case ToolError::cancelled: return "cancelled";
     case ToolError::busy: return "busy";
     case ToolError::internal: return "internal";
+    case ToolError::expectation_failed: return "expectation_failed";
     }
     // A code outside the enumeration reads as the library's failure.
     return "internal";
@@ -71,7 +72,9 @@ ToolReply ToolReply::failure(ToolError error, std::string message, std::string h
     return reply;
 }
 
-bool valid_tool_name(std::string_view name) noexcept {
+// A section is named only inside inspect's arguments, which no client
+// renames: '.' stays allowed there.
+bool valid_section_name(std::string_view name) noexcept {
     if (name.empty() || name.size() > maximum_tool_name_bytes) return false;
     const bool letter_first = (name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z');
     if (!letter_first) return false;
@@ -79,6 +82,19 @@ bool valid_tool_name(std::string_view name) noexcept {
         const bool letter = (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
         const bool digit = character >= '0' && character <= '9';
         const bool punctuation = character == '_' || character == '-' || character == '.';
+        if (!letter && !digit && !punctuation) return false;
+    }
+    return true;
+}
+
+bool valid_tool_name(std::string_view name) noexcept {
+    if (name.empty() || name.size() > maximum_tool_name_bytes) return false;
+    const bool letter_first = (name[0] >= 'a' && name[0] <= 'z') || (name[0] >= 'A' && name[0] <= 'Z');
+    if (!letter_first) return false;
+    for (const char character : name) {
+        const bool letter = (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z');
+        const bool digit = character >= '0' && character <= '9';
+        const bool punctuation = character == '_' || character == '-';
         if (!letter && !digit && !punctuation) return false;
     }
     return true;
@@ -139,11 +155,12 @@ std::string_view view_of(const char* text) noexcept {
 // program's commands (command.<id>).
 bool reserved_tool_name(std::string_view name) noexcept {
     constexpr std::string_view built_in[] = {"windows", "snapshot", "act",     "pointer", "keyboard", "text",
-                                             "wait",    "capture",  "inspect", "batch",   "control"};
+                                             "wait",    "capture",  "inspect", "batch",   "release_control",
+                                             "find",    "reset"};
     for (const std::string_view reserved : built_in) {
         if (name == reserved) return true;
     }
-    const bool command = name.size() > 8U && name.substr(0U, 8U) == "command.";
+    const bool command = name.size() > 8U && name.substr(0U, 8U) == "command_";
     return command;
 }
 
@@ -208,7 +225,7 @@ void ToolRegistry::fill_specs(std::vector<ToolSpec>& specs) const {
 
 ToolRegistration ToolRegistry::add_inspect_section(std::string name, std::string description,
                                                    InspectSectionHandler handler, void* context) {
-    if (!valid_tool_name(name)) return ToolRegistration::invalid_name;
+    if (!valid_section_name(name)) return ToolRegistration::invalid_name;
     if (handler == nullptr || description.size() > maximum_tool_description_bytes || !valid_utf8(description)) {
         return ToolRegistration::invalid_spec;
     }

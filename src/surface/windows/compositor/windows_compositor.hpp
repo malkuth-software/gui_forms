@@ -58,6 +58,11 @@ void apply_windows_popup_frame(HWND window) noexcept;
 // each state change (HostWindowStateEvent).
 [[nodiscard]] HostWindowCornersResult apply_windows_corners(HWND window, WindowCornerPreference preference) noexcept;
 
+// Sets DWMWA_BORDER_COLOR (build 22000 and later) to `colour`'s red, green
+// and blue, or back to DWMWA_COLOR_DEFAULT for none. Unsupported before
+// Windows 11, where the attribute is refused.
+[[nodiscard]] HostServiceStatus apply_windows_border_colour(HWND window, stxlib::Optional<Color> colour) noexcept;
+
 // The radius DWM rounds a top-level window's corners by (DWMWCP_ROUND), in
 // logical units.
 inline constexpr double windows_corner_radius = 8.0;

@@ -1,0 +1,684 @@
+[
+ {
+  "name": "windows",
+  "title": "Windows",
+  "description": "Every window: stable ID, title, active, modal, size.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Windows",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "snapshot",
+  "title": "Snapshot",
+  "description": "The control tree as an outline: role, name, [stable ID], states, value, the actions each node takes and what its press opens (needs_user: it opens a dialog the user answers; instead= names a tool that does the same without one). A virtualised list says how many rows it does not show. Narrow it with root and filter; actions false leaves the actions out. A read: needs no control.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "root": {
+     "type": "string"
+    },
+    "filter": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1
+    },
+    "bounds": {
+     "type": "boolean"
+    },
+    "actions": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Snapshot",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "find",
+  "title": "Find",
+  "description": "Nodes by role, name (any case, part of it) and state, each with its [stable ID] and parent; cheaper than a snapshot when you know what you look for.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "role": {
+     "type": "string"
+    },
+    "name": {
+     "type": "string"
+    },
+    "state": {
+     "type": "string"
+    },
+    "within": {
+     "type": "string"
+    },
+    "limit": {
+     "type": "integer",
+     "minimum": 1
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Find",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "act",
+  "title": "Act",
+  "description": "A semantic action on a node (press, select, expand, collapse, focus, set_value, increment, decrement, show_menu, close), scroll_into_view, or invoke_command on a command's stable ID. A row a virtualised list does not show is reached by its ID. A dialog you opened may be closed (close on the dialog, as Cancel), never submitted. close on a program window's own ID closes the window: save first, then close. A question the program raises during an act (save changes?) is yours and never shown: with no on_unsaved the act stops there, the program stays as it was, and the reply gives the question and its choices; on_unsaved save or discard answers it. Waits for idle and replies with what changed; terse gives counts. Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that allows).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "action": {
+     "type": "string",
+     "enum": [
+      "press",
+      "select",
+      "expand",
+      "collapse",
+      "focus",
+      "set_value",
+      "increment",
+      "decrement",
+      "show_menu",
+      "close",
+      "scroll_into_view",
+      "invoke_command"
+     ]
+    },
+    "value": {
+     "type": "string"
+    },
+    "terse": {
+     "type": "boolean"
+    },
+    "on_unsaved": {
+     "type": "string",
+     "enum": [
+      "save",
+      "discard"
+     ]
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Act",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "reset",
+  "title": "Reset",
+  "description": "Puts the interface back in order: closes the dialogs you opened (as Cancel), popups and menus, tooltips and drags, releases pointer capture, and stops content that froze; replies with what it reset and what it left (a dialog the user opened). Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that allows).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Reset",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "pointer",
+  "title": "Pointer",
+  "description": "Pointer input through the program's own input path: move, hover, click, double_click, right_click, down, up, drag, wheel. Aim with a target (offset inside it, default its centre) or with position in window coordinates, not both. A drag presses at that point and moves through path: with a target, path points are in the target's space like offset; without one, window coordinates like position. Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that allows).",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "action": {
+     "type": "string",
+     "enum": [
+      "move",
+      "hover",
+      "click",
+      "double_click",
+      "right_click",
+      "down",
+      "up",
+      "drag",
+      "wheel"
+     ]
+    },
+    "offset": {
+     "type": "object",
+     "description": "Logical pixels from the target's top-left corner (its bounds as snapshot bounds gives them)",
+     "properties": {
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "x",
+      "y"
+     ],
+     "additionalProperties": false
+    },
+    "position": {
+     "type": "object",
+     "description": "Window coordinates: logical pixels from the top-left corner of the window's content area, the space of snapshot bounds",
+     "properties": {
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "required": [
+      "x",
+      "y"
+     ],
+     "additionalProperties": false
+    },
+    "path": {
+     "type": "array",
+     "items": {
+      "type": "object",
+      "description": "With a target, logical pixels from the target's top-left corner (as offset); without one, window coordinates (as position)",
+      "properties": {
+       "x": {
+        "type": "number"
+       },
+       "y": {
+        "type": "number"
+       }
+      },
+      "required": [
+       "x",
+       "y"
+      ],
+      "additionalProperties": false
+     },
+     "minItems": 1,
+     "maxItems": 256
+    },
+    "button": {
+     "type": "string",
+     "enum": [
+      "primary",
+      "secondary",
+      "middle"
+     ]
+    },
+    "modifiers": {
+     "type": "array",
+     "items": {
+      "type": "string"
+     }
+    },
+    "delta": {
+     "type": "object",
+     "description": "Wheel notches: y -1 scrolls down one notch, y 1 up; x scrolls sideways. Default {x: 0, y: -1}",
+     "properties": {
+      "x": {
+       "type": "number"
+      },
+      "y": {
+       "type": "number"
+      }
+     },
+     "additionalProperties": false
+    },
+    "terse": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Pointer",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "keyboard",
+  "title": "Keyboard",
+  "description": "Key chords (\"Ctrl+S\") and sequences, committed text, and composition, to the focused control or to a target focused first. Acts need control: in a shared launch (--mcp-shared) your first act asks the user (a 10-second countdown that allows). Replies with what changed, as act does.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "keys": {
+     "type": [
+      "string",
+      "array"
+     ],
+     "items": {
+      "type": "string"
+     }
+    },
+    "text": {
+     "type": "string"
+    },
+    "composition": {
+     "type": "object"
+    },
+    "terse": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Keyboard",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "text",
+  "title": "Text",
+  "description": "A node's whole text: a text control's value, selection and lines (with select, sets the selection, UTF-8 byte offsets); any other node's full name, value and description, such as a label cut in the outline.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "select": {
+     "type": "object",
+     "properties": {
+      "anchor": {
+       "type": "integer",
+       "minimum": 0
+      },
+      "caret": {
+       "type": "integer",
+       "minimum": 0
+      }
+     },
+     "required": [
+      "anchor",
+      "caret"
+     ]
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Text",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "wait",
+  "title": "Wait",
+  "description": "Waits until the next frame, idle, a time (ms), a condition on a node (state, value, exists) or a user step done.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "until": {
+     "type": "string",
+     "enum": [
+      "frame",
+      "idle",
+      "ms",
+      "node",
+      "user_step"
+     ]
+    },
+    "ms": {
+     "type": "number",
+     "minimum": 0
+    },
+    "timeout_ms": {
+     "type": "number",
+     "minimum": 0
+    },
+    "state": {
+     "type": "string"
+    },
+    "value": {
+     "type": "string"
+    },
+    "exists": {
+     "type": "boolean"
+    },
+    "step": {
+     "type": "string"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Wait",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "capture",
+  "title": "Capture",
+  "description": "A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so you see the program as its user does without a model. A read: needs no control.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "mode": {
+     "type": "string",
+     "enum": [
+      "rendered"
+     ]
+    },
+    "scale": {
+     "type": "number"
+    },
+    "margin": {
+     "type": "number"
+    },
+    "include_overlays": {
+     "type": "boolean"
+    },
+    "popups": {
+     "type": "boolean"
+    },
+    "include_sign": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Capture",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "inspect",
+  "title": "Inspect",
+  "description": "Beyond accessibility, sections chosen with what: state, layout, paint, metrics, dispatcher, interaction, session, schema, clipboard, summary, layout_reasons, resources, events. With a target, state, layout and schema by default; without, metrics, dispatcher and interaction.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "window": {
+     "type": "string",
+     "description": "a window's stable ID or title; default the active window"
+    },
+    "target": {
+     "type": "string",
+     "description": "a node's stable ID, or #r<n> for a runtime ID"
+    },
+    "within": {
+     "type": "string",
+     "description": "an ancestor's stable ID, when the target's ID repeats"
+    },
+    "what": {
+     "type": "array",
+     "items": {
+      "type": "string",
+      "enum": [
+       "state",
+       "layout",
+       "paint",
+       "metrics",
+       "dispatcher",
+       "interaction",
+       "session",
+       "schema",
+       "clipboard",
+       "summary",
+       "layout_reasons",
+       "resources",
+       "events"
+      ]
+     }
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Inspect",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "batch",
+  "title": "Batch",
+  "description": "Several steps in one call with one combined reply: each step is {\"tool\": name, ...that tool's arguments} or an expect guard {\"expect\": \"node\"|\"visual\", target, state, value, exists, drawn}; the batch stops at the first failure or unmet expectation. terse gives each act's changes as counts.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "steps": {
+     "type": "array",
+     "minItems": 1,
+     "maxItems": 64,
+     "items": {
+      "type": "object",
+      "minProperties": 1,
+      "description": "a tool step {tool, ...that tool's arguments} or an expect step {expect, window, target, within, state, value, exists, drawn}",
+      "properties": {
+       "tool": {
+        "type": "string"
+       },
+       "expect": {
+        "type": "string",
+        "enum": [
+         "node",
+         "visual"
+        ]
+       },
+       "window": {
+        "type": "string",
+        "description": "a window's stable ID or title; default the active window"
+       },
+       "target": {
+        "type": "string",
+        "description": "a node's stable ID, or #r<n> for a runtime ID"
+       },
+       "within": {
+        "type": "string",
+        "description": "an ancestor's stable ID, when the target's ID repeats"
+       },
+       "state": {
+        "type": "string",
+        "description": "a state the node has, or -state for one it lacks"
+       },
+       "value": {
+        "type": "string"
+       },
+       "exists": {
+        "type": "boolean"
+       },
+       "drawn": {
+        "type": "boolean",
+        "description": "visual: whether the state is drawn"
+       }
+      }
+     }
+    },
+    "stop_on_error": {
+     "type": "boolean"
+    },
+    "terse": {
+     "type": "boolean"
+    }
+   },
+   "required": [
+    "steps"
+   ],
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Batch",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "release_control",
+  "title": "Release control",
+  "description": "Gives the program back to the user and ends AI mode. In a shared launch your first act asks the user (a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s pass without a call; a launch with --mcp is yours from the start. Reads never need control.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {},
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Release control",
+   "readOnlyHint": true,
+   "destructiveHint": false,
+   "idempotentHint": true,
+   "openWorldHint": false
+  }
+ },
+ {
+  "name": "disconnect",
+  "title": "Disconnect",
+  "description": "Ends your session and closes the program cleanly. The usual path: save your work with the program's save tool, then disconnect. mode soft (the default) never closes over unsaved work and never shows anything: if the program asks to save, nothing closes, and the reply names what to save; save it, then disconnect again. mode hard ends the session regardless: control returns to the user and the program's own save question is shown to the user, or, with discard_unsaved true, unsaved changes are discarded and nothing is asked. If the user holds control, the program stays open and only your session ends.",
+  "inputSchema": {
+   "type": "object",
+   "properties": {
+    "mode": {
+     "type": "string",
+     "enum": [
+      "soft",
+      "hard"
+     ]
+    },
+    "discard_unsaved": {
+     "type": "boolean"
+    }
+   },
+   "additionalProperties": false
+  },
+  "annotations": {
+   "title": "Disconnect",
+   "readOnlyHint": false,
+   "destructiveHint": false,
+   "idempotentHint": false,
+   "openWorldHint": false
+  }
+ }
+]

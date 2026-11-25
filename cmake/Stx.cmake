@@ -215,8 +215,16 @@ else()
         file(READ "${_gui_stx_package}/${_gui_stx_owner_name}" _gui_stx_owner)
         string(STRIP "${_gui_stx_owner}" _gui_stx_owner)
     endif()
+    # The same tree reached through a symbolic link (a build directory moved
+    # to another volume and linked back) is still this tree: the owner and
+    # this tree are compared by their real paths.
+    set(_gui_stx_owner_real "")
+    if(NOT _gui_stx_owner STREQUAL "" AND EXISTS "${_gui_stx_owner}")
+        file(REAL_PATH "${_gui_stx_owner}" _gui_stx_owner_real)
+    endif()
+    file(REAL_PATH "${CMAKE_BINARY_DIR}" _gui_stx_binary_real)
     if(NOT _gui_stx_recorded STREQUAL _gui_stx_stamp AND NOT _gui_stx_recorded STREQUAL "" AND
-       NOT _gui_stx_owner STREQUAL "" AND NOT _gui_stx_owner STREQUAL "${CMAKE_BINARY_DIR}" AND
+       NOT _gui_stx_owner STREQUAL "" AND NOT _gui_stx_owner_real STREQUAL _gui_stx_binary_real AND
        EXISTS "${_gui_stx_owner}/CMakeCache.txt")
         message(FATAL_ERROR "the stx package at ${_gui_stx_package} belongs to the build tree ${_gui_stx_owner}, "
                             "which built it as
