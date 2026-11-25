@@ -2651,10 +2651,15 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL)
     # entry header, gui_forms_gallery/gallery.hpp.
     if(GUI_FORMS_INSTALL_GALLERY_MODEL)
         set_target_properties(gui_forms_gallery_model PROPERTIES EXPORT_NAME GalleryModel)
+        # Components gallery_model, demo_controls and lab (above): a full
+        # install (every native job's SDK, tools/toolkit_configure.py) carries
+        # all three, which gui_forms_devkit's programs link as GUIForms::GalleryModel,
+        # GUIForms::DemoControls and GUIForms::Lab.
         install(TARGETS gui_forms_gallery_model
                 EXPORT GUIFormsGalleryModelTargets
-                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR})
-        install(FILES demo/gallery.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery)
+                ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT gallery_model)
+        install(FILES demo/gallery.hpp DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/gui_forms_gallery
+                COMPONENT gallery_model)
         # The demonstration controls the pages show (audit F9), in their
         # own component; the lab controls come from GUIForms::Lab.
         install(TARGETS gui_forms_demo_controls
@@ -2673,7 +2678,8 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL)
         install(EXPORT GUIFormsGalleryModelTargets
                 FILE GUIFormsGalleryModelTargets.cmake
                 NAMESPACE GUIForms::
-                DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms)
+                DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/GUIForms
+                COMPONENT gallery_model)
     endif()
 endif()
 if(GUI_FORMS_INSTALL_GALLERY_MODEL AND NOT TARGET gui_forms_gallery_model)

@@ -119,6 +119,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_control_registry.py
           python3 -B -m unittest discover -s tools -p test_verify_install.py
           python3 -B -m unittest discover -s tools -p test_sdk_consumer_link.py
+          python3 -B -m unittest discover -s tools -p test_sdk_manifest.py
           python3 -B -m unittest discover -s tools -p test_drawing_bridge.py
           python3 -B -m unittest discover -s tools -p test_factory_bundle_sizes.py
           python3 tools/control_registry.py check
@@ -669,12 +670,39 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     permissions:
-      contents: read
+      # gh release upload of the SDK manifest into this commit's build-<sha>.
+      contents: write
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
-          sparse-checkout: CMakeLists.txt
+          sparse-checkout: |
+            CMakeLists.txt
+            tools/sdk_manifest.py
           sparse-checkout-cone-mode: false
+      # gui-forms-sdk-manifest.json, which gui_forms_devkit's resolver needs
+      # beside the per-platform SDK archives before it takes this build: each
+      # native job's record (native-platform.yml), joined. A platform whose job
+      # was promoted from an earlier run recorded nothing, and then the
+      # manifest is not written.
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: gui-forms-sdk-record-*
+          path: sdk-records
+      - name: Publish the SDK manifest into build-${{ github.sha }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="$(sed -n 's/^project(GUIForms VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+          test -n "$version"
+          if ! python3 -B tools/sdk_manifest.py assemble --version "$version" --revision "$GITHUB_SHA" --records sdk-records --output gui-forms-sdk-manifest.json; then
+            echo "::notice::not every platform recorded its SDK in this run; build-${GITHUB_SHA} gets no SDK manifest"
+            exit 0
+          fi
+          if ! gh release view "build-${GITHUB_SHA}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::notice::build-${GITHUB_SHA} does not exist yet; no SDK manifest published"
+            exit 0
+          fi
+          gh release upload "build-${GITHUB_SHA}" gui-forms-sdk-manifest.json --repo "$GITHUB_REPOSITORY" --clobber
       - name: Check for the dispatch app
         id: app
         env:
