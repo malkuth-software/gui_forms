@@ -4,8 +4,8 @@
 #include "../../../core/application/application_state.hpp"
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
 #include "../../../runtime/automation/automation_run.hpp"
-#include "../../../core/host/session/session_directory.hpp"
 #endif
+#include "../../../core/host/session/session_directory.hpp"
 #include "../accessibility/windows_accessibility.hpp"
 #include "../services/windows_clipboard_image.hpp"
 #include "../services/windows_clipboard_open.hpp"
