@@ -3,7 +3,7 @@
 #include "../../core/application/application_state.hpp"
 #include "../../core/host/session/session_directory.hpp"
 
-#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "gui_forms/allocation/library_memory/program_allocator.hpp"
 #include "gui_forms/automation/marks/automation_marks.hpp"
 #include "../../controls/automation/marks/automation_marks_internal.hpp"
 #include "gui_forms/components/business_card/business_card.hpp"

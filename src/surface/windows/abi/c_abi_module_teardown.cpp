@@ -1,6 +1,7 @@
 // The C ABI library's DllMain (cmake/CAbi.cmake, the Windows library only):
 // marks the module's teardown at DLL_PROCESS_DETACH, before its static
-// destructors run (allocation/library_memory, "A module's end").
+// destructors run (allocation/library_memory/library_teardown.hpp,
+// "A module's end").
 //
 // The order: the CRT's DLL entry point (mingw-w64's __DllMainCRTStartup,
 // and the MSVC runtime's _DllMainCRTStartup) calls DllMain first at
@@ -13,7 +14,7 @@
 // Nothing here takes a lock, loads a module or allocates: it runs under
 // the loader lock.
 
-#include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "gui_forms/allocation/library_memory/library_teardown.hpp"
 
 #include <windows.h>
 
