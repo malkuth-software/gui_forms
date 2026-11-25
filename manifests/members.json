@@ -99,7 +99,7 @@
       {"kind": "property", "winforms": "TabIndex", "scope": "admitted", "gui_forms": "tab_index", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": "TabStop", "scope": "admitted", "gui_forms": "tab_stop", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": "Tag", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "property", "winforms": "Text", "scope": "admitted", "gui_forms": null, "carried_by": ["ButtonBase", "Button", "LinkLabel", "TextBox", "RichTextBox", "Label", "ComboBox", "CheckBox", "RadioButton", "GroupBox"], "status": "unclassified", "basis": "none", "question": "carried: a deriving GUI.Forms type declares it; see carried_by"},
+      {"kind": "property", "winforms": "Text", "scope": "admitted", "gui_forms": null, "carried_by": ["ButtonBase", "Button", "LinkLabel", "TextBox", "MaskedTextBox", "RichTextBox", "Label", "ComboBox", "CheckBox", "RadioButton", "GroupBox", "TabPage"], "status": "unclassified", "basis": "none", "question": "carried: a deriving GUI.Forms type declares it; see carried_by"},
       {"kind": "property", "winforms": "Top", "scope": "admitted", "gui_forms": "top", "status": "supported", "basis": "test", "evidence": "tests/core_tests.cpp"},
       {"kind": "property", "winforms": "TopLevelControl", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "UseWaitCursor", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
@@ -950,7 +950,7 @@
       {"kind": "property", "winforms": "InsertKeyMode", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "IsOverwriteMode", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "Lines", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
-      {"kind": "property", "winforms": "Mask", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+      {"kind": "property", "winforms": "Mask", "scope": "admitted", "gui_forms": "mask", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "property", "winforms": "MaskCompleted", "scope": "admitted", "gui_forms": "mask_completed", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "property", "winforms": "MaskedTextProvider", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "property", "winforms": "MaskFull", "scope": "admitted", "gui_forms": "mask_full", "status": "supported", "basis": "test", "evidence": "tests/masked_text_box_tests.cpp"},
@@ -984,6 +984,7 @@
       {"kind": "method", "winforms": "ValidateText", "scope": "admitted", "gui_forms": "validate_text", "status": "supported", "basis": "test", "evidence": "tests/masked_text_box_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "editor", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/breaker_state_copies_tests.cpp"},
       {"kind": "property", "winforms": null, "gui_forms": "provider", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/masked_text_box_tests.cpp"},
+      {"kind": "property", "winforms": "Control.Text", "scope": "admitted", "gui_forms": "text", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "event", "winforms": null, "gui_forms": "overwrite_mode_changed", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/masked_text_box_tests.cpp"},
       {"kind": "event", "winforms": "Control.TextChanged", "scope": "admitted", "gui_forms": "text_changed", "status": "supported", "basis": "test", "evidence": "tests/input_controls_tests.cpp"},
       {"kind": "method", "winforms": "TextBoxBase.Clear", "scope": "admitted", "gui_forms": "clear", "status": "supported", "basis": "test", "evidence": "tests/form_language/form_mockup_tests.cpp"},
@@ -3404,6 +3405,7 @@
       {"kind": "event", "winforms": "TextChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "VisibleChanged", "scope": "admitted", "gui_forms": "visible_changed", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": "GetTabPageOfComponent", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+      {"kind": "property", "winforms": "Control.Text", "scope": "admitted", "gui_forms": "text", "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "tab_page_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "FlexPanel", "winforms": null, "gui_forms_base": "ContainerControl", "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp", "members": [
