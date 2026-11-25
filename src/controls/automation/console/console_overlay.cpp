@@ -1,5 +1,7 @@
 #include "console_overlay.hpp"
 
+#include "../../../core/application/application_state.hpp"
+
 #include "gui_forms/controls/spinner.hpp"
 #include "gui_forms/events/input_events/input_events.hpp"
 #include "gui_forms/host/compositor/window_backdrop.hpp"
@@ -338,16 +340,18 @@ struct OverlayClosed final {
     }
 };
 
-// The follow timer's callback.
-struct FollowTick final {
+// The run's frame reports, for the program window only.
+struct OwnerFrameReport final {
     std::weak_ptr<ConsoleOverlay*> overlay{};
-    void operator()(FrameTime) const noexcept {
+    HostWindowId owner{};
+    void operator()(const HostWindowFrameEvent& event) const noexcept {
+        if (!(event.window == owner)) return;
         const std::shared_ptr<ConsoleOverlay*> live = overlay.lock();
         if (!live) return;
         try {
-            (**live).follow();
+            (**live).follow(event.frame.content);
         } catch (...) {
-            // The frame could not be read this time: the next tick tries.
+            // A window refused its move: the next report moves it again.
         }
     }
 };
@@ -458,7 +462,7 @@ bool ConsoleOverlay::show(const ApplicationWindowHandle& owner, std::string_view
         button_.reset();
         return false;
     }
-    arm_follow();
+    subscribe_follow();
     return true;
 }
 
@@ -478,7 +482,7 @@ void ConsoleOverlay::close_console() noexcept {
 }
 
 void ConsoleOverlay::hide() noexcept {
-    follow_tick_.disconnect();
+    follow_reports_.disconnect();
     close_console();
     if (button_) (*button_).forget_overlay();
     const ApplicationWindowHandle closing = button_handle_;
@@ -518,27 +522,24 @@ void ConsoleOverlay::refresh() {
     (*console_).take_lines(lines);
 }
 
-void ConsoleOverlay::follow() {
-    follow_tick_.disconnect();
-    if (!button_handle_.active() || !owner_.active()) return;
-    const HostWindowFrameResult frame = owner_.frame();
-    if (frame.status.accepted() && !(frame.frame.content == owner_content_)) {
-        owner_content_ = frame.frame.content;
-        static_cast<void>(button_handle_.request_frame(button_rect(owner_content_)));
-        if (console_handle_.active()) static_cast<void>(console_handle_.request_frame(console_rect(owner_content_)));
-    }
-    arm_follow();
+void ConsoleOverlay::follow(Rect content) {
+    if (!button_handle_.active() || content == owner_content_) return;
+    owner_content_ = content;
+    static_cast<void>(button_handle_.request_frame(button_rect(owner_content_)));
+    if (console_handle_.active()) static_cast<void>(console_handle_.request_frame(console_rect(owner_content_)));
 }
 
-void ConsoleOverlay::arm_follow() noexcept {
-    follow_tick_.disconnect();
-    Window* const window = button_window_.get();
-    if (window == nullptr || !button_) return;
+void ConsoleOverlay::subscribe_follow() noexcept {
+    follow_reports_.disconnect();
+    const std::shared_ptr<gui_forms::detail::ApplicationWindowState> state =
+        gui_forms::detail::ApplicationHandleAccess::state(owner_);
+    const std::shared_ptr<gui_forms::detail::ApplicationRunState> run =
+        state ? (*state).run.lock() : std::shared_ptr<gui_forms::detail::ApplicationRunState>{};
+    if (!run || (*run).closed || (*run).windowing == nullptr) return;
     try {
-        follow_tick_ = (*window).schedule_ui_timer(*button_, follow_interval, FrameClock::now() + follow_interval,
-                                                   FollowTick{self_});
+        follow_reports_ = (*(*run).windowing).frame_changed().subscribe(OwnerFrameReport{self_, owner_.id()});
     } catch (...) {
-        // The button's window is closing: it no longer follows.
+        // No memory for the subscription: the overlay stays where it opened.
     }
 }
 
@@ -575,7 +576,7 @@ void ConsoleOverlay::window_closed(bool console) noexcept {
         shown_serial_ = 0U;
         return;
     }
-    follow_tick_.disconnect();
+    follow_reports_.disconnect();
     if (button_) (*button_).forget_overlay();
     button_handle_ = ApplicationWindowHandle{};
     button_window_ = WindowRef{};

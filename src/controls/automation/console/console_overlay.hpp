@@ -28,8 +28,11 @@
 // - they are never in a capture: the automation's capture draws the
 //   program's own window and its menus' popup slots, and these are neither;
 // - the automation never attaches, reads or drives them (presenter_window).
-// They follow the program's window: a quarter-second timer on the button
-// compares the window's frame and moves both when it moved or was resized.
+// They follow the program's window on the host's own reports: the overlay
+// subscribes to the run's frame reports (HostWindowing::frame_changed) and
+// moves both windows when the program window's client rectangle changed
+// (a move, a resize, full screen or its end). Nothing polls, so an idle
+// program stays asleep.
 //
 // Ownership: the presenter owns the overlay; the overlay owns its two
 // windows and destroys them when AI mode ends or it is destroyed. Thread:
@@ -38,10 +41,9 @@
 #include "console_log.hpp"
 
 #include "gui_forms/application/application.hpp"
-#include "gui_forms/scheduler/frame_request_token/frame_request_token.hpp"
+#include "gui_forms/event/subscription_token/subscription_token.hpp"
 #include "gui_forms/surface_root/surface_root.hpp"
 
-#include <chrono>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -67,9 +69,6 @@ public:
     static constexpr double button_height = 28.0;
     static constexpr double inset = 10.0;
     static constexpr double minimum_console_width = 420.0;
-    // How often the overlay compares the program window's frame.
-    static constexpr std::chrono::milliseconds follow_interval{250};
-
     // `listener` must outlive the overlay.
     explicit ConsoleOverlay(ConsoleOverlayListener* listener);
     ~ConsoleOverlay();
@@ -94,8 +93,9 @@ public:
     void request_press() noexcept;
     // New lines may be in the record: the open console takes them.
     void refresh();
-    // The follow timer: moves both windows to the program window's frame.
-    void follow();
+    // The host reported the program window's frame: moves both windows
+    // when its client rectangle `content` changed.
+    void follow(Rect content);
     // A press on the console.
     void console_pressed();
     // A window of the overlay closed (the host closed it).
@@ -115,7 +115,8 @@ private:
     bool open_popup(bool console, const Control::Ptr& root, Rect bounds, ApplicationWindowHandle& handle,
                     WindowRef& reference);
     void close_console() noexcept;
-    void arm_follow() noexcept;
+    // Subscribes to the run's frame reports for the program window.
+    void subscribe_follow() noexcept;
 
     ConsoleOverlayListener* listener_{};
     const ConsoleLog* log_{};
@@ -133,7 +134,8 @@ private:
     std::shared_ptr<ConsoleSurface> console_{};
     // The last record line the console has taken.
     std::uint64_t shown_serial_{};
-    FrameRequestToken follow_tick_{};
+    // The subscription to the run's frame reports while the button shows.
+    SubscriptionToken follow_reports_{};
 };
 
 } // namespace gui_forms::automation
