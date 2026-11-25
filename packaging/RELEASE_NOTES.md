@@ -558,3 +558,34 @@ Visible-area guarantee (stage VA):
 - `tools/check_mcp_launch.py` names the exit status of a program that does
   not answer. It waits for a window's tools, which appear when the window
   joins the automation.
+
+### 1.0.4: MCP round 1, the in-use sign
+
+- **The in-use sign.** While a model drives a window over MCP, a 5 px
+  accent band runs round it with a white glint that sweeps while the model
+  reads or acts, the title names the model ("<title> — <model> is using
+  this"), and the content is washed nearly to grey
+  (`ThemeDefinition::model_wash_saturation`, `Window::set_content_wash`).
+  The band follows the window's corners. Overlays and the band are drawn
+  after the wash. A window no model has signed pays nothing. On Windows 11
+  the system border takes the accent and is restored on disconnect.
+  `--mcp-appearance-review` (debug and test builds) shows none of the sign.
+- **Window corners** are reported with their source
+  (`WindowCornerReport::source`: `platform`, `layout_region`,
+  `private_getter` or `unknown`). macOS 26 reads the corner from layout
+  regions; earlier macOS reads `-[NSWindow _effectiveCornerRadius]`, behind
+  the CMake option `GUI_FORMS_MACOS_PRIVATE_CORNER_RADIUS` (on; off in
+  high-integrity builds; turn it off for sandboxed or App Store builds). A
+  window whose corner no source reports is drawn square.
+- **Dialogs and models.** A model closes a dialog its own act opened as
+  Cancel and never submits one. Controls that open a dialog are marked
+  `needs_user` with their dialog-free tool (`set_opens_dialog`). The new
+  `reset` tool closes the model's dialogs, popups, menus and tooltips and
+  releases held input. A native alert is reported as `native`, never as a
+  tooltip's window.
+- **Tools.** Unknown argument keys are refused; `batch` is served again
+  (its schema had left the MCP server's subset); new `find`; per-node
+  actions, rows a list does not show (reached by ID), `scroll_into_view`
+  and full text. The tool reference is generated from a running program
+  (`tools/mcp_tool_reference.py`, docs: MCP tools), and CI's docs job
+  checks it.
