@@ -1634,6 +1634,36 @@ install(FILES cmake/GUIFormsThemes.cmake cmake/GUIFormsThemeEmbed.cmake
 # table from them.
 install(FILES manifests/controls.json manifests/members.json manifests/winforms-divergences.json
         DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/ledgers)
+# The API reference sources (the library pages and the generated per-type
+# pages), so a tool built against the SDK (the devkit's Pocket Reference)
+# can make its pack from the installed toolkit, with REVISION naming the
+# commit they come from: GUI_FORMS_SOURCE_REVISION when given, else the
+# source checkout's HEAD at install time, else no REVISION file.
+file(GLOB gui_forms_api_library_pages CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/docs/api/library.*.rst")
+file(GLOB gui_forms_api_generated_pages CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/docs/api/generated/gui_forms.*.rst")
+install(FILES ${gui_forms_api_library_pages} DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/docs/api)
+install(FILES ${gui_forms_api_generated_pages} DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/docs/api/generated)
+set(GUI_FORMS_SOURCE_REVISION "" CACHE STRING
+    "The 40-hex commit the installed API reference comes from (empty: the source checkout's HEAD)")
+install(CODE "
+set(gui_forms_revision \"${GUI_FORMS_SOURCE_REVISION}\")
+if(NOT gui_forms_revision)
+  execute_process(COMMAND git -C \"${CMAKE_CURRENT_SOURCE_DIR}\" rev-parse HEAD
+                  OUTPUT_VARIABLE gui_forms_revision OUTPUT_STRIP_TRAILING_WHITESPACE
+                  RESULT_VARIABLE gui_forms_revision_result ERROR_QUIET)
+  if(NOT gui_forms_revision_result EQUAL 0)
+    set(gui_forms_revision \"\")
+  endif()
+endif()
+if(gui_forms_revision MATCHES \"^[0-9a-f]+$\")
+  string(LENGTH \"\${gui_forms_revision}\" gui_forms_revision_length)
+  if(gui_forms_revision_length EQUAL 40)
+    file(WRITE \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/GUIForms/docs/api/REVISION\"
+         \"\${gui_forms_revision}\\n\")
+  endif()
+endif()
+")
 
 add_library(GUIForms::Core ALIAS gui_forms_core)
 add_library(GUIForms::Controls ALIAS gui_forms_controls)
