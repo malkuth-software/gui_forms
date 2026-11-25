@@ -166,7 +166,19 @@ double BreadcrumbTrail::natural_width(
     return result;
 }
 
+BreadcrumbTrail::ArrangeKey BreadcrumbTrail::current_key(double width, double height) const {
+    const SurfaceRoot* root = surface_root();
+    ArrangeKey key{};
+    key.width = width;
+    key.height = height;
+    key.font = text_font(font.read());
+    key.provider = root == nullptr ? nullptr : (*root).text_metrics_provider();
+    key.right_to_left = effective_layout_direction() == LayoutDirection::right_to_left;
+    return key;
+}
+
 void BreadcrumbTrail::rebuild_layout(double width, double height) {
+    layout_key_ = current_key(width, height);
     visible_items_.clear();
     hidden_segment_ids_.clear();
     const std::size_t segment_count_bound = segments_.size();
@@ -282,7 +294,11 @@ void BreadcrumbTrail::normalize_active() {
 
 void BreadcrumbTrail::arrange(Rect final_bounds) {
     arrange_self(final_bounds);
-    rebuild_layout(final_bounds.width, final_bounds.height);
+    // The items, and the hover and press they reset, are kept until an input
+    // changes.
+    if (current_key(final_bounds.width, final_bounds.height) != layout_key_) {
+        rebuild_layout(final_bounds.width, final_bounds.height);
+    }
     normalize_active();
     if (editor_) {
         set_child_layout(editor_,

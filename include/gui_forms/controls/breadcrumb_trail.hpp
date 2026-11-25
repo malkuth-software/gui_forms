@@ -131,6 +131,21 @@ private:
         std::size_t segment_index{};
         Rect bounds{};
     };
+    // Everything visible_items_ depends on besides the segments, the font
+    // and the appearance, whose setters lay out again themselves. arrange
+    // keeps the items when the key is unchanged.
+    struct ArrangeKey final {
+        double width{-1.0};
+        double height{-1.0};
+        FontSpec font{};
+        const TextMetricsProvider* provider{};
+        bool right_to_left{};
+
+        friend bool operator==(const ArrangeKey& left, const ArrangeKey& right) noexcept {
+            return left.width == right.width && left.height == right.height && left.font == right.font &&
+                   left.provider == right.provider && left.right_to_left == right.right_to_left;
+        }
+    };
 
     struct EditorCommitCallback final {
         std::weak_ptr<BreadcrumbTrail> target{};
@@ -143,7 +158,9 @@ private:
 
     void editor_committed(std::string text);
     void editor_cancelled();
+    // Lays the trail out in width x height and records the key it used.
     void rebuild_layout(double width, double height);
+    [[nodiscard]] ArrangeKey current_key(double width, double height) const;
     [[nodiscard]] double natural_width(const BreadcrumbSegment& segment) const;
     [[nodiscard]] stxlib::Optional<std::size_t> segment_index(
         std::string_view stable_id) const noexcept;
@@ -159,6 +176,7 @@ private:
 
     detail::LendingVector<BreadcrumbSegment> segments_{};
     std::vector<VisibleItem> visible_items_{};
+    ArrangeKey layout_key_{};
     detail::LendingVector<std::string> hidden_segment_ids_{};
     std::string editor_stable_id_{};
     std::string overflow_stable_id_{};

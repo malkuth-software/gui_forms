@@ -262,6 +262,9 @@ private:
     // the display order: its count, each line's first position and size,
     // and the first line shown.
     [[nodiscard]] bool lines_agree() const noexcept;
+    // Whether lines_ is current for arrange: lines_agree(), and laid out at
+    // the scale and row height the properties give now.
+    [[nodiscard]] bool lines_current() const noexcept;
     void model_changed();
     [[nodiscard]] Geometry geometry() const;
     [[nodiscard]] std::size_t visible_line_end(const Geometry& layout) const noexcept;
@@ -311,6 +314,9 @@ private:
     // Display order: indexes into items_.
     std::vector<std::size_t> order_{};
     std::vector<Line> lines_{};
+    // The scale and row height lines_ was laid out at (lines_current's key).
+    double lines_scale_{};
+    double lines_row_height_{};
     SubscriptionToken command_value_{};
     SubscriptionToken command_state_{};
     std::optional<std::string> own_selection_{};
