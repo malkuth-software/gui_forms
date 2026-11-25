@@ -29,7 +29,7 @@ bool SurfaceInputQueue::carries_level(SurfaceInputKind kind) noexcept {
     case SurfaceInputKind::safe_insets:
     case SurfaceInputKind::close:
         return true;
-    default:
+    default: // Pointer, wheel, key and the other events are edges, not levels.
         return false;
     }
 }

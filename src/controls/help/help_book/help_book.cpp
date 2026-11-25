@@ -241,7 +241,7 @@ constexpr std::array<InteractionDeclaration, 4> help_book_interactions{{
     case TokenKind::directive:
     case TokenKind::macro:
         return 7U;
-    default:
+    default: // Plain text, attributes, properties and the rest draw as no part.
         return 0U;
     }
 }

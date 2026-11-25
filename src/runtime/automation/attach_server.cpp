@@ -166,9 +166,9 @@ void attach_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
                 (*state.run).end_attached_session();
             }
             continue;
+        default: // A value outside AttachWait: the endpoint is in no state to go on.
+            return;
         }
-        // A value outside AttachWait: the endpoint is in no state to go on.
-        return;
     }
 }
 
