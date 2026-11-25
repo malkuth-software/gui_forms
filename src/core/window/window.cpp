@@ -27,6 +27,7 @@
 #include <algorithm>
 #include <array>
 #include <atomic>
+#include <climits>
 #include <cmath>
 #include <cstdio>
 #include <exception>
@@ -5285,6 +5286,8 @@ void SurfaceRoot::report_layout_liveness(const Control& control, LayoutDiagnosti
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
     const std::string_view name = layout_diagnostic_code_name(code);
     const std::string_view id = control.stable_id().value();
+    // Both are short names; a longer one is not printed (the diagnostic is kept).
+    if (name.size() > static_cast<std::size_t>(INT_MAX) || id.size() > static_cast<std::size_t>(INT_MAX)) return;
     std::fprintf(stderr, "gui-forms: layout diagnostic %.*s: control '%.*s' (docs/user/layout.md, Retained layout)\n",
                  static_cast<int>(name.size()), name.data(), static_cast<int>(id.size()), id.data());
 #endif

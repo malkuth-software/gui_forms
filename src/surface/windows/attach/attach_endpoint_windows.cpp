@@ -46,6 +46,7 @@
 #include <algorithm>
 #include <atomic>
 #include <charconv>
+#include <climits>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -75,7 +76,7 @@ std::string host_message(DWORD code) {
 }
 
 std::wstring wide(std::string_view text) {
-    if (text.empty()) return std::wstring{};
+    if (text.empty() || text.size() > static_cast<std::size_t>(INT_MAX)) return std::wstring{};
     const int count = MultiByteToWideChar(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0);
     if (count <= 0) return std::wstring{};
     std::wstring made(static_cast<std::size_t>(count), L'\0');
@@ -85,7 +86,7 @@ std::wstring wide(std::string_view text) {
 }
 
 std::string narrow(std::wstring_view text) {
-    if (text.empty()) return std::string{};
+    if (text.empty() || text.size() > static_cast<std::size_t>(INT_MAX)) return std::string{};
     const int count =
         WideCharToMultiByte(CP_UTF8, 0, text.data(), static_cast<int>(text.size()), nullptr, 0, nullptr, nullptr);
     if (count <= 0) return std::string{};
@@ -552,6 +553,7 @@ bool peek_attach_line(const AttachStreams& streams, std::string& line, std::int6
         const int ready = WSAPoll(&watched, 1U, seen == 0U ? wait : std::min<INT>(wait, peek_slice_milliseconds));
         if (ready == SOCKET_ERROR) return false;
         if (ready == 0) continue;
+        if (buffer.size() > static_cast<std::size_t>(INT_MAX)) return false;
         const int peeked = recv(socket_handle, buffer.data(), static_cast<int>(buffer.size()), MSG_PEEK);
         if (peeked <= 0) return false;
         const std::string_view held(buffer.data(), static_cast<std::size_t>(peeked));
