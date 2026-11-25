@@ -234,6 +234,7 @@ ConsoleCommand parse_console_command(std::string_view line) {
     const std::string_view rest = text.substr(start);
     if (verb == "help" || verb == "?") {
         command.verb = ConsoleVerb::help;
+        command.topic = clean_field(trimmed(rest), maximum_field);
     } else if (verb == "tools") {
         command.verb = ConsoleVerb::tools;
     } else if (verb == "transcript") {

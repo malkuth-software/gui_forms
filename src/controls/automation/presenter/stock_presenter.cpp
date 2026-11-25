@@ -10,6 +10,8 @@
 #include "gui_forms/window/band/window_band.hpp"
 #include "gui_forms/theme/theme/theme.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
+#include "../../../core/surface_root/access/surface_request_access.hpp"
+#include "../../../core/surface_root/access/surface_schedule_access.hpp"
 
 #include <algorithm>
 #include <chrono>
@@ -25,10 +27,10 @@ namespace {
 // not the study's thin effect.
 constexpr double sign_band_width = 5.0;
 // How long the band moves after a read, and after the last call of a run of
-// acts ends (a sweep's lap and more); and how long the tag line shows on
-// connect.
+// acts ends (a sweep's lap and more). The tag line shows only on hover, never
+// on connect (MCP round 4: it opened in the upper left as the model
+// connected).
 constexpr std::chrono::milliseconds glint_moment{1800};
-constexpr std::chrono::milliseconds tag_line_moment{4000};
 // The glint's laps a second (the band's limiter allows at most 1).
 constexpr double sweep_frequency = 0.6;
 // How long the tag line stays after the pointer enters the top border, and
@@ -197,7 +199,8 @@ struct CountdownTick final {
     }
 };
 
-// A read's glint ends (schedule_ui_timer's callback).
+// A read's glint ends (an ambient wake's callback: the glint never holds
+// the window from idle).
 struct GlintEnd final {
     StockPresenter* presenter{};
     WindowRef window{};
@@ -285,7 +288,6 @@ void StockPresenter::window_attached(Window& window) {
     windows_.push_back(std::move(entry));
     window.set_band_appearance(sign_appearance(window, false));
     show_sign(window);
-    if (connected_) show_tag_line(window, tag_line_moment);
 }
 
 WindowBandAppearance StockPresenter::sign_appearance(const Window& window, bool moving) const {
@@ -307,8 +309,10 @@ void StockPresenter::show_sign(Window& window) noexcept {
     const bool connected = connected_ && !unsigned_;
     const bool in_control = connected && in_control_;
     try {
-        // AI mode: the stripes over the control surfaces and the X cursor.
+        // AI mode: the stripes over the control surfaces and the X cursor,
+        // and no tooltips (one that shows closes at once; MCP round 4).
         window.set_model_veil(in_control);
+        detail::SurfaceRequestAccess::hold_tool_tips(window, in_control);
         // Windows 11's own border joins the sign in the accent.
         stxlib::Optional<Color> border{};
         const Control::Ptr root = window.root();
@@ -376,7 +380,6 @@ void StockPresenter::client_changed(const ClientIdentity& client) {
         if (window == nullptr) continue;
         (*window).set_band_appearance(sign_appearance(*window, entry.steady));
         show_sign(*window);
-        if ((*window).active()) show_tag_line(*window, tag_line_moment);
     }
     update_console();
 }
@@ -391,11 +394,8 @@ void StockPresenter::activity(Window& window, AutomationActivity activity) {
         // already.
         if ((*entry).steady) return;
         window.set_band_appearance(sign_appearance(window, true));
-        const Control::Ptr root = window.root();
-        if (root) {
-            (*entry).glint_end = window.schedule_ui_timer(*root, glint_moment, FrameClock::now() + glint_moment,
-                                                          GlintEnd{this, window.window_ref()});
-        }
+        (*entry).glint_end = detail::SurfaceScheduleAccess::request_ambient_wake(
+            window, FrameClock::now() + glint_moment, GlintEnd{this, window.window_ref()});
         return;
     }
     case AutomationActivity::acting:
@@ -435,7 +435,8 @@ void StockPresenter::pointer_moved(Window& window, Point position, bool left) no
     // The hover zone is the top border, widened to a few pixels so a thin
     // band can be found with the pointer.
     const double zone = std::max(top_border_height(window), tag_line_hover_zone);
-    const bool over = connected_ && !left && position.y >= 0.0 && position.y < zone && position.x >= 0.0 &&
+    // No tag line while the model holds control: no tooltip shows then.
+    const bool over = connected_ && !in_control_ && !left && position.y >= 0.0 && position.y < zone && position.x >= 0.0 &&
                       position.x < client.width;
     if (over && !(*entry).over_border) {
         try {
@@ -455,15 +456,14 @@ void StockPresenter::calls_finished() noexcept {
         if (!entry.steady) continue;
         entry.steady = false;
         Window* const window = entry.window.get();
-        const Control::Ptr root = window == nullptr ? Control::Ptr{} : (*window).root();
-        if (!root) {
+        if (window == nullptr) {
             rest(entry);
             continue;
         }
         try {
             entry.glint_end.disconnect();
-            entry.glint_end = (*window).schedule_ui_timer(*root, glint_moment, FrameClock::now() + glint_moment,
-                                                          GlintEnd{this, (*window).window_ref()});
+            entry.glint_end = detail::SurfaceScheduleAccess::request_ambient_wake(
+                *window, FrameClock::now() + glint_moment, GlintEnd{this, (*window).window_ref()});
         } catch (...) {
             rest(entry);
         }

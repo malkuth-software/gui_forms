@@ -126,7 +126,11 @@ public:
     // first connection), the core starts a new session, and the client is
     // named as it named itself. `label` names the session in the console
     // record. False when the run has no window.
-    [[nodiscard]] bool begin_attached_session(const AttachClient& client, const std::string& label);
+    // `token` is the session's, repeated in a disconnect's reply. A launch
+    // without a flag asked its user for the connection, and that answer is
+    // the session's consent to control (no take question follows).
+    [[nodiscard]] bool begin_attached_session(const AttachClient& client, const std::string& label,
+                                              const std::string& token);
     // Serves MCP on `transport` with the tools, commands and note known now,
     // the session's `token` in the instructions, and binds later changes to
     // it too. False, with `error` set, when the server cannot start.
@@ -135,16 +139,27 @@ public:
     // transport. The session itself stays for a resume
     // (attach_resume_milliseconds) or until end_attached_session.
     void detach_transport() noexcept;
+    // The session's connection dropped without quit (the client stopped,
+    // crashed or was killed): nothing is bound to its transport, and at
+    // once the model's question scope closes and control and the sign
+    // return to the user, so the program is the user's to use and close
+    // (MCP round 4). The session waits for its resume, keeping the user's
+    // consent.
+    void attached_connection_dropped() noexcept;
+    // The waiting session resumed: the sign shows again.
+    void attached_connection_resumed();
     // The attached session ended (it quit, its resume time passed, another
     // client began one, or the run stops): the core's session ends and
     // control returns to the user; the program stays open, since it was not
     // launched for the model.
     void end_attached_session();
-    // The help a console session answers: what every program says, the
-    // program's note, the commands and the session's token.
-    [[nodiscard]] std::string console_help(const std::string& token) const;
-    // The tools a console session lists: each one's name and title.
-    [[nodiscard]] std::string console_tools();
+    // The help a console session answers for `topic` (automation_help.hpp):
+    // empty, the overview with the commands, the session's token and the
+    // program's note; `tools`, a tool's name, or a documentation topic.
+    [[nodiscard]] std::string console_help(std::string_view topic, const std::string& token);
+    // The banner a console session opens with: what every program says,
+    // the session's token line and the help pointer.
+    [[nodiscard]] std::string console_banner(const std::string& token) const;
     // The program's name for people (the product, else the identity) and
     // the executable's path, for the discovery entry.
     [[nodiscard]] static AttachProgram attach_program();
@@ -172,6 +187,11 @@ public:
     void join_pending();
 
 private:
+    // The tools the program serves now, read on the UI thread; `error` says
+    // why none could be read.
+    [[nodiscard]] std::vector<ToolSpec> current_specs(std::string& error);
+    // A disconnect's reply repeats the session's token line.
+    void append_session_token(ToolReply& reply);
     // drive's call itself, between its two records.
     [[nodiscard]] ToolReply drive_call(std::string_view tool, std::string arguments_json, const CallStop* stop);
     // A live window's dispatcher, the oldest first; empty when none is.
@@ -193,6 +213,8 @@ private:
     // before the first window is ready, and the sign never showed).
     bool client_seen_{false};
     ClientIdentity client_{};
+    // Under mutex_: the attached session's token; empty without one.
+    std::string session_token_{};
     std::atomic<bool> ended_{false};
     // Calls being driven: the run's end waits a moment for them, so a reply
     // to the call that closed the last window (disconnect) still reaches the

@@ -401,18 +401,29 @@ Windows (Win32)
     allowed, the act runs and its reply carries the window's snapshot, and
     later acts run at once. Control returns after 30 s without a call, on
     `release_control`, or when the user takes it back.
+  - One question per session: a socket connection to a program launched
+    without a flag is asked once, and that Allow is the consent to control
+    too (no countdown follows); an allowed take holds for the session,
+    after an idle return and across a resume with the token; only
+    `release_control`, the user's take-back or a new connection asks
+    again.
+  - A dropped connection, a killed client or standard input's end gives
+    control back at once and leaves the program the user's to close.
   - The model's next reply says when control came back, and why.
 
   While the model holds control (AI mode), each window shows it:
   - grey barber-pole stripes over the window's control surfaces (buttons,
     fields, lists, toolbars; not content such as a canvas, an image or a
-    document), moving slowly; still with reduced motion, and none in high
-    contrast;
+    document), still (they ask for no frames), and none in high contrast;
   - an X cursor over the window;
-  - the user's input is held back: a click anywhere shows "Do you want to
-    take back control of this program?" with "<model> has not yet released
+  - no tooltips: one showing closes, and none opens until control returns
+    (the model reads their text in snapshot and inspect);
+  - the user's input is held back: a click or key aimed at the window's
+    content shows "Do you want to take back control of this program?" with "<model> has not yet released
     the application." Taking back ends control and interrupts the model's
-    call; Keep Waiting leaves the model in control.
+    call; Keep Waiting leaves the model in control. Activating the window
+    (Alt-Tab, Cmd-Tab, the title bar, the Dock) and modifier keys offer
+    nothing.
   - a "thinking..." button with a turning spinner in the window's upper
     right; a click opens the console, a terminal-style record of every MCP
     call and reply in Portsmouth Mono over a slightly transparent dark

@@ -5,8 +5,9 @@
 // sub-surface's program tooltip and tooltip items reaching its parent root.
 //
 // Holders: the tooltip routes (ToolTipPresenter, SubSurfaceToolTipRequester),
-// the alert routes (WindowAlerts, SubSurfaceAlertRequester), SubSurfaceHost
-// and RibbonToolTip (covering what the enhanced tooltip describes).
+// the alert routes (WindowAlerts, SubSurfaceAlertRequester), SubSurfaceHost,
+// RibbonToolTip (covering what the enhanced tooltip describes) and the
+// automation's StockPresenter (holding tooltips while a model holds control).
 //
 // Stale use: the routes are owned by the root (SurfaceRoot::tool_tips_ and
 // alerts_) and shut down first in the derived root's destructor, so a route
@@ -61,6 +62,10 @@ public:
     static void cover_tool_tip(SurfaceRoot& root, RuntimeId control, std::string_view item_id, bool covered) {
         root.cover_tool_tip(control, item_id, covered);
     }
+    // While held (a model holds control), `root` shows no tooltip at all
+    // (SurfaceRoot::hold_tool_tips).
+    static void hold_tool_tips(SurfaceRoot& root, bool held) { root.hold_tool_tips(held); }
+    [[nodiscard]] static bool tool_tips_held(const SurfaceRoot& root) noexcept { return root.tool_tips_held_; }
     // `control`'s part tooltips changed outside a layout.
     static void tool_tip_items_changed(SurfaceRoot& root, Control& control) { root.tool_tip_items_changed(control); }
 };

@@ -13,17 +13,21 @@
 //   occluded window turn the glint into a tint change;
 // - AI mode, while the model holds control: grey barber-pole stripes over
 //   every control surface (Window::set_model_veil; content such as a canvas
-//   stays clear), the X cursor over the window, and the title note "<title>
-//   — Claude Opus 5.5 is in control";
+//   stays clear), still; the X cursor over the window; the title note
+//   "<title> — Claude Opus 5.5 is in control"; and no tooltips (the window's
+//   tooltips are held, and one that shows closes);
 // - the tag line: a tooltip on the top border naming the model ("Claude
-//   Opus 5.5 via Claude Code"), shown briefly when a model connects;
+//   Opus 5.5 via Claude Code"), shown when the pointer enters the border
+//   while the model is connected but not in control;
 // - the take question: "Allow <model> to take control?", counting down 10
 //   seconds and then allowing; Allow, Don't Allow; closing it is Don't
 //   Allow;
-// - the take-back dialog, offered by any press in a held window: "Do you
-//   want to take back control of this program?" with the warning "<model>
-//   has not yet released the application."; Take Back Control ends the
-//   model's control, Keep Waiting leaves it;
+// - the take-back dialog, offered by a click or key aimed at a held
+//   window's content (activating the window, a modifier alone or a window
+//   switcher's chord offers nothing): "Do you want to take back control of
+//   this program?" with the warning "<model> has not yet released the
+//   application."; Take Back Control ends the model's control, Keep
+//   Waiting leaves it;
 // - the destructive-act question: "Allow <model> to edit files and perform
 //   potentially destructive acts?", Allow and Don't Allow; closing it is
 //   Don't Allow;

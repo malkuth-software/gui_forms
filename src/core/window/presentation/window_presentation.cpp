@@ -552,9 +552,22 @@ bool nearly_touch(Rect left, Rect right) noexcept {
     return touching;
 }
 
+// Whether two nearly touching rectangles are better painted as one: their
+// union covers little more than the two do (a quarter of the smaller one's
+// area at most). Strips meeting at a corner, such as the band's four edges,
+// stay apart: their union is the whole window (MCP round 4: the band's
+// glint painted the whole window at 30 frames a second).
+bool worth_merging(Rect left, Rect right) noexcept {
+    if (!nearly_touch(left, right)) return false;
+    const double covered = left.area() + right.area() - Rect::intersection(left, right).area();
+    const double waste = Rect::united(left, right).area() - covered;
+    const bool worth = waste <= std::min(left.area(), right.area()) * 0.25;
+    return worth;
+}
+
 // Clips `input` to `window_bounds`, each grown to whole device pixels at
-// `scale`, merges rectangles that overlap or nearly touch until none do,
-// and fills `merged`. A set larger than the damage region's capacity
+// `scale`, merges rectangles that overlap or nearly touch, where their
+// union wastes little (worth_merging), until none do, and fills `merged`. A set larger than the damage region's capacity
 // collapses to its bounds, as DamageRegion does.
 void merge_paint_rectangles(std::span<const Rect> input, Rect window_bounds, double scale,
                             std::vector<Rect>& merged) {
@@ -571,7 +584,7 @@ void merge_paint_rectangles(std::span<const Rect> input, Rect window_bounds, dou
         changed = false;
         for (std::size_t first = 0; first < merged.size() && !changed; ++first) {
             for (std::size_t second = first + 1U; second < merged.size(); ++second) {
-                if (!nearly_touch(merged[first], merged[second])) continue;
+                if (!worth_merging(merged[first], merged[second])) continue;
                 merged[first] = Rect::united(merged[first], merged[second]);
                 merged.erase(merged.begin() + static_cast<std::ptrdiff_t>(second));
                 changed = true;

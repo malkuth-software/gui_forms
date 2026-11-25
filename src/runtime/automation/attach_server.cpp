@@ -25,6 +25,7 @@
 // Captures are the engine's own, as for every MCP client.
 
 #include "automation_run_internal.hpp"
+#include "../../controls/automation/help/automation_help.hpp"
 
 #include <stxlib/clocks.hpp>
 #include <stxlib/threads.hpp>
@@ -150,8 +151,13 @@ void end_session(AttachServer::State& state) {
 
 // The session's connection ended without `quit`: it waits for a resume.
 void leave_session(AttachServer::State& state) {
-    (*state.run).detach_transport();
-    if (!state.session) return;
+    if (!state.session) {
+        (*state.run).detach_transport();
+        return;
+    }
+    // Control returns to the user at once, whatever follows (MCP round 4:
+    // a stopped client left the program unclosable).
+    (*state.run).attached_connection_dropped();
     if (state.stop.load()) return;
     state.waiting = true;
     state.resume_until =
@@ -168,6 +174,7 @@ bool take_session(AttachServer::State& state, const AttachClient& client, const 
     if (!resume.empty()) {
         if (state.session && state.waiting && resume == state.token) {
             state.waiting = false;
+            run.attached_connection_resumed();
             run.console_note("session resumed");
             return true;
         }
@@ -187,7 +194,7 @@ bool take_session(AttachServer::State& state, const AttachClient& client, const 
         return false;
     }
     const std::string label = session_label(client, token);
-    if (!run.begin_attached_session(client, label)) {
+    if (!run.begin_attached_session(client, label, token)) {
         refusal = "the program has no window";
         return false;
     }
@@ -268,14 +275,12 @@ void serve_console(AttachServer::State& state, AttachStreams streams) {
         return;
     }
     const FlagStop stop(state.stop);
-    // The first line was a resume (answered here), help (the opening is
-    // the help), or the session's first command (run below, after the
-    // help).
-    bool pending = command.verb != ConsoleVerb::resume && command.verb != ConsoleVerb::none &&
-                   command.verb != ConsoleVerb::help;
+    // The first line was a resume (answered here), or the session's first
+    // command (run below, after the banner).
+    bool pending = command.verb != ConsoleVerb::resume && command.verb != ConsoleVerb::none;
     const std::string opening = command.verb == ConsoleVerb::resume
-                                    ? "resumed session " + state.token
-                                    : run.console_help(state.token);
+                                    ? "resumed session " + state.token + "\n" + session_token_line(state.token)
+                                    : run.console_banner(state.token);
     if (!console_answer(streams, opening)) {
         leave_session(state);
         return;
@@ -293,10 +298,10 @@ void serve_console(AttachServer::State& state, AttachStreams streams) {
         case ConsoleVerb::none:
             break;
         case ConsoleVerb::help:
-            answer = run.console_help(state.token);
+            answer = run.console_help(command.topic, state.token);
             break;
         case ConsoleVerb::tools:
-            answer = run.console_tools();
+            answer = run.console_help("tools", state.token);
             break;
         case ConsoleVerb::call:
             answer = console_reply(run.drive(command.tool, command.arguments_json, &stop, line));

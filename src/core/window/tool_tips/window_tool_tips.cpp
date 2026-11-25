@@ -30,7 +30,16 @@ void SurfaceRoot::set_tool_tips_shown(stxlib::Optional<bool> shown) {
     (*tool_tips_).settings_changed();
 }
 
+void SurfaceRoot::hold_tool_tips(bool held) {
+    require_root_thread("tooltip hold");
+    if (tool_tips_held_ == held) return;
+    tool_tips_held_ = held;
+    // Held: what shows closes and what waits stops (settings_changed).
+    (*tool_tips_).settings_changed();
+}
+
 bool SurfaceRoot::tool_tips_shown() const noexcept {
+    if (tool_tips_held_) return false;
     bool program_shown = true;
     if (application_tool_tips_shown_) program_shown = (*application_tool_tips_shown_).load(std::memory_order_relaxed);
     const bool shown = tool_tips_shown_.value_or(program_shown);

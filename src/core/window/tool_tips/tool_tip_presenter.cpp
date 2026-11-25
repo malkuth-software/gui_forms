@@ -727,8 +727,12 @@ void ToolTipPresenter::items_changed(const Control& control) {
 void ToolTipPresenter::settings_changed() {
     if (const Showing* showing = std::get_if<Showing>(&state_)) {
         const ToolTipOrigin origin = (*showing).origin;
-        const bool allowed = origin == ToolTipOrigin::program ||
-                             (origin == ToolTipOrigin::pointer ? hover_allowed() : focus_allowed());
+        // The program's own shows whatever the switches, except while a
+        // model holds control.
+        const bool program_allowed = !SurfaceRequestAccess::tool_tips_held(window_);
+        const bool allowed = origin == ToolTipOrigin::program ? program_allowed
+                             : origin == ToolTipOrigin::pointer ? hover_allowed()
+                                                                : focus_allowed();
         if (!allowed) {
             raise(close(Idle{}));
             return;
@@ -764,6 +768,7 @@ void ToolTipPresenter::cover(RuntimeId control, std::string_view item_id, bool c
 
 void ToolTipPresenter::show_program(const Control::Ptr& target,
                                     stxlib::Optional<std::chrono::milliseconds> duration) {
+    if (SurfaceRequestAccess::tool_tips_held(window_)) return;
     std::string text = std::move(spare_text_);
     text.assign((*target).tool_tip_text.read());
     ToolTipSubject subject = tool_tip_subject_of(target, {}, std::move(text), (*target).absolute_bounds());
@@ -772,6 +777,8 @@ void ToolTipPresenter::show_program(const Control::Ptr& target,
 
 void ToolTipPresenter::show_program_item(const Control::Ptr& control, std::string item_id, std::string text,
                                          Rect anchor, stxlib::Optional<std::chrono::milliseconds> duration) {
+    // None while a model holds control; a request is then declined.
+    if (SurfaceRequestAccess::tool_tips_held(window_)) return;
     ToolTipSubject subject = tool_tip_subject_of(control, std::move(item_id), std::move(text), anchor);
     replace(ToolTipOrigin::program, std::move(subject), duration);
 }

@@ -2272,7 +2272,33 @@ if(GUI_FORMS_MCP)
         src/controls/automation/console/console_log.cpp
         src/controls/automation/console/console_overlay.cpp
         src/controls/automation/console/console_screen.cpp
-        src/controls/automation/presenter/stock_presenter.cpp)
+        src/controls/automation/presenter/stock_presenter.cpp
+        src/controls/automation/help/automation_help.cpp)
+    # The help's topics (automation_help.hpp): GUI.Forms' own pages on
+    # talking to a program and the user guide's contents, embedded at build
+    # time so every program answers `help mcp` with the documentation itself.
+    set(_gf_help_dir ${CMAKE_CURRENT_BINARY_DIR}/generated/automation_help)
+    set(_gf_help_includes)
+    foreach(_gf_help_page IN ITEMS "talk-to-a-program|talk_to_a_program" "index|user_guide_index")
+        string(REPLACE "|" ";" _gf_help_pair "${_gf_help_page}")
+        list(GET _gf_help_pair 0 _gf_help_source)
+        list(GET _gf_help_pair 1 _gf_help_name)
+        add_custom_command(
+            OUTPUT ${_gf_help_dir}/${_gf_help_name}.inc
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${_gf_help_dir}
+            COMMAND ${CMAKE_COMMAND}
+                -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/docs/user/${_gf_help_source}.md
+                -DNAME=docs/user/${_gf_help_source}.md
+                -DOUTPUT=${_gf_help_dir}/${_gf_help_name}.inc
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_text_file.cmake
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/docs/user/${_gf_help_source}.md
+                ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_text_file.cmake
+            COMMENT "Embedding docs/user/${_gf_help_source}.md for the automation's help"
+            VERBATIM)
+        list(APPEND _gf_help_includes ${_gf_help_dir}/${_gf_help_name}.inc)
+    endforeach()
+    target_sources(gui_forms_controls PRIVATE ${_gf_help_includes})
+    target_include_directories(gui_forms_controls PRIVATE ${_gf_help_dir})
     target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP=1)
     if(GUI_FORMS_MCP_TEST_CONTROLS)
         target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP_TEST_CONTROLS=1)

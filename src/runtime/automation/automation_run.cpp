@@ -1,4 +1,5 @@
 #include "automation_run_internal.hpp"
+#include "../../controls/automation/help/automation_help.hpp"
 
 #include "../../core/application/application_state.hpp"
 #include "../../core/host/session/session_directory.hpp"
@@ -155,10 +156,32 @@ struct WithdrawConnectWork final {
 struct BeginAttachWork final {
     AutomationRun* run{};
     ClientIdentity client{};
+    // The user allowed the connection (a launch without a flag asks): that
+    // answer is the session's consent to control too, so its first act asks
+    // nothing more (owner, MCP round 4: one question per session).
+    bool consented{};
     void operator()() const {
         (*run).join_pending();
         (*run).core().begin_session(FrameClock::now());
+        if (consented) (*run).core().control().grant_session_consent();
         (*run).core().set_client(client);
+    }
+};
+
+// The session's connection dropped, or it resumed (automation_core.hpp).
+struct DroppedAttachWork final {
+    AutomationRun* run{};
+    void operator()() const noexcept { (*run).core().connection_dropped(); }
+};
+
+struct ResumedAttachWork final {
+    AutomationRun* run{};
+    void operator()() const noexcept {
+        try {
+            (*run).core().connection_resumed(FrameClock::now());
+        } catch (...) {
+            // The sign could not show (no memory): the session goes on.
+        }
     }
 };
 
@@ -486,9 +509,23 @@ ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json
     }
     post_console();
     ToolReply reply = drive_call(tool, std::move(arguments_json), stop);
+    if (tool == "disconnect") append_session_token(reply);
     console_log_.record_reply(reply);
     post_console();
     return reply;
+}
+
+void AutomationRun::append_session_token(ToolReply& reply) {
+    std::string token{};
+    {
+        const stxlib::ScopedLock lock(mutex_);
+        token = session_token_;
+    }
+    const ToolSuccess* const success = reply.success_value();
+    if (token.empty() || success == nullptr) return;
+    ToolSuccess repeated = *success;
+    repeated.text += "\n" + session_token_line(token);
+    reply = ToolReply::success(std::move(repeated));
 }
 
 void AutomationRun::post_console() {
@@ -601,12 +638,10 @@ void AutomationRun::serve_when_ready() {
     std::vector<ToolSpec> specs{};
     core_.fill_tool_specs(specs);
     tool_generation_ = core_.tool_generation();
-    std::string instructions(base_instructions);
     const std::string note = detail::app_note_copy();
-    if (!note.empty()) {
-        instructions += "\n\nHow this program works (its own note, also the resource gui://app/note):\n";
-        instructions += note;
-    }
+    HelpContext context{};
+    context.note = note;
+    const std::string instructions = session_instructions(base_instructions, context);
     std::string error{};
     if (!(*transport_).serve(automation_identity(), instructions, note, specs, error)) {
         std::fprintf(stderr, "GUI.Forms: MCP is not available: %s\n", error.c_str());
@@ -648,28 +683,6 @@ ClientIdentity attach_identity(const AttachClient& client) {
     identity.client_name = client.console ? std::string("console") : client.name;
     identity.client_version = client.version;
     return identity;
-}
-
-// The program's instructions for a model: what every program says, then
-// its own note.
-std::string program_instructions() {
-    std::string instructions(base_instructions);
-    const std::string note = detail::app_note_copy();
-    if (!note.empty()) {
-        instructions += "\n\nHow this program works (its own note, also the resource gui://app/note):\n";
-        instructions += note;
-    }
-    return instructions;
-}
-
-// What a session is told about its token.
-std::string token_note(const std::string& token) {
-    if (token.empty()) return std::string{};
-    std::string note = "Session token: " + token + ". A session whose connection drops can be resumed within " +
-                       std::to_string(attach_resume_milliseconds / 1000) +
-                       " seconds: initialize again with params.resume set to the token, or type `resume " + token +
-                       "` as a console's first line.";
-    return note;
 }
 
 // The executable's path; empty when the host cannot say or the name is
@@ -734,11 +747,16 @@ std::string AutomationRun::admit_connection(const AttachClient& client, const Ca
     return std::string{};
 }
 
-bool AutomationRun::begin_attached_session(const AttachClient& client, const std::string& label) {
+bool AutomationRun::begin_attached_session(const AttachClient& client, const std::string& label,
+                                           const std::string& token) {
     const WindowDispatcher dispatcher = home_dispatcher();
     if (!dispatcher.window_alive()) return false;
+    // A launch without a flag asked its user for this connection
+    // (admit_connection), and was allowed.
+    const bool asked = !(launch_.mcp || launch_.shared || launch_.appearance_review);
     try {
-        if (dispatcher.invoke(BeginAttachWork{this, attach_identity(client)}) != DispatchInvokeResult::completed) {
+        if (dispatcher.invoke(BeginAttachWork{this, attach_identity(client), asked}) !=
+            DispatchInvokeResult::completed) {
             return false;
         }
     } catch (const std::exception& failure) {
@@ -746,6 +764,10 @@ bool AutomationRun::begin_attached_session(const AttachClient& client, const std
         return false;
     }
     attach_live_.store(true);
+    {
+        const stxlib::ScopedLock lock(mutex_);
+        session_token_ = token;
+    }
     console_log_.set_session(label);
     const std::string named = client.console ? std::string("a console")
                               : client.name.empty() ? std::string("a client")
@@ -766,10 +788,11 @@ bool AutomationRun::serve_attached(McpTransport& transport, const std::string& t
         error = "the program's windows are closing";
         return false;
     }
-    std::string instructions = program_instructions();
-    const std::string session = token_note(token);
-    if (!session.empty()) instructions += "\n\n" + session;
-    if (!transport.serve(automation_identity(), instructions, detail::app_note_copy(), specs, error)) return false;
+    HelpContext context{};
+    context.token = token;
+    context.note = detail::app_note_copy();
+    const std::string instructions = session_instructions(base_instructions, context);
+    if (!transport.serve(automation_identity(), instructions, context.note, specs, error)) return false;
     const stxlib::ScopedLock lock(mutex_);
     attached_transport_ = &transport;
     return true;
@@ -780,9 +803,37 @@ void AutomationRun::detach_transport() noexcept {
     attached_transport_ = nullptr;
 }
 
+void AutomationRun::attached_connection_dropped() noexcept {
+    detach_transport();
+    if (!attach_live_.load()) return;
+    const WindowDispatcher dispatcher = home_dispatcher();
+    if (!dispatcher.window_alive()) return;
+    try {
+        // Posted, never waited on: the attach thread may be leaving while
+        // the UI thread stops the server.
+        static_cast<void>(dispatcher.begin_invoke(DroppedAttachWork{this}));
+    } catch (...) {
+        // The window closed meanwhile: the session ends with the run.
+    }
+}
+
+void AutomationRun::attached_connection_resumed() {
+    const WindowDispatcher dispatcher = home_dispatcher();
+    if (!dispatcher.window_alive()) return;
+    try {
+        static_cast<void>(dispatcher.begin_invoke(ResumedAttachWork{this}));
+    } catch (...) {
+        // The window closed meanwhile: the next call says so.
+    }
+}
+
 void AutomationRun::end_attached_session() {
     detach_transport();
     if (!attach_live_.exchange(false)) return;
+    {
+        const stxlib::ScopedLock lock(mutex_);
+        session_token_.clear();
+    }
     console_note("session ended");
     console_log_.set_session(std::string{});
     const WindowDispatcher dispatcher = home_dispatcher();
@@ -794,44 +845,41 @@ void AutomationRun::end_attached_session() {
     }
 }
 
-std::string AutomationRun::console_help(const std::string& token) const {
-    std::string help = program_instructions();
-    help += "\n\nCommands:\n"
-            "  help                  this text\n"
-            "  tools                 the tools, one per line\n"
-            "  call <tool> [<json object> | key=value ...]\n"
-            "                        calls a tool; the reply is the tool's text, as MCP gives it\n"
-            "  transcript            this program's console record\n"
-            "  resume <token>        as the first line: resumes a session whose connection dropped\n"
-            "  quit                  ends the session\n"
-            "A first line that is a JSON object makes the connection MCP instead (newline-delimited JSON-RPC).";
-    const std::string session = token_note(token);
-    if (!session.empty()) help += "\n" + session;
-    return help;
-}
-
-std::string AutomationRun::console_tools() {
+std::vector<ToolSpec> AutomationRun::current_specs(std::string& error) {
     std::vector<ToolSpec> specs{};
     std::uint64_t generation = 0U;
     const WindowDispatcher dispatcher = home_dispatcher();
-    if (!dispatcher.window_alive()) return "the program has no window";
+    if (!dispatcher.window_alive()) {
+        error = "the program has no window";
+        return specs;
+    }
     try {
         if (dispatcher.invoke(FillSpecsWork{this, &specs, &generation}) != DispatchInvokeResult::completed) {
-            return "the program's windows are closing";
+            error = "the program's windows are closing";
         }
     } catch (const std::exception& failure) {
-        return std::string("the tools could not be read: ") + failure.what();
+        error = std::string("the tools could not be read: ") + failure.what();
     }
-    std::string listing{};
-    for (const ToolSpec& spec : specs) {
-        std::string summary = spec.title;
-        if (summary.empty()) summary = spec.description.substr(0U, spec.description.find('\n'));
-        listing += spec.name;
-        if (!summary.empty()) listing += "  " + summary;
-        listing += '\n';
-    }
-    listing += std::to_string(specs.size()) + " tools; `call <tool>` with no arguments, or read the schemas over MCP";
-    return listing;
+    return specs;
+}
+
+std::string AutomationRun::console_help(std::string_view topic, const std::string& token) {
+    std::string error{};
+    const std::vector<ToolSpec> specs = current_specs(error);
+    if (!error.empty()) return error;
+    HelpContext context{};
+    context.token = token;
+    context.note = detail::app_note_copy();
+    context.console = true;
+    return help_text(topic, specs, context);
+}
+
+std::string AutomationRun::console_banner(const std::string& token) const {
+    std::string banner = std::string(base_instructions) + "\n";
+    const std::string session = session_token_line(token);
+    if (!session.empty()) banner += session + "\n";
+    banner += help_pointer;
+    return banner;
 }
 
 bool attach_wanted(const AutomationLaunch& launch) {

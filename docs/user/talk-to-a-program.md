@@ -32,12 +32,16 @@ instance of that program (or, when none runs, the path a launch would use). `pro
 
 ## The console
 
-Open the socket and type. The first command gets the help back (what the
-program says to a model, its own note, the commands and the session's
-token), and every reply ends with the prompt `gui-forms> `.
+Open the socket and type. The first line gets the banner back (what every
+program says to a model, the session's token line and the help pointer)
+and then its own answer, and every reply ends with the prompt
+`gui-forms> `.
 
 ```text
-help                                   the help again
+help                                   the commands, the topics and the program's note
+help tools                             the tools, one per line
+help plan_paint_draw                   one tool: what it does, its arguments, an example
+help sessions                          a topic of this page (help mcp is all of it)
 tools                                  the tools, one per line
 call windows                           a tool with no arguments
 call find role=button name=OK          key=value arguments (JSON values stay JSON)
@@ -61,7 +65,8 @@ socat - UNIX-CONNECT:"$XDG_RUNTIME_DIR"/gui-forms/12345.sock
 ## MCP
 
 Write MCP's messages, one JSON object a line. `initialize` answers with the
-program's instructions, which end with the session's token.
+program's instructions: what every program says, then the session's token
+line on its own, the help pointer, and the program's own note.
 
 ```sh
 S=~/Library/Caches/gui-forms/run/12345.sock
@@ -114,12 +119,25 @@ relay:
 - A program launched with `--mcp` or `--mcp-shared` accepts a new session
   at once; any other program asks its user in the program, every session,
   naming the client by what the client says (that name is not verified).
+- One question per session. A program launched without a flag asks once,
+  when the client connects, and that Allow is also the consent to control:
+  the first act takes control with no countdown. Under `--mcp-shared` the
+  first act's countdown is the one question. A new connection without the
+  token asks again; nothing else is remembered.
 - One client at a time. A new client ends a session waiting for a resume;
   while a session is connected, another connection waits.
-- A session whose connection drops waits 120 seconds: initialize again with
+- The session's token line, near the top of the instructions, the console's
+  banner and help, and a disconnect's reply, reads: `session token: <t>.
+  Reconnect with resume <t> (MCP: params.resume) within 120 s; the person
+  at this computer may not be there to answer another prompt. To run a
+  program yourself, launch it with --mcp: it won't ask.`
+- A session whose connection drops gives control back to the user at once:
+  the stripes, the band and the thinking button go, and a question the
+  program asks from then on (its save question as the user closes it) is
+  the user's. The session waits 120 seconds: initialize again with
   `"resume": "<token>"` in its params (or type `resume <token>` as a
   console's first line) and it carries on with no new question. `quit`, or
-  the 120 seconds passing, ends it, and control returns to the user.
+  the 120 seconds passing, ends it.
 - The program's visible console shows every session's calls, labelled by
   client and token: MCP calls as `call <tool> <args>`, console lines as
   typed. It is never in a capture.
@@ -127,3 +145,51 @@ relay:
   0700, or a DACL granting only your SID), the socket is mode 0600, and the
   program checks each peer's user with the kernel. `GUI_FORMS_MCP_ATTACH=0`
   in a program's environment turns its socket off.
+
+## Control
+
+- Reads never need control; acts do.
+- `--mcp` is AI-led: the model holds control from the start and keeps it
+  until it calls `release_control` or the user takes it back. An agent that
+  launches a program itself launches it so: it never asks.
+- `--mcp-shared` leaves the user in control until the model's first act,
+  which asks in the program, with a 10-second countdown that allows when it
+  ends. Control returns after 30 seconds without a call; within the
+  session the next act takes it again without asking.
+- `release_control` gives the program back; the next act asks again (the
+  countdown). So does the user's take-back.
+- While the model holds control (AI mode) the window shows still grey
+  stripes over its control surfaces, the X cursor and the band, and shows
+  no tooltips (the model reads their text in snapshot and inspect). The
+  user's input is held: a click or key aimed at the window's content
+  offers the take-back dialog; activating the window (Alt-Tab, Cmd-Tab, the
+  title bar, the Dock) offers nothing.
+- A program tool whose reply is complete (a drawing, a command) returns at
+  once, never waiting on the window's own timers and frames.
+
+## Disconnect
+
+- `disconnect` with mode `soft` (the default) closes the program only when
+  nothing is unsaved: otherwise nothing closes and the reply names what to
+  save. Mode `hard` ends the session regardless: control returns to the
+  user and the program's own save question is shown to the user, or, with
+  `discard_unsaved` true, unsaved changes are discarded. If the user holds
+  control, the program stays open and only the session ends.
+- A client that stops, crashes or is killed, and a launch whose standard
+  input ends, is a hard disconnect with the default: control returns to
+  the user at once, and the program stays the user's to use and to close.
+
+## Help
+
+- `help` gives the commands, the topics and the program's own note;
+  `help tools` lists the tools; `help <tool>` gives a tool's description,
+  its arguments with their types, ranges and units, and an example call;
+  `help mcp` is this page, and `help socket`, `help console`, `help json`,
+  `help stdio`, `help sessions`, `help control`, `help disconnect` and
+  `help help` are its sections; `help gui.forms` lists the user guide's
+  pages with their addresses. A topic it does not know names the nearest.
+- Nothing in it is written for MCP alone: the tools' help is their own
+  documentation (the description and schema a program gives
+  `register_model_tool`, a command's text and description, the built-in
+  tools' specs), and the topics are this page, compiled into the library.
+  A tool with no description says so.

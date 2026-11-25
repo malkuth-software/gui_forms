@@ -20,6 +20,18 @@ constexpr std::size_t drop_batch = 200U;
 constexpr std::string_view call_mark = "call ";
 constexpr std::string_view reply_mark = "‹ ";
 constexpr std::string_view ellipsis = "…";
+// A counters line (one JSON object, inspect's metrics) shows this much.
+constexpr std::size_t maximum_counter_bytes = 96U;
+
+// A timing line the console leaves out: the window settled, or a program
+// tool replied without waiting on it.
+bool quiet_timing(std::string_view line) noexcept {
+    if (line.substr(0U, 8U) != "frames: ") return false;
+    const bool quiet = line.find("; idle after ") != std::string_view::npos ||
+                       line.find("; replied after ") != std::string_view::npos;
+    return quiet;
+}
+
 
 // One step of SplitMix64: a well-mixed 64-bit hash of `value`.
 std::uint64_t mix(std::uint64_t value) noexcept {
@@ -154,12 +166,18 @@ void ConsoleLog::record_reply(const ToolReply& reply) {
     }
     const ToolSuccess& success = *reply.success_value();
     const std::string_view text(success.text);
+    // The console shows the window's timing only when it is news (MCP
+    // round 4): "still busy" stays, a settled act's "frames: ...; idle
+    // after" and a program tool's "replied after" lines go, and a counters
+    // line (inspect's metrics) shows its start.
     std::size_t start = 0U;
     std::size_t shown = 0U;
     std::size_t total = 0U;
     while (start <= text.size()) {
         const std::size_t end = std::min(text.find('\n', start), text.size());
-        const std::string_view line = text.substr(start, end - start);
+        std::string_view line = text.substr(start, end - start);
+        if (quiet_timing(line)) line = std::string_view{};
+        if (line.size() > maximum_counter_bytes && line.front() == '{') line = line.substr(0U, maximum_counter_bytes);
         if (!line.empty()) {
             ++total;
             if (shown < maximum_reply_lines) {

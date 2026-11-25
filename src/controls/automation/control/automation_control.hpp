@@ -205,9 +205,10 @@ public:
     // reviews appearance.
     [[nodiscard]] bool acts_allowed() const noexcept;
     // A model's act needs control: in user_control the take question is
-    // asked (once until it is answered); in every other state nothing
-    // changes. Without a presenter nobody can answer, and the take is
-    // refused at once.
+    // asked (once until it is answered), or, with the session's consent,
+    // control is taken at once; in every other state nothing changes.
+    // Without a presenter nobody can answer, and the take is refused at
+    // once.
     void request_take(FrameTime now);
     // The take question's answer (the dialog, or its countdown's end).
     void answer_take(bool allow);
@@ -235,6 +236,14 @@ public:
     // was given to another model), and an AI-led launch takes control
     // again. After disconnect.
     void begin_session(FrameTime now);
+    // The user allowed this session to control the program: the
+    // connection question of a launch without a flag (MCP 1.0.5), or an
+    // allowed take question. The session's acts then take control without
+    // asking again, after an idle return or a resumed connection too
+    // (owner, MCP round 4: one question per session), until the model
+    // releases control, the user takes it back, or a new session begins.
+    void grant_session_consent() noexcept { session_consent_ = true; }
+    [[nodiscard]] bool session_consent() const noexcept { return session_consent_; }
     // How many times the user has taken control back: a call that saw a
     // different count when it began was interrupted.
     [[nodiscard]] std::uint64_t take_backs() const noexcept { return counters_.holds_taken_back; }
@@ -305,6 +314,8 @@ private:
     // A held press is posted once until the dialog it offers is shown.
     bool offer_posted_{};
     ConsentState consent_{ConsentState::unasked};
+    // grant_session_consent.
+    bool session_consent_{};
     std::string consent_failure_{};
     Counters counters_{};
     // Posted work holds this weakly; reset first in the destructor.

@@ -513,17 +513,41 @@ bool input_payload(const HostEventPayload& payload) noexcept {
     return input;
 }
 
-// Whether `payload` is a press: a pointer button or a key going down.
-bool press_payload(const HostEventPayload& payload) noexcept {
+// The grave accent key (HID usage 0x35), which cycles a program's windows
+// with Cmd on macOS; PhysicalKey names no constant for it.
+constexpr std::uint32_t grave_key = 0x35U;
+
+// Whether `physical` is a modifier key: Control, Shift, Alt or Meta, either
+// side.
+bool modifier_key(std::uint32_t physical) noexcept {
+    const bool modifier = physical >= PhysicalKey::left_control && physical <= PhysicalKey::right_meta;
+    return modifier;
+}
+
+// Whether the user's `payload`, held while a model holds control, offers the
+// take-back dialog: a press aimed at the window's content, a pointer button
+// going down inside the content area or a key going down. Activating the
+// window offers nothing (MCP round 4: Alt-Tab and Cmd-Tab offered it): a
+// modifier alone (the switcher's Alt or Cmd, sent to the window being left or
+// entered), a switcher's chord (Tab, the grave key or Escape with Alt, Meta
+// or Control), and a press on the window's band or chrome.
+bool offers_take_back(const Window& window, const HostEventPayload& payload) noexcept {
     if (const PointerEvent* const pointer = std::get_if<PointerEvent>(&payload)) {
-        const bool down = (*pointer).action == PointerAction::down;
-        return down;
+        if ((*pointer).action != PointerAction::down) return false;
+        const bool on_content = window.content_rect().contains((*pointer).position);
+        return on_content;
     }
-    if (const KeyEvent* const key = std::get_if<KeyEvent>(&payload)) {
-        const bool down = (*key).action == KeyAction::down;
-        return down;
-    }
-    return false;
+    const KeyEvent* const key = std::get_if<KeyEvent>(&payload);
+    if (key == nullptr || (*key).action != KeyAction::down || (*key).repeat) return false;
+    const std::uint32_t physical = (*key).physical_key;
+    if (modifier_key(physical)) return false;
+    const bool switcher_key = physical == PhysicalKey::tab || physical == grave_key ||
+                              physical == PhysicalKey::escape;
+    const bool switcher_modifier = has_modifier((*key).modifiers, Modifier::alt) ||
+                                   has_modifier((*key).modifiers, Modifier::meta) ||
+                                   has_modifier((*key).modifiers, Modifier::control);
+    if (switcher_key && switcher_modifier) return false;
+    return true;
 }
 
 // What the model's pointer gesture makes of one input event
@@ -663,11 +687,12 @@ HostDispatchResult HostSession::admit(HostEvent& event, InputOrigin origin) {
     }
     // A model holds control (the owner's control model, 2026-11-24): the
     // user's input is counted and dropped, never the model's, and a press
-    // offers the take-back dialog (the gate posts it). The window is alive
+    // aimed at the content offers the take-back dialog (the gate posts it;
+    // offers_take_back). The window is alive
     // here (dispatch and dispatch_model_input saw it).
     Window* const gated = window_.get();
     if (origin == InputOrigin::user && input && gated != nullptr &&
-        detail::user_input_held(*gated, press_payload(event.payload))) {
+        detail::user_input_held(*gated, offers_take_back(*gated, event.payload))) {
         ++snapshot_.user_input_held;
         observed_.emit(event, result);
         return result;

@@ -40,7 +40,9 @@ constexpr const char* target_properties =
 
 // An acting call's answer to a question the program raises meanwhile.
 constexpr std::string_view on_unsaved_property =
-    "\"on_unsaved\":{\"type\":\"string\",\"enum\":[\"save\",\"discard\"]}";
+    "\"on_unsaved\":{\"type\":\"string\",\"enum\":[\"save\",\"discard\"],\"description\":\"The answer to "
+    "a save changes? question the act raises: save or discard; without it the act stops at the question and "
+    "replies with it.\"}";
 
 std::string object_schema(std::string_view properties) {
     std::string schema = "{\"type\":\"object\",\"properties\":{";
@@ -933,10 +935,32 @@ void AutomationCore::program_window_handles(std::vector<ApplicationWindowHandle>
     }
 }
 
+void AutomationCore::drop_model_work() noexcept {
+    // The calls themselves run on to their replies (a disconnect's own call
+    // runs this); only their question scopes close, so what the program
+    // asks from here is the user's.
+    for (const std::unique_ptr<RunningCall>& call : calls_) (*call).questions_open = false;
+    std::vector<gui_forms::detail::ModelQuestion> asked{};
+    gui_forms::detail::end_model_questions(0U, asked);
+}
+
 void AutomationCore::end_session() noexcept {
     ended_ = true;
+    drop_model_work();
     control_.disconnect();
     if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).disconnected();
+}
+
+void AutomationCore::connection_dropped() noexcept {
+    drop_model_work();
+    control_.disconnect();
+    if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).disconnected();
+}
+
+void AutomationCore::connection_resumed(FrameTime now) {
+    if (ended_) return;
+    if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).client_changed(control_.client());
+    control_.begin_ai_led(now);
 }
 
 void AutomationCore::begin_session(FrameTime now) {
@@ -2034,12 +2058,23 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
     std::vector<Window*> windows{};
     core.fill_windows(windows);
     for (Window* const open : windows) {
+        // A tooltip's window comes and goes with its own timers; it is no
+        // program work an act waits on.
+        if (core.passive_popup_window(*open)) continue;
         if (!detail::window_idle(*open, now, core.settings().idle_horizon, busy)) {
             idle = false;
             break;
         }
     }
-    if (!idle && now < call.deadline) return StepOutcome::resume_at(now + core.settings().poll_interval);
+    // A program tool whose reply is complete returns once its window has
+    // settled or its short limit passed, never waiting out the window's
+    // timers and frames: its reply says what it did.
+    const bool program_tool = call.act.kind == ActKind::registry || call.act.kind == ActKind::command;
+    const bool tool_replied = outcome.reply.has_value() && (*outcome.reply).success_value() != nullptr;
+    const bool returns_now = program_tool && (call.act.kind == ActKind::command || tool_replied);
+    const FrameTime limit = returns_now ? std::min(call.deadline, call.started + core.settings().program_settle_limit)
+                                        : call.deadline;
+    if (!idle && now < limit) return StepOutcome::resume_at(now + core.settings().poll_interval);
     // A registry tool's reply is its own; the diff follows it.
     std::string text{};
     if (outcome.reply.has_value()) {
@@ -2083,7 +2118,6 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
     }
     // A program tool's own reply says what it did (a drawing changes pixels,
     // not nodes: 1.0.5 review, plan_paint_draw replied "effect: none").
-    const bool tool_replied = outcome.reply.has_value() && (*outcome.reply).success_value() != nullptr;
     if (text.size() == effects_start && !tool_replied) {
         text += "effect: none (no node changed, focus did not move, no window opened or closed)\n";
     }
@@ -2091,6 +2125,9 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
     const std::uint64_t frames = window == nullptr ? 0U : detail::paint_passes_of(*window) - call.paint_passes_before;
     if (idle) {
         text += "frames: " + std::to_string(frames) + " presented; idle after " + std::to_string(elapsed) + " ms";
+    } else if (returns_now) {
+        // Not waited on: the window goes on with its own work.
+        text += "frames: " + std::to_string(frames) + " presented; replied after " + std::to_string(elapsed) + " ms";
     } else {
         text += "frames: " + std::to_string(frames) + " presented; still busy after " + std::to_string(elapsed) +
                 " ms: " + busy;
@@ -2855,6 +2892,12 @@ CallStart AutomationCore::begin(std::string_view tool, std::string arguments_jso
         start.outcome = step_call(*call, now);
     } catch (const std::exception& failure) {
         start.outcome = StepOutcome::finished(ToolReply::failure(ToolError::internal, failure.what()));
+        // A question scope the failed step opened would answer the program's
+        // questions (a close's save question) for the model from then on.
+        if ((*call).questions_open) {
+            std::vector<gui_forms::detail::ModelQuestion> asked{};
+            gui_forms::detail::end_model_questions((*call).id.value, asked);
+        }
         return start;
     }
     if (start.outcome.done()) finish_reply(*call, start.outcome);

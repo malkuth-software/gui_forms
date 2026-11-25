@@ -206,10 +206,13 @@ struct ConsoleCommand final {
     // A call's arguments as one JSON object.
     std::string arguments_json{"{}"};
     std::string token{};
+    // help's topic (a tool's name, `tools`, `mcp`, ...); empty for the
+    // overview.
+    std::string topic{};
     std::string error{};
 };
 
-// One console line: `help`, `tools`, `call <tool> [<json object> |
+// One console line: `help [topic]`, `tools`, `call <tool> [<json object> |
 // key=value ...]`, `transcript`, `resume <token>`, `quit`. A key=value's value is JSON
 // when it reads as a number, true, false, null, an object, an array or a
 // quoted string, and a string otherwise.
