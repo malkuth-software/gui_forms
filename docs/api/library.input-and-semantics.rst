@@ -1056,7 +1056,7 @@ Types
 
    .. cpp:member:: const char* name
 
-      1 to 64 bytes of ASCII letters, digits, '_' and '-', starting with a letter (no '.': clients rename dotted names, round 2); unique among the program's tools and the built-in ones, and not starting "command_" (the commands' own tools).
+      1 to 64 bytes of ASCII letters, digits, '_' and '-', starting with a letter (no '.': clients rename dotted names, round 2); unique among the program's tools and the built-in ones, and not starting ``command_`` (the commands' own tools).
 
    .. cpp:member:: const char* title
 

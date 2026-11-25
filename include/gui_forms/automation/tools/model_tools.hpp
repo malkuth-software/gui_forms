@@ -113,7 +113,7 @@ struct GUI_FORMS_API ModelToolSpec final {
     // 1 to 64 bytes of ASCII letters, digits, '_' and '-', starting with a
     // letter (no '.': clients rename dotted names, round 2); unique among
     // the program's tools and the built-in ones, and not starting
-    // "command_" (the commands' own tools).
+    // `command_` (the commands' own tools).
     const char* name{};
     // A short title for a client's list; may be null.
     const char* title{};
