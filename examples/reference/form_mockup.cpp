@@ -59,7 +59,7 @@ gui_forms::FormMockupText mockup_text(std::string_view file, std::string_view te
 }
 
 bool same(stxlib::View<char> text, std::string_view expected) {
-    return std::string_view(text.data(), text.size()) == expected;
+    return std::string_view(text.data(), text.count()) == expected;
 }
 
 // The shown tree's control with `stable_id`, searched depth first.
