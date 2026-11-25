@@ -19,6 +19,7 @@
 
 #include <atomic>
 #include <chrono>
+#include <cstddef>
 #include <cstdint>
 #include <memory>
 #include <stxlib/threads.hpp>
@@ -40,6 +41,19 @@ class McpTransport;
 class ScriptRunner;
 class AttachServer;
 
+// A client of the attach socket as it named itself: self-reported, never
+// verified (initialize's clientInfo; a console session has none).
+struct AttachClient final {
+    std::string name{};
+    std::string version{};
+    // A plain-text console session, not MCP.
+    bool console{};
+};
+
+// How long a session whose connection dropped can be resumed (owner, attach
+// revision 3: sessions survive reconnects), and its token's life.
+inline constexpr std::int64_t attach_resume_milliseconds = 120000;
+
 class AutomationRun final {
 public:
     explicit AutomationRun(AutomationLaunch launch);
@@ -59,8 +73,11 @@ public:
 
     // Runs one tool call to its reply: each step on the UI thread, sleeping
     // between steps until the step's resume time or `stop`. A call stopped
-    // early, or one whose windows are all gone, answers cancelled.
-    [[nodiscard]] ToolReply drive(std::string_view tool, std::string arguments_json, const CallStop* stop);
+    // early, or one whose windows are all gone, answers cancelled. The
+    // console record shows the call as `typed` when a console session typed
+    // it, else as "call <tool> <arguments>".
+    [[nodiscard]] ToolReply drive(std::string_view tool, std::string arguments_json, const CallStop* stop,
+                                  std::string_view typed = std::string_view{});
     // Records the client's identity, at the UI thread's next turn.
     void post_client(const ClientIdentity& client);
     // Asks every window to close, at the UI thread's next turn (the
@@ -80,7 +97,8 @@ public:
     // Whether serving has started (no transport: true, nothing to start).
     [[nodiscard]] bool serving_started() const noexcept;
     // Binds the tools again when their list changed (the registry or the
-    // program's commands).
+    // program's commands), and rewrites the attach socket's discovery entry
+    // with the count.
     void sync_tools();
     void close_all() noexcept;
 
@@ -95,26 +113,41 @@ public:
     // Tells the console, at the UI thread's next turn, that the record has
     // new lines.
     void post_console();
-    // Whether an attach connection that said `hello` may connect: refused
-    // while another client is connected; accepted at once under --mcp,
-    // --mcp-shared or an appearance review; otherwise the user is asked in
-    // the program (StockPresenter::ask_connect) and this waits for the
-    // answer, refusing when `stop` stops, the run ends, or no answer comes
-    // within connect_question_limit.
-    [[nodiscard]] AttachAnswer admit_connection(const AttachHello& hello, const CallStop* stop);
-    // An accepted connection's session begins: the windows join the core if
+    // Whether a socket connection from `client` may begin a session: empty
+    // when it may, else why not. Refused while another client is
+    // connected; accepted at once under --mcp, --mcp-shared or an
+    // appearance review; otherwise the user is asked in the program
+    // (StockPresenter::ask_connect) and this waits for the answer, refusing
+    // when `stop` stops, the run ends, or no answer comes within
+    // connect_question_limit.
+    [[nodiscard]] std::string admit_connection(const AttachClient& client, const CallStop* stop);
+    // An admitted connection's session begins: the windows join the core if
     // they had not (a program launched without a flag joins none until its
     // first connection), the core starts a new session, and the client is
-    // named as it named itself. False when the run has no window.
-    [[nodiscard]] bool begin_attached_session(const AttachHello& hello);
+    // named as it named itself. `label` names the session in the console
+    // record. False when the run has no window.
+    [[nodiscard]] bool begin_attached_session(const AttachClient& client, const std::string& label);
     // Serves MCP on `transport` with the tools, commands and note known now,
-    // and binds later changes to it too. False, with `error` set, when the
-    // server cannot start.
-    [[nodiscard]] bool serve_attached(McpTransport& transport, std::string& error);
-    // The attached session ended (its input closed, or the run stops): the
-    // core's session ends and control returns to the user; the program
-    // stays open, since it was not launched for the model.
+    // the session's `token` in the instructions, and binds later changes to
+    // it too. False, with `error` set, when the server cannot start.
+    [[nodiscard]] bool serve_attached(McpTransport& transport, const std::string& token, std::string& error);
+    // The session's connection ended: nothing more is bound to its
+    // transport. The session itself stays for a resume
+    // (attach_resume_milliseconds) or until end_attached_session.
+    void detach_transport() noexcept;
+    // The attached session ended (it quit, its resume time passed, another
+    // client began one, or the run stops): the core's session ends and
+    // control returns to the user; the program stays open, since it was not
+    // launched for the model.
     void end_attached_session();
+    // The help a console session answers: what every program says, the
+    // program's note, the commands and the session's token.
+    [[nodiscard]] std::string console_help(const std::string& token) const;
+    // The tools a console session lists: each one's name and title.
+    [[nodiscard]] std::string console_tools();
+    // The program's name for people (the product, else the identity) and
+    // the executable's path, for the discovery entry.
+    [[nodiscard]] static AttachProgram attach_program();
     // The stdio client named itself, or its input ended (mcp_transport.cpp).
     void stdio_client_seen() noexcept { stdio_client_seen_.store(true); }
     void stdio_input_ended() noexcept { stdio_ended_.store(true); }
@@ -166,6 +199,9 @@ private:
     // client before the transport stops.
     std::atomic<int> driving_{0};
     std::uint64_t tool_generation_{};
+    // UI thread: the tool generation the discovery entry last counted
+    // (none yet: the maximum).
+    std::uint64_t published_generation_{~std::uint64_t{0}};
 
     std::unique_ptr<McpTransport> transport_{};
     std::unique_ptr<ScriptRunner> script_{};
@@ -233,18 +269,21 @@ private:
 // ---- the attach server (attach_server.cpp) ----
 
 // Listens on the attach endpoint (attach_endpoint.hpp) on its own thread and
-// serves one connection at a time: the hello, the admission
-// (AutomationRun::admit_connection), the answer, then MCP over the
-// connection until it ends.
+// serves one connection at a time: its first line says MCP or the console,
+// the session is resumed or admitted (AutomationRun::admit_connection),
+// then MCP or the console runs over the connection until it ends, and the
+// session waits attach_resume_milliseconds for a resume.
 class AttachServer final {
 public:
     // Null, with `error` set, when the endpoint cannot listen or the thread
-    // cannot start.
+    // cannot start. Says the socket's path on standard error.
     [[nodiscard]] static std::unique_ptr<AttachServer> start(AutomationRun& run, std::string& error);
     // Stops listening, ends a session being served, and joins the thread.
     ~AttachServer();
     AttachServer(const AttachServer&) = delete;
     AttachServer& operator=(const AttachServer&) = delete;
+    // Rewrites the discovery entry (AttachEndpoint::publish). Any thread.
+    void publish(std::size_t tools, std::string_view note);
 
     struct State;
 

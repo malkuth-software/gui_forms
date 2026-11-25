@@ -59,6 +59,9 @@ struct AutomationLaunch final {
     bool appearance_review{};
     // --mcp-script <file>; empty for none.
     std::string script_path{};
+    // --mcp-socket: print where this program's attach socket is (each
+    // running instance's) or would be, and exit (owner, attach revision 3).
+    bool print_socket{};
     [[nodiscard]] bool requested() const noexcept {
         return mcp || shared || appearance_review || !script_path.empty();
     }

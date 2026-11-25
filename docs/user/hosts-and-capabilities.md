@@ -367,21 +367,29 @@ Windows (Win32)
   (or with `GUI_FORMS_MCP=shared` in its environment) serves MCP on its
   standard input and output (only the process that started it can drive
   it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
-  Every program also listens for attach connections, the way a model
-  reaches a program the user already has open (1.0.5): a local endpoint
-  only the same user can reach (a Unix domain socket, mode 0600, in a
-  directory of the user's own with mode 0700; on Windows a named pipe whose
-  DACL grants only the user's SID, remote clients rejected), each peer's
-  user checked again. A client starts the `gui-forms-attach` bridge from
-  `.mcp.json` (`"command": "gui-forms-attach", "args": ["--program",
-  "app.vendor.product"]`; `--list` shows the running programs, and with no
-  `--program` the only one running is chosen). A program launched with
-  `--mcp` or `--mcp-shared` accepts the connection at once; any other asks
-  its user, every connection, naming the client by what the client says
-  and saying that is not verified (Allow or Don't Allow, no countdown,
-  nothing remembered). One client at a time; when an attached client goes,
-  control returns to the user and the program stays open.
-  `GUI_FORMS_MCP_ATTACH=0` turns the endpoint off.
+  Every program also listens on a socket of its own, the way a model
+  reaches a program the user already has open (1.0.5): a Unix domain
+  socket (AF_UNIX on Windows too) that only the same user can reach, in
+  the user's run directory (`~/Library/Caches/gui-forms/run` on macOS,
+  `$XDG_RUNTIME_DIR/gui-forms` on Linux, `%LOCALAPPDATA%\gui-forms\run`
+  on Windows; 0700, or a DACL granting only the user's SID), each peer's
+  user checked again. The socket speaks MCP itself (newline-delimited
+  JSON-RPC), and a first line that is not JSON opens a plain-text console
+  (`help`, `tools`, `call <tool> ...`, `transcript`, `resume <token>`,
+  `quit`), so `nc -U`, socat or a few lines of Python are a complete
+  client: [Talk to a running program](talk-to-a-program.md). Beside each
+  socket `<pid>.info` says what listens on it; the program prints its
+  socket on standard error, and `program --mcp-socket` prints it.
+  A session survives a dropped connection for 120 seconds: initialize
+  returns a token (in the instructions), and a later connection resumes
+  with it. A program launched with `--mcp` or `--mcp-shared` accepts a
+  new session at once; any other asks its user, every session, naming the
+  client by what the client says and saying that is not verified (Allow or
+  Don't Allow, no countdown, nothing remembered). One client at a time;
+  when a session ends, control returns to the user and the program stays
+  open. `gui-forms-attach` remains as a stdio bridge for a client that
+  must start one from `.mcp.json`. `GUI_FORMS_MCP_ATTACH=0` turns the
+  socket off.
   Reads never need control; acts do (the control model):
   - `--mcp` is AI-led: the model holds control from the start, with no
     question, and keeps it until it calls `release_control` or the user

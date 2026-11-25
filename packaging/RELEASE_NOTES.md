@@ -721,6 +721,31 @@ One release folds the work queued after 1.0.4.
   program stays open. Captures always use the engine's own capture.
   `GUI_FORMS_MCP_ATTACH=0` turns the endpoint off; high-integrity builds
   and `--mcp-script` runs have none.
+- **Attach, revision 3** (owner, 2026-11-25): "claude then simply starts a
+  console session to the program. and that becomes mcp itself." The
+  socket speaks MCP itself (newline-delimited JSON-RPC, MCP's stdio
+  framing), so a client needs no bridge; a first line that is not JSON
+  opens a plain-text console on the same socket (`help`, `tools`,
+  `call <tool> <json or key=value ...>`, `transcript`, `resume <token>`,
+  `quit`), whose replies are the tools' MCP text. AF_UNIX on every desktop
+  host, Windows included (the named pipe is gone). The run directory is
+  `~/Library/Caches/gui-forms/run` (macOS), `$XDG_RUNTIME_DIR/gui-forms`
+  else `/tmp/gui-forms-<uid>` (Linux), `%LOCALAPPDATA%\gui-forms\run`
+  (Windows, a protected DACL for the user's SID), with `<pid>.sock` and a
+  discovery entry `<pid>.info` (name, identity, pid, executable, socket,
+  tool count, the note's first line); ended processes' entries are removed
+  by the next listing. The program prints `GUI.Forms: MCP socket: <path>`
+  on standard error, and `--mcp-socket` prints the socket of each running
+  instance and exits. Sessions survive reconnects: initialize's
+  instructions carry a session token, and for 120 seconds after a
+  connection drops, `params.resume` on initialize (or `resume <token>` in
+  the console) takes the session back without a new question; a new
+  client without the token ends the waiting session. The visible console
+  is the one transcript: a JSON session's calls show as `call <tool>
+  <args>`, a console's lines as typed, each session's lines labelled by
+  its client and token. `gui-forms-attach` is now a plain relay (its
+  `--list` reads the discovery entries). New page:
+  docs/user/talk-to-a-program.md.
 - A new client's session on the same program starts over: the
   destructive-act answer given to the last model is asked again.
 - **Native alerts on Windows.** A MessageBoxW message box the program runs

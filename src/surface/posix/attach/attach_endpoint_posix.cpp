@@ -1,19 +1,22 @@
 // The attach endpoint on POSIX hosts (src/runtime/automation/
 // attach_endpoint.hpp): a Unix domain stream socket that only the user can
-// reach.
+// reach, beside a discovery entry that says what listens on it.
 //
-// - The directory: macOS's per-user temporary directory
-//   (confstr(_CS_DARWIN_USER_TEMP_DIR), mode 0700 and the user's own), else
-//   $XDG_RUNTIME_DIR (the same guarantee by specification), else
-//   /tmp/gui-forms-attach-<uid>; then gui-forms-attach inside it, made
-//   0700. The final directory is checked with lstat: a directory (not a
-//   link), owned by the user, with no group or other permission; anything
-//   else refuses the endpoint, since a directory someone else can enter
-//   would let them reach the socket.
-// - The socket: <pid>.<identity>.sock, bound with the process's umask
-//   narrowed to 0177 and chmod'ed 0600 after, close-on-exec, the listening
-//   descriptor non-blocking; an old file of the same name (a reused pid) is
-//   removed first.
+// - The run directory: ~/Library/Caches/gui-forms/run on macOS (the home
+//   from STXlib's known_directory), $XDG_RUNTIME_DIR/gui-forms elsewhere
+//   when that variable names a private directory (the XDG Base Directory
+//   Specification guarantees one), else /tmp/gui-forms-<uid>. Each
+//   directory made on the way is made 0700; the run directory is checked
+//   with lstat: a directory (not a link), owned by the user, with no group
+//   or other permission. Anything else refuses the endpoint, since a
+//   directory someone else can enter would let them reach the socket.
+// - The socket: <pid>.sock, bound with the process's umask narrowed to 0177
+//   and chmod'ed 0600 after, close-on-exec, the listening descriptor
+//   non-blocking; an old file of the same name (a reused pid) is removed
+//   first.
+// - The discovery entry: <pid>.info, mode 0600, written whole to
+//   <pid>.info.new and renamed into place, so a reader never sees half of
+//   one.
 // - Each accepted peer's user is read from the kernel (getpeereid; Linux:
 //   SO_PEERCRED) and must be the user's own (attach_peer_allowed); another
 //   user's connection, or one whose user cannot be read, is closed unread.
@@ -35,15 +38,20 @@
 #include <sys/un.h>
 #include <unistd.h>
 
+#include <stxlib/clocks.hpp>
 #include <stxlib/environment.hpp>
 #include <stxlib/events.hpp>
+#include <stxlib/files.hpp>
+#include <stxlib/path.hpp>
 #include <stxlib/text.hpp>
 #include <stxlib/text_view.hpp>
+#include <stxlib/threads.hpp>
 
 #include <algorithm>
 #include <atomic>
 #include <cerrno>
 #include <charconv>
+#include <chrono>
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
@@ -58,10 +66,13 @@ namespace gui_forms::automation {
 
 namespace {
 
-constexpr std::string_view directory_name = "gui-forms-attach";
 constexpr std::string_view socket_suffix = ".sock";
-constexpr int listen_backlog = 4;
+constexpr std::string_view info_suffix = ".info";
+constexpr int listen_backlog = 8;
+// How often a peek looks again while a first line is still arriving.
+constexpr int peek_slice_milliseconds = 10;
 
+#if !defined(__APPLE__)
 // The variable `name`'s value, or empty.
 std::string variable(std::string_view name) {
     const stxlib::OperationResult<stxlib::TextView> checked = stxlib::validate_utf8(name.data(), name.size());
@@ -73,6 +84,7 @@ std::string variable(std::string_view name) {
     std::string made(read.data(), static_cast<std::size_t>(read.count()));
     return made;
 }
+#endif
 
 // The system's message for `code`, through std::system_category (the
 // house rule: no strerror).
@@ -92,58 +104,36 @@ bool private_directory(const std::string& path) {
     return directory && own && closed;
 }
 
-// The parent the user's attach directory goes in: a directory that is
-// already the user's alone.
-std::string user_parent() {
 #if defined(__APPLE__)
-    char buffer[1024] = {};
-    const std::size_t length = confstr(_CS_DARWIN_USER_TEMP_DIR, buffer, sizeof(buffer));
-    if (length > 0U && length <= sizeof(buffer)) {
-        std::string parent(buffer);
-        while (parent.size() > 1U && parent.back() == '/') parent.pop_back();
-        if (private_directory(parent)) return parent;
-    }
+// The user's home directory, or empty.
+std::string home_directory() {
+    const stxlib::OperationResult<stxlib::Path> found = stxlib::known_directory(stxlib::KnownDirectory::home);
+    if (found.failed()) return std::string{};
+    const stxlib::PathText text = (*found.value()).text();
+    if (!text.is_unicode()) return std::string{};
+    const stxlib::TextView view = text.unicode();
+    std::string home(view.data(), static_cast<std::size_t>(view.count()));
+    while (home.size() > 1U && home.back() == '/') home.pop_back();
+    return home;
+}
 #endif
+
+// The run directory's path, and the directories above it this file may
+// make (outermost first); empty when none can be named.
+std::string run_directory_path(std::vector<std::string>& parents) {
+#if defined(__APPLE__)
+    const std::string home = home_directory();
+    if (home.empty() || home.front() != '/') return std::string{};
+    parents.push_back(home + "/Library");
+    parents.push_back(home + "/Library/Caches");
+    parents.push_back(home + "/Library/Caches/gui-forms");
+    return home + "/Library/Caches/gui-forms/run";
+#else
+    static_cast<void>(parents);
     const std::string runtime = variable("XDG_RUNTIME_DIR");
-    if (!runtime.empty() && runtime.front() == '/' && private_directory(runtime)) return runtime;
-    return std::string{};
-}
-
-// The user's attach directory, made when missing; empty, with `error` set,
-// when it cannot be made or is not private.
-std::string attach_directory(bool create, std::string& error) {
-    const std::string parent = user_parent();
-    std::string directory{};
-    if (!parent.empty()) {
-        directory = parent + "/" + std::string(directory_name);
-    } else {
-        directory = "/tmp/" + std::string(directory_name) + "-" + std::to_string(static_cast<unsigned long>(getuid()));
-    }
-    if (create && mkdir(directory.c_str(), 0700) != 0 && errno != EEXIST) {
-        error = "the attach directory " + directory + " could not be made: " + host_message(errno);
-        return std::string{};
-    }
-    if (!private_directory(directory)) {
-        error = "the attach directory " + directory + " is not private to this user (it must be a directory of the "
-                "user's own with mode 0700)";
-        return std::string{};
-    }
-    return directory;
-}
-
-// `identity` kept to letters, digits, '.', '-' and '_', other bytes as '-',
-// at most 96 bytes.
-std::string endpoint_identity(const std::string& identity) {
-    std::string kept{};
-    for (const char character : identity) {
-        const bool plain = (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
-                           (character >= '0' && character <= '9') || character == '.' || character == '-' ||
-                           character == '_';
-        kept += plain ? character : '-';
-        if (kept.size() == 96U) break;
-    }
-    if (kept.empty()) kept = "program";
-    return kept;
+    if (!runtime.empty() && runtime.front() == '/' && private_directory(runtime)) return runtime + "/gui-forms";
+    return "/tmp/gui-forms-" + std::to_string(static_cast<unsigned long>(getuid()));
+#endif
 }
 
 bool set_close_on_exec(int descriptor) noexcept {
@@ -206,13 +196,14 @@ bool streams_over(int descriptor, AttachStreams& streams) noexcept {
     return true;
 }
 
-// The process ID at the front of an endpoint's file name, or 0.
-std::int64_t name_process(std::string_view name) noexcept {
-    const std::size_t dot = name.find('.');
-    if (dot == std::string_view::npos || dot == 0U) return 0;
+// The process ID an entry's file name begins with, when the name is
+// <pid><suffix>; 0 otherwise.
+std::int64_t name_process(std::string_view name, std::string_view suffix) noexcept {
+    if (name.size() <= suffix.size() || name.substr(name.size() - suffix.size()) != suffix) return 0;
+    const std::size_t digits = name.size() - suffix.size();
     std::int64_t process = 0;
-    const std::from_chars_result parsed = std::from_chars(name.data(), name.data() + dot, process);
-    if (parsed.ec != std::errc{} || parsed.ptr != name.data() + dot) return 0;
+    const std::from_chars_result parsed = std::from_chars(name.data(), name.data() + digits, process);
+    if (parsed.ec != std::errc{} || parsed.ptr != name.data() + digits) return 0;
     return process;
 }
 
@@ -220,6 +211,45 @@ bool process_alive(std::int64_t process) noexcept {
     if (process <= 0) return false;
     if (kill(static_cast<pid_t>(process), 0) == 0) return true;
     return errno == EPERM;
+}
+
+// The whole file at `path`, at most `limit` bytes; false when it cannot be
+// read.
+bool read_small_file(const std::string& path, std::size_t limit, std::string& text) {
+    const int descriptor = open(path.c_str(), O_RDONLY | O_CLOEXEC | O_NOFOLLOW);
+    if (descriptor < 0) return false;
+    text.clear();
+    char buffer[4096] = {};
+    for (;;) {
+        const ssize_t read_count = read(descriptor, buffer, sizeof(buffer));
+        if (read_count < 0 && errno == EINTR) continue;
+        if (read_count <= 0) break;
+        text.append(buffer, static_cast<std::size_t>(read_count));
+        if (text.size() > limit) break;
+    }
+    static_cast<void>(close(descriptor));
+    return text.size() <= limit;
+}
+
+// Writes `text` to `path` whole: to path.new, mode 0600, then renamed into
+// place.
+bool write_file_whole(const std::string& path, std::string_view text) {
+    const std::string staged = path + ".new";
+    const int descriptor = open(staged.c_str(), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC | O_NOFOLLOW, 0600);
+    if (descriptor < 0) return false;
+    std::size_t done = 0U;
+    while (done < text.size()) {
+        const ssize_t wrote = write(descriptor, text.data() + done, text.size() - done);
+        if (wrote < 0 && errno == EINTR) continue;
+        if (wrote <= 0) break;
+        done += static_cast<std::size_t>(wrote);
+    }
+    const bool closed = close(descriptor) == 0;
+    if (done != text.size() || !closed || rename(staged.c_str(), path.c_str()) != 0) {
+        static_cast<void>(unlink(staged.c_str()));
+        return false;
+    }
+    return true;
 }
 
 // Orders listings by process ID, the oldest (usually) first.
@@ -231,8 +261,48 @@ struct OlderProcess final {
 
 } // namespace
 
+std::string attach_run_directory(bool create, std::string& error) {
+    std::vector<std::string> parents{};
+    const std::string directory = run_directory_path(parents);
+    if (directory.empty()) {
+        error = "no run directory can be named for this user (no home directory)";
+        return std::string{};
+    }
+    if (create) {
+        // Directories that exist keep their modes; only new ones are 0700.
+        for (const std::string& parent : parents) {
+            if (mkdir(parent.c_str(), 0700) != 0 && errno != EEXIST) {
+                error = "the directory " + parent + " could not be made: " + host_message(errno);
+                return std::string{};
+            }
+        }
+        if (mkdir(directory.c_str(), 0700) != 0 && errno != EEXIST) {
+            error = "the run directory " + directory + " could not be made: " + host_message(errno);
+            return std::string{};
+        }
+    }
+    if (!private_directory(directory)) {
+        error = "the run directory " + directory + " is missing or not private to this user (it must be a "
+                "directory of the user's own with mode 0700)";
+        return std::string{};
+    }
+    return directory;
+}
+
+std::string attach_socket_path(std::int64_t process, std::string& error) {
+    std::vector<std::string> parents{};
+    const std::string directory = run_directory_path(parents);
+    if (directory.empty()) {
+        error = "no run directory can be named for this user (no home directory)";
+        return std::string{};
+    }
+    return directory + "/" + std::to_string(static_cast<long long>(process)) + std::string(socket_suffix);
+}
+
 struct AttachEndpoint::State final {
     std::string path{};
+    std::string info_path{};
+    AttachListing entry{};
     int listener{-1};
     int wake_read{-1};
     int wake_write{-1};
@@ -241,13 +311,14 @@ struct AttachEndpoint::State final {
 
 AttachEndpoint::AttachEndpoint(std::unique_ptr<State> state) noexcept : state_(std::move(state)) {}
 
-std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const std::string& identity, std::string& error) {
+std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const AttachProgram& program, std::string& error) {
     stxlib::ignore_broken_pipes();
-    const std::string directory = attach_directory(true, error);
+    const std::string directory = attach_run_directory(true, error);
     if (directory.empty()) return nullptr;
+    const std::string process = std::to_string(static_cast<long long>(getpid()));
     std::unique_ptr<State> state = std::make_unique<State>();
-    (*state).path = directory + "/" + std::to_string(static_cast<long long>(getpid())) + "." +
-                    endpoint_identity(identity) + std::string(socket_suffix);
+    (*state).path = directory + "/" + process + std::string(socket_suffix);
+    (*state).info_path = directory + "/" + process + std::string(info_suffix);
     sockaddr_un address{};
     if (!socket_address((*state).path, address)) {
         error = "the attach socket's path is too long: " + (*state).path;
@@ -270,8 +341,9 @@ std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const std::string& identi
         return nullptr;
     }
     static_cast<void>(set_close_on_exec(made.listener));
-    // A file left under this name by an ended process with the same pid.
+    // Files left under these names by an ended process with the same pid.
     static_cast<void>(unlink(made.path.c_str()));
+    static_cast<void>(unlink(made.info_path.c_str()));
     const mode_t previous = umask(0177);
     const int bound = bind(made.listener, reinterpret_cast<const sockaddr*>(&address), sizeof(address));
     const int bind_error = errno;
@@ -285,6 +357,15 @@ std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const std::string& identi
         error = "the attach socket could not listen at " + made.path + ": " + host_message(errno);
         return nullptr;
     }
+    made.entry.identity = program.identity;
+    made.entry.name = program.name.empty() ? program.identity : program.name;
+    made.entry.process = static_cast<std::int64_t>(getpid());
+    made.entry.executable = program.executable;
+    made.entry.address = made.path;
+    if (!write_file_whole(made.info_path, attach_info_text(made.entry))) {
+        error = "the discovery entry " + made.info_path + " could not be written: " + host_message(errno);
+        return nullptr;
+    }
     return endpoint;
 }
 
@@ -294,21 +375,30 @@ AttachEndpoint::~AttachEndpoint() {
     if (state.listener >= 0) {
         static_cast<void>(close(state.listener));
         static_cast<void>(unlink(state.path.c_str()));
+        static_cast<void>(unlink(state.info_path.c_str()));
     }
     if (state.wake_read >= 0) static_cast<void>(close(state.wake_read));
     if (state.wake_write >= 0) static_cast<void>(close(state.wake_write));
 }
 
-AttachWait AttachEndpoint::accept(AttachStreams& streams, std::string& refused) {
+AttachWait AttachEndpoint::accept(AttachStreams& streams, std::string& refused, std::int64_t timeout_milliseconds) {
     State& state = *state_;
+    const stxlib::IntervalTime deadline = stxlib::IntervalTime::now().after(
+        stxlib::Duration::milliseconds(timeout_milliseconds < 0 ? 0 : timeout_milliseconds));
     for (;;) {
         if (state.interrupted.load()) return AttachWait::interrupted;
+        int wait = -1;
+        if (timeout_milliseconds >= 0) {
+            const stxlib::IntervalTime now = stxlib::IntervalTime::now();
+            if (deadline <= now) return AttachWait::timed_out;
+            wait = static_cast<int>(std::min<std::int64_t>(deadline.since(now).count_milliseconds() + 1, 60000));
+        }
         pollfd watched[2] = {};
         watched[0].fd = state.listener;
         watched[0].events = POLLIN;
         watched[1].fd = state.wake_read;
         watched[1].events = POLLIN;
-        const int ready = poll(watched, 2U, -1);
+        const int ready = poll(watched, 2U, wait);
         if (ready < 0) {
             if (errno == EINTR) continue;
             refused = "the attach endpoint stopped: " + host_message(errno);
@@ -355,34 +445,90 @@ const std::string& AttachEndpoint::address() const noexcept {
     return (*state_).path;
 }
 
+void AttachEndpoint::publish(std::size_t tools, std::string_view note) {
+    State& state = *state_;
+    const std::size_t newline = note.find('\n');
+    state.entry.tools = tools;
+    state.entry.note = std::string(note.substr(0U, newline));
+    static_cast<void>(write_file_whole(state.info_path, attach_info_text(state.entry)));
+}
+
 std::vector<AttachListing> list_attach_endpoints() {
     std::vector<AttachListing> listings{};
     std::string error{};
-    const std::string directory = attach_directory(false, error);
+    const std::string directory = attach_run_directory(false, error);
     if (directory.empty()) return listings;
     DIR* const opened = opendir(directory.c_str());
     if (opened == nullptr) return listings;
+    std::vector<std::string> stale{};
     for (dirent* entry = readdir(opened); entry != nullptr; entry = readdir(opened)) {
-        const std::string_view name((*entry).d_name);
-        if (name.size() <= socket_suffix.size() || name.substr(name.size() - socket_suffix.size()) != socket_suffix) {
+        const std::string name((*entry).d_name);
+        const std::int64_t socket_process = name_process(name, socket_suffix);
+        const std::int64_t info_process = name_process(name, info_suffix);
+        const std::int64_t process = socket_process != 0 ? socket_process : info_process;
+        if (process == 0) continue;
+        const std::string path = directory + "/" + name;
+        if (!process_alive(process)) {
+            stale.push_back(path);
             continue;
         }
-        const std::int64_t process = name_process(name);
-        if (!process_alive(process)) continue;
-        const std::size_t dot = name.find('.');
+        if (info_process == 0) continue;
+        std::string text{};
         AttachListing listing{};
+        if (!read_small_file(path, 64U * 1024U, text) || !parse_attach_info(text, listing)) continue;
         listing.process = process;
-        listing.identity = std::string(name.substr(dot + 1U, name.size() - socket_suffix.size() - dot - 1U));
-        listing.address = directory + "/" + std::string(name);
         listings.push_back(std::move(listing));
     }
     static_cast<void>(closedir(opened));
+    // The entries of ended processes (a program that crashed, or was
+    // killed, leaves its files behind).
+    for (const std::string& path : stale) static_cast<void>(unlink(path.c_str()));
     std::sort(listings.begin(), listings.end(), OlderProcess{});
     return listings;
 }
 
 void abort_attach_connection(std::int64_t handle) noexcept {
     if (handle >= 0) static_cast<void>(shutdown(static_cast<int>(handle), SHUT_RDWR));
+}
+
+bool peek_attach_line(const AttachStreams& streams, std::string& line, std::int64_t timeout_milliseconds) {
+    const int descriptor = static_cast<int>(streams.input.native_handle());
+    const stxlib::IntervalTime deadline =
+        stxlib::IntervalTime::now().after(stxlib::Duration::milliseconds(timeout_milliseconds));
+    std::vector<char> buffer(maximum_opening_line + 1U);
+    std::size_t seen = 0U;
+    for (;;) {
+        const stxlib::IntervalTime now = stxlib::IntervalTime::now();
+        if (deadline <= now) return false;
+        pollfd watched{};
+        watched.fd = descriptor;
+        watched.events = POLLIN;
+        const int wait = static_cast<int>(std::min<std::int64_t>(deadline.since(now).count_milliseconds() + 1, 60000));
+        const int ready = poll(&watched, 1U, seen == 0U ? wait : std::min(wait, peek_slice_milliseconds));
+        if (ready < 0) {
+            if (errno == EINTR) continue;
+            return false;
+        }
+        if (ready == 0) continue;
+        const ssize_t peeked = recv(descriptor, buffer.data(), buffer.size(), MSG_PEEK);
+        if (peeked < 0) {
+            if (errno == EINTR || errno == EAGAIN) continue;
+            return false;
+        }
+        if (peeked == 0) return false;
+        const std::string_view held(buffer.data(), static_cast<std::size_t>(peeked));
+        const std::size_t newline = held.find('\n');
+        if (newline != std::string_view::npos) {
+            line.assign(held.data(), newline);
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            return true;
+        }
+        if (held.size() > maximum_opening_line) return false;
+        // Part of a line: poll would answer at once, so wait a slice for the
+        // rest before looking again.
+        if (held.size() == seen) stxlib::sleep_for(stxlib::Duration::milliseconds(peek_slice_milliseconds));
+        seen = held.size();
+    }
 }
 
 bool connect_attach_endpoint(const std::string& address, AttachStreams& streams, std::string& error) {

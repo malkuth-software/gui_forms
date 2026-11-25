@@ -67,6 +67,7 @@ threading
 lifecycle
 hosts-and-capabilities
 mcp-tools
+talk-to-a-program
 presentation
 content-surfaces
 factory-bundle

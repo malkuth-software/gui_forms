@@ -1,25 +1,23 @@
 // The attach endpoint on Windows (src/runtime/automation/attach_endpoint.hpp):
-// a named pipe that only the user can open.
+// an AF_UNIX stream socket (Windows 10 1803 and later), as on the POSIX
+// hosts, so the same clients work everywhere.
 //
-// - The name: \\.\pipe\gui-forms-attach.<user SID>.<pid>.<identity>. The
-//   first instance is made with FILE_FLAG_FIRST_PIPE_INSTANCE, so a pipe of
-//   that name made earlier by anyone else fails the endpoint instead of
-//   sharing it.
-// - The DACL grants generic all to the user's SID and nothing to anyone
-//   else ("D:P(A;;GA;;;<SID>)", protected from inheritance), and the pipe
-//   rejects remote clients (PIPE_REJECT_REMOTE_CLIENTS).
-// - Each client is checked again before anything is read: its process's
-//   token user (GetNamedPipeClientProcessId, OpenProcessToken, TokenUser)
-//   must equal the server's (attach_peer_allowed over the two SIDs' equality);
-//   another user's client, or one whose user cannot be read, is
-//   disconnected unread.
-// - accept blocks in ConnectNamedPipe on a synchronous instance (the
-//   streams read and write it with ReadFile and WriteFile, as STXlib's
-//   pipes do); interrupt() sets the flag and opens the pipe once as a
-//   client, which ends the wait.
-// - The bridge opens the pipe with SECURITY_IDENTIFICATION (the program can
-//   learn who connected but never act as the bridge's user), and checks the
-//   server process's user the same way before it says hello.
+// - The run directory: %LOCALAPPDATA%\gui-forms\run (STXlib's
+//   known_directory, user_cache), given a protected DACL that grants only
+//   the user's SID ("D:P(A;OICI;GA;;;<SID>)"), whether this process made
+//   it or found it: setting the DACL fails on a directory the user does
+//   not own, and that refuses the endpoint. The socket file and the
+//   discovery entry inherit it.
+// - The socket: <pid>.sock, bound in that directory; the discovery entry
+//   <pid>.info, written whole to <pid>.info.new and moved into place.
+// - The sockets are made without WSA_FLAG_OVERLAPPED, so their handles take
+//   STXlib's synchronous ReadFile and WriteFile, as a pipe's do (AF_UNIX's
+//   provider is a kernel one, whose socket handles are file handles).
+// - Each accepted peer is checked before anything is read: its process
+//   (SIO_AF_UNIX_GETPEERPID) must have the server's token user
+//   (attach_peer_allowed over the two SIDs' equality); another user's
+//   connection, or one whose user cannot be read, is closed unread.
+// - interrupt() sets the flag and connects once, which ends the wait.
 
 #if !defined(WIN32_LEAN_AND_MEAN)
 #define WIN32_LEAN_AND_MEAN
@@ -33,14 +31,24 @@
 
 #include "../../../runtime/automation/attach_endpoint.hpp"
 
+#include <winsock2.h>
 #include <windows.h>
+#include <aclapi.h>
+#include <afunix.h>
 #include <sddl.h>
+
+#include <stxlib/clocks.hpp>
+#include <stxlib/files.hpp>
+#include <stxlib/path.hpp>
+#include <stxlib/text_view.hpp>
+#include <stxlib/threads.hpp>
 
 #include <algorithm>
 #include <atomic>
 #include <charconv>
 #include <cstddef>
 #include <cstdint>
+#include <cstring>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -48,14 +56,18 @@
 #include <utility>
 #include <vector>
 
+#if !defined(SIO_AF_UNIX_GETPEERPID)
+#define SIO_AF_UNIX_GETPEERPID _WSAIOR(IOC_VENDOR, 256)
+#endif
+
 namespace gui_forms::automation {
 
 namespace {
 
-constexpr std::wstring_view pipe_root = L"\\\\.\\pipe\\";
-constexpr std::wstring_view pipe_prefix = L"gui-forms-attach.";
-constexpr DWORD pipe_buffer = 65536U;
-constexpr DWORD connect_wait_milliseconds = 5000U;
+constexpr std::string_view socket_suffix = ".sock";
+constexpr std::string_view info_suffix = ".info";
+constexpr int listen_backlog = 8;
+constexpr int peek_slice_milliseconds = 10;
 
 std::string host_message(DWORD code) {
     const std::string message = std::system_category().message(static_cast<int>(code));
@@ -98,6 +110,13 @@ public:
 private:
     HANDLE handle_{};
 };
+
+// Winsock, started once per call that needs it (WSAStartup counts; the
+// count is left for the process's end).
+bool winsock_ready() noexcept {
+    WSADATA data{};
+    return WSAStartup(MAKEWORD(2, 2), &data) == 0;
+}
 
 // The token user of `process`'s token, as its SID's bytes; empty when it
 // cannot be read.
@@ -144,27 +163,6 @@ std::wstring sid_text(const std::vector<unsigned char>& sid) {
     return made;
 }
 
-std::wstring endpoint_identity(const std::string& identity) {
-    std::wstring kept{};
-    for (const char character : identity) {
-        const bool plain = (character >= 'a' && character <= 'z') || (character >= 'A' && character <= 'Z') ||
-                           (character >= '0' && character <= '9') || character == '.' || character == '-' ||
-                           character == '_';
-        kept += plain ? static_cast<wchar_t>(character) : L'-';
-        if (kept.size() == 96U) break;
-    }
-    if (kept.empty()) kept = L"program";
-    return kept;
-}
-
-// The prefix every endpoint of the user carries: gui-forms-attach.<SID>.
-std::wstring user_prefix(const std::vector<unsigned char>& own) {
-    std::wstring prefix(pipe_prefix);
-    prefix += sid_text(own);
-    prefix += L'.';
-    return prefix;
-}
-
 bool process_alive(std::int64_t process_id) noexcept {
     if (process_id <= 0) return false;
     const OwnedHandle process(OpenProcess(SYNCHRONIZE, FALSE, static_cast<DWORD>(process_id)));
@@ -172,120 +170,300 @@ bool process_alive(std::int64_t process_id) noexcept {
     return WaitForSingleObject(process.get(), 0U) == WAIT_TIMEOUT;
 }
 
-// The two streams over one pipe handle: the handle reads, a duplicate
-// writes. Closes `pipe` on a failure.
-bool streams_over(HANDLE pipe, AttachStreams& streams) noexcept {
-    HANDLE writer = nullptr;
-    if (!DuplicateHandle(GetCurrentProcess(), pipe, GetCurrentProcess(), &writer, 0U, FALSE, DUPLICATE_SAME_ACCESS)) {
-        static_cast<void>(CloseHandle(pipe));
+// The run directory's path (backslashes), or empty.
+std::string run_directory_path() {
+    const stxlib::OperationResult<stxlib::Path> found = stxlib::known_directory(stxlib::KnownDirectory::user_cache);
+    if (found.failed()) return std::string{};
+    const stxlib::PathText text = (*found.value()).text();
+    if (!text.is_unicode()) return std::string{};
+    const stxlib::TextView view = text.unicode();
+    std::string directory(view.data(), static_cast<std::size_t>(view.count()));
+    std::replace(directory.begin(), directory.end(), '/', '\\');
+    while (directory.size() > 3U && directory.back() == '\\') directory.pop_back();
+    if (directory.empty()) return directory;
+    return directory + "\\gui-forms\\run";
+}
+
+// Gives `directory` a protected DACL granting only `sid`, inherited by
+// what is made in it. False when it cannot be set (a directory of someone
+// else's).
+bool make_private(const std::string& directory, const std::vector<unsigned char>& sid) {
+    const std::wstring text = L"D:P(A;OICI;GA;;;" + sid_text(sid) + L")";
+    PSECURITY_DESCRIPTOR descriptor = nullptr;
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(text.c_str(), SDDL_REVISION_1, &descriptor, nullptr)) {
         return false;
     }
-    streams.input = stxlib::PipeReader::adopt(static_cast<stxlib::i64>(reinterpret_cast<std::intptr_t>(pipe)));
+    BOOL present = FALSE;
+    BOOL defaulted = FALSE;
+    PACL acl = nullptr;
+    bool set = false;
+    if (GetSecurityDescriptorDacl(descriptor, &present, &acl, &defaulted) && present) {
+        std::wstring path = wide(directory);
+        const DWORD result =
+            SetNamedSecurityInfoW(path.data(), SE_FILE_OBJECT,
+                                  DACL_SECURITY_INFORMATION | PROTECTED_DACL_SECURITY_INFORMATION, nullptr, nullptr,
+                                  acl, nullptr);
+        set = result == ERROR_SUCCESS;
+    }
+    static_cast<void>(LocalFree(descriptor));
+    return set;
+}
+
+void close_socket(SOCKET socket_handle) noexcept {
+    if (socket_handle != INVALID_SOCKET) static_cast<void>(closesocket(socket_handle));
+}
+
+// A synchronous AF_UNIX stream socket (no WSA_FLAG_OVERLAPPED), so ReadFile
+// and WriteFile take its handle.
+SOCKET unix_socket() noexcept {
+    const SOCKET made = WSASocketW(AF_UNIX, SOCK_STREAM, 0, nullptr, 0U, WSA_FLAG_NO_HANDLE_INHERIT);
+    return made;
+}
+
+bool socket_address(const std::string& path, sockaddr_un& address) noexcept {
+    address = sockaddr_un{};
+    address.sun_family = AF_UNIX;
+    if (path.size() + 1U > sizeof(address.sun_path)) return false;
+    std::memcpy(address.sun_path, path.c_str(), path.size() + 1U);
+    return true;
+}
+
+bool set_blocking(SOCKET socket_handle, bool blocking) noexcept {
+    u_long mode = blocking ? 0U : 1U;
+    return ioctlsocket(socket_handle, FIONBIO, &mode) == 0;
+}
+
+// The two streams over one connected socket: the socket reads, a
+// duplicate of its handle writes. Closes the socket on a failure.
+bool streams_over(SOCKET socket_handle, AttachStreams& streams) noexcept {
+    const HANDLE reader = reinterpret_cast<HANDLE>(socket_handle);
+    HANDLE writer = nullptr;
+    if (!DuplicateHandle(GetCurrentProcess(), reader, GetCurrentProcess(), &writer, 0U, FALSE,
+                         DUPLICATE_SAME_ACCESS)) {
+        close_socket(socket_handle);
+        return false;
+    }
+    streams.input = stxlib::PipeReader::adopt(static_cast<stxlib::i64>(reinterpret_cast<std::intptr_t>(reader)));
     streams.output = stxlib::PipeWriter::adopt(static_cast<stxlib::i64>(reinterpret_cast<std::intptr_t>(writer)));
     return true;
 }
 
-} // namespace
+std::int64_t name_process(std::string_view name, std::string_view suffix) noexcept {
+    if (name.size() <= suffix.size() || name.substr(name.size() - suffix.size()) != suffix) return 0;
+    const std::size_t digits = name.size() - suffix.size();
+    std::int64_t process = 0;
+    const std::from_chars_result parsed = std::from_chars(name.data(), name.data() + digits, process);
+    if (parsed.ec != std::errc{} || parsed.ptr != name.data() + digits) return 0;
+    return process;
+}
 
-struct AttachEndpoint::State final {
-    std::wstring name{};
-    std::string address{};
-    std::vector<unsigned char> own{};
-    PSECURITY_DESCRIPTOR descriptor{};
-    SECURITY_ATTRIBUTES attributes{};
-    HANDLE instance{INVALID_HANDLE_VALUE};
-    bool first{true};
-    std::atomic<bool> interrupted{false};
+bool read_small_file(const std::string& path, std::size_t limit, std::string& text) {
+    const OwnedHandle file(CreateFileW(wide(path).c_str(), GENERIC_READ, FILE_SHARE_READ | FILE_SHARE_DELETE, nullptr,
+                                       OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr));
+    if (!file.valid()) return false;
+    text.clear();
+    char buffer[4096] = {};
+    for (;;) {
+        DWORD read_count = 0U;
+        if (!ReadFile(file.get(), buffer, sizeof(buffer), &read_count, nullptr) || read_count == 0U) break;
+        text.append(buffer, read_count);
+        if (text.size() > limit) return false;
+    }
+    return true;
+}
 
-    // A new instance, waiting for its client; false with `error` set.
-    bool make_instance(std::string& error) {
-        const DWORD open_mode = PIPE_ACCESS_DUPLEX | (first ? FILE_FLAG_FIRST_PIPE_INSTANCE : 0U);
-        const DWORD pipe_mode = PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS;
-        instance = CreateNamedPipeW(name.c_str(), open_mode, pipe_mode, PIPE_UNLIMITED_INSTANCES, pipe_buffer,
-                                    pipe_buffer, 0U, &attributes);
-        if (instance == INVALID_HANDLE_VALUE) {
-            error = "the attach pipe could not be made: " + host_message(GetLastError());
+bool write_file_whole(const std::string& path, std::string_view text) {
+    const std::wstring staged = wide(path + ".new");
+    {
+        const OwnedHandle file(
+            CreateFileW(staged.c_str(), GENERIC_WRITE, 0U, nullptr, CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr));
+        if (!file.valid()) return false;
+        DWORD wrote = 0U;
+        if (!WriteFile(file.get(), text.data(), static_cast<DWORD>(text.size()), &wrote, nullptr) ||
+            wrote != text.size()) {
+            static_cast<void>(DeleteFileW(staged.c_str()));
             return false;
         }
-        first = false;
-        return true;
     }
+    if (!MoveFileExW(staged.c_str(), wide(path).c_str(), MOVEFILE_REPLACE_EXISTING)) {
+        static_cast<void>(DeleteFileW(staged.c_str()));
+        return false;
+    }
+    return true;
+}
+
+struct OlderProcess final {
+    bool operator()(const AttachListing& left, const AttachListing& right) const noexcept {
+        return left.process < right.process;
+    }
+};
+
+} // namespace
+
+std::string attach_run_directory(bool create, std::string& error) {
+    const std::string directory = run_directory_path();
+    if (directory.empty()) {
+        error = "no run directory can be named for this user (no local application data folder)";
+        return std::string{};
+    }
+    const std::vector<unsigned char> own = token_user(GetCurrentProcess());
+    if (own.empty()) {
+        error = "the user's SID could not be read";
+        return std::string{};
+    }
+    const std::string parent = directory.substr(0U, directory.size() - std::string_view("\\run").size());
+    if (create) {
+        if (!CreateDirectoryW(wide(parent).c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) {
+            error = "the directory " + parent + " could not be made: " + host_message(GetLastError());
+            return std::string{};
+        }
+        if (!CreateDirectoryW(wide(directory).c_str(), nullptr) && GetLastError() != ERROR_ALREADY_EXISTS) {
+            error = "the run directory " + directory + " could not be made: " + host_message(GetLastError());
+            return std::string{};
+        }
+        if (!make_private(directory, own)) {
+            error = "the run directory " + directory + " could not be made private to this user: " +
+                    host_message(GetLastError());
+            return std::string{};
+        }
+        return directory;
+    }
+    const DWORD attributes = GetFileAttributesW(wide(directory).c_str());
+    const bool plain_directory = attributes != INVALID_FILE_ATTRIBUTES &&
+                                 (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0U &&
+                                 (attributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0U;
+    if (!plain_directory) {
+        error = "the run directory " + directory + " is missing";
+        return std::string{};
+    }
+    return directory;
+}
+
+std::string attach_socket_path(std::int64_t process, std::string& error) {
+    const std::string directory = run_directory_path();
+    if (directory.empty()) {
+        error = "no run directory can be named for this user (no local application data folder)";
+        return std::string{};
+    }
+    return directory + "\\" + std::to_string(static_cast<long long>(process)) + std::string(socket_suffix);
+}
+
+struct AttachEndpoint::State final {
+    std::string path{};
+    std::string info_path{};
+    AttachListing entry{};
+    std::vector<unsigned char> own{};
+    SOCKET listener{INVALID_SOCKET};
+    std::atomic<bool> interrupted{false};
 };
 
 AttachEndpoint::AttachEndpoint(std::unique_ptr<State> state) noexcept : state_(std::move(state)) {}
 
-std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const std::string& identity, std::string& error) {
+std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const AttachProgram& program, std::string& error) {
+    if (!winsock_ready()) {
+        error = "Winsock did not start";
+        return nullptr;
+    }
+    const std::string directory = attach_run_directory(true, error);
+    if (directory.empty()) return nullptr;
+    const std::string process = std::to_string(static_cast<unsigned long>(GetCurrentProcessId()));
     std::unique_ptr<State> state = std::make_unique<State>();
     (*state).own = token_user(GetCurrentProcess());
-    const std::wstring sid = sid_text((*state).own);
-    if (sid.empty()) {
-        error = "the user's SID could not be read";
+    (*state).path = directory + "\\" + process + std::string(socket_suffix);
+    (*state).info_path = directory + "\\" + process + std::string(info_suffix);
+    sockaddr_un address{};
+    if (!socket_address((*state).path, address)) {
+        error = "the attach socket's path is too long: " + (*state).path;
         return nullptr;
     }
-    const std::wstring descriptor_text = L"D:P(A;;GA;;;" + sid + L")";
-    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(descriptor_text.c_str(), SDDL_REVISION_1,
-                                                              &(*state).descriptor, nullptr)) {
-        error = "the attach pipe's security descriptor could not be made: " + host_message(GetLastError());
-        return nullptr;
-    }
-    (*state).attributes.nLength = sizeof(SECURITY_ATTRIBUTES);
-    (*state).attributes.lpSecurityDescriptor = (*state).descriptor;
-    (*state).attributes.bInheritHandle = FALSE;
-    (*state).name = std::wstring(pipe_root) + user_prefix((*state).own) +
-                    std::to_wstring(static_cast<unsigned long>(GetCurrentProcessId())) + L"." +
-                    endpoint_identity(identity);
-    (*state).address = narrow((*state).name);
     std::unique_ptr<AttachEndpoint> endpoint(new AttachEndpoint(std::move(state)));
-    // The first instance now: it claims the name, so a pipe someone else
-    // made under it fails here rather than later.
-    if (!(*(*endpoint).state_).make_instance(error)) return nullptr;
+    State& made = *(*endpoint).state_;
+    made.listener = unix_socket();
+    if (made.listener == INVALID_SOCKET) {
+        error = "the attach socket could not be made: " + host_message(static_cast<DWORD>(WSAGetLastError()));
+        return nullptr;
+    }
+    // Files left under these names by an ended process with the same pid.
+    static_cast<void>(DeleteFileW(wide(made.path).c_str()));
+    static_cast<void>(DeleteFileW(wide(made.info_path).c_str()));
+    if (bind(made.listener, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) != 0 ||
+        ::listen(made.listener, listen_backlog) != 0 || !set_blocking(made.listener, false)) {
+        error = "the attach socket could not listen at " + made.path + ": " +
+                host_message(static_cast<DWORD>(WSAGetLastError()));
+        close_socket(made.listener);
+        made.listener = INVALID_SOCKET;
+        return nullptr;
+    }
+    made.entry.identity = program.identity;
+    made.entry.name = program.name.empty() ? program.identity : program.name;
+    made.entry.process = static_cast<std::int64_t>(GetCurrentProcessId());
+    made.entry.executable = program.executable;
+    made.entry.address = made.path;
+    if (!write_file_whole(made.info_path, attach_info_text(made.entry))) {
+        error = "the discovery entry " + made.info_path + " could not be written: " + host_message(GetLastError());
+        return nullptr;
+    }
     return endpoint;
 }
 
 AttachEndpoint::~AttachEndpoint() {
     if (!state_) return;
     State& state = *state_;
-    if (state.instance != INVALID_HANDLE_VALUE) static_cast<void>(CloseHandle(state.instance));
-    if (state.descriptor != nullptr) static_cast<void>(LocalFree(state.descriptor));
+    if (state.listener != INVALID_SOCKET) {
+        close_socket(state.listener);
+        static_cast<void>(DeleteFileW(wide(state.path).c_str()));
+    }
+    static_cast<void>(DeleteFileW(wide(state.info_path).c_str()));
 }
 
-AttachWait AttachEndpoint::accept(AttachStreams& streams, std::string& refused) {
+AttachWait AttachEndpoint::accept(AttachStreams& streams, std::string& refused, std::int64_t timeout_milliseconds) {
     State& state = *state_;
+    const stxlib::IntervalTime deadline = stxlib::IntervalTime::now().after(
+        stxlib::Duration::milliseconds(timeout_milliseconds < 0 ? 0 : timeout_milliseconds));
     for (;;) {
         if (state.interrupted.load()) return AttachWait::interrupted;
-        if (state.instance == INVALID_HANDLE_VALUE && !state.make_instance(refused)) return AttachWait::failed;
-        const BOOL connected = ConnectNamedPipe(state.instance, nullptr);
-        const DWORD code = connected ? ERROR_SUCCESS : GetLastError();
-        if (!connected && code != ERROR_PIPE_CONNECTED) {
-            if (code == ERROR_NO_DATA) {
-                // The client came and went: the next one.
-                static_cast<void>(DisconnectNamedPipe(state.instance));
-                continue;
-            }
-            refused = "the attach endpoint stopped: " + host_message(code);
+        INT wait = -1;
+        if (timeout_milliseconds >= 0) {
+            const stxlib::IntervalTime now = stxlib::IntervalTime::now();
+            if (deadline <= now) return AttachWait::timed_out;
+            wait = static_cast<INT>(std::min<std::int64_t>(deadline.since(now).count_milliseconds() + 1, 60000));
+        }
+        WSAPOLLFD watched{};
+        watched.fd = state.listener;
+        watched.events = POLLRDNORM;
+        const int ready = WSAPoll(&watched, 1U, wait);
+        if (ready == SOCKET_ERROR) {
+            refused = "the attach endpoint stopped: " + host_message(static_cast<DWORD>(WSAGetLastError()));
             return AttachWait::failed;
         }
-        HANDLE pipe = state.instance;
-        state.instance = INVALID_HANDLE_VALUE;
+        if (state.interrupted.load()) return AttachWait::interrupted;
+        if (ready == 0) continue;
+        const SOCKET connection = ::accept(state.listener, nullptr, nullptr);
+        if (connection == INVALID_SOCKET) {
+            const int code = WSAGetLastError();
+            if (code == WSAEWOULDBLOCK || code == WSAECONNRESET || code == WSAEINTR) continue;
+            refused = "the attach endpoint stopped: " + host_message(static_cast<DWORD>(code));
+            return AttachWait::failed;
+        }
         if (state.interrupted.load()) {
-            static_cast<void>(DisconnectNamedPipe(pipe));
-            static_cast<void>(CloseHandle(pipe));
+            close_socket(connection);
             return AttachWait::interrupted;
         }
-        ULONG client = 0U;
-        if (!GetNamedPipeClientProcessId(pipe, &client)) {
-            static_cast<void>(DisconnectNamedPipe(pipe));
-            static_cast<void>(CloseHandle(pipe));
+        static_cast<void>(set_blocking(connection, true));
+        ULONG peer = 0U;
+        DWORD returned = 0U;
+        if (WSAIoctl(connection, SIO_AF_UNIX_GETPEERPID, nullptr, 0U, &peer, sizeof(peer), &returned, nullptr,
+                     nullptr) != 0) {
+            close_socket(connection);
             refused = "a connection whose process could not be read was refused";
             return AttachWait::refused;
         }
-        if (!same_user(state.own, process_user(client))) {
-            static_cast<void>(DisconnectNamedPipe(pipe));
-            static_cast<void>(CloseHandle(pipe));
+        if (!same_user(state.own, process_user(peer))) {
+            close_socket(connection);
             refused = "a connection from another user was refused";
             return AttachWait::refused;
         }
-        if (!streams_over(pipe, streams)) {
+        if (!streams_over(connection, streams)) {
             refused = "a connection could not be taken (no handle for its writer)";
             return AttachWait::refused;
         }
@@ -296,86 +474,121 @@ AttachWait AttachEndpoint::accept(AttachStreams& streams, std::string& refused) 
 void AttachEndpoint::interrupt() noexcept {
     State& state = *state_;
     state.interrupted.store(true);
-    // Opening the pipe once ends a ConnectNamedPipe that waits for it.
-    const OwnedHandle poke(CreateFileW(state.name.c_str(), GENERIC_READ | GENERIC_WRITE, 0U, nullptr, OPEN_EXISTING,
-                                       SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION, nullptr));
+    // Connecting once ends a WSAPoll that waits for a connection.
+    sockaddr_un address{};
+    if (!socket_address(state.path, address)) return;
+    const SOCKET poke = unix_socket();
+    if (poke == INVALID_SOCKET) return;
+    static_cast<void>(connect(poke, reinterpret_cast<const sockaddr*>(&address), sizeof(address)));
+    close_socket(poke);
 }
 
 const std::string& AttachEndpoint::address() const noexcept {
-    return (*state_).address;
+    return (*state_).path;
 }
 
-namespace {
-
-// Orders listings by process ID.
-struct OlderProcess final {
-    bool operator()(const AttachListing& left, const AttachListing& right) const noexcept {
-        return left.process < right.process;
-    }
-};
-
-} // namespace
+void AttachEndpoint::publish(std::size_t tools, std::string_view note) {
+    State& state = *state_;
+    const std::size_t newline = note.find('\n');
+    state.entry.tools = tools;
+    state.entry.note = std::string(note.substr(0U, newline));
+    static_cast<void>(write_file_whole(state.info_path, attach_info_text(state.entry)));
+}
 
 std::vector<AttachListing> list_attach_endpoints() {
     std::vector<AttachListing> listings{};
-    const std::vector<unsigned char> own = token_user(GetCurrentProcess());
-    const std::wstring prefix = user_prefix(own);
-    if (own.empty()) return listings;
+    std::string error{};
+    const std::string directory = attach_run_directory(false, error);
+    if (directory.empty()) return listings;
     WIN32_FIND_DATAW found{};
-    const std::wstring pattern = std::wstring(pipe_root) + L"*";
+    const std::wstring pattern = wide(directory + "\\*");
     HANDLE search = FindFirstFileW(pattern.c_str(), &found);
     if (search == INVALID_HANDLE_VALUE) return listings;
+    std::vector<std::string> stale{};
     do {
-        const std::wstring_view name(found.cFileName);
-        if (name.size() <= prefix.size() || name.substr(0U, prefix.size()) != prefix) continue;
-        const std::wstring_view rest = name.substr(prefix.size());
-        const std::size_t dot = rest.find(L'.');
-        if (dot == std::wstring_view::npos || dot == 0U) continue;
-        const std::string process_text = narrow(rest.substr(0U, dot));
-        std::int64_t process = 0;
-        const std::from_chars_result parsed =
-            std::from_chars(process_text.data(), process_text.data() + process_text.size(), process);
-        if (parsed.ec != std::errc{} || !process_alive(process)) continue;
+        const std::string name = narrow(found.cFileName);
+        const std::int64_t socket_process = name_process(name, socket_suffix);
+        const std::int64_t info_process = name_process(name, info_suffix);
+        const std::int64_t process = socket_process != 0 ? socket_process : info_process;
+        if (process == 0) continue;
+        const std::string path = directory + "\\" + name;
+        if (!process_alive(process)) {
+            stale.push_back(path);
+            continue;
+        }
+        if (info_process == 0) continue;
+        std::string text{};
         AttachListing listing{};
+        if (!read_small_file(path, 64U * 1024U, text) || !parse_attach_info(text, listing)) continue;
         listing.process = process;
-        listing.identity = narrow(rest.substr(dot + 1U));
-        listing.address = narrow(std::wstring(pipe_root) + std::wstring(name));
         listings.push_back(std::move(listing));
     } while (FindNextFileW(search, &found));
     static_cast<void>(FindClose(search));
+    for (const std::string& path : stale) static_cast<void>(DeleteFileW(wide(path).c_str()));
     std::sort(listings.begin(), listings.end(), OlderProcess{});
     return listings;
 }
 
 void abort_attach_connection(std::int64_t handle) noexcept {
     if (handle == 0 || handle == -1) return;
+    const SOCKET socket_handle = static_cast<SOCKET>(static_cast<std::uintptr_t>(handle));
+    static_cast<void>(shutdown(socket_handle, SD_BOTH));
     static_cast<void>(CancelIoEx(reinterpret_cast<HANDLE>(static_cast<std::intptr_t>(handle)), nullptr));
 }
 
+bool peek_attach_line(const AttachStreams& streams, std::string& line, std::int64_t timeout_milliseconds) {
+    const SOCKET socket_handle = static_cast<SOCKET>(static_cast<std::uintptr_t>(streams.input.native_handle()));
+    const stxlib::IntervalTime deadline =
+        stxlib::IntervalTime::now().after(stxlib::Duration::milliseconds(timeout_milliseconds));
+    std::vector<char> buffer(maximum_opening_line + 1U);
+    std::size_t seen = 0U;
+    for (;;) {
+        const stxlib::IntervalTime now = stxlib::IntervalTime::now();
+        if (deadline <= now) return false;
+        WSAPOLLFD watched{};
+        watched.fd = socket_handle;
+        watched.events = POLLRDNORM;
+        const INT wait = static_cast<INT>(std::min<std::int64_t>(deadline.since(now).count_milliseconds() + 1, 60000));
+        const int ready = WSAPoll(&watched, 1U, seen == 0U ? wait : std::min<INT>(wait, peek_slice_milliseconds));
+        if (ready == SOCKET_ERROR) return false;
+        if (ready == 0) continue;
+        const int peeked = recv(socket_handle, buffer.data(), static_cast<int>(buffer.size()), MSG_PEEK);
+        if (peeked <= 0) return false;
+        const std::string_view held(buffer.data(), static_cast<std::size_t>(peeked));
+        const std::size_t newline = held.find('\n');
+        if (newline != std::string_view::npos) {
+            line.assign(held.data(), newline);
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            return true;
+        }
+        if (held.size() > maximum_opening_line) return false;
+        if (held.size() == seen) stxlib::sleep_for(stxlib::Duration::milliseconds(peek_slice_milliseconds));
+        seen = held.size();
+    }
+}
+
 bool connect_attach_endpoint(const std::string& address, AttachStreams& streams, std::string& error) {
-    const std::wstring name = wide(address);
-    if (name.empty()) {
-        error = "the attach address is empty";
+    if (!winsock_ready()) {
+        error = "Winsock did not start";
         return false;
     }
-    if (!WaitNamedPipeW(name.c_str(), connect_wait_milliseconds)) {
-        error = "the program at " + address + " could not be reached: " + host_message(GetLastError());
+    sockaddr_un socket_name{};
+    if (!socket_address(address, socket_name)) {
+        error = "the attach socket's path is too long: " + address;
         return false;
     }
-    HANDLE pipe = CreateFileW(name.c_str(), GENERIC_READ | GENERIC_WRITE, 0U, nullptr, OPEN_EXISTING,
-                              SECURITY_SQOS_PRESENT | SECURITY_IDENTIFICATION, nullptr);
-    if (pipe == INVALID_HANDLE_VALUE) {
-        error = "the program at " + address + " could not be opened: " + host_message(GetLastError());
+    const SOCKET connection = unix_socket();
+    if (connection == INVALID_SOCKET) {
+        error = "a socket could not be made: " + host_message(static_cast<DWORD>(WSAGetLastError()));
         return false;
     }
-    ULONG server = 0U;
-    if (!GetNamedPipeServerProcessId(pipe, &server) ||
-        !same_user(token_user(GetCurrentProcess()), process_user(server))) {
-        static_cast<void>(CloseHandle(pipe));
-        error = "the pipe at " + address + " is not served by a program of this user";
+    if (connect(connection, reinterpret_cast<const sockaddr*>(&socket_name), sizeof(socket_name)) != 0) {
+        error = "the program at " + address +
+                " could not be reached: " + host_message(static_cast<DWORD>(WSAGetLastError()));
+        close_socket(connection);
         return false;
     }
-    if (!streams_over(pipe, streams)) {
+    if (!streams_over(connection, streams)) {
         error = "no handle was left for the connection's writer";
         return false;
     }

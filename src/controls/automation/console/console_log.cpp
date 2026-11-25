@@ -17,7 +17,7 @@ namespace {
 // shifted for every line.
 constexpr std::size_t drop_batch = 200U;
 
-constexpr std::string_view call_mark = "› ";
+constexpr std::string_view call_mark = "call ";
 constexpr std::string_view reply_mark = "‹ ";
 constexpr std::string_view ellipsis = "…";
 
@@ -77,16 +77,45 @@ void ConsoleLog::append(std::vector<ConsoleSpan> spans) {
     ++serial_;
     ConsoleLine line{};
     line.serial = serial_;
+    line.session = session_;
     line.spans = std::move(spans);
     lines_.push_back(std::move(line));
 }
 
+void ConsoleLog::set_session(std::string label) {
+    const stxlib::ScopedLock lock(mutex_);
+    session_ = std::move(label);
+}
+
+// The "[label] " a labelled session's call line begins with, or nothing.
+void ConsoleLog::label_span(std::vector<ConsoleSpan>& spans) const {
+    const stxlib::ScopedLock lock(mutex_);
+    if (session_.empty()) return;
+    spans.push_back(ConsoleSpan{"[" + session_ + "] ", ConsoleTone::instruction});
+}
+
 void ConsoleLog::record_call(std::string_view tool, std::string_view arguments_json) {
     std::vector<ConsoleSpan> spans{};
+    label_span(spans);
     spans.push_back(ConsoleSpan{std::string(call_mark) + std::string(tool), ConsoleTone::instruction});
     if (!arguments_json.empty() && arguments_json != "{}") {
         spans.push_back(ConsoleSpan{" " + console_clip(one_line(arguments_json), maximum_value_bytes),
                                     ConsoleTone::value});
+    }
+    append(std::move(spans));
+}
+
+void ConsoleLog::record_typed(std::string_view line) {
+    std::vector<ConsoleSpan> spans{};
+    label_span(spans);
+    const std::string flat = one_line(line);
+    const std::size_t space = flat.find(' ');
+    if (space == std::string::npos) {
+        spans.push_back(ConsoleSpan{console_clip(flat, maximum_value_bytes), ConsoleTone::instruction});
+    } else {
+        spans.push_back(ConsoleSpan{flat.substr(0U, space), ConsoleTone::instruction});
+        spans.push_back(
+            ConsoleSpan{console_clip(std::string_view(flat).substr(space), maximum_value_bytes), ConsoleTone::value});
     }
     append(std::move(spans));
 }
@@ -166,6 +195,19 @@ void ConsoleLog::copy_since(std::uint64_t after, std::vector<ConsoleLine>& lines
     for (const ConsoleLine& line : lines_) {
         if (line.serial > after) lines.push_back(line);
     }
+}
+
+std::string ConsoleLog::transcript_text() const {
+    const stxlib::ScopedLock lock(mutex_);
+    std::string text{};
+    std::string session{};
+    for (const ConsoleLine& line : lines_) {
+        if (line.session != session && !line.session.empty()) text += "== session " + line.session + "\n";
+        session = line.session;
+        for (const ConsoleSpan& span : line.spans) text += span.text;
+        text += '\n';
+    }
+    return text;
 }
 
 std::uint64_t console_run_hash(std::uint64_t serial, std::size_t run) noexcept {

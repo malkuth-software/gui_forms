@@ -45,6 +45,9 @@ struct ConsoleSpan final {
 struct ConsoleLine final {
     // 1 for the first line recorded; never reused.
     std::uint64_t serial{};
+    // The session the line belongs to ("claude-code 3f2a"), empty for
+    // none (ConsoleLog::set_session).
+    std::string session{};
     std::vector<ConsoleSpan> spans{};
 };
 
@@ -61,8 +64,19 @@ public:
     ConsoleLog(const ConsoleLog&) = delete;
     ConsoleLog& operator=(const ConsoleLog&) = delete;
 
-    // A call as it begins: "› tool {arguments}".
+    // The session later lines belong to, by its label (the client's name
+    // and the token's first digits; empty for none). One record serves the
+    // socket's sessions and the overlay alike (owner, attach revision 3:
+    // the visible console mirrors the socket session itself), so the label
+    // tells several sessions apart: a call line of a labelled session
+    // begins with "[label]".
+    void set_session(std::string label);
+    // A call as it begins, as the socket's console would type it:
+    // "call tool {arguments}".
     void record_call(std::string_view tool, std::string_view arguments_json);
+    // A line a console session typed, as it was typed (its first word as the
+    // instruction).
+    void record_typed(std::string_view line);
     // Its reply: "‹ ok: ..." with the first lines of the text and a note of
     // each image, or "‹ <error>: message" for a failure.
     void record_reply(const ToolReply& reply);
@@ -74,13 +88,20 @@ public:
     [[nodiscard]] std::uint64_t serial() const;
     // The lines after `after` still kept, oldest first, appended to `lines`.
     void copy_since(std::uint64_t after, std::vector<ConsoleLine>& lines) const;
+    // Every line still kept as plain text, one per line, each session's
+    // lines after a "== session <label>" line: the transcript a console
+    // session's `transcript` command answers.
+    [[nodiscard]] std::string transcript_text() const;
 
 private:
     void append(std::vector<ConsoleSpan> spans);
+    void label_span(std::vector<ConsoleSpan>& spans) const;
 
     mutable stxlib::Mutex mutex_{};
     std::vector<ConsoleLine> lines_{};
     std::uint64_t serial_{};
+    // Under mutex_.
+    std::string session_{};
 };
 
 // `text` cut to at most `limit` bytes at a UTF-8 boundary, with U+2026 after

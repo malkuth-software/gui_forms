@@ -2277,8 +2277,8 @@ if(GUI_FORMS_MCP)
         target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP_TEST_CONTROLS=1)
     endif()
     if(TARGET gui_forms_application AND NOT GUI_FORMS_HIGH_INTEGRITY)
-        # The attach endpoint (MCP 1.0.5, attach_endpoint.hpp): a socket or a
-        # pipe only the user can reach, from the platform's own file.
+        # The attach endpoint (MCP 1.0.5, attach_endpoint.hpp): an AF_UNIX
+        # socket only the user can reach, from the platform's own file.
         if(WIN32)
             set(_gf_attach_endpoint src/surface/windows/attach/attach_endpoint_windows.cpp)
         else()
@@ -2292,7 +2292,7 @@ if(GUI_FORMS_MCP)
             ${_gf_attach_endpoint}
             src/runtime/automation/mcp_transport.cpp)
         if(WIN32)
-            target_link_libraries(gui_forms_automation PRIVATE advapi32)
+            target_link_libraries(gui_forms_automation PRIVATE advapi32 ws2_32)
         endif()
         target_compile_features(gui_forms_automation PUBLIC cxx_std_20)
         target_link_libraries(gui_forms_automation PUBLIC gui_forms_core gui_forms_controls)
@@ -2308,16 +2308,16 @@ if(GUI_FORMS_MCP)
         if(TARGET stxlib::mcp)
             target_link_libraries(gui_forms_automation PRIVATE stxlib::mcp)
             target_compile_definitions(gui_forms_automation PRIVATE GUI_FORMS_MCP_TRANSPORT=1)
-            # gui-forms-attach (tools/attach): the stdio bridge a client starts
-            # from .mcp.json to reach a program that is already running. It
-            # holds the attach protocol and endpoint and nothing else of the
-            # library.
+            # gui-forms-attach (tools/attach): a stdio bridge to a running
+            # program's socket, for clients that insist on standard input and
+            # output (the socket speaks MCP itself). It holds the attach
+            # protocol and endpoint and nothing else of the library.
             add_executable(gui_forms_attach tools/attach/gui_forms_attach.cpp
                 src/runtime/automation/attach_protocol.cpp ${_gf_attach_endpoint})
             target_compile_features(gui_forms_attach PRIVATE cxx_std_20)
             target_link_libraries(gui_forms_attach PRIVATE stxlib::mcp stxlib::state)
             if(WIN32)
-                target_link_libraries(gui_forms_attach PRIVATE advapi32)
+                target_link_libraries(gui_forms_attach PRIVATE advapi32 ws2_32)
             endif()
             set_target_properties(gui_forms_attach PROPERTIES OUTPUT_NAME gui-forms-attach)
             install(TARGETS gui_forms_attach RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
