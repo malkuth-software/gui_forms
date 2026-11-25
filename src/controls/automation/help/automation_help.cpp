@@ -411,7 +411,8 @@ std::string group_list(std::string_view group, const std::vector<ToolSpec>& tool
 
 std::string overview(const std::vector<ToolSpec>& tools, const HelpContext& context) {
     std::string text{};
-    if (!context.access.empty()) text += context.access + "\n\n";
+    if (!context.access.empty()) text += context.access + "\n";
+    text += "Chain commands with && (stop on error) or ; (continue): one line, one reply, each part numbered.\n\n";
     if (context.console) {
         text += "Commands, one a line (on one connection or many: each acts on the program as the last did):\n"
                 "  help [path]           this tree, a group, one tool or a topic, by dotted path\n"

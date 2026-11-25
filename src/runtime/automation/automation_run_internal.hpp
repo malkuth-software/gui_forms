@@ -139,6 +139,12 @@ public:
     // shape=line ...`, `release`), `transcript`, `quit` (sets `quit`). The
     // answer; `failed` says it is an error. `label` names the line's source
     // in the console record.
+    // A console line that may chain commands (split_console_chain): each
+    // runs in order, a `&&` stopping the chain at a failure; one command's
+    // answer is console_line's, several are each prefixed `[n] `.
+    // `failed_at` is the first failed command (1-based), 0 when none.
+    [[nodiscard]] std::string console_chain(std::string_view line, const CallStop* stop, const std::string& label,
+                                            bool& quit, std::size_t& failed_at);
     [[nodiscard]] std::string console_line(std::string_view line, const CallStop* stop, const std::string& label,
                                            bool& quit, bool& failed);
     // The command folder's ID, or empty without one (the discovery entry).

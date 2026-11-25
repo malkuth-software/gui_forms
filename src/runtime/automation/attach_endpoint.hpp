@@ -261,7 +261,30 @@ struct DoorLine final {
 // A reply as `out` carries it: `text`'s lines, each that begins with '.'
 // given another '.', then the end line: a '.', the request ID when given,
 // and the status, as `. #7 ok` or `. error`.
-[[nodiscard]] std::string door_reply_frame(std::string_view text, std::string_view request, bool failed);
+// A chain's failure names the command that failed: `. error at 2`
+// (`failed_at`, 1-based; 0 for a single command's plain `. error`).
+[[nodiscard]] std::string door_reply_frame(std::string_view text, std::string_view request, bool failed,
+                                           std::size_t failed_at = 0U);
+
+// One command of a chained line and how it joins the next (owner, MCP
+// round 5: "a model chains commands with a chaining symbol, and sends a
+// sequence of commands to an address- and gets back a reply").
+enum class ChainJoin : std::uint8_t {
+    // The last command.
+    end,
+    // ` && `: the next runs only if this one succeeded.
+    on_success,
+    // ` ; `: the next always runs.
+    always,
+};
+struct ChainPart final {
+    std::string command{};
+    ChainJoin join{ChainJoin::end};
+};
+// Splits a console line at `&&` and `;` outside quoted strings (single or
+// double, a backslash escaping inside double quotes) and outside JSON
+// objects and arrays; each part trimmed. One part for an unchained line.
+[[nodiscard]] std::vector<ChainPart> split_console_chain(std::string_view line);
 // Whether `id` is a door ID: exactly 8 lowercase hexadecimal digits.
 [[nodiscard]] bool door_id_valid(std::string_view id) noexcept;
 

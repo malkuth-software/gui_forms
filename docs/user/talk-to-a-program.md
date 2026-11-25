@@ -71,7 +71,7 @@ hexadecimal digits drawn at start, and prints the exact command on
 standard error (and on standard output, unless MCP owns it):
 
 ```text
-GUI.Forms: plan-paint 3fa9c21b. Send a command: echo '<command>' > /tmp/3fa9c21b/in; cat /tmp/3fa9c21b/out
+GUI.Forms: plan-paint 3fa9c21b. Send commands (chain them with && or ;): echo '<command>' > /tmp/3fa9c21b/in; cat /tmp/3fa9c21b/out
 ```
 
 - `in` and `out` are named pipes (FIFOs, mode 0600) in a folder of mode
@@ -85,6 +85,13 @@ GUI.Forms: plan-paint 3fa9c21b. Send a command: echo '<command>' > /tmp/3fa9c21b
   `. error` (a reply line that begins with `.` gets another). `cat out`
   ends after the reply. A reply waits up to 60 seconds for a reader, so the
   write and the read can be separate shells.
+- One line may chain commands, as a shell does: `a && b` runs `b` only if
+  `a` succeeded, `a ; b` always runs it (`&&` and `;` inside quoted values
+  or JSON are not separators). The one reply numbers each part (`[1] ...`,
+  `[2] ...`; one skipped after a failure says `not run`) and ends with
+  `. ok`, or `. error at <n>` naming the first that failed:
+  `echo 'plan_paint.new_image width=200 height=100 && plan_paint.draw shape=line from=[0,0] to=[200,100]' > /tmp/<id>/in; cat /tmp/<id>/out`.
+  The socket console takes chained lines too.
 - `#<n> ` before a command (up to 16 letters, digits, `-` or `_`) is echoed
   in the end line, `. #<n> ok`, so concurrent clients can match replies.
   One agent at a time per program is the normal case: lines longer than

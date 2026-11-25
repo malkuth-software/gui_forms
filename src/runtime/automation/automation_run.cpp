@@ -836,6 +836,41 @@ std::string program_short_name(const std::string& executable) {
 
 } // namespace
 
+std::string AutomationRun::console_chain(std::string_view line, const CallStop* stop, const std::string& label,
+                                         bool& quit, std::size_t& failed_at) {
+    quit = false;
+    failed_at = 0U;
+    const std::vector<ChainPart> parts = split_console_chain(line);
+    if (parts.size() == 1U) {
+        bool failed = false;
+        std::string answer = console_line(line, stop, label, quit, failed);
+        if (failed) failed_at = 1U;
+        return answer;
+    }
+    std::string answer{};
+    bool run_next = true;
+    for (std::size_t index = 0U; index < parts.size(); ++index) {
+        const std::string position = "[" + std::to_string(index + 1U) + "] ";
+        if (!run_next) {
+            answer += position + "not run: an earlier command failed\n";
+            continue;
+        }
+        bool failed = false;
+        bool part_quit = false;
+        std::string part = console_line(parts[index].command, stop, label, part_quit, failed);
+        if (failed && failed_at == 0U) failed_at = index + 1U;
+        answer += position + part;
+        if (answer.empty() || answer.back() != '\n') answer += '\n';
+        if (part_quit) {
+            quit = true;
+            break;
+        }
+        if (failed && parts[index].join == ChainJoin::on_success) run_next = false;
+    }
+    if (!answer.empty() && answer.back() == '\n') answer.pop_back();
+    return answer;
+}
+
 std::string AutomationRun::console_line(std::string_view line, const CallStop* stop, const std::string& label,
                                         bool& quit, bool& failed) {
     quit = false;
@@ -917,7 +952,7 @@ void AutomationRun::open_door() {
     std::string name = program_short_name(attach_program().executable);
     if (name.empty()) name = automation_identity();
     const std::string line = "GUI.Forms: " + name + " " + (*door_).id() +
-                             ". Send a command: " + (*door_).send_line("<command>") + "\n";
+                             ". Send commands (chain them with && or ;): " + (*door_).send_line("<command>") + "\n";
     std::fputs(line.c_str(), stderr);
     if (!transport_) {
         std::fputs(line.c_str(), stdout);

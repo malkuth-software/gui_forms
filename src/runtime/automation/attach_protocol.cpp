@@ -372,7 +372,48 @@ DoorLine read_door_line(std::string_view line) {
     return read;
 }
 
-std::string door_reply_frame(std::string_view text, std::string_view request, bool failed) {
+std::vector<ChainPart> split_console_chain(std::string_view line) {
+    std::vector<ChainPart> parts{};
+    std::string current{};
+    char quote = '\0';
+    int depth = 0;
+    for (std::size_t index = 0U; index < line.size(); ++index) {
+        const char next = line[index];
+        if (quote != '\0') {
+            current += next;
+            if (next == '\\' && quote == '"' && index + 1U < line.size()) {
+                current += line[++index];
+            } else if (next == quote) {
+                quote = '\0';
+            }
+            continue;
+        }
+        if (next == '"' || next == '\'') {
+            quote = next;
+            current += next;
+            continue;
+        }
+        if (next == '{' || next == '[') ++depth;
+        if ((next == '}' || next == ']') && depth > 0) --depth;
+        const bool both = next == '&' && index + 1U < line.size() && line[index + 1U] == '&';
+        if (depth == 0 && (both || next == ';')) {
+            ChainPart part{};
+            part.command = std::string(trimmed(current));
+            part.join = both ? ChainJoin::on_success : ChainJoin::always;
+            parts.push_back(std::move(part));
+            current.clear();
+            if (both) ++index;
+            continue;
+        }
+        current += next;
+    }
+    ChainPart last{};
+    last.command = std::string(trimmed(current));
+    parts.push_back(std::move(last));
+    return parts;
+}
+
+std::string door_reply_frame(std::string_view text, std::string_view request, bool failed, std::size_t failed_at) {
     std::string framed{};
     std::size_t start = 0U;
     while (start < text.size()) {
@@ -386,7 +427,13 @@ std::string door_reply_frame(std::string_view text, std::string_view request, bo
     }
     framed += '.';
     if (!request.empty()) framed += " #" + std::string(request);
-    framed += failed ? " error\n" : " ok\n";
+    if (!failed) {
+        framed += " ok\n";
+    } else if (failed_at > 0U) {
+        framed += " error at " + std::to_string(failed_at) + "\n";
+    } else {
+        framed += " error\n";
+    }
     return framed;
 }
 

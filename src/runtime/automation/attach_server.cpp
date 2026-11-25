@@ -201,8 +201,8 @@ void serve_console(AttachConnection& connection) {
         if (!first && !read_attach_line(streams.input, line)) break;
         first = false;
         bool quit = false;
-        bool failed = false;
-        const std::string answer = run.console_line(line, &stop, label, quit, failed);
+        std::size_t failed_at = 0U;
+        const std::string answer = run.console_chain(line, &stop, label, quit, failed_at);
         if (quit) {
             static_cast<void>(write_attach_line(streams.output, "closed\n"));
             break;
@@ -392,11 +392,12 @@ void serve_door_line(DoorServer::State& state, const std::string& line) {
         return;
     }
     bool quit = false;
-    bool failed = false;
-    std::string answer = run.console_line(read.command, &stop, client.name, quit, failed);
-    if (quit) answer = "the folder stays: quit closes only a socket connection";
+    std::size_t failed_at = 0U;
+    std::string answer = run.console_chain(read.command, &stop, client.name, quit, failed_at);
+    if (quit) answer += std::string(answer.empty() ? "" : "\n") + "the folder stays: quit closes only a socket connection";
     run.end_attached(nullptr);
-    door.reply(door_reply_frame(answer, read.request, failed));
+    const bool chained = split_console_chain(read.command).size() > 1U;
+    door.reply(door_reply_frame(answer, read.request, failed_at != 0U, chained ? failed_at : 0U));
 }
 
 void door_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
