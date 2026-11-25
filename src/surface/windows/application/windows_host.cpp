@@ -2946,6 +2946,7 @@ private:
     void collect_damage() {
         // Nothing to collect for a destroyed window (A-gf-host-03-F8).
         if (hwnd_ == nullptr) return;
+        follow_caption_scheme();
         report_display_timing();
         sync_manipulation();
         static_cast<void>((*model_).poll_frame_schedule(FrameClock::now()));
@@ -2978,6 +2979,22 @@ private:
             live_frame_due_ = false;
             live_clock_deadline_ = 0;
         }
+    }
+
+    // The caption follows the window's colour scheme (Windows field report
+    // D9): dark while the window presents its dark scheme, light otherwise
+    // and in high contrast, whose caption is the system's. Checked after
+    // every event the window handles (collect_damage), which covers a
+    // scheme the program sets and one an automatic scheme takes from
+    // WM_SETTINGCHANGE "ImmersiveColorSet". Written only when it changes,
+    // so a light window never writes the attribute and a caption the
+    // program set itself stays until the scheme changes.
+    void follow_caption_scheme() noexcept {
+        const PresentationSettings& settings = (*model_).presentation_settings();
+        const bool dark = settings.colour_scheme == ColourScheme::dark && !settings.high_contrast;
+        if (dark == caption_dark_) return;
+        caption_dark_ = dark;
+        gui_forms::host::detail::apply_windows_caption_scheme(hwnd_, dark);
     }
 
     // Arms the model's next wake (audit N63): one nearer than
@@ -4243,6 +4260,9 @@ private:
 #endif
     HWND hwnd_{};
     bool full_screen_{};
+    // Whether the caption was last drawn dark (follow_caption_scheme); a
+    // new window's caption is light.
+    bool caption_dark_{};
     LONG_PTR restore_style_{};
     WINDOWPLACEMENT restore_placement_{};
     WindowsRaster raster_;

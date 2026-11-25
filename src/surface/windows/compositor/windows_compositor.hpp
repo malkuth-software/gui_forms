@@ -46,6 +46,13 @@ namespace gui_forms::host::detail {
 // ignored. Nothing without dwmapi.dll.
 void apply_windows_popup_frame(HWND window) noexcept;
 
+// Draws `window`'s caption and frame dark or light
+// (DWMWA_USE_IMMERSIVE_DARK_MODE, 20; Windows 10 20H1 and later) to match
+// the window's colour scheme, so a dark window has a dark title bar
+// (Windows field report D9). Before 20H1 the attribute is refused and the
+// caption stays light; nothing without dwmapi.dll.
+void apply_windows_caption_scheme(HWND window, bool dark) noexcept;
+
 // Asks DWM for `window`'s corners (DWMWA_WINDOW_CORNER_PREFERENCE, build
 // 22000 and later; owner, 2026-11-08: the window outer band) and reports
 // them: Windows 11 rounds a top-level window by default at
