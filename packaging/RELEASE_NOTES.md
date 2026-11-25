@@ -770,6 +770,16 @@ One release folds the work queued after 1.0.4.
 - CorrespondenceView shows a vertical scroll bar while its content
   overflows.
 
+#### The programs move to gui_forms_devkit
+
+- The Gallery, Correspondence, Explore, the labs and their installers now
+  live in malkuth-software/gui_forms_devkit, which builds and releases them
+  against this release's SDK. GUI.Forms publishes the SDK manifest the
+  devkit resolves (`gui-forms-sdk-manifest.json` beside each build's SDK,
+  cache and runtime archives) and installs the Gallery model as an SDK
+  component. `GUI_FORMS_BUILD_GALLERY` and `tools/release_tests.py` are
+  gone.
+
 #### Library and build
 
 - `library_memory.hpp` keeps only the allocation primitives. Diagnostics,
