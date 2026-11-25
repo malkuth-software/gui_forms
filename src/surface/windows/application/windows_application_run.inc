@@ -432,7 +432,7 @@ WindowsApplicationRun::OpenOutcome WindowsApplicationRun::open(WindowsApplicatio
         ? *entry.options.capture_size : entry.options.initial_size;
     RECT frame{0, 0, static_cast<LONG>(std::ceil(initial_size.width * initial_scale)),
                static_cast<LONG>(std::ceil(initial_size.height * initial_scale))};
-    adjust_client_frame(frame, style, ex_style, initial_scale);
+    adjust_client_frame(frame, style, ex_style, query_monitor_scale(owner));
     const std::wstring title = wide_from_utf8(entry.options.title);
     // The slot is published before creation: callbacks during initialization
     // (the ready callback) may already ask for this window's frame.

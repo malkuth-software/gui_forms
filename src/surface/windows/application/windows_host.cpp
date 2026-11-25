@@ -991,8 +991,10 @@ Function load_function(HMODULE module, const char* name) noexcept {
     return function;
 }
 
-double query_scale(HWND window) noexcept {
-    if (run_scale_override() > 0.0) return run_scale_override();
+// The device scale of the monitor showing `window` (the system's when null),
+// whatever the run's scale override: the window frame's own metrics (border,
+// caption) follow the monitor even when the content's scale is overridden.
+double query_monitor_scale(HWND window) noexcept {
     using GetDpiForWindowFunction = decltype(&::GetDpiForWindow);
     if (HMODULE user32 = GetModuleHandleW(L"user32.dll")) {
         const GetDpiForWindowFunction function =
@@ -1007,6 +1009,11 @@ double query_scale(HWND window) noexcept {
     const int dpi = dc == nullptr ? 96 : GetDeviceCaps(dc, LOGPIXELSX);
     if (dc != nullptr) ReleaseDC(window, dc);
     return std::max(1.0, dpi / 96.0);
+}
+
+double query_scale(HWND window) noexcept {
+    if (run_scale_override() > 0.0) return run_scale_override();
+    return query_monitor_scale(window);
 }
 
 void adjust_client_frame(RECT& frame, DWORD style, DWORD extended_style,
@@ -2562,7 +2569,7 @@ private:
                    static_cast<LONG>(std::lround(client_size.width * scale_)),
                    static_cast<LONG>(std::lround(client_size.height * scale_))};
         adjust_client_frame(frame, static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_STYLE)),
-            static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_EXSTYLE)), scale_);
+            static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_EXSTYLE)), query_monitor_scale(hwnd_));
         const BOOL moved = SetWindowPos(hwnd_, nullptr, 0, 0,
             frame.right - frame.left, frame.bottom - frame.top,
             SWP_NOMOVE | SWP_NOZORDER | SWP_NOOWNERZORDER | SWP_NOACTIVATE);
@@ -4085,7 +4092,7 @@ private:
                   static_cast<LONG>(std::ceil(minimum.width * scale_)),
                   static_cast<LONG>(std::ceil(minimum.height * scale_))};
         adjust_client_frame(rect, static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_STYLE)),
-            static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_EXSTYLE)), scale_);
+            static_cast<DWORD>(GetWindowLongPtrW(hwnd_, GWL_EXSTYLE)), query_monitor_scale(hwnd_));
         // A side of 0 sets no minimum there: the system's own minimum
         // tracking size, already in `info`, stays (Windows Forms' empty
         // MinimumSize).
@@ -4554,7 +4561,7 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
                static_cast<LONG>(std::ceil(initial_size.height * initial_scale))};
     // The frame's own metrics follow the monitor even when the content's
     // scale is overridden.
-    adjust_client_frame(frame, style, 0, query_scale(nullptr));
+    adjust_client_frame(frame, style, 0, query_monitor_scale(nullptr));
     const std::wstring title = wide_from_utf8(options.title);
     const int initial_x = options.popup_window
         ? static_cast<int>(std::lround(options.initial_position.x)) : CW_USEDEFAULT;
