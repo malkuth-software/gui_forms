@@ -3465,10 +3465,17 @@ private:
     FrameTime last_presentation_time_{};
     std::function<void()> paint_wake_handler_;
     bool paint_wake_pending_{};
-    // Ambient wakes running now (their invalidations do not hold settling),
-    // and whether paint not made by one is still waiting to be drawn.
+    // Ambient wakes running now (their invalidations do not hold settling).
     std::uint32_t ambient_wake_depth_{};
-    bool settling_paint_pending_{true};
+    // Paint not made by an ambient wake: counted as it is asked for, and
+    // the count the last completed paint had drawn (or the damage drained).
+    // A paint completes the settling work it started with even while an
+    // ambient effect (AI mode's stripes, the band) keeps damage coming, so
+    // the window settles without the damage ever draining (MCP round 3: an
+    // act waited out its 5 s with the stripes moving).
+    std::uint64_t settling_revision_{1U};
+    std::uint64_t painted_settling_revision_{};
+    std::uint64_t lease_settling_revision_{};
     std::function<void()> schedule_wake_handler_;
     // A schedule wake was handed to the host and its poll has not run yet.
     bool schedule_wake_pending_{};

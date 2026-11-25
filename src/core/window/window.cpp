@@ -4617,13 +4617,13 @@ void SurfaceRoot::acknowledge_paint_wake_if_damage_drained() noexcept {
     }
     if (!damage_remains) {
         paint_wake_pending_ = false;
-        settling_paint_pending_ = false;
+        painted_settling_revision_ = settling_revision_;
     }
 }
 
 void SurfaceRoot::touch_paint() noexcept {
     ++content_revision_;
-    if (ambient_wake_depth_ == 0U) settling_paint_pending_ = true;
+    if (ambient_wake_depth_ == 0U) ++settling_revision_;
     if (in_paint_) dirty_after_render_ = true;
     request_paint_wake();
 }

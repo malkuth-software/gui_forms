@@ -728,6 +728,15 @@ One release folds the work queued after 1.0.4.
   on macOS: a thread WH_MSGFILTER hook holds the box's input, a click offers
   the take-back dialog, and the take-back and countdown dialogs are topmost.
 
+#### MCP round 4 fixes (after the round-3 drawing trial)
+
+- The default window of a call is a program window: a tooltip's or passive popup's window holding the activation is never it (a hidden 1x1 tooltip window had become the default after the first act), and the program window then reads as active in `windows` and `snapshot`.
+- Acts settle while AI mode's stripes move: a paint completes the settling work it started with even when an ambient effect keeps damage coming, so generic acts (select, pointer, keyboard) no longer wait out their 5 seconds with "a frame is wanted".
+- `snapshot` marks a dialog's default button (`default`: `Button::default_button` or the window's accept button) and cancel button (`cancel`: the window's cancel button or a button whose dialog result is cancel).
+- Act replies name their effect: a window that closed (`closed: window [id]`), a modal that gave way, or `effect: none` when nothing changed.
+- A batch holds up to 512 steps (was 64).
+- `capture` takes `points` and answers the colour at each point instead of an image, so a model can check a drawing without a full capture.
+
 #### Layout and text
 
 - **Layout liveness.** A control that never settles cannot hang its

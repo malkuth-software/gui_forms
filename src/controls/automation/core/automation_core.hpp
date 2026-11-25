@@ -68,9 +68,11 @@ struct AutomationSettings final {
     std::size_t maximum_node_limit{5000U};
     // Diff entries of each kind shown before "... and N more".
     std::size_t maximum_diff_entries{40U};
-    // Calls running at once, and steps in one batch.
+    // Calls running at once, and steps in one batch (round 3: drawing
+    // batches are large; 512 steps of a few points each stay well inside
+    // argument_limits' megabyte and value count).
     std::size_t maximum_running_calls{16U};
-    std::size_t maximum_batch_steps{64U};
+    std::size_t maximum_batch_steps{512U};
 };
 
 // A running call, issued by begin. Never reused: the counter refuses at its
@@ -165,6 +167,12 @@ struct FlatNode final {
     // program's dialog-free tool for it, when it has one.
     bool opens_dialog{};
     std::string dialog_tool{};
+    // A dialog's default button (Enter presses it: Button::default_button
+    // or the window's accept_button) and its cancel button (Escape: the
+    // window's cancel_button or a button whose dialog result is cancel)
+    // (MCP round 3).
+    bool default_button{};
+    bool cancel_button{};
     [[nodiscard]] bool protected_content() const noexcept {
         const bool hidden = has_semantic_state(states, SemanticState::protected_content);
         return hidden;
@@ -214,8 +222,12 @@ public:
     void detach_window(const Window& window) noexcept;
     // The live windows, oldest first. Borrowed for the current call.
     void fill_windows(std::vector<Window*>& windows);
-    // The live window named `name` (its stable ID or exact title), or the
-    // active one (the first live one when none is active) for empty;
+    // Whether `window` is the active one to a model: active itself, or a
+    // passive popup of it (a tooltip) holds the activation.
+    [[nodiscard]] bool window_active(const Window& window) const;
+    // The live window named `name` (its stable ID or exact title), or for
+    // empty the default: a program window, never a tooltip's or passive
+    // popup's (the active one, else the newest modal one, else the first);
     // null when none is.
     [[nodiscard]] Window* find_window(std::string_view name);
     // The stable ID the window was attached with; empty when it is not.
