@@ -48,8 +48,9 @@ def check_windows_sdk_imports(sdk: Path) -> None:
     (cmake/llvm22-windows-msvc-own.cmake), so a DLL or program imports
     Windows system DLLs, ucrtbase.dll and GUI.Forms' own DLLs only; the
     forbidden names (Microsoft, GCC and LLVM runtimes, the api-ms-win-crt
-    forwarders) are package_programs.py's. CMake's own probes (CMakeFiles)
-    are not looked at. Prints each image's non-system imports. A program
+    forwarders) are package_programs.py's. CMake's and meson's own probes
+    (CMakeFiles, meson-private: compiler checks linked with the tools'
+    defaults, never shipped) are not looked at. Prints each image's non-system imports. A program
     that consumes GUI.Forms points own_runtime.py evidence --dlls at its
     build tree to check its programs the same way.
     """
@@ -58,7 +59,7 @@ def check_windows_sdk_imports(sdk: Path) -> None:
     if objdump is None:
         raise RuntimeError('objdump (or llvm-objdump) is needed to check the installed DLLs')
     dlls: list[Path] = sorted(path for pattern in ('*.dll', '*.exe') for path in sdk.rglob(pattern)
-                              if 'CMakeFiles' not in path.relative_to(sdk).parts)
+                              if not {'CMakeFiles', 'meson-private'} & set(path.relative_to(sdk).parts))
     if not dlls:
         raise RuntimeError('no DLL or program under ' + str(sdk))
     dll: Path
