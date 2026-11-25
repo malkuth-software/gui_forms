@@ -242,81 +242,61 @@ inspired by mimalloc, with TLSF for its free runs. Each has an ancestry in
 the named libraries but does not resemble them, is faster than the
 frameworks it derives from, and by design is less likely to facilitate bugs
 of any kind in use.
-## Get it
+## Quick start
 
-- **SDK:** every release on the
-  [Releases page](https://github.com/malkuth-software/gui_forms/releases/latest)
-  carries the source SDK, `gui-forms-sdk-<version>-source.tar.gz`, with
-  `SHA256SUMS.txt`, which you build and install for your platform. The
-  installed SDK includes the Gallery model (`GUIForms::GalleryModel`).
-- **Programs:** the Gallery (every stock control, page by page), Explore,
-  Correspondence and the other demonstrators are built and released by
-  [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit),
-  in lockstep with each green GUI.Forms revision. Builds are not code-signed:
-  see [Download](https://gui-forms.readthedocs.io/en/latest/user/download.html)
-  for opening them on each platform.
-- **New project:** [`malkuth-software/template_harness`](https://github.com/malkuth-software/template_harness)
-  starts an application on the SDK with the pinned toolchain.
+You build GUI.Forms applications with the devkit,
+[gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit).
+It fetches a prebuilt GUI.Forms SDK and a compiler cache and builds only
+your code: GUI.Forms itself is never compiled.
+[Get started](https://gui-forms.readthedocs.io/en/latest/user/get-started.html)
+walks through each step, including your own app.
 
-## Build it
-
-Prerequisites are CMake 3.25+, Ninja, LLVM 22.1 and Python 3.12+ (on
-Windows, LLVM 22's clang and lld; `tools/own_runtime.py` builds the C and
-C++ runtime).
-[Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
-covers each platform's preparation. Then:
+Bootstrap (macOS and Linux):
 
 ```sh
-cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake
-cmake --build build --parallel
-cmake --install build --prefix ~/gui-forms-sdk
+git clone https://github.com/malkuth-software/gui_forms_devkit && sh gui_forms_devkit/harness/bootstrap.sh --workspace gui_forms_devkit --project gui_forms_devkit
 ```
 
-On Linux add `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. The tests live in
-[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
-which builds them against the test cache this repository's CI publishes for
-each commit, so a test change never recompiles the toolkit.
+Bootstrap (Windows, PowerShell):
 
-## Your first window
-
-A minimal program against the installed SDK:
-
-<!-- numbers:start -->
-```cmake
-cmake_minimum_required(VERSION 3.25)
-project(hello LANGUAGES CXX)
-find_package(GUIForms 1.0 CONFIG REQUIRED)
-add_executable(hello main.cpp)
-target_link_libraries(hello PRIVATE GUIForms::Application)
-```
-<!-- numbers:end -->
-
-```cpp
-#include <gui_forms/application.hpp>
-#include <gui_forms/gui_forms.hpp>
-
-#include <memory>
-
-namespace gf = gui_forms;
-
-int main() {
-    gf::ApplicationCreateResult created = gf::Application::create(gf::ApplicationConfig{});
-    if (!created) return 1;
-    std::shared_ptr<gf::Label> label =
-        gf::make_control<gf::Label>(gf::StableId("hello.label"), "Hello from GUI.Forms");
-    std::unique_ptr<gf::Window> window = std::make_unique<gf::Window>(label, gf::Size{320.0, 120.0});
-    gf::ApplicationWindowOptions options{};
-    options.title = "Hello";
-    const gf::ApplicationResult result = (*created.application).run(std::move(window), options);
-    return result.accepted() ? 0 : 1;
-}
+```powershell
+git clone https://github.com/malkuth-software/gui_forms_devkit; powershell -File gui_forms_devkit\harness\bootstrap.ps1 --workspace gui_forms_devkit --project gui_forms_devkit
 ```
 
-[Your first window](https://gui-forms.readthedocs.io/en/latest/user/first-window.html)
-builds the recommended shape: a form document that generates a typed window
-class, a model it binds, a theme package and an event handler.
-[Consume the SDK](https://gui-forms.readthedocs.io/en/latest/user/consume-the-sdk.html)
-lists the CMake components.
+Build and run (macOS; on Linux use `--platform linux-x64` or `linux-arm64`
+and run `build/pocket_reference/PocketReference`):
+
+```sh
+cd gui_forms_devkit
+. .ci/local-build-env.sh
+python3 -B harness/harness/resolve_gui_forms.py resolve
+python3 -B harness/harness/resolve_gui_forms.py fetch --platform macos-arm64
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=harness/harness/cmake/llvm22.cmake
+cmake --build build
+open build/pocket_reference/PocketReference.app
+```
+
+If the build stops with "devkit build guard: likely misconfiguration
+preventing efficient incremental building", it would have compiled
+GUI.Forms or missed the cache; each finding under that line says what to
+fix ([The build guard](https://gui-forms.readthedocs.io/en/latest/user/get-started.html#the-build-guard)).
+
+Then:
+
+- [Your first window](https://gui-forms.readthedocs.io/en/latest/user/first-window.html):
+  a form document that generates a typed window class, a model it binds, a
+  theme and an event handler.
+- [Custom controls](https://gui-forms.readthedocs.io/en/latest/user/custom-controls.html):
+  the tutorial for a retained control of your own.
+- [Mockups](https://gui-forms.readthedocs.io/en/latest/user/mockups.html):
+  try a form and a theme from files alone, without compiling.
+- [Talk to a running program](https://gui-forms.readthedocs.io/en/latest/user/talk-to-a-program.html):
+  every GUI.Forms program speaks MCP.
+
+The Gallery, Explore, Correspondence and the other demonstrators are built
+and released by the devkit too. Builds are not code-signed: see
+[Download](https://gui-forms.readthedocs.io/en/latest/user/download.html)
+for opening them on each platform.
 
 ## Other languages
 
@@ -355,6 +335,28 @@ do is reported at run time and listed in
 - [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit):
   the Gallery, Explore, Correspondence and the demonstrators. This repository
   keeps the Gallery model ([`demo/`](demo/)), which the SDK installs.
+
+## Build GUI.Forms from source (contributors)
+
+You do not need this to build an application; the devkit's prebuilt SDK
+covers that. To work on GUI.Forms itself you need CMake 3.25+, Ninja, LLVM
+22.1 and Python 3.12+ (on Windows, LLVM 22's clang and lld;
+`tools/own_runtime.py` builds the C and C++ runtime).
+[Install](https://gui-forms.readthedocs.io/en/latest/user/install.html)
+covers each platform's preparation. Then:
+
+```sh
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE=cmake/llvm22.cmake
+cmake --build build --parallel
+cmake --install build --prefix ~/gui-forms-sdk
+```
+
+On Linux add `-DGUI_FORMS_ENABLE_LINUX_HOST=ON`. Every release also carries
+the source SDK, `gui-forms-sdk-<version>-source.tar.gz`, with
+`SHA256SUMS.txt`. The tests live in
+[gui_forms_tests](https://github.com/malkuth-software/gui_forms_tests),
+which builds them against the test cache this repository's CI publishes for
+each commit, so a test change never recompiles the toolkit.
 
 ## Learn more
 

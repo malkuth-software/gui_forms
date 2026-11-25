@@ -1,5 +1,11 @@
 # Install
 
+```{note}
+This page builds GUI.Forms itself from source, for contributors. You do not
+need it to build an application: apps build against the prebuilt SDK the
+devkit fetches. See [Get started](get-started).
+```
+
 GUI.Forms is distributed as source. You build it once with the pinned LLVM 22
 toolchain, install it to a prefix, and consume that prefix from your own CMake
 project through `find_package(GUIForms)`. This page gets you from an empty

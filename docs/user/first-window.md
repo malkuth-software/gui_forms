@@ -4,8 +4,14 @@ This program opens one native window containing a label and a button, and
 updates the label each time the button is clicked. It is the shape GUI.Forms
 recommends: a form document says what exists, a model holds the state it
 binds, a theme package gives it its look, and program code attaches the
-behaviour. It uses only the installed
-package; the CMake project in [Consume the SDK](consume-the-sdk) builds it.
+behaviour.
+
+It continues from [Get started](get-started), in the app made there
+(`hello_forms/`): the form goes in `forms/`, the model header in `src/`, the
+theme in `themes/greeter/`, and the `main.cpp` below replaces `src/main.cpp`.
+In `CMakeLists.txt`, the program's sources become `src/main.cpp` alone and
+the two calls below follow it. Build and run it as before; the tests keep
+the reference app's greeter.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -41,9 +47,10 @@ struct GreeterModel final {
 ```
 
 ```cmake
-gui_forms_add_form(my_forms forms/greeter.form CLASS GreeterWindow NAMESPACE greeter
+# After add_executable(hello_forms src/main.cpp).
+gui_forms_add_form(hello_forms forms/greeter.form CLASS GreeterWindow NAMESPACE greeter
                    MODEL greeter::GreeterModel MODEL_HEADER greeter_model.hpp)
-gui_forms_add_theme(my_forms themes/greeter FUNCTION greeter_theme NAMESPACE greeter
+gui_forms_add_theme(hello_forms themes/greeter FUNCTION greeter_theme NAMESPACE greeter
                     FORMS forms/greeter.form)
 ```
 
@@ -175,6 +182,10 @@ Window options are a plain struct
   identity and disposal in detail.
 - [Forms](forms) and [Converting an existing application](converting-an-app)
   cover documents, bindings and rules in full.
+- [Mockups](mockups) shows a form and a theme without compiling, so you can
+  try a layout or a look before it goes in your app.
+- [Talk to a running program](talk-to-a-program) lets an agent or a script
+  drive this window over MCP while it runs.
 - `examples/reference/forms/collection_gallery.form` and its program extend this
   shape with a command bar, shared `Value<T>` state, a choice group and
   expandable sections.

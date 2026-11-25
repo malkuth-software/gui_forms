@@ -10,9 +10,9 @@ releases (tagged `vX.Y.Z`, where X.Y is the package version, now
 yet, build the programs yourself; see
 [Build it yourself instead](#build-it-yourself-instead).
 
-The `build-<sha>` pre-releases on GUI.Forms' Releases page are compiler-cache
-archives used by CI and by downstream projects, the devkit among them. They
-are not application downloads.
+The `build-<sha>` pre-releases on GUI.Forms' Releases page carry the
+prebuilt SDKs and compiler caches that CI and the devkit fetch. They are not
+application downloads.
 
 ## The three programs
 
@@ -102,7 +102,7 @@ certutil -hashfile gui-forms-gallery-<version>-windows-x64.zip SHA256
 
 ## Build it yourself instead
 
-Install the SDK ([Building from source](../building/index), on a machine with
-the LLVM 22 toolchain), then build the programs from a
-[gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit)
-checkout against it, as its README describes.
+Bootstrap the devkit and build it: [Get started](get-started) gives one
+command per platform for each step. The build fetches the prebuilt SDK, so
+GUI.Forms itself is not compiled, and the programs land under
+`build/programs/` beside Pocket Reference.

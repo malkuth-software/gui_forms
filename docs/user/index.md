@@ -8,9 +8,9 @@ found in the [API reference](../api/index).
 :caption: Getting started
 :maxdepth: 1
 
-install
-download
+get-started
 first-window
+download
 application-and-windows
 consume-the-sdk
 c-abi-conformance-kit

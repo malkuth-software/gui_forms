@@ -1,5 +1,11 @@
 # Build from source
 
+```{note}
+This section is for contributors to GUI.Forms. You do not need it to build
+an application: apps build against the prebuilt SDK the devkit fetches. See
+[Get started](../user/get-started).
+```
+
 [Installation](../user/install) gives the shortest route to an installed SDK. This page
 covers the full build: options, dependencies, the test cache the tests build
 against, the demonstration programs, Windows build constraints and the
@@ -443,6 +449,7 @@ breaks a boundary fails there before it reaches review.
 ```{toctree}
 :hidden:
 
+../user/install
 fast-builds
 reusing-ci-caches
 template-harness
