@@ -1095,7 +1095,7 @@ void HelpBook::on_mouse_leave() {
 void HelpBook::handle_mouse(MouseEventArgs& arguments) {
     scroll_pointer(arguments);
     if (arguments.handled) return;
-    const Point local = arguments.window_position;
+    const Point local = arguments.location;
     if (arguments.action == PointerAction::move) {
         const stxlib::Optional<std::size_t> link = link_at(local);
         const stxlib::Optional<std::size_t> section =
