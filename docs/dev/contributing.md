@@ -65,8 +65,8 @@ finding (the standard-surface census only reports there for now), so run
 all seven before you push:
 
 ```sh
-python3 -B tools/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz
-python3 -B tools/check_lifetime_rules.py include src lab demo examples tools file_manager_demoboard
+python3 -B tools/check_house_style.py include src lab demo examples tools fuzz
+python3 -B tools/check_lifetime_rules.py include src lab demo examples tools
 python3 -B tools/export_annotations.py check
 python3 -B tools/control_registry.py members --check
 python3 -B tools/abi_class_tables.py --check

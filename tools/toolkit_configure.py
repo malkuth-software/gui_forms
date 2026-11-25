@@ -103,16 +103,19 @@ def toolchain_options(source: Path) -> list[str]:
     return options
 
 
-def toolkit_options(source: Path, prefix: Path, gallery: bool, tests: bool) -> list[str]:
+def toolkit_options(source: Path, prefix: Path, tests: bool) -> list[str]:
     """The configure options every toolkit build shares, ahead of host_options.
 
     One Release build with the pinned LLVM toolchain (toolchain_options), position-
     independent code, the audio service with the stx Vorbis decoder, and
-    prefix as the install prefix; gallery and tests switch the demonstration
-    programs and the test cache (cmake/TestCache.cmake: the tree described
-    for malkuth-software/gui_forms_tests, which holds the test suite and
-    builds against it). tools/build_sdk.py configures with these
-    too (gallery and tests off), so the SDK a consumer builds is this build.
+    prefix as the install prefix. Every build installs the Gallery model
+    with the lab and demonstration controls (the GalleryModel, Lab and
+    DemoControls components), which malkuth-software/gui_forms_devkit builds
+    the Gallery and the other demonstrators from. tests switches the test
+    cache (cmake/TestCache.cmake: the tree described for
+    malkuth-software/gui_forms_tests, which holds the test suite and builds
+    against it). tools/build_sdk.py configures with these too (tests off),
+    so the SDK a consumer builds is this build.
 
     A build for the test cache is a reference and conformance build: it compiles with
     the reference arithmetic (GUI_FORMS_REFERENCE_ARITHMETIC, no floating-
@@ -121,10 +124,10 @@ def toolkit_options(source: Path, prefix: Path, gallery: bool, tests: bool) -> l
     tests (the SDK, profiling) is a deployment build and leaves contraction
     on.
     """
-    gallery_option: str = 'ON' if gallery else 'OFF'
     tests_option: str = 'ON' if tests else 'OFF'
     return ['-DCMAKE_BUILD_TYPE=Release', '-DCMAKE_INSTALL_LIBDIR=lib', *toolchain_options(source),
-            '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', f'-DGUI_FORMS_BUILD_GALLERY={gallery_option}',
+            '-DCMAKE_POSITION_INDEPENDENT_CODE=ON', '-DGUI_FORMS_BUILD_GALLERY_MODEL=ON',
+            '-DGUI_FORMS_INSTALL_GALLERY_MODEL=ON', '-DGUI_FORMS_INSTALL_LAB=ON',
             f'-DGUI_FORMS_TEST_CACHE={tests_option}', f'-DGUI_FORMS_REFERENCE_ARITHMETIC={tests_option}',
             '-DGUI_FORMS_BUILD_AUDIO=ON', '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx', f'-DCMAKE_INSTALL_PREFIX={prefix}']
 

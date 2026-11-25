@@ -1,11 +1,11 @@
 {
   "notes": [
-    "Third-party notices copied into each packaged program's licenses/ directory by tools/package_programs.py.",
+    "Third-party notices copied into each packaged program's licenses/ directory by gui_forms_devkit's programs/tools/package_programs.py.",
     "Paths are relative to the repository root unless prefixed with $GUI_FORMS_LLVM_RUNTIME (macOS runtime prefix), $STX (the stx checkout the build consumed, at stx.lock's commit; package_programs.py --stx-source names another) or $STXLIB (STXlib's licences as the stx package installed them, <package>/stx/share/licenses/stxlib; GUI_FORMS_STXLIB_LICENSES names another directory).",
     "optional=true entries are skipped with a log line when the file is absent (fetched dependencies, platform runtimes); the others fail the package.",
     "Windows binaries are built on STXlib's own runtime (tools/own_runtime.py) and link libc++ 22.1.8 statically, beside STXlib's startup, C++ runtime and import libraries (STXlib's licence); the C runtime is the system's ucrtbase.dll. libc++'s licence is the checked-in packaging/licenses/llvm notice, shipped although the LLVM exception does not require it for embedded runtime code.",
-    "Linux binaries link libc++ 22, libc++abi and libunwind statically (cmake/llvm22.cmake), as Windows binaries link their runtimes; tools/package_programs.py refuses a Linux package that still needs one as a shared library. Their licences are the checked-in packaging/licenses/llvm notices.",
-    "component names the row of THIRD_PARTY_NOTICES.md that covers the file; tools/package_programs.py checks every package against that file. One entry per line, so adding or removing a component is a one-line edit here and one row there."
+    "Linux binaries link libc++ 22, libc++abi and libunwind statically (cmake/llvm22.cmake), as Windows binaries link their runtimes; gui_forms_devkit's programs/tools/package_programs.py refuses a Linux package that still needs one as a shared library. Their licences are the checked-in packaging/licenses/llvm notices.",
+    "component names the row of THIRD_PARTY_NOTICES.md that covers the file; gui_forms_devkit's programs/tools/package_programs.py checks every package against that file. One entry per line, so adding or removing a component is a one-line edit here and one row there."
   ],
   "notices": [
     {"name": "THIRD_PARTY_NOTICES.md", "source": "THIRD_PARTY_NOTICES.md"},

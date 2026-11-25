@@ -1,7 +1,7 @@
 name: GUI.Forms native platform
 # One platform's native job: build, install, smoke check, test cache, object
 # cache and evidence (the tests run in malkuth-software/gui_forms_tests). native.yml calls it
-# once per platform, so each platform's programs job (release.yml) can start as
+# once per platform, so each platform's deployment job (release.yml) can start as
 # soon as its own native job passes instead of waiting for all four. Every
 # github.* value (event, ref, sha, run) is the calling run's.
 on:
@@ -482,7 +482,7 @@ jobs:
       # working set, not every generation up to CCACHE_MAXSIZE
       # (notes:planning/BUILD_SIZE_PLAN_2026-10-23.md, step 1). On every event: a
       # native job builds everything (no change selection), so the set is
-      # complete, and the archive the programs job, a stacked pull request's
+      # complete, and the archive the deployment job, a stacked pull request's
       # seed and a consumer download is about 25 MB instead of 600. Only after
       # a build that passed, or on a pull request after its build step ran at
       # all (the pull request's own save below); a job that reused a validation

@@ -6,7 +6,8 @@ the native validation reuse and promotion, the compiler cache tools, the
 Windows toolchain, the macOS runtimes, the change selection, the Linux
 package installer, and the house-style, lifetime and state-machine checkers.
 GUI.Forms keeps its own build driver (`tools/ci_build.py`), its packaging
-(`tools/package_programs.py` and the SDK tools), `tools/stack_frames.py`,
+(`tools/package_notices.py` and the SDK tools; the program packager is
+gui_forms_devkit's), `tools/stack_frames.py`,
 its LeakSanitizer suppressions (`tools/sanitizer/lsan.supp`) and the tests
 of those files. The configure options and host preparation are
 `tools/toolkit_configure.py`, which needs no harness: the source SDK's

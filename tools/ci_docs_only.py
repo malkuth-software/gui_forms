@@ -31,8 +31,8 @@ ROOT: Path = Path(__file__).resolve().parent.parent
 # Top-level directories whose files are source, build input or test data,
 # whatever their suffix: a .md or .rst file there is not documentation here.
 CODE_DIRECTORIES: frozenset[str] = frozenset({
-    '.github', 'assets', 'benchmarks', 'bindings', 'cmake', 'code_integrity_checker', 'demo',
-    'examples', 'file_manager_demoboard', 'fuzz', 'generated', 'include', 'manifests', 'packaging',
+    '.github', 'assets', 'benchmarks', 'bindings', 'cmake', 'code_integrity_checker', 'demo', 'lab',
+    'examples', 'fuzz', 'generated', 'include', 'manifests', 'packaging',
     'sdrsharp_reflection_system', 'src', 'tests', 'third_party', 'tools'})
 
 # Documentation-looking files the build reads: the SDK installs the notices

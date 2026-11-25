@@ -244,16 +244,17 @@ frameworks it derives from, and by design is less likely to facilitate bugs
 of any kind in use.
 ## Get it
 
-- **Programs:** every release on the
+- **SDK:** every release on the
   [Releases page](https://github.com/malkuth-software/gui_forms/releases/latest)
-  carries the Gallery (every stock control, page by page), Explore and
-  Correspondence for macOS arm64, Windows x64 and Linux x64 and arm64, with
-  `SHA256SUMS.txt`. Builds are not code-signed: see
-  [Download](https://gui-forms.readthedocs.io/en/latest/user/download.html)
+  carries the source SDK, `gui-forms-sdk-<version>-source.tar.gz`, with
+  `SHA256SUMS.txt`, which you build and install for your platform. The
+  installed SDK includes the Gallery model (`GUIForms::GalleryModel`).
+- **Programs:** the Gallery (every stock control, page by page), Explore,
+  Correspondence and the other demonstrators are built and released by
+  [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit),
+  in lockstep with each green GUI.Forms revision. Builds are not code-signed:
+  see [Download](https://gui-forms.readthedocs.io/en/latest/user/download.html)
   for opening them on each platform.
-- **SDK:** the same release carries the source SDK,
-  `gui-forms-sdk-<version>-source.tar.gz`, which you build and install for
-  your platform.
 - **New project:** [`malkuth-software/template_harness`](https://github.com/malkuth-software/template_harness)
   starts an application on the SDK with the pinned toolchain.
 
@@ -351,8 +352,9 @@ do is reported at run time and listed in
   editor with traditional menus and its own dialogs.
 - [Pocket Library](https://github.com/falseywinchnet/books): a reading
   room of 746 books, built on the same shell as PlaySuite.
-- In this repository: the Gallery, Explore and Correspondence
-  ([`demo/`](demo/), [`file_manager_demoboard/`](file_manager_demoboard/)).
+- [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit):
+  the Gallery, Explore, Correspondence and the demonstrators. This repository
+  keeps the Gallery model ([`demo/`](demo/)), which the SDK installs.
 
 ## Learn more
 
@@ -529,7 +531,7 @@ do is reported at run time and listed in
 
 CI must pass on every platform. C++ follows the
 [house style](https://github.com/malkuth-software/notes/blob/main/HOUSE_STYLE.md);
-run `python3 -B tools/check_house_style.py include src lab demo examples tools file_manager_demoboard fuzz`
+run `python3 -B tools/check_house_style.py include src lab demo examples tools fuzz`
 and the other checks that [`AGENTS.md`](AGENTS.md) lists before you push. See
 the [contributor's guide](https://gui-forms.readthedocs.io/en/latest/dev/index.html).
 

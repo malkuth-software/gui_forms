@@ -4,7 +4,7 @@ name: Cancel a closed pull request's runs
 # cancel-in-progress, so the run still going for that pull request is
 # cancelled; the job itself does nothing. The groups must match those
 # workflows' own concurrency groups for a pull_request event (head_ref).
-# The programs and release runs native.yml calls are cancelled with it.
+# The release runs native.yml calls are cancelled with it.
 on:
   pull_request:
     types: [closed]

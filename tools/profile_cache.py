@@ -111,7 +111,7 @@ def main() -> int:
     options: list[str] = [*host_options(host), '-DGUI_FORMS_LTO=OFF', '-DGUI_FORMS_REFERENCE_ARITHMETIC=OFF',
                           *release_flag_options(host)]
     configure: list[str] = ['cmake', '-S', str(ROOT / 'gui_forms'), '-B', str(tree), '-G', 'Ninja',
-                            *toolkit_options(ROOT / 'gui_forms', build / 'gui-forms-profile-sdk', False, True),
+                            *toolkit_options(ROOT / 'gui_forms', build / 'gui-forms-profile-sdk', True),
                             *options]
     configure_tree(tree, configure)
     # The workloads link the toolkit's libraries and the Gallery model, so

@@ -50,7 +50,8 @@ Captured pixels are device pixels, so a 2x display yields a 2x image.
 ## Demo program command line
 
 The Gallery, Correspondence, Explore and lab executables share one parser
-(`demo/program_options.hpp`):
+(`demo/program_options.hpp` in
+[gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit)):
 
 ```text
 <program> [--mcp] [--mcp-script <file.jsonl>] [--capture <path.png>] [--size <W>x<H>] [--scale <factor>]

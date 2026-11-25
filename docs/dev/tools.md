@@ -379,22 +379,21 @@ with the change that needs it.
   check and is reported skipped, not passed.
   `python3 tools/sdk_consumer_link.py --build-dir build --scratch build/sdk-consumer-link -- -GNinja`
 
-`tools/package_programs.py`
-: Packages the programs listed in `packaging/programs.json` from a build
+`tools/package_notices.py`
+: The notice and runtime rules this tree's packaging shares:
+  `copy_notices` copies `packaging/licenses.json`'s notices for a platform
+  (`package_abi_library.py`), and `ci_build.py` checks the installed SDK's
+  notices and Windows imports against its rules.
+
+gui_forms_devkit's `programs/tools/package_programs.py`
+: Packages the programs listed in its `programs/packaging/programs.json` from a build
   directory: an `.app` zip and `pkg` installer on macOS, a zip and NSIS
   installer on Windows, a `tar.gz` and Debian package on Linux, plus
   `SHA256SUMS.txt` and a `packages-<platform>.json` receipt. A program's
   `launch_arguments` go on the Windows Start menu shortcut and the Linux
   launcher (Explore starts with `--product-only`). `--dry-run` prints the
   plan; `--no-installer` writes archives only.
-  `python3 tools/package_programs.py --build-dir build --version <version> --out dist`
-
-`tools/smoke_package.py`
-: Extracts each packaged program, launches it with `--smoke-test` and the
-  bundled fonts, and requires a clean exit, the pass line and at least one
-  presented frame. `--install` also applies the installer and launches the
-  installed copy. Results go to `smoke-<platform>.json`.
-  `python3 tools/smoke_package.py --dist dist`
+  `python3 programs/tools/package_programs.py --build-dir build --version <version> --out dist`
 
 `tools/build_macos_runtimes.py`
 : Builds the pinned LLVM runtimes (libc++ and its dependencies) with a
@@ -458,8 +457,8 @@ with the change that needs it.
 `tools/check_mcp_launch.py`
 : Starts each program it is given with `--mcp` and checks that it answers
   initialize and `tools/list`, then exits once its input closes. One line per
-  program; exit status 1 when any fails. `tools/smoke_package.py` runs it on
-  every packaged program, and `examples/reference` on `collection_gallery`.
+  program; exit status 1 when any fails. gui_forms_devkit's package smoke runs
+  it on every packaged program, and `examples/reference` on `collection_gallery`.
   It needs a window server (`xvfb-run` on Linux CI).
   `python3 tools/check_mcp_launch.py "<build>/GUI.Forms Gallery.app/Contents/MacOS/GUI.Forms Gallery"`
 
@@ -541,4 +540,4 @@ CI has passed (`.github/workflows/docs-publish.yml`); `compiler_identity.py`, `c
 `prune_cache_releases.py` describe, publish and prune the compiler-cache
 pre-releases; `macos_runtime_manifest.py` and `prove_macos_runtime_restore.py`
 check the published macOS runtime payload; `publication_version.py` and
-`publish_tested_release.py` select a version and publish tested packages.
+`publish_tested_release.py` select a version and publish the tested source SDK.

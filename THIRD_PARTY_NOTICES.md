@@ -17,7 +17,7 @@ records of the vendored sources. The Windows rows were checked again on
 22.1.8 (`libc++.lib`, `libc++experimental.lib`), STXlib's startup and C++
 runtime, STXlib's import libraries and GUID data (`ucrtbase.lib`,
 `kernel32.lib`, `uuid.lib` and the others) and GUI.Forms' and stx's own
-archives, and nothing else. `tools/package_programs.py` checks every
+archives, and nothing else. gui_forms_devkit's `programs/tools/package_programs.py` checks every
 program package against this file (see the end of this file).
 
 ## Components
@@ -79,7 +79,7 @@ Font provenance (commits and byte hashes) is in `fonts/ATTRIBUTION.md`.
 
 ## The packaging check
 
-`tools/package_programs.py` fails a program package when:
+gui_forms_devkit's `programs/tools/package_programs.py` fails a program package when:
 
 - this file is missing from its `licenses/`, or lacks the FreeType credit
   above;

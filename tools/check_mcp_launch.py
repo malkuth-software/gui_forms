@@ -13,7 +13,7 @@ any program fails.
 A program run through Application::run or through its host's single-window
 entry (host::run_macos, run_windows, run_linux) serves MCP in every build
 with GUI_FORMS_MCP on. Until 1.0.1 the demonstrators called their host
-directly and lost --mcp without a word. tools/smoke_package.py runs this
+directly and lost --mcp without a word. gui_forms_devkit's package smoke runs this
 check on every packaged program, and examples/reference runs it on the
 installed examples that open a window. Both need a window server: on Linux
 CI they run under xvfb-run.

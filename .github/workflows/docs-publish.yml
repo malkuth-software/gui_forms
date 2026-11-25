@@ -5,7 +5,7 @@ name: Documentation publication
 # (tools/readthedocs_build.py, with the repository secret READTHEDOCS_TOKEN):
 # - `latest` after native.yml ("GUI.Forms source and compiler cache")
 #   succeeds on a push to main;
-# - `stable` after release.yml ("GUI.Forms programs and release") succeeds
+# - `stable` after release.yml ("GUI.Forms release") succeeds
 #   on a pushed v* tag.
 # A push to main that publishes a release creates its v* tag through the
 # API, which starts no workflow. Read the Docs moves `stable` to the newest
@@ -16,7 +16,7 @@ name: Documentation publication
 # each job names the workflow, event and branch it accepts.
 on:
   workflow_run:
-    workflows: ["GUI.Forms source and compiler cache", "GUI.Forms programs and release"]
+    workflows: ["GUI.Forms source and compiler cache", "GUI.Forms release"]
     types: [completed]
     branches: [main, 'v*']
 permissions:
@@ -38,7 +38,7 @@ jobs:
         run: python3 -B tools/readthedocs_build.py --version latest
   stable:
     if: >-
-      github.event.workflow_run.name == 'GUI.Forms programs and release'
+      github.event.workflow_run.name == 'GUI.Forms release'
       && github.event.workflow_run.conclusion == 'success'
       && github.event.workflow_run.event == 'push'
       && startsWith(github.event.workflow_run.head_branch, 'v')

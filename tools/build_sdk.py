@@ -8,8 +8,10 @@ The build entry point of the source SDK (SDK_MANIFEST.json's "build"):
 
 It runs the target's own preparation (on macOS and Linux, fetching and
 building the pinned CPU Skia; on Windows nothing more), configures the
-toolkit without tests or the demonstration programs, builds it and installs
-it into --prefix. The configure options are the ones tools/ci_build.py
+toolkit without tests, builds it and installs it into --prefix. Every SDK
+carries the Gallery model (GUIForms::GalleryModel, with GUIForms::Lab and
+GUIForms::DemoControls), which malkuth-software/gui_forms_devkit builds the
+Gallery and the other demonstrators from. The configure options are the ones tools/ci_build.py
 configures CI with (tools/toolkit_configure.py, imported rather than
 copied, and free of template_harness, which a source SDK does not carry), so
 a consumer's SDK is the build CI tests;
@@ -50,22 +52,18 @@ MANIFEST_NAME: str = "SDK_MANIFEST.json"
 # leaves out; each installs as a CMake package component:
 #   GUI_FORMS_BUILD_TEXT_MASKS            GUIForms::TextMasks (inside Application)
 #   GUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT  GUIForms::AudioLoopTransport (inside Audio)
-#   GUI_FORMS_INSTALL_GALLERY_MODEL       GUIForms::GalleryModel, the Gallery model the
-#                                         programs repository builds the Gallery from,
-#                                         with GUIForms::DemoControls and form_compiler_lab
-#   GUI_FORMS_INSTALL_LAB                 GUIForms::Lab, which the Gallery model needs
 # The default already builds Audio with the stx Vorbis decoder, the
-# text engine (STXlib) and the host's Application. Left out of
+# text engine (STXlib), the host's Application and the Gallery model
+# (GUIForms::GalleryModel with GUIForms::Lab, GUIForms::DemoControls and
+# form_compiler_lab; toolkit_configure.toolkit_options). Left out of
 # "all": GUI_FORMS_BUILD_PREPARED_TEXT, a development interface that is not
 # installable and changes Application's declarations for every consumer;
 # the probes, benchmarks, fuzzers, diagnostics and the Windows transactional
 # DIB experiment, which build programs or change behaviour rather than add
-# a linkable component; and the Gallery, demoboard and tests.
+# a linkable component; and the tests.
 FEATURE_SETS: dict[str, tuple[str, ...]] = {
     "default": (),
-    "all": ("-DGUI_FORMS_BUILD_TEXT_MASKS=ON", "-DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON",
-            "-DGUI_FORMS_BUILD_GALLERY_MODEL=ON",
-            "-DGUI_FORMS_INSTALL_GALLERY_MODEL=ON", "-DGUI_FORMS_INSTALL_LAB=ON"),
+    "all": ("-DGUI_FORMS_BUILD_TEXT_MASKS=ON", "-DGUI_FORMS_BUILD_AUDIO_LOOP_TRANSPORT=ON"),
 }
 
 
@@ -113,7 +111,7 @@ def configure_command(target: str, source: Path, toolkit: Path, prefix: Path,
     """
     host: str = TARGET_HOSTS[target]
     command: list[str] = ["cmake", "-S", str(source), "-B", str(toolkit), "-G", "Ninja",
-                          *toolkit_configure.toolkit_options(source, prefix, False, False),
+                          *toolkit_configure.toolkit_options(source, prefix, False),
                           *toolkit_configure.host_options(host), *FEATURE_SETS[features],
                           *toolkit_configure.stx_options(stx_prefix, stx_package_dir)]
     # A source SDK carries stx at stx.lock's commit (package_sdk.py), so the

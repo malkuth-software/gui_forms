@@ -7,10 +7,10 @@ on:
   # same names, on its temporary gh-readonly-queue/main/... branch, whose
   # commit main then becomes. It publishes nothing and saves no Actions cache
   # (its branch's caches reach no other ref); the push to main that follows
-  # carries its validation, receipts and programs tests.
+  # carries its validation, receipts and deployment tests.
   merge_group:
   # The daily full run on main reuses nothing: every native job validates
-  # afresh, and the programs and docs jobs build and test everything.
+  # afresh, and the deployment and docs jobs build and test everything.
   # (The Sanitizers job runs only when requested by hand; see its comment.) It is the backstop for what a push to main carries from the
   # merged pull request's run (tools/release_tests.py, tools/ci_tree_receipt.py):
   # the name match of tools/native_tests.py and the change selection of
@@ -32,7 +32,7 @@ on:
         type: boolean
         default: false
       cold_build:
-        description: Build the native jobs with no compiler cache or object seed, validating afresh, and skip the programs (one cold-build measurement)
+        description: Build the native jobs with no compiler cache or object seed, validating afresh, and skip the deployment build (one cold-build measurement)
         type: boolean
         default: false
       run_sanitizers:
@@ -176,7 +176,7 @@ jobs:
           python3 -B -m unittest discover -s tools -p test_docs_numbers.py
           python3 -B -m unittest discover -s tools -p test_capture_previews.py
           python3 -B tools/readme_numbers.py --check
-          python3 -B ../template_harness/harness/check_house_style.py include src lab demo examples tools file_manager_demoboard stx_fontpack
+          python3 -B ../template_harness/harness/check_house_style.py include src lab demo examples tools stx_fontpack
           python3 -B -m unittest discover -s tools -p test_ci_build.py
           python3 -B -m unittest discover -s tools -p test_ci_docs_only.py
           python3 -B -m unittest discover -s tools -p test_ninja_phases.py
@@ -189,7 +189,7 @@ jobs:
           # The state-agreement candidates (hunt 2026-11-23): report-only, never fails.
           python3 -B -m unittest discover -s tools -p test_check_state_agreement.py
           python3 -B tools/check_state_agreement.py src | tail -n 1
-          python3 -B tools/check_lifetime_rules.py include src lab demo examples tools file_manager_demoboard stx_fontpack
+          python3 -B tools/check_lifetime_rules.py include src lab demo examples tools stx_fontpack
           # D15 (decision 6a): the standard-library rules, STXlib's check_std_rules
           # copied at 60dea8f; tools/std_rules_allowance.txt only shrinks.
           python3 -B -m unittest discover -s tools -p test_check_std_rules.py
@@ -208,7 +208,7 @@ jobs:
   # Documentation-only pull requests (owner, 2026-11-09): when every changed
   # path is documentation no test reads (tools/ci_docs_only.py), the four
   # native jobs report success without building (their build job is
-  # skipped), the engine gate passes without comparing and no programs job
+  # skipped), the engine gate passes without comparing and no deployment job
   # runs; house-style and docs still check the change. Merge groups, pushes,
   # the schedule and dispatches always build in full, as does any failure to
   # classify. The whole history, so the pull request's merge base is known.
@@ -582,9 +582,12 @@ jobs:
       contents: write
       actions: read
 
-  # The demonstration programs, their tests and packages, one platform each,
-  # built from that platform's native objects as soon as its native job passes.
-  programs-macos-arm64:
+  # The deployment build (release.yml: the shipped arithmetic, its test cache,
+  # the C ABI library and the source SDK), one platform each, built from that
+  # platform's native objects as soon as its native job passes. The
+  # demonstration programs are malkuth-software/gui_forms_devkit's
+  # (devkit-dispatch, below).
+  deployment-macos-arm64:
     needs: [changes, native-macos-arm64]
     if: inputs.cold_build != true && needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/release.yml
@@ -595,7 +598,7 @@ jobs:
       contents: write
       actions: read
 
-  programs-linux-x64:
+  deployment-linux-x64:
     needs: [changes, native-linux-x64]
     if: inputs.cold_build != true && needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/release.yml
@@ -606,7 +609,7 @@ jobs:
       contents: write
       actions: read
 
-  programs-linux-arm64:
+  deployment-linux-arm64:
     needs: [changes, native-linux-arm64]
     if: inputs.cold_build != true && needs.changes.outputs.docs_only != 'true'
     uses: ./.github/workflows/release.yml
@@ -619,7 +622,7 @@ jobs:
 
   # This job and publish name the results they need instead of relying on an
   # implicit success(), which any skipped job before them turns false.
-  programs-windows-x64:
+  deployment-windows-x64:
     needs: [changes, native-windows-x64]
     if: ${{ !cancelled() && needs.native-windows-x64.result == 'success' && inputs.cold_build != true && needs.changes.outputs.docs_only != 'true' }}
     uses: ./.github/workflows/release.yml
@@ -630,22 +633,80 @@ jobs:
       contents: write
       actions: read
 
-  # On main, the tested release, once every platform's programs are packaged:
-  # a release needs all four.
+  # On main, the tested release, once every platform's deployment build has
+  # passed: a release needs all four.
   publish:
-    needs: [programs-macos-arm64, programs-linux-x64, programs-linux-arm64, programs-windows-x64]
+    needs: [deployment-macos-arm64, deployment-linux-x64, deployment-linux-arm64, deployment-windows-x64]
     if: >-
       !cancelled()
-      && needs.programs-macos-arm64.result == 'success' && needs.programs-linux-x64.result == 'success'
-      && needs.programs-linux-arm64.result == 'success' && needs.programs-windows-x64.result == 'success'
-      && needs.programs-linux-x64.outputs.publish == 'true'
+      && needs.deployment-macos-arm64.result == 'success' && needs.deployment-linux-x64.result == 'success'
+      && needs.deployment-linux-arm64.result == 'success' && needs.deployment-windows-x64.result == 'success'
+      && needs.deployment-linux-x64.outputs.publish == 'true'
     uses: ./.github/workflows/publish-release.yml
     with:
-      tag: ${{ needs.programs-linux-x64.outputs.tag }}
-      version: ${{ needs.programs-linux-x64.outputs.version }}
+      tag: ${{ needs.deployment-linux-x64.outputs.tag }}
+      version: ${{ needs.deployment-linux-x64.outputs.version }}
     permissions:
       contents: write
       actions: read
+
+  # The lockstep (gui_forms_devkit DEVKIT_DESIGN.md, section 2): on a push to
+  # main, once every platform's native job has passed and so published its
+  # build-<sha> compiler cache and SDK (native-platform.yml, "Publish this
+  # passing platform immediately"), tell malkuth-software/gui_forms_devkit
+  # that this revision is green. Its lockstep workflow builds every program
+  # and view against exactly this sha. The token is a GitHub App's, installed
+  # on the devkit with actions: write only (DEVKIT_DISPATCH_APP_ID and
+  # DEVKIT_DISPATCH_APP_KEY); without them the job says so and passes, since
+  # gui_forms never waits on the devkit.
+  devkit-dispatch:
+    needs: [changes, native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64]
+    if: >-
+      !cancelled() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+      && needs.changes.outputs.docs_only != 'true'
+      && needs.native-macos-arm64.result == 'success' && needs.native-linux-x64.result == 'success'
+      && needs.native-linux-arm64.result == 'success' && needs.native-windows-x64.result == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          sparse-checkout: CMakeLists.txt
+          sparse-checkout-cone-mode: false
+      - name: Check for the dispatch app
+        id: app
+        env:
+          APP_ID: ${{ secrets.DEVKIT_DISPATCH_APP_ID }}
+          APP_KEY: ${{ secrets.DEVKIT_DISPATCH_APP_KEY }}
+        run: |
+          if [ -n "$APP_ID" ] && [ -n "$APP_KEY" ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::DEVKIT_DISPATCH_APP_ID or DEVKIT_DISPATCH_APP_KEY is not set; gui_forms_devkit is not told about ${GITHUB_SHA}"
+            echo "present=false" >> "$GITHUB_OUTPUT"
+          fi
+      # TODO(integrator): pin this action by commit, as the others are.
+      - uses: actions/create-github-app-token@v1
+        id: token
+        if: steps.app.outputs.present == 'true'
+        with:
+          app-id: ${{ secrets.DEVKIT_DISPATCH_APP_ID }}
+          private-key: ${{ secrets.DEVKIT_DISPATCH_APP_KEY }}
+          owner: malkuth-software
+          repositories: gui_forms_devkit
+      - name: Dispatch gui-forms-advanced to gui_forms_devkit
+        if: steps.app.outputs.present == 'true'
+        env:
+          GH_TOKEN: ${{ steps.token.outputs.token }}
+        run: |
+          version="$(sed -n 's/^project(GUIForms VERSION \([0-9.]*\).*/\1/p' CMakeLists.txt)"
+          test -n "$version"
+          gh api repos/malkuth-software/gui_forms_devkit/dispatches --method POST \
+            -f event_type=gui-forms-advanced \
+            -F "client_payload[sha]=${GITHUB_SHA}" -F "client_payload[version]=${version}"
+          echo "gui_forms_devkit told: gui-forms-advanced ${GITHUB_SHA} (${version})"
 
   # After every job that saves a cache on a push to main: delete the entries
   # each new save superseded, keeping the newest of each family
@@ -657,7 +718,7 @@ jobs:
   # entry; skipping the prune as well keeps every family's previous entries
   # until a green push, so no failure can end with fewer good caches.
   cache-prune:
-    needs: [native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64, programs-macos-arm64, programs-linux-x64, programs-linux-arm64, programs-windows-x64]
+    needs: [native-macos-arm64, native-linux-x64, native-linux-arm64, native-windows-x64, deployment-macos-arm64, deployment-linux-x64, deployment-linux-arm64, deployment-windows-x64]
     if: ${{ !cancelled() && !contains(needs.*.result, 'failure') && github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
