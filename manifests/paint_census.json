@@ -52,6 +52,7 @@
     "stroke_segments"
   ],
   "exempt": {
+    "automation/console/console_overlay.cpp": "the MCP console: automation chrome drawn over the program in fixed colours (the owner's colour formula), outside the program's theme and out of captures, like the in-use sign; owner exemption 2026-11-25",
     "basic/basic_control_rendering.cpp": "the authored-recipe path: paint_theme_cues paints the focus and default cues of a control's own override recipes (visual_recipes_override), which the theme engine does not draw (owner decision, 2026-11-03)",
     "button_base/button_base.cpp": "the authored-colour path: paint_flat_button paints FlatStyle.Flat (WinForms FlatStyle and FlatAppearance) from the application's own colours, the control's back and fore colours or its style override, which the theme engine does not draw (owner decision, 2026-11-09, on the authored-recipe precedent)",
     "connected_controls/connected_controls.cpp": "the authored-recipe path: the public paint_connected_surface_material paints an application's own recipe, which the theme engine does not draw (owner decision, 2026-11-03)",
@@ -68,8 +69,8 @@
   },
   "totals": {
     "exempt": {
-      "files": 13,
-      "calls": 42
+      "files": 14,
+      "calls": 46
     },
     "demo": {
       "files": 6,
@@ -81,6 +82,10 @@
     }
   },
   "files": {
+    "automation/console/console_overlay.cpp": {
+      "category": "exempt",
+      "calls": 4
+    },
     "basic/basic_control_rendering.cpp": {
       "category": "exempt",
       "calls": 2
