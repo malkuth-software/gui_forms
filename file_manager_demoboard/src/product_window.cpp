@@ -281,12 +281,15 @@ std::shared_ptr<ScaledPanel> make_ribbon(ProductRefs& refs) {
     (*panel).add_at(refs.ribbon_delete, {110, 6, 72, 42});
     (*panel).add_at(label("fm.ribbon.group.selection", "SELECTION", {10, 49, 172, 14}, {FontRole::control, 8, 600, false, .35}), {10, 49, 172, 14});
     refs.ribbon_view = button("fm.ribbon.view-mode", "Icons  ▼", {202, 6, 85, 42}, ButtonVisualStyle::command);
+    // Glyph captions get spoken names (Windows field report D6).
+    (*refs.ribbon_view).accessible_name = "View mode";
     (*panel).add_at(refs.ribbon_view, {202, 6, 85, 42});
     refs.ribbon_sort = button("fm.ribbon.sort", "Sort A→Z  ▼", {291, 6, 116, 42}, ButtonVisualStyle::command);
+    (*refs.ribbon_sort).accessible_name = "Sort order";
     (*panel).add_at(refs.ribbon_sort, {291, 6, 116, 42});
     refs.ribbon_properties = button("fm.ribbon.properties", "Properties", {411, 6, 92, 42}, ButtonVisualStyle::command);
     (*panel).add_at(refs.ribbon_properties, {411, 6, 92, 42});
-    (*panel).add_at(label("fm.ribbon.group.arrange", "ARRANGE & INSPECT", {202, 49, 301, 14}, {FontRole::control, 8, 600, false, .35}), {202, 49, 301, 14});
+    (*panel).add_at(label("fm.ribbon.group.arrange", "ARRANGE && INSPECT", {202, 49, 301, 14}, {FontRole::control, 8, 600, false, .35}), {202, 49, 301, 14});
     return panel;
 }
 
@@ -295,12 +298,15 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
                                                Size{1450.0, 40.0});
     (*panel).set_background(graphite);
     refs.nav_back = button("fm.nav.back", "←", {7, 6, 30, 28});
+    (*refs.nav_back).accessible_name = "Back";
     (*refs.nav_back).enabled = false;
     (*panel).add_at(refs.nav_back, {7, 6, 30, 28});
     refs.nav_forward = button("fm.nav.forward", "→", {42, 6, 30, 28});
+    (*refs.nav_forward).accessible_name = "Forward";
     (*refs.nav_forward).enabled = false;
     (*panel).add_at(refs.nav_forward, {42, 6, 30, 28});
     refs.nav_up = button("fm.nav.up", "↑", {77, 6, 30, 28});
+    (*refs.nav_up).accessible_name = "Up";
     (*panel).add_at(refs.nav_up, {77, 6, 30, 28});
     std::shared_ptr<gui_forms::Panel> well = std::make_shared<Panel>(StableId("fm.path.breadcrumb"));
     (*well).set_background(paper);
@@ -335,6 +341,7 @@ std::shared_ptr<ScaledPanel> make_navigation(ProductRefs& refs) {
     std::shared_ptr<gui_forms::TextBox> search = std::make_shared<TextBox>(StableId("fm.search.editor"));
     (*search).set_requested_bounds({980, 6, 463, 28});
     (*search).placeholder_text = "Search Projects and descendants";
+    (*search).accessible_name = "Search";
     (*search).set_style(house_style());
     // Enter runs the search (SearchController::on_search_committed) and
     // Escape leaves it (SearchController::on_search_cancelled).
@@ -946,6 +953,7 @@ std::shared_ptr<Panel> make_selection_pane(ProductRefs& refs) {
 std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     std::shared_ptr<gui_forms::SplitContainer> outer = std::make_shared<SplitContainer>(StableId("fm.workspace"));
     refs.workspace_split = outer;
+    (*outer).accessible_name = "Folders and contents";
     (*outer).initialize_control_tree();
     (*outer).splitter_width = 3;
     (*outer).splitter_hit_width = 12;
@@ -962,6 +970,7 @@ std::shared_ptr<SplitContainer> make_workspace(ProductRefs& refs) {
     std::shared_ptr<gui_forms::SplitContainer> inner = std::make_shared<SplitContainer>(StableId("fm.workspace.content-selection"));
     (*inner).initialize_control_tree();
     refs.selection_split = inner;
+    (*inner).accessible_name = "Contents and selection";
     (*inner).splitter_width = 3;
     (*inner).splitter_hit_width = 12;
     (*inner).fixed_panel = SplitFixedPanel::second;

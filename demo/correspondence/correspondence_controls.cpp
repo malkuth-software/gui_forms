@@ -299,6 +299,7 @@ void CorrespondenceShell::build_panes() {
     (*split_).first_minimum = 140.0;
     (*split_).second_minimum = 320.0;
     (*split_).dock = DockStyle::fill;
+    (*split_).accessible_name = "Folders and messages";
     add_child(split_);
     (*(*split_).first_panel()).background = navigation;
     (*(*split_).second_panel()).background = canvas;
@@ -323,6 +324,7 @@ void CorrespondenceShell::build_panes() {
     (*content_split_).first_minimum = 100.0;
     (*content_split_).second_minimum = 180.0;
     (*content_split_).dock = DockStyle::fill;
+    (*content_split_).accessible_name = "Messages and reading pane";
     (*(*split_).second_panel()).add_child(content_split_);
     (*(*content_split_).first_panel()).background = paper;
     (*(*content_split_).second_panel()).background = paper;
@@ -391,7 +393,7 @@ void CorrespondenceShell::project_folders() {
         item.text = std::string(folder_name(folder));
         const std::size_t unread = model_.unread_count(folder);
         if (unread > 0U) {
-            item.text += "  (" + std::to_string(unread) + ")";
+            item.text += " (" + std::to_string(unread) + ")";
         }
         items.push_back(std::move(item));
     }
