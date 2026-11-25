@@ -1,33 +1,28 @@
 // The attach server of the automation run (automation_run_internal.hpp;
-// MCP 1.0.5, the owner's attach design, revision 3): the attach socket's
-// own thread. One connection at a time:
+// the owner's attach design, revision 3, reworked to the owner's UCI model
+// in MCP round 5: "one connection per command is not how UCI works", and
+// "its just a chained sequence"). The attach socket's own thread accepts
+// every connection and gives each a thread of its own:
 // 1. the endpoint hands over a connection from the same user (another
-//    user's never gets this far: attach_endpoint.hpp);
+//    user's never gets this far: attach_endpoint.hpp). That is the only
+//    permission: nothing asks per connection or per command;
 // 2. its first line, peeked and left in the stream, says what it is: a JSON
 //    object is MCP (newline-delimited JSON-RPC, MCP's stdio framing);
 //    anything else is the plain-text console, and the line its first
 //    command;
-// 3. the session is resumed (initialize's params.resume, or the console's
-//    `resume <token>`) when it is the one waiting with that token, or
-//    begins anew: a waiting session ends, the run admits the client or not
-//    (AutomationRun::admit_connection: refused while another client is
-//    connected; accepted under --mcp, --mcp-shared or an appearance
-//    review; otherwise the user is asked in the program, every
-//    connection), and a new token is made. A refused MCP connection gets a
-//    JSON-RPC error on its initialize's id; a refused console a line;
-// 4. MCP or the console runs until the connection ends. A console's `quit`
-//    ends the session (control returns to the user, the program stays
-//    open); any other end leaves it waiting attach_resume_milliseconds for
-//    a resume, after which it ends.
-// A connection made while another is served is never left in silence (the
-// owner, MCP round 4): a waiter thread accepts it and answers "waiting for
-// the current session to end" (a console a line, MCP a JSON-RPC error on
-// its initialize's id) and closes it, so the client knows why and may try
-// again. The waiter runs only while a connection is served, so the two
-// threads never accept at once.
+// 3. MCP or the console runs until the connection ends. There are no
+//    sessions and no tokens: control, the console record and any pending
+//    state are the program's, so a line acts on the program as the last one
+//    did, on this connection or another, and one command per connection
+//    costs nothing. The run serialises the calls (AutomationRun::drive), so
+//    the lines of every connection form one chained sequence.
+// When the last connection closes, a question scope a call left open
+// closes (the program's own questions are the user's again); control stays
+// as it is, returning on release_control, 30 s without a call (the shared
+// model) or the user taking it back.
 // The console record (ConsoleLog) is the one transcript: the overlay shows
-// it, a console's `transcript` answers it, and every session's lines carry
-// its label (the client's name and the token's first digits).
+// it, a console's `transcript` answers it, and each connection's lines
+// carry its label (the client's name, else the connecting process's ID).
 // Captures are the engine's own, as for every MCP client.
 
 #include "automation_run_internal.hpp"
@@ -43,27 +38,23 @@
 #include <string>
 #include <string_view>
 #include <utility>
+#include <vector>
 
 namespace gui_forms::automation {
 
 namespace {
 
-// How long a connection may take to send its first line.
+// How long a connection may wait before its first line.
 constexpr std::int64_t opening_wait_milliseconds = 60000;
-// JSON-RPC's code for a refused initialize: the implementation-defined
-// server error range.
+// Each slice of the accept, so finished connections' threads are joined.
+constexpr std::int64_t accept_slice_milliseconds = 1000;
+// The JSON-RPC error code of a connection that cannot be served.
 constexpr int refused_code = -32001;
-// What a connection made while another is served is told.
-constexpr std::string_view waiting_message = "waiting for the current session to end";
-// How long the waiter waits for a waiting connection's first line, and
-// each slice of its accept, so it ends soon after the served connection.
-constexpr std::int64_t waiting_line_milliseconds = 3000;
-constexpr std::int64_t waiter_slice_milliseconds = 250;
 constexpr std::string_view console_prompt = "gui-forms> ";
-// The longest client name a session's label shows.
+// The longest client name a label shows.
 constexpr std::size_t label_name_bytes = 24U;
 
-// A call or a question stops waiting when the server stops.
+// A call stops waiting when the server stops.
 class FlagStop final : public CallStop {
 public:
     explicit FlagStop(const std::atomic<bool>& flag) noexcept : flag_(flag) {}
@@ -74,38 +65,32 @@ private:
 };
 
 void attach_thread_main(const stxlib::StopSignal& signal, void* argument) noexcept;
+void connection_thread_main(const stxlib::StopSignal& signal, void* argument) noexcept;
 
-// A session's label in the console record: the client's name (or
-// "console") and the token's first four digits.
-std::string session_label(const AttachClient& client, const std::string& token) {
-    std::string name = client.console ? std::string("console") : client.name;
-    if (name.empty()) name = "client";
-    std::string label = console_clip(name, label_name_bytes);
-    if (!token.empty()) label += " " + token.substr(0U, 4U);
+// A connection's label in the console record: the client's name, else
+// "console" or "client" with the connecting process's ID.
+std::string connection_label(const AttachClient& client, std::int64_t process) {
+    if (!client.console && !client.name.empty()) return console_clip(client.name, label_name_bytes);
+    std::string label = client.console ? std::string("console") : std::string("client");
+    if (process > 0) label += " pid " + std::to_string(process);
     return label;
 }
 
-// A tool's reply as a console shows it: the text MCP's result carries, a
-// line for each image (images come through MCP), and a failure's code,
-// message, hint and detail.
-std::string console_reply(const ToolReply& reply) {
-    if (const ToolSuccess* const success = reply.success_value()) {
-        std::string text = (*success).text;
-        for (const ToolImage& image : (*success).images) {
-            if (!text.empty()) text += '\n';
-            text += "[image: " + image.mime_type + ", " + std::to_string(image.bytes.size()) +
-                    " bytes; images come through MCP, or capture with points=[[x,y],...] for pixels]";
-        }
-        return text;
-    }
-    const ToolFailure& failure = *reply.failure_value();
-    std::string text = "error: " + std::string(tool_error_name(failure.error)) + ": " + failure.message;
-    if (!failure.hint.empty()) text += "\nhint: " + failure.hint;
-    if (!failure.detail_json.empty()) text += "\n" + failure.detail_json;
-    return text;
-}
-
 } // namespace
+
+// One accepted connection and the thread that serves it.
+struct AttachConnection final {
+    AttachServer::State* server{};
+    AttachStreams streams{};
+    stxlib::Thread thread{};
+    bool joinable{};
+    std::atomic<bool> done{false};
+    // Under the server's mutex: the input handle while it is read here
+    // (-1 once MCP serves it), and the transport serving it; the server's
+    // destructor aborts the one and stops the other.
+    std::int64_t handle{-1};
+    McpTransport* live{};
+};
 
 struct AttachServer::State final {
     AutomationRun* run{};
@@ -114,154 +99,29 @@ struct AttachServer::State final {
     stxlib::Thread thread{};
     bool joinable{};
     stxlib::Mutex mutex{};
-    // Under mutex: the transport serving now, once serve returned; the
-    // destructor asks it to stop.
-    McpTransport* live{};
-    // Under mutex: the connection's input handle while it is read here (its
-    // first line, a refusal, the console) or until its transport is live
-    // (-1 for none); the destructor aborts it.
-    std::int64_t connection{-1};
-
-    // The attach thread only: the session, whether its connection is gone
-    // (waiting for a resume until `resume_until`), its token and label.
-    bool session{};
-    bool waiting{};
-    stxlib::IntervalTime resume_until{};
-    std::string token{};
-    std::string label{};
+    // Under mutex: every connection still being served or not yet joined.
+    std::vector<std::unique_ptr<AttachConnection>> connections{};
 };
 
 namespace {
 
-// Keeps the connection's handle in the state while it lives here, and
-// clears it however the connection ends.
-class ConnectionMark final {
-public:
-    ConnectionMark(AttachServer::State& state, std::int64_t handle) noexcept : state_(&state) {
+// Joins the threads of connections that ended. The attach thread only.
+void join_finished(AttachServer::State& state) {
+    std::vector<std::unique_ptr<AttachConnection>> finished{};
+    {
         const stxlib::ScopedLock lock(state.mutex);
-        state.connection = handle;
-    }
-    ~ConnectionMark() {
-        const stxlib::ScopedLock lock((*state_).mutex);
-        (*state_).connection = -1;
-    }
-    ConnectionMark(const ConnectionMark&) = delete;
-    ConnectionMark& operator=(const ConnectionMark&) = delete;
-
-private:
-    AttachServer::State* state_{};
-};
-
-// Ends the session (no resume).
-void end_session(AttachServer::State& state) {
-    if (!state.session) return;
-    state.session = false;
-    state.waiting = false;
-    state.token.clear();
-    state.label.clear();
-    (*state.run).end_attached_session();
-}
-
-// The session's connection ended without `quit`: it waits for a resume.
-void leave_session(AttachServer::State& state) {
-    if (!state.session) {
-        (*state.run).detach_transport();
-        return;
-    }
-    // Control returns to the user at once, whatever follows (MCP round 4:
-    // a stopped client left the program unclosable).
-    (*state.run).attached_connection_dropped();
-    if (state.stop.load()) return;
-    state.waiting = true;
-    state.resume_until =
-        stxlib::IntervalTime::now().after(stxlib::Duration::milliseconds(attach_resume_milliseconds));
-    (*state.run).console_note("disconnected; the session can be resumed for " +
-                              std::to_string(attach_resume_milliseconds / 1000) + " seconds");
-}
-
-// Resumes the waiting session or begins a new one for `client`. False,
-// with `refusal` set, when neither may happen.
-bool take_session(AttachServer::State& state, const AttachClient& client, const std::string& resume,
-                  std::string& refusal) {
-    AutomationRun& run = *state.run;
-    if (!resume.empty()) {
-        if (state.session && state.waiting && resume == state.token) {
-            state.waiting = false;
-            run.attached_connection_resumed();
-            run.console_note("session resumed");
-            return true;
+        for (std::size_t index = 0U; index < state.connections.size();) {
+            if (!(*state.connections[index]).done.load()) {
+                ++index;
+                continue;
+            }
+            finished.push_back(std::move(state.connections[index]));
+            state.connections.erase(state.connections.begin() + static_cast<std::ptrdiff_t>(index));
         }
-        refusal = "no session with that token is waiting to resume (it ended, or its " +
-                  std::to_string(attach_resume_milliseconds / 1000) +
-                  " seconds passed); connect without a token to begin a new one";
-        return false;
     }
-    // Another client begins: the waiting session ends.
-    end_session(state);
-    const FlagStop stop(state.stop);
-    refusal = run.admit_connection(client, &stop);
-    if (!refusal.empty()) return false;
-    const std::string token = make_session_token();
-    if (token.empty()) {
-        refusal = "the program could not make a session token (no entropy from the host)";
-        return false;
+    for (const std::unique_ptr<AttachConnection>& connection : finished) {
+        if ((*connection).joinable) static_cast<void>((*connection).thread.join());
     }
-    const std::string label = session_label(client, token);
-    if (!run.begin_attached_session(client, label, token)) {
-        refusal = "the program has no window";
-        return false;
-    }
-    state.session = true;
-    state.waiting = false;
-    state.token = token;
-    state.label = label;
-    return true;
-}
-
-// Serves an MCP connection whose first line `opening` read.
-void serve_mcp(AttachServer::State& state, AttachStreams streams, const AttachOpening& opening) {
-    AutomationRun& run = *state.run;
-    std::unique_ptr<ConnectionMark> mark =
-        std::make_unique<ConnectionMark>(state, static_cast<std::int64_t>(streams.input.native_handle()));
-    AttachClient client{};
-    client.name = opening.client_name;
-    client.version = opening.client_version;
-    std::string refusal{};
-    if (!take_session(state, client, opening.resume, refusal)) {
-        // The initialize is taken from the stream and answered with the
-        // reason, so the client says why it could not connect.
-        std::string taken{};
-        static_cast<void>(read_attach_line(streams.input, taken, maximum_opening_line));
-        static_cast<void>(
-            write_attach_line(streams.output, json_rpc_error_line(opening.id_json, refused_code, refusal)));
-        run.console_note("socket connection refused: " + refusal);
-        return;
-    }
-    std::unique_ptr<McpTransport> transport = McpTransport::over(run, std::move(streams));
-    if (!transport) {
-        std::fputs("GUI.Forms: attach: this build has no MCP transport\n", stderr);
-        leave_session(state);
-        return;
-    }
-    std::string error{};
-    if (!run.serve_attached(*transport, state.token, error)) {
-        std::fprintf(stderr, "GUI.Forms: attach: MCP did not start: %s\n", error.c_str());
-        leave_session(state);
-        return;
-    }
-    {
-        const stxlib::ScopedLock lock(state.mutex);
-        state.live = transport.get();
-    }
-    mark.reset();
-    // A stop asked before the transport was published is honoured here.
-    if (state.stop.load()) (*transport).request_stop();
-    (*transport).wait();
-    {
-        const stxlib::ScopedLock lock(state.mutex);
-        state.live = nullptr;
-    }
-    leave_session(state);
 }
 
 // Writes `text`, a line break when it lacks one, and the prompt.
@@ -271,207 +131,171 @@ bool console_answer(AttachStreams& streams, std::string text) {
     return write_attach_line(streams.output, text);
 }
 
-// Serves a console connection whose first line was peeked.
-void serve_console(AttachServer::State& state, AttachStreams streams) {
+// Serves an MCP connection whose first line `opening` read.
+void serve_mcp(AttachConnection& connection, const AttachOpening& opening) {
+    AttachServer::State& state = *connection.server;
     AutomationRun& run = *state.run;
-    const ConnectionMark mark(state, static_cast<std::int64_t>(streams.input.native_handle()));
+    AttachClient client{};
+    client.name = opening.client_name;
+    client.version = opening.client_version;
+    const FlagStop stop(state.stop);
+    std::string refusal{};
+    if (!run.begin_attached(client, &stop, refusal)) {
+        // The initialize is taken from the stream and answered with the
+        // reason, so the client says why it could not be served.
+        std::string taken{};
+        static_cast<void>(read_attach_line(connection.streams.input, taken, maximum_opening_line));
+        static_cast<void>(
+            write_attach_line(connection.streams.output, json_rpc_error_line(opening.id_json, refused_code, refusal)));
+        return;
+    }
+    run.console_log().set_session(connection_label(client, connection.streams.peer_process));
+    std::unique_ptr<McpTransport> transport = McpTransport::over(run, std::move(connection.streams));
+    if (!transport) {
+        std::fputs("GUI.Forms: attach: this build has no MCP transport\n", stderr);
+        run.end_attached(nullptr);
+        return;
+    }
+    std::string error{};
+    if (!run.serve_attached(*transport, error)) {
+        std::fprintf(stderr, "GUI.Forms: attach: MCP did not start: %s\n", error.c_str());
+        run.end_attached(nullptr);
+        return;
+    }
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        connection.live = transport.get();
+        connection.handle = -1;
+    }
+    // A stop asked before the transport was published is honoured here.
+    if (state.stop.load()) (*transport).request_stop();
+    (*transport).wait();
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        connection.live = nullptr;
+    }
+    run.end_attached(transport.get());
+}
+
+// Serves a console connection whose first line was peeked: one command a
+// line, each answered, until the connection ends or quits.
+void serve_console(AttachConnection& connection) {
+    AttachServer::State& state = *connection.server;
+    AutomationRun& run = *state.run;
+    AttachStreams& streams = connection.streams;
     std::string line{};
     if (!read_attach_line(streams.input, line)) return;
-    ConsoleCommand command = parse_console_command(line);
     AttachClient client{};
     client.console = true;
-    const std::string resume = command.verb == ConsoleVerb::resume ? command.token : std::string{};
-    std::string refusal{};
-    if (!take_session(state, client, resume, refusal)) {
-        static_cast<void>(write_attach_line(streams.output, "refused: " + refusal + "\n"));
-        run.console_note("socket connection refused: " + refusal);
-        return;
-    }
     const FlagStop stop(state.stop);
-    // The first line was a resume (answered here), or the session's first
-    // command (run below, after the banner).
-    bool pending = command.verb != ConsoleVerb::resume && command.verb != ConsoleVerb::none;
-    const std::string opening = command.verb == ConsoleVerb::resume
-                                    ? "resumed session " + state.token + "\n" + session_token_line(state.token)
-                                    : run.console_banner(state.token);
-    if (!console_answer(streams, opening)) {
-        leave_session(state);
+    std::string refusal{};
+    if (!run.begin_attached(client, &stop, refusal)) {
+        static_cast<void>(write_attach_line(streams.output, "refused: " + refusal + "\n"));
         return;
     }
-    bool quit = false;
+    const std::string label = connection_label(client, streams.peer_process);
+    run.console_log().set_session(label);
+    bool first = true;
     for (;;) {
         if (state.stop.load()) break;
-        if (!pending) {
-            if (!read_attach_line(streams.input, line)) break;
-            command = parse_console_command(line);
-        }
-        pending = false;
-        std::string answer{};
-        switch (command.verb) {
-        case ConsoleVerb::none:
-            break;
-        case ConsoleVerb::help:
-            answer = run.console_help(command.topic, state.token);
-            break;
-        case ConsoleVerb::tools:
-            answer = run.console_help("tools", state.token);
-            break;
-        case ConsoleVerb::call:
-            answer = console_reply(run.drive(command.tool, command.arguments_json, &stop, line));
-            break;
-        case ConsoleVerb::transcript:
-            answer = run.console_log().transcript_text();
-            break;
-        case ConsoleVerb::resume:
-            answer = "this connection is already in session " + state.token;
-            break;
-        case ConsoleVerb::quit:
-            quit = true;
-            break;
-        case ConsoleVerb::unknown:
-            answer = "error: " + command.error;
-            break;
-        default: // A verb outside ConsoleVerb is answered as an unknown one.
-            answer = "error: " + command.error;
-            break;
-        }
+        if (!first && !read_attach_line(streams.input, line)) break;
+        first = false;
+        bool quit = false;
+        bool failed = false;
+        const std::string answer = run.console_line(line, &stop, label, quit, failed);
         if (quit) {
-            static_cast<void>(write_attach_line(streams.output, "session ended\n"));
+            static_cast<void>(write_attach_line(streams.output, "closed\n"));
             break;
         }
         if (!console_answer(streams, answer)) break;
     }
-    if (quit) {
-        end_session(state);
-    } else {
-        leave_session(state);
-    }
-}
-
-// The waiter's state: the server's, and whether the served connection ended.
-struct WaiterState final {
-    AttachServer::State* server{};
-    std::atomic<bool> done{false};
-};
-
-// Answers a connection made while another is served, then closes it.
-void answer_waiting(AttachServer::State& state, AttachStreams streams) {
-    std::string line{};
-    const bool spoke = peek_attach_line(streams, line, waiting_line_milliseconds);
-    const AttachOpening opening = spoke ? read_attach_opening(line) : AttachOpening{};
-    if (opening.json) {
-        std::string taken{};
-        static_cast<void>(read_attach_line(streams.input, taken, maximum_opening_line));
-        static_cast<void>(
-            write_attach_line(streams.output, json_rpc_error_line(opening.id_json, refused_code, waiting_message)));
-    } else {
-        static_cast<void>(write_attach_line(streams.output, std::string(waiting_message) + "\n"));
-    }
-    (*state.run).console_note("socket connection told: " + std::string(waiting_message));
-}
-
-void waiter_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
-    WaiterState& waiter = *static_cast<WaiterState*>(argument);
-    AttachServer::State& state = *waiter.server;
-    while (!waiter.done.load() && !state.stop.load()) {
-        AttachStreams streams{};
-        std::string note{};
-        AttachWait waited = AttachWait::failed;
-        try {
-            waited = (*state.endpoint).accept(streams, note, waiter_slice_milliseconds);
-        } catch (...) {
-            return;
-        }
-        if (waited == AttachWait::timed_out || waited == AttachWait::refused) continue;
-        if (waited != AttachWait::connected) return;
-        try {
-            answer_waiting(state, std::move(streams));
-        } catch (...) {
-            // The connection closes with its streams.
-        }
-    }
-}
-
-// Serves one connection to its end, answering connections made meanwhile.
-void serve_connection(AttachServer::State& state, AttachStreams streams);
-
-void serve_connection_waited(AttachServer::State& state, AttachStreams streams) {
-    WaiterState waiter{};
-    waiter.server = &state;
-    stxlib::OperationResult<stxlib::Thread> started = stxlib::Thread::start(&waiter_thread_main, &waiter);
-    try {
-        serve_connection(state, std::move(streams));
-    } catch (...) {
-        waiter.done.store(true);
-        if (!started.failed()) static_cast<void>((*started.value()).join());
-        throw;
-    }
-    waiter.done.store(true);
-    if (!started.failed()) static_cast<void>((*started.value()).join());
+    run.end_attached(nullptr);
 }
 
 // Serves one connection to its end.
-void serve_connection(AttachServer::State& state, AttachStreams streams) {
+void serve_connection(AttachConnection& connection) {
     std::string line{};
-    {
-        const ConnectionMark mark(state, static_cast<std::int64_t>(streams.input.native_handle()));
-        if (!peek_attach_line(streams, line, opening_wait_milliseconds)) return;
-    }
+    if (!peek_attach_line(connection.streams, line, opening_wait_milliseconds)) return;
     const AttachOpening opening = read_attach_opening(line);
     if (opening.json) {
-        serve_mcp(state, std::move(streams), opening);
+        serve_mcp(connection, opening);
     } else {
-        serve_console(state, std::move(streams));
+        serve_console(connection);
     }
+}
+
+void connection_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
+    AttachConnection& connection = *static_cast<AttachConnection*>(argument);
+    try {
+        serve_connection(connection);
+    } catch (const std::exception& failure) {
+        std::fprintf(stderr, "GUI.Forms: attach: the connection failed: %s\n", failure.what());
+    } catch (...) {
+        std::fputs("GUI.Forms: attach: the connection failed\n", stderr);
+    }
+    {
+        const stxlib::ScopedLock lock((*connection.server).mutex);
+        connection.handle = -1;
+    }
+    connection.done.store(true);
+}
+
+// Gives an accepted connection its own thread.
+void start_connection(AttachServer::State& state, AttachStreams streams) {
+    std::unique_ptr<AttachConnection> connection = std::make_unique<AttachConnection>();
+    (*connection).server = &state;
+    (*connection).handle = static_cast<std::int64_t>(streams.input.native_handle());
+    (*connection).streams = std::move(streams);
+    AttachConnection* const started = connection.get();
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        state.connections.push_back(std::move(connection));
+    }
+    stxlib::OperationResult<stxlib::Thread> thread = stxlib::Thread::start(&connection_thread_main, started);
+    if (thread.failed()) {
+        // Nothing serves it: closed with its streams when joined.
+        std::fputs("GUI.Forms: attach: a connection's thread did not start\n", stderr);
+        (*started).done.store(true);
+        return;
+    }
+    (*started).thread = std::move(*thread.value());
+    (*started).joinable = true;
 }
 
 void attach_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
     AttachServer::State& state = *static_cast<AttachServer::State*>(argument);
     for (;;) {
         if (state.stop.load()) return;
+        join_finished(state);
         AttachStreams streams{};
         std::string note{};
         AttachWait waited = AttachWait::failed;
-        std::int64_t limit = -1;
-        if (state.session && state.waiting) {
-            const stxlib::IntervalTime now = stxlib::IntervalTime::now();
-            limit = state.resume_until <= now ? 0 : state.resume_until.since(now).count_milliseconds();
-        }
         try {
-            waited = (*state.endpoint).accept(streams, note, limit);
+            waited = (*state.endpoint).accept(streams, note, accept_slice_milliseconds);
         } catch (...) {
             note = "the attach endpoint failed";
         }
-        try {
-            switch (waited) {
-            case AttachWait::interrupted:
-                return;
-            case AttachWait::failed:
-                std::fprintf(stderr, "GUI.Forms: attach: %s\n", note.c_str());
-                return;
-            case AttachWait::timed_out:
-                (*state.run).console_note("the session's resume time passed");
-                end_session(state);
-                continue;
-            case AttachWait::refused:
-                std::fprintf(stderr, "GUI.Forms: attach: %s\n", note.c_str());
-                (*state.run).console_note(note);
-                continue;
-            case AttachWait::connected:
-                serve_connection_waited(state, std::move(streams));
-                continue;
-            default: // A value outside AttachWait: the endpoint is in no state to go on.
-                return;
+        switch (waited) {
+        case AttachWait::interrupted:
+            return;
+        case AttachWait::failed:
+            std::fprintf(stderr, "GUI.Forms: attach: %s\n", note.c_str());
+            return;
+        case AttachWait::timed_out:
+            continue;
+        case AttachWait::refused:
+            std::fprintf(stderr, "GUI.Forms: attach: %s\n", note.c_str());
+            (*state.run).console_note(note);
+            continue;
+        case AttachWait::connected:
+            try {
+                start_connection(state, std::move(streams));
+            } catch (...) {
+                std::fputs("GUI.Forms: attach: a connection could not be taken\n", stderr);
             }
-        } catch (const std::exception& failure) {
-            std::fprintf(stderr, "GUI.Forms: attach: the connection failed: %s\n", failure.what());
-            if (state.stop.load()) return;
-            leave_session(state);
             continue;
-        } catch (...) {
-            if (state.stop.load()) return;
-            leave_session(state);
-            continue;
+        default: // A value outside AttachWait: the endpoint is in no state to go on.
+            return;
         }
     }
 }
@@ -483,7 +307,10 @@ AttachServer::AttachServer(std::unique_ptr<State> state) noexcept : state_(std::
 std::unique_ptr<AttachServer> AttachServer::start(AutomationRun& run, std::string& error) {
     std::unique_ptr<State> state = std::make_unique<State>();
     (*state).run = &run;
-    (*state).endpoint = AttachEndpoint::listen(AutomationRun::attach_program(), error);
+    AttachProgram program = AutomationRun::attach_program();
+    program.access = run.access_line();
+    program.door = run.door_id();
+    (*state).endpoint = AttachEndpoint::listen(program, error);
     if (!(*state).endpoint) return nullptr;
     // Where the socket is, for a person or an agent reading the program's
     // output (talk-to-a-program.md).
@@ -505,18 +332,116 @@ void AttachServer::publish(std::size_t tools, std::string_view note) {
     (*state.endpoint).publish(tools, note);
 }
 
+std::string AttachServer::address() const {
+    const std::string path = (*(*state_).endpoint).address();
+    return path;
+}
+
 AttachServer::~AttachServer() {
     if (!state_) return;
     State& state = *state_;
     state.stop.store(true);
     (*state.endpoint).interrupt();
-    {
-        const stxlib::ScopedLock lock(state.mutex);
-        if (state.connection != -1) abort_attach_connection(state.connection);
-        if (state.live != nullptr) (*state.live).request_stop();
-    }
     if (state.joinable) static_cast<void>(state.thread.join());
     state.joinable = false;
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        for (const std::unique_ptr<AttachConnection>& connection : state.connections) {
+            if ((*connection).handle != -1) abort_attach_connection((*connection).handle);
+            if ((*connection).live != nullptr) (*(*connection).live).request_stop();
+        }
+    }
+    std::vector<std::unique_ptr<AttachConnection>> connections{};
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        connections = std::move(state.connections);
+        state.connections.clear();
+    }
+    for (const std::unique_ptr<AttachConnection>& connection : connections) {
+        if ((*connection).joinable) static_cast<void>((*connection).thread.join());
+    }
+}
+
+// ---- the command folder's reader -----------------------------------------------------
+
+struct DoorServer::State final {
+    AutomationRun* run{};
+    CommandDoor* door{};
+    std::atomic<bool> stop{false};
+    stxlib::Thread thread{};
+    bool joinable{};
+};
+
+namespace {
+
+// Each slice of the reader's wait, so a stop is seen.
+constexpr std::int64_t door_slice_milliseconds = 1000;
+
+// Runs one line of the folder as if it came on a connection of its own.
+void serve_door_line(DoorServer::State& state, const std::string& line) {
+    AutomationRun& run = *state.run;
+    CommandDoor& door = *state.door;
+    const DoorLine read = read_door_line(line);
+    if (read.command.empty()) return;
+    AttachClient client{};
+    client.name = "pipe " + door.id();
+    const FlagStop stop(state.stop);
+    std::string refusal{};
+    if (!run.begin_attached(client, &stop, refusal)) {
+        door.reply(door_reply_frame("refused: " + refusal, read.request, true));
+        return;
+    }
+    bool quit = false;
+    bool failed = false;
+    std::string answer = run.console_line(read.command, &stop, client.name, quit, failed);
+    if (quit) answer = "the folder stays: quit closes only a socket connection";
+    run.end_attached(nullptr);
+    door.reply(door_reply_frame(answer, read.request, failed));
+}
+
+void door_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
+    DoorServer::State& state = *static_cast<DoorServer::State*>(argument);
+    for (;;) {
+        if (state.stop.load()) return;
+        std::string line{};
+        const DoorWait waited = (*state.door).read_command(line, door_slice_milliseconds);
+        if (waited == DoorWait::timed_out) continue;
+        if (waited != DoorWait::line) return;
+        try {
+            serve_door_line(state, line);
+        } catch (const std::exception& failure) {
+            std::fprintf(stderr, "GUI.Forms: command folder: a line failed: %s\n", failure.what());
+        } catch (...) {
+            std::fputs("GUI.Forms: command folder: a line failed\n", stderr);
+        }
+    }
+}
+
+} // namespace
+
+DoorServer::DoorServer(std::unique_ptr<State> state) noexcept : state_(std::move(state)) {}
+
+std::unique_ptr<DoorServer> DoorServer::start(AutomationRun& run, CommandDoor& door, std::string& error) {
+    std::unique_ptr<State> state = std::make_unique<State>();
+    (*state).run = &run;
+    (*state).door = &door;
+    State* const started_state = state.get();
+    stxlib::OperationResult<stxlib::Thread> started = stxlib::Thread::start(&door_thread_main, started_state);
+    if (started.failed()) {
+        error = "the command folder's thread did not start";
+        return nullptr;
+    }
+    (*state).thread = std::move(*started.value());
+    (*state).joinable = true;
+    return std::unique_ptr<DoorServer>(new DoorServer(std::move(state)));
+}
+
+DoorServer::~DoorServer() {
+    if (!state_) return;
+    State& state = *state_;
+    state.stop.store(true);
+    (*state.door).interrupt();
+    if (state.joinable) static_cast<void>(state.thread.join());
 }
 
 } // namespace gui_forms::automation

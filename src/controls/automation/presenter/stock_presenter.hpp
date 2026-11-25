@@ -60,7 +60,6 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 
 #include <array>
-#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -76,21 +75,8 @@ enum class PresenterDialog : std::uint8_t {
     take,
     take_back,
     consent,
-    connect,
 };
-inline constexpr std::size_t presenter_dialog_count = 4U;
-
-// The answer to one attach connection's question, shared by the presenter
-// and the attach thread that waits on it (attach_server.cpp).
-enum class ConnectAnswerState : std::uint8_t {
-    waiting,
-    allowed,
-    refused,
-};
-
-struct ConnectAnswer final {
-    std::atomic<ConnectAnswerState> state{ConnectAnswerState::waiting};
-};
+inline constexpr std::size_t presenter_dialog_count = 3U;
 
 // Where a presenter dialog's client area goes (1.0.5 console review: the
 // questions opened at the screen's upper right, one half under a
@@ -123,6 +109,13 @@ public:
     // user-step tooltip; the destructive-act question stays, being safety.
     // Before the first window attaches.
     void set_unsigned(bool unsigned_sign) noexcept { unsigned_ = unsigned_sign; }
+    // Called on the UI thread after each control change (the run rewrites
+    // the command folder's info); null for none.
+    using ControlHook = void (*)(void* context, ControlState state);
+    void set_control_hook(ControlHook hook, void* context) noexcept {
+        control_hook_ = hook;
+        control_context_ = context;
+    }
 
     void window_attached(Window& window) override;
     void window_detached(Window& window) noexcept override;
@@ -149,13 +142,6 @@ public:
     void console_pressed() override;
     [[nodiscard]] const ConsoleOverlay& console() const noexcept { return console_; }
     [[nodiscard]] ConsoleOverlay& console() noexcept { return console_; }
-    // Asks the user whether `client` (as it named itself) may connect,
-    // answering into `answer`; refused at once when no question can be
-    // shown, or when another connection's question is open.
-    void ask_connect(const ClientIdentity& client, const std::shared_ptr<ConnectAnswer>& answer);
-    // The connection went away, or its question waited too long: the
-    // question closes, answered Don't Allow.
-    void withdraw_connect() noexcept;
 
     // A dialog's buttons and closes (PresenterPanel, DialogClosed).
     // `accepted` is Allow or Take Back Control.
@@ -201,8 +187,6 @@ private:
     // Shows the console's button while the model holds control, else
     // closes the button and the console.
     void update_console() noexcept;
-    // Answers the open connection question, if any.
-    void answer_connect(bool allowed) noexcept;
 
     // Posted work holds this weakly; reset first in the destructor.
     std::shared_ptr<StockPresenter*> self_{};
@@ -213,6 +197,8 @@ private:
     ClientIdentity client_{};
     bool connected_{};
     bool in_control_{};
+    ControlHook control_hook_{};
+    void* control_context_{};
     bool unsigned_{};
     std::vector<BandWindow> windows_{};
     std::array<WindowRef, presenter_dialog_count> dialogs_{};
@@ -221,8 +207,6 @@ private:
     FrameTime countdown_end_{};
     FrameRequestToken countdown_tick_{};
     std::weak_ptr<Label> countdown_label_{};
-    // The connection question's answer while it is open.
-    std::shared_ptr<ConnectAnswer> connect_answer_{};
     ConsoleOverlay console_{this};
 };
 

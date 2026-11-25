@@ -132,62 +132,27 @@ struct ConsoleWork final {
     }
 };
 
-// An attach connection's question to the user.
-struct AskConnectWork final {
-    StockPresenter* presenter{};
-    ClientIdentity client{};
-    std::shared_ptr<ConnectAnswer> answer{};
-    void operator()() const noexcept {
-        try {
-            (*presenter).ask_connect(client, answer);
-        } catch (...) {
-            // The question could not be shown: refused.
-            (*answer).state.store(ConnectAnswerState::refused);
-        }
-    }
-};
-
-// The question went unanswered too long, or the connection went away.
-struct WithdrawConnectWork final {
-    StockPresenter* presenter{};
-    void operator()() const noexcept { (*presenter).withdraw_connect(); }
-};
-
+// A socket connection's command reaches the program (the owner's UCI
+// model): the windows join the core if they had not, the model's attachment
+// begins if it had ended (a no-op otherwise: control and state are the
+// program's, whichever connection a command comes on), and the client is
+// named as it named itself.
 struct BeginAttachWork final {
     AutomationRun* run{};
     ClientIdentity client{};
-    // The user allowed the connection (a launch without a flag asks): that
-    // answer is the session's consent to control too, so its first act asks
-    // nothing more (owner, MCP round 4: one question per session).
-    bool consented{};
     void operator()() const {
         (*run).join_pending();
         (*run).core().begin_session(FrameClock::now());
-        if (consented) (*run).core().control().grant_session_consent();
         (*run).core().set_client(client);
     }
 };
 
-// The session's connection dropped, or it resumed (automation_core.hpp).
-struct DroppedAttachWork final {
+// The last connection closed: a question scope a call left open closes,
+// so the program's own questions are the user's (MCP round 4's close bug);
+// control stays the program's, as the next connection finds it.
+struct IdleAttachWork final {
     AutomationRun* run{};
-    void operator()() const noexcept { (*run).core().connection_dropped(); }
-};
-
-struct ResumedAttachWork final {
-    AutomationRun* run{};
-    void operator()() const noexcept {
-        try {
-            (*run).core().connection_resumed(FrameClock::now());
-        } catch (...) {
-            // The sign could not show (no memory): the session goes on.
-        }
-    }
-};
-
-struct EndAttachWork final {
-    AutomationRun* run{};
-    void operator()() const noexcept { (*run).core().end_session(); }
+    void operator()() const noexcept { (*run).core().drop_model_work(); }
 };
 
 struct FillSpecsWork final {
@@ -214,6 +179,13 @@ bool read_launch_argument(std::string_view argument, const std::string* next, Au
     if (argument == "--mcp-appearance-review") launch.appearance_review = true;
     if (argument == "--mcp-socket") launch.print_socket = true;
     if (argument == "--help") launch.print_help = true;
+    if (argument == "--mcp-help") {
+        launch.print_mcp_help = true;
+        if (next != nullptr && !(*next).empty() && (*next)[0] != '-') {
+            launch.help_topic = *next;
+            return true;
+        }
+    }
     if (argument == "--mcp-script" && next != nullptr) {
         launch.script_path = *next;
         return true;
@@ -342,6 +314,9 @@ AutomationRun::~AutomationRun() {
     // end (the windows are gone, so their steps answer window_gone) and
     // their tasks are joined before the core they drive is destroyed.
     attach_.reset();
+    presenter_.set_control_hook(nullptr, nullptr);
+    door_server_.reset();
+    door_.reset();
     script_.reset();
     if (transport_) (*transport_).stop();
     transport_.reset();
@@ -358,6 +333,10 @@ void AutomationRun::start() {
         // Refused outright: a review launch never falls back to a signed
         // one, nor a release build to an unsigned one.
         std::fprintf(stderr, "GUI.Forms: %s\n", refusal);
+    } else if (launch_.print_mcp_help) {
+        // Help only: nothing is served, nothing listens, nobody is asked.
+        sync_tools();
+        return;
     } else if (launch_.mcp || launch_.shared || launch_.appearance_review) {
         std::string error{};
         transport_ = McpTransport::claim(*this, error);
@@ -369,10 +348,13 @@ void AutomationRun::start() {
         if (!script_) std::fprintf(stderr, "GUI.Forms: --mcp-script: %s\n", error.c_str());
     }
     if (refusal == nullptr && attach_wanted(launch_)) {
+        // The command folder first: the discovery entry names it.
+        open_door();
         std::string error{};
         attach_ = AttachServer::start(*this, error);
         if (!attach_) std::fprintf(stderr, "GUI.Forms: attach is not available: %s\n", error.c_str());
     }
+    if (door_) write_door_info(control_.state());
     sync_tools();
 }
 
@@ -508,24 +490,17 @@ ToolReply AutomationRun::drive(std::string_view tool, std::string arguments_json
         console_log_.record_typed(typed);
     }
     post_console();
-    ToolReply reply = drive_call(tool, std::move(arguments_json), stop);
-    if (tool == "disconnect") append_session_token(reply);
+    ToolReply reply{};
+    {
+        // Commands from every connection (and standard input) run one at a
+        // time, in the order they arrive (the owner's UCI model: one
+        // chained sequence, whichever connection each line comes on).
+        const stxlib::ScopedLock serial(drive_mutex_);
+        reply = drive_call(tool, std::move(arguments_json), stop);
+    }
     console_log_.record_reply(reply);
     post_console();
     return reply;
-}
-
-void AutomationRun::append_session_token(ToolReply& reply) {
-    std::string token{};
-    {
-        const stxlib::ScopedLock lock(mutex_);
-        token = session_token_;
-    }
-    const ToolSuccess* const success = reply.success_value();
-    if (token.empty() || success == nullptr) return;
-    ToolSuccess repeated = *success;
-    repeated.text += "\n" + session_token_line(token);
-    reply = ToolReply::success(std::move(repeated));
 }
 
 void AutomationRun::post_console() {
@@ -634,6 +609,19 @@ void AutomationRun::close_all() noexcept {
 }
 
 void AutomationRun::serve_when_ready() {
+    if (launch_.print_mcp_help) {
+        // --mcp-help: the first window's ready callback has registered the
+        // program's tools and note; the help is printed and the program ends.
+        std::vector<ToolSpec> specs{};
+        core_.fill_tool_specs(specs);
+        HelpContext context{};
+        context.note = detail::app_note_copy();
+        context.access = access_line();
+        const std::string text = help_text(launch_.help_topic, specs, context);
+        std::fprintf(stdout, "%s\n", text.c_str());
+        std::fflush(stdout);
+        std::_Exit(0);
+    }
     if (!transport_ || (*transport_).serving()) return;
     std::vector<ToolSpec> specs{};
     core_.fill_tool_specs(specs);
@@ -641,6 +629,7 @@ void AutomationRun::serve_when_ready() {
     const std::string note = detail::app_note_copy();
     HelpContext context{};
     context.note = note;
+    context.access = access_line();
     const std::string instructions = session_instructions(base_instructions, context);
     std::string error{};
     if (!(*transport_).serve(automation_identity(), instructions, note, specs, error)) {
@@ -649,7 +638,8 @@ void AutomationRun::serve_when_ready() {
 }
 
 bool AutomationRun::serving_started() const noexcept {
-    const bool started = !transport_ || (*transport_).serving();
+    // --mcp-help waits for the first window's turn as serving does.
+    const bool started = !launch_.print_mcp_help && (!transport_ || (*transport_).serving());
     return started;
 }
 
@@ -660,9 +650,16 @@ void AutomationRun::sync_tools() {
         std::vector<ToolSpec> counted{};
         core_.fill_tool_specs(counted);
         (*attach_).publish(counted.size(), detail::app_note_copy());
+        if (door_) {
+            HelpContext context{};
+            context.note = detail::app_note_copy();
+            context.access = access_line();
+            context.console = true;
+            (*door_).write_help(help_tree_text(counted, context));
+        }
     }
     const stxlib::ScopedLock lock(mutex_);
-    const bool attached = attached_transport_ != nullptr;
+    const bool attached = !attached_transports_.empty();
     if (!stdio && !attached) return;
     const std::uint64_t generation = core_.tool_generation();
     if (generation == tool_generation_) return;
@@ -670,7 +667,7 @@ void AutomationRun::sync_tools() {
     std::vector<ToolSpec> specs{};
     core_.fill_tool_specs(specs);
     if (stdio) (*transport_).bind_tools(specs);
-    if (attached) (*attached_transport_).bind_tools(specs);
+    for (McpTransport* const attached_transport : attached_transports_) (*attached_transport).bind_tools(specs);
 }
 
 // ---- attach (MCP 1.0.5) ---------------------------------------------------------
@@ -699,6 +696,16 @@ std::string executable_path() {
 
 } // namespace
 
+std::string AutomationRun::access_line() const {
+    std::string line(access_summary);
+    if (launch_.mcp) {
+        line += " Launched with --mcp: the model holds control from the start.";
+    } else {
+        line += " The first act shows the user a 10-second countdown that allows when it ends.";
+    }
+    return line;
+}
+
 AttachProgram AutomationRun::attach_program() {
     AttachProgram program{};
     program.identity = automation_identity();
@@ -708,75 +715,33 @@ AttachProgram AutomationRun::attach_program() {
     return program;
 }
 
-std::string AutomationRun::admit_connection(const AttachClient& client, const CallStop* stop) {
-    if (attach_live_.load()) return "another client is connected to this program through its socket";
-    if (transport_ && stdio_client_seen_.load() && !stdio_ended_.load()) {
-        return "the client that launched this program is connected to it";
-    }
+bool AutomationRun::begin_attached(const AttachClient& client, const CallStop* stop, std::string& refusal) {
     // A client that connects as soon as the socket appears waits for the
-    // first window, as the launching client's session does (serving starts
-    // after the first window's ready callback); the server's stop ends the wait.
-    if (!wait_for_window(stop)) return "the program is closing";
-    if (launch_.mcp || launch_.shared || launch_.appearance_review) return std::string{};
-    // Launched without a flag: the user is asked, every connection.
-    const WindowDispatcher dispatcher = home_dispatcher();
-    if (!dispatcher.window_alive()) return "the program has no window to ask its user from";
-    const std::shared_ptr<ConnectAnswer> asked = gui_forms::detail::make_library_shared<ConnectAnswer>();
-    try {
-        static_cast<void>(dispatcher.begin_invoke(AskConnectWork{&presenter_, attach_identity(client), asked}));
-    } catch (...) {
-        return "the program could not ask its user";
+    // first window, as standard input's does (serving starts after the
+    // first window's ready callback); the server's stop ends the wait.
+    if (!wait_for_window(stop)) {
+        refusal = "the program is closing";
+        return false;
     }
-    const FrameTime deadline = FrameClock::now() + connect_question_limit;
-    while ((*asked).state.load() == ConnectAnswerState::waiting) {
-        const bool gave_up = ended_.load() || (stop != nullptr && (*stop).stopped()) || FrameClock::now() >= deadline;
-        if (gave_up) {
-            const WindowDispatcher home = home_dispatcher();
-            if (home.window_alive()) {
-                try {
-                    static_cast<void>(home.begin_invoke(WithdrawConnectWork{&presenter_}));
-                } catch (...) {
-                    // The window is closing: the question goes with it.
-                }
-            }
-            return "the user did not answer";
-        }
-        stxlib::sleep_for(stxlib_interval(stop_slice));
-    }
-    if ((*asked).state.load() != ConnectAnswerState::allowed) return "the user did not allow the connection";
-    return std::string{};
-}
-
-bool AutomationRun::begin_attached_session(const AttachClient& client, const std::string& label,
-                                           const std::string& token) {
     const WindowDispatcher dispatcher = home_dispatcher();
-    if (!dispatcher.window_alive()) return false;
-    // A launch without a flag asked its user for this connection
-    // (admit_connection), and was allowed.
-    const bool asked = !(launch_.mcp || launch_.shared || launch_.appearance_review);
+    if (!dispatcher.window_alive()) {
+        refusal = "the program has no window";
+        return false;
+    }
     try {
-        if (dispatcher.invoke(BeginAttachWork{this, attach_identity(client), asked}) !=
-            DispatchInvokeResult::completed) {
+        if (dispatcher.invoke(BeginAttachWork{this, attach_identity(client)}) != DispatchInvokeResult::completed) {
+            refusal = "the program's windows are closing";
             return false;
         }
     } catch (const std::exception& failure) {
-        std::fprintf(stderr, "GUI.Forms: attach: the session could not begin: %s\n", failure.what());
+        refusal = std::string("the program could not take the connection: ") + failure.what();
         return false;
     }
-    attach_live_.store(true);
-    {
-        const stxlib::ScopedLock lock(mutex_);
-        session_token_ = token;
-    }
-    console_log_.set_session(label);
-    const std::string named = client.console ? std::string("a console")
-                              : client.name.empty() ? std::string("a client")
-                                                    : client.name + " (the name is the client's own, not verified)";
-    console_note("connected through the socket: " + named);
+    connections_.fetch_add(1);
     return true;
 }
 
-bool AutomationRun::serve_attached(McpTransport& transport, const std::string& token, std::string& error) {
+bool AutomationRun::serve_attached(McpTransport& transport, std::string& error) {
     std::vector<ToolSpec> specs{};
     std::uint64_t generation = 0U;
     const WindowDispatcher dispatcher = home_dispatcher();
@@ -789,59 +754,33 @@ bool AutomationRun::serve_attached(McpTransport& transport, const std::string& t
         return false;
     }
     HelpContext context{};
-    context.token = token;
     context.note = detail::app_note_copy();
+    context.access = access_line();
     const std::string instructions = session_instructions(base_instructions, context);
     if (!transport.serve(automation_identity(), instructions, context.note, specs, error)) return false;
     const stxlib::ScopedLock lock(mutex_);
-    attached_transport_ = &transport;
+    attached_transports_.push_back(&transport);
     return true;
 }
 
-void AutomationRun::detach_transport() noexcept {
-    const stxlib::ScopedLock lock(mutex_);
-    attached_transport_ = nullptr;
-}
-
-void AutomationRun::attached_connection_dropped() noexcept {
-    detach_transport();
-    if (!attach_live_.load()) return;
-    const WindowDispatcher dispatcher = home_dispatcher();
-    if (!dispatcher.window_alive()) return;
-    try {
-        // Posted, never waited on: the attach thread may be leaving while
-        // the UI thread stops the server.
-        static_cast<void>(dispatcher.begin_invoke(DroppedAttachWork{this}));
-    } catch (...) {
-        // The window closed meanwhile: the session ends with the run.
-    }
-}
-
-void AutomationRun::attached_connection_resumed() {
-    const WindowDispatcher dispatcher = home_dispatcher();
-    if (!dispatcher.window_alive()) return;
-    try {
-        static_cast<void>(dispatcher.begin_invoke(ResumedAttachWork{this}));
-    } catch (...) {
-        // The window closed meanwhile: the next call says so.
-    }
-}
-
-void AutomationRun::end_attached_session() {
-    detach_transport();
-    if (!attach_live_.exchange(false)) return;
+void AutomationRun::end_attached(const McpTransport* transport) noexcept {
     {
         const stxlib::ScopedLock lock(mutex_);
-        session_token_.clear();
+        for (std::size_t index = 0U; index < attached_transports_.size(); ++index) {
+            if (attached_transports_[index] != transport) continue;
+            attached_transports_.erase(attached_transports_.begin() + static_cast<std::ptrdiff_t>(index));
+            break;
+        }
     }
-    console_note("session ended");
-    console_log_.set_session(std::string{});
+    if (connections_.fetch_sub(1) != 1) return;
     const WindowDispatcher dispatcher = home_dispatcher();
     if (!dispatcher.window_alive()) return;
     try {
-        static_cast<void>(dispatcher.invoke(EndAttachWork{this}));
+        // Posted, never waited on: the connection's thread may be leaving
+        // while the UI thread stops the server.
+        static_cast<void>(dispatcher.begin_invoke(IdleAttachWork{this}));
     } catch (...) {
-        // The window closed meanwhile: the session ends with the run.
+        // The window closed meanwhile: nothing is left to answer for.
     }
 }
 
@@ -863,28 +802,162 @@ std::vector<ToolSpec> AutomationRun::current_specs(std::string& error) {
     return specs;
 }
 
-std::string AutomationRun::console_help(std::string_view topic, const std::string& token) {
+namespace {
+
+// A tool's reply as a console shows it: the text MCP's result carries, a
+// line for each image (images come through MCP), and a failure's code,
+// message, hint and detail.
+std::string console_reply(const ToolReply& reply) {
+    if (const ToolSuccess* const success = reply.success_value()) {
+        std::string text = (*success).text;
+        for (const ToolImage& image : (*success).images) {
+            if (!text.empty()) text += '\n';
+            text += "[image: " + image.mime_type + ", " + std::to_string(image.bytes.size()) +
+                    " bytes; images come through MCP, or capture with points=[[x,y],...] for pixels]";
+        }
+        return text;
+    }
+    const ToolFailure& failure = *reply.failure_value();
+    std::string text = "error: " + std::string(tool_error_name(failure.error)) + ": " + failure.message;
+    if (!failure.hint.empty()) text += "\nhint: " + failure.hint;
+    if (!failure.detail_json.empty()) text += "\n" + failure.detail_json;
+    return text;
+}
+
+// The executable's file name without a directory or ".exe": the program's
+// short name in the command folder's line.
+std::string program_short_name(const std::string& executable) {
+    std::string name = executable.substr(executable.find_last_of("/\\") == std::string::npos
+                                             ? 0U
+                                             : executable.find_last_of("/\\") + 1U);
+    if (name.size() > 4U && name.compare(name.size() - 4U, 4U, ".exe") == 0) name.resize(name.size() - 4U);
+    return name;
+}
+
+} // namespace
+
+std::string AutomationRun::console_line(std::string_view line, const CallStop* stop, const std::string& label,
+                                        bool& quit, bool& failed) {
+    quit = false;
+    failed = false;
+    ConsoleCommand command = parse_console_command(line);
+    if (command.verb == ConsoleVerb::unknown && command.error.rfind("unknown command", 0U) == 0U) {
+        // A tool's name or dotted path as the verb: `plan_paint.draw
+        // shape=line ...` is `call plan_paint_draw shape=line ...`.
+        std::string_view text = line;
+        while (!text.empty() && (text.front() == ' ' || text.front() == '\t')) text.remove_prefix(1U);
+        const std::size_t end = text.find_first_of(" \t");
+        const std::string_view word = text.substr(0U, end);
+        std::string error{};
+        const std::vector<ToolSpec> specs = current_specs(error);
+        const std::string tool = tool_for_path(word, specs);
+        if (!tool.empty()) {
+            const std::string rest = end == std::string_view::npos ? std::string{} : std::string(text.substr(end));
+            command = parse_console_command("call " + tool + rest);
+        }
+    }
+    std::string answer{};
+    switch (command.verb) {
+    case ConsoleVerb::none:
+        break;
+    case ConsoleVerb::help:
+        answer = console_help(command.topic);
+        break;
+    case ConsoleVerb::tools:
+        answer = console_help("tools");
+        break;
+    case ConsoleVerb::call:
+        // Another source may have labelled the record since.
+        console_log_.set_session(label);
+        answer = console_reply(drive(command.tool, command.arguments_json, stop, line));
+        failed = answer.rfind("error:", 0U) == 0U;
+        break;
+    case ConsoleVerb::transcript:
+        answer = console_log_.transcript_text();
+        break;
+    case ConsoleVerb::resume:
+        answer = "nothing to resume: there are no sessions; every line acts on the program as the last one did";
+        break;
+    case ConsoleVerb::quit:
+        quit = true;
+        break;
+    case ConsoleVerb::unknown:
+        answer = "error: " + command.error;
+        failed = true;
+        break;
+    default: // A verb outside ConsoleVerb is answered as an unknown one.
+        answer = "error: " + command.error;
+        failed = true;
+        break;
+    }
+    return answer;
+}
+
+std::string AutomationRun::door_id() const {
+    if (!door_) return std::string{};
+    return (*door_).id();
+}
+
+void AutomationRun::open_door() {
+    std::string error{};
+    door_ = CommandDoor::open(error);
+    if (!door_) {
+        std::fprintf(stderr, "GUI.Forms: the command folder is not available: %s\n", error.c_str());
+        return;
+    }
+    door_server_ = DoorServer::start(*this, *door_, error);
+    if (!door_server_) {
+        std::fprintf(stderr, "GUI.Forms: the command folder is not available: %s\n", error.c_str());
+        door_.reset();
+        return;
+    }
+    presenter_.set_control_hook(&AutomationRun::door_control_changed, this);
+    // The exact command, for a person or an agent reading the program's
+    // output; on standard output too unless MCP owns it.
+    std::string name = program_short_name(attach_program().executable);
+    if (name.empty()) name = automation_identity();
+    const std::string line = "GUI.Forms: " + name + " " + (*door_).id() +
+                             ". Send a command: " + (*door_).send_line("<command>") + "\n";
+    std::fputs(line.c_str(), stderr);
+    if (!transport_) {
+        std::fputs(line.c_str(), stdout);
+        std::fflush(stdout);
+    }
+}
+
+void AutomationRun::write_door_info(ControlState state) {
+    if (!door_) return;
+    const AttachProgram program = attach_program();
+    std::string text = "name: " + program.name + "\nidentity: " + program.identity +
+                       "\nexecutable: " + program.executable + "\ncontrol: " + control_state_name(state) + "\n";
+    if (attach_) text += "socket: " + (*attach_).address() + "\n";
+    text += "send: " + (*door_).send_line("<command>") + "\n";
+    text += "access: " + access_line() + "\n";
+    (*door_).write_info(text);
+}
+
+void AutomationRun::door_control_changed(void* context, ControlState state) {
+    try {
+        (*static_cast<AutomationRun*>(context)).write_door_info(state);
+    } catch (...) {
+        // The info file keeps its last state.
+    }
+}
+
+std::string AutomationRun::console_help(std::string_view topic) {
     std::string error{};
     const std::vector<ToolSpec> specs = current_specs(error);
     if (!error.empty()) return error;
     HelpContext context{};
-    context.token = token;
     context.note = detail::app_note_copy();
+    context.access = access_line();
     context.console = true;
     return help_text(topic, specs, context);
 }
 
-std::string AutomationRun::console_banner(const std::string& token) const {
-    std::string banner = std::string(base_instructions) + "\n";
-    const std::string session = session_token_line(token);
-    if (!session.empty()) banner += session + "\n";
-    banner += help_pointer;
-    return banner;
-}
-
 bool attach_wanted(const AutomationLaunch& launch) {
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
-    if (!launch.script_path.empty()) return false;
+    if (!launch.script_path.empty() || launch.print_mcp_help) return false;
     const bool wanted = environment_value("GUI_FORMS_MCP_ATTACH") != "0";
     return wanted;
 #else
@@ -925,11 +998,17 @@ void require_library_allocator_if_asked() {
     std::fprintf(stdout,
                  "%s: a GUI.Forms program. It speaks MCP (the Model Context Protocol).\n"
                  "\n"
-                 "Talk to it while it runs: it listens on a local socket only your user can reach,\n"
-                 "prints \"GUI.Forms: MCP socket: <path>\" on standard error when it starts, and\n"
-                 "asks you in the program before it accepts a connection. The socket speaks MCP\n"
-                 "itself (newline-delimited JSON-RPC); a first line that is not JSON opens a\n"
-                 "plain-text console (help, tools, call <tool> ..., transcript, quit).\n"
+                 "Talk to it while it runs: it listens on a local socket only your user can reach\n"
+                 "and prints \"GUI.Forms: MCP socket: <path>\" on standard error when it starts.\n"
+                 "Your own account is the only permission: nothing asks per connection or command,\n"
+                 "and each line acts on the program as the last one did, on this connection or\n"
+                 "another. The socket speaks MCP itself (newline-delimited JSON-RPC); a first line\n"
+                 "that is not JSON opens a plain-text console (help [path], call <tool> ...,\n"
+                 "transcript, quit), one command a line.\n"
+                 "With no client at all: each program also makes /tmp/<id> (8 hex digits; on\n"
+                 "Windows the pipes \\\\.\\pipe\\<id>\\in and out) and prints the exact command:\n"
+                 "  echo '<command>' > /tmp/<id>/in; cat /tmp/<id>/out\n"
+                 "--mcp-socket names each running instance's <id>, and /tmp/<id>/info says whose.\n"
                  "Each running program has <pid>.sock and <pid>.info in its run directory:\n"
                  "  macOS    ~/Library/Caches/gui-forms/run\n"
                  "  Linux    $XDG_RUNTIME_DIR/gui-forms, else /tmp/gui-forms-<uid>\n"
@@ -939,7 +1018,11 @@ void require_library_allocator_if_asked() {
                  "  --mcp           start AI-led: an MCP client drives the program over standard\n"
                  "                  input and output (a client's .mcp.json command)\n"
                  "  --mcp-shared    as --mcp, with the user asked before the first act\n"
-                 "  --mcp-socket    print the socket of each running instance and exit\n"
+                 "  --mcp-socket    print the socket and the command folder of each running\n"
+                 "                  instance and exit\n"
+                 "  --mcp-help [path]\n"
+                 "                  print the help tree (the top, a group, one tool by dotted path,\n"
+                 "                  a topic) and exit, connecting to nothing\n"
                  "  --help          print this and exit\n"
                  "GUI_FORMS_MCP_ATTACH=0 turns the socket off.\n"
                  "\n"
@@ -959,6 +1042,15 @@ void require_library_allocator_if_asked() {
     for (const AttachListing& listing : list_attach_endpoints()) {
         if (listing.identity != identity) continue;
         std::fprintf(stdout, "%s\n", listing.address.c_str());
+        // Who may connect and how control works, before connecting; on
+        // standard error, so standard output stays one path a line.
+        const std::string access = listing.access.empty() ? std::string(access_summary) : listing.access;
+        std::fprintf(stderr, "GUI.Forms: %s: %s\n", listing.address.c_str(), access.c_str());
+        if (!listing.door.empty()) {
+            std::fprintf(stderr, "GUI.Forms: %s (pid %lld): command folder %s, %s\n", listing.name.c_str(),
+                         static_cast<long long>(listing.process), listing.door.c_str(),
+                         door_folder_path(listing.door).c_str());
+        }
         found = true;
     }
     if (!found) {
@@ -972,6 +1064,7 @@ void require_library_allocator_if_asked() {
             std::fprintf(stdout, "%s\n", path.c_str());
             std::fprintf(stderr, "GUI.Forms: no %s is running; a launch listens at this path, <pid> its process ID\n",
                          identity.c_str());
+            std::fprintf(stderr, "GUI.Forms: %s\n", std::string(access_summary).c_str());
         }
     }
     std::fflush(stdout);

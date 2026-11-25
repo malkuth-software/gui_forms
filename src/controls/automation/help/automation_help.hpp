@@ -6,8 +6,8 @@
 //   the descriptions and argument schemas the program and GUI.Forms already
 //   declare (register_model_tool, the commands' text and description, the
 //   built-in tools), so an agent and a person read the same text;
-// - `help mcp`, `help console`, `help sessions`, `help control` and the other
-//   topics come from GUI.Forms' own documentation (docs/user/
+// - `help mcp`, `help mcp.console`, `help mcp.connections`,
+//   `help mcp.control` and the other topics come from GUI.Forms' own documentation (docs/user/
 //   talk-to-a-program.md), compiled into the library at build time;
 // - `help gui.forms` lists the user guide's pages (docs/user/index.md) with
 //   their published addresses.
@@ -22,36 +22,57 @@
 
 namespace gui_forms::automation {
 
-// What the help says about the session and the program.
+// What the help says about the program.
 struct HelpContext final {
-    // The session's token; empty for none (a launch on standard input).
-    std::string token{};
     // The program's own note for a model (gui://app/note); may be empty.
     std::string note{};
+    // Who may command the program and how control works (access_summary
+    // and the launch's control); may be empty.
+    std::string access{};
     // A plain-text console asks (the commands are listed); otherwise MCP.
     bool console{};
 };
 
-// The one line every opening carries (the console's banner, the MCP
-// instructions).
-inline constexpr std::string_view help_pointer = "Type `help` for commands, `help mcp` for how sessions work.";
+// Who may command the program, said before and on connecting (the owner's
+// UCI model, MCP round 5): the user's own account, nothing more.
+inline constexpr std::string_view access_summary =
+    "This program takes commands from your own user account only (its socket is private to you); nothing asks "
+    "per connection or command, and every line acts on the program as the last one did, on any connection. "
+    "Control: the first act takes it; it holds until release_control, 30 s without a call, or the user taking "
+    "it back.";
 
-// The session token's line: the token, how to resume with it, and why
-// (the person at the computer may not be there to answer again; an agent
-// that launches a program itself uses --mcp). Empty for an empty token.
-[[nodiscard]] std::string session_token_line(std::string_view token);
+// The line the MCP instructions give for help: the socket console's `help`,
+// or --mcp-help without connecting.
+inline constexpr std::string_view mcp_help_pointer =
+    "Help, a dotted tree as `uci show` gives one: run the program with --mcp-help [path] (no socket), or send "
+    "`help [path]` as a plain-text line on its socket.";
 
-// The MCP instructions: `base` (what every program says), the token's line
-// and the help pointer near the top, each on its own line, then the
-// program's note.
+// The MCP instructions: `base` (what every program says), the access line
+// and the help pointer, each on its own line, then the program's note.
 [[nodiscard]] std::string session_instructions(std::string_view base, const HelpContext& context);
 
-// The help for `topic` (trimmed; empty is the overview), with the tools the
-// program serves now.
+// The help for a dotted `path` (trimmed; empty is the top), with the tools
+// the program serves now (the owner's UCI model, MCP round 5):
+// - the top lists the groups, the tools in none, and the topics;
+// - a group (`plan_paint`, `command`: the shortest name prefix two or more
+//   tools share, as long as all its tools share it) lists its tools as
+//   `plan_paint.draw`;
+// - `plan_paint.draw` (or the tool's own name, plan_paint_draw) is one
+//   tool: its description, arguments and an example;
+// - `mcp` is docs/user/talk-to-a-program.md, `mcp.control` and the like its
+//   sections (also bare: `control`); `gui.forms` the user guide's pages;
+//   `tools` every tool.
+// A path it does not know is answered with the nearest one it does.
 [[nodiscard]] std::string help_text(std::string_view topic, const std::vector<ToolSpec>& tools,
                                     const HelpContext& context);
 
 // The topics the embedded documentation answers, in order ("mcp" first).
+// The whole tree as one text, for the command folder's `help` file: the
+// top, then each group and each tool under its `help <path>` line.
+[[nodiscard]] std::string help_tree_text(const std::vector<ToolSpec>& tools, const HelpContext& context);
+// The tool a console word names: its name, its dotted path (both in any
+// case), or `release` for release_control; empty when none.
+[[nodiscard]] std::string tool_for_path(std::string_view path, const std::vector<ToolSpec>& tools);
 [[nodiscard]] std::vector<std::string> help_topics();
 
 // The tools whose description is empty: what `help <tool>` cannot explain.

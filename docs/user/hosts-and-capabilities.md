@@ -375,19 +375,19 @@ Windows (Win32)
   on Windows; 0700, or a DACL granting only the user's SID), each peer's
   user checked again. The socket speaks MCP itself (newline-delimited
   JSON-RPC), and a first line that is not JSON opens a plain-text console
-  (`help`, `tools`, `call <tool> ...`, `transcript`, `resume <token>`,
-  `quit`), so `nc -U`, socat or a few lines of Python are a complete
+  (`help [path]`, `tools`, `call <tool> ...`, `transcript`, `quit`), so `nc -U`, socat or a few lines of Python are a complete
   client: [Talk to a running program](talk-to-a-program.md). Beside each
   socket `<pid>.info` says what listens on it; the program prints its
   socket on standard error, and `program --mcp-socket` prints it.
-  A session survives a dropped connection for 120 seconds: initialize
-  returns a token (in the instructions), and a later connection resumes
-  with it. A program launched with `--mcp` or `--mcp-shared` accepts a
-  new session at once; any other asks its user, every session, naming the
-  client by what the client says and saying that is not verified (Allow or
-  Don't Allow, no countdown, nothing remembered). One client at a time;
-  when a session ends, control returns to the user and the program stays
-  open. `gui-forms-attach` remains as a stdio bridge for a client that
+  With no client at all, a shell uses the program's command folder:
+  `echo '<command>' > /tmp/<id>/in; cat /tmp/<id>/out` (FIFOs 0600 in a
+  folder 0700; on Windows `\\.\pipe\<id>\in` and `\out`), with the exact
+  line printed at start.
+  The socket is the only permission: nothing asks per connection or per
+  command, and there are no sessions or tokens. Control, the console
+  record and anything pending are the program's, so a command on a fresh
+  connection acts as if it came on the previous one; commands from several
+  connections run one at a time on the UI thread. `gui-forms-attach` remains as a stdio bridge for a client that
   must start one from `.mcp.json`. `GUI_FORMS_MCP_ATTACH=0` turns the
   socket off.
   Reads never need control; acts do (the control model):
@@ -399,16 +399,16 @@ Windows (Win32)
     10 s countdown that allows when it ends; the act waits for the answer.
     Don't Allow refuses the act and says so; the next act asks again. Once
     allowed, the act runs and its reply carries the window's snapshot, and
-    later acts run at once. Control returns after 30 s without a call, on
-    `release_control`, or when the user takes it back.
-  - One question per session: a socket connection to a program launched
-    without a flag is asked once, and that Allow is the consent to control
-    too (no countdown follows); an allowed take holds for the session,
-    after an idle return and across a resume with the token; only
-    `release_control`, the user's take-back or a new connection asks
-    again.
-  - A dropped connection, a killed client or standard input's end gives
-    control back at once and leaves the program the user's to close.
+    later acts run at once, from any connection. Control returns after
+    30 s without a call, on `release_control`, or when the user takes it
+    back. A program launched without a flag behaves the same once a
+    connection comes.
+  - One question for the program: an allowed take holds after an idle
+    return (the next act takes control again without the countdown); only
+    `release_control` or the user's take-back asks again.
+  - The last connection closing hands the program's own questions back to
+    the user; standard input's end gives control back at once and leaves
+    the program the user's to close.
   - The model's next reply says when control came back, and why.
 
   While the model holds control (AI mode), each window shows it:

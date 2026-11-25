@@ -62,6 +62,10 @@ struct MarkTable final {
     std::string identity{};
     std::string app_note{};
     std::vector<PendingMark> pending{};
+    // Effects the program reported during the act running now
+    // (report_model_effect), and whether an act is collecting them.
+    std::vector<std::string> effects{};
+    bool collecting_effects{};
     // The launch arguments take_mcp_arguments removed: on macOS it edits
     // the C runtime's argv in place, which is where the launch is read.
     std::vector<std::string> taken_arguments{};
@@ -373,6 +377,16 @@ void clear_model_pending_state(const char* key) {
     }
 }
 
+bool report_model_effect(const char* utf8_text) {
+    std::string text{};
+    if (!read_pending_part(utf8_text, 512U, text)) return false;
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    if (!table.collecting_effects || table.effects.size() >= 16U) return false;
+    table.effects.push_back(std::move(text));
+    return true;
+}
+
 bool model_pending_state_set() noexcept {
     MarkTable& table = marks();
     const stxlib::ScopedLock lock(table.mutex);
@@ -408,6 +422,14 @@ void take_mcp_arguments(int& argc, char** argv) noexcept {
             ++read;
             continue;
         }
+        if (text == "--mcp-help") {
+            // The option and its topic, when the next argument is one.
+            keep_taken_argument(text);
+            const bool topic = read + 1 < argc && argv[read + 1] != nullptr && argv[read + 1][0] != '-';
+            if (topic) keep_taken_argument(argv[read + 1]);
+            read += topic ? 2 : 1;
+            continue;
+        }
         if (text == "--mcp-script") {
             // The option and its file; a trailing option without a file is
             // dropped alone.
@@ -440,6 +462,21 @@ bool user_step_known(std::string_view stable_id) {
         if (step == stable_id) return true;
     }
     return false;
+}
+
+void begin_model_effects() {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    table.effects.clear();
+    table.collecting_effects = true;
+}
+
+void take_model_effects(std::vector<std::string>& effects) {
+    MarkTable& table = marks();
+    const stxlib::ScopedLock lock(table.mutex);
+    effects = std::move(table.effects);
+    table.effects.clear();
+    table.collecting_effects = false;
 }
 
 void append_pending_states(std::string& text) {

@@ -26,10 +26,6 @@ namespace guide_index {
 // <published_guide><name>.html.
 constexpr std::string_view published_guide = "https://gui-forms.readthedocs.io/en/latest/user/";
 
-// The seconds a dropped session waits for its resume (attach_server.cpp's
-// attach_resume_milliseconds).
-constexpr std::string_view resume_seconds = "120";
-
 std::string_view embedded_text(const unsigned char* bytes, std::size_t size) noexcept {
     // The array ends with a zero the text does not include.
     const std::string_view text(reinterpret_cast<const char*>(bytes), size - 1U);
@@ -53,9 +49,10 @@ struct SectionTopic final {
 constexpr SectionTopic section_topics[] = {
     {"socket", "Find the socket"},
     {"console", "The console"},
+    {"folder", "The command folder"},
     {"json", "MCP"},
     {"stdio", "A client that wants a stdio server"},
-    {"sessions", "Sessions"},
+    {"connections", "Connections"},
     {"control", "Control"},
     {"disconnect", "Disconnect"},
     {"help", "Help"},
@@ -251,6 +248,16 @@ std::string sample_value(const detail::JsonValue& property) {
         if (items == nullptr) return std::string("[]");
         const detail::JsonValue* const fewest = property.find("minItems");
         const bool two = fewest != nullptr && (*fewest).text != "0" && (*fewest).text != "1";
+        if (has_point_members(*items)) {
+            // Points make a real shape, never one point twice (round 5:
+            // plan_paint_path's example repeated its point): a triangle,
+            // or a line where one or two points do.
+            if (!two) return std::string("[{\"x\":10,\"y\":10}]");
+            const std::string_view triangle = "[{\"x\":10,\"y\":10},{\"x\":120,\"y\":40},{\"x\":40,\"y\":110}]";
+            const detail::JsonValue* const most = property.find("maxItems");
+            if (most != nullptr && (*most).text == "2") return std::string("[{\"x\":10,\"y\":10},{\"x\":120,\"y\":40}]");
+            return std::string(triangle);
+        }
         const std::string item = sample_value(*items);
         return two ? "[" + item + "," + item + "]" : "[" + item + "]";
     }
@@ -328,25 +335,117 @@ std::string tool_list(const std::vector<ToolSpec>& tools) {
     return text;
 }
 
+// A tool's group: the shortest prefix ending before a '_' that another tool
+// shares, extended segment by segment while every tool with it shares the
+// next; empty when the tool shares none (a built-in such as act).
+std::string tool_group(std::string_view name, const std::vector<ToolSpec>& tools) {
+    std::size_t cut = name.find('_');
+    while (cut != std::string_view::npos) {
+        const std::string_view prefix = name.substr(0U, cut + 1U);
+        std::size_t sharing = 0U;
+        for (const ToolSpec& spec : tools) {
+            if (spec.name.size() > prefix.size() && std::string_view(spec.name).substr(0U, prefix.size()) == prefix) {
+                ++sharing;
+            }
+        }
+        if (sharing >= 2U) break;
+        cut = name.find('_', cut + 1U);
+    }
+    if (cut == std::string_view::npos) return std::string{};
+    // Extended while every tool of the group shares the next segment
+    // (plan_ becomes plan_paint_).
+    for (;;) {
+        const std::size_t next = name.find('_', cut + 1U);
+        if (next == std::string_view::npos) break;
+        const std::string_view longer = name.substr(0U, next + 1U);
+        const std::string_view shorter = name.substr(0U, cut + 1U);
+        bool all = true;
+        for (const ToolSpec& spec : tools) {
+            const std::string_view other(spec.name);
+            if (other.size() <= shorter.size() || other.substr(0U, shorter.size()) != shorter) continue;
+            all = all && other.size() > longer.size() && other.substr(0U, longer.size()) == longer;
+        }
+        if (!all) break;
+        cut = next;
+    }
+    return std::string(name.substr(0U, cut));
+}
+
+// A tool's dotted path: group.leaf, or the name alone.
+std::string tool_path(const ToolSpec& spec, const std::vector<ToolSpec>& tools) {
+    const std::string group = tool_group(spec.name, tools);
+    if (group.empty()) return spec.name;
+    return group + "." + spec.name.substr(group.size() + 1U);
+}
+
+// The groups, in the tools' order.
+std::vector<std::string> tool_groups(const std::vector<ToolSpec>& tools) {
+    std::vector<std::string> groups{};
+    for (const ToolSpec& spec : tools) {
+        const std::string group = tool_group(spec.name, tools);
+        if (group.empty() || std::find(groups.begin(), groups.end(), group) != groups.end()) continue;
+        groups.push_back(group);
+    }
+    return groups;
+}
+
+// `help <group>`: its tools as dotted paths, one line each.
+std::string group_list(std::string_view group, const std::vector<ToolSpec>& tools) {
+    std::vector<const ToolSpec*> members{};
+    std::size_t width = 0U;
+    for (const ToolSpec& spec : tools) {
+        if (tool_group(spec.name, tools) != group) continue;
+        members.push_back(&spec);
+        width = std::max(width, tool_path(spec, tools).size());
+    }
+    std::string text{};
+    for (const ToolSpec* const spec : members) {
+        const std::string path = tool_path(*spec, tools);
+        text += path + std::string(width - path.size() + 2U, ' ');
+        text += (*spec).description.empty() ? std::string("(not documented)") : first_sentence((*spec).description);
+        text += "\n";
+    }
+    text += std::to_string(members.size()) + " tools; `help " + std::string(group) + ".<name>` explains one.";
+    return text;
+}
+
 std::string overview(const std::vector<ToolSpec>& tools, const HelpContext& context) {
     std::string text{};
-    const std::string token = session_token_line(context.token);
-    if (!token.empty()) text += token + "\n\n";
+    if (!context.access.empty()) text += context.access + "\n\n";
     if (context.console) {
-        text += "Commands:\n"
-                "  help [topic | tool]   this overview, a topic, or one tool\n"
-                "  tools                 the tools, one per line (as `help tools`)\n"
+        text += "Commands, one a line (on one connection or many: each acts on the program as the last did):\n"
+                "  help [path]           this tree, a group, one tool or a topic, by dotted path\n"
                 "  call <tool> [<json object> | key=value ...]\n"
                 "                        calls a tool; the reply is the tool's text, as MCP gives it\n"
                 "  transcript            this program's console record\n"
-                "  resume <token>        as the first line: resumes a session whose connection dropped\n"
-                "  quit                  ends the session\n"
+                "  quit                  closes this connection\n"
                 "A first line that is a JSON object makes the connection MCP instead.\n\n";
     }
-    text += "Help: `help tools`, `help <tool>`";
-    const std::vector<std::string> topics = help_topics();
-    for (const std::string& topic : topics) text += ", `help " + topic + "`";
-    text += ", `help gui.forms`.\n";
+    const std::vector<std::string> groups = tool_groups(tools);
+    if (!groups.empty()) {
+        text += "Groups:\n";
+        for (const std::string& group : groups) {
+            std::size_t count = 0U;
+            for (const ToolSpec& spec : tools) count += tool_group(spec.name, tools) == group ? 1U : 0U;
+            text += "  " + group + "  (" + std::to_string(count) + " tools: `help " + group + "`)\n";
+        }
+    }
+    std::size_t width = 0U;
+    for (const ToolSpec& spec : tools) {
+        if (tool_group(spec.name, tools).empty()) width = std::max(width, spec.name.size());
+    }
+    text += "Tools:\n";
+    for (const ToolSpec& spec : tools) {
+        if (!tool_group(spec.name, tools).empty()) continue;
+        text += "  " + spec.name + std::string(width - spec.name.size() + 2U, ' ');
+        text += spec.description.empty() ? std::string("(not documented)") : first_sentence(spec.description);
+        text += "\n";
+    }
+    text += "Topics: `help mcp`";
+    for (const SectionTopic& entry : section_topics) {
+        if (!section_of(talk_text(), entry.heading).empty()) text += ", `help mcp." + std::string(entry.topic) + "`";
+    }
+    text += ", `help gui.forms`; `help tools` lists every tool.\n";
     text += std::to_string(tools.size()) + " tools serve this program.";
     if (!context.note.empty()) text += "\n\nHow this program works (its own note, also gui://app/note):\n" + context.note;
     return text;
@@ -354,24 +453,40 @@ std::string overview(const std::vector<ToolSpec>& tools, const HelpContext& cont
 
 } // namespace
 
-std::string session_token_line(std::string_view token) {
-    if (token.empty()) return std::string{};
-    std::string line = "session token: " + std::string(token) + ". Reconnect with `resume " + std::string(token) +
-                       "` (MCP: params.resume) within " + std::string(resume_seconds) +
-                       " s; the person at this computer may not be there to answer another prompt. To run a "
-                       "program yourself, launch it with --mcp: it won't ask.";
-    return line;
-}
-
 std::string session_instructions(std::string_view base, const HelpContext& context) {
     std::string text(base);
-    const std::string token = session_token_line(context.token);
-    if (!token.empty()) text += "\n" + token;
-    text += "\n" + std::string(help_pointer);
+    if (!context.access.empty()) text += "\n" + context.access;
+    text += "\n" + std::string(mcp_help_pointer);
     if (!context.note.empty()) {
         text += "\n\nHow this program works (its own note, also the resource gui://app/note):\n" + context.note;
     }
     return text;
+}
+
+std::string help_tree_text(const std::vector<ToolSpec>& tools, const HelpContext& context) {
+    std::string text = overview(tools, context);
+    for (const std::string& group : tool_groups(tools)) {
+        text += "\n\n== help " + group + "\n" + group_list(group, tools);
+    }
+    for (const ToolSpec& spec : tools) {
+        text += "\n\n== help " + tool_path(spec, tools) + "\n" + tool_help(spec);
+    }
+    text += "\n";
+    return text;
+}
+
+std::string tool_for_path(std::string_view path, const std::vector<ToolSpec>& tools) {
+    const std::string wanted = lowered(trimmed(path));
+    if (wanted.empty()) return std::string{};
+    for (const ToolSpec& spec : tools) {
+        if (lowered(spec.name) == wanted || lowered(tool_path(spec, tools)) == wanted) return spec.name;
+    }
+    if (wanted == "release") {
+        for (const ToolSpec& spec : tools) {
+            if (spec.name == "release_control") return spec.name;
+        }
+    }
+    return std::string{};
 }
 
 std::vector<std::string> help_topics() {
@@ -412,19 +527,28 @@ std::string help_text(std::string_view topic, const std::vector<ToolSpec>& tools
     if (wanted == "tools") return tool_list(tools);
     if (wanted == "mcp") return plain_text(talk_text());
     if (wanted == "gui.forms" || wanted == "guiforms" || wanted == "docs") return guide_pages();
+    const std::string section_name = wanted.rfind("mcp.", 0U) == 0U ? wanted.substr(4U) : wanted;
     for (const SectionTopic& entry : section_topics) {
-        if (wanted != entry.topic) continue;
+        if (section_name != entry.topic) continue;
         const std::string_view section = section_of(talk_text(), entry.heading);
         if (!section.empty()) return plain_text(section);
     }
-    for (const ToolSpec& spec : tools) {
-        if (lowered(spec.name) == wanted) return tool_help(spec);
+    for (const std::string& group : tool_groups(tools)) {
+        if (lowered(group) == wanted) return group_list(group, tools);
     }
-    // The nearest name the help knows.
-    std::vector<std::string> known = help_topics();
-    known.emplace_back("tools");
-    known.emplace_back("gui.forms");
-    for (const ToolSpec& spec : tools) known.push_back(spec.name);
+    for (const ToolSpec& spec : tools) {
+        if (lowered(spec.name) == wanted || lowered(tool_path(spec, tools)) == wanted) {
+            const std::string path = tool_path(spec, tools);
+            std::string text = tool_help(spec);
+            if (path != spec.name) text = path + " = " + text;
+            return text;
+        }
+    }
+    // The nearest path the help knows.
+    std::vector<std::string> known{"mcp", "tools", "gui.forms"};
+    for (const SectionTopic& entry : section_topics) known.push_back("mcp." + std::string(entry.topic));
+    for (const std::string& group : tool_groups(tools)) known.push_back(group);
+    for (const ToolSpec& spec : tools) known.push_back(tool_path(spec, tools));
     std::string nearest{};
     std::size_t best = 0U;
     for (const std::string& name : known) {
@@ -436,7 +560,7 @@ std::string help_text(std::string_view topic, const std::vector<ToolSpec>& tools
     }
     std::string text = "no help on \"" + std::string(trimmed(topic)) + "\"";
     if (!nearest.empty()) text += "; the nearest is `help " + nearest + "`";
-    text += ". `help` lists the topics, `help tools` the tools.";
+    text += ". `help` lists the tree, `help tools` every tool.";
     return text;
 }
 

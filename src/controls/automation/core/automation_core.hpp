@@ -254,15 +254,10 @@ public:
     // program raises is the user's again), control returns to the user and
     // the in-use sign and the band leave the windows.
     void end_session() noexcept;
-    // An attached session's connection dropped (the client was stopped or
-    // killed; MCP round 4: the program then could not be closed): as
-    // end_session at once, the question scope closed, control and the
-    // take-back dialog gone, the sign gone; but the session itself waits
-    // for its resume, keeping the user's consent.
-    void connection_dropped() noexcept;
-    // The dropped session resumed: the sign shows again, and an AI-led
-    // launch holds control again (no question).
-    void connection_resumed(FrameTime now);
+    // Closes every running call's question scope, and any left open (the
+    // last attach connection closing, end_session): nothing the program
+    // asks afterwards is answered for a model.
+    void drop_model_work() noexcept;
     // Starts a new client's session after end_session (an attach
     // connection, MCP 1.0.5): calls are answered again, and the control
     // starts over (AutomationControl::begin_session). A session that has
@@ -321,9 +316,6 @@ private:
     void prune_windows() noexcept;
     // Tells the presenter when no call runs any more.
     void note_calls_finished() noexcept;
-    // Closes every running call's question scope, and any left open:
-    // nothing the program asks afterwards is answered for a model.
-    void drop_model_work() noexcept;
     // A finished top-level call's reply gains what the model must know
     // whatever it called (round 2 and the owner's control model): the
     // notice that the user took control back or that control returned, the

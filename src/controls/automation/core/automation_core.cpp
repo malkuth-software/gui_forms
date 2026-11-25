@@ -951,18 +951,6 @@ void AutomationCore::end_session() noexcept {
     if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).disconnected();
 }
 
-void AutomationCore::connection_dropped() noexcept {
-    drop_model_work();
-    control_.disconnect();
-    if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).disconnected();
-}
-
-void AutomationCore::connection_resumed(FrameTime now) {
-    if (ended_) return;
-    if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).client_changed(control_.client());
-    control_.begin_ai_led(now);
-}
-
 void AutomationCore::begin_session(FrameTime now) {
     if (!ended_) return;
     ended_ = false;
@@ -2021,6 +2009,8 @@ StepOutcome CoreAccess::post_act(RunningCall& call, FrameTime now) {
     // a close's prompt included, which comes after the act returns.
     gui_forms::detail::begin_model_questions(call.id.value, call.unsaved);
     call.questions_open = true;
+    // So are the effects the program reports (report_model_effect).
+    detail::begin_model_effects();
     PostedAct work{call.window, call.act, core.control().client(), call.outcome};
     static_cast<void>((*window).begin_invoke(std::move(work)));
     if (AutomationPresenter* const presenter = core.control().presenter()) {
@@ -2116,6 +2106,11 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
         for (Window* const open : windows) open_now = open_now || core.window_stable_id(*open) == id;
         if (!open_now) text += "closed: window [" + id + "]\n";
     }
+    // What the program says the act did that no node shows (round 5:
+    // Escape cancelling a floating shape replied "effect: none").
+    std::vector<std::string> described{};
+    detail::take_model_effects(described);
+    for (const std::string& effect : described) text += "effect: " + effect + "\n";
     // A program tool's own reply says what it did (a drawing changes pixels,
     // not nodes: 1.0.5 review, plan_paint_draw replied "effect: none").
     if (text.size() == effects_start && !tool_replied) {

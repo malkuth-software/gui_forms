@@ -65,8 +65,13 @@ struct AutomationLaunch final {
     // --help: what the program's GUI.Forms options do and how to talk to it
     // over MCP, on standard output, then exit.
     bool print_help{};
+    // --mcp-help [topic | tool]: the help a session's console gives (MCP
+    // round 5), printed on standard output once the first window's tools
+    // are registered, then exit: no socket, no session, no question.
+    bool print_mcp_help{};
+    std::string help_topic{};
     [[nodiscard]] bool requested() const noexcept {
-        return mcp || shared || appearance_review || !script_path.empty();
+        return mcp || shared || appearance_review || print_mcp_help || !script_path.empty();
     }
 };
 

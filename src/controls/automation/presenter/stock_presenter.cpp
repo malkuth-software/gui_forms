@@ -57,7 +57,6 @@ const char* dialog_id(PresenterDialog dialog) noexcept {
     case PresenterDialog::take: return "automation.take";
     case PresenterDialog::take_back: return "automation.take-back";
     case PresenterDialog::consent: return "automation.question";
-    case PresenterDialog::connect: return "automation.connect";
     }
     return "automation.question";
 }
@@ -67,7 +66,6 @@ const char* dialog_title(PresenterDialog dialog) noexcept {
     case PresenterDialog::take: return "Allow a model to take control?";
     case PresenterDialog::take_back: return "Take back control?";
     case PresenterDialog::consent: return "Allow destructive acts?";
-    case PresenterDialog::connect: return "Allow a connection?";
     }
     return "Allow destructive acts?";
 }
@@ -217,8 +215,6 @@ StockPresenter::~StockPresenter() {
     close_dialog_now(PresenterDialog::take);
     close_dialog_now(PresenterDialog::take_back);
     close_dialog_now(PresenterDialog::consent);
-    close_dialog_now(PresenterDialog::connect);
-    answer_connect(false);
     disconnected();
     console_.hide();
 }
@@ -479,6 +475,7 @@ void StockPresenter::control_changed(ControlState state, const ClientIdentity& c
     }
     update_console();
     if (!in_control_) close_dialog(PresenterDialog::take_back);
+    if (control_hook_ != nullptr) control_hook_(control_context_, state);
     if (state != ControlState::asking) {
         countdown_tick_.disconnect();
         close_dialog(PresenterDialog::take);
@@ -640,39 +637,6 @@ void StockPresenter::console_pressed() {
     (*control_).offer_take_back();
 }
 
-void StockPresenter::ask_connect(const ClientIdentity& client, const std::shared_ptr<ConnectAnswer>& answer) {
-    if (!answer) return;
-    if (connect_answer_) {
-        // One question at a time: the attach thread takes one connection at
-        // a time, so this is a second asker; refused.
-        (*answer).state.store(ConnectAnswerState::refused);
-        return;
-    }
-    std::string name = client.client_name.empty() ? std::string("A program") : client.client_name;
-    if (!client.client_version.empty()) name += " " + client.client_version;
-    connect_answer_ = answer;
-    std::string why{};
-    const bool opened = open_dialog(
-        PresenterDialog::connect, "Allow a connection to this program?",
-        "\u201c" + name + "\u201d asks to connect to this program and use it. That name is what the connecting "
-        "program says about itself; it is not verified. Allow only a connection you started.",
-        "Nothing is remembered: every connection asks again.", why);
-    // Nobody can be asked: refused (a question that cannot be shown is
-    // never Allow).
-    if (!opened) answer_connect(false);
-}
-
-void StockPresenter::withdraw_connect() noexcept {
-    answer_connect(false);
-    close_dialog(PresenterDialog::connect);
-}
-
-void StockPresenter::answer_connect(bool allowed) noexcept {
-    if (!connect_answer_) return;
-    (*connect_answer_).state.store(allowed ? ConnectAnswerState::allowed : ConnectAnswerState::refused);
-    connect_answer_.reset();
-}
-
 bool StockPresenter::dialog_open(PresenterDialog dialog) const noexcept {
     const bool open = dialogs_[dialog_index(dialog)].get() != nullptr;
     return open;
@@ -767,11 +731,6 @@ void StockPresenter::dialog_closed(PresenterDialog dialog) noexcept {
     const bool by_user = handle.active();
     handle = ApplicationWindowHandle{};
     dialogs_[index] = WindowRef{};
-    // Closing the connection question, by the user or not, is Don't Allow.
-    if (dialog == PresenterDialog::connect) {
-        answer_connect(false);
-        return;
-    }
     if (!by_user || control_ == nullptr) return;
     try {
         // Closing the take question or the destructive-act question is
@@ -789,9 +748,6 @@ void StockPresenter::dialog_closed(PresenterDialog dialog) noexcept {
 }
 
 void StockPresenter::dialog_chosen(PresenterDialog dialog, bool accepted) {
-    // The answer first: the close that follows answers Don't Allow only
-    // when nothing was chosen.
-    if (dialog == PresenterDialog::connect) answer_connect(accepted);
     close_dialog(dialog);
     if (control_ == nullptr) return;
     switch (dialog) {
@@ -804,9 +760,6 @@ void StockPresenter::dialog_chosen(PresenterDialog dialog, bool accepted) {
         return;
     case PresenterDialog::consent:
         if ((*control_).consent() == ConsentState::asking) (*control_).answer_consent(accepted);
-        return;
-    case PresenterDialog::connect:
-        // Answered above, before the close.
         return;
     }
     // A value outside PresenterDialog: no dialog of the presenter's, nothing
