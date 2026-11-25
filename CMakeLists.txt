@@ -2682,6 +2682,25 @@ if(GUI_FORMS_BUILD_GALLERY_MODEL)
                 COMPONENT gallery_model)
     endif()
 endif()
+# Three lab models the tests read with GUI.Forms' private sources
+# (gui_forms_tests' compositor, custom-chrome and layered-material suites
+# read the Skia raster and the headless host), so they stay with the
+# library and the test cache builds them (coordinator, 2026-11-25). The lab
+# programs are gui_forms_devkit's; these are never installed.
+# demo/labs/program_options.hpp and visual_inspector_poll.hpp are the two
+# shell headers the models include.
+if(TARGET gui_forms_gallery_model)
+    add_library(gui_forms_compositor_lab_model STATIC demo/labs/compositor_lab.cpp)
+    target_include_directories(gui_forms_compositor_lab_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/demo/labs)
+    target_link_libraries(gui_forms_compositor_lab_model PUBLIC gui_forms_controls)
+    add_library(gui_forms_layered_material_lab_model STATIC demo/labs/layered_material_lab.cpp)
+    target_include_directories(gui_forms_layered_material_lab_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/demo/labs)
+    target_link_libraries(gui_forms_layered_material_lab_model PUBLIC gui_forms_controls gui_forms_demo_controls)
+    add_library(gui_forms_custom_chrome_lab_model STATIC demo/labs/custom_chrome_lab.cpp)
+    target_include_directories(gui_forms_custom_chrome_lab_model PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/demo/labs)
+    target_link_libraries(gui_forms_custom_chrome_lab_model PUBLIC gui_forms_controls gui_forms_demo_controls)
+endif()
+
 if(GUI_FORMS_INSTALL_GALLERY_MODEL AND NOT TARGET gui_forms_gallery_model)
     message(FATAL_ERROR "GUI_FORMS_INSTALL_GALLERY_MODEL needs GUI_FORMS_BUILD_GALLERY_MODEL")
 endif()
