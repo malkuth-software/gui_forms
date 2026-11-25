@@ -100,6 +100,12 @@ struct SyncWork final {
 
 // Serving starts at the UI thread's turn after a window joined
 // (AutomationRun::window_ready).
+// The command folder's start-up text, at the first window's next turn.
+struct AnnounceWork final {
+    AutomationRun* run{};
+    void operator()() const { (*run).announce_door(); }
+};
+
 struct ServeWork final {
     AutomationRun* run{};
     void operator()() const {
@@ -176,6 +182,7 @@ bool read_launch_argument(std::string_view argument, const std::string* next, Au
     // AI-led launch, owner's control model of 2026-11-24).
     if (argument == "--mcp" || argument == "--model-directed") launch.mcp = true;
     if (argument == "--mcp-shared") launch.shared = true;
+    if (argument == "--mcp-folder") launch.folder = true;
     if (argument == "--mcp-appearance-review") launch.appearance_review = true;
     if (argument == "--mcp-socket") launch.print_socket = true;
     if (argument == "--help") launch.print_help = true;
@@ -221,8 +228,11 @@ AutomationLaunch read_automation_launch() {
     const std::string variable = environment_value("GUI_FORMS_MCP");
     if (variable == "1") launch.mcp = true;
     if (variable == "shared") launch.shared = true;
-    // Both asked: AI-led, the stronger.
-    if (launch.mcp) launch.shared = false;
+    if (variable == "folder") launch.folder = true;
+    // Both asked: AI-led, the stronger; the folder launch never serves
+    // standard input.
+    if (launch.mcp || launch.folder) launch.shared = false;
+    if (launch.folder) launch.mcp = false;
 #endif
     return launch;
 }
@@ -259,7 +269,7 @@ namespace {
 
 ControlSettings control_settings(const AutomationLaunch& launch) noexcept {
     ControlSettings settings{};
-    settings.ai_led = launch.mcp || (!launch.shared && !launch.script_path.empty());
+    settings.ai_led = launch.mcp || launch.folder || (!launch.shared && !launch.script_path.empty());
     settings.appearance_review = launch.appearance_review;
     return settings;
 }
@@ -368,6 +378,9 @@ void AutomationRun::window_ready(void* context, SurfaceRoot& window, std::string
         const std::shared_ptr<gui_forms::detail::ApplicationWindowState> state =
             gui_forms::detail::ApplicationHandleAccess::state(handle);
         const bool passive_popup = state != nullptr && (*state).passive_popup;
+        if (!run.door_announced_ && run.door_ && !passive_popup) {
+            static_cast<void>((*model).dispatcher().begin_invoke(AnnounceWork{&run}));
+        }
         if (!run.joins_windows_) {
             // No client yet (a program launched without a flag): the window
             // waits for the first attach connection, and only its
@@ -696,10 +709,30 @@ std::string executable_path() {
 
 } // namespace
 
+std::string AutomationRun::launch_mode() const {
+    if (launch_.folder) {
+        return "--mcp-folder: AI-led, you hold control from the start (no countdown); no stdio server, so it stays "
+               "up with its input closed";
+    }
+    if (launch_.mcp) {
+        return "--mcp: AI-led, you hold control from the start (no countdown); MCP is on standard input and "
+               "output, and the program ends when that input closes";
+    }
+    if (launch_.shared) {
+        return "--mcp-shared: the user keeps control until your first act, which shows them a 10 s countdown "
+               "that allows; MCP is on standard input and output";
+    }
+    return "no MCP flag: the user keeps control until your first act, which shows them a 10 s countdown; "
+           "launch with --mcp-folder to hold control with no countdown";
+}
+
 std::string AutomationRun::access_line() const {
     std::string line(access_summary);
     if (launch_.mcp) {
         line += " Launched with --mcp: the model holds control from the start.";
+    } else if (launch_.folder) {
+        line += " Launched with --mcp-folder: the model holds control from the start; no MCP server on standard "
+                "input, so the program stays up with its input closed.";
     } else {
         line += " The first act shows the user a 10-second countdown that allows when it ends.";
     }
@@ -947,15 +980,33 @@ void AutomationRun::open_door() {
         return;
     }
     presenter_.set_control_hook(&AutomationRun::door_control_changed, this);
-    // The exact command, for a person or an agent reading the program's
-    // output; on standard output too unless MCP owns it.
+}
+
+void AutomationRun::announce_door() {
+    if (!door_ || door_announced_) return;
+    door_announced_ = true;
+    // What a model with only a shell needs from the start-up text alone
+    // (owner, MCP round 5): what this is, the mode and what it means for
+    // control, the exact command with chaining, help, and how to end. On
+    // standard output too unless MCP owns it (standard error only then).
     std::string name = program_short_name(attach_program().executable);
     if (name.empty()) name = automation_identity();
-    const std::string line = "GUI.Forms: " + name + " " + (*door_).id() +
-                             ". Send commands (chain them with && or ;): " + (*door_).send_line("<command>") + "\n";
-    std::fputs(line.c_str(), stderr);
+    std::vector<ToolSpec> specs{};
+    core_.fill_tool_specs(specs);
+    std::string example = help_example_path(specs);
+    if (example.empty()) example = "<group>.<tool>";
+    const std::string folder = "/tmp/" + (*door_).id();
+    std::string text = "GUI.Forms: " + name + " is a GUI.Forms program a model drives with MCP or plain commands; "
+                       "its command folder is " + folder + "\n";
+    text += "GUI.Forms:   mode: " + launch_mode() + "\n";
+    text += "GUI.Forms:   send: " + (*door_).send_line("<command>") + "\n";
+    text += "GUI.Forms:   chain: '<cmd1> && <cmd2> ; <cmd3>' (&& stops at an error, ; goes on); one reply, ending "
+            "\". ok\" or \". error at N\"\n";
+    text += "GUI.Forms:   help: send help, then help " + example + " (or run " + name +
+            " --mcp-help [path]); release_control hands control back, disconnect mode=soft|hard ends it\n";
+    std::fputs(text.c_str(), stderr);
     if (!transport_) {
-        std::fputs(line.c_str(), stdout);
+        std::fputs(text.c_str(), stdout);
         std::fflush(stdout);
     }
 }
@@ -1053,6 +1104,10 @@ void require_library_allocator_if_asked() {
                  "  --mcp           start AI-led: an MCP client drives the program over standard\n"
                  "                  input and output (a client's .mcp.json command)\n"
                  "  --mcp-shared    as --mcp, with the user asked before the first act\n"
+                 "  --mcp-folder    AI-led as --mcp, served only by the command folder and the\n"
+                 "                  socket (no stdio server): for a model that starts the program\n"
+                 "                  from its shell in the background and drives it through\n"
+                 "                  /tmp/<id>; it stays up with its input closed\n"
                  "  --mcp-socket    print the socket and the command folder of each running\n"
                  "                  instance and exit\n"
                  "  --mcp-help [path]\n"

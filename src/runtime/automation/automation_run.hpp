@@ -52,6 +52,12 @@ struct AutomationLaunch final {
     // model: the program runs normally, reads need nothing, and a model's
     // first act asks the user with a 10-second countdown that allows.
     bool shared{};
+    // --mcp-folder or GUI_FORMS_MCP=folder: AI-led as --mcp, served only by
+    // the command folder and the socket, with no MCP server on standard
+    // input and output, so a launch in the background with its input closed
+    // stays up (MCP round 5: a model that starts the program from its shell
+    // and drives it through /tmp/<id>).
+    bool folder{};
     // --mcp-appearance-review: --mcp with no in-use sign (MCP round 1), so
     // the windows look as they do to a user without a model. Debug and test
     // builds only (GUI_FORMS_MCP_TEST_CONTROLS); another
@@ -71,7 +77,7 @@ struct AutomationLaunch final {
     bool print_mcp_help{};
     std::string help_topic{};
     [[nodiscard]] bool requested() const noexcept {
-        return mcp || shared || appearance_review || print_mcp_help || !script_path.empty();
+        return mcp || shared || folder || appearance_review || print_mcp_help || !script_path.empty();
     }
 };
 

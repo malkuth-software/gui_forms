@@ -412,7 +412,9 @@ std::string group_list(std::string_view group, const std::vector<ToolSpec>& tool
 std::string overview(const std::vector<ToolSpec>& tools, const HelpContext& context) {
     std::string text{};
     if (!context.access.empty()) text += context.access + "\n";
-    text += "Chain commands with && (stop on error) or ; (continue): one line, one reply, each part numbered.\n\n";
+    text += "Chain commands with && (stop on error) or ; (continue): one line, one reply, each part numbered.\n";
+    text += "Starting the program yourself? Launch it with --mcp-folder (AI-led, no countdown, no stdio server) in "
+            "the background and drive it through the /tmp/<id> folder it prints.\n\n";
     if (context.console) {
         text += "Commands, one a line (on one connection or many: each acts on the program as the last did):\n"
                 "  help [path]           this tree, a group, one tool or a topic, by dotted path\n"
@@ -474,6 +476,17 @@ std::string help_tree_text(const std::vector<ToolSpec>& tools, const HelpContext
     }
     text += "\n";
     return text;
+}
+
+std::string help_example_path(const std::vector<ToolSpec>& tools) {
+    std::string fallback{};
+    for (const ToolSpec& spec : tools) {
+        const std::string group = tool_group(spec.name, tools);
+        if (group.empty()) continue;
+        if (group != "command") return tool_path(spec, tools);
+        if (fallback.empty()) fallback = tool_path(spec, tools);
+    }
+    return fallback;
 }
 
 std::string tool_for_path(std::string_view path, const std::vector<ToolSpec>& tools) {

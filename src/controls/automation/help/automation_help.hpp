@@ -73,6 +73,10 @@ inline constexpr std::string_view mcp_help_pointer =
 // The tool a console word names: its name, its dotted path (both in any
 // case), or `release` for release_control; empty when none.
 [[nodiscard]] std::string tool_for_path(std::string_view path, const std::vector<ToolSpec>& tools);
+// A dotted path to show as help's example: the first tool of the first
+// group other than the built-in commands (`plan_paint.draw`), else of any
+// group; empty when no tool is in a group.
+[[nodiscard]] std::string help_example_path(const std::vector<ToolSpec>& tools);
 [[nodiscard]] std::vector<std::string> help_topics();
 
 // The tools whose description is empty: what `help <tool>` cannot explain.

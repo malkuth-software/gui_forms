@@ -71,7 +71,7 @@ hexadecimal digits drawn at start, and prints the exact command on
 standard error (and on standard output, unless MCP owns it):
 
 ```text
-GUI.Forms: plan-paint 3fa9c21b. Send commands (chain them with && or ;): echo '<command>' > /tmp/3fa9c21b/in; cat /tmp/3fa9c21b/out
+GUI.Forms: plan-paint 3fa9c21b, launched with no MCP flag (the first act shows the user a 10 s countdown; --mcp-folder skips it). Send commands (chain them with && or ;): echo '<command>' > /tmp/3fa9c21b/in; cat /tmp/3fa9c21b/out
 ```
 
 - `in` and `out` are named pipes (FIFOs, mode 0600) in a folder of mode
@@ -92,6 +92,13 @@ GUI.Forms: plan-paint 3fa9c21b. Send commands (chain them with && or ;): echo '<
   `. ok`, or `. error at <n>` naming the first that failed:
   `echo 'plan_paint.new_image width=200 height=100 && plan_paint.draw shape=line from=[0,0] to=[200,100]' > /tmp/<id>/in; cat /tmp/<id>/out`.
   The socket console takes chained lines too.
+- A model that starts the program itself, in the background from its
+  shell, launches it with `--mcp-folder`: AI-led as `--mcp` (no
+  countdown), served only by this folder and the socket, with no MCP
+  server on standard input, so it stays up with its input closed or at
+  `/dev/null`. The start-up line says which flag launched the program:
+  `GUI.Forms: plan-paint 3fa9c21b, launched with --mcp-folder (AI-led: ...).
+  Send commands ...`. `GUI_FORMS_MCP=folder` does the same.
 - `#<n> ` before a command (up to 16 letters, digits, `-` or `_`) is echoed
   in the end line, `. #<n> ok`, so concurrent clients can match replies.
   One agent at a time per program is the normal case: lines longer than
@@ -190,7 +197,10 @@ relay:
 - Reads never need control; acts do.
 - `--mcp` is AI-led: the model holds control from the start and keeps it
   until it calls `release_control` or the user takes it back. An agent that
-  launches a program itself launches it so: it never asks.
+  launches a program itself launches it so: it never asks. `--mcp` serves
+  MCP on standard input and output, and the program ends when that input
+  closes; `--mcp-folder` is the same control with no stdio server, for a
+  program started in the background and driven through its command folder.
 - `--mcp-shared`, and a program launched without a flag, leave the user in
   control until the model's first act, which shows a 10-second countdown
   in the program that allows when it ends (the user can refuse). The model

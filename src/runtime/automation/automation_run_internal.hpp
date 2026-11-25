@@ -155,6 +155,9 @@ public:
     // Who may connect and how control works for this launch, one line for
     // the help, --mcp-socket and the discovery entry (MCP round 5).
     [[nodiscard]] std::string access_line() const;
+    // Which MCP flag launched the program and what it means for control,
+    // for the command folder's start-up line.
+    [[nodiscard]] std::string launch_mode() const;
     // The stdio client named itself, or its input ended (mcp_transport.cpp).
     void stdio_client_seen() noexcept { stdio_client_seen_.store(true); }
     void stdio_input_ended() noexcept { stdio_ended_.store(true); }
@@ -175,6 +178,11 @@ public:
     // Joins every pending window still alive; later windows join as they
     // become ready.
     void join_pending();
+
+    // Prints the start-up text that tells a model how to drive the program
+    // through the folder (once, at the first window's next turn, when the
+    // program's tools are known).
+    void announce_door();
 
 private:
     // The tools the program serves now, read on the UI thread; `error` says
@@ -241,6 +249,8 @@ private:
     // it; the reader goes first.
     std::unique_ptr<CommandDoor> door_{};
     std::unique_ptr<DoorServer> door_server_{};
+    // UI thread: the start-up text was printed.
+    bool door_announced_{};
 };
 
 // ---- the MCP transport (mcp_transport.cpp) ----
