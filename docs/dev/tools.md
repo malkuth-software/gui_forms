@@ -410,6 +410,22 @@ with the change that needs it.
   changes the binary. Only copies under the scratch directory are edited.
   `python3 tools/prove_compiler_cache.py --source . --scratch .build/cache-proof --jobs 4`
 
+`tools/measure_cache_bootstrap.sh`
+: Measures what the compiler caches give a newcomer and an app on macOS or
+  Linux, one scenario per run, each in its own workspace under a scratch
+  directory: the real bootstrap then the smoke build, a cold build, a build
+  seeded from another workspace's cache (another path or a newer revision),
+  Pocket Reference compiling GUI.Forms in its tree, and Pocket Reference
+  linking the packed SDK. Prints one line per scenario (exit status, seconds,
+  cache hits and misses) and keeps the logs; the header lists a full batch.
+  `sh tools/measure_cache_bootstrap.sh <scratch> cold stable <commit>`
+
+`tools/cache_blast_radius.py`
+: Names the changed inputs that make a newer workspace's objects miss an older
+  workspace's cache, from Ninja's recorded dependencies: the objects affected,
+  the origins of the inputs and the inputs read by the most objects.
+  `python3 tools/cache_blast_radius.py <old workspace> <new workspace>`
+
 ## Windows and Wine
 
 `tools/windows_toolchain.py`
