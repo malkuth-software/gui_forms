@@ -266,11 +266,16 @@ jobs:
           echo "CCACHE_DIR=$cache_dir" >> "$GITHUB_ENV"
           echo "CCACHE_BASEDIR=$cache_base" >> "$GITHUB_ENV"
           echo "CCACHE_COMPILERCHECK=content" >> "$GITHUB_ENV"
-          # These relaxations served the tests' shared precompiled headers,
-          # which went to gui_forms_tests with the tests (its tests.yml keeps
-          # the same setting). Nothing here compiles a precompiled header or
-          # reads __DATE__ or __TIME__, so they change nothing; kept equal.
-          echo "CCACHE_SLOPPINESS=pch_defines,time_macros" >> "$GITHUB_ENV"
+          # pch_defines and time_macros served the tests' shared precompiled
+          # headers, which went to gui_forms_tests with the tests (its
+          # tests.yml keeps the same setting); nothing here compiles a
+          # precompiled header or reads __DATE__ or __TIME__. locale keeps
+          # LANG and LC_* out of every key: clang translates no message, so
+          # the locale changes no output, and a machine whose locale differs
+          # from the runner's still hits (the Windows field test, 2026-11-24:
+          # LANG alone missed every object). The same in native.yml,
+          # native-platform.yml and release.yml, so their caches stay one.
+          echo "CCACHE_SLOPPINESS=pch_defines,time_macros,locale" >> "$GITHUB_ENV"
           echo "CCACHE_MAXSIZE=500M" >> "$GITHUB_ENV"
           # Before the cache is restored: tools/ci_cache.py evict keeps the
           # entries used after this moment.
