@@ -383,7 +383,7 @@ std::shared_ptr<Panel> make_search_surface(ProductRefs& refs) {
     std::shared_ptr<gui_forms::Panel> surface = std::make_shared<Panel>(StableId("fm.search.surface"));
     (*surface).set_background(paper);
     (*surface).accessible_name = "Search correspondence surface";
-    std::shared_ptr<gui_forms::CorrespondenceView> results = std::make_shared<CorrespondenceView>(
+    std::shared_ptr<gui_forms::CorrespondenceView> results = make_control<CorrespondenceView>(
         StableId("fm.search.results"));
     (*results).set_style(house_style());
     (*results).font = FontSpec{FontRole::content, 11.0, 400, false};

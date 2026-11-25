@@ -18,6 +18,8 @@
 
 namespace gui_forms {
 
+class VScrollBar;
+
 // A factual, variable-height virtual record suitable for correspondence,
 // evidence, activity, and inspection ledgers. Compact and expanded
 // presentations share one stable logical item; expanding a row never creates a
@@ -77,7 +79,11 @@ struct CorrespondenceExpansionChange final {
 // ic: tools/ic_declarations.py; edit the declaration, not these lines. Thread: ui, unless a call says otherwise.
 class CorrespondenceView final : public Panel, public CorrespondenceViewCapabilities<CorrespondenceView> {
 public:
+    // The vertical scroll bar is a child (initialize_control_tree).
+    static constexpr bool initialize_tree_after_construction = true;
     explicit CorrespondenceView(StableId stable_id);
+    // Adds the vertical scroll bar child; make_control calls it.
+    void initialize_control_tree();
 
     [[nodiscard]] BorrowedSpan<CorrespondenceItem> items() const& noexcept { return detail::lend_view(items_); }
     BorrowedSpan<CorrespondenceItem> items() const&& = delete;
@@ -167,9 +173,9 @@ protected:
     void publish_realized_item_geometry(std::size_t item,
                                         std::span<PartGeometry> geometry) const override;
     // The mouse raisers hand the target phase to handle_pointer (the view
-    // has no scroll bars of its own, so ScrollableControl's handling is
-    // skipped) and raise through Control; the key raiser hands an
-    // unhandled key to handle_key.
+    // scrolls itself, with a child scroll bar of its own, so
+    // ScrollableControl's handling is skipped) and raise through Control;
+    // the key raiser hands an unhandled key to handle_key.
     void on_mouse_down(MouseEventArgs& arguments) override;
     void on_mouse_up(MouseEventArgs& arguments) override;
     void on_mouse_move(MouseEventArgs& arguments) override;
@@ -217,6 +223,16 @@ private:
     [[nodiscard]] ScrollAnchor capture_anchor(std::size_t preferred) const noexcept;
     void restore_anchor(ScrollAnchor anchor);
     void clamp_scroll_offset() noexcept;
+    // The vertical scroll bar (Windows field report D4: a list holding more
+    // than it shows gave no sign of it). Shown while the content overflows
+    // the viewport, at the right inside the border; the cards narrow to
+    // leave it room. sync_scroll_bar writes its range and value after each
+    // scroll or content change, and asks for an arrange when it should
+    // appear or go; on_vertical_scroll is the bar's value_changed.
+    [[nodiscard]] bool scroll_bar_shown() const noexcept;
+    [[nodiscard]] double content_width() const noexcept;
+    void sync_scroll_bar();
+    void on_vertical_scroll(double value);
     void ensure_visible(std::size_t index);
     void focus_index(std::size_t index,
                      CorrespondenceExpansionReason reason);
@@ -288,6 +304,11 @@ private:
     double compact_height_{45.0};
     double expanded_height_{126.0};
     double scroll_offset_{};
+    std::shared_ptr<VScrollBar> vertical_bar_;
+    SubscriptionToken vertical_scrolled_;
+    bool synchronizing_scroll_{};
+    // Whether the last arrange placed the bar (sync_scroll_bar compares).
+    bool scroll_bar_placed_{};
     FrameRequestToken hover_timer_;
     bool focused_{};
     Event<const CorrespondenceSelectionChange&> selection_changed_;

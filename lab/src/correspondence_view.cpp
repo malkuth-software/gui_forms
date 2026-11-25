@@ -3,6 +3,8 @@
 #include "panel/collection_control_utilities.hpp"
 #include "sort.hpp"
 #include "gui_forms/window.hpp"
+#include "gui_forms/controls/v_scroll_bar.hpp"
+#include "gui_forms/delegate.hpp"
 #include "panel/panel_anatomy.hpp"
 #include "basic/basic_control_rendering.hpp"
 #include "gui_forms/theme/part_painting/part_painting.hpp"
@@ -25,6 +27,13 @@ namespace ic = detail::ic::correspondence_view;
 
 using namespace collection_detail;
 
+namespace {
+
+// The bar's width, as ListView's.
+constexpr double scroll_bar_extent = 17.0;
+
+} // namespace
+
 struct CorrespondenceView::HoverIntentCallback final {
     std::weak_ptr<CorrespondenceView> view;
     std::string intended;
@@ -46,6 +55,46 @@ CorrespondenceView::CorrespondenceView(StableId stable_id)
     visual_role = ControlVisualRole::editor;
     border_style = BorderStyle::sunken;
     focusable = true;
+}
+
+void CorrespondenceView::initialize_control_tree() {
+    vertical_bar_ = make_control<VScrollBar>(StableId(std::string(stable_id().value()) + ".vertical-scroll-bar"));
+    // The bar scrolls with the pointer; the keyboard scrolls the view.
+    (*vertical_bar_).focusable = false;
+    add_child(vertical_bar_);
+    vertical_scrolled_ = (*vertical_bar_).value_changed().subscribe(
+        *this, Delegate<double>::bind<CorrespondenceView, &CorrespondenceView::on_vertical_scroll>(*this));
+    set_child_layout_collapsed(vertical_bar_, true);
+}
+
+bool CorrespondenceView::scroll_bar_shown() const noexcept {
+    return vertical_bar_ != nullptr && maximum_scroll_offset() > 0.0;
+}
+
+double CorrespondenceView::content_width() const noexcept {
+    const double bar = scroll_bar_shown() ? scroll_bar_extent : 0.0;
+    return std::max(0.0, local_bounds().width - 4.0 - bar);
+}
+
+void CorrespondenceView::sync_scroll_bar() {
+    if (!vertical_bar_) return;
+    const bool shown = scroll_bar_shown();
+    // Appearing or going changes the cards' width: an arrange places it.
+    if (shown != scroll_bar_placed_) invalidate(Dirty::arrange | Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    if (!shown) return;
+    synchronizing_scroll_ = true;
+    VScrollBar& bar = *vertical_bar_;
+    const double maximum = maximum_scroll_offset();
+    bar.set_range(0.0, maximum);
+    bar.small_change = scaled_compact_height();
+    bar.large_change = std::max(1.0, viewport_height());
+    bar.value = std::clamp(scroll_offset_, 0.0, maximum);
+    synchronizing_scroll_ = false;
+}
+
+void CorrespondenceView::on_vertical_scroll(double value) {
+    if (synchronizing_scroll_ || !is_alive()) return;
+    scroll_offset = std::clamp(value, 0.0, maximum_scroll_offset());
 }
 
 std::optional<std::size_t> CorrespondenceView::item_index(
@@ -354,6 +403,7 @@ void CorrespondenceView::write_view(const decltype(scroll_offset)&, double incom
     scroll_offset_ = next;
     clear_hover_intent(true);
     invalidate(Dirty::paint | Dirty::hit_test | Dirty::semantics);
+    sync_scroll_bar();
 }
 
 std::size_t CorrespondenceView::first_visible_index() const noexcept {
@@ -389,7 +439,7 @@ std::size_t CorrespondenceView::realized_count() const noexcept {
 
 Rect CorrespondenceView::item_bounds(std::size_t index) const noexcept {
     if (index >= items_.size()) return {};
-    const double width = std::max(0.0, local_bounds().width - 4.0);
+    const double width = content_width();
     return {2.0, 2.0 + row_top(index) - scroll_offset_, width,
             row_height(index)};
 }
@@ -429,12 +479,14 @@ CorrespondenceView::ScrollAnchor CorrespondenceView::capture_anchor(
 void CorrespondenceView::restore_anchor(ScrollAnchor anchor) {
     if (!anchor.valid || items_.empty()) {
         clamp_scroll_offset();
+        sync_scroll_bar();
         return;
     }
     const std::size_t index = item_index(anchor.stable_id).value_or(
         std::min(anchor.index, items_.size() - 1U));
     scroll_offset_ = row_top(index) - anchor.viewport_y;
     clamp_scroll_offset();
+    sync_scroll_bar();
 }
 
 void CorrespondenceView::ensure_visible(std::size_t index) {
@@ -447,6 +499,7 @@ void CorrespondenceView::ensure_visible(std::size_t index) {
         scroll_offset_ = std::max(0.0, bottom - height);
     }
     clamp_scroll_offset();
+    sync_scroll_bar();
 }
 
 void CorrespondenceView::focus_index(
@@ -529,7 +582,17 @@ void CorrespondenceView::set_hovered_index(
 void CorrespondenceView::arrange(Rect final_bounds) {
     Panel::arrange(final_bounds);
     clamp_scroll_offset();
+    if (vertical_bar_) {
+        scroll_bar_placed_ = scroll_bar_shown();
+        set_child_layout_collapsed(vertical_bar_, !scroll_bar_placed_);
+        if (scroll_bar_placed_) {
+            const Rect local = local_bounds();
+            set_child_layout(vertical_bar_, {std::max(2.0, local.width - 2.0 - scroll_bar_extent), 2.0, scroll_bar_extent,
+                                             std::max(0.0, local.height - 4.0)});
+        }
+    }
     if (const std::optional<std::size_t> focused = item_index(focused_id_)) ensure_visible(*focused);
+    sync_scroll_bar();
 }
 
 // A glyph is a well (the folder's body or the page) with the glyph's colour
@@ -672,7 +735,7 @@ void CorrespondenceView::on_paint(Painter& painter, Rect damage) {
     const Rect bounds = local_bounds();
     const CorrespondenceCardFonts fonts = card_fonts();
     painter.save();
-    painter.clip_rect({2.0, 2.0, std::max(0.0, bounds.width - 4.0),
+    painter.clip_rect({2.0, 2.0, content_width(),
                        std::max(0.0, bounds.height - 4.0)});
     // Each item's card and plate, glyph, title, metric, rules, evidence
     // well and texts and the active item's focus ring are parts the theme's
@@ -1379,7 +1442,7 @@ void CorrespondenceView::publish_realized_item_geometry(std::size_t item,
     // Text is published as the slots on_paint draws into.
     const std::size_t index = realized_range().first + item;
     const Rect bounds = local_bounds();
-    const Rect clip{2.0, 2.0, std::max(0.0, bounds.width - 4.0),
+    const Rect clip{2.0, 2.0, content_width(),
                     std::max(0.0, bounds.height - 4.0)};
     const CorrespondenceCardFonts fonts = card_fonts();
     const CorrespondenceCardLayout layout = card_layout(index, fonts);
