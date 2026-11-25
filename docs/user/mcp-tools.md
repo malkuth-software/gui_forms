@@ -48,7 +48,7 @@ No arguments.
 | `action` | one of `press`, `select`, `expand`, `collapse`, `focus`, `set_value`, `increment`, `decrement`, `show_menu`, `close`, `scroll_into_view`, `invoke_command` | no |  |
 | `value` | string | no |  |
 | `terse` | boolean | no |  |
-| `on_unsaved` | one of `save`, `discard` | no |  |
+| `on_unsaved` | one of `save`, `discard` | no | The answer to a save changes? question the act raises: save or discard; without it the act stops at the question and replies with it. |
 
 ## `reset`
 

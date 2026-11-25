@@ -139,7 +139,8 @@
      "enum": [
       "save",
       "discard"
-     ]
+     ],
+     "description": "The answer to a save changes? question the act raises: save or discard; without it the act stops at the question and replies with it."
     }
    },
    "additionalProperties": false
