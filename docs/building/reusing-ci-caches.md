@@ -141,7 +141,13 @@ On `main`, each platform publishes as soon as its own job passes
 pre-release `build-<full-sha>`, checks that the tag names the tested commit,
 and uploads `gui-forms-cache-<platform>.tar.gz`. Windows first uploads
 `gui-forms-toolchain-windows-x64.tar.zst` and its `.json` manifest, after
-checking they are the toolchain the cache records. A rerun is accepted only
+checking they are the toolchain the cache records. Beside the cache go,
+when the job made them, `gui-forms-runtime-<platform>.tar.gz` (the C++
+runtime the objects were compiled against: `.ci/own-runtime` on Windows,
+the static runtime under `.build/toolchain/` on Linux) and
+`gui-forms-sdk-<platform>.tar.gz` (the installed SDK, `gui-forms-sdk/`, for
+an application pinned to this commit to link instead of compiling
+GUI.Forms; pull requests install none). A rerun is accepted only
 if it would upload identical bytes; a published asset is never replaced. A
 platform missing from a release has not been published; it has not passed.
 
@@ -149,12 +155,26 @@ An archive holds `.ccache/` and `cache-manifest.json`; the macOS archive
 also holds `.build/toolchain/llvm-22.1.8-macos14/`. The manifest records the
 revision, compiler version text and binary SHA-256, launchers, runner and
 image version, layout, `ccache` settings and version, minimum OS, build
-options, SDK and runtime manifest on macOS, and the toolchain record on
-Windows. `tools/prune_cache_releases.py` reports weekly which `build-*`
+options, SDK and runtime manifest on macOS, the toolchain record on
+Windows, and under `environment` the build's `CCACHE_COMPILERCHECK`,
+`CCACHE_SLOPPINESS` and locale variables, which a consumer's build repeats
+(template_harness `build_environment.py` reads them back), with
+`compiler_location`, the compiler's path relative to the workspace when it
+was inside it. `tools/prune_cache_releases.py` reports weekly which `build-*`
 releases are neither among the five newest nor listed in
 `packaging/pinned_cache_revisions.json`; deleting them needs `--apply`.
 
 ## Restore a published cache
+
+The template_harness bootstrap does all of this:
+`sh template_harness/bootstrap.sh --workspace DIR --project gui_forms`
+clones, restores the toolchain, the newest usable cache and its runtime
+(`restore_local.py cache --revision SHA` takes an older one, such as the
+stable release's), builds the runtime when none was restored, writes the
+build environment to `.ci/local-build-env.sh` and `.ps1`, names anything
+that will still make the cache miss on this machine, and runs the smoke
+build in it. Load that environment before later builds. It needs no `gh`
+for this public repository. By hand:
 
 Check out the pinned revision at `gui_forms/` in an empty workspace, then:
 
@@ -165,6 +185,8 @@ sha256sum gui-forms-cache-linux-x64.tar.gz   # compare with the digest you pinne
 tar -xzf gui-forms-cache-linux-x64.tar.gz
 export CC=clang CXX=clang++ OBJCXX=clang++
 export CCACHE_DIR="$PWD/.ccache" CCACHE_BASEDIR="$PWD" CCACHE_COMPILERCHECK=content
+export CCACHE_SLOPPINESS=pch_defines,time_macros,locale   # cache-manifest.json's environment
+export GUI_FORMS_STX_PACKAGE_DIR="$PWD/.ci/stx-package"      # where CI builds the stx package
 export CMAKE_C_COMPILER_LAUNCHER=ccache CMAKE_CXX_COMPILER_LAUNCHER=ccache \
        CMAKE_OBJCXX_COMPILER_LAUNCHER=ccache
 python3 gui_forms/tools/ci_build.py --jobs 4   # Linux: inside xvfb-run -a
@@ -173,7 +195,13 @@ python3 gui_forms/tools/ci_build.py --jobs 4   # Linux: inside xvfb-run -a
 `ci_build.py` configures exactly as CI does and fetches the pinned sources.
 On macOS, set and verify the runtime prefix below first; use `shasum -a 256`
 there. A hit needs the same compiler binary, SDK headers and options;
-anything else compiles normally. Never loosen `ccache` checks to force hits,
+anything else compiles normally. Everything under the workspace
+(`CCACHE_BASEDIR`) hashes by its relative path, so the workspace may be
+anywhere; paths outside it (a Homebrew compiler's resource headers, the
+macOS SDK) must be the same on both machines. On macOS that makes CI's cache
+miss on any machine whose Homebrew `llvm@22` bottle or Xcode SDK differs
+from the runner's (another macOS version builds another bottle); the
+restore step says so. Never loosen `ccache` checks to force hits,
 and still run the tests (gui_forms_tests, against the test cache
 `--test-cache` packs) or your own. `ccache --show-stats` shows what was reused.
 
@@ -190,9 +218,12 @@ form compiler with all three relocated dylibs loaded through its own rpath
 
 **Windows.** Download the toolchain archive and manifest from the same
 release and check `archive_sha256`. Extract it with Python 3.14
-(`tarfile.open(path, 'r:zst')`) so `msys64/` lands at the manifest's
-`producer.msys_root`, `D:\a\_temp\msys64` on hosted runners: system header
-paths enter the hash and lie outside `CCACHE_BASEDIR`. Prepend
+(`tarfile.open(path, 'r:zst')`) under the workspace, at
+`.toolchain/<specification digest>/msys64`, where CI's job extracts it too
+(`windows_toolchain.py restore`): system header paths enter the hash, and
+inside `CCACHE_BASEDIR` they hash the same wherever the workspace is.
+(Caches published before this change were built with the toolchain at
+`D:\a\_temp\msys64` and hit only there.) Prepend
 `msys64/clang64/bin` and `msys64/usr/bin` to `PATH`; `clang.exe` must match
 `compiler_sha256`. Create `msys64/tmp` if the archive lacks it (the first,
 layout 1 archive did). CI restores this archive instead of contacting the
