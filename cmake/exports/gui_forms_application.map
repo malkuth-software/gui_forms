@@ -264,6 +264,7 @@
     _ZGVZN9gui_forms12GrayTextMask*;
     _ZGVZN9gui_forms12GridItemArea*;
     _ZGVZN9gui_forms12HatchPattern*;
+    _ZGVZN9gui_forms12HelpPageCell*;
     _ZGVZN9gui_forms12HelpPageLink*;
     _ZGVZN9gui_forms12HelpProvider*;
     _ZGVZN9gui_forms12HostServices*;
@@ -2006,6 +2007,7 @@
     _ZGVZNK9gui_forms12GrayTextMask*;
     _ZGVZNK9gui_forms12GridItemArea*;
     _ZGVZNK9gui_forms12HatchPattern*;
+    _ZGVZNK9gui_forms12HelpPageCell*;
     _ZGVZNK9gui_forms12HelpPageLink*;
     _ZGVZNK9gui_forms12HelpProvider*;
     _ZGVZNK9gui_forms12HostServices*;
@@ -3890,6 +3892,7 @@
     _ZN9gui_forms12GrayTextMask*;
     _ZN9gui_forms12GridItemArea*;
     _ZN9gui_forms12HatchPattern*;
+    _ZN9gui_forms12HelpPageCell*;
     _ZN9gui_forms12HelpPageLink*;
     _ZN9gui_forms12HelpProvider*;
     _ZN9gui_forms12HostServices*;
@@ -7330,6 +7333,7 @@
     _ZNK[RO]9gui_forms12GrayTextMask*;
     _ZNK[RO]9gui_forms12GridItemArea*;
     _ZNK[RO]9gui_forms12HatchPattern*;
+    _ZNK[RO]9gui_forms12HelpPageCell*;
     _ZNK[RO]9gui_forms12HelpPageLink*;
     _ZNK[RO]9gui_forms12HelpProvider*;
     _ZNK[RO]9gui_forms12HostServices*;
@@ -9072,6 +9076,7 @@
     _ZN[KRO]9gui_forms12GrayTextMask*;
     _ZN[KRO]9gui_forms12GridItemArea*;
     _ZN[KRO]9gui_forms12HatchPattern*;
+    _ZN[KRO]9gui_forms12HelpPageCell*;
     _ZN[KRO]9gui_forms12HelpPageLink*;
     _ZN[KRO]9gui_forms12HelpProvider*;
     _ZN[KRO]9gui_forms12HostServices*;
@@ -10814,6 +10819,7 @@
     _ZT[VIST]N9gui_forms12GrayTextMask*E;
     _ZT[VIST]N9gui_forms12GridItemArea*E;
     _ZT[VIST]N9gui_forms12HatchPattern*E;
+    _ZT[VIST]N9gui_forms12HelpPageCell*E;
     _ZT[VIST]N9gui_forms12HelpPageLink*E;
     _ZT[VIST]N9gui_forms12HelpProvider*E;
     _ZT[VIST]N9gui_forms12HostServices*E;
@@ -12556,6 +12562,7 @@
     _ZT[hvc]*9gui_forms12GrayTextMask*;
     _ZT[hvc]*9gui_forms12GridItemArea*;
     _ZT[hvc]*9gui_forms12HatchPattern*;
+    _ZT[hvc]*9gui_forms12HelpPageCell*;
     _ZT[hvc]*9gui_forms12HelpPageLink*;
     _ZT[hvc]*9gui_forms12HelpProvider*;
     _ZT[hvc]*9gui_forms12HostServices*;
@@ -14298,6 +14305,7 @@
     _ZZN9gui_forms12GrayTextMask*;
     _ZZN9gui_forms12GridItemArea*;
     _ZZN9gui_forms12HatchPattern*;
+    _ZZN9gui_forms12HelpPageCell*;
     _ZZN9gui_forms12HelpPageLink*;
     _ZZN9gui_forms12HelpProvider*;
     _ZZN9gui_forms12HostServices*;
@@ -16040,6 +16048,7 @@
     _ZZNK9gui_forms12GrayTextMask*;
     _ZZNK9gui_forms12GridItemArea*;
     _ZZNK9gui_forms12HatchPattern*;
+    _ZZNK9gui_forms12HelpPageCell*;
     _ZZNK9gui_forms12HelpPageLink*;
     _ZZNK9gui_forms12HelpProvider*;
     _ZZNK9gui_forms12HostServices*;

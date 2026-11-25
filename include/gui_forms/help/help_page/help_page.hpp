@@ -26,12 +26,45 @@ namespace gui_forms {
 //   topic bar, closed; `{collapsible open}` starts it open.
 //
 // Other block attribute lines are the markdown engine's ({align=...}).
+//
+// A pipe table (a header row, a delimiter row of dashes, then body rows,
+// each row's cells between '|' characters) becomes table rows; a cell's
+// text is read as inline markdown.
 
 enum class HelpCalloutKind : std::uint8_t { none, note, tip, caution };
 
 [[nodiscard]] GUI_FORMS_API std::string_view help_callout_name(HelpCalloutKind kind) noexcept;
 
-enum class HelpPageBlockKind : std::uint8_t { paragraph, heading, list_item, code, rule, image };
+// What a block is. Pages built from markdown use the first six and table
+// rows; an application that builds a page itself (Pocket Reference) may use
+// every kind.
+//
+// - table_row: one row of a table, its cells in HelpPageModel::cells.
+//   Consecutive rows at the same quote depth and indent are one table.
+// - term, definition: a definition list's term, then what it defines,
+//   indented under it.
+// - card: a linked card, its runs the title and its first cell, when it has
+//   one, the line under the title. Consecutive cards are one grid.
+// - signature: one declaration, on a bar, coloured as code and wrapped.
+// - caption: the line under an image, small and in the muted ink.
+enum class HelpPageBlockKind : std::uint8_t {
+    paragraph,
+    heading,
+    list_item,
+    code,
+    rule,
+    image,
+    table_row,
+    term,
+    definition,
+    card,
+    signature,
+    caption,
+};
+
+// The language a code block or signature is coloured as (stxlib::syntax).
+// Plain text is not coloured.
+enum class HelpCodeLanguage : std::uint8_t { plain, cpp };
 
 // A piece of a block's text in one style. `link` indexes the page's links.
 struct GUI_FORMS_API HelpPageRun final {
@@ -45,8 +78,16 @@ struct GUI_FORMS_API HelpPageRun final {
     stxlib::Optional<std::size_t> link{};
 };
 
+// A table cell or a card's line: HelpPageModel::runs from first_run,
+// run_count of them. An empty cell has no runs.
+struct GUI_FORMS_API HelpPageCell final {
+    std::size_t first_run{};
+    std::size_t run_count{};
+};
+
 // One block. `level` is a heading's level (1 to 6) or a list item's
-// nesting. `section` is the innermost collapsible section the block lies in
+// nesting. `indent` counts nesting levels besides quotes and lists (the
+// members under a declaration, say), each indented as a quote is. `section` is the innermost collapsible section the block lies in
 // (a section's heading is not in its own section). `anchor` is a heading's
 // fragment name (help_heading_anchor), or a listed control's stable ID for a
 // help-line entry, so a link or F1 can scroll to it. `image` indexes the
@@ -62,9 +103,18 @@ struct GUI_FORMS_API HelpPageBlock final {
     stxlib::Optional<std::size_t> section{};
     std::string anchor{};
     stxlib::Optional<std::size_t> image{};
+    std::size_t indent{};
+    // A table row of header cells.
+    bool header{};
+    // A code block's or a signature's language.
+    HelpCodeLanguage language{HelpCodeLanguage::plain};
     // The block's runs: HelpPageModel::runs from first_run, run_count of them.
     std::size_t first_run{};
     std::size_t run_count{};
+    // A table row's cells, or a card's line: HelpPageModel::cells from
+    // first_cell, cell_count of them.
+    std::size_t first_cell{};
+    std::size_t cell_count{};
 };
 
 // A collapsible section: its heading block, the first block after it, and
@@ -97,6 +147,7 @@ struct GUI_FORMS_API HelpPageModel final {
     bool fallback{};
     std::vector<HelpPageBlock> blocks{};
     std::vector<HelpPageRun> runs{};
+    std::vector<HelpPageCell> cells{};
     std::vector<HelpPageLink> links{};
     std::vector<HelpPageImage> images{};
     std::vector<HelpPageSection> sections{};
