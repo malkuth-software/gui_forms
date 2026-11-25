@@ -34,6 +34,10 @@
 # coclass's GUID is CLSID_<name> beside the class declaration, so
 # __uuidof(DirectManipulationManager) names the class again), and every
 # package at version 1.0.2.
+#
+# 418c396 is stx main after stx PR #12 (stx 1.0.3): STXlib 1.0.3 (98cff2b:
+# the secure stdio family and _scprintf in the Windows C library headers),
+# and every package at version 1.0.3.
 [stx]
 repository = "malkuth-software/stx"
-commit = "fc5bcfc433b8921ca0d28bffb1073085796ff29c"
+commit = "418c39672709ebc4c4885a21324d06081d8f78dd"

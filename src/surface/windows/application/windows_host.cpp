@@ -75,6 +75,7 @@
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <deque>
 #include <exception>
 #include <filesystem>
 #include <iomanip>
@@ -991,8 +992,9 @@ Function load_function(HMODULE module, const char* name) noexcept {
     return function;
 }
 
-double query_scale(HWND window) noexcept {
-    if (run_scale_override() > 0.0) return run_scale_override();
+// The window's device scale as the system sees it, ignoring
+// run_scale_override: the scale the system draws the window's frame at.
+double query_system_scale(HWND window) noexcept {
     using GetDpiForWindowFunction = decltype(&::GetDpiForWindow);
     if (HMODULE user32 = GetModuleHandleW(L"user32.dll")) {
         const GetDpiForWindowFunction function =
@@ -1009,15 +1011,27 @@ double query_scale(HWND window) noexcept {
     return std::max(1.0, dpi / 96.0);
 }
 
+double query_scale(HWND window) noexcept {
+    if (run_scale_override() > 0.0) return run_scale_override();
+    return query_system_scale(window);
+}
+
+// Grows the client rectangle `frame` (device pixels) by the decorations of
+// a window with `style` and `extended_style` at device scale `scale`. The
+// system draws the decorations at the monitor's scale, so under
+// run_scale_override they are measured at the system's scale instead: at
+// the overridden scale the client area came out larger by the difference
+// (a 2x capture on a 1x display).
 void adjust_client_frame(RECT& frame, DWORD style, DWORD extended_style,
                          double scale) noexcept {
+    const double frame_scale = run_scale_override() > 0.0 ? query_system_scale(nullptr) : scale;
     using AdjustForDpiFunction = decltype(&::AdjustWindowRectExForDpi);
     const HMODULE user32 = GetModuleHandleW(L"user32.dll");
     if (user32 != nullptr) {
         const AdjustForDpiFunction function = load_function<AdjustForDpiFunction>(
             user32, "AdjustWindowRectExForDpi");
         if (function != nullptr && function(&frame, style, FALSE, extended_style,
-                static_cast<UINT>(std::lround(scale * 96.0)))) return;
+                static_cast<UINT>(std::lround(frame_scale * 96.0)))) return;
     }
     AdjustWindowRectEx(&frame, style, FALSE, extended_style);
 }
@@ -4553,8 +4567,8 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     RECT frame{0, 0, static_cast<LONG>(std::ceil(initial_size.width * initial_scale)),
                static_cast<LONG>(std::ceil(initial_size.height * initial_scale))};
     // The frame's own metrics follow the monitor even when the content's
-    // scale is overridden.
-    adjust_client_frame(frame, style, 0, query_scale(nullptr));
+    // scale is overridden (adjust_client_frame).
+    adjust_client_frame(frame, style, 0, initial_scale);
     const std::wstring title = wide_from_utf8(options.title);
     const int initial_x = options.popup_window
         ? static_cast<int>(std::lround(options.initial_position.x)) : CW_USEDEFAULT;
@@ -4660,6 +4674,22 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
 int run_windows_application(std::vector<WindowsApplicationWindow> windows,
                             WindowsApplicationOptions application) {
     if (windows.empty() || windows.size() > HostWindowing::maximum_windows) return 2;
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A program that calls this entry itself (Explore) gets the automation as
+    // Application::run starts it, each window joining under its stable id once
+    // its host is ready. Under Application::run or the single-window entry the
+    // outer scope has already started it, and this one does nothing.
+    const gui_forms::automation::AutomationRunScope automation{};
+    std::deque<gui_forms::detail::DirectRunWindow> direct_windows;
+    if (automation.outermost()) {
+        for (WindowsApplicationWindow &entry : windows) {
+            if (!entry.model) continue;
+            direct_windows.emplace_back();
+            entry.options.host_ready = direct_windows.back().wrap(*entry.model, entry.stable_id,
+                                                                  std::move(entry.options.host_ready));
+        }
+    }
+#endif
     // The run holds the bundled font set, so windows opened and closed during it share one
     // copy of each face.
     const std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts =

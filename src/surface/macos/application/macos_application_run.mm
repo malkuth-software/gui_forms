@@ -15,6 +15,8 @@
 // its own events.
 
 #include "macos_host_private.hpp"
+#include "../../../core/application/application_state.hpp"
+#include "../../../runtime/automation/automation_run.hpp"
 #include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "macos_bundled_fonts.hpp"
 #include "macos_main_work.hpp"
@@ -23,6 +25,7 @@
 #include "macos_window_requests.hpp"
 #include "../view/macos_view.hpp"
 #include <stxlib/optional.hpp>
+#include <deque>
 
 namespace gui_forms::host {
 
@@ -838,6 +841,22 @@ void end_application_run(void* context) {
 int run_macos_application(std::vector<MacApplicationWindow> windows,
                           MacApplicationOptions application) {
     if (windows.empty() || windows.size() > gui_forms::HostWindowing::maximum_windows) return 2;
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // A program that calls this entry itself (Explore) gets the automation as
+    // Application::run starts it, each window joining under its stable id once
+    // its host is ready. Under Application::run or the single-window entry the
+    // outer scope has already started it, and this one does nothing.
+    const gui_forms::automation::AutomationRunScope automation{};
+    std::deque<gui_forms::detail::DirectRunWindow> direct_windows;
+    if (automation.outermost()) {
+        for (MacApplicationWindow &entry : windows) {
+            if (!entry.model) continue;
+            direct_windows.emplace_back();
+            entry.options.host_ready = direct_windows.back().wrap(*entry.model, entry.stable_id,
+                                                                  std::move(entry.options.host_ready));
+        }
+    }
+#endif
     // The run holds the bundled font set, so windows opened and closed during it share one
     // copy of each face.
     const std::shared_ptr<gui_forms::detail::BundledFontSet> run_fonts = bundle_font_set();

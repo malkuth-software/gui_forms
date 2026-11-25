@@ -91,8 +91,6 @@ function(gui_forms_add_theme_check target)
     target_sources(${target} PRIVATE "${stamp}")
 endfunction()
 
-set(GUI_FORMS_THEME_EMBED_SCRIPT "${CMAKE_CURRENT_LIST_DIR}/GUIFormsThemeEmbed.cmake")
-
 function(gui_forms_add_theme target directory)
     cmake_parse_arguments(PARSE_ARGV 2 THEME "CHECK" "FUNCTION;NAMESPACE" "FORMS")
     if(THEME_UNPARSED_ARGUMENTS)
@@ -108,6 +106,10 @@ function(gui_forms_add_theme target directory)
         get_filename_component(absolute "${form}" ABSOLUTE BASE_DIR "${CMAKE_CURRENT_SOURCE_DIR}")
         list(APPEND forms "${absolute}")
     endforeach()
+    # The embedding script beside this file, named from the function's own
+    # directory: a consumer that adds GUI.Forms with add_subdirectory calls
+    # this from a directory where GUI.Forms' variables are not set.
+    set(embed_script "${CMAKE_CURRENT_FUNCTION_LIST_DIR}/GUIFormsThemeEmbed.cmake")
     set(output_directory "${CMAKE_CURRENT_BINARY_DIR}/gui_forms_themes")
     set(output "${output_directory}/${THEME_FUNCTION}.hpp")
     # Lists cross the command line joined by '|', which no path here holds.
@@ -116,8 +118,8 @@ function(gui_forms_add_theme target directory)
         OUTPUT "${output}"
         COMMAND "${CMAKE_COMMAND}" "-DPACKAGE=${package}" "-DOUTPUT=${output}"
                 "-DFUNCTION=${THEME_FUNCTION}" "-DNAMESPACE=${THEME_NAMESPACE}" "-DFORMS=${forms_argument}"
-                -P "${GUI_FORMS_THEME_EMBED_SCRIPT}"
-        DEPENDS "${package}/theme.json" ${sheets} ${forms} "${GUI_FORMS_THEME_EMBED_SCRIPT}"
+                -P "${embed_script}"
+        DEPENDS "${package}/theme.json" ${sheets} ${forms} "${embed_script}"
         COMMENT "Embedding the theme package ${directory}"
         VERBATIM)
     target_sources(${target} PRIVATE "${output}")

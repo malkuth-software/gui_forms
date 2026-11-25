@@ -210,6 +210,29 @@ def check_allocator_probes(toolkit: Path, host: str) -> None:
         run(toolkit / (name + suffix))
 
 
+def check_subdirectory_consumer(host: str, build: Path, toolkit: Path, jobs: int, stx_package_dir: str) -> None:
+    """Builds tools/subdirectory_consumer, a project that adds GUI.Forms with
+    add_subdirectory and opts its program into the library allocator, and
+    runs that program, the allocator probe, which fails unless the
+    replacement is live. Only the probe and what it links are built. It links
+    the stx package the toolkit's build made or linked (GUI_FORMS_STX_PREFIX:
+    as is, never rebuilt), with the same package choices (skia, and vorbis
+    through the audio service's stx decoder)."""
+    stx_prefix: str = os.environ.get('GUI_FORMS_STX_PREFIX', '') or stx_package_dir or str(toolkit / 'stx-package')
+    consumer: Path = build / 'subdirectory-consumer'
+    run('cmake', '-S', ROOT / 'gui_forms/tools/subdirectory_consumer', '-B', consumer, '-G', 'Ninja',
+        '-DCMAKE_BUILD_TYPE=Release', *toolchain_options(ROOT / 'gui_forms'),
+        '-DGUI_FORMS_SOURCE_DIR=' + (ROOT / 'gui_forms').resolve().as_posix(),
+        '-DGUI_FORMS_BUILD_AUDIO=ON', '-DGUI_FORMS_AUDIO_VORBIS_BACKEND=stx',
+        # The probe needs neither; leaving them out keeps the second
+        # configure short.
+        '-DGUI_FORMS_LOCALIZABLE_PLUGIN=OFF', '-DGUI_FORMS_BUILD_GALLERY=OFF',
+        *host_options(host), *stx_options(stx_prefix, ''))
+    run('cmake', '--build', consumer, '--parallel', str(jobs), '--target', 'subdirectory_consumer_probe')
+    suffix: str = '.exe' if host == 'windows' else ''
+    run(consumer / ('subdirectory_consumer_probe' + suffix))
+
+
 def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = False,
                   sanitize: bool = False, debug_info: str = 'lines', install_only: bool = False,
                   test_cache: Path | None = None, platform_label: str = '') -> None:
@@ -327,6 +350,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int, gallery: bool = 
                 # the check fails a program whose opt-in is not live.
                 run(sys.executable, '-B', ROOT / 'gui_forms/tools/check_mcp_launch.py',
                     '--require-library-allocator', *programs)
+        check_subdirectory_consumer(host, build, toolkit, jobs, stx_package_dir)
     if install_only or test_cache is None:
         return
     run(sys.executable, '-B', ROOT / 'gui_forms/tools/test_cache.py', 'pack', '--build-dir', toolkit,
