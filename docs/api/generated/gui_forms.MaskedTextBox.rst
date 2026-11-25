@@ -158,6 +158,8 @@ gui_forms::MaskedTextBox
         -  
       * - :cpp:func:`validate_text <gui_forms::MaskedTextBox::validate_text>`
         - Runs the validation hook, raises :cpp:func:`type_validation_completed <gui_forms::MaskedTextBox::type_validation_completed>`, and returns whether the text is valid.
+      * - :cpp:func:`masked_text_box_property_entries <gui_forms::MaskedTextBox::masked_text_box_property_entries>`
+        -  
       * - :cpp:func:`set_validator <gui_forms::MaskedTextBox::set_validator>`
         - Installs the validation hook, a :cpp:class:`Delegate <gui_forms::Delegate>` that reads the :cpp:class:`MaskValidation <gui_forms::MaskValidation>` record's text and writes whether it is valid, a message, and whether to keep the focus.
 
@@ -354,6 +356,8 @@ gui_forms::MaskedTextBox
       Runs the validation hook, raises :cpp:func:`type_validation_completed <gui_forms::MaskedTextBox::type_validation_completed>`, and returns
       whether the text is valid.
 
+   .. cpp:function:: static const std::array<PropertyEntry, masked_text_box_property_count>& masked_text_box_property_entries() noexcept
+
    .. cpp:function:: void set_validator(Delegate<MaskValidation&> validator) noexcept
 
       Installs the validation hook, a :cpp:class:`Delegate <gui_forms::Delegate>` that reads the
@@ -406,6 +410,8 @@ gui_forms::MaskedTextBox
 
       *Protected.*
 
+   .. cpp:function:: std::span<const PropertyEntry> property_table() const noexcept override
+
    .. cpp:function:: void on_mask_changed()
 
       *Protected.*
@@ -420,9 +426,13 @@ gui_forms::MaskedTextBox
 
       Default: ``true``.
 
+   .. cpp:member:: constexpr std::size_t masked_text_box_property_count
+
+      MaskedTextBox's property table: Panel's entries, then its own. Default: ``Panel::panel_property_count + 2U``.
+
 .. rubric:: Windows Forms correspondence
 
-Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 38 unclassified; 7 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
+Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16 supported, 0 deferred, 0 excluded, 39 unclassified; 8 GUI.Forms-only. Generated from ``manifests/members.json``; inherited members are on the base's page.
 
 .. list-table::
    :class: longtable
@@ -636,6 +646,10 @@ Counterpart: ``MaskedTextBox``. Members declared here and by the counterpart: 16
    * - method
      - GUI.Forms-only
      - ``initialize_control_tree``
+     - unclassified (untested)
+   * - method
+     - GUI.Forms-only
+     - ``masked_text_box_property_entries``
      - unclassified (untested)
    * - method
      - GUI.Forms-only

@@ -20,7 +20,20 @@
       "on_changed": false,
       "coerce": false,
       "localizable": "text",
-      "table": null,
+      "table": {
+        "kind": "text",
+        "category": "Appearance",
+        "description": "The text its tab shows.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics | Dirty::measure",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "event": null,
       "name": "text",
       "capability": "Text",
@@ -29,7 +42,6 @@
       "hand": [
         "written invalidates the page and its owning TabControl"
       ],
-      "effects": "Dirty::paint | Dirty::semantics | Dirty::measure",
       "comment": "The tab's caption (Text).",
       "sample": "std::string{\"Options\"}",
       "getter": "text",

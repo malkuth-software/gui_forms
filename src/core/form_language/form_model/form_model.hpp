@@ -91,7 +91,9 @@
 //
 // A form never names program code (owner ruling FD-6 R6): an
 // `on-<interaction>` attribute is refused (E816); behaviour is attached
-// from program logic. An element named `style` is refused (E810): the look
+// from program logic. A mockup load alone (FormModelOptions::
+// admit_handlers, gui_forms/forms/form_mockup) admits one as a declared
+// handler, which records itself and runs nothing (FormModel::handlers). An element named `style` is refused (E810): the look
 // belongs to the theme, reached by `classes`.
 //
 // Spans (study 10.9): directly inside an object whose type holds spans
@@ -161,6 +163,12 @@ using FormCompositeCreator = Component::Ptr (*)(const std::shared_ptr<const Comp
 // has none.
 using FormSlotFinder = Control::Ptr (*)(Control& owner);
 
+// Takes a document child into a collection the type keeps of its own (a
+// TabControl's pages, which add_child alone does not make pages), for the
+// loader: true when it took the child, false to leave it to add_child.
+// Throws what the collection refuses.
+using FormChildAdopter = bool (*)(Control& owner, const Control::Ptr& child);
+
 // Where a document's child objects of an object go (cp34).
 enum class FormChildPlacement : std::uint8_t {
     // Into the object itself (every control type but a composite's).
@@ -218,6 +226,14 @@ struct FormSchemaType final {
     // generator writes `slot()`).
     FormChildPlacement child_placement{FormChildPlacement::self};
     FormSlotFinder find_slot{};
+    // How the loader adds a child the type keeps in a collection of its
+    // own; none adds every child with add_child.
+    FormChildAdopter adopt_child{};
+    // The same for the generator: a child of the C++ class `adopted_type`
+    // is added with `adopt_method` (`gui_forms::TabPage`, `add_page`);
+    // empty for none.
+    std::string adopted_type{};
+    std::string adopt_method{};
     // For the generator (FD5): the C++ class, qualified from the global
     // namespace without a leading `::` (`gui_forms::CheckBox`, or an
     // application's `my_app::NoteCard`), and the header that declares it
@@ -426,6 +442,27 @@ struct FormProperty final {
     std::optional<FormBinding> binding{};
 };
 
+// A declared handler a mockup load admits (FormModelOptions::
+// admit_handlers): `on-click="save_claim"` on the object `object`. It names
+// no code; the mockup records the interaction under `handler` when it is
+// raised. Never refused: an interaction the type does not raise is kept
+// with `raised` false.
+struct FormHandler final {
+    ObjectIndex object{};
+    // The interaction as registered (`click`, `checked_changed`): the
+    // attribute's name after `on-`, kebab case turned into snake case, or
+    // as written when it is no kebab-case name.
+    std::string interaction{};
+    // The attribute's value, or the attribute's name when the value is
+    // empty.
+    std::string handler{};
+    // Whether the object's type declares the interaction
+    // (FormSchemaType::interactions).
+    bool raised{};
+    // Where the attribute's name begins.
+    theme_language::SourcePosition position{};
+};
+
 // One span block: its container, its value and its node.
 struct FormSpan final {
     ObjectIndex owner{};
@@ -445,6 +482,17 @@ struct FormModel final {
     std::vector<FormObject> objects{};
     std::vector<FormSpan> spans{};
     std::vector<FormProperty> properties{};
+    // In document order; empty unless the build admitted handlers.
+    std::vector<FormHandler> handlers{};
+};
+
+// How a model is built. The form compiler, the generator, the editor and
+// the run-time loader take the defaults.
+struct FormModelOptions final {
+    // Whether an `on-<interaction>` attribute is a declared handler
+    // (FormModel::handlers) instead of a refusal (E816): a mockup's
+    // documents only.
+    bool admit_handlers{};
 };
 
 enum class FormModelOutcome : std::uint8_t {
@@ -487,6 +535,10 @@ struct FormStringReading final {
 [[nodiscard]] FormModelOutcome build_form_model(const theme_language::ThemeSource& source, const FormSyntax& syntax,
                                                 const FormSchema& schema, FormModel& model,
                                                 theme_language::ThemeDiagnosticList& diagnostics);
+// The same, under `options`.
+[[nodiscard]] FormModelOutcome build_form_model(const theme_language::ThemeSource& source, const FormSyntax& syntax,
+                                                const FormSchema& schema, const FormModelOptions& options,
+                                                FormModel& model, theme_language::ThemeDiagnosticList& diagnostics);
 
 // read_form_syntax, then build_form_model: the model of the document
 // `source` holds, read into `syntax` (caller-owned, reused). refused when
@@ -494,5 +546,9 @@ struct FormStringReading final {
 [[nodiscard]] FormModelOutcome read_form_model(const theme_language::ThemeSource& source, FormSyntax& syntax,
                                                const FormSchema& schema, FormModel& model,
                                                theme_language::ThemeDiagnosticList& diagnostics);
+// The same, under `options`.
+[[nodiscard]] FormModelOutcome read_form_model(const theme_language::ThemeSource& source, FormSyntax& syntax,
+                                               const FormSchema& schema, const FormModelOptions& options,
+                                               FormModel& model, theme_language::ThemeDiagnosticList& diagnostics);
 
 } // namespace gui_forms::form_language

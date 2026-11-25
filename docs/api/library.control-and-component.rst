@@ -174,6 +174,14 @@ Related types
      - One type a document may name, borrowed from its schema.
    * - :cpp:class:`FormDocumentWindow <gui_forms::FormDocumentWindow>`
      - A document loaded into a window, to look at: the window, the document's title, and the load's check.
+   * - :cpp:class:`FormMockup <gui_forms::FormMockup>`
+     -  
+   * - :cpp:class:`FormMockupEvent <gui_forms::FormMockupEvent>`
+     - One recorded event.
+   * - :cpp:class:`FormMockupHandler <gui_forms::FormMockupHandler>`
+     - One declared handler of the shown tree: ``on-click="save_claim"`` on ``claim.save``, or a command binding's source (interaction ``invoked``).
+   * - :cpp:class:`FormMockupText <gui_forms::FormMockupText>`
+     - One text a mockup reads: its file name, for the diagnostics, and its UTF-8 bytes.
    * - :cpp:class:`FractionFactor <gui_forms::FractionFactor>`
      -  
    * - :cpp:class:`GridAvailableExtent <gui_forms::GridAvailableExtent>`
@@ -2038,6 +2046,131 @@ Related types
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:class:: FormMockup final
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+
+   .. rubric:: Construction
+
+   .. cpp:function:: explicit FormMockup(Control& host)
+
+      A mockup shown in ``host``, which it borrows: a control the program keeps in its window (a panel), whose children the mockup replaces. Declare the mockup after the host, so it ends first.
+
+
+   .. rubric:: Properties
+
+   .. cpp:function:: bool shown() const noexcept
+
+      Whether a tree is shown, and how many loads have succeeded.
+
+   .. cpp:function:: stxlib::u64 generation() const noexcept
+
+   .. cpp:function:: const FormDocumentCheck& check() const& noexcept
+
+      The last load's diagnostics, document's and fixture's together, in the order found; warnings only after a load that succeeded.
+
+   .. cpp:function:: stxlib::View<char> title() const& noexcept
+
+      The shown form's title and client size; empty and zero for a control root, a form that sets none, or no tree.
+
+   .. cpp:function:: Size client_size() const noexcept
+
+   .. cpp:function:: stxlib::usize handler_count() const noexcept
+
+      The shown tree's commands, in the order the document first binds them, then its declared handlers, in document order.
+
+   .. cpp:function:: stxlib::usize event_count() const noexcept
+
+      The events kept, oldest first.
+
+
+   .. rubric:: Methods
+
+   .. cpp:function:: FormMockupLoadOutcome load(const FormDocumentSchema& schema, const FormMockupText& document, const FormMockupText& fixture)
+
+      Reads ``document`` and ``fixture`` (an empty text for none), loads them against ``schema`` and, when nothing is refused, shows the new tree in place of the old one in one step. The document's root may be a form (its control is shown; its accept and cancel buttons are given to the host's window) or a control. A record set or tree the fixture fills needs the host in a window. Events recorded so far are kept.
+
+   .. cpp:function:: void clear()
+
+      Removes the shown tree, if any.
+
+   .. cpp:function:: FormMockupHandler handler(stxlib::usize index) const& noexcept
+
+      The handler at ``index`` (below handler_count()); empty past the end.
+
+   .. cpp:function:: FormMockupEvent event(stxlib::usize index) const& noexcept
+
+      The event at ``index`` (below event_count()); empty past the end.
+
+   .. cpp:function:: void clear_events() noexcept
+
+   .. cpp:function:: ThemeCompileResult set_theme(ThemeBase base, const FormMockupText& sheet)
+
+      The theme the shown tree uses: ``sheet`` (a theme sheet's text; empty for none) compiled onto ``base``, set as the host's theme override (Control::set_theme_override), so that only the mockup's tree shows it. A refused sheet changes nothing; the result holds its diagnostics. Needs the host in a window, whose resources compile it.
+
+   .. cpp:function:: void set_event_sink(FormMockupEventSink sink, void* context) noexcept
+
+      Calls ``sink`` with ``context`` after each event is recorded; a null sink stops it. ``context`` must outlive the mockup or the next call.
+
+   .. cpp:member:: constexpr stxlib::usize kept_events
+
+      The events kept; older ones are dropped, newer ones still counted. Default: ``1024U``.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FormMockupEvent final
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+   One recorded event. Texts borrowed from the mockup until the event is dropped (clear_events, or kept_events newer ones).
+
+   .. cpp:member:: stxlib::u64 sequence
+
+      Counts every event since the mockup was made, from 1.
+
+   .. cpp:member:: stxlib::View<char> handler
+
+   .. cpp:member:: stxlib::View<char> stable_id
+
+   .. cpp:member:: stxlib::View<char> interaction
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FormMockupHandler final
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+   One declared handler of the shown tree: ``on-click="save_claim"`` on ``claim.save``, or a command binding's source (interaction ``invoked``). Texts borrowed from the mockup until its next load or clear.
+
+   .. cpp:member:: stxlib::View<char> handler
+
+   .. cpp:member:: stxlib::View<char> stable_id
+
+      The object's stable ID; a command's source name for a command.
+
+   .. cpp:member:: stxlib::View<char> interaction
+
+      As registered: ``click``, ``checked_changed``, ``invoked``.
+
+   .. cpp:member:: bool observed
+
+      Whether the mockup records it. False for an interaction the object's type does not raise, or one the mockup cannot observe (listed, never refused): the base control's click, double_click, mouse_enter, mouse_hover and mouse_leave, a button's clicked (its click too, raised by every activation, perform_click included), every ``<property>_changed`` of a property the control has, and every command's invoked are observed.
+
+.. cpp:namespace:: gui_forms
+
+.. cpp:struct:: FormMockupText final
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+   One text a mockup reads: its file name, for the diagnostics, and its UTF-8 bytes. Both borrowed for the call that takes it. An empty text is an empty fixture or sheet.
+
+   .. cpp:member:: stxlib::View<char> file
+
+   .. cpp:member:: stxlib::View<char> text
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:class:: FractionFactor final
 
    ``#include <gui_forms/layout/style/layout_style.hpp>`` (:src:`source <include/gui_forms/layout/style/layout_style.hpp>`)
@@ -3883,6 +4016,16 @@ Enumerations
 
 .. cpp:namespace:: gui_forms
 
+.. cpp:enum-class:: FormMockupLoadOutcome
+
+   ``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+   .. cpp:enumerator:: loaded
+
+   .. cpp:enumerator:: refused
+
+.. cpp:namespace:: gui_forms
+
 .. cpp:enum-class:: GetChildAtPointSkip
 
    ``#include <gui_forms/control/control/control.hpp>`` (:src:`source <include/gui_forms/control/control/control.hpp>`)
@@ -4669,6 +4812,14 @@ Functions, constants and aliases
 .. cpp:function:: FormDocumentWindow load_form_document_window(const FormDocumentSchema& schema, const char* file, stxlib::usize file_bytes, const char* document, stxlib::usize document_bytes)
 
    ``document`` loaded against ``schema`` into a window of the current application (or, with none, a window with its own resources), with no model: a document that binds (``<bind>``) is refused, so a preview blanks its bindings first. A document whose root is a control, not a form, is refused too. UI thread.
+
+.. cpp:namespace:: gui_forms
+
+``#include <gui_forms/forms/form_mockup/form_mockup.hpp>`` (:src:`source <include/gui_forms/forms/form_mockup/form_mockup.hpp>`)
+
+.. cpp:type:: FormMockupEventSink = void (*)(void* context, const FormMockupEvent& event)
+
+   Called on the UI thread after each event is recorded, for a log or a console; ``event`` is borrowed for the call. It must not load or clear the mockup that called it.
 
 .. cpp:namespace:: gui_forms
 

@@ -23,6 +23,12 @@ private:
     std::string image_key_{};
     int image_index_{-1};
     // property_codemod begin TabPage (tools/property_families/tab_page.json; generated, do not edit)
+public:
+    // TabPage's property table: Panel's entries, then its own.
+    static constexpr std::size_t tab_page_property_count = Panel::panel_property_count + 1U;
+    [[nodiscard]] static const std::array<PropertyEntry, tab_page_property_count>& tab_page_property_entries() noexcept;
+    [[nodiscard]] std::span<const PropertyEntry> property_table() const noexcept override;
+
 private:
     friend struct TextCapability<TabPage>;
     friend struct TabPageImageKeyCapability<TabPage>;

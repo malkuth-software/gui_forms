@@ -94,6 +94,7 @@
     _ZGVZN9gui_forms10FontDialog*;
     _ZGVZN9gui_forms10FontFaceId*;
     _ZGVZN9gui_forms10FormLayout*;
+    _ZGVZN9gui_forms10FormMockup*;
     _ZGVZN9gui_forms10GridMargin*;
     _ZGVZN9gui_forms10HScrollBar*;
     _ZGVZN9gui_forms10HelpTarget*;
@@ -470,6 +471,7 @@
     _ZGVZN9gui_forms14FlexItemLayout*;
     _ZGVZN9gui_forms14FlexItemResult*;
     _ZGVZN9gui_forms14FontFamilyFace*;
+    _ZGVZN9gui_forms14FormMockupText*;
     _ZGVZN9gui_forms14FractionFactor*;
     _ZGVZN9gui_forms14GalleryCommand*;
     _ZGVZN9gui_forms14GalleryPreview*;
@@ -597,6 +599,7 @@
     _ZGVZN9gui_forms15FontDeclaration*;
     _ZGVZN9gui_forms15FontFamilyOrder*;
     _ZGVZN9gui_forms15FontFamilyStack*;
+    _ZGVZN9gui_forms15FormMockupEvent*;
     _ZGVZN9gui_forms15FramePollResult*;
     _ZGVZN9gui_forms15GraphLoadResult*;
     _ZGVZN9gui_forms15GraphSaveResult*;
@@ -837,6 +840,7 @@
     _ZGVZN9gui_forms17FontFallbackMatch*;
     _ZGVZN9gui_forms17FontFamilyStackId*;
     _ZGVZN9gui_forms17FormDocumentCheck*;
+    _ZGVZN9gui_forms17FormMockupHandler*;
     _ZGVZN9gui_forms17FrameRequestToken*;
     _ZGVZN9gui_forms17GenericFontFamily*;
     _ZGVZN9gui_forms17GridTemplateAreas*;
@@ -1838,6 +1842,7 @@
     _ZGVZNK9gui_forms10FontDialog*;
     _ZGVZNK9gui_forms10FontFaceId*;
     _ZGVZNK9gui_forms10FormLayout*;
+    _ZGVZNK9gui_forms10FormMockup*;
     _ZGVZNK9gui_forms10GridMargin*;
     _ZGVZNK9gui_forms10HScrollBar*;
     _ZGVZNK9gui_forms10HelpTarget*;
@@ -2214,6 +2219,7 @@
     _ZGVZNK9gui_forms14FlexItemLayout*;
     _ZGVZNK9gui_forms14FlexItemResult*;
     _ZGVZNK9gui_forms14FontFamilyFace*;
+    _ZGVZNK9gui_forms14FormMockupText*;
     _ZGVZNK9gui_forms14FractionFactor*;
     _ZGVZNK9gui_forms14GalleryCommand*;
     _ZGVZNK9gui_forms14GalleryPreview*;
@@ -2341,6 +2347,7 @@
     _ZGVZNK9gui_forms15FontDeclaration*;
     _ZGVZNK9gui_forms15FontFamilyOrder*;
     _ZGVZNK9gui_forms15FontFamilyStack*;
+    _ZGVZNK9gui_forms15FormMockupEvent*;
     _ZGVZNK9gui_forms15FramePollResult*;
     _ZGVZNK9gui_forms15GraphLoadResult*;
     _ZGVZNK9gui_forms15GraphSaveResult*;
@@ -2581,6 +2588,7 @@
     _ZGVZNK9gui_forms17FontFallbackMatch*;
     _ZGVZNK9gui_forms17FontFamilyStackId*;
     _ZGVZNK9gui_forms17FormDocumentCheck*;
+    _ZGVZNK9gui_forms17FormMockupHandler*;
     _ZGVZNK9gui_forms17FrameRequestToken*;
     _ZGVZNK9gui_forms17GenericFontFamily*;
     _ZGVZNK9gui_forms17GridTemplateAreas*;
@@ -3636,6 +3644,7 @@
     _ZN9gui_forms10FontDialog*;
     _ZN9gui_forms10FontFaceId*;
     _ZN9gui_forms10FormLayout*;
+    _ZN9gui_forms10FormMockup*;
     _ZN9gui_forms10GridMargin*;
     _ZN9gui_forms10HScrollBar*;
     _ZN9gui_forms10HelpTarget*;
@@ -4178,6 +4187,7 @@
     _ZN9gui_forms14FlexItemLayout*;
     _ZN9gui_forms14FlexItemResult*;
     _ZN9gui_forms14FontFamilyFace*;
+    _ZN9gui_forms14FormMockupText*;
     _ZN9gui_forms14FractionFactor*;
     _ZN9gui_forms14GalleryCommand*;
     _ZN9gui_forms14GalleryPreview*;
@@ -4363,6 +4373,7 @@
     _ZN9gui_forms15FontDeclaration*;
     _ZN9gui_forms15FontFamilyOrder*;
     _ZN9gui_forms15FontFamilyStack*;
+    _ZN9gui_forms15FormMockupEvent*;
     _ZN9gui_forms15FramePollResult*;
     _ZN9gui_forms15GraphLoadResult*;
     _ZN9gui_forms15GraphSaveResult*;
@@ -4735,6 +4746,7 @@
     _ZN9gui_forms17FontFallbackMatch*;
     _ZN9gui_forms17FontFamilyStackId*;
     _ZN9gui_forms17FormDocumentCheck*;
+    _ZN9gui_forms17FormMockupHandler*;
     _ZN9gui_forms17FrameRequestToken*;
     _ZN9gui_forms17GenericFontFamily*;
     _ZN9gui_forms17GridTemplateAreas*;
@@ -7166,6 +7178,7 @@
     _ZNK[RO]9gui_forms10FontDialog*;
     _ZNK[RO]9gui_forms10FontFaceId*;
     _ZNK[RO]9gui_forms10FormLayout*;
+    _ZNK[RO]9gui_forms10FormMockup*;
     _ZNK[RO]9gui_forms10GridMargin*;
     _ZNK[RO]9gui_forms10HScrollBar*;
     _ZNK[RO]9gui_forms10HelpTarget*;
@@ -7542,6 +7555,7 @@
     _ZNK[RO]9gui_forms14FlexItemLayout*;
     _ZNK[RO]9gui_forms14FlexItemResult*;
     _ZNK[RO]9gui_forms14FontFamilyFace*;
+    _ZNK[RO]9gui_forms14FormMockupText*;
     _ZNK[RO]9gui_forms14FractionFactor*;
     _ZNK[RO]9gui_forms14GalleryCommand*;
     _ZNK[RO]9gui_forms14GalleryPreview*;
@@ -7669,6 +7683,7 @@
     _ZNK[RO]9gui_forms15FontDeclaration*;
     _ZNK[RO]9gui_forms15FontFamilyOrder*;
     _ZNK[RO]9gui_forms15FontFamilyStack*;
+    _ZNK[RO]9gui_forms15FormMockupEvent*;
     _ZNK[RO]9gui_forms15FramePollResult*;
     _ZNK[RO]9gui_forms15GraphLoadResult*;
     _ZNK[RO]9gui_forms15GraphSaveResult*;
@@ -7909,6 +7924,7 @@
     _ZNK[RO]9gui_forms17FontFallbackMatch*;
     _ZNK[RO]9gui_forms17FontFamilyStackId*;
     _ZNK[RO]9gui_forms17FormDocumentCheck*;
+    _ZNK[RO]9gui_forms17FormMockupHandler*;
     _ZNK[RO]9gui_forms17FrameRequestToken*;
     _ZNK[RO]9gui_forms17GenericFontFamily*;
     _ZNK[RO]9gui_forms17GridTemplateAreas*;
@@ -8910,6 +8926,7 @@
     _ZN[KRO]9gui_forms10FontDialog*;
     _ZN[KRO]9gui_forms10FontFaceId*;
     _ZN[KRO]9gui_forms10FormLayout*;
+    _ZN[KRO]9gui_forms10FormMockup*;
     _ZN[KRO]9gui_forms10GridMargin*;
     _ZN[KRO]9gui_forms10HScrollBar*;
     _ZN[KRO]9gui_forms10HelpTarget*;
@@ -9286,6 +9303,7 @@
     _ZN[KRO]9gui_forms14FlexItemLayout*;
     _ZN[KRO]9gui_forms14FlexItemResult*;
     _ZN[KRO]9gui_forms14FontFamilyFace*;
+    _ZN[KRO]9gui_forms14FormMockupText*;
     _ZN[KRO]9gui_forms14FractionFactor*;
     _ZN[KRO]9gui_forms14GalleryCommand*;
     _ZN[KRO]9gui_forms14GalleryPreview*;
@@ -9413,6 +9431,7 @@
     _ZN[KRO]9gui_forms15FontDeclaration*;
     _ZN[KRO]9gui_forms15FontFamilyOrder*;
     _ZN[KRO]9gui_forms15FontFamilyStack*;
+    _ZN[KRO]9gui_forms15FormMockupEvent*;
     _ZN[KRO]9gui_forms15FramePollResult*;
     _ZN[KRO]9gui_forms15GraphLoadResult*;
     _ZN[KRO]9gui_forms15GraphSaveResult*;
@@ -9653,6 +9672,7 @@
     _ZN[KRO]9gui_forms17FontFallbackMatch*;
     _ZN[KRO]9gui_forms17FontFamilyStackId*;
     _ZN[KRO]9gui_forms17FormDocumentCheck*;
+    _ZN[KRO]9gui_forms17FormMockupHandler*;
     _ZN[KRO]9gui_forms17FrameRequestToken*;
     _ZN[KRO]9gui_forms17GenericFontFamily*;
     _ZN[KRO]9gui_forms17GridTemplateAreas*;
@@ -10654,6 +10674,7 @@
     _ZT[VIST]N9gui_forms10FontDialog*E;
     _ZT[VIST]N9gui_forms10FontFaceId*E;
     _ZT[VIST]N9gui_forms10FormLayout*E;
+    _ZT[VIST]N9gui_forms10FormMockup*E;
     _ZT[VIST]N9gui_forms10GridMargin*E;
     _ZT[VIST]N9gui_forms10HScrollBar*E;
     _ZT[VIST]N9gui_forms10HelpTarget*E;
@@ -11030,6 +11051,7 @@
     _ZT[VIST]N9gui_forms14FlexItemLayout*E;
     _ZT[VIST]N9gui_forms14FlexItemResult*E;
     _ZT[VIST]N9gui_forms14FontFamilyFace*E;
+    _ZT[VIST]N9gui_forms14FormMockupText*E;
     _ZT[VIST]N9gui_forms14FractionFactor*E;
     _ZT[VIST]N9gui_forms14GalleryCommand*E;
     _ZT[VIST]N9gui_forms14GalleryPreview*E;
@@ -11157,6 +11179,7 @@
     _ZT[VIST]N9gui_forms15FontDeclaration*E;
     _ZT[VIST]N9gui_forms15FontFamilyOrder*E;
     _ZT[VIST]N9gui_forms15FontFamilyStack*E;
+    _ZT[VIST]N9gui_forms15FormMockupEvent*E;
     _ZT[VIST]N9gui_forms15FramePollResult*E;
     _ZT[VIST]N9gui_forms15GraphLoadResult*E;
     _ZT[VIST]N9gui_forms15GraphSaveResult*E;
@@ -11397,6 +11420,7 @@
     _ZT[VIST]N9gui_forms17FontFallbackMatch*E;
     _ZT[VIST]N9gui_forms17FontFamilyStackId*E;
     _ZT[VIST]N9gui_forms17FormDocumentCheck*E;
+    _ZT[VIST]N9gui_forms17FormMockupHandler*E;
     _ZT[VIST]N9gui_forms17FrameRequestToken*E;
     _ZT[VIST]N9gui_forms17GenericFontFamily*E;
     _ZT[VIST]N9gui_forms17GridTemplateAreas*E;
@@ -12398,6 +12422,7 @@
     _ZT[hvc]*9gui_forms10FontDialog*;
     _ZT[hvc]*9gui_forms10FontFaceId*;
     _ZT[hvc]*9gui_forms10FormLayout*;
+    _ZT[hvc]*9gui_forms10FormMockup*;
     _ZT[hvc]*9gui_forms10GridMargin*;
     _ZT[hvc]*9gui_forms10HScrollBar*;
     _ZT[hvc]*9gui_forms10HelpTarget*;
@@ -12774,6 +12799,7 @@
     _ZT[hvc]*9gui_forms14FlexItemLayout*;
     _ZT[hvc]*9gui_forms14FlexItemResult*;
     _ZT[hvc]*9gui_forms14FontFamilyFace*;
+    _ZT[hvc]*9gui_forms14FormMockupText*;
     _ZT[hvc]*9gui_forms14FractionFactor*;
     _ZT[hvc]*9gui_forms14GalleryCommand*;
     _ZT[hvc]*9gui_forms14GalleryPreview*;
@@ -12901,6 +12927,7 @@
     _ZT[hvc]*9gui_forms15FontDeclaration*;
     _ZT[hvc]*9gui_forms15FontFamilyOrder*;
     _ZT[hvc]*9gui_forms15FontFamilyStack*;
+    _ZT[hvc]*9gui_forms15FormMockupEvent*;
     _ZT[hvc]*9gui_forms15FramePollResult*;
     _ZT[hvc]*9gui_forms15GraphLoadResult*;
     _ZT[hvc]*9gui_forms15GraphSaveResult*;
@@ -13141,6 +13168,7 @@
     _ZT[hvc]*9gui_forms17FontFallbackMatch*;
     _ZT[hvc]*9gui_forms17FontFamilyStackId*;
     _ZT[hvc]*9gui_forms17FormDocumentCheck*;
+    _ZT[hvc]*9gui_forms17FormMockupHandler*;
     _ZT[hvc]*9gui_forms17FrameRequestToken*;
     _ZT[hvc]*9gui_forms17GenericFontFamily*;
     _ZT[hvc]*9gui_forms17GridTemplateAreas*;
@@ -14142,6 +14170,7 @@
     _ZZN9gui_forms10FontDialog*;
     _ZZN9gui_forms10FontFaceId*;
     _ZZN9gui_forms10FormLayout*;
+    _ZZN9gui_forms10FormMockup*;
     _ZZN9gui_forms10GridMargin*;
     _ZZN9gui_forms10HScrollBar*;
     _ZZN9gui_forms10HelpTarget*;
@@ -14518,6 +14547,7 @@
     _ZZN9gui_forms14FlexItemLayout*;
     _ZZN9gui_forms14FlexItemResult*;
     _ZZN9gui_forms14FontFamilyFace*;
+    _ZZN9gui_forms14FormMockupText*;
     _ZZN9gui_forms14FractionFactor*;
     _ZZN9gui_forms14GalleryCommand*;
     _ZZN9gui_forms14GalleryPreview*;
@@ -14645,6 +14675,7 @@
     _ZZN9gui_forms15FontDeclaration*;
     _ZZN9gui_forms15FontFamilyOrder*;
     _ZZN9gui_forms15FontFamilyStack*;
+    _ZZN9gui_forms15FormMockupEvent*;
     _ZZN9gui_forms15FramePollResult*;
     _ZZN9gui_forms15GraphLoadResult*;
     _ZZN9gui_forms15GraphSaveResult*;
@@ -14885,6 +14916,7 @@
     _ZZN9gui_forms17FontFallbackMatch*;
     _ZZN9gui_forms17FontFamilyStackId*;
     _ZZN9gui_forms17FormDocumentCheck*;
+    _ZZN9gui_forms17FormMockupHandler*;
     _ZZN9gui_forms17FrameRequestToken*;
     _ZZN9gui_forms17GenericFontFamily*;
     _ZZN9gui_forms17GridTemplateAreas*;
@@ -15886,6 +15918,7 @@
     _ZZNK9gui_forms10FontDialog*;
     _ZZNK9gui_forms10FontFaceId*;
     _ZZNK9gui_forms10FormLayout*;
+    _ZZNK9gui_forms10FormMockup*;
     _ZZNK9gui_forms10GridMargin*;
     _ZZNK9gui_forms10HScrollBar*;
     _ZZNK9gui_forms10HelpTarget*;
@@ -16262,6 +16295,7 @@
     _ZZNK9gui_forms14FlexItemLayout*;
     _ZZNK9gui_forms14FlexItemResult*;
     _ZZNK9gui_forms14FontFamilyFace*;
+    _ZZNK9gui_forms14FormMockupText*;
     _ZZNK9gui_forms14FractionFactor*;
     _ZZNK9gui_forms14GalleryCommand*;
     _ZZNK9gui_forms14GalleryPreview*;
@@ -16389,6 +16423,7 @@
     _ZZNK9gui_forms15FontDeclaration*;
     _ZZNK9gui_forms15FontFamilyOrder*;
     _ZZNK9gui_forms15FontFamilyStack*;
+    _ZZNK9gui_forms15FormMockupEvent*;
     _ZZNK9gui_forms15FramePollResult*;
     _ZZNK9gui_forms15GraphLoadResult*;
     _ZZNK9gui_forms15GraphSaveResult*;
@@ -16629,6 +16664,7 @@
     _ZZNK9gui_forms17FontFallbackMatch*;
     _ZZNK9gui_forms17FontFamilyStackId*;
     _ZZNK9gui_forms17FormDocumentCheck*;
+    _ZZNK9gui_forms17FormMockupHandler*;
     _ZZNK9gui_forms17FrameRequestToken*;
     _ZZNK9gui_forms17GenericFontFamily*;
     _ZZNK9gui_forms17GridTemplateAreas*;

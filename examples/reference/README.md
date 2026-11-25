@@ -45,3 +45,9 @@ hears a button's MouseDown, MouseUp, Click, MouseClick and activation in order
 a panel's DoubleClick on the second release and a keyboard context request,
 and a consuming rule withholds the button's Click
 (`docs/user/mouse-events.md`).
+
+`form_mockup` loads a form document and its fixture at run time into a panel
+of a window (`FormMockup`): the fixture's value is bound, a click on the
+button records its declared handler's event, a broken document is refused on
+its line with the shown tree kept, and the repaired one replaces it
+(`docs/user/mockups.md`).

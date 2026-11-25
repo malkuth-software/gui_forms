@@ -733,6 +733,72 @@ void MaskedTextBox::append_interactions(std::vector<InteractionDeclaration>& int
 
 // property_codemod begin MaskedTextBox (tools/property_families/masked_text_box.json; generated, do not edit)
 
+namespace {
+
+PropertyDescriptor masked_text_box_mask_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "mask";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Behavior";
+    descriptor.description = "The input mask (Windows Forms' MaskedTextBox.Mask): 0 a digit, 9 a digit or space, L a letter, A a letter or digit, other characters literals; empty takes any text.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_masked_text_box_mask() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        masked_text_box_mask_descriptor(), PropertyOperations{true, true, false, true});
+    return descriptor;
+}
+
+PropertyDescriptor masked_text_box_text_descriptor() {
+    PropertyDescriptor descriptor;
+    descriptor.name = "text";
+    descriptor.kind = BindingValueKind::text;
+    descriptor.category = "Behavior";
+    descriptor.description = "The text in text_mask_format; a write places it through the mask and drops refused input.";
+    descriptor.default_value = BindingValue{std::string{}};
+    descriptor.invalidation_effects = Dirty::paint | Dirty::semantics;
+    descriptor.bindable = false;
+    descriptor.assignable_member = true;
+    return descriptor;
+}
+
+const PropertyDescriptor& describe_masked_text_box_text() {
+    static const PropertyDescriptor descriptor = property_table_descriptor(
+        masked_text_box_text_descriptor(), PropertyOperations{true, true, false, false});
+    return descriptor;
+}
+
+} // namespace
+
+const std::array<PropertyEntry, MaskedTextBox::masked_text_box_property_count>& MaskedTextBox::masked_text_box_property_entries() noexcept {
+    static constexpr std::array<PropertyEntry, 2U> own{{
+        {"mask", &describe_masked_text_box_mask,
+         &read_cell_entry<MaskedTextBox, decltype(&MaskedTextBox::mask), &MaskedTextBox::mask>,
+         &write_cell_entry<MaskedTextBox, decltype(&MaskedTextBox::mask), &MaskedTextBox::mask>,
+         nullptr, nullptr, nullptr,
+         &connect_event_entry<MaskedTextBox, decltype(&MaskedTextBox::mask_changed_), &MaskedTextBox::mask_changed_>},
+        {"text", &describe_masked_text_box_text,
+         &read_cell_entry<MaskedTextBox, decltype(&MaskedTextBox::text), &MaskedTextBox::text>,
+         &write_cell_entry<MaskedTextBox, decltype(&MaskedTextBox::text), &MaskedTextBox::text>,
+         nullptr, nullptr, nullptr,
+         nullptr},
+    }};
+    static_assert(property_names_distinct(own), "MaskedTextBox's property table names a property twice");
+    static const std::array<PropertyEntry, masked_text_box_property_count> entries =
+        join_property_tables(Panel::panel_property_entries(), own);
+    return entries;
+}
+
+std::span<const PropertyEntry> MaskedTextBox::property_table() const noexcept {
+    const std::array<PropertyEntry, masked_text_box_property_count>& entries = masked_text_box_property_entries();
+    return std::span<const PropertyEntry>(entries);
+}
+
 void MaskedTextBox::on_mask_changed() {
     publish_change(mask_changed_, mask.read());
 }

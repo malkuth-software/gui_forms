@@ -755,6 +755,7 @@ add_library(gui_forms_core STATIC
     src/core/control_language/control_generator/control_generator.cpp
     src/core/form_language/form_loader/form_loader.cpp
     src/core/form_language/form_loader/form_window_loader.cpp
+    src/core/form_language/form_fixture/form_fixture.cpp
     src/core/form_language/form_editor/form_editor.cpp
     src/core/form_language/form_export/form_export.cpp
     src/core/form_language/form_generator/form_generator.cpp
@@ -1240,6 +1241,7 @@ add_library(gui_forms_controls STATIC
     src/controls/basic/basic_control_rendering.cpp
     src/controls/form_document_export/form_document_export.cpp
     src/controls/form_documents/form_documents.cpp
+    src/controls/form_documents/form_mockup.cpp
     src/controls/form_catalog/form_catalog.cpp
     src/controls/connected_controls/connected_controls.cpp
     src/controls/panel/panel.cpp

@@ -147,7 +147,8 @@ void FormLoader::make_object(std::size_t index, LoadedForm& scratch) {
         return;
     }
     try {
-        (*host).add_child(child);
+        const bool adopted = parent_type.adopt_child != nullptr && (*parent_type.adopt_child)(*host, child);
+        if (!adopted) (*host).add_child(child);
     } catch (const std::exception& refusal) {
         report(DiagnosticCode::form_load_refused, object.position, object.stable_id, {}, refusal.what());
     }

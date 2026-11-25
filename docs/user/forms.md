@@ -5,7 +5,8 @@ exist, their stable IDs, where they sit, their property values and their
 bindings. It holds nothing else. The build turns each document into a C++
 class, and your program attaches the behaviour.
 
-A form has no theme and no handlers:
+A form has no theme and no handlers (a [mockup](mockups) may declare
+handlers that only record themselves):
 
 - Colours and fonts belong to the program's theme. The form names each
   object's role with `classes`, and the theme gives that role its look
@@ -124,8 +125,31 @@ A refused document generates nothing.
 | E821 `form_xml_invalid` | a document that is not well-formed XML in the reader's subset (the detail names what the reader found), text inside an object, or a missing, wrong or extra `xmlns` |
 | E999 `not_yet_built` | a form reserved for a later phase, such as a binding's `converter` |
 
-E808 is retired. E811 and E819 belong to loading a document at run time,
-which is not public.
+E808 is retired. Loading a document at run time adds two:
+
+| Code | Refused |
+|---|---|
+| E811 `form_load_refused` | a type the run-time registry cannot make, or an object, child, value or span a made object refuses |
+| E819 `form_binding_source_refused` | a binding whose source is missing, of another kind, or refused; in a mockup, a fixture value of the wrong kind or a `shown-in` that names nothing that can show it |
+
+## Loading a document at run time
+
+A program can load a document while it runs, with no build step, through
+`gui_forms/forms/form_documents/form_documents.hpp` and
+`gui_forms/forms/form_mockup/form_mockup.hpp`:
+
+- `check_form_document` checks a document as the form compiler would and
+  returns every diagnostic with its file, line, column, code and detail.
+- `load_form_document_window` loads a document that binds nothing into a
+  window to look at.
+- `FormMockup` loads a document, its fixture data and a theme sheet into a
+  control of your window, and replaces what it shows each time you load
+  again. Its bindings read the fixture instead of a model, and its
+  `on-<interaction>` attributes record themselves instead of being
+  refused. [Mockups](mockups) describes it and the fixture format.
+
+Each refusal is reported with the codes above, at the same lines and
+columns as the form compiler reports it.
 
 ## The window is the form
 

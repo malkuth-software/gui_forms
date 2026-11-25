@@ -24,7 +24,20 @@
       "event": "mask_changed_",
       "on_changed": true,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "text",
+        "category": "Behavior",
+        "description": "The input mask (Windows Forms' MaskedTextBox.Mask): 0 a digit, 9 a digit or space, L a letter, A a letter or digit, other characters literals; empty takes any text.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "hand": [
         "a view onto provider_: write_view replaces the provider with this box's settings, keeps what text it can and raises mask_changed"
@@ -66,7 +79,20 @@
       "event": null,
       "on_changed": false,
       "localizable": null,
-      "table": null,
+      "table": {
+        "kind": "text",
+        "category": "Behavior",
+        "description": "The text in text_mask_format; a write places it through the mask and drops refused input.",
+        "default": "BindingValue{std::string{}}",
+        "effects": "Dirty::paint | Dirty::semantics",
+        "subtree": false,
+        "bindable": false,
+        "browsable": true,
+        "nullable": false,
+        "enumeration": null,
+        "reset": null,
+        "registry": false
+      },
       "hooks": "hand",
       "hand": [
         "a view onto provider_: read_view is the text in text_mask_format; write_view runs place_text and drops its result"

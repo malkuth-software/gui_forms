@@ -988,6 +988,7 @@
       {"kind": "event", "winforms": "Control.TextChanged", "scope": "admitted", "gui_forms": "text_changed", "status": "supported", "basis": "test", "evidence": "tests/input_controls_tests.cpp"},
       {"kind": "method", "winforms": "TextBoxBase.Clear", "scope": "admitted", "gui_forms": "clear", "status": "supported", "basis": "test", "evidence": "tests/input_controls_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "initialize_control_tree", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
+      {"kind": "method", "winforms": null, "gui_forms": "masked_text_box_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "on_read_only_changed", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
       {"kind": "method", "winforms": null, "gui_forms": "place_text", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/doc_examples_tests.cpp"},
       {"kind": "method", "winforms": null, "gui_forms": "set_validator", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/masked_text_box_tests.cpp"}
@@ -3402,7 +3403,8 @@
       {"kind": "event", "winforms": "TabStopChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "TextChanged", "scope": "admitted", "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
       {"kind": "event", "winforms": "VisibleChanged", "scope": "admitted", "gui_forms": "visible_changed", "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"},
-      {"kind": "method", "winforms": "GetTabPageOfComponent", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"}
+      {"kind": "method", "winforms": "GetTabPageOfComponent", "scope": "admitted", "static": true, "gui_forms": null, "status": "unclassified", "basis": "none", "question": "unmatched: no GUI.Forms member has this name"},
+      {"kind": "method", "winforms": null, "gui_forms": "tab_page_property_entries", "gui_forms_only": true, "status": "unclassified", "basis": "none", "question": "untested: declared, but no test calls it"}
     ]},
     {"type": "FlexPanel", "winforms": null, "gui_forms_base": "ContainerControl", "status": "supported", "basis": "test", "evidence": "tests/control_language/composite_control_tests.cpp", "members": [
       {"kind": "property", "winforms": null, "gui_forms": "laid_out_children", "gui_forms_only": true, "status": "supported", "basis": "test", "evidence": "tests/flex_panel_tests.cpp"},
