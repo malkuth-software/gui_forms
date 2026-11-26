@@ -80,11 +80,8 @@ class Exchange:
     def close(self, timeout: float) -> int | None:
         # A hard disconnect first: the end of the input alone leaves the
         # program up for its command folder and socket (MCP 1.0.6).
-        # A disconnect closes only a program the model holds: a pointer move
-        # takes control first (at once under --mcp-fcfs).
+        # A disconnect is an act: under --mcp-fcfs it takes control at once.
         if self.process.poll() is None:
-            self.request(9998, 'tools/call', {'name': 'pointer',
-                                              'arguments': {'action': 'move', 'position': {'x': 1, 'y': 1}}}, timeout)
             self.request(9999, 'tools/call', {'name': 'disconnect',
                                               'arguments': {'mode': 'hard', 'discard_unsaved': True}}, timeout)
         try:

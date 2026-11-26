@@ -83,6 +83,10 @@ struct AutomationLaunch final {
     // question.
     bool print_mcp_help{};
     std::string help_topic{};
+    // --mcp (the panel): the help's top, then the line telling a model this
+    // program is not shared and how the user restarts it so. --mcp-help
+    // prints the help alone: documentation, whatever the launch.
+    bool help_panel{};
     [[nodiscard]] bool requested() const noexcept {
         return shared || fcfs || appearance_review || print_mcp_help || !script_path.empty();
     }

@@ -259,8 +259,22 @@ relay:
   nothing closes and the reply names what to save. Mode `hard` ends
   regardless: control returns to the user and the program's own save
   question is shown to the user, or, with `discard_unsaved` true, unsaved
-  changes are discarded. If the user holds control, the program stays
-  open. The next command, on any connection, starts over.
+  changes are discarded. The next command, on any connection, starts
+  over.
+- `disconnect` is an act (owner: telling the program to close is itself an
+  action), so it takes control first as any act does in the launch's mode:
+  under `--mcp-fcfs` at once; under `--mcp-shared`, when the model does not
+  hold control, with the 10-second countdown, and if the user refuses, the
+  program stays open and the reply says so. `release_control` is not an
+  act.
+- `close` quits the program: every program window is asked to close, as
+  the user's quit does. It is an act like `disconnect`, so a model may
+  simply connect and call `close`. A save question is the model's and never
+  shown: without `on_unsaved` nothing closes and the reply names it;
+  `on_unsaved=save` or `discard` answers it. A program's own exit command
+  (Plan Paint's `command_file.exit`, say) behaves the same. The difference:
+  `close` is about the program, `disconnect` about the model's session
+  (closing only when nothing is unsaved, or with mode `hard`).
 - The end of standard input ends the stdio session only: control returns
   to the user at once and the program stays up, the user's to use and the
   command folder's and socket's to serve. A socket connection closing is

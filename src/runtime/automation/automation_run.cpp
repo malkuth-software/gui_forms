@@ -185,7 +185,10 @@ namespace {
 // (null for none). True when it took `next` too.
 bool read_launch_argument(std::string_view argument, const std::string* next, AutomationLaunch& launch) {
     // --mcp is the help panel about MCP, not a mode (owner, MCP 1.0.6).
-    if (argument == "--mcp") launch.print_mcp_help = true;
+    if (argument == "--mcp") {
+        launch.print_mcp_help = true;
+        launch.help_panel = true;
+    }
     if (argument == "--mcp-shared") launch.shared = true;
     if (argument == "--mcp-fcfs") launch.fcfs = true;
     if (argument == "--mcp-appearance-review") launch.appearance_review = true;
@@ -659,7 +662,11 @@ void AutomationRun::serve_when_ready() {
         HelpContext context{};
         context.note = detail::app_note_copy();
         context.access = access_line();
-        const std::string text = help_text(launch_.help_topic, specs, context);
+        std::string text = help_text(launch_.help_topic, specs, context);
+        if (launch_.help_panel) {
+            text += "\n\nThis program isn't shared with a model right now; ask the user to restart it with "
+                    "--mcp-shared (they keep control) or --mcp-fcfs.";
+        }
         std::fprintf(stdout, "%s\n", text.c_str());
         std::fflush(stdout);
         std::_Exit(0);
@@ -752,12 +759,14 @@ std::string AutomationRun::launch_mode() const {
 }
 
 std::string AutomationRun::access_line() const {
-    if (launch_.print_mcp_help) {
-        // --mcp, the help panel: this launch serves nothing.
-        return "This program isn't shared with a model right now; ask the user to restart it with --mcp-shared "
-               "(they keep control) or --mcp-fcfs.";
-    }
     std::string line(access_summary);
+    if (launch_.print_mcp_help) {
+        // --mcp-help and the --mcp panel: documentation, so the rule in
+        // general, not this launch's state.
+        line += " A program is reached this way only when launched with --mcp-shared (the first act shows the user "
+                "a 10-second countdown that allows when it ends) or --mcp-fcfs (the first act takes control at once).";
+        return line;
+    }
     if (launch_.fcfs) {
         line += " Launched with --mcp-fcfs: the first act takes control at once, with no countdown; the user gets "
                 "it back only by asking.";
