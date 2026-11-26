@@ -33,7 +33,7 @@ ROOT: Path = Path(__file__).resolve().parent.parent
 CODE_DIRECTORIES: frozenset[str] = frozenset({
     '.github', 'assets', 'benchmarks', 'bindings', 'cmake', 'code_integrity_checker', 'demo', 'lab',
     'examples', 'fuzz', 'generated', 'include', 'manifests', 'packaging',
-    'sdrsharp_reflection_system', 'src', 'tests', 'third_party', 'tools'})
+    'src', 'tests', 'third_party', 'tools'})
 
 # Documentation-looking files the build reads: the SDK installs the notices
 # and tools/ci_build.py checks them, and the programs ship them.
