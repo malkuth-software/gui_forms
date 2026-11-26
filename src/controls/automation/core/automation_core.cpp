@@ -250,9 +250,10 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         batch_schema(), ToolAccess::acting));
     specs.push_back(built_in(
         "release_control", "Release control",
-        "Gives the program back to the user and ends AI mode. In a shared launch your first act asks the user "
-        "(a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s "
-        "pass without a call; a launch with --mcp is yours from the start. Reads never need control.",
+        "Gives the program back to the user and ends AI mode. In a --mcp-shared launch your first act asks the "
+        "user (a 10-second countdown that allows when it ends) and you then hold control until you release it or "
+        "30 s pass without a call; in a --mcp-fcfs launch your first act takes control at once and you keep it "
+        "until you release it or the user takes it back. Reads never need control.",
         "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}", ToolAccess::read_only));
     specs.push_back(built_in(
         "disconnect", "Disconnect",

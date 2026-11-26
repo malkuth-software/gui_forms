@@ -416,8 +416,8 @@ void take_mcp_arguments(int& argc, char** argv) noexcept {
     while (read < argc) {
         const char* const argument = argv[read];
         const std::string_view text = argument == nullptr ? std::string_view{} : std::string_view(argument);
-        if (text == "--mcp" || text == "--mcp-shared" || text == "--mcp-folder" || text == "--model-directed" ||
-            text == "--mcp-appearance-review" || text == "--mcp-socket") {
+        if (text == "--mcp" || text == "--mcp-shared" || text == "--mcp-fcfs" || text == "--mcp-appearance-review" ||
+            text == "--mcp-socket") {
             keep_taken_argument(text);
             ++read;
             continue;

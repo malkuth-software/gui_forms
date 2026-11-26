@@ -124,9 +124,9 @@ GUI_FORMS_API void clear_model_pending_state(const char* key);
 GUI_FORMS_API bool report_model_effect(const char* utf8_text);
 
 // Removes the automation's launch arguments from a program's argv before
-// the program reads it (study 4.2): --mcp, --mcp-shared, --mcp-folder, --model-directed
-// (the old name of --mcp), --mcp-appearance-review, --mcp-socket,
-// --mcp-help [topic] and --mcp-script <file>.
+// the program reads it (study 4.2): --mcp (the MCP help), --mcp-shared,
+// --mcp-fcfs, --mcp-appearance-review, --mcp-socket, --mcp-help [topic] and
+// --mcp-script <file>.
 // argv's pointers move down and argc shrinks; argv[argc] stays null. The
 // library reads the process's own arguments, so a program that never calls
 // this still gets MCP; one that parses argv calls it first so the arguments

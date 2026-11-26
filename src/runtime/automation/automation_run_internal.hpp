@@ -80,6 +80,8 @@ public:
     // Asks every window to close, at the UI thread's next turn (the
     // portable shutdown: the client closed MCP's input, or a script ended).
     void post_close_all();
+    // Standard input ended: posts stdio_ended to the UI thread (any thread).
+    void post_stdio_ended();
     // Waits until the first window joined (a script waits for it), or the run
     // ended; false then.
     [[nodiscard]] bool wait_for_window(const CallStop* stop) const;
@@ -98,6 +100,8 @@ public:
     // with the count.
     void sync_tools();
     void close_all() noexcept;
+    // Standard input ended: the stdio client's session ends (UI thread).
+    void stdio_ended() noexcept;
 
     [[nodiscard]] const AutomationLaunch& launch() const noexcept { return launch_; }
 
@@ -251,6 +255,9 @@ private:
     std::unique_ptr<DoorServer> door_server_{};
     // UI thread: the start-up text was printed.
     bool door_announced_{};
+    // The doors that could not be made at start, each "<door>: <why>", for
+    // the start-up text (owner, MCP 1.0.6: the others carry on).
+    std::vector<std::string> door_failures_{};
 };
 
 // ---- the MCP transport (mcp_transport.cpp) ----

@@ -47,6 +47,7 @@ struct SectionTopic final {
 };
 
 constexpr SectionTopic section_topics[] = {
+    {"launch", "Launch"},
     {"socket", "Find the socket"},
     {"console", "The console"},
     {"folder", "The command folder"},
@@ -412,9 +413,15 @@ std::string group_list(std::string_view group, const std::vector<ToolSpec>& tool
 std::string overview(const std::vector<ToolSpec>& tools, const HelpContext& context) {
     std::string text{};
     if (!context.access.empty()) text += context.access + "\n";
+    text += "Modes: --mcp-shared (permission-led: the user keeps control until the first act, which shows a 10 s "
+            "countdown) or --mcp-fcfs (first come, first served: the first act takes control at once; the user asks "
+            "to get it back). Without either the program has no MCP at all.\n";
+    text += "Doors, served at once, each a backup for the others: MCP on standard input and output, the command "
+            "folder /tmp/<id> named in the start-up text, and the socket (--mcp-socket names both).\n";
+    text += "Send: echo '<command>' > /tmp/<id>/in; cat /tmp/<id>/out\n";
     text += "Chain commands with && (stop on error) or ; (continue): one line, one reply, each part numbered.\n";
-    text += "Starting the program yourself? Launch it with --mcp-folder (AI-led, no countdown, no stdio server) in "
-            "the background and drive it through the /tmp/<id> folder it prints.\n\n";
+    text += "release_control hands control back; disconnect mode=soft|hard ends the session and closes the "
+            "program.\n\n";
     if (context.console) {
         text += "Commands, one a line (on one connection or many: each acts on the program as the last did):\n"
                 "  help [path]           this tree, a group, one tool or a topic, by dotted path\n"

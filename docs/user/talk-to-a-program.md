@@ -1,12 +1,40 @@
 # Talk to a running program
 
-Every running GUI.Forms program (1.0.5 and later) listens on a socket that
-only your user can reach, and the socket speaks MCP itself:
+A GUI.Forms program launched with `--mcp-shared` or `--mcp-fcfs` (1.0.6 and
+later; see Launch) listens on a socket that only your user can reach, and
+the socket speaks MCP itself:
 newline-delimited JSON-RPC, MCP's stdio framing. Any agent, script or person
 can talk to a program the user already has open with standard tools and no
 configuration. A first line that is not JSON opens a plain-text console on
 the same socket instead. With no client at all, any shell reaches it through
 its command folder's named pipes (`/tmp/<id>`; see The command folder).
+
+## Launch
+
+- No flag, no MCP: a program launched without `--mcp-shared` or
+  `--mcp-fcfs` (and without `GUI_FORMS_MCP` in its environment) makes no
+  command folder, no socket and no discovery entry, prints no MCP lines and
+  runs no MCP thread. Nothing a user did not ask for is shared.
+- `--mcp-shared` (or `GUI_FORMS_MCP=shared`) is permission-led: the user
+  keeps control until a model's first act, which shows a 10-second
+  countdown that allows when it ends (see Control).
+- `--mcp-fcfs` (or `GUI_FORMS_MCP=fcfs`) is first come, first served: the
+  first model to act takes control at once, with no countdown, and keeps
+  it; the user gets the program back only by asking (a click on its
+  content offers take-back). Both flags given: `--mcp-shared`.
+- Either serves every door at once: MCP on standard input and output, the
+  command folder and the socket. Each backs up the others: a door that
+  cannot be made is named in the start-up text and the rest carry on, and
+  the end of standard input ends only the stdio session (a hard disconnect
+  for that client: control returns to the user), never the program. A
+  model that starts the program in the background from its shell, with
+  its input closed or at `/dev/null`, drives it through the folder.
+- `--mcp` is a help panel, not a mode: it prints the MCP help (the modes,
+  the doors, the send line, chaining, the help paths, release and
+  disconnect) and exits, serving nothing. A model that finds a program
+  without MCP can run it so, and ask the user: this program isn't shared
+  with a model right now; restart it with `--mcp-shared` (you keep
+  control) or `--mcp-fcfs`.
 
 ## Find the socket
 
@@ -66,13 +94,21 @@ socat - UNIX-CONNECT:"$XDG_RUNTIME_DIR"/gui-forms/12345.sock
 ## The command folder
 
 For an agent with no client at all, whose shell starts afresh for every
-command: each program also makes `/tmp/<id>/`, where `<id>` is 8
-hexadecimal digits drawn at start, and prints the exact command on
-standard error (and on standard output, unless MCP owns it):
+command: each program launched with `--mcp-shared` or `--mcp-fcfs` also
+makes `/tmp/<id>/`, where `<id>` is 8 hexadecimal digits drawn at start,
+and prints what a model needs on standard error (and on standard output,
+unless MCP owns it):
 
 ```text
-GUI.Forms: plan-paint 3fa9c21b, launched with no MCP flag (the first act shows the user a 10 s countdown; --mcp-folder skips it). Send commands (chain them with && or ;): echo '<command>' > /tmp/3fa9c21b/in; cat /tmp/3fa9c21b/out
+GUI.Forms: plan-paint is a GUI.Forms program a model drives with MCP or plain commands; its command folder is /tmp/3fa9c21b
+GUI.Forms:   mode: --mcp-fcfs: first come, first served: your first act takes control at once (no countdown) and you keep it until you release it; the user gets it back only by asking
+GUI.Forms:   send: echo '<command>' > /tmp/3fa9c21b/in; cat /tmp/3fa9c21b/out
+GUI.Forms:   chain: '<cmd1> && <cmd2> ; <cmd3>' (&& stops at an error, ; goes on); one reply, ending ". ok" or ". error at N"
+GUI.Forms:   help: send help, then help plan_paint.draw (or run plan-paint --mcp-help [path]); release_control hands control back, disconnect mode=soft|hard ends it
 ```
+
+A door that could not be made adds a line such as
+`GUI.Forms:   not available: the socket: <why>; the other doors carry on`.
 
 - `in` and `out` are named pipes (FIFOs, mode 0600) in a folder of mode
   0700: the folder's permissions are the guard. Each line written to `in`
@@ -93,12 +129,10 @@ GUI.Forms: plan-paint 3fa9c21b, launched with no MCP flag (the first act shows t
   `echo 'plan_paint.new_image width=200 height=100 && plan_paint.draw shape=line from=[0,0] to=[200,100]' > /tmp/<id>/in; cat /tmp/<id>/out`.
   The socket console takes chained lines too.
 - A model that starts the program itself, in the background from its
-  shell, launches it with `--mcp-folder`: AI-led as `--mcp` (no
-  countdown), served only by this folder and the socket, with no MCP
-  server on standard input, so it stays up with its input closed or at
-  `/dev/null`. The start-up line says which flag launched the program:
-  `GUI.Forms: plan-paint 3fa9c21b, launched with --mcp-folder (AI-led: ...).
-  Send commands ...`. `GUI_FORMS_MCP=folder` does the same.
+  shell, launches it with `--mcp-fcfs` (or `--mcp-shared`, to leave the
+  user asked): the program stays up with its input closed or at
+  `/dev/null`, and the start-up text's `mode:` line says which flag
+  launched it.
 - `#<n> ` before a command (up to 16 letters, digits, `-` or `_`) is echoed
   in the end line, `. #<n> ok`, so concurrent clients can match replies.
   One agent at a time per program is the normal case: lines longer than
@@ -195,21 +229,19 @@ relay:
 ## Control
 
 - Reads never need control; acts do.
-- `--mcp` is AI-led: the model holds control from the start and keeps it
-  until it calls `release_control` or the user takes it back. An agent that
-  launches a program itself launches it so: it never asks. `--mcp` serves
-  MCP on standard input and output, and the program ends when that input
-  closes; `--mcp-folder` is the same control with no stdio server, for a
-  program started in the background and driven through its command folder.
-- `--mcp-shared`, and a program launched without a flag, leave the user in
+- `--mcp-fcfs`: the model's first act takes control at once, with no
+  countdown, and the model keeps it until it calls `release_control` or the
+  user takes it back; idle never returns it. After a take-back the model's
+  next act takes control again, and its reply says the user took it back.
+- `--mcp-shared` leaves the user in
   control until the model's first act, which shows a 10-second countdown
   in the program that allows when it ends (the user can refuse). The model
   then holds control, whichever connection later commands come on, until
   it calls `release_control`, 30 seconds pass without a call, or the user
   takes it back. After 30 idle seconds the next act takes control again
   without the countdown.
-- `release_control` gives the program back; the next act asks again (the
-  countdown). So does the user's take-back.
+- In a `--mcp-shared` launch `release_control` gives the program back and
+  the next act asks again (the countdown); so does the user's take-back.
 - While the model holds control (AI mode) the window shows still grey
   stripes over its control surfaces, the X cursor and the band, and shows
   no tooltips (the model reads their text in snapshot and inspect). The
@@ -229,10 +261,10 @@ relay:
   question is shown to the user, or, with `discard_unsaved` true, unsaved
   changes are discarded. If the user holds control, the program stays
   open. The next command, on any connection, starts over.
-- A launch whose standard input ends (`--mcp` over stdio) is a hard
-  disconnect with the default: control returns to the user at once, and
-  the program stays the user's to use and to close. A socket connection
-  closing is not a disconnect.
+- The end of standard input ends the stdio session only: control returns
+  to the user at once and the program stays up, the user's to use and the
+  command folder's and socket's to serve. A socket connection closing is
+  not a disconnect.
 
 ## Help
 
@@ -241,14 +273,14 @@ relay:
   one per line; `help plan_paint.draw` (or `help plan_paint_draw`) gives one
   tool's description, its arguments with their types, ranges and units, and
   an example call. `help tools` lists every tool; `help mcp` is this page,
-  and `help mcp.socket`, `help mcp.console`, `help mcp.folder`,
+  and `help mcp.launch`, `help mcp.socket`, `help mcp.console`, `help mcp.folder`,
   `help mcp.json`, `help mcp.stdio`, `help mcp.connections`,
   `help mcp.control`, `help mcp.disconnect` and `help mcp.help` are its
   sections (the bare
   section names work too); `help gui.forms` lists the user guide's pages
   with their addresses. A path it does not know names the nearest.
 - `program --mcp-help [path]` prints the same help on standard output and
-  exits, with no socket and no client.
+  exits, with no socket and no client; `program --mcp` prints its top.
 - Nothing in it is written for MCP alone: the tools' help is their own
   documentation (the description and schema a program gives
   `register_model_tool`, a command's text and description, the built-in

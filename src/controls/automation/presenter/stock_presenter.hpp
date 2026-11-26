@@ -31,12 +31,9 @@
 // - the destructive-act question: "Allow <model> to edit files and perform
 //   potentially destructive acts?", Allow and Don't Allow; closing it is
 //   Don't Allow;
-// - the connection question (MCP 1.0.5, attach): for a program launched
-//   without --mcp or --mcp-shared, every connection through the attach
-//   endpoint asks "Allow a connection to this program?", naming the client
-//   as it named itself and saying that name is not verified; Allow and
-//   Don't Allow, no countdown, nothing remembered; closing it is Don't
-//   Allow;
+// - no connection question (owner, MCP 1.0.6): a program launched without
+//   --mcp-shared or --mcp-fcfs has no socket or folder to connect to, and
+//   one launched with either takes every same-user connection;
 // - the console overlay (MCP 1.0.5, console_overlay.hpp): in AI mode a
 //   "thinking..." button in the window's upper right opens a terminal-style
 //   record of the MCP traffic, hidden by default; a press on it offers the

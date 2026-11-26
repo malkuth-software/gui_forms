@@ -1,19 +1,20 @@
 #!/usr/bin/env python3
-"""Check that GUI.Forms programs serve MCP when launched with --mcp.
+"""Check that GUI.Forms programs serve MCP when launched with --mcp-fcfs.
 
     python3 tools/check_mcp_launch.py <program> [<program> ...] [--timeout 60]
 
-Each program is started with --mcp in its own directory. The check sends
-initialize and expects an answer naming the server, then sends tools/list and
-expects at least one tool. It then closes the program's standard input, which
-is the automation's portable shutdown (every window is asked to close), and
-expects the program to exit. Prints one line per program and exits 1 when
+Each program is started with --mcp-fcfs in its own directory. The check
+sends initialize and expects an answer naming the server, then sends
+tools/list and expects at least one tool. It then sends a hard disconnect
+(every window is asked to close) and closes the program's standard input,
+and expects the program to exit: the end of the input alone ends only the
+stdio session, never the program (MCP 1.0.6). Prints one line per program and exits 1 when
 any program fails.
 
 A program run through Application::run or through its host's single-window
 entry (host::run_macos, run_windows, run_linux) serves MCP in every build
 with GUI_FORMS_MCP on. Until 1.0.1 the demonstrators called their host
-directly and lost --mcp without a word. gui_forms_devkit's package smoke runs this
+directly and lost MCP without a word. gui_forms_devkit's package smoke runs this
 check on every packaged program, and examples/reference runs it on the
 installed examples that open a window. Both need a window server: on Linux
 CI they run under xvfb-run.
@@ -36,7 +37,7 @@ class Exchange:
     """One program over stdio: requests out, replies collected by id on a thread."""
 
     def __init__(self, program: Path, environment: dict[str, str] | None) -> None:
-        self.process = subprocess.Popen([str(program), '--mcp'], cwd=str(program.parent),
+        self.process = subprocess.Popen([str(program), '--mcp-fcfs'], cwd=str(program.parent),
                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                         stderr=subprocess.PIPE, env=environment)
         self.replies: dict[int, dict] = {}
@@ -77,6 +78,11 @@ class Exchange:
             return self.replies.get(identity)
 
     def close(self, timeout: float) -> int | None:
+        # A hard disconnect first: the end of the input alone leaves the
+        # program up for its command folder and socket (MCP 1.0.6).
+        if self.process.poll() is None:
+            self.request(9999, 'tools/call', {'name': 'disconnect',
+                                              'arguments': {'mode': 'hard', 'discard_unsaved': True}}, timeout)
         try:
             self.process.stdin.close()
         except OSError:
@@ -146,8 +152,8 @@ def served(exchange: Exchange, timeout: float) -> tuple[bool, str]:
     finally:
         code = exchange.close(timeout)
     if code is None:
-        return False, detail + '; did not exit after its input closed'
-    return True, detail + f'; exited {code} after its input closed'
+        return False, detail + '; did not exit after a hard disconnect'
+    return True, detail + f'; exited {code} after a hard disconnect'
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -166,7 +172,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f'{"ok" if passed else "FAIL"}: {program.name}: {detail}')
         failed += 0 if passed else 1
     if failed:
-        print(f'check_mcp_launch: {failed} of {len(arguments.programs)} programs do not serve --mcp')
+        print(f'check_mcp_launch: {failed} of {len(arguments.programs)} programs do not serve --mcp-fcfs')
     return 1 if failed else 0
 
 

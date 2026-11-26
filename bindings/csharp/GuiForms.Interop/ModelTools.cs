@@ -1,7 +1,7 @@
 // A program's own model tools and inspect sections (GF_TABLE_AUTOMATION,
 // since 1.6; gf_abi.h, and C++ gui_forms/automation/tools/model_tools.hpp):
 // served beside the library's built-in tools when the program runs with
-// --mcp, and run by --mcp-script. The safety rules hold for every tool: a
+// --mcp-shared or --mcp-fcfs, and run by --mcp-script. The safety rules hold for every tool: a
 // destructive one asks the user's one question of the launch first; an
 // acting one runs on the UI thread and is refused while a dialog the
 // program did not instrument is open; a handler must not put a password

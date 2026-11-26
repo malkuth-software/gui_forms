@@ -112,8 +112,8 @@ void install_native_input_gate(NativeInputGate gate, void* context) noexcept;
 [[nodiscard]] bool native_input_held(bool press) noexcept;
 
 // The window-ready hook: the automation joins each application window as it
-// becomes ready (study 4.1: every window of a program launched with --mcp
-// is reachable), with its stable ID in the run and its handle (the
+// becomes ready (study 4.1: every window of a program launched with
+// --mcp-shared or --mcp-fcfs is reachable), with its stable ID in the run and its handle (the
 // presenter opens its popups owned by it). Called by
 // attach_application_window on the window's UI thread, before the window's
 // ready callback; the hook may not throw and returns promptly. One hook per
@@ -130,7 +130,7 @@ void notify_window_ready(SurfaceRoot& window, std::string_view stable_id,
 // pointer and key event its route delivered (dispatch_pointer after
 // route_pointer, dispatch_key after route_key) while an observer is
 // installed, which the automation core does for its lifetime (a program
-// launched with --mcp or --mcp-script); otherwise the report is one load of
+// launched with --mcp-shared, --mcp-fcfs or --mcp-script); otherwise the report is one load of
 // a null pointer. Called on the window's UI thread; the observer copies what
 // it keeps and returns promptly.
 enum class RouteKind : std::uint8_t {

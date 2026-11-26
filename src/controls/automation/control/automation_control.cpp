@@ -81,8 +81,9 @@ bool AutomationControl::acts_allowed() const noexcept {
 void AutomationControl::request_take(FrameTime now) {
     if (state_ != ControlState::user_control || settings_.appearance_review) return;
     ++counters_.takes_asked;
-    if (session_consent_) {
-        // The session was allowed once: no second question.
+    if (session_consent_ || settings_.first_come) {
+        // The session was allowed once, or the launch is first come, first
+        // served: no question.
         last_take_allowed_ = true;
         ++counters_.takes_answered;
         enter_model_control(now);
@@ -145,7 +146,11 @@ void AutomationControl::user_took_back() {
     // Counted before the release, so a running call's next step sees it.
     ++counters_.holds_taken_back;
     session_consent_ = false;
-    notice_ = "the user took back control of the program: your work was interrupted; acts now ask the user again";
+    notice_ = settings_.first_come
+                  ? "the user took back control of the program: your work was interrupted; your next act takes it "
+                    "again"
+                  : "the user took back control of the program: your work was interrupted; acts now ask the user "
+                    "again";
     // The program's questions are the user's again from here.
     std::vector<gui_forms::detail::ModelQuestion> dropped{};
     gui_forms::detail::end_model_questions(0U, dropped);
@@ -196,7 +201,7 @@ void AutomationControl::tick(FrameTime now) {
         if (now - asked_at_ >= settings_.take_countdown + std::chrono::milliseconds{1000}) answer_take(true);
         return;
     case ControlState::model_control:
-        if (settings_.ai_led) return;
+        if (settings_.ai_led || settings_.first_come) return;
         if (now - last_call_ >= grace_) {
             ++counters_.holds_idle_returned;
             notice_ = "control returned to the user after " + std::to_string(grace_.count() / 1000) +

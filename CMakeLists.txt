@@ -132,13 +132,13 @@ option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
        "Enable bounded transactional DIB frames in the Windows development host" OFF)
 # The automation and MCP (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
 # rulings 3 and 17): GUI_FORMS_MCP builds the capability, on by default; a
-# launch with --mcp (or GUI_FORMS_MCP=1) or --mcp-script turns it on for that
-# run. The transport needs STXlib's stx_mcp (the stxlib::mcp target); with
+# launch with --mcp-shared or --mcp-fcfs (or GUI_FORMS_MCP=shared|fcfs) or
+# --mcp-script turns it on for that run; without one the program has no MCP. The transport needs STXlib's stx_mcp (the stxlib::mcp target); with
 # GUI_FORMS_MCP on and no such target the configure fails. The test controls
 # (suspend_input) are on in the debug and test presets only. The Windows
 # WM_COPYDATA channel and the X11 --automation flag that came before are
 # retired.
-option(GUI_FORMS_MCP "Build the automation and MCP capability (turned on per launch with --mcp)" ON)
+option(GUI_FORMS_MCP "Build the automation and MCP capability (turned on per launch with --mcp-shared or --mcp-fcfs)" ON)
 # A Debug build has them by default; a Release build (every shipped program)
 # only when asked, as the test-cache job of the test configuration does.
 set(_gf_mcp_test_controls_default OFF)
@@ -2287,8 +2287,8 @@ endif()
 # in the Automation archive, which the Application library of every desktop
 # host links whole and every desktop host library links: Application::run and
 # the hosts' single-window entries (host::run_macos, run_windows, run_linux)
-# both start the run, so a program that calls its host directly serves --mcp
-# too (1.0.1: the demonstrators did not).
+# both start the run, so a program that calls its host directly serves
+# --mcp-shared and --mcp-fcfs too (1.0.1: the demonstrators did not).
 if(GUI_FORMS_MCP)
     target_sources(gui_forms_controls PRIVATE
         src/controls/automation/control/automation_control.cpp
@@ -2379,8 +2379,8 @@ if(GUI_FORMS_MCP)
             set_target_properties(gui_forms_attach PROPERTIES OUTPUT_NAME gui-forms-attach)
             install(TARGETS gui_forms_attach RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         else()
-            # MCP on with no transport would configure a program whose --mcp
-            # only reports that it has none (cp37: the stx package exported no
+            # MCP on with no transport would configure a program whose
+            # --mcp-shared only reports that it has none (cp37: the stx package exported no
             # stxlib::mcp, and no build said so). A build that wants no MCP
             # turns GUI_FORMS_MCP off (high-integrity builds have it off).
             message(FATAL_ERROR "GUI_FORMS_MCP is on but STXlib's stxlib::mcp target was not found; "
@@ -3091,7 +3091,7 @@ endforeach()
 
 # The demonstrators: every program that runs its window through a desktop host
 # library directly (host::run_macos, run_windows, run_linux). tools/ci_build.py
-# starts each with --mcp and expects it to serve MCP (tools/check_mcp_launch.py),
+# starts each with --mcp-fcfs and expects it to serve MCP (tools/check_mcp_launch.py),
 # reading their paths from demonstrators.txt in the build tree. Until 1.0.1 none
 # did, and no check noticed.
 if(GUI_FORMS_MCP AND NOT GUI_FORMS_HIGH_INTEGRITY AND TARGET gui_forms_automation)

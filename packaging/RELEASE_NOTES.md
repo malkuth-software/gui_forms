@@ -22,6 +22,21 @@ These notes cover pull requests #474 to #486.
 
 ## Breaking changes
 
+- **MCP launch flags (1.0.6, owner).** `--mcp` no longer launches MCP: it
+  prints the MCP help (modes, doors, the send line, chaining, help paths,
+  release and disconnect) and exits. `--mcp-shared` is the permission-led
+  launch (the user keeps control until the first act's 10 s countdown) and
+  `--mcp-fcfs` the first-come-first-served one (the first act takes
+  control at once; the user gets it back only by asking). Both serve MCP
+  on standard input and output, the command folder `/tmp/<id>` and the
+  socket at once, each a backup for the others: the end of standard input
+  ends only the stdio session, never the program. A program launched with
+  neither has no MCP at all: no folder, no socket, no discovery entry, no
+  start-up text. `--mcp-folder` and `--model-directed` are gone, and
+  `GUI_FORMS_MCP` takes `shared` or `fcfs`. A client's `.mcp.json` that
+  passed `--mcp` passes `--mcp-shared` or `--mcp-fcfs`; a script that
+  ended the program by closing its input sends `disconnect` first.
+
 - The package version moves from 0.6.0 to 1.0.0. `find_package(GUIForms
   0.6 ...)` no longer finds it (the version file accepts the same minor
   version only); ask for 1.0. The shared libraries keep `SOVERSION 0`, and
@@ -854,6 +869,7 @@ One release folds the work queued after 1.0.4.
   so a socket call no longer waits out its timeout while the decoration
   moves. Program tools (registry and command acts) settle within 100 ms
   and reply "replied after".
+- **Launch flags** (superseding the launches below): see Breaking changes.
 - **One question per session.** For a program launched without `--mcp`,
   the Allow on connect is also the consent to control. Only
   `release_control`, the user's take-back and a new connection ask again.

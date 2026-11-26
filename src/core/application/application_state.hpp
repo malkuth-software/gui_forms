@@ -133,7 +133,8 @@ void revoke_window_state(ApplicationWindowState& state) noexcept;
 // The window of a host's single-window entry (host::run_macos, run_windows,
 // run_linux), which runs no Application::run: it joins the automation as an
 // application window does (session_directory.hpp, the window-ready hook), so
-// a program that calls its host directly serves --mcp and --mcp-script too.
+// a program that calls its host directly serves --mcp-shared, --mcp-fcfs and
+// --mcp-script too.
 // Its state is outside any run and not attached to the model, which opens
 // its popups as it did before; its handle offers request_close (the
 // automation's close at the end of its input) and reports the rest

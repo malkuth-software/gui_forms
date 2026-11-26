@@ -38,8 +38,8 @@ struct HelpContext final {
 inline constexpr std::string_view access_summary =
     "This program takes commands from your own user account only (its socket is private to you); nothing asks "
     "per connection or command, and every line acts on the program as the last one did, on any connection. "
-    "Control: the first act takes it; it holds until release_control, 30 s without a call, or the user taking "
-    "it back.";
+    "Control: the first act takes it; it holds until release_control or the user taking it back (and, in a "
+    "shared launch, 30 s without a call).";
 
 // The line the MCP instructions give for help: the socket console's `help`,
 // or --mcp-help without connecting.

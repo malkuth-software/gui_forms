@@ -455,8 +455,8 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
     ApplicationResult result = validate(windows);
     if (!result.accepted()) return result;
 #if defined(GUI_FORMS_MCP_BUILT)
-    // The automation (src/runtime/automation): with --mcp or --mcp-script it
-    // joins every window as it becomes ready, and ends after the windowing.
+    // The automation (src/runtime/automation): with --mcp-shared, --mcp-fcfs
+    // or --mcp-script it joins every window as it becomes ready, and ends after the windowing.
     const automation::AutomationRunScope automation_scope{};
 #endif
     // Before any native window exists (stage T5).

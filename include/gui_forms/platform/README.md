@@ -54,12 +54,13 @@ The Gallery, Correspondence, Explore and lab executables share one parser
 [gui_forms_devkit](https://github.com/malkuth-software/gui_forms_devkit)):
 
 ```text
-<program> [--mcp] [--mcp-script <file.jsonl>] [--capture <path.png>] [--size <W>x<H>] [--scale <factor>]
+<program> [--mcp-shared | --mcp-fcfs] [--mcp-script <file.jsonl>] [--capture <path.png>] [--size <W>x<H>] [--scale <factor>]
 ```
 
 - `--capture <path>` sets `capture_path`; `--size WxH` sets `capture_size`
   (positive numbers, e.g. `--size 1280x800`).
-- `--mcp`, `--model-directed` and `--mcp-script <file>` are the library's
+- `--mcp-shared`, `--mcp-fcfs`, `--mcp` (the MCP help) and
+  `--mcp-script <file>` are the library's
   automation arguments (MCP; `gui_forms/automation/marks/automation_marks.hpp`):
   the parser skips them, and the library reads them from the process's own
   arguments on every host.

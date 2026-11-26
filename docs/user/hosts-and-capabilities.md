@@ -363,12 +363,16 @@ Windows (Win32)
   directory `GUI_FORMS_FONT_DIR` names or the checkout's `assets/fonts`. If
   the pack does not open, the renderer name says so and no text metrics
   provider is installed. Automation is the library's MCP integration, the
-  same on every host. A program launched with `--mcp` or `--mcp-shared`
-  (or with `GUI_FORMS_MCP=shared` in its environment) serves MCP on its
-  standard input and output (only the process that started it can drive
-  it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
-  Every program also listens on a socket of its own, the way a model
-  reaches a program the user already has open (1.0.5): a Unix domain
+  same on every host. A program launched with `--mcp-shared` or `--mcp-fcfs`
+  (or with `GUI_FORMS_MCP=shared|fcfs` in its environment) serves MCP on
+  its standard input and output, its command folder and its socket at
+  once, each a backup for the others (1.0.6): a door that cannot be made
+  is named in the start-up text, and the end of standard input ends only
+  the stdio session, never the program. A program launched with neither
+  has no MCP at all: no folder, no socket, no discovery entry. `--mcp`
+  prints the MCP help and exits, and `--mcp-script <file.jsonl>` runs a
+  script of the same tool calls. The socket is the way a model reaches a
+  program the user already has open: a Unix domain
   socket (AF_UNIX on Windows too) that only the same user can reach, in
   the user's run directory (`~/Library/Caches/gui-forms/run` on macOS,
   `$XDG_RUNTIME_DIR/gui-forms` on Linux, `%LOCALAPPDATA%\gui-forms\run`
@@ -391,9 +395,9 @@ Windows (Win32)
   must start one from `.mcp.json`. `GUI_FORMS_MCP_ATTACH=0` turns the
   socket off.
   Reads never need control; acts do (the control model):
-  - `--mcp` is AI-led: the model holds control from the start, with no
-    question, and keeps it until it calls `release_control` or the user
-    takes it back.
+  - `--mcp-fcfs` is first come, first served: the model's first act takes
+    control at once, with no question, and the model keeps it (idle never
+    returns it) until it calls `release_control` or the user takes it back.
   - `--mcp-shared` leaves the user in control until the model's first act.
     That act asks in the program whether the model may take control, with a
     10 s countdown that allows when it ends; the act waits for the answer.
@@ -401,14 +405,13 @@ Windows (Win32)
     allowed, the act runs and its reply carries the window's snapshot, and
     later acts run at once, from any connection. Control returns after
     30 s without a call, on `release_control`, or when the user takes it
-    back. A program launched without a flag behaves the same once a
-    connection comes.
+    back.
   - One question for the program: an allowed take holds after an idle
     return (the next act takes control again without the countdown); only
     `release_control` or the user's take-back asks again.
   - The last connection closing hands the program's own questions back to
     the user; standard input's end gives control back at once and leaves
-    the program the user's to close.
+    the program up for its command folder and socket.
   - The model's next reply says when control came back, and why.
 
   While the model holds control (AI mode), each window shows it:

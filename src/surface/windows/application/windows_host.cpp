@@ -4693,7 +4693,7 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     }
 
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
-    // The automation (--mcp, --mcp-script) as Application::run starts it; it
+    // The automation (--mcp-shared, --mcp-fcfs, --mcp-script) as Application::run starts it; it
     // ends after the window's model and the window's state below.
     const gui_forms::automation::AutomationRunScope automation{};
 #endif
