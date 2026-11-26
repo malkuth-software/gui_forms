@@ -73,6 +73,9 @@ ToolSpec built_in(const char* name, const char* title, const char* description, 
 std::string batch_schema() {
     std::string schema =
         "{\"type\":\"object\",\"properties\":{\"steps\":{\"type\":\"array\",\"minItems\":1,\"maxItems\":512,"
+        // An example for help (MCP round 6: an example is a call the tool
+        // accepts; a step needs a tool).
+        "\"examples\":[[{\"tool\":\"windows\"}]],"
         // One step schema, since the MCP server takes no anyOf (STXlib's
         // supported subset): a tool step names tool and carries that tool's
         // arguments beside it; an expect step names expect and takes only
@@ -221,13 +224,18 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         "painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so "
         "you see the program as its user does without a model. points [{x, y}, ...] (or [x, y] pairs; logical "
         "units from the captured area's top left, at most 1024) answers the colour at each instead of an image, to check a "
-        "drawing cheaply. A read: needs no control.",
+        "drawing cheaply. path saves the PNG to a file and replies with its path, size and dimensions (the command "
+        "folder, given no path, saves to capture-<n>.png in its own folder). A read: needs no control.",
         object_schema(targets + ",\"mode\":{\"type\":\"string\",\"enum\":[\"rendered\"]},"
                                 "\"points\":{\"type\":\"array\",\"maxItems\":1024,\"items\":" +
                                 detail::point_schema("") + "},"
                                 "\"scale\":{\"type\":\"number\"},\"margin\":{\"type\":\"number\"},"
                                 "\"include_overlays\":{\"type\":\"boolean\"},\"popups\":{\"type\":\"boolean\"},"
-                                "\"include_sign\":{\"type\":\"boolean\"}"),
+                                "\"include_sign\":{\"type\":\"boolean\"},"
+                                "\"path\":{\"type\":\"string\",\"description\":\"Save the PNG to this file (an "
+                                "absolute path ending .png) and reply with its path, size and dimensions instead of "
+                                "the image\"},\"overwrite\":{\"type\":\"boolean\",\"description\":\"Replace a file "
+                                "already at path\"}"),
         ToolAccess::read_only));
     std::string section_items{};
     std::string section_names{};
@@ -1253,10 +1261,18 @@ StepOutcome CoreAccess::windows_tool() {
     if (control.settings().appearance_review) {
         text += "appearance review: acts need no control";
     } else if (control.state() == ControlState::model_control) {
-        text += control.settings().ai_led ? "you hold it (AI-led launch)"
-                                          : "you hold it until release_control or 30 s without a call";
+        if (control.settings().ai_led) {
+            text += "you hold it (AI-led launch)";
+        } else if (control.settings().first_come) {
+            text += "you hold it until release_control or the user takes it back";
+        } else {
+            text += "you hold it until release_control or 30 s without a call";
+        }
     } else if (control.state() == ControlState::asking) {
         text += "the user is being asked";
+    } else if (control.settings().first_come) {
+        // MCP round 6: a --mcp-fcfs launch asks nobody.
+        text += "the user has it; your first act takes it at once";
     } else {
         text += "the user has it; your first act asks them";
     }
@@ -2260,8 +2276,11 @@ StepOutcome CoreAccess::release_control_tool() {
         return StepOutcome::finished(ToolReply::success("ok: you did not hold control; the user has it"));
     }
     control.release_by_model();
+    // MCP round 6: what the next act does depends on the launch.
+    const char* const next = control.settings().first_come ? "Your next act takes it again at once"
+                                                           : "Your next act asks the user again";
     return StepOutcome::finished(
-        ToolReply::success("ok: control returned to the user; AI mode ended. Your next act asks the user again"));
+        ToolReply::success(std::string("ok: control returned to the user; AI mode ended. ") + next));
 }
 
 // disconnect (owner, round 3). Soft asks every program window to close
@@ -2860,17 +2879,14 @@ void AutomationCore::finish_reply(RunningCall& call, StepOutcome& outcome) {
     detail::append_pending_states(extra);
     if (ToolSuccess* const success = reply.success_value()) {
         if (call.took_control && !disconnecting && call.tool != "close") {
-            Window* const window = call.window.get();
-            detail::JsonValue none{};
-            std::string error{};
-            if (window != nullptr && detail::read_arguments("{}", none, error)) {
-                const ToolReply snapshot = detail::snapshot_tool(*this, *window, none);
-                if (const ToolSuccess* const outline = snapshot.success_value()) {
-                    (*success).text += "\nYou now hold control (AI mode): later acts run at once until you call "
-                                       "release_control or 30 s pass without a call. The window now:\n" +
-                                       (*outline).text;
-                }
-            }
+            // One line after the act's own result, and no snapshot tree
+            // (MCP round 6: the first act's reply was a page long); how
+            // the hold ends follows the launch.
+            const ControlSettings& settings = control_.settings();
+            const char* ends = "until you call release_control or 30 s pass without a call";
+            if (settings.first_come) ends = "until you call release_control or the user takes it back";
+            if (settings.ai_led) ends = "for this launch";
+            (*success).text += std::string("\nYou now hold control (AI mode): later acts run at once ") + ends + ".";
         }
         (*success).text += extra;
     } else if (ToolFailure* const failure = reply.failure_value()) {

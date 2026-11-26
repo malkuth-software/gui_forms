@@ -42,6 +42,11 @@
 
 #include <memory>
 #include <string>
+#include <vector>
+
+namespace gui_forms {
+class Window;
+} // namespace gui_forms
 
 namespace gui_forms::automation {
 
@@ -109,6 +114,13 @@ struct AutomationLaunch final {
 
 class AutomationRun;
 
+// A window the help names before any host opens it: its model and stable
+// ID, as the entry was given them.
+struct HelpWindow final {
+    Window* model{};
+    std::string stable_id{};
+};
+
 // Application::run's scope, and the host entries': starts the run when the
 // launch asks for one and ends it when the run's windowing has ended. A scope
 // opened while another is open does nothing: the host's application entry
@@ -125,6 +137,18 @@ public:
     // Whether this is the outermost scope, the one that started the run (if
     // the launch asked for one); its entry joins the windows.
     [[nodiscard]] bool outermost() const noexcept;
+    // --mcp-help and --mcp (the panel) are answered before any native host
+    // starts (MCP round 6: --mcp-help aborted in NSApplication with no
+    // window server): when the launch asks for help, `windows` join the
+    // automation as they are (the program registered its tools when it
+    // made them, or the headless host ran their ready callbacks), the help
+    // is printed and the process ends with status 0.
+    // Otherwise it returns at once. --help never gets this far: the scope's
+    // constructor answers it.
+    void answer_help_before_host(const std::vector<HelpWindow>& windows);
+    // Whether the launch asks for help (--mcp-help, --mcp) and this scope
+    // answers it.
+    [[nodiscard]] bool help_requested() const noexcept;
 
 private:
     std::unique_ptr<AutomationRun> run_{};

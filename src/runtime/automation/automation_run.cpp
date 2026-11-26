@@ -3,7 +3,9 @@
 
 #include "../../core/application/application_state.hpp"
 #include "../../core/host/session/session_directory.hpp"
+#include "../../core/json/json_reader/json_reader.hpp"
 
+#include "gui_forms/allocation/library_memory/library_memory.hpp"
 #include "gui_forms/allocation/library_memory/program_allocator.hpp"
 #include "gui_forms/automation/marks/automation_marks.hpp"
 #include "../../controls/automation/marks/automation_marks_internal.hpp"
@@ -655,8 +657,9 @@ void AutomationRun::close_all() noexcept {
 
 void AutomationRun::serve_when_ready() {
     if (launch_.print_mcp_help) {
-        // --mcp-help: the first window's ready callback has registered the
-        // program's tools and note; the help is printed and the program ends.
+        // --mcp-help (from answer_help, before any native host): the
+        // windows have joined and the program's tools and note are
+        // registered; the help is printed and the program ends.
         std::vector<ToolSpec> specs{};
         core_.fill_tool_specs(specs);
         HelpContext context{};
@@ -686,13 +689,32 @@ void AutomationRun::serve_when_ready() {
     }
 }
 
+void AutomationRun::answer_help(const std::vector<HelpWindow>& windows) {
+    for (const HelpWindow& entry : windows) {
+        if (entry.model == nullptr) continue;
+        static_cast<void>(core_.attach_window(*entry.model, entry.stable_id));
+    }
+    serve_when_ready();
+    // serve_when_ready ends the process for --mcp-help; this is not reached.
+    std::_Exit(0);
+}
+
 bool AutomationRun::serving_started() const noexcept {
-    // --mcp-help waits for the first window's turn as serving does.
-    const bool started = !launch_.print_mcp_help && (!transport_ || (*transport_).serving());
+    // --mcp-help serves nothing: the entry answers it before any native host
+    // starts (answer_help), once the windows' ready callbacks have run.
+    const bool started = launch_.print_mcp_help || !transport_ || (*transport_).serving();
     return started;
 }
 
 void AutomationRun::sync_tools() {
+    if (cached_generation_ != core_.tool_generation()) {
+        cached_generation_ = core_.tool_generation();
+        std::shared_ptr<std::vector<ToolSpec>> fresh =
+            gui_forms::detail::make_library_shared<std::vector<ToolSpec>>();
+        core_.fill_tool_specs(*fresh);
+        const stxlib::ScopedLock lock(mutex_);
+        cached_specs_ = std::move(fresh);
+    }
     const bool stdio = transport_ && (*transport_).serving();
     if (attach_ && published_generation_ != core_.tool_generation()) {
         published_generation_ = core_.tool_generation();
@@ -800,10 +822,11 @@ bool AutomationRun::begin_attached(const AttachClient& client, const CallStop* s
         return false;
     }
     try {
-        if (dispatcher.invoke(BeginAttachWork{this, attach_identity(client)}) != DispatchInvokeResult::completed) {
-            refusal = "the program's windows are closing";
-            return false;
-        }
+        // Posted, not waited on: the dispatcher runs work in the order it
+        // was posted, so the session begins before any command this
+        // connection sends, and a folder line pays no extra round trip to
+        // the UI thread.
+        static_cast<void>(dispatcher.begin_invoke(BeginAttachWork{this, attach_identity(client)}));
     } catch (const std::exception& failure) {
         refusal = std::string("the program could not take the connection: ") + failure.what();
         return false;
@@ -855,13 +878,19 @@ void AutomationRun::end_attached(const McpTransport* transport) noexcept {
     }
 }
 
-std::vector<ToolSpec> AutomationRun::current_specs(std::string& error) {
-    std::vector<ToolSpec> specs{};
+std::shared_ptr<const std::vector<ToolSpec>> AutomationRun::current_specs(std::string& error, bool fresh) {
+    if (!fresh) {
+        const stxlib::ScopedLock lock(mutex_);
+        if (cached_specs_) return cached_specs_;
+    }
+    std::shared_ptr<std::vector<ToolSpec>> read =
+        gui_forms::detail::make_library_shared<std::vector<ToolSpec>>();
+    std::vector<ToolSpec>& specs = *read;
     std::uint64_t generation = 0U;
     const WindowDispatcher dispatcher = home_dispatcher();
     if (!dispatcher.window_alive()) {
         error = "the program has no window";
-        return specs;
+        return read;
     }
     try {
         if (dispatcher.invoke(FillSpecsWork{this, &specs, &generation}) != DispatchInvokeResult::completed) {
@@ -870,10 +899,30 @@ std::vector<ToolSpec> AutomationRun::current_specs(std::string& error) {
     } catch (const std::exception& failure) {
         error = std::string("the tools could not be read: ") + failure.what();
     }
-    return specs;
+    return read;
 }
 
 namespace {
+
+// The command folder's capture with no path and no points saves to a file
+// in the folder (MCP round 6: no image bytes on the out pipe): `arguments`
+// gains path `file`. Arguments that do not read as an object are left to
+// the tool to refuse.
+void add_capture_path(std::string& arguments, const std::string& file) {
+    const gui_forms::detail::JsonReadResult read = gui_forms::detail::read_json(arguments);
+    if (!read || read.root.kind != gui_forms::detail::JsonKind::object) return;
+    if (read.root.find("path") != nullptr || read.root.find("points") != nullptr) return;
+    std::string quoted = "\"";
+    for (const char letter : file) {
+        if (letter == '\\' || letter == '"') quoted += '\\';
+        quoted += letter;
+    }
+    quoted += '"';
+    const std::size_t open = arguments.find('{');
+    if (open == std::string::npos) return;
+    const bool empty = read.root.items.empty();
+    arguments.insert(open + 1U, "\"path\":" + quoted + (empty ? "" : ","));
+}
 
 // A tool's reply as a console shows it: the text MCP's result carries, a
 // line for each image (images come through MCP), and a failure's code,
@@ -884,7 +933,8 @@ std::string console_reply(const ToolReply& reply) {
         for (const ToolImage& image : (*success).images) {
             if (!text.empty()) text += '\n';
             text += "[image: " + image.mime_type + ", " + std::to_string(image.bytes.size()) +
-                    " bytes; images come through MCP, or capture with points=[[x,y],...] for pixels]";
+                    " bytes; capture path=<file.png> saves it to a file, points=[[x,y],...] reads pixels, and "
+                    "MCP carries the image]";
         }
         return text;
     }
@@ -955,11 +1005,21 @@ std::string AutomationRun::console_line(std::string_view line, const CallStop* s
         const std::size_t end = text.find_first_of(" \t");
         const std::string_view word = text.substr(0U, end);
         std::string error{};
-        const std::vector<ToolSpec> specs = current_specs(error);
-        const std::string tool = tool_for_path(word, specs);
+        std::shared_ptr<const std::vector<ToolSpec>> specs = current_specs(error, false);
+        std::string tool = tool_for_path(word, *specs);
+        if (tool.empty()) {
+            // The copy is refreshed after every call; a tool the program
+            // added since is found by reading the tools again.
+            specs = current_specs(error, true);
+            tool = tool_for_path(word, *specs);
+        }
         if (!tool.empty()) {
             const std::string rest = end == std::string_view::npos ? std::string{} : std::string(text.substr(end));
             command = parse_console_command("call " + tool + rest);
+        } else {
+            // What is accepted, from the console's table and the tools the
+            // program serves now, never a list kept by hand (MCP round 6).
+            command.error += "; and a tool's name or dotted path as the command: " + tool_command_summary(*specs);
         }
     }
     std::string answer{};
@@ -979,6 +1039,9 @@ std::string AutomationRun::console_line(std::string_view line, const CallStop* s
     case ConsoleVerb::call:
         // Another source may have labelled the record since.
         console_log_.set_session(label);
+        if (command.tool == "capture" && door_ && label == "pipe " + (*door_).id()) {
+            add_capture_path(command.arguments_json, (*door_).capture_path());
+        }
         answer = console_reply(drive(command.tool, command.arguments_json, stop, line));
         failed = answer.rfind("error:", 0U) == 0U;
         break;
@@ -1081,13 +1144,13 @@ void AutomationRun::door_control_changed(void* context, ControlState state) {
 
 std::string AutomationRun::console_help(std::string_view topic) {
     std::string error{};
-    const std::vector<ToolSpec> specs = current_specs(error);
+    const std::shared_ptr<const std::vector<ToolSpec>> specs = current_specs(error, false);
     if (!error.empty()) return error;
     HelpContext context{};
     context.note = detail::app_note_copy();
     context.access = access_line();
     context.console = true;
-    return help_text(topic, specs, context);
+    return help_text(topic, *specs, context);
 }
 
 bool attach_wanted(const AutomationLaunch& launch) {
@@ -1247,6 +1310,16 @@ AutomationRunScope::~AutomationRunScope() {
 
 bool AutomationRunScope::outermost() const noexcept {
     return outermost_;
+}
+
+bool AutomationRunScope::help_requested() const noexcept {
+    const bool requested = run_ && (*run_).help_only();
+    return requested;
+}
+
+void AutomationRunScope::answer_help_before_host(const std::vector<HelpWindow>& windows) {
+    if (!run_ || !(*run_).help_only()) return;
+    (*run_).answer_help(windows);
 }
 
 } // namespace gui_forms::automation

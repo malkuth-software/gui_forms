@@ -3062,7 +3062,15 @@ int run_linux_application(std::vector<LinuxApplicationWindow> windows,
   // Application::run starts it, each window joining under its stable id once
   // its host is ready. Under Application::run or the single-window entry the
   // outer scope has already started it, and this one does nothing.
-  const gui_forms::automation::AutomationRunScope automation{};
+  gui_forms::automation::AutomationRunScope automation{};
+  {
+      // Help flags never start the native host (MCP round 6).
+      std::vector<gui_forms::automation::HelpWindow> named{};
+      for (const LinuxApplicationWindow& entry : windows) {
+          named.push_back(gui_forms::automation::HelpWindow{entry.model.get(), entry.stable_id});
+      }
+      automation.answer_help_before_host(named);
+  }
   std::deque<gui_forms::detail::DirectRunWindow> direct_windows;
   if (automation.outermost()) {
     for (LinuxApplicationWindow &entry : windows) {
@@ -3155,7 +3163,13 @@ int run_linux(std::unique_ptr<gui_forms::Window> window,
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
   // The automation (--mcp-shared, --mcp-fcfs, --mcp-script) as Application::run starts it; it
   // ends after the window's model and the window's state below.
-  const gui_forms::automation::AutomationRunScope automation{};
+  gui_forms::automation::AutomationRunScope automation{};
+  {
+      // Help flags never start the native host (MCP round 6).
+      std::vector<gui_forms::automation::HelpWindow> named{};
+      named.push_back(gui_forms::automation::HelpWindow{window.get(), "main"});
+      automation.answer_help_before_host(named);
+  }
 #endif
   // The window joins the automation once the host is ready
   // (gui_forms::detail::DirectRunWindow); nothing happens without one.

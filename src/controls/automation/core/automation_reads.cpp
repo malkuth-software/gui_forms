@@ -8,6 +8,10 @@
 #include "gui_forms/visual_inspection/types/visual_inspection_types.hpp"
 #include "gui_forms/window.hpp"
 
+#include <stxlib/files.hpp>
+#include <stxlib/path.hpp>
+#include <stxlib/view.hpp>
+
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
@@ -603,6 +607,39 @@ ToolReply sample_capture(const WindowCapture& capture, const JsonValue& points, 
 
 } // namespace
 
+// Where capture's path argument may write (MCP round 6): an absolute path
+// to a .png file; the reason when not.
+std::string capture_path_refusal(const std::string& path) {
+    if (path.empty()) return "path is empty";
+    const bool absolute = path.front() == '/' || path.front() == '\\' ||
+                          (path.size() > 2U && path[1] == ':' && (path[2] == '\\' || path[2] == '/'));
+    if (!absolute) return "path must be absolute";
+    std::string ending = path.size() >= 4U ? path.substr(path.size() - 4U) : std::string{};
+    for (char& letter : ending) {
+        if (letter >= 'A' && letter <= 'Z') letter = static_cast<char>(letter - 'A' + 'a');
+    }
+    if (ending != ".png") return "path must name a .png file";
+    return std::string{};
+}
+
+// Writes `bytes` to `path` (UTF-8) through STXlib, replacing a file there
+// only when `overwrite`; the reason when it could not.
+std::string write_capture_file(const std::string& path, const std::vector<std::byte>& bytes, bool overwrite) {
+    const stxlib::OperationResult<stxlib::Path> target = stxlib::Path::parse_bytes(path.data(), path.size());
+    if (target.failed()) return path + " is not a path this host can name";
+    const stxlib::OperationResult<stxlib::FileInformation> there =
+        stxlib::inspect(*target.value(), stxlib::LinkMode::follow);
+    if (there.succeeded()) {
+        if (!overwrite) return "a file is already at " + path + " (overwrite true replaces it)";
+        if ((*there.value()).kind != stxlib::FileKind::regular) return path + " is not a plain file";
+    }
+    const stxlib::View<stxlib::Byte> content(reinterpret_cast<const stxlib::Byte*>(bytes.data()), bytes.size());
+    if (stxlib::write_file(*target.value(), content, stxlib::Durability::none).failed()) {
+        return path + " could not be written";
+    }
+    return std::string{};
+}
+
 ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& arguments) {
     const std::optional<std::string> mode = text_member(arguments, "mode");
     if (mode.has_value() && *mode == "presented") {
@@ -676,6 +713,14 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
     // checking its drawing needs a few pixels, not a PNG).
     const JsonValue* const points = kind_member(arguments, "points", JsonKind::array);
     if (points != nullptr) return sample_capture(*capture, *points, what);
+    const std::optional<std::string> path = text_member(arguments, "path");
+    if (path.has_value()) {
+        const std::string refused = capture_path_refusal(*path);
+        if (!refused.empty()) {
+            return ToolReply::failure(ToolError::invalid_arguments, refused,
+                                      "path=/tmp/shot.png, or leave path out for the image itself");
+        }
+    }
     ToolImage image{};
     if (!encode_window_capture_png(*capture, image.bytes)) {
         return ToolReply::failure(ToolError::internal, "the capture could not be encoded");
@@ -685,6 +730,17 @@ ToolReply capture_tool(AutomationCore& core, Window& window, const JsonValue& ar
                    std::to_string((*capture).pixel_height) + " px at scale " + number_text((*capture).scale) +
                    (sign ? " (rendered, with the in-use sign)" : " (rendered, without the in-use sign)");
     if (composited != 0U) success.text += " with its popup windows over it: " + popups;
+    if (path.has_value()) {
+        // The PNG goes to the file and the reply names it, with no image
+        // (MCP round 6: a plain-text door carries no image bytes).
+        const std::optional<bool> overwrite = boolean_member(arguments, "overwrite");
+        const std::string unwritten = write_capture_file(*path, image.bytes, overwrite.has_value() && *overwrite);
+        if (!unwritten.empty()) return ToolReply::failure(ToolError::unsupported_action, unwritten);
+        success.text += "\nsaved: " + *path + " (" + std::to_string(image.bytes.size()) + " bytes, " +
+                        std::to_string((*capture).pixel_width) + " x " + std::to_string((*capture).pixel_height) +
+                        " px)";
+        return ToolReply::success(std::move(success));
+    }
     success.images.push_back(std::move(image));
     ToolReply reply = ToolReply::success(std::move(success));
     return reply;

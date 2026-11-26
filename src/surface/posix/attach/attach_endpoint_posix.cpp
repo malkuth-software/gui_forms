@@ -29,9 +29,14 @@
 //   with mkdir 0700 (an ID whose name exists is drawn again) and checked
 //   after with lstat. Its `in` FIFO is held open for writing by the program
 //   too, so a writer's close is never an end of input; its `out` FIFO is
-//   opened for writing, non-blocking, only while a reply waits and a
-//   reader has it open, written, then closed, so a `cat` of it ends after
-//   the reply. A reply waits at most door_reply_seconds for a reader.
+//   opened for writing only while a reply waits: at once when a reader has
+//   it open, else by an open that blocks until a reader comes (no polling
+//   interval: the reader's own open wakes it), then written and closed, so
+//   a `cat` of it ends after the reply. A reply waits at most
+//   door_reply_seconds for a reader; a waiting open is released by the
+//   door itself (it opens `out` for reading a moment) when the program
+//   stops or the oldest reply's time is up (expire, from the reader's
+//   slices).
 
 #include "../../../runtime/automation/attach_endpoint.hpp"
 
@@ -604,10 +609,23 @@ bool connect_attach_endpoint(const std::string& address, AttachStreams& streams,
 namespace {
 
 constexpr std::string_view door_base = "/tmp/";
-// The door's own files, the only ones removed with its folder.
+// The door's own files, the only ones removed with its folder, with the
+// captures it saved (capture-<n>.png, remove_door_captures).
 constexpr std::string_view door_files[] = {"in", "out", "help", "info", "help.new", "info.new"};
-// How often a waiting reply looks for a reader of `out`.
-constexpr int door_reader_slice_milliseconds = 20;
+
+// Removes the captures the door saved in `folder` (MCP round 6: capture
+// with no path writes capture-<n>.png there), so the folder can go.
+void remove_door_captures(const std::string& folder) noexcept {
+    DIR* const listing = opendir(folder.c_str());
+    if (listing == nullptr) return;
+    for (dirent* entry = readdir(listing); entry != nullptr; entry = readdir(listing)) {
+        const std::string_view name((*entry).d_name);
+        const bool capture = name.size() > 12U && name.substr(0U, 8U) == "capture-" &&
+                             name.substr(name.size() - 4U) == ".png";
+        if (capture) static_cast<void>(unlink((folder + "/" + std::string(name)).c_str()));
+    }
+    static_cast<void>(closedir(listing));
+}
 // How long a reader that stops reading may hold a reply's write.
 constexpr int door_write_wait_milliseconds = 5000;
 constexpr std::size_t door_read_bytes = 64U * 1024U;
@@ -680,6 +698,13 @@ struct CommandDoor::State final {
     int writer_wake[2] = {-1, -1};
     std::atomic<bool> interrupted{false};
     std::atomic<bool> stopping{false};
+    // The writer thread is in (or about to enter) its blocking open of
+    // `out`; a release was asked of it (stop or expiry). Both sequentially
+    // consistent: the writer sets waiting_open then reads release, the
+    // releaser sets release then reads waiting_open, so one sees the other.
+    std::atomic<std::uint32_t> captures{0U};
+    std::atomic<bool> waiting_open{false};
+    std::atomic<bool> release{false};
     std::string buffer{};
     stxlib::Mutex mutex{};
     // Under mutex: the replies waiting for a reader, oldest first.
@@ -704,7 +729,56 @@ bool wake_pipe(int (&ends)[2]) noexcept {
     return true;
 }
 
-// Delivers the waiting replies whenever a reader has `out` open.
+// Ends the writer's blocking open of `out`, if it waits in one: the door
+// opens `out` for reading itself, which completes that open, and keeps it
+// until the writer has left it; the writer, seeing `release`, writes
+// nothing to it. Any thread; rare (stop, expiry), so its short wait for the
+// writer is a plain sleep loop.
+void release_writer(CommandDoor::State& state) noexcept {
+    state.release.store(true);
+    if (!state.waiting_open.load()) return;
+    const int reader = open(state.out_path.c_str(), O_RDONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW);
+    for (int turn = 0; turn < 1000 && state.waiting_open.load(); ++turn) {
+        stxlib::sleep_for(stxlib::Duration::milliseconds(1));
+    }
+    if (reader >= 0) static_cast<void>(close(reader));
+}
+
+// Opens `out` for writing once a reader has it open: at once when one
+// does, else blocking until one comes or the door releases the wait. A
+// descriptor set non-blocking for write_all; -1 when released; -2 when
+// `out` cannot be opened at all (gone, or no descriptor left).
+int open_for_reader(CommandDoor::State& state) noexcept {
+    const int ready = open(state.out_path.c_str(), O_WRONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW);
+    if (ready >= 0) return ready;
+    if (errno != ENXIO) return -2;
+    state.waiting_open.store(true);
+    if (state.release.exchange(false) || state.stopping.load()) {
+        state.waiting_open.store(false);
+        return -1;
+    }
+    int out = -1;
+    do {
+        out = open(state.out_path.c_str(), O_WRONLY | O_CLOEXEC | O_NOFOLLOW);
+    } while (out < 0 && errno == EINTR);
+    const bool released = state.release.exchange(false) || state.stopping.load();
+    state.waiting_open.store(false);
+    if (out >= 0 && released) {
+        // The door's own reader, or a real one at the same moment: the
+        // replies wait for the next open (or the destructor's flush).
+        close_descriptor(out);
+        return -1;
+    }
+    if (out < 0) return -2;
+    if (!set_blocking(out, false)) {
+        close_descriptor(out);
+        return -2;
+    }
+    return out;
+}
+
+// Delivers the waiting replies as soon as a reader has `out` open: waits on
+// the wake pipe while none waits, and in a blocking open while one does.
 void door_writer_main(const stxlib::StopSignal&, void* argument) noexcept {
     CommandDoor::State& state = *static_cast<CommandDoor::State*>(argument);
     for (;;) {
@@ -716,15 +790,25 @@ void door_writer_main(const stxlib::StopSignal&, void* argument) noexcept {
             while (!state.replies.empty() && state.replies.front().deadline <= now) state.replies.pop_front();
             waiting = !state.replies.empty();
         }
-        pollfd watched{};
-        watched.fd = state.writer_wake[0];
-        watched.events = POLLIN;
-        static_cast<void>(poll(&watched, 1U, waiting ? door_reader_slice_milliseconds : -1));
+        if (!waiting) {
+            pollfd watched{};
+            watched.fd = state.writer_wake[0];
+            watched.events = POLLIN;
+            static_cast<void>(poll(&watched, 1U, -1));
+            drain(state.writer_wake[0]);
+            continue;
+        }
         drain(state.writer_wake[0]);
-        if (state.stopping.load()) return;
-        if (!waiting) continue;
-        // Opens only while a reader has it open (ENXIO otherwise).
-        int out = open(state.out_path.c_str(), O_WRONLY | O_NONBLOCK | O_CLOEXEC | O_NOFOLLOW);
+        int out = open_for_reader(state);
+        if (out == -2) {
+            // `out` cannot be opened: no reader can come; look again when a
+            // reply or the stop wakes the thread, or a second on.
+            pollfd watched{};
+            watched.fd = state.writer_wake[0];
+            watched.events = POLLIN;
+            static_cast<void>(poll(&watched, 1U, 1000));
+            continue;
+        }
         if (out < 0) continue;
         std::deque<WaitingReply> taken{};
         {
@@ -810,6 +894,7 @@ CommandDoor::~CommandDoor() {
         const char wake = 'w';
         static_cast<void>(write(state.writer_wake[1], &wake, 1U));
     }
+    release_writer(state);
     if (state.writer_joinable) static_cast<void>(state.writer.join());
     // A reader waiting on `out` gets the replies still waiting (the reply to
     // the call that ended the program) and then its end, never a wait that
@@ -833,6 +918,7 @@ CommandDoor::~CommandDoor() {
     for (const std::string_view file : door_files) {
         static_cast<void>(unlink((state.folder + "/" + std::string(file)).c_str()));
     }
+    remove_door_captures(state.folder);
     static_cast<void>(rmdir(state.folder.c_str()));
 }
 
@@ -842,6 +928,12 @@ const std::string& CommandDoor::id() const noexcept {
 
 const std::string& CommandDoor::folder() const noexcept {
     return (*state_).folder;
+}
+
+std::string CommandDoor::capture_path() {
+    State& state = *state_;
+    const std::uint32_t number = state.captures.fetch_add(1U) + 1U;
+    return state.folder + "/capture-" + std::to_string(number) + ".png";
 }
 
 std::string CommandDoor::send_line(std::string_view command) const {
@@ -904,6 +996,17 @@ void CommandDoor::interrupt() noexcept {
     }
 }
 
+void CommandDoor::expire() noexcept {
+    State& state = *state_;
+    bool due = false;
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        due = !state.replies.empty() && state.replies.front().deadline <= stxlib::IntervalTime::now();
+    }
+    // The writer drops the replies past their time once its wait ends.
+    if (due) release_writer(state);
+}
+
 void CommandDoor::reply(std::string framed) {
     State& state = *state_;
     {
@@ -952,6 +1055,7 @@ void remove_door_folder(std::string_view id, std::int64_t process) noexcept {
         for (const std::string_view file : door_files) {
             static_cast<void>(unlink((folder + "/" + std::string(file)).c_str()));
         }
+        remove_door_captures(folder);
         static_cast<void>(rmdir(folder.c_str()));
     } catch (...) {
         // Out of memory: the folder stays for a later listing.

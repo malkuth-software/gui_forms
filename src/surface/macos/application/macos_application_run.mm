@@ -857,7 +857,15 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
     // Application::run starts it, each window joining under its stable id once
     // its host is ready. Under Application::run or the single-window entry the
     // outer scope has already started it, and this one does nothing.
-    const gui_forms::automation::AutomationRunScope automation{};
+    gui_forms::automation::AutomationRunScope automation{};
+    {
+        // Help flags never start the native host (MCP round 6).
+        std::vector<gui_forms::automation::HelpWindow> named{};
+        for (const MacApplicationWindow& entry : windows) {
+            named.push_back(gui_forms::automation::HelpWindow{entry.model.get(), entry.stable_id});
+        }
+        automation.answer_help_before_host(named);
+    }
     std::deque<gui_forms::detail::DirectRunWindow> direct_windows;
     if (automation.outermost()) {
         for (MacApplicationWindow &entry : windows) {
@@ -902,6 +910,7 @@ int run_macos_application(std::vector<MacApplicationWindow> windows,
         }
     }
     if (primary_count != 1U) return 2;
+    if (!window_server_reachable()) return 4;
 
     @autoreleasepool {
         NSApplication* nativeApplication = [NSApplication sharedApplication];

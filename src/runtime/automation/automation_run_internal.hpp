@@ -188,10 +188,18 @@ public:
     // program's tools are known).
     void announce_door();
 
+    // --mcp-help with no host (AutomationRunScope::answer_help_before_host):
+    // joins `windows` to the core, prints the help and ends the process.
+    // Only when the launch asks for help.
+    [[noreturn]] void answer_help(const std::vector<HelpWindow>& windows);
+    [[nodiscard]] bool help_only() const noexcept { return launch_.print_mcp_help; }
+
 private:
-    // The tools the program serves now, read on the UI thread; `error` says
-    // why none could be read.
-    [[nodiscard]] std::vector<ToolSpec> current_specs(std::string& error);
+    // The tools the program serves now: the copy sync_tools keeps (no UI
+    // round trip, MCP round 6: the folder's per-line cost), else read on the
+    // UI thread, and always read there when `fresh`; `error` says why none
+    // could be read. Never null.
+    [[nodiscard]] std::shared_ptr<const std::vector<ToolSpec>> current_specs(std::string& error, bool fresh);
     // drive's call itself, between its two records.
     [[nodiscard]] ToolReply drive_call(std::string_view tool, std::string arguments_json, const CallStop* stop);
     // A live window's dispatcher, the oldest first; empty when none is.
@@ -229,6 +237,11 @@ private:
     // UI thread: the tool generation the discovery entry last counted
     // (none yet: the maximum).
     std::uint64_t published_generation_{~std::uint64_t{0}};
+    // UI thread: the tool generation the kept copy was made at.
+    std::uint64_t cached_generation_{~std::uint64_t{0}};
+    // Under mutex_: the tools as sync_tools last read them, shared with the
+    // console's and the folder's threads; null until the first read.
+    std::shared_ptr<const std::vector<ToolSpec>> cached_specs_{};
 
     std::unique_ptr<McpTransport> transport_{};
     std::unique_ptr<ScriptRunner> script_{};

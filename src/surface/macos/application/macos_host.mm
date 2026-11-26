@@ -21,6 +21,19 @@
 
 namespace gui_forms::host {
 
+bool window_server_reachable() noexcept {
+    const CFDictionaryRef session = CGSessionCopyCurrentDictionary();
+    if (session == nullptr) {
+        std::fputs("GUI.Forms: no window server is reachable (no graphical login session), so the program cannot "
+                   "open its windows\n",
+                   stderr);
+        std::fflush(stderr);
+        return false;
+    }
+    CFRelease(session);
+    return true;
+}
+
 // The macOS convention for the named keyboard commands (owner decision
 // DK-30, interview G5-1): Cmd+W closes a document; every other command keeps
 // the PC convention's keys, Ctrl among them (Ctrl+Tab, Ctrl+PageDown).
@@ -193,13 +206,20 @@ int run_macos(std::unique_ptr<Window> model, MacHostOptions options) {
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
     // The automation (--mcp-shared, --mcp-fcfs, --mcp-script) as Application::run starts it; it
     // ends after the window's model and the window's state below.
-    const gui_forms::automation::AutomationRunScope automation{};
+    gui_forms::automation::AutomationRunScope automation{};
+    {
+        // Help flags never start the native host (MCP round 6).
+        std::vector<gui_forms::automation::HelpWindow> named{};
+        named.push_back(gui_forms::automation::HelpWindow{model.get(), "main"});
+        automation.answer_help_before_host(named);
+    }
 #endif
     // The window joins the automation once the host is ready
     // (gui_forms::detail::DirectRunWindow); nothing happens without one.
     gui_forms::detail::DirectRunWindow direct_window{};
     gui_forms::detail::adopt_opening_title(*model, options.title);
     options.host_ready = direct_window.wrap(*model, "main", std::move(options.host_ready));
+    if (!window_server_reachable()) return 4;
     int exitCode = 0;
     @autoreleasepool {
         NSApplication* application = [NSApplication sharedApplication];

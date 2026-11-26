@@ -35,8 +35,6 @@ constexpr std::chrono::milliseconds glint_moment{1800};
 constexpr double sweep_frequency = 0.6;
 // How long the tag line stays after the pointer enters the top border, and
 // how deep the hover zone is at least (study 11.2: it shows on hover).
-constexpr std::chrono::milliseconds tag_line_hover{6000};
-constexpr double tag_line_hover_zone = 4.0;
 constexpr Color white{255U, 255U, 255U, 255U};
 
 // The model as the title note names it: its own name when the client gives
@@ -340,34 +338,6 @@ void StockPresenter::window_detached(Window& window) noexcept {
     }
 }
 
-namespace {
-
-// The height of `window`'s top border: its band's top edge, or the
-// presenter's band width when the window reserves none there.
-double top_border_height(const Window& window) noexcept {
-    const WindowBandSnapshot band = window.band_snapshot();
-    const double top = band.reserved ? band.edges.top : 0.0;
-    return top > 0.0 ? top : tag_line_hover_zone;
-}
-
-} // namespace
-
-void StockPresenter::show_tag_line(Window& window, std::chrono::milliseconds duration) {
-    const Control::Ptr root = window.root();
-    if (!root) return;
-    ToolTipRequest request{};
-    request.text = client_label(client_);
-    request.description = "The model connected to this program";
-    const Size client = window.client_size();
-    request.anchor = Rect{0.0, 0.0, client.width, top_border_height(window)};
-    request.duration = stxlib::Optional<std::chrono::milliseconds>::of(duration);
-    try {
-        static_cast<void>(window.request_tool_tip(root, std::move(request)));
-    } catch (const std::invalid_argument&) {
-        // A root not yet attached: the next connect shows it.
-    }
-}
-
 void StockPresenter::client_changed(const ClientIdentity& client) {
     client_ = client;
     connected_ = true;
@@ -424,25 +394,9 @@ void StockPresenter::glint_ended(const WindowRef& window) noexcept {
     }
 }
 
-void StockPresenter::pointer_moved(Window& window, Point position, bool left) noexcept {
-    BandWindow* const entry = find_band(window);
-    if (entry == nullptr) return;
-    const Size client = window.client_size();
-    // The hover zone is the top border, widened to a few pixels so a thin
-    // band can be found with the pointer.
-    const double zone = std::max(top_border_height(window), tag_line_hover_zone);
-    // No tag line while the model holds control: no tooltip shows then.
-    const bool over = connected_ && !in_control_ && !left && position.y >= 0.0 && position.y < zone && position.x >= 0.0 &&
-                      position.x < client.width;
-    if (over && !(*entry).over_border) {
-        try {
-            show_tag_line(window, tag_line_hover);
-        } catch (...) {
-            // The tool tip could not be shown (out of memory): the next
-            // entry tries again.
-        }
-    }
-    (*entry).over_border = over;
+void StockPresenter::pointer_moved(Window&, Point, bool) noexcept {
+    // Nothing shows on the top border: the title note names the model (MCP
+    // round 6: the tag line this showed came up empty over the title).
 }
 
 void StockPresenter::calls_finished() noexcept {

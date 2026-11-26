@@ -133,3 +133,15 @@ using gui_forms::TextInputEvent;
 using gui_forms::Window;
 using gui_forms::CursorKind;
 using gui_forms::render::SkiaRaster;
+
+namespace gui_forms::host {
+
+// Whether this process has a window server to open windows on (MCP round 6:
+// with none, as in a sandbox or an SSH session, NSApplication aborts the
+// process). CGSessionCopyCurrentDictionary returns null when the process
+// runs outside a graphical login session. When there is none, says so on
+// standard error in one line and returns false; the entry then returns a
+// non-zero status instead of aborting.
+[[nodiscard]] bool window_server_reachable() noexcept;
+
+} // namespace gui_forms::host

@@ -215,6 +215,49 @@ AttachOpening read_attach_opening(std::string_view line) {
     return opening;
 }
 
+namespace {
+
+// The console's own commands: each verb, another name it answers to, and
+// how the list of accepted commands shows it (MCP round 6: the unknown
+// command's error lists what is accepted, from this table).
+struct ConsoleVerbName final {
+    std::string_view name;
+    std::string_view other;
+    ConsoleVerb verb;
+    std::string_view usage;
+};
+
+constexpr ConsoleVerbName console_verbs[] = {
+    {"help", "?", ConsoleVerb::help, "help [path]"},
+    {"tools", "", ConsoleVerb::tools, "tools"},
+    {"call", "", ConsoleVerb::call, "call <tool> [key=value ... | <json object>]"},
+    {"transcript", "", ConsoleVerb::transcript, "transcript"},
+    {"quit", "exit", ConsoleVerb::quit, "quit (or exit; closes a socket connection)"},
+    {"resume", "", ConsoleVerb::resume, "resume (1.0.5's, ignored)"},
+};
+
+} // namespace
+
+std::string console_verb_summary() {
+    std::string text{};
+    for (const ConsoleVerbName& entry : console_verbs) {
+        if (!text.empty()) text += ", ";
+        text += entry.usage;
+    }
+    return text;
+}
+
+namespace {
+
+ConsoleVerb console_verb_of(std::string_view word) noexcept {
+    for (const ConsoleVerbName& entry : console_verbs) {
+        if (word == entry.name || (!entry.other.empty() && word == entry.other)) return entry.verb;
+    }
+    return ConsoleVerb::unknown;
+}
+
+} // namespace
+
 ConsoleCommand parse_console_command(std::string_view line) {
     ConsoleCommand command{};
     const std::string_view text = trimmed(line);
@@ -222,20 +265,17 @@ ConsoleCommand parse_console_command(std::string_view line) {
     std::size_t start = 0U;
     const std::string_view verb = next_word(text, start);
     const std::string_view rest = text.substr(start);
-    if (verb == "help" || verb == "?") {
+    const ConsoleVerb known = console_verb_of(verb);
+    if (known == ConsoleVerb::help) {
         command.verb = ConsoleVerb::help;
         command.topic = clean_field(trimmed(rest), maximum_field);
-    } else if (verb == "tools") {
-        command.verb = ConsoleVerb::tools;
-    } else if (verb == "transcript") {
-        command.verb = ConsoleVerb::transcript;
-    } else if (verb == "quit" || verb == "exit") {
-        command.verb = ConsoleVerb::quit;
-    } else if (verb == "resume") {
+    } else if (known == ConsoleVerb::tools || known == ConsoleVerb::transcript || known == ConsoleVerb::quit) {
+        command.verb = known;
+    } else if (known == ConsoleVerb::resume) {
         // Kept for the clients of 1.0.5, whose sessions resumed by token:
         // there are no sessions now, so whatever follows is ignored.
         command.verb = ConsoleVerb::resume;
-    } else if (verb == "call") {
+    } else if (known == ConsoleVerb::call) {
         std::size_t after = 0U;
         command.tool = std::string(next_word(rest, after));
         if (command.tool.empty()) {
@@ -249,8 +289,8 @@ ConsoleCommand parse_console_command(std::string_view line) {
         }
     } else {
         command.verb = ConsoleVerb::unknown;
-        command.error = "unknown command \"" + clean_field(verb, maximum_field) +
-                        "\"; the commands are help, tools, call, transcript and quit";
+        command.error = "unknown command \"" + clean_field(verb, maximum_field) + "\"; the commands are " +
+                        console_verb_summary();
     }
     return command;
 }

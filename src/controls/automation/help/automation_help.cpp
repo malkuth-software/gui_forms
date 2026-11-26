@@ -4,8 +4,10 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <iterator>
 #include <string>
 #include <string_view>
+#include <utility>
 #include <vector>
 
 namespace gui_forms::automation {
@@ -224,13 +226,129 @@ bool has_point_members(const detail::JsonValue& property) {
     return point;
 }
 
-// A sample value for an example call, from the property's schema.
-std::string sample_value(const detail::JsonValue& property) {
+// A value as JSON text, for a schema's `examples` or `default`.
+void append_json_value(const detail::JsonValue& value, std::string& text) {
+    switch (value.kind) {
+    case detail::JsonKind::null:
+        text += "null";
+        return;
+    case detail::JsonKind::boolean:
+        text += value.boolean ? "true" : "false";
+        return;
+    case detail::JsonKind::number:
+        text += value.text;
+        return;
+    case detail::JsonKind::string:
+        text += '"';
+        for (const char letter : value.text) {
+            if (letter == '"' || letter == '\\') {
+                text += '\\';
+                text += letter;
+            } else if (static_cast<unsigned char>(letter) < 0x20U) {
+                constexpr std::string_view digits = "0123456789abcdef";
+                text += "\\u00";
+                text += digits[(static_cast<unsigned char>(letter) >> 4U) & 0x0fU];
+                text += digits[static_cast<unsigned char>(letter) & 0x0fU];
+            } else {
+                text += letter;
+            }
+        }
+        text += '"';
+        return;
+    case detail::JsonKind::array:
+        text += '[';
+        for (std::size_t index = 0U; index < value.items.size(); ++index) {
+            if (index != 0U) text += ',';
+            append_json_value(value.items[index], text);
+        }
+        text += ']';
+        return;
+    case detail::JsonKind::object:
+        text += '{';
+        for (std::size_t index = 0U; index < value.items.size(); ++index) {
+            if (index != 0U) text += ',';
+            detail::JsonValue name{};
+            name.kind = detail::JsonKind::string;
+            name.text = value.names[index];
+            append_json_value(name, text);
+            text += ':';
+            append_json_value(value.items[index], text);
+        }
+        text += '}';
+        return;
+    }
+    text += "null";
+}
+
+// What the values of one example share (MCP round 6: an example is a call
+// the tool accepts): its points, so a box, line or polygon never repeats a
+// point, and whether the value is the last item of an array, so numbered
+// items (a gradient's stops) run from a property's minimum to its maximum.
+struct SampleState final {
+    std::size_t points{};
+    bool last_item{};
+};
+
+constexpr std::string_view sample_points[] = {"{\"x\":10,\"y\":10}", "{\"x\":120,\"y\":40}", "{\"x\":40,\"y\":110}",
+                                              "{\"x\":150,\"y\":90}"};
+
+std::string next_point(SampleState& state) {
+    const std::string_view point = sample_points[state.points % std::size(sample_points)];
+    ++state.points;
+    return std::string(point);
+}
+
+bool is_required(const detail::JsonValue* required, std::string_view name) {
+    if (required == nullptr) return false;
+    for (const detail::JsonValue& item : (*required).items) {
+        if (item.text == name) return true;
+    }
+    return false;
+}
+
+std::string sample_value(const detail::JsonValue& property, std::string_view name, SampleState& state);
+
+// An object's required members, each with its sample, as JSON.
+std::string sample_object(const detail::JsonValue& property, SampleState& state) {
+    const detail::JsonValue* const members = property.find("properties");
+    const detail::JsonValue* const required = property.find("required");
+    std::string text = "{";
+    if (members != nullptr) {
+        bool first = true;
+        for (std::size_t index = 0U; index < (*members).items.size(); ++index) {
+            const std::string& member = (*members).names[index];
+            if (!is_required(required, member)) continue;
+            if (!first) text += ',';
+            first = false;
+            text += "\"" + member + "\":" + sample_value((*members).items[index], member, state);
+        }
+    }
+    text += "}";
+    return text;
+}
+
+// A sample value for an example call, from the property's schema: its
+// first `examples` entry, its `default`, its first `enum` value, else one
+// made from its type and bounds; `name` is the property's name, which says
+// a colour.
+std::string sample_value(const detail::JsonValue& property, std::string_view name, SampleState& state) {
+    const detail::JsonValue* const examples = property.find("examples");
+    if (examples != nullptr && (*examples).kind == detail::JsonKind::array && !(*examples).items.empty()) {
+        std::string text{};
+        append_json_value((*examples).items.front(), text);
+        return text;
+    }
+    const detail::JsonValue* const fallback = property.find("default");
+    if (fallback != nullptr) {
+        std::string text{};
+        append_json_value(*fallback, text);
+        return text;
+    }
     const detail::JsonValue* const options = property.find("enum");
     if (options != nullptr && (*options).kind == detail::JsonKind::array && !(*options).items.empty()) {
-        const detail::JsonValue& first = (*options).items.front();
-        if (first.kind == detail::JsonKind::string) return "\"" + first.text + "\"";
-        return first.text;
+        std::string text{};
+        append_json_value((*options).items.front(), text);
+        return text;
     }
     const detail::JsonValue* const type = property.find("type");
     std::string kind = "string";
@@ -240,34 +358,82 @@ std::string sample_value(const detail::JsonValue& property) {
     }
     if (kind == "integer" || kind == "number") {
         const detail::JsonValue* const low = property.find("minimum");
+        const detail::JsonValue* const high = property.find("maximum");
+        if (state.last_item && high != nullptr) return (*high).text;
         return low != nullptr ? (*low).text : std::string("0");
     }
     if (kind == "boolean") return std::string("true");
-    if (kind == "object") return has_point_members(property) ? std::string("{\"x\":10,\"y\":10}") : std::string("{}");
+    if (kind == "object") return has_point_members(property) ? next_point(state) : sample_object(property, state);
     if (kind == "array") {
         const detail::JsonValue* const items = property.find("items");
         if (items == nullptr) return std::string("[]");
         const detail::JsonValue* const fewest = property.find("minItems");
-        const bool two = fewest != nullptr && (*fewest).text != "0" && (*fewest).text != "1";
-        if (has_point_members(*items)) {
-            // Points make a real shape, never one point twice (round 5:
-            // plan_paint_path's example repeated its point): a triangle,
-            // or a line where one or two points do.
-            if (!two) return std::string("[{\"x\":10,\"y\":10}]");
-            const std::string_view triangle = "[{\"x\":10,\"y\":10},{\"x\":120,\"y\":40},{\"x\":40,\"y\":110}]";
-            const detail::JsonValue* const most = property.find("maxItems");
-            if (most != nullptr && (*most).text == "2") return std::string("[{\"x\":10,\"y\":10},{\"x\":120,\"y\":40}]");
-            return std::string(triangle);
+        // As many items as the schema needs, and at least one.
+        std::size_t count = 1U;
+        if (fewest != nullptr) {
+            std::size_t needed = 0U;
+            for (const char digit : (*fewest).text) {
+                if (digit < '0' || digit > '9' || needed > 64U) break;
+                needed = needed * 10U + static_cast<std::size_t>(digit - '0');
+            }
+            if (needed > count) count = needed;
         }
-        const std::string item = sample_value(*items);
-        return two ? "[" + item + "," + item + "]" : "[" + item + "]";
+        // Points make a real shape (round 5: plan_paint_path's example
+        // repeated its point): a triangle, or a line where two points do.
+        const detail::JsonValue* const most = property.find("maxItems");
+        if (has_point_members(*items) && count == 2U && (most == nullptr || (*most).text != "2")) count = 3U;
+        std::string text = "[";
+        for (std::size_t index = 0U; index < count; ++index) {
+            if (index != 0U) text += ',';
+            SampleState item = state;
+            item.last_item = count > 1U && index + 1U == count;
+            text += sample_value(*items, name, item);
+            state.points = item.points;
+        }
+        text += "]";
+        return text;
     }
     if (kind == "null") return std::string("null");
+    if (name == "colour" || name == "color" || name == "fill" || name == "hex") return std::string("\"#3366CC\"");
     return std::string("\"text\"");
 }
 
+// A value as a key=value pair writes it: bare when the console reads the
+// bare text back as the same string or JSON value, else as JSON.
+std::string pair_value(const std::string& json) {
+    if (json.size() < 2U || json.front() != '"' || json.back() != '"') return json;
+    const std::string inner = json.substr(1U, json.size() - 2U);
+    if (inner.empty() || inner == "true" || inner == "false" || inner == "null") return json;
+    const char first = inner.front();
+    if ((first >= '0' && first <= '9') || first == '-' || first == '{' || first == '[') return json;
+    for (const char letter : inner) {
+        const bool plain = (letter >= 'a' && letter <= 'z') || (letter >= 'A' && letter <= 'Z') ||
+                           (letter >= '0' && letter <= '9') || letter == '_' || letter == '-' || letter == '.' ||
+                           letter == '#';
+        if (!plain) return json;
+    }
+    return inner;
+}
+
+// The required arguments of a tool's example, by name, as JSON values.
+std::vector<std::pair<std::string, std::string>> example_arguments(const ToolSpec& spec) {
+    std::vector<std::pair<std::string, std::string>> arguments{};
+    const detail::JsonReadResult read = detail::read_json(spec.input_schema.empty() ? "{}" : spec.input_schema);
+    if (!read) return arguments;
+    const detail::JsonValue* const properties = read.root.find("properties");
+    const detail::JsonValue* const required = read.root.find("required");
+    if (properties == nullptr) return arguments;
+    SampleState state{};
+    for (std::size_t index = 0U; index < (*properties).items.size(); ++index) {
+        const std::string& name = (*properties).names[index];
+        if (!is_required(required, name)) continue;
+        arguments.emplace_back(name, sample_value((*properties).items[index], name, state));
+    }
+    return arguments;
+}
+
 // `help <tool>`: the description, the arguments and an example call.
-std::string tool_help(const ToolSpec& spec) {
+std::string tool_help(const ToolSpec& spec, std::string_view path) {
     std::string text = spec.name;
     if (!spec.title.empty()) text += " (" + spec.title + ")";
     text += "\n";
@@ -281,12 +447,10 @@ std::string tool_help(const ToolSpec& spec) {
     const detail::JsonReadResult read = detail::read_json(spec.input_schema.empty() ? "{}" : spec.input_schema);
     const detail::JsonValue* const properties = read ? read.root.find("properties") : nullptr;
     const detail::JsonValue* const required = read ? read.root.find("required") : nullptr;
-    std::string example = "call " + spec.name;
     if (properties == nullptr || (*properties).items.empty()) {
         text += "No arguments.\n";
     } else {
         text += "Arguments:\n";
-        std::string members{};
         for (std::size_t index = 0U; index < (*properties).items.size(); ++index) {
             const std::string& name = (*properties).names[index];
             const detail::JsonValue& property = (*properties).items[index];
@@ -301,14 +465,9 @@ std::string tool_help(const ToolSpec& spec) {
             const detail::JsonValue* const description = property.find("description");
             if (description != nullptr && !(*description).text.empty()) text += ": " + (*description).text;
             text += "\n";
-            if (needed) {
-                if (!members.empty()) members += ",";
-                members += "\"" + name + "\":" + sample_value(property);
-            }
         }
-        if (!members.empty()) example += " {" + members + "}";
     }
-    text += "Example:\n  " + example;
+    text += "Example:\n  " + tool_example(spec, path);
     return text;
 }
 
@@ -464,6 +623,24 @@ std::string overview(const std::vector<ToolSpec>& tools, const HelpContext& cont
 
 } // namespace
 
+std::string tool_example(const ToolSpec& spec, std::string_view path) {
+    std::string text(path.empty() ? std::string_view(spec.name) : path);
+    for (const std::pair<std::string, std::string>& argument : example_arguments(spec)) {
+        text += " " + argument.first + "=" + pair_value(argument.second);
+    }
+    return text;
+}
+
+std::string tool_example_arguments(const ToolSpec& spec) {
+    std::string text = "{";
+    for (const std::pair<std::string, std::string>& argument : example_arguments(spec)) {
+        if (text.size() > 1U) text += ',';
+        text += "\"" + argument.first + "\":" + argument.second;
+    }
+    text += "}";
+    return text;
+}
+
 std::string session_instructions(std::string_view base, const HelpContext& context) {
     std::string text(base);
     if (!context.access.empty()) text += "\n" + context.access;
@@ -480,7 +657,7 @@ std::string help_tree_text(const std::vector<ToolSpec>& tools, const HelpContext
         text += "\n\n== help " + group + "\n" + group_list(group, tools);
     }
     for (const ToolSpec& spec : tools) {
-        text += "\n\n== help " + tool_path(spec, tools) + "\n" + tool_help(spec);
+        text += "\n\n== help " + tool_path(spec, tools) + "\n" + tool_help(spec, tool_path(spec, tools));
     }
     text += "\n";
     return text;
@@ -509,6 +686,23 @@ std::string tool_for_path(std::string_view path, const std::vector<ToolSpec>& to
         }
     }
     return std::string{};
+}
+
+std::string tool_command_summary(const std::vector<ToolSpec>& tools) {
+    std::string text{};
+    for (const ToolSpec& spec : tools) {
+        if (!tool_group(spec.name, tools).empty()) continue;
+        if (!text.empty()) text += ", ";
+        text += spec.name;
+        if (spec.name == "release_control") text += " (or release)";
+    }
+    for (const std::string& group : tool_groups(tools)) {
+        std::size_t count = 0U;
+        for (const ToolSpec& spec : tools) count += tool_group(spec.name, tools) == group ? 1U : 0U;
+        if (!text.empty()) text += ", ";
+        text += group + ".<name> (" + std::to_string(count) + " tools: help " + group + ")";
+    }
+    return text;
 }
 
 std::vector<std::string> help_topics() {
@@ -561,7 +755,7 @@ std::string help_text(std::string_view topic, const std::vector<ToolSpec>& tools
     for (const ToolSpec& spec : tools) {
         if (lowered(spec.name) == wanted || lowered(tool_path(spec, tools)) == wanted) {
             const std::string path = tool_path(spec, tools);
-            std::string text = tool_help(spec);
+            std::string text = tool_help(spec, path);
             if (path != spec.name) text = path + " = " + text;
             return text;
         }

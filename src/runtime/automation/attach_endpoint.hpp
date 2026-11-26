@@ -213,6 +213,10 @@ public:
     [[nodiscard]] const std::string& id() const noexcept;
     // The folder's absolute path.
     [[nodiscard]] const std::string& folder() const noexcept;
+    // A fresh file in the folder for a capture the folder's caller gave no
+    // path for (MCP round 6): `<folder>/capture-<n>.png`, n counting from 1.
+    // The door removes them with its folder. Any thread.
+    [[nodiscard]] std::string capture_path();
     // The exact command a shell copies to send `command` and read its
     // reply (`echo '<command>' > /tmp/<id>/in; cat /tmp/<id>/out` on
     // POSIX).
@@ -226,6 +230,10 @@ public:
     // never blocks. Replies nobody reads within door_reply_seconds, or past
     // door_reply_limit queued, are dropped. Any thread.
     void reply(std::string framed);
+    // Drops the replies past their time; on POSIX it also ends the
+    // writer's wait for a reader so it can. The reader thread calls it
+    // between its waits. Any thread.
+    void expire() noexcept;
     // Rewrites `help` or `info` whole. Any thread.
     void write_help(std::string_view text);
     void write_info(std::string_view text);
@@ -348,6 +356,9 @@ struct ConsoleCommand final {
 // when it reads as a number, true, false, null, an object, an array or a
 // quoted string, and a string otherwise.
 [[nodiscard]] ConsoleCommand parse_console_command(std::string_view line);
+// The console's own commands as the unknown command's error lists them,
+// from the table parse_console_command reads (MCP round 6).
+[[nodiscard]] std::string console_verb_summary();
 
 // A JSON-RPC error response line (newline included) for request `id_json`.
 [[nodiscard]] std::string json_rpc_error_line(std::string_view id_json, int code, std::string_view message);

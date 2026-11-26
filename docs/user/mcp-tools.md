@@ -120,7 +120,7 @@ No arguments.
 
 ## `capture`
 
-**Capture.** A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so you see the program as its user does without a model. points [{x, y}, ...] (or [x, y] pairs; logical units from the captured area's top left, at most 1024) answers the colour at each instead of an image, to check a drawing cheaply. A read: needs no control.
+**Capture.** A window or control as a PNG, drawn fresh from the current state; a window's open popup windows (menus, drop-downs) and its tooltip window are composited over it unless popups is false. Password fields are painted out. The in-use sign (the band, AI mode's stripes) is left out unless include_sign is true, so you see the program as its user does without a model. points [{x, y}, ...] (or [x, y] pairs; logical units from the captured area's top left, at most 1024) answers the colour at each instead of an image, to check a drawing cheaply. path saves the PNG to a file and replies with its path, size and dimensions (the command folder, given no path, saves to capture-<n>.png in its own folder). A read: needs no control.
 
 | Argument | Type | Required | Meaning |
 |---|---|---|---|
@@ -134,6 +134,8 @@ No arguments.
 | `include_overlays` | boolean | no |  |
 | `popups` | boolean | no |  |
 | `include_sign` | boolean | no |  |
+| `path` | string | no | Save the PNG to this file (an absolute path ending .png) and reply with its path, size and dimensions instead of the image |
+| `overwrite` | boolean | no | Replace a file already at path |
 
 ## `inspect`
 

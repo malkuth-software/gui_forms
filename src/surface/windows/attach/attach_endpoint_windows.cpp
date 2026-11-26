@@ -625,6 +625,24 @@ namespace {
 
 constexpr std::wstring_view pipe_prefix = L"\\\\.\\pipe\\";
 constexpr std::string_view door_files[] = {"help", "info", "help.new", "info.new"};
+
+// Removes the captures the door saved in `folder` (MCP round 6: capture
+// with no path writes capture-<n>.png there), so the folder can go.
+void remove_door_captures(const std::string& folder) noexcept {
+    try {
+        WIN32_FIND_DATAW found{};
+        const HANDLE search = FindFirstFileW(wide(folder + "\\capture-*.png").c_str(), &found);
+        if (search == INVALID_HANDLE_VALUE) return;
+        do {
+            if ((found.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) != 0U) continue;
+            const std::wstring path = wide(folder + "\\") + found.cFileName;
+            static_cast<void>(DeleteFileW(path.c_str()));
+        } while (FindNextFileW(search, &found));
+        static_cast<void>(FindClose(search));
+    } catch (...) {
+        // Out of memory: the captures stay, and with them the folder.
+    }
+}
 constexpr DWORD door_pipe_bytes = 64U * 1024U;
 constexpr DWORD door_write_wait_milliseconds = 5000U;
 
@@ -698,6 +716,7 @@ void door_writer_main(const stxlib::StopSignal& signal, void* argument) noexcept
 struct CommandDoor::State final {
     std::string id{};
     std::string folder{};
+    std::atomic<std::uint32_t> captures{0U};
     std::wstring in_name{};
     std::wstring out_name{};
     HANDLE in_pipe{INVALID_HANDLE_VALUE};
@@ -914,6 +933,7 @@ CommandDoor::~CommandDoor() {
     for (const std::string_view file : door_files) {
         static_cast<void>(DeleteFileW(wide(state.folder + "\\" + std::string(file)).c_str()));
     }
+    remove_door_captures(state.folder);
     static_cast<void>(RemoveDirectoryW(wide(state.folder).c_str()));
 }
 
@@ -923,6 +943,12 @@ const std::string& CommandDoor::id() const noexcept {
 
 const std::string& CommandDoor::folder() const noexcept {
     return (*state_).folder;
+}
+
+std::string CommandDoor::capture_path() {
+    State& state = *state_;
+    const std::uint32_t number = state.captures.fetch_add(1U) + 1U;
+    return state.folder + "\\capture-" + std::to_string(number) + ".png";
 }
 
 std::string CommandDoor::send_line(std::string_view command) const {
@@ -965,6 +991,15 @@ DoorWait CommandDoor::read_command(std::string& line, std::int64_t timeout_milli
 void CommandDoor::interrupt() noexcept {
     State& state = *state_;
     if (state.interrupted != nullptr) static_cast<void>(SetEvent(state.interrupted));
+}
+
+void CommandDoor::expire() noexcept {
+    // The writer drops replies past their time when it next takes them;
+    // nothing waits on a reader here that needs ending.
+    State& state = *state_;
+    const stxlib::ScopedLock lock(state.mutex);
+    const ULONGLONG now = GetTickCount64();
+    while (!state.replies.empty() && state.replies.front().deadline <= now) state.replies.pop_front();
 }
 
 void CommandDoor::reply(std::string framed) {
@@ -1013,6 +1048,7 @@ void remove_door_folder(std::string_view id, std::int64_t process) noexcept {
         for (const std::string_view file : door_files) {
             static_cast<void>(DeleteFileW(wide(folder + "\\" + std::string(file)).c_str()));
         }
+        remove_door_captures(folder);
         static_cast<void>(RemoveDirectoryW(wide(folder).c_str()));
     } catch (...) {
         // Out of memory: the folder stays for a later listing.

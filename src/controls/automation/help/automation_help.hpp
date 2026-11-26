@@ -73,6 +73,20 @@ inline constexpr std::string_view mcp_help_pointer =
 // The tool a console word names: its name, its dotted path (both in any
 // case), or `release` for release_control; empty when none.
 [[nodiscard]] std::string tool_for_path(std::string_view path, const std::vector<ToolSpec>& tools);
+// The example call `help <tool>` gives (MCP round 6: an example is a call
+// the tool accepts): `path` (the tool's dotted path; its name when empty)
+// and its required arguments as key=value pairs, each value from the
+// schema's `examples`, `default` or `enum`, else made from its type and
+// bounds (points that differ, array items from minimum to maximum, a
+// colour as #RRGGBB). Through the folder or the socket console it is the
+// call whose arguments tool_example_arguments gives.
+[[nodiscard]] std::string tool_example(const ToolSpec& spec, std::string_view path);
+// The example's arguments as one JSON object.
+[[nodiscard]] std::string tool_example_arguments(const ToolSpec& spec);
+// The tools as commands, for the unknown command's error (MCP round 6):
+// each tool in no group by its name (release_control "or release"), each
+// group as `<group>.<name>` with its count and how to list it.
+[[nodiscard]] std::string tool_command_summary(const std::vector<ToolSpec>& tools);
 // A dotted path to show as help's example: the first tool of the first
 // group other than the built-in commands (`plan_paint.draw`), else of any
 // group; empty when no tool is in a group.

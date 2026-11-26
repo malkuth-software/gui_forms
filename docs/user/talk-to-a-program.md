@@ -62,7 +62,9 @@ instance of that program (or, when none runs, the path a launch would use). `pro
 ## The console
 
 Open the socket and type: one command a line, each answered, every
-answer ending with the prompt `gui-forms> `. There is no banner and no
+answer ending with the command folder's status line (`. ok`, `. error`,
+`. error at <n>` for a chain, `. #<n> ok` when the line began with
+`#<n> `) and then the prompt `gui-forms> `. There is no banner and no
 login; a connection that sends one command and closes is as good as one
 kept open.
 
@@ -81,8 +83,13 @@ quit                                   close this connection
 ```
 
 A reply is the tool's text exactly as an MCP result carries it; an image
-is named in a line (fetch it over MCP, or use `capture` with
-`points=[[x,y],...]` to read pixels as text).
+is named in a line. `capture path=/tmp/shot.png` saves the PNG to that
+file (an absolute path ending `.png`; `overwrite=true` replaces a file
+already there) and replies with its path, size and dimensions, through
+every door; `capture points=[[x,y],...]` reads pixels as text. Through the
+command folder a capture with neither is saved to `capture-<n>.png` in the
+folder itself (`/tmp/<id>/capture-1.png`, `%TEMP%\<id>\capture-1.png` on
+Windows), removed with the folder: no image bytes come down `out`.
 
 macOS and Linux:
 
@@ -120,7 +127,11 @@ A door that could not be made adds a line such as
 - Each reply goes to `out` and ends with a line of its own: `. ok` or
   `. error` (a reply line that begins with `.` gets another). `cat out`
   ends after the reply. A reply waits up to 60 seconds for a reader, so the
-  write and the read can be separate shells. An empty or blank line is
+  write and the read can be separate shells. A reply nobody reads in that
+  time is dropped; until then it is the next reader's, so a lost read (a
+  `cat out` that never ran) shifts the later reads by one: the next `cat`
+  gets the old reply first. Start each command with `#<n> ` (below) and
+  check the end line's `#<n>` to keep replies matched. An empty or blank line is
   answered too (`error: empty command`, on the socket console as well), so
   `cat out` never waits for nothing.
 - One line may chain commands, as a shell does: `a && b` runs `b` only if
@@ -129,7 +140,8 @@ A door that could not be made adds a line such as
   `[2] ...`; one skipped after a failure says `not run`) and ends with
   `. ok`, or `. error at <n>` naming the first that failed:
   `echo 'plan_paint.new_image width=200 height=100 && plan_paint.draw shape=line from=[0,0] to=[200,100]' > /tmp/<id>/in; cat /tmp/<id>/out`.
-  The socket console takes chained lines too.
+  The socket console takes chained lines and `#<n> ` too, and ends its
+  replies with the same status line.
 - A model that starts the program itself, in the background from its
   shell, launches it with `--mcp-fcfs` (or `--mcp-shared`, to leave the
   user asked): the program stays up with its input closed or at

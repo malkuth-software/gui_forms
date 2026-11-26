@@ -206,8 +206,11 @@ void ToolTipPresenter::woke(FrameTime now) {
 std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTipSubject subject,
                                                    stxlib::Optional<std::chrono::milliseconds> duration) {
     const Control::Ptr control = subject.control.lock();
+    // Never a tooltip without text, whoever asks and in any mode (owner,
+    // MCP round 6): the one place every tooltip opens refuses blank text,
+    // and below, text that breaks into no lines.
     if (!control || !(*control).is_alive() || (*control).attached_window() != &window_ ||
-        !available(window_.tool_tip_settings(), *control) || subject.text.empty()) {
+        !available(window_.tool_tip_settings(), *control) || !tool_tip_text_shows(subject.text)) {
         state_ = Idle{};
         return std::nullopt;
     }
@@ -217,6 +220,10 @@ std::optional<ToolTipEvent> ToolTipPresenter::open(ToolTipOrigin origin, ToolTip
     ToolTipLines& lines = transient_lines_;
     lines.font = (*control).effective_font(tool_tip_font);
     wrap_tool_tip_lines(*control, subject.text, settings.maximum_width, wrap_room(subject), lines);
+    if (lines.lines.empty()) {
+        state_ = Idle{};
+        return std::nullopt;
+    }
 
     // Written into the recycled event's storage (raise returns it).
     ToolTipEvent change = std::move(spare_event_);

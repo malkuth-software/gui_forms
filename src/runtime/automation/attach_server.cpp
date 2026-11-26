@@ -190,7 +190,9 @@ void serve_console(AttachConnection& connection) {
     const FlagStop stop(state.stop);
     std::string refusal{};
     if (!run.begin_attached(client, &stop, refusal)) {
-        static_cast<void>(write_attach_line(streams.output, "refused: " + refusal + "\n"));
+        const DoorLine opening = read_door_line(line);
+        static_cast<void>(write_attach_line(streams.output, door_reply_frame("refused: " + refusal, opening.request,
+                                                                             true)));
         return;
     }
     const std::string label = connection_label(client, streams.peer_process);
@@ -200,14 +202,20 @@ void serve_console(AttachConnection& connection) {
         if (state.stop.load()) break;
         if (!first && !read_attach_line(streams.input, line)) break;
         first = false;
+        // Each reply ends with the folder's status line (`. ok`, `. #7 ok`,
+        // `. error at 2`; MCP round 6), then the prompt: one reply format
+        // for every console door.
+        const DoorLine read = read_door_line(line);
         bool quit = false;
         std::size_t failed_at = 0U;
-        const std::string answer = run.console_chain(line, &stop, label, quit, failed_at);
+        const std::string answer = run.console_chain(read.command, &stop, label, quit, failed_at);
         if (quit) {
             static_cast<void>(write_attach_line(streams.output, "closed\n"));
             break;
         }
-        if (!console_answer(streams, answer)) break;
+        const bool chained = split_console_chain(read.command).size() > 1U;
+        const std::size_t named = chained ? failed_at : 0U;
+        if (!console_answer(streams, door_reply_frame(answer, read.request, failed_at != 0U, named))) break;
     }
     run.end_attached(nullptr);
 }
@@ -411,7 +419,11 @@ void door_thread_main(const stxlib::StopSignal&, void* argument) noexcept {
         if (state.stop.load()) return;
         std::string line{};
         const DoorWait waited = (*state.door).read_command(line, door_slice_milliseconds);
-        if (waited == DoorWait::timed_out) continue;
+        if (waited == DoorWait::timed_out) {
+            // Between waits: replies nobody read within their time go.
+            (*state.door).expire();
+            continue;
+        }
         if (waited != DoorWait::line) return;
         try {
             serve_door_line(state, line);

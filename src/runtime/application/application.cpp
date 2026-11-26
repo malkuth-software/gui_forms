@@ -4,9 +4,11 @@
 #include "../../core/application/splashscreen_surface.hpp"
 #if defined(GUI_FORMS_MCP_BUILT)
 #include "../automation/automation_run.hpp"
+#include "../../host/headless/application/headless_application.hpp"
 #endif
 
 #include <atomic>
+#include <cstdlib>
 #include <optional>
 #include <utility>
 
@@ -457,7 +459,19 @@ ApplicationResult Application::run(std::vector<ApplicationWindow> windows) {
 #if defined(GUI_FORMS_MCP_BUILT)
     // The automation (src/runtime/automation): with --mcp-shared, --mcp-fcfs
     // or --mcp-script it joins every window as it becomes ready, and ends after the windowing.
-    const automation::AutomationRunScope automation_scope{};
+    automation::AutomationRunScope automation_scope{};
+    if (automation_scope.help_requested()) {
+        // Help flags never start the native host (MCP round 6: --mcp-help
+        // aborted in NSApplication with no window server). The windows run
+        // on the headless host instead, whose ready callbacks register the
+        // program's tools as a native run's would; the help is printed and
+        // the process ends, before NSApplication, X11, Wayland or Win32 is
+        // touched.
+        const host::HeadlessApplication headless(std::move(windows));
+        automation_scope.answer_help_before_host({});
+        // answer_help_before_host ends the process; never reached.
+        std::_Exit(0);
+    }
 #endif
     // Before any native window exists (stage T5).
     for (ApplicationWindow& entry : windows) {

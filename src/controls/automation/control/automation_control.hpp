@@ -134,8 +134,8 @@ public:
     // No call is running any more: the border goes back to its quiet tint.
     virtual void calls_finished() noexcept = 0;
     // The pointer moved in `window` to `position` (window coordinates), or
-    // left it: the tag line shows while it hovers the top border (study
-    // 11.2).
+    // left it. The stock presenter shows nothing for it since MCP round 6
+    // (the tag line on the top border is gone); a presenter may.
     virtual void pointer_moved(Window& window, Point position, bool left) noexcept = 0;
     // The control state changed: model_control shows AI mode (the stripes,
     // the title note, the X cursor); user_control removes it and closes the

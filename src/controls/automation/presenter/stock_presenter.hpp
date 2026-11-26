@@ -16,9 +16,9 @@
 //   stays clear), still; the X cursor over the window; the title note
 //   "<title> — Claude Opus 5.5 is in control"; and no tooltips (the window's
 //   tooltips are held, and one that shows closes);
-// - the tag line: a tooltip on the top border naming the model ("Claude
-//   Opus 5.5 via Claude Code"), shown when the pointer enters the border
-//   while the model is connected but not in control;
+// - no tag line: the title note names the model; the tooltip the top
+//   border showed for it on hover came up empty over the title (owner, MCP
+//   round 6), so the border shows none;
 // - the take question: "Allow <model> to take control?", counting down 10
 //   seconds and then allowing; Allow, Don't Allow; closing it is Don't
 //   Allow;
@@ -102,8 +102,8 @@ public:
                        const WindowRef& owner_model = WindowRef{});
     // Appearance review (--mcp-appearance-review, MCP round 1): the windows
     // look as they do without a model, so captures can be compared with the
-    // user's view. No band, no title note, no veil, no tag line and no
-    // user-step tooltip; the destructive-act question stays, being safety.
+    // user's view. No band, no title note, no veil and no user-step
+    // tooltip; the destructive-act question stays, being safety.
     // Before the first window attaches.
     void set_unsigned(bool unsigned_sign) noexcept { unsigned_ = unsigned_sign; }
     // Called on the UI thread after each control change (the run rewrites
@@ -157,8 +157,6 @@ public:
         WindowRef window{};
         bool steady{};
         FrameRequestToken glint_end{};
-        // The pointer is over the top border (the tag line shows on entry).
-        bool over_border{};
     };
 
 private:
@@ -170,7 +168,6 @@ private:
     // Shows the title note and AI mode on `window` as the connection and
     // control now stand.
     void show_sign(Window& window) noexcept;
-    void show_tag_line(Window& window, std::chrono::milliseconds duration);
     // Opens a dialog owned by the first window; false when the run has no
     // windowing (a headless test) or the window could not open, with why
     // into `why`.
