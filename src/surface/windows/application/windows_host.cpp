@@ -4672,6 +4672,18 @@ HostCapabilities windows_capabilities() {
 int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     run_scale_override() = options.scale_override > 0.0 ? options.scale_override : 0.0;
     if (!model || !options.initially_visible || options.hide_on_close) return 2;
+#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
+    // The automation (--mcp-shared, --mcp-fcfs, --mcp-script) as Application::run starts it; it
+    // ends after the window's model and the window's state below.
+    gui_forms::automation::AutomationRunScope automation{};
+    {
+        // Help flags never start the native host (MCP round 6): answered
+        // before COM, DPI awareness and the window class.
+        std::vector<gui_forms::automation::HelpWindow> named{};
+        named.push_back(gui_forms::automation::HelpWindow{model.get(), "main"});
+        automation.answer_help_before_host(named);
+    }
+#endif
     const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     enable_best_dpi_awareness();
     HINSTANCE instance = GetModuleHandleW(nullptr);
@@ -4692,17 +4704,6 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
         return 3;
     }
 
-#if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
-    // The automation (--mcp-shared, --mcp-fcfs, --mcp-script) as Application::run starts it; it
-    // ends after the window's model and the window's state below.
-    gui_forms::automation::AutomationRunScope automation{};
-    {
-        // Help flags never start the native host (MCP round 6).
-        std::vector<gui_forms::automation::HelpWindow> named{};
-        named.push_back(gui_forms::automation::HelpWindow{model.get(), "main"});
-        automation.answer_help_before_host(named);
-    }
-#endif
     // The window joins the automation once the host is ready
     // (gui_forms::detail::DirectRunWindow); nothing happens without one.
     gui_forms::detail::DirectRunWindow direct_window{};

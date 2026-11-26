@@ -415,7 +415,12 @@ SplashscreenResult Splashscreen::show(SplashscreenOptions options) {
     std::unique_ptr<detail::SplashscreenSurface> surface{};
 #if defined(GUI_FORMS_APPLICATION_MACOS) || defined(GUI_FORMS_APPLICATION_WINDOWS) || \
     defined(GUI_FORMS_APPLICATION_LINUX)
-    if (size.has_value()) surface = host::open_platform_splashscreen(*size);
+    // A help launch (--mcp-help, --mcp, --help) never starts the native host
+    // (MCP round 6): no panel, so on macOS no sharedApplication before the
+    // help is answered. The splashscreen is refused as unsupported.
+    const automation::AutomationLaunch launch = automation::read_automation_launch();
+    const bool help = launch.print_mcp_help || launch.print_help;
+    if (size.has_value() && !help) surface = host::open_platform_splashscreen(*size);
 #endif
     SplashscreenResult result = Splashscreen::show_on(std::move(options), std::move(surface));
     return result;
