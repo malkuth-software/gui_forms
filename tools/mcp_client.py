@@ -103,6 +103,9 @@ class McpClient:
         closed (the end of the input alone ends only the stdio session, never
         the program: MCP 1.0.6)."""
         if self.alive():
+            # A disconnect closes only a program the model holds: a pointer
+            # move takes control first (at once under --mcp-fcfs).
+            self.call('pointer', {'action': 'move', 'position': {'x': 1, 'y': 1}}, timeout=timeout)
             self.call('disconnect', {'mode': 'hard', 'discard_unsaved': True}, timeout=timeout)
         try:
             self.process.stdin.close()
