@@ -10,9 +10,10 @@
 //   the act waits on the answer. Once allowed the model holds control:
 //   later acts run at once, and the program is in AI mode (the stripes,
 //   the band, the title note and the X cursor). The model gives control
-//   back with release_control, or after 30 s without a call. A launch
-//   with --mcp is AI-led: the model holds control from the start, with no
-//   countdown and no return after idle;
+//   back with release_control, or after 30 s without a call. In a launch
+//   with --mcp-fcfs (first come, first served) a model's act takes control
+//   at once, with no countdown, and idle never returns it; a script launch
+//   is AI-led: the model holds control from the start;
 // - while a model holds control the user's input goes to the take-back
 //   dialog, not to the program: any press in a held window asks "Do you
 //   want to take back control of this program?". Taking it back ends the
@@ -26,7 +27,8 @@
 //   user_control ──first act──► asking ──allowed / countdown ends──► model_control
 //   asking ──refused / disconnected──► user_control
 //   model_control ──release_control / idle 30 s / take back / pipe closed──► user_control
-//   --mcp: model_control from the start; idle never returns it.
+//   --mcp-fcfs: user_control ──first act──► model_control at once; idle never returns it.
+//   a script: model_control from the start; idle never returns it.
 //
 // The state changes first; then the gate, the presenter and the model's
 // reply learn of it (study 8.3).
@@ -165,9 +167,14 @@ public:
 
 // The launch's control settings.
 struct ControlSettings final {
-    // --mcp: the model holds control from the start, with no countdown and
-    // no return after idle (the owner's control model, 2026-11-24).
+    // A script launch: the model holds control from the start, with no
+    // countdown and no return after idle (the owner's control model,
+    // 2026-11-24).
     bool ai_led{};
+    // --mcp-fcfs: first come, first served (owner, MCP 1.0.6). A model's
+    // act takes control at once, with no question, and idle never returns
+    // it; the user gets it back only by taking it back.
+    bool first_come{};
     // --mcp-appearance-review: acts need no control and nothing is held.
     bool appearance_review{};
     // How long the take question counts down before it allows.
@@ -205,9 +212,10 @@ public:
     // reviews appearance.
     [[nodiscard]] bool acts_allowed() const noexcept;
     // A model's act needs control: in user_control the take question is
-    // asked (once until it is answered); in every other state nothing
-    // changes. Without a presenter nobody can answer, and the take is
-    // refused at once.
+    // asked (once until it is answered), or, with the session's consent,
+    // control is taken at once; in every other state nothing changes.
+    // Without a presenter nobody can answer, and the take is refused at
+    // once.
     void request_take(FrameTime now);
     // The take question's answer (the dialog, or its countdown's end).
     void answer_take(bool allow);
@@ -235,6 +243,14 @@ public:
     // was given to another model), and an AI-led launch takes control
     // again. After disconnect.
     void begin_session(FrameTime now);
+    // The user allowed this session to control the program: the
+    // connection question of a launch without a flag (MCP 1.0.5), or an
+    // allowed take question. The session's acts then take control without
+    // asking again, after an idle return or a resumed connection too
+    // (owner, MCP round 4: one question per session), until the model
+    // releases control, the user takes it back, or a new session begins.
+    void grant_session_consent() noexcept { session_consent_ = true; }
+    [[nodiscard]] bool session_consent() const noexcept { return session_consent_; }
     // How many times the user has taken control back: a call that saw a
     // different count when it began was interrupted.
     [[nodiscard]] std::uint64_t take_backs() const noexcept { return counters_.holds_taken_back; }
@@ -305,6 +321,8 @@ private:
     // A held press is posted once until the dialog it offers is shown.
     bool offer_posted_{};
     ConsentState consent_{ConsentState::unasked};
+    // grant_session_consent.
+    bool session_consent_{};
     std::string consent_failure_{};
     Counters counters_{};
     // Posted work holds this weakly; reset first in the destructor.

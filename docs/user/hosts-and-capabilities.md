@@ -363,56 +363,70 @@ Windows (Win32)
   directory `GUI_FORMS_FONT_DIR` names or the checkout's `assets/fonts`. If
   the pack does not open, the renderer name says so and no text metrics
   provider is installed. Automation is the library's MCP integration, the
-  same on every host. A program launched with `--mcp` or `--mcp-shared`
-  (or with `GUI_FORMS_MCP=shared` in its environment) serves MCP on its
-  standard input and output (only the process that started it can drive
-  it), and `--mcp-script <file.jsonl>` runs a script of the same tool calls.
-  Every program also listens on a socket of its own, the way a model
-  reaches a program the user already has open (1.0.5): a Unix domain
+  same on every host. A program launched with `--mcp-shared` or `--mcp-fcfs`
+  (or with `GUI_FORMS_MCP=shared|fcfs` in its environment) serves MCP on
+  its standard input and output, its command folder and its socket at
+  once, each a backup for the others (1.0.6): a door that cannot be made
+  is named in the start-up text, and the end of standard input ends only
+  the stdio session, never the program. A program launched with neither
+  has no MCP at all: no folder, no socket, no discovery entry. `--mcp`
+  prints the MCP help and exits, and `--mcp-script <file.jsonl>` runs a
+  script of the same tool calls. The socket is the way a model reaches a
+  program the user already has open: a Unix domain
   socket (AF_UNIX on Windows too) that only the same user can reach, in
   the user's run directory (`~/Library/Caches/gui-forms/run` on macOS,
   `$XDG_RUNTIME_DIR/gui-forms` on Linux, `%LOCALAPPDATA%\gui-forms\run`
   on Windows; 0700, or a DACL granting only the user's SID), each peer's
   user checked again. The socket speaks MCP itself (newline-delimited
   JSON-RPC), and a first line that is not JSON opens a plain-text console
-  (`help`, `tools`, `call <tool> ...`, `transcript`, `resume <token>`,
-  `quit`), so `nc -U`, socat or a few lines of Python are a complete
+  (`help [path]`, `tools`, `call <tool> ...`, `transcript`, `quit`), so `nc -U`, socat or a few lines of Python are a complete
   client: [Talk to a running program](talk-to-a-program.md). Beside each
   socket `<pid>.info` says what listens on it; the program prints its
   socket on standard error, and `program --mcp-socket` prints it.
-  A session survives a dropped connection for 120 seconds: initialize
-  returns a token (in the instructions), and a later connection resumes
-  with it. A program launched with `--mcp` or `--mcp-shared` accepts a
-  new session at once; any other asks its user, every session, naming the
-  client by what the client says and saying that is not verified (Allow or
-  Don't Allow, no countdown, nothing remembered). One client at a time;
-  when a session ends, control returns to the user and the program stays
-  open. `gui-forms-attach` remains as a stdio bridge for a client that
+  With no client at all, a shell uses the program's command folder:
+  `echo '<command>' > /tmp/<id>/in; cat /tmp/<id>/out` (FIFOs 0600 in a
+  folder 0700; on Windows `\\.\pipe\<id>\in` and `\out`), with the exact
+  line printed at start.
+  The socket is the only permission: nothing asks per connection or per
+  command, and there are no sessions or tokens. Control, the console
+  record and anything pending are the program's, so a command on a fresh
+  connection acts as if it came on the previous one; commands from several
+  connections run one at a time on the UI thread. `gui-forms-attach` remains as a stdio bridge for a client that
   must start one from `.mcp.json`. `GUI_FORMS_MCP_ATTACH=0` turns the
   socket off.
   Reads never need control; acts do (the control model):
-  - `--mcp` is AI-led: the model holds control from the start, with no
-    question, and keeps it until it calls `release_control` or the user
-    takes it back.
+  - `--mcp-fcfs` is first come, first served: the model's first act takes
+    control at once, with no question, and the model keeps it (idle never
+    returns it) until it calls `release_control` or the user takes it back.
   - `--mcp-shared` leaves the user in control until the model's first act.
     That act asks in the program whether the model may take control, with a
     10 s countdown that allows when it ends; the act waits for the answer.
     Don't Allow refuses the act and says so; the next act asks again. Once
     allowed, the act runs and its reply carries the window's snapshot, and
-    later acts run at once. Control returns after 30 s without a call, on
-    `release_control`, or when the user takes it back.
+    later acts run at once, from any connection. Control returns after
+    30 s without a call, on `release_control`, or when the user takes it
+    back.
+  - One question for the program: an allowed take holds after an idle
+    return (the next act takes control again without the countdown); only
+    `release_control` or the user's take-back asks again.
+  - The last connection closing hands the program's own questions back to
+    the user; standard input's end gives control back at once and leaves
+    the program up for its command folder and socket.
   - The model's next reply says when control came back, and why.
 
   While the model holds control (AI mode), each window shows it:
   - grey barber-pole stripes over the window's control surfaces (buttons,
     fields, lists, toolbars; not content such as a canvas, an image or a
-    document), moving slowly; still with reduced motion, and none in high
-    contrast;
+    document), still (they ask for no frames), and none in high contrast;
   - an X cursor over the window;
-  - the user's input is held back: a click anywhere shows "Do you want to
-    take back control of this program?" with "<model> has not yet released
+  - no tooltips: one showing closes, and none opens until control returns
+    (the model reads their text in snapshot and inspect);
+  - the user's input is held back: a click or key aimed at the window's
+    content shows "Do you want to take back control of this program?" with "<model> has not yet released
     the application." Taking back ends control and interrupts the model's
-    call; Keep Waiting leaves the model in control.
+    call; Keep Waiting leaves the model in control. Activating the window
+    (Alt-Tab, Cmd-Tab, the title bar, the Dock) and modifier keys offer
+    nothing.
   - a "thinking..." button with a turning spinner in the window's upper
     right; a click opens the console, a terminal-style record of every MCP
     call and reply in Portsmouth Mono over a slightly transparent dark

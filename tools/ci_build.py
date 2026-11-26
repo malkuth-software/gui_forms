@@ -322,7 +322,7 @@ def build_toolkit(host: str, build: Path, sdk: Path, jobs: int,
             *toolchain_options(ROOT / 'gui_forms'))
         run('cmake', '--build', examples, '--parallel', jobs)
         run('ctest', '--test-dir', examples, '--output-on-failure')
-        # Every demonstrator serves --mcp (tools/check_mcp_launch.py; CMake
+        # Every demonstrator serves --mcp-fcfs (tools/check_mcp_launch.py; CMake
         # lists them in demonstrators.txt when the automation is built).
         demonstrators: Path = toolkit / 'demonstrators.txt'
         if demonstrators.is_file():

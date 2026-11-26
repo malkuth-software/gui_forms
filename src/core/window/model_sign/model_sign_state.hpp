@@ -25,16 +25,12 @@ struct ModelSignState final {
     std::shared_ptr<const PaintGroupEffect> wash_effect{};
     // The AI-mode veil (Window::set_model_veil, model_veil.cpp): whether it
     // shows, the control surfaces it stripes (window coordinates) and the
-    // semantic generation and layout pass they were gathered at, and its
-    // motion.
+    // semantic generation and layout pass they were gathered at. The
+    // stripes stand still, so the veil asks for no frames.
     bool veil_shown{};
     std::vector<Rect> veil_rects{};
     std::uint64_t veil_semantics{};
     std::uint64_t veil_layout{};
-    FrameRequestToken veil_wake{};
-    FrameTime veil_start{};
-    double veil_phase{};
-    std::uint64_t veil_frames{};
 };
 
 } // namespace gui_forms::detail

@@ -1,6 +1,6 @@
 """A small MCP client over a program's standard input and output.
 
-GUI.Forms programs serve MCP when started with --mcp (the library's
+GUI.Forms programs serve MCP when started with --mcp-shared or --mcp-fcfs (the library's
 automation; notes:planning/studies/MCP_AUTOMATION_STUDY.md). This client is
 what the development tools use to drive one: it starts the program, says
 initialize (the legacy handshake, which the dual-era server still answers)
@@ -8,9 +8,9 @@ and calls tools, each call a JSON-RPC request on one line. Replies are read
 on a thread, so a caller may send a call and not wait for it (a fuzzer
 stressing the program from several directions does).
 
-    client = McpClient([program, '--mcp'])
+    client = McpClient([program, '--mcp-fcfs'])
     ok, text, images = client.call('snapshot', {})
-    client.close()        # closes standard input: the program's portable shutdown
+    client.close()        # a hard disconnect, then standard input closed
 """
 
 import base64
@@ -99,7 +99,11 @@ class McpClient:
         return self.process.poll() is None
 
     def close(self, timeout=10.0):
-        """Closes the program's input (its portable shutdown) and waits for it."""
+        """Ends the program and waits for it: a hard disconnect, then its input
+        closed (the end of the input alone ends only the stdio session, never
+        the program: MCP 1.0.6)."""
+        if self.alive():
+            self.call('disconnect', {'mode': 'hard', 'discard_unsaved': True}, timeout=timeout)
         try:
             self.process.stdin.close()
         except OSError:

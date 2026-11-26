@@ -449,14 +449,16 @@ gui_forms_devkit's `programs/tools/package_programs.py`
 
 `tools/mcp_client.py`
 : A small MCP client over a program's standard input and output: it starts a
-  GUI.Forms program with `--mcp`, says initialize and calls the automation's
+  GUI.Forms program with `--mcp-fcfs`, says initialize and calls the automation's
   tools (`snapshot`, `act`, `pointer`, `keyboard`, `capture`, ...). The
-  contention fuzzer drives programs with it. A program can also run a script
+  contention fuzzer drives programs with it. `close` sends a hard
+  `disconnect` before it closes the program's input, which alone ends only
+  the stdio session. A program can also run a script
   of the same calls by itself: `--mcp-script <file.jsonl>`.
 
 `tools/check_mcp_launch.py`
-: Starts each program it is given with `--mcp` and checks that it answers
-  initialize and `tools/list`, then exits once its input closes. One line per
+: Starts each program it is given with `--mcp-fcfs` and checks that it answers
+  initialize and `tools/list`, then exits after a hard `disconnect`. One line per
   program; exit status 1 when any fails. gui_forms_devkit's package smoke runs
   it on every packaged program, and `examples/reference` on `collection_gallery`.
   It needs a window server (`xvfb-run` on Linux CI).

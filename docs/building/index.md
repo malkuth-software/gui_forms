@@ -83,7 +83,7 @@ from the font pack compiled into it. On Linux the gallery needs
 | `GUI_FORMS_LOCALIZABLE_PLUGIN`, `GUI_FORMS_EFFECT_VERIFY` | ON | Build the Clang plugin that records localizable literals and verifies effect programs; without it effects build unverified, with a warning |
 | `GUI_FORMS_EFFECT_VERIFY_REQUIRED` | OFF | Fail the configure when effect programs cannot be verified, instead of building them unverified; Linux CI sets it |
 | `GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB` | OFF | Bounded transactional DIB frames in the Windows host (development) |
-| `GUI_FORMS_MCP` | ON | Build the automation and MCP capability; a launch with `--mcp` (or `GUI_FORMS_MCP=1`) serves MCP on standard input and output, and `--mcp-script <file.jsonl>` runs an automation script. The transport needs STXlib's `stxlib::mcp`; without it `--mcp` says so. Off in a high-integrity build |
+| `GUI_FORMS_MCP` | ON | Build the automation and MCP capability; a launch with `--mcp-shared` or `--mcp-fcfs` (or `GUI_FORMS_MCP=shared|fcfs`) serves MCP on standard input and output, the command folder and the socket, and `--mcp-script <file.jsonl>` runs an automation script; without a flag nothing is served. The transport needs STXlib's `stxlib::mcp`; without it the launch says so. Off in a high-integrity build |
 | `GUI_FORMS_MCP_TEST_CONTROLS` | ON in Debug, else OFF | Build the automation's test controls (`control suspend_input`); never in a shipped program |
 
 The remaining `GUI_FORMS_BUILD_TEXT_*` and `GUI_FORMS_BUILD_PREPARED_TEXT` /
@@ -354,7 +354,7 @@ found, the `gui_forms_windows_wine_smoke` and
 `gui_forms_windows_gallery_services_smoke` targets run the first and last of
 these against the build directory. No CI job runs them. What CI checks on
 every platform is that each packaged program, and each windowed installed
-example, answers `--mcp` (`tools/check_mcp_launch.py`). With `llvm-objdump` available,
+example, answers `--mcp-fcfs` (`tools/check_mcp_launch.py`). With `llvm-objdump` available,
 `gui_forms_windows_boundary_audit` rejects a gallery that imports a GPU or
 managed runtime DLL or lacks `GDI32.dll` and `USER32.dll`.
 

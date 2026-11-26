@@ -6,7 +6,7 @@ if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Darwin")
         message(FATAL_ERROR "GUI.Forms supports Apple silicon arm64 only")
     endif()
 endif()
-project(GUIForms VERSION 1.0.5 LANGUAGES C CXX)
+project(GUIForms VERSION 1.0.6 LANGUAGES C CXX)
 
 # The browser target's compiler is the pinned emsdk's clang
 # (cmake/emscripten.cmake checks the release); every other target is LLVM 22.1.
@@ -132,13 +132,13 @@ option(GUI_FORMS_WINDOWS_TRANSACTIONAL_DIB
        "Enable bounded transactional DIB frames in the Windows development host" OFF)
 # The automation and MCP (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
 # rulings 3 and 17): GUI_FORMS_MCP builds the capability, on by default; a
-# launch with --mcp (or GUI_FORMS_MCP=1) or --mcp-script turns it on for that
-# run. The transport needs STXlib's stx_mcp (the stxlib::mcp target); with
+# launch with --mcp-shared or --mcp-fcfs (or GUI_FORMS_MCP=shared|fcfs) or
+# --mcp-script turns it on for that run; without one the program has no MCP. The transport needs STXlib's stx_mcp (the stxlib::mcp target); with
 # GUI_FORMS_MCP on and no such target the configure fails. The test controls
 # (suspend_input) are on in the debug and test presets only. The Windows
 # WM_COPYDATA channel and the X11 --automation flag that came before are
 # retired.
-option(GUI_FORMS_MCP "Build the automation and MCP capability (turned on per launch with --mcp)" ON)
+option(GUI_FORMS_MCP "Build the automation and MCP capability (turned on per launch with --mcp-shared or --mcp-fcfs)" ON)
 # A Debug build has them by default; a Release build (every shipped program)
 # only when asked, as the test-cache job of the test configuration does.
 set(_gf_mcp_test_controls_default OFF)
@@ -1542,7 +1542,7 @@ target_include_directories(gui_forms_lab PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(gui_forms_lab PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
-target_link_libraries(gui_forms_lab PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+target_link_libraries(gui_forms_lab PUBLIC $<BUILD_INTERFACE:gui_forms_controls> $<INSTALL_INTERFACE:GUIForms::Controls>)
 set_target_properties(gui_forms_lab PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME Lab)
 add_library(GUIForms::Lab ALIAS gui_forms_lab)
 if(GUI_FORMS_INSTALL_LAB)
@@ -1573,7 +1573,7 @@ target_include_directories(gui_forms_demo_controls PUBLIC
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
 )
 target_include_directories(gui_forms_demo_controls PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/controls)
-target_link_libraries(gui_forms_demo_controls PUBLIC $<BUILD_INTERFACE:gui_forms_controls>)
+target_link_libraries(gui_forms_demo_controls PUBLIC $<BUILD_INTERFACE:gui_forms_controls> $<INSTALL_INTERFACE:GUIForms::Controls>)
 set_target_properties(gui_forms_demo_controls PROPERTIES POSITION_INDEPENDENT_CODE ON EXPORT_NAME DemoControls)
 
 if(GUI_FORMS_BUILD_FORM_COMPILER)
@@ -1634,6 +1634,36 @@ install(FILES cmake/GUIFormsThemes.cmake cmake/GUIFormsThemeEmbed.cmake
 # table from them.
 install(FILES manifests/controls.json manifests/members.json manifests/winforms-divergences.json
         DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/ledgers)
+# The API reference sources (the library pages and the generated per-type
+# pages), so a tool built against the SDK (the devkit's Pocket Reference)
+# can make its pack from the installed toolkit, with REVISION naming the
+# commit they come from: GUI_FORMS_SOURCE_REVISION when given, else the
+# source checkout's HEAD at install time, else no REVISION file.
+file(GLOB gui_forms_api_library_pages CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/docs/api/library.*.rst")
+file(GLOB gui_forms_api_generated_pages CONFIGURE_DEPENDS
+     "${CMAKE_CURRENT_SOURCE_DIR}/docs/api/generated/gui_forms.*.rst")
+install(FILES ${gui_forms_api_library_pages} DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/docs/api)
+install(FILES ${gui_forms_api_generated_pages} DESTINATION ${CMAKE_INSTALL_DATADIR}/GUIForms/docs/api/generated)
+set(GUI_FORMS_SOURCE_REVISION "" CACHE STRING
+    "The 40-hex commit the installed API reference comes from (empty: the source checkout's HEAD)")
+install(CODE "
+set(gui_forms_revision \"${GUI_FORMS_SOURCE_REVISION}\")
+if(NOT gui_forms_revision)
+  execute_process(COMMAND git -C \"${CMAKE_CURRENT_SOURCE_DIR}\" rev-parse HEAD
+                  OUTPUT_VARIABLE gui_forms_revision OUTPUT_STRIP_TRAILING_WHITESPACE
+                  RESULT_VARIABLE gui_forms_revision_result ERROR_QUIET)
+  if(NOT gui_forms_revision_result EQUAL 0)
+    set(gui_forms_revision \"\")
+  endif()
+endif()
+if(gui_forms_revision MATCHES \"^[0-9a-f]+$\")
+  string(LENGTH \"\${gui_forms_revision}\" gui_forms_revision_length)
+  if(gui_forms_revision_length EQUAL 40)
+    file(WRITE \"\$ENV{DESTDIR}\${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_DATADIR}/GUIForms/docs/api/REVISION\"
+         \"\${gui_forms_revision}\\n\")
+  endif()
+endif()
+")
 
 add_library(GUIForms::Core ALIAS gui_forms_core)
 add_library(GUIForms::Controls ALIAS gui_forms_controls)
@@ -2257,8 +2287,8 @@ endif()
 # in the Automation archive, which the Application library of every desktop
 # host links whole and every desktop host library links: Application::run and
 # the hosts' single-window entries (host::run_macos, run_windows, run_linux)
-# both start the run, so a program that calls its host directly serves --mcp
-# too (1.0.1: the demonstrators did not).
+# both start the run, so a program that calls its host directly serves
+# --mcp-shared and --mcp-fcfs too (1.0.1: the demonstrators did not).
 if(GUI_FORMS_MCP)
     target_sources(gui_forms_controls PRIVATE
         src/controls/automation/control/automation_control.cpp
@@ -2272,7 +2302,33 @@ if(GUI_FORMS_MCP)
         src/controls/automation/console/console_log.cpp
         src/controls/automation/console/console_overlay.cpp
         src/controls/automation/console/console_screen.cpp
-        src/controls/automation/presenter/stock_presenter.cpp)
+        src/controls/automation/presenter/stock_presenter.cpp
+        src/controls/automation/help/automation_help.cpp)
+    # The help's topics (automation_help.hpp): GUI.Forms' own pages on
+    # talking to a program and the user guide's contents, embedded at build
+    # time so every program answers `help mcp` with the documentation itself.
+    set(_gf_help_dir ${CMAKE_CURRENT_BINARY_DIR}/generated/automation_help)
+    set(_gf_help_includes)
+    foreach(_gf_help_page IN ITEMS "talk-to-a-program|talk_to_a_program" "index|user_guide_index")
+        string(REPLACE "|" ";" _gf_help_pair "${_gf_help_page}")
+        list(GET _gf_help_pair 0 _gf_help_source)
+        list(GET _gf_help_pair 1 _gf_help_name)
+        add_custom_command(
+            OUTPUT ${_gf_help_dir}/${_gf_help_name}.inc
+            COMMAND ${CMAKE_COMMAND} -E make_directory ${_gf_help_dir}
+            COMMAND ${CMAKE_COMMAND}
+                -DSOURCE=${CMAKE_CURRENT_SOURCE_DIR}/docs/user/${_gf_help_source}.md
+                -DNAME=docs/user/${_gf_help_source}.md
+                -DOUTPUT=${_gf_help_dir}/${_gf_help_name}.inc
+                -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_text_file.cmake
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/docs/user/${_gf_help_source}.md
+                ${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_text_file.cmake
+            COMMENT "Embedding docs/user/${_gf_help_source}.md for the automation's help"
+            VERBATIM)
+        list(APPEND _gf_help_includes ${_gf_help_dir}/${_gf_help_name}.inc)
+    endforeach()
+    target_sources(gui_forms_controls PRIVATE ${_gf_help_includes})
+    target_include_directories(gui_forms_controls PRIVATE ${_gf_help_dir})
     target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP=1)
     if(GUI_FORMS_MCP_TEST_CONTROLS)
         target_compile_definitions(gui_forms_controls PRIVATE GUI_FORMS_MCP_TEST_CONTROLS=1)
@@ -2323,8 +2379,8 @@ if(GUI_FORMS_MCP)
             set_target_properties(gui_forms_attach PROPERTIES OUTPUT_NAME gui-forms-attach)
             install(TARGETS gui_forms_attach RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
         else()
-            # MCP on with no transport would configure a program whose --mcp
-            # only reports that it has none (cp37: the stx package exported no
+            # MCP on with no transport would configure a program whose
+            # --mcp-shared only reports that it has none (cp37: the stx package exported no
             # stxlib::mcp, and no build said so). A build that wants no MCP
             # turns GUI_FORMS_MCP off (high-integrity builds have it off).
             message(FATAL_ERROR "GUI_FORMS_MCP is on but STXlib's stxlib::mcp target was not found; "
@@ -3035,7 +3091,7 @@ endforeach()
 
 # The demonstrators: every program that runs its window through a desktop host
 # library directly (host::run_macos, run_windows, run_linux). tools/ci_build.py
-# starts each with --mcp and expects it to serve MCP (tools/check_mcp_launch.py),
+# starts each with --mcp-fcfs and expects it to serve MCP (tools/check_mcp_launch.py),
 # reading their paths from demonstrators.txt in the build tree. Until 1.0.1 none
 # did, and no check noticed.
 if(GUI_FORMS_MCP AND NOT GUI_FORMS_HIGH_INTEGRITY AND TARGET gui_forms_automation)

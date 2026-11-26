@@ -2,7 +2,7 @@
 // A program's own model tools (notes:planning/studies/MCP_AUTOMATION_STUDY.md,
 // sections 6.1 and 7): tools and inspect sections a GUI.Forms program
 // declares for a model, served beside the library's built-in ones when the
-// program runs with --mcp (or GUI_FORMS_MCP=1) and run by --mcp-script.
+// program runs with --mcp-shared or --mcp-fcfs and run by --mcp-script.
 // The library's own extensions register through these same calls.
 //
 //     ModelToolSpec spec{};

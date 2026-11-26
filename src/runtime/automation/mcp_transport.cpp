@@ -78,14 +78,15 @@ void client_seen(void* context, const stxlib::mcp::ClientIdentity& client) noexc
 void input_ended(void* context) noexcept {
     const EventsContext& events = *static_cast<const EventsContext*>(context);
     // An attach connection's end ends its session only: the attach server
-    // sees the server's wait return and ends the core's session; the
-    // program stays open (it was not launched for the model).
+    // sees the server's wait return and ends the core's session.
     if (events.attached) return;
+    // Standard input's end ends the stdio session only, never the program:
+    // the command folder and the socket back it up (owner, MCP 1.0.6).
     try {
         (*events.run).stdio_input_ended();
-        (*events.run).post_close_all();
+        (*events.run).post_stdio_ended();
     } catch (...) {
-        // The windows close with the process.
+        // The window closed meanwhile: no session is left to end.
     }
 }
 

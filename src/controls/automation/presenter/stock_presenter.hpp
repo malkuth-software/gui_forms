@@ -13,26 +13,27 @@
 //   occluded window turn the glint into a tint change;
 // - AI mode, while the model holds control: grey barber-pole stripes over
 //   every control surface (Window::set_model_veil; content such as a canvas
-//   stays clear), the X cursor over the window, and the title note "<title>
-//   — Claude Opus 5.5 is in control";
+//   stays clear), still; the X cursor over the window; the title note
+//   "<title> — Claude Opus 5.5 is in control"; and no tooltips (the window's
+//   tooltips are held, and one that shows closes);
 // - the tag line: a tooltip on the top border naming the model ("Claude
-//   Opus 5.5 via Claude Code"), shown briefly when a model connects;
+//   Opus 5.5 via Claude Code"), shown when the pointer enters the border
+//   while the model is connected but not in control;
 // - the take question: "Allow <model> to take control?", counting down 10
 //   seconds and then allowing; Allow, Don't Allow; closing it is Don't
 //   Allow;
-// - the take-back dialog, offered by any press in a held window: "Do you
-//   want to take back control of this program?" with the warning "<model>
-//   has not yet released the application."; Take Back Control ends the
-//   model's control, Keep Waiting leaves it;
+// - the take-back dialog, offered by a click or key aimed at a held
+//   window's content (activating the window, a modifier alone or a window
+//   switcher's chord offers nothing): "Do you want to take back control of
+//   this program?" with the warning "<model> has not yet released the
+//   application."; Take Back Control ends the model's control, Keep
+//   Waiting leaves it;
 // - the destructive-act question: "Allow <model> to edit files and perform
 //   potentially destructive acts?", Allow and Don't Allow; closing it is
 //   Don't Allow;
-// - the connection question (MCP 1.0.5, attach): for a program launched
-//   without --mcp or --mcp-shared, every connection through the attach
-//   endpoint asks "Allow a connection to this program?", naming the client
-//   as it named itself and saying that name is not verified; Allow and
-//   Don't Allow, no countdown, nothing remembered; closing it is Don't
-//   Allow;
+// - no connection question (owner, MCP 1.0.6): a program launched without
+//   --mcp-shared or --mcp-fcfs has no socket or folder to connect to, and
+//   one launched with either takes every same-user connection;
 // - the console overlay (MCP 1.0.5, console_overlay.hpp): in AI mode a
 //   "thinking..." button in the window's upper right opens a terminal-style
 //   record of the MCP traffic, hidden by default; a press on it offers the
@@ -56,7 +57,6 @@
 #include "gui_forms/surface_root/surface_root.hpp"
 
 #include <array>
-#include <atomic>
 #include <memory>
 #include <string>
 #include <vector>
@@ -72,21 +72,8 @@ enum class PresenterDialog : std::uint8_t {
     take,
     take_back,
     consent,
-    connect,
 };
-inline constexpr std::size_t presenter_dialog_count = 4U;
-
-// The answer to one attach connection's question, shared by the presenter
-// and the attach thread that waits on it (attach_server.cpp).
-enum class ConnectAnswerState : std::uint8_t {
-    waiting,
-    allowed,
-    refused,
-};
-
-struct ConnectAnswer final {
-    std::atomic<ConnectAnswerState> state{ConnectAnswerState::waiting};
-};
+inline constexpr std::size_t presenter_dialog_count = 3U;
 
 // Where a presenter dialog's client area goes (1.0.5 console review: the
 // questions opened at the screen's upper right, one half under a
@@ -119,6 +106,13 @@ public:
     // user-step tooltip; the destructive-act question stays, being safety.
     // Before the first window attaches.
     void set_unsigned(bool unsigned_sign) noexcept { unsigned_ = unsigned_sign; }
+    // Called on the UI thread after each control change (the run rewrites
+    // the command folder's info); null for none.
+    using ControlHook = void (*)(void* context, ControlState state);
+    void set_control_hook(ControlHook hook, void* context) noexcept {
+        control_hook_ = hook;
+        control_context_ = context;
+    }
 
     void window_attached(Window& window) override;
     void window_detached(Window& window) noexcept override;
@@ -145,13 +139,6 @@ public:
     void console_pressed() override;
     [[nodiscard]] const ConsoleOverlay& console() const noexcept { return console_; }
     [[nodiscard]] ConsoleOverlay& console() noexcept { return console_; }
-    // Asks the user whether `client` (as it named itself) may connect,
-    // answering into `answer`; refused at once when no question can be
-    // shown, or when another connection's question is open.
-    void ask_connect(const ClientIdentity& client, const std::shared_ptr<ConnectAnswer>& answer);
-    // The connection went away, or its question waited too long: the
-    // question closes, answered Don't Allow.
-    void withdraw_connect() noexcept;
 
     // A dialog's buttons and closes (PresenterPanel, DialogClosed).
     // `accepted` is Allow or Take Back Control.
@@ -197,8 +184,6 @@ private:
     // Shows the console's button while the model holds control, else
     // closes the button and the console.
     void update_console() noexcept;
-    // Answers the open connection question, if any.
-    void answer_connect(bool allowed) noexcept;
 
     // Posted work holds this weakly; reset first in the destructor.
     std::shared_ptr<StockPresenter*> self_{};
@@ -209,6 +194,8 @@ private:
     ClientIdentity client_{};
     bool connected_{};
     bool in_control_{};
+    ControlHook control_hook_{};
+    void* control_context_{};
     bool unsigned_{};
     std::vector<BandWindow> windows_{};
     std::array<WindowRef, presenter_dialog_count> dialogs_{};
@@ -217,8 +204,6 @@ private:
     FrameTime countdown_end_{};
     FrameRequestToken countdown_tick_{};
     std::weak_ptr<Label> countdown_label_{};
-    // The connection question's answer while it is open.
-    std::shared_ptr<ConnectAnswer> connect_answer_{};
     ConsoleOverlay console_{this};
 };
 

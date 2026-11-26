@@ -11,7 +11,7 @@
 // JSON-RPC, MCP's stdio framing. `nc -U <socket>`, socat or a few lines of
 // Python is a complete client, so any agent bootstraps MCP with standard
 // tools and no configuration. A first line that is not JSON opens a plain
-// text console instead (help, tools, call, transcript, resume, quit), for agents and
+// text console instead (help, tools, call, transcript, quit), for agents and
 // people alike. gui-forms-attach (tools/attach) remains as a stdio bridge
 // for clients that insist on standard input and output.
 //
@@ -56,6 +56,9 @@ namespace gui_forms::automation {
 struct AttachStreams final {
     stxlib::PipeReader input{};
     stxlib::PipeWriter output{};
+    // The connecting process's ID, when the host says (0 otherwise): the
+    // console labels a client that names itself no other way by it.
+    std::int64_t peer_process{};
 };
 
 // How one wait for a connection ended.
@@ -80,6 +83,11 @@ struct AttachProgram final {
     // Its name for people (the first window's title, or the identity).
     std::string name{};
     std::string executable{};
+    // Who may connect and how control works, said before connecting
+    // (AutomationRun::access_line).
+    std::string access{};
+    // The command folder's ID (CommandDoor), or empty without one.
+    std::string door{};
 };
 
 // A running program's discovery entry, as list_attach_endpoints reads it.
@@ -93,6 +101,11 @@ struct AttachListing final {
     std::size_t tools{};
     // The first line of the program's note for a model, or empty.
     std::string note{};
+    // Who may connect and how control works (AttachProgram::access), or
+    // empty.
+    std::string access{};
+    // The command folder's ID (AttachProgram::door), or empty.
+    std::string door{};
 };
 
 class AttachEndpoint final {
@@ -154,6 +167,127 @@ void abort_attach_connection(std::int64_t handle) noexcept;
 [[nodiscard]] bool peek_attach_line(const AttachStreams& streams, std::string& line,
                                     std::int64_t timeout_milliseconds);
 
+// ---- the command folder (MCP round 5, the owner's zero-binary door) ----
+//
+// "One launches the program, the program returns an ephemeral random string
+// like 8 digits hex, and that's the folder name for the session and the
+// model" (owner): an agent whose shell resets between commands, with no
+// client for a socket, still writes to and reads from a named pipe. Every
+// program that listens on the attach socket also makes `/tmp/<id>/` (POSIX;
+// <id> is 8 hexadecimal digits), with mkdir mode 0700, failing on a name
+// that exists (another ID is drawn) and checked after with lstat: a
+// directory of the user's own, not a link, since /tmp is shared. It holds:
+// - `in`, a FIFO (0600): each line written is one command, as the socket
+//   console takes it;
+// - `out`, a FIFO (0600): each command's reply (framed by
+//   door_reply_frame), delivered to whoever opens it next;
+// - `help`, the help tree as text; `info`, the program's name, pid,
+//   executable, ID and control state.
+// The folder's mode is the guard. On Windows the pipes are \\.\pipe\<id>\in
+// and \out with a DACL granting only the user's SID, and `help` and `info`
+// sit in %TEMP%\<id> (per user). The folder goes when the program ends;
+// the discovery entry names it (`door: <id>`), so the listing that removes
+// an ended program's entry removes its folder too (remove_door_folder, only
+// a folder whose info names that process). No other folder is touched.
+
+// How one wait for a command ended.
+enum class DoorWait : std::uint8_t {
+    // A whole line arrived: `line` holds it.
+    line,
+    timed_out,
+    interrupted,
+    // The folder's input failed; the door no longer reads.
+    failed,
+};
+
+class CommandDoor final {
+public:
+    // Makes the folder and its pipes for this process, with a fresh ID.
+    // Null, with `error` set, when it cannot.
+    [[nodiscard]] static std::unique_ptr<CommandDoor> open(std::string& error);
+    // Closes the pipes and removes the folder.
+    ~CommandDoor();
+    CommandDoor(const CommandDoor&) = delete;
+    CommandDoor& operator=(const CommandDoor&) = delete;
+
+    [[nodiscard]] const std::string& id() const noexcept;
+    // The folder's absolute path.
+    [[nodiscard]] const std::string& folder() const noexcept;
+    // The exact command a shell copies to send `command` and read its
+    // reply (`echo '<command>' > /tmp/<id>/in; cat /tmp/<id>/out` on
+    // POSIX).
+    [[nodiscard]] std::string send_line(std::string_view command) const;
+    // Waits at most `timeout_milliseconds` for the next whole line written
+    // to `in`. One thread reads.
+    [[nodiscard]] DoorWait read_command(std::string& line, std::int64_t timeout_milliseconds);
+    // Ends a wait in read_command, and every later one. Any thread.
+    void interrupt() noexcept;
+    // Queues a framed reply for `out`, delivered when a reader opens it;
+    // never blocks. Replies nobody reads within door_reply_seconds, or past
+    // door_reply_limit queued, are dropped. Any thread.
+    void reply(std::string framed);
+    // Rewrites `help` or `info` whole. Any thread.
+    void write_help(std::string_view text);
+    void write_info(std::string_view text);
+
+    struct State;
+
+private:
+    explicit CommandDoor(std::unique_ptr<State> state) noexcept;
+    std::unique_ptr<State> state_;
+};
+
+// How long a reply waits for a reader of `out`, and how many wait at once.
+inline constexpr std::int64_t door_reply_seconds = 60;
+inline constexpr std::size_t door_reply_limit = 16U;
+
+// The folder of the command door `id`, which need not exist: /tmp/<id>, or
+// %TEMP%\<id> on Windows; empty when none can be named.
+[[nodiscard]] std::string door_folder_path(std::string_view id);
+// Removes the folder of door `id` if it is the ended process `process`'s:
+// `id` is 8 hexadecimal digits, the folder is a directory of the user's own
+// (not a link) whose `info` names `process`, and only the door's own files
+// are removed before the folder itself.
+void remove_door_folder(std::string_view id, std::int64_t process) noexcept;
+
+// A command line as the folder takes it: an optional request ID
+// (`#<n> `, 1 to 16 letters, digits, '-' or '_'), echoed by the reply's end
+// line, then the command.
+struct DoorLine final {
+    std::string request{};
+    std::string command{};
+};
+[[nodiscard]] DoorLine read_door_line(std::string_view line);
+// A reply as `out` carries it: `text`'s lines, each that begins with '.'
+// given another '.', then the end line: a '.', the request ID when given,
+// and the status, as `. #7 ok` or `. error`.
+// A chain's failure names the command that failed: `. error at 2`
+// (`failed_at`, 1-based; 0 for a single command's plain `. error`).
+[[nodiscard]] std::string door_reply_frame(std::string_view text, std::string_view request, bool failed,
+                                           std::size_t failed_at = 0U);
+
+// One command of a chained line and how it joins the next (owner, MCP
+// round 5: "a model chains commands with a chaining symbol, and sends a
+// sequence of commands to an address- and gets back a reply").
+enum class ChainJoin : std::uint8_t {
+    // The last command.
+    end,
+    // ` && `: the next runs only if this one succeeded.
+    on_success,
+    // ` ; `: the next always runs.
+    always,
+};
+struct ChainPart final {
+    std::string command{};
+    ChainJoin join{ChainJoin::end};
+};
+// Splits a console line at `&&` and `;` outside quoted strings (single or
+// double, a backslash escaping inside double quotes) and outside JSON
+// objects and arrays; each part trimmed. One part for an unchained line.
+[[nodiscard]] std::vector<ChainPart> split_console_chain(std::string_view line);
+// Whether `id` is a door ID: exactly 8 lowercase hexadecimal digits.
+[[nodiscard]] bool door_id_valid(std::string_view id) noexcept;
+
 // Whether a peer of user `peer` may use an endpoint of user `own`: only
 // the same user. The platform files check every peer with it; a test
 // checks the rule itself (another user's peer is refused).
@@ -179,20 +313,18 @@ struct AttachOpening final {
     // initialize's clientInfo: self-reported, never verified.
     std::string client_name{};
     std::string client_version{};
-    // A session token to resume (initialize's params.resume, or
-    // params._meta["gui-forms/resume"]).
-    std::string resume{};
 };
 
 [[nodiscard]] AttachOpening read_attach_opening(std::string_view line);
 
 enum class ConsoleVerb : std::uint8_t {
-    // A blank line: nothing to do.
+    // A blank line: answered "error: empty command" (every door).
     none,
     help,
     tools,
     call,
     transcript,
+    // 1.0.5's resume: answered as harmless, there being no sessions.
     resume,
     quit,
     // Anything else, or a call whose arguments could not be read; `error`
@@ -205,12 +337,14 @@ struct ConsoleCommand final {
     std::string tool{};
     // A call's arguments as one JSON object.
     std::string arguments_json{"{}"};
-    std::string token{};
+    // help's topic (a dotted path such as `plan_paint.draw`, a tool's
+    // name, `tools`, `mcp`, ...); empty for the overview.
+    std::string topic{};
     std::string error{};
 };
 
-// One console line: `help`, `tools`, `call <tool> [<json object> |
-// key=value ...]`, `transcript`, `resume <token>`, `quit`. A key=value's value is JSON
+// One console line: `help [topic]`, `tools`, `call <tool> [<json object> |
+// key=value ...]`, `transcript`, `quit` (and 1.0.5's `resume`, ignored). A key=value's value is JSON
 // when it reads as a number, true, false, null, an object, an array or a
 // quoted string, and a string otherwise.
 [[nodiscard]] ConsoleCommand parse_console_command(std::string_view line);
@@ -222,9 +356,6 @@ struct ConsoleCommand final {
 [[nodiscard]] std::string attach_info_text(const AttachListing& listing);
 [[nodiscard]] bool parse_attach_info(std::string_view text, AttachListing& listing);
 
-// A new session token: 32 hexadecimal digits of host entropy; empty when the
-// host gives none.
-[[nodiscard]] std::string make_session_token();
 
 // Reads one line from `input` a byte at a time, so nothing after it is
 // taken: true with the line (no newline, a trailing CR removed) in `line`;

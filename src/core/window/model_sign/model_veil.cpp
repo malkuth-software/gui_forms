@@ -1,11 +1,12 @@
 // The AI-mode veil of the automation's sign (owner, 2026-11-24): grey
 // barber-pole stripes over a window's control surfaces while a model holds
-// control, and the X cursor over the window. The stripes follow the
-// progress bar's marching stripes (progress_bar.cpp, owner rulings of
-// 2026-11-11): the band 0.4 of the pitch, leaning 45 degrees back,
-// travelling 0.8 pitches a second, and still under reduced motion, with
-// ambient motion off, or while the window is occluded. One pattern runs in
-// window space, so the stripes of neighbouring controls line up.
+// control, and the X cursor over the window. The stripes take the
+// progress bar's stripe geometry (progress_bar.cpp, owner rulings of
+// 2026-11-11): the band 0.4 of the pitch, leaning 45 degrees back. They
+// stand still (round 4: the decoration costs almost nothing, and moving
+// stripes repainted every control surface under them about 25 times a
+// second at 2x). One pattern runs in window space, so the stripes of
+// neighbouring controls line up.
 //
 // Control surfaces are found by semantic role: buttons, fields, lists,
 // scroll bars, tabs, menus, toolbars and the like are striped whole; a
@@ -26,20 +27,13 @@
 
 namespace gui_forms {
 
-struct SurfaceRoot::VeilWake final {
-    SurfaceRoot* root{};
-
-    void operator()(FrameTime now) const { (*root).veil_motion_due(now); }
-};
-
 namespace {
 
-// The stripes' geometry, in logical units, and their motion.
+// The stripes' geometry, in logical units.
 constexpr double veil_pitch = 16.0;
 constexpr double veil_band_ratio = 0.4;
 // tan(45 degrees): the far side of a band runs one thickness ahead.
 constexpr double veil_slant_per_unit = 1.0;
-constexpr double veil_pitches_per_second = 0.8;
 // Grey, half covering in light themes and dark alike.
 constexpr Color veil_light{96U, 96U, 96U, 92U};
 constexpr Color veil_dark{160U, 160U, 160U, 84U};
@@ -173,46 +167,6 @@ void SurfaceRoot::damage_veil(const detail::ModelSignState& sign) {
     for (const Rect& rect : sign.veil_rects) add_damage_all_planes(rect);
 }
 
-void SurfaceRoot::refresh_veil_motion() {
-    if (!model_sign_) return;
-    detail::ModelSignState& sign = *model_sign_;
-    const bool moving = sign.veil_shown && !motion_clock_.ambient_suppressed() && !presentation_settings_.high_contrast;
-    if (!moving) {
-        if (sign.veil_wake.connected()) {
-            sign.veil_wake.disconnect();
-            // The stripes come to rest at their still place.
-            damage_veil(sign);
-        }
-        return;
-    }
-    if (sign.veil_wake.connected()) return;
-    sign.veil_start = motion_clock_.now();
-    // The stripes' motion is ambient: it never holds the window from
-    // settling (next_settling_wake).
-    sign.veil_wake = request_ambient_wake(motion_clock_.now() + veil_step(), VeilWake{this});
-}
-
-FrameInterval SurfaceRoot::veil_step() const noexcept {
-    // One device pixel of travel: 0.8 pitches a second at the window's scale.
-    const double pixels_per_second = veil_pitches_per_second * veil_pitch * std::max(scale_, 1.0);
-    const std::chrono::duration<double> seconds(1.0 / pixels_per_second);
-    const FrameInterval step = std::chrono::duration_cast<FrameInterval>(seconds);
-    return step;
-}
-
-void SurfaceRoot::veil_motion_due(FrameTime now) {
-    if (!model_sign_) return;
-    detail::ModelSignState& sign = *model_sign_;
-    sign.veil_wake.disconnect();
-    if (!sign.veil_shown || motion_clock_.ambient_suppressed()) return;
-    const std::chrono::duration<double> elapsed = now - sign.veil_start;
-    const double travelled = elapsed.count() * veil_pitches_per_second;
-    sign.veil_phase = travelled - std::floor(travelled);
-    ++sign.veil_frames;
-    damage_veil(sign);
-    sign.veil_wake = request_ambient_wake(now + veil_step(), VeilWake{this});
-}
-
 void SurfaceRoot::paint_model_veil(detail::RecordingPainter& candidate, std::span<const Rect> painted) {
     if (!model_sign_ || !(*model_sign_).veil_shown || presentation_settings_.high_contrast) return;
     detail::ModelSignState& sign = *model_sign_;
@@ -222,10 +176,6 @@ void SurfaceRoot::paint_model_veil(detail::RecordingPainter& candidate, std::spa
     if (sign.veil_rects.empty()) return;
     const bool dark = presentation_settings_.colour_scheme == ColourScheme::dark;
     const Color colour = dark ? veil_dark : veil_light;
-    const bool still = !sign.veil_wake.connected();
-    // Whole device pixels of travel, as the progress bar's stripes move.
-    const double device = (still ? 0.0 : sign.veil_phase) * veil_pitch * scale_ + 0.5;
-    const double travel = scale_ > 0.0 ? std::floor(device) / scale_ : 0.0;
     const double band = veil_pitch * veil_band_ratio;
     for (const Rect& surface : sign.veil_rects) {
         for (const Rect& rectangle : painted) {
@@ -239,9 +189,9 @@ void SurfaceRoot::paint_model_veil(detail::RecordingPainter& candidate, std::spa
             const double top = area.y;
             const double bottom = area.y + area.height;
             const double slant = (bottom - top) * veil_slant_per_unit;
-            const double first = std::floor((area.x - band - slant - travel) / veil_pitch);
+            const double first = std::floor((area.x - band - slant) / veil_pitch);
             const double last = area.x + area.width;
-            for (double along = first * veil_pitch + travel; along <= last; along += veil_pitch) {
+            for (double along = first * veil_pitch; along <= last; along += veil_pitch) {
                 const std::array<Point, 4> quad{Point{along + slant, top}, Point{along + slant + band, top},
                                                 Point{along + band, bottom}, Point{along, bottom}};
                 candidate.fill_polygon(std::span<const Point>(quad), colour, PolygonFillRule::nonzero);
@@ -260,7 +210,6 @@ void Window::set_model_veil(bool shown) {
     if (shown) gather_veil_surfaces(sign);
     damage_veil(sign);
     if (!shown) sign.veil_rects.clear();
-    refresh_veil_motion();
 }
 
 bool Window::model_veil() const noexcept {
@@ -269,8 +218,8 @@ bool Window::model_veil() const noexcept {
 }
 
 std::uint64_t Window::model_veil_frames() const noexcept {
-    const std::uint64_t frames = model_sign_ ? (*model_sign_).veil_frames : 0U;
-    return frames;
+    // The stripes stand still: no frame of theirs is ever asked for.
+    return 0U;
 }
 
 namespace {

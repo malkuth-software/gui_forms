@@ -2727,9 +2727,13 @@ Functions, constants and aliases
 
    Whether any pending state is set.
 
+.. cpp:function:: bool report_model_effect(const char* utf8_text)
+
+   An effect the program describes (MCP round 5): a change a model's act made that is no node change, such as "cancelled the floating oval" when Escape cancels a shape that was never part of the picture. The reply of the act running now carries it as "effect: <text>" (and no longer says "effect: none"); with no act running it is dropped. At most 512 bytes of UTF-8 and 16 effects an act. False, keeping nothing, for empty, longer or invalid text. UI thread.
+
 .. cpp:function:: void take_mcp_arguments(int& argc, char** argv) noexcept
 
-   Removes the automation's launch arguments from a program's argv before the program reads it (study 4.2): --mcp, --mcp-shared, --model-directed (the old name of --mcp), --mcp-appearance-review, --mcp-socket and --mcp-script <file>. argv's pointers move down and argc shrinks; argv[argc] stays null. The library reads the process's own arguments, so a program that never calls this still gets MCP; one that parses argv calls it first so the arguments do not reach its parser.
+   Removes the automation's launch arguments from a program's argv before the program reads it (study 4.2): --mcp (the MCP help), --mcp-shared, --mcp-fcfs, --mcp-appearance-review, --mcp-socket, --mcp-help [topic] and --mcp-script <file>. argv's pointers move down and argc shrinks; argv[argc] stays null. The library reads the process's own arguments, so a program that never calls this still gets MCP; one that parses argv calls it first so the arguments do not reach its parser.
 
 .. cpp:namespace:: gui_forms::automation
 

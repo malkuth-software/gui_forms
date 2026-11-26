@@ -14,9 +14,9 @@
 // running GUI.Forms programs (their discovery entries in the run
 // directory), connects to its socket, and carries the bytes both ways,
 // first message included, until either side ends. The program decides the
-// rest: a program launched with --mcp or --mcp-shared accepts at once, any
-// other asks its user first, every connection; a refusal comes back as the
-// program's JSON-RPC error.
+// rest: only a program launched with --mcp-shared or --mcp-fcfs listens
+// (one launched without either has no socket), and it accepts at once; a
+// refusal comes back as the program's JSON-RPC error.
 //
 //   gui-forms-attach --list             the running programs: pid, identity,
 //                                       tools, socket, name

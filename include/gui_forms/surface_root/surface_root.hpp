@@ -1451,7 +1451,8 @@ public:
     // pass stxlib::Optional<bool>::of(shown).
     void set_tool_tips_shown(bool shown) = delete;
     // Whether this window's tooltips show now: its own switch, or the
-    // program's while it has none.
+    // program's while it has none; never while a model holds control (the
+    // automation holds them).
     [[nodiscard]] bool tool_tips_shown() const noexcept;
     [[nodiscard]] const ToolTipSettings& tool_tip_settings() const noexcept {
         return tool_tip_settings_;
@@ -1919,6 +1920,12 @@ private:
     // because the enhanced one describes it. Covers count, so two providers
     // covering one thing both uncover it before it shows again.
     void cover_tool_tip(RuntimeId control, std::string_view item_id, bool covered);
+    // Called by the automation's presenter (SurfaceRequestAccess): while a
+    // model holds control no tooltip shows, from the pointer, the focus or
+    // the program, and one that shows closes at once (MCP round 4: the
+    // model's own pointer moves armed them). The text stays readable
+    // through the semantics (snapshot, inspect).
+    void hold_tool_tips(bool held);
     // dispatch_key's routing, after the paint-lease check.
     bool route_key(KeyEvent event);
     // What the window does with a key no control on `route` handled at the
@@ -3035,6 +3042,8 @@ private:
     std::unique_ptr<detail::ToolTipRoute> tool_tips_;
     ToolTipSettings tool_tip_settings_{};
     stxlib::Optional<bool> tool_tips_shown_{};
+    // hold_tool_tips: a model holds control.
+    bool tool_tips_held_{};
     // The joined application's switch (Application::tool_tips_shown), shared
     // so it outlives the application; null for a window that joined none.
     std::shared_ptr<const std::atomic<bool>> application_tool_tips_shown_{};
@@ -3541,17 +3550,12 @@ private:
     // The flash wake's target (window_band.cpp).
     struct BandFlashWake;
     // The AI-mode veil (Window::set_model_veil, model_veil.cpp): gathers
-    // the control surfaces it stripes; damages them; starts or stops its
-    // motion as the motion settings allow (called with refresh_band); the
-    // motion's wake, its interval and its target; and its painting over
-    // the application's planes, clipped to each painted rectangle.
+    // the control surfaces it stripes; damages them when it shows or
+    // hides; and paints its still stripes over the application's planes,
+    // clipped to each painted rectangle.
     void gather_veil_surfaces(detail::ModelSignState& sign);
     void damage_veil(const detail::ModelSignState& sign);
-    void refresh_veil_motion();
-    [[nodiscard]] FrameInterval veil_step() const noexcept;
-    void veil_motion_due(FrameTime now);
     void paint_model_veil(detail::RecordingPainter& candidate, std::span<const Rect> painted);
-    struct VeilWake;
     // Resolves the grant from the request, the compositor state, the
     // declaration and the presentation settings, applies a changed backdrop
     // through the host services, and raises backdrop_changed when it changed.

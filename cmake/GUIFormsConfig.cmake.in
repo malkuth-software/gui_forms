@@ -187,7 +187,8 @@ if(GUIForms_CHECKED_BORROWS)
     unset(_gui_forms_borrow_target)
 endif()
 
-# Whether the producer's programs serve MCP with --mcp and --mcp-script
+# Whether the producer's programs serve MCP with --mcp-shared, --mcp-fcfs and
+# --mcp-script
 # (GUI_FORMS_MCP; off in a high-integrity build).
 set(GUIForms_MCP @GUI_FORMS_MCP@)
 

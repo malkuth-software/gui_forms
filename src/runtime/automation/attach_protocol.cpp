@@ -1,12 +1,11 @@
 // The attach endpoint's protocol pieces (attach_endpoint.hpp): reading a
 // connection's first line (MCP or the console), the console's commands, a
 // JSON-RPC error line for a refused initialize, the discovery entry's text,
-// session tokens, and line reads and writes. Compiled into the automation
+// and line reads and writes. Compiled into the automation
 // and into the gui-forms-attach bridge.
 
 #include "attach_endpoint.hpp"
 
-#include <stxlib/entropy.hpp>
 #include <stxlib/json.hpp>
 #include <stxlib/result.hpp>
 #include <stxlib/text.hpp>
@@ -14,7 +13,6 @@
 #include <stxlib/types.hpp>
 #include <stxlib/view.hpp>
 
-#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -27,7 +25,6 @@ namespace {
 
 constexpr std::size_t maximum_field = 256U;
 constexpr std::size_t maximum_note = 512U;
-constexpr std::size_t token_bytes = 16U;
 
 // `text` with control bytes as spaces, cut to `limit` bytes at the start of
 // a UTF-8 sequence.
@@ -215,13 +212,6 @@ AttachOpening read_attach_opening(std::string_view line) {
         opening.client_name = clean_field(member_string(document, *client.value(), "name"), maximum_field);
         opening.client_version = clean_field(member_string(document, *client.value(), "version"), maximum_field);
     }
-    opening.resume = clean_field(member_string(document, *params.value(), "resume"), maximum_field);
-    if (opening.resume.empty()) {
-        const stxlib::Optional<stxlib::JsonRef> meta = document.member(*params.value(), "_meta");
-        if (meta.present() && document.is(*meta.value(), stxlib::JsonKind::object)) {
-            opening.resume = clean_field(member_string(document, *meta.value(), "gui-forms/resume"), maximum_field);
-        }
-    }
     return opening;
 }
 
@@ -234,6 +224,7 @@ ConsoleCommand parse_console_command(std::string_view line) {
     const std::string_view rest = text.substr(start);
     if (verb == "help" || verb == "?") {
         command.verb = ConsoleVerb::help;
+        command.topic = clean_field(trimmed(rest), maximum_field);
     } else if (verb == "tools") {
         command.verb = ConsoleVerb::tools;
     } else if (verb == "transcript") {
@@ -241,12 +232,9 @@ ConsoleCommand parse_console_command(std::string_view line) {
     } else if (verb == "quit" || verb == "exit") {
         command.verb = ConsoleVerb::quit;
     } else if (verb == "resume") {
+        // Kept for the clients of 1.0.5, whose sessions resumed by token:
+        // there are no sessions now, so whatever follows is ignored.
         command.verb = ConsoleVerb::resume;
-        command.token = clean_field(trimmed(rest), maximum_field);
-        if (command.token.empty()) {
-            command.verb = ConsoleVerb::unknown;
-            command.error = "resume needs the token an earlier session printed";
-        }
     } else if (verb == "call") {
         std::size_t after = 0U;
         command.tool = std::string(next_word(rest, after));
@@ -262,7 +250,7 @@ ConsoleCommand parse_console_command(std::string_view line) {
     } else {
         command.verb = ConsoleVerb::unknown;
         command.error = "unknown command \"" + clean_field(verb, maximum_field) +
-                        "\"; the commands are help, tools, call, transcript, resume and quit";
+                        "\"; the commands are help, tools, call, transcript and quit";
     }
     return command;
 }
@@ -305,6 +293,8 @@ std::string attach_info_text(const AttachListing& listing) {
     text += "socket: " + clean_field(listing.address, 4096U) + "\n";
     text += "tools: " + std::to_string(listing.tools) + "\n";
     text += "note: " + clean_field(listing.note, maximum_note) + "\n";
+    if (!listing.access.empty()) text += "access: " + clean_field(listing.access, maximum_note) + "\n";
+    if (!listing.door.empty()) text += "door: " + clean_field(listing.door, maximum_field) + "\n";
     return text;
 }
 
@@ -330,6 +320,10 @@ bool parse_attach_info(std::string_view text, AttachListing& listing) {
             listing.address = value;
         } else if (key == "note") {
             listing.note = value;
+        } else if (key == "access") {
+            listing.access = value;
+        } else if (key == "door") {
+            listing.door = door_id_valid(value) ? std::string(value) : std::string{};
         } else if (key == "pid" || key == "tools") {
             std::uint64_t number = 0U;
             if (value.empty() || value.size() > 18U) return false;
@@ -348,18 +342,99 @@ bool parse_attach_info(std::string_view text, AttachListing& listing) {
     return has_process && !listing.address.empty();
 }
 
-std::string make_session_token() {
-    std::array<stxlib::Byte, token_bytes> bytes{};
-    const stxlib::OperationStatus filled =
-        stxlib::fill_entropy(stxlib::MutableView<stxlib::Byte>(bytes.data(), bytes.size()));
-    if (filled.failed()) return std::string{};
-    constexpr std::string_view digits = "0123456789abcdef";
-    std::string token{};
-    for (const stxlib::Byte byte : bytes) {
-        token += digits[static_cast<std::size_t>(byte >> 4U)];
-        token += digits[static_cast<std::size_t>(byte & 0x0fU)];
+bool door_id_valid(std::string_view id) noexcept {
+    if (id.size() != 8U) return false;
+    for (const char digit : id) {
+        const bool hexadecimal = (digit >= '0' && digit <= '9') || (digit >= 'a' && digit <= 'f');
+        if (!hexadecimal) return false;
     }
-    return token;
+    return true;
+}
+
+DoorLine read_door_line(std::string_view line) {
+    DoorLine read{};
+    std::string_view text = trimmed(line);
+    if (text.size() > 1U && text.front() == '#') {
+        std::size_t end = 1U;
+        while (end < text.size() && end <= 16U) {
+            const char next = text[end];
+            const bool allowed = (next >= '0' && next <= '9') || (next >= 'a' && next <= 'z') ||
+                                 (next >= 'A' && next <= 'Z') || next == '-' || next == '_';
+            if (!allowed) break;
+            ++end;
+        }
+        if (end > 1U && (end == text.size() || text[end] == ' ' || text[end] == '\t')) {
+            read.request = std::string(text.substr(1U, end - 1U));
+            text = trimmed(text.substr(end));
+        }
+    }
+    read.command = std::string(text);
+    return read;
+}
+
+std::vector<ChainPart> split_console_chain(std::string_view line) {
+    std::vector<ChainPart> parts{};
+    std::string current{};
+    char quote = '\0';
+    int depth = 0;
+    for (std::size_t index = 0U; index < line.size(); ++index) {
+        const char next = line[index];
+        if (quote != '\0') {
+            current += next;
+            if (next == '\\' && quote == '"' && index + 1U < line.size()) {
+                current += line[++index];
+            } else if (next == quote) {
+                quote = '\0';
+            }
+            continue;
+        }
+        if (next == '"' || next == '\'') {
+            quote = next;
+            current += next;
+            continue;
+        }
+        if (next == '{' || next == '[') ++depth;
+        if ((next == '}' || next == ']') && depth > 0) --depth;
+        const bool both = next == '&' && index + 1U < line.size() && line[index + 1U] == '&';
+        if (depth == 0 && (both || next == ';')) {
+            ChainPart part{};
+            part.command = std::string(trimmed(current));
+            part.join = both ? ChainJoin::on_success : ChainJoin::always;
+            parts.push_back(std::move(part));
+            current.clear();
+            if (both) ++index;
+            continue;
+        }
+        current += next;
+    }
+    ChainPart last{};
+    last.command = std::string(trimmed(current));
+    parts.push_back(std::move(last));
+    return parts;
+}
+
+std::string door_reply_frame(std::string_view text, std::string_view request, bool failed, std::size_t failed_at) {
+    std::string framed{};
+    std::size_t start = 0U;
+    while (start < text.size()) {
+        std::size_t end = text.find('\n', start);
+        if (end == std::string_view::npos) end = text.size();
+        const std::string_view line = text.substr(start, end - start);
+        if (!line.empty() && line.front() == '.') framed += '.';
+        framed.append(line.data(), line.size());
+        framed += '\n';
+        start = end + 1U;
+    }
+    framed += '.';
+    if (!request.empty()) framed += " #" + std::string(request);
+    if (!failed) {
+        framed += " ok\n";
+    } else if (failed_at > 0U) {
+        framed += " error at " + std::to_string(failed_at) + "\n";
+    } else {
+        framed += " error\n";
+    }
+    return framed;
 }
 
 bool read_attach_line(stxlib::PipeReader& input, std::string& line, std::size_t maximum) {

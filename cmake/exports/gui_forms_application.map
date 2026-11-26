@@ -3737,6 +3737,8 @@
     _ZN9gui_forms10automation19ModelInspectRequest*;
     _ZN9gui_forms10automation19register_model_toolB*;
     _ZN9gui_forms10automation19register_model_toolE*;
+    _ZN9gui_forms10automation19report_model_effectB*;
+    _ZN9gui_forms10automation19report_model_effectE*;
     _ZN9gui_forms10automation20mcp_capability_builtB*;
     _ZN9gui_forms10automation20mcp_capability_builtE*;
     _ZN9gui_forms10automation21mcp_identity_overrideB*;

@@ -40,7 +40,9 @@ constexpr const char* target_properties =
 
 // An acting call's answer to a question the program raises meanwhile.
 constexpr std::string_view on_unsaved_property =
-    "\"on_unsaved\":{\"type\":\"string\",\"enum\":[\"save\",\"discard\"]}";
+    "\"on_unsaved\":{\"type\":\"string\",\"enum\":[\"save\",\"discard\"],\"description\":\"The answer to "
+    "a save changes? question the act raises: save or discard; without it the act stops at the question and "
+    "replies with it.\"}";
 
 std::string object_schema(std::string_view properties) {
     std::string schema = "{\"type\":\"object\",\"properties\":{";
@@ -248,18 +250,28 @@ void append_built_in_specs(std::vector<ToolSpec>& specs, std::span<const Inspect
         batch_schema(), ToolAccess::acting));
     specs.push_back(built_in(
         "release_control", "Release control",
-        "Gives the program back to the user and ends AI mode. In a shared launch your first act asks the user "
-        "(a 10-second countdown that allows when it ends) and you then hold control until you release it or 30 s "
-        "pass without a call; a launch with --mcp is yours from the start. Reads never need control.",
+        "Gives the program back to the user and ends AI mode. In a --mcp-shared launch your first act asks the "
+        "user (a 10-second countdown that allows when it ends) and you then hold control until you release it or "
+        "30 s pass without a call; in a --mcp-fcfs launch your first act takes control at once and you keep it "
+        "until you release it or the user takes it back. Reads never need control.",
         "{\"type\":\"object\",\"properties\":{},\"additionalProperties\":false}", ToolAccess::read_only));
     specs.push_back(built_in(
+        "close", "Close",
+        "Quits the program: every program window is asked to close, as the user's quit does. An act: it takes "
+        "control first as any act does in this launch (at once under --mcp-fcfs; under --mcp-shared the user may "
+        "refuse). A question the program raises (save changes?) is yours and never shown: with no on_unsaved "
+        "nothing closes and the reply names it; on_unsaved save or discard answers it. Unlike disconnect, which "
+        "ends your session (and, with mode hard, closes), close is about the program.",
+        object_schema(on_unsaved_property), ToolAccess::acting));
+    specs.push_back(built_in(
         "disconnect", "Disconnect",
-        "Ends your session and closes the program cleanly. The usual path: save your work with the program's save "
-        "tool, then disconnect. mode soft (the default) never closes over unsaved work and never shows anything: "
-        "if the program asks to save, nothing closes, and the reply names what to save; save it, then disconnect "
-        "again. mode hard ends the session regardless: control returns to the user and the program's own save "
-        "question is shown to the user, or, with discard_unsaved true, unsaved changes are discarded and nothing "
-        "is asked. If the user holds control, the program stays open and only your session ends.",
+        "Ends your session and closes the program cleanly. An act: it takes control first as any act does in "
+        "this launch (under --mcp-shared the user may refuse, and the program stays open). The usual path: save "
+        "your work with the program's save tool, then disconnect. mode soft (the default) never closes over "
+        "unsaved work and never shows anything: if the program asks to save, nothing closes, and the reply names "
+        "what to save; save it, then disconnect again. mode hard ends the session regardless: control returns to "
+        "the user and the program's own save question is shown to the user, or, with discard_unsaved true, "
+        "unsaved changes are discarded and nothing is asked.",
         "{\"type\":\"object\",\"properties\":{\"mode\":{\"type\":\"string\",\"enum\":[\"soft\",\"hard\"]},"
         "\"discard_unsaved\":{\"type\":\"boolean\"}},\"additionalProperties\":false}",
         ToolAccess::acting));
@@ -269,7 +281,7 @@ bool built_in_name(std::string_view name) noexcept {
     const bool known = name == "windows" || name == "snapshot" || name == "act" || name == "pointer" ||
                        name == "keyboard" || name == "text" || name == "wait" || name == "capture" ||
                        name == "inspect" || name == "batch" || name == "release_control" || name == "find" ||
-                       name == "reset" || name == "disconnect";
+                       name == "reset" || name == "disconnect" || name == "close";
     return known;
 }
 
@@ -933,8 +945,18 @@ void AutomationCore::program_window_handles(std::vector<ApplicationWindowHandle>
     }
 }
 
+void AutomationCore::drop_model_work() noexcept {
+    // The calls themselves run on to their replies (a disconnect's own call
+    // runs this); only their question scopes close, so what the program
+    // asks from here is the user's.
+    for (const std::unique_ptr<RunningCall>& call : calls_) (*call).questions_open = false;
+    std::vector<gui_forms::detail::ModelQuestion> asked{};
+    gui_forms::detail::end_model_questions(0U, asked);
+}
+
 void AutomationCore::end_session() noexcept {
     ended_ = true;
+    drop_model_work();
     control_.disconnect();
     if (AutomationPresenter* const presenter = control_.presenter()) (*presenter).disconnected();
 }
@@ -1169,6 +1191,7 @@ struct CoreAccess final {
     bool wait_reached(Window& window, const WaitSpec& wait, FrameTime now, std::string& busy,
                       std::string& observed);
     StepOutcome disconnect_tool(RunningCall& call, FrameTime now);
+    StepOutcome close_tool(RunningCall& call, FrameTime now);
     // Whether the call acts (and so needs control), and the take step:
     // finished (refused, or still waiting) unless it set control_checked.
     bool needs_control(const RunningCall& call);
@@ -1997,6 +2020,8 @@ StepOutcome CoreAccess::post_act(RunningCall& call, FrameTime now) {
     // a close's prompt included, which comes after the act returns.
     gui_forms::detail::begin_model_questions(call.id.value, call.unsaved);
     call.questions_open = true;
+    // So are the effects the program reports (report_model_effect).
+    detail::begin_model_effects();
     PostedAct work{call.window, call.act, core.control().client(), call.outcome};
     static_cast<void>((*window).begin_invoke(std::move(work)));
     if (AutomationPresenter* const presenter = core.control().presenter()) {
@@ -2034,12 +2059,23 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
     std::vector<Window*> windows{};
     core.fill_windows(windows);
     for (Window* const open : windows) {
+        // A tooltip's window comes and goes with its own timers; it is no
+        // program work an act waits on.
+        if (core.passive_popup_window(*open)) continue;
         if (!detail::window_idle(*open, now, core.settings().idle_horizon, busy)) {
             idle = false;
             break;
         }
     }
-    if (!idle && now < call.deadline) return StepOutcome::resume_at(now + core.settings().poll_interval);
+    // A program tool whose reply is complete returns once its window has
+    // settled or its short limit passed, never waiting out the window's
+    // timers and frames: its reply says what it did.
+    const bool program_tool = call.act.kind == ActKind::registry || call.act.kind == ActKind::command;
+    const bool tool_replied = outcome.reply.has_value() && (*outcome.reply).success_value() != nullptr;
+    const bool returns_now = program_tool && (call.act.kind == ActKind::command || tool_replied);
+    const FrameTime limit = returns_now ? std::min(call.deadline, call.started + core.settings().program_settle_limit)
+                                        : call.deadline;
+    if (!idle && now < limit) return StepOutcome::resume_at(now + core.settings().poll_interval);
     // A registry tool's reply is its own; the diff follows it.
     std::string text{};
     if (outcome.reply.has_value()) {
@@ -2081,9 +2117,13 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
         for (Window* const open : windows) open_now = open_now || core.window_stable_id(*open) == id;
         if (!open_now) text += "closed: window [" + id + "]\n";
     }
+    // What the program says the act did that no node shows (round 5:
+    // Escape cancelling a floating shape replied "effect: none").
+    std::vector<std::string> described{};
+    detail::take_model_effects(described);
+    for (const std::string& effect : described) text += "effect: " + effect + "\n";
     // A program tool's own reply says what it did (a drawing changes pixels,
     // not nodes: 1.0.5 review, plan_paint_draw replied "effect: none").
-    const bool tool_replied = outcome.reply.has_value() && (*outcome.reply).success_value() != nullptr;
     if (text.size() == effects_start && !tool_replied) {
         text += "effect: none (no node changed, focus did not move, no window opened or closed)\n";
     }
@@ -2091,6 +2131,9 @@ StepOutcome CoreAccess::settle(RunningCall& call, FrameTime now) {
     const std::uint64_t frames = window == nullptr ? 0U : detail::paint_passes_of(*window) - call.paint_passes_before;
     if (idle) {
         text += "frames: " + std::to_string(frames) + " presented; idle after " + std::to_string(elapsed) + " ms";
+    } else if (returns_now) {
+        // Not waited on: the window goes on with its own work.
+        text += "frames: " + std::to_string(frames) + " presented; replied after " + std::to_string(elapsed) + " ms";
     } else {
         text += "frames: " + std::to_string(frames) + " presented; still busy after " + std::to_string(elapsed) +
                 " ms: " + busy;
@@ -2225,7 +2268,9 @@ StepOutcome CoreAccess::release_control_tool() {
 // with the program's questions the model's: one asked stops the close, and
 // the reply names it (finish_reply). Hard gives control back and asks them
 // to close with the questions the user's, or answered No for
-// discard_unsaved. With the user in control, only the session ends.
+// discard_unsaved. It is an act (needs_control): the take came first, so
+// the user is in control here only in an appearance review, and then only
+// the session ends.
 StepOutcome CoreAccess::disconnect_tool(RunningCall& call, FrameTime now) {
     const std::optional<std::string> mode = detail::text_member(call.arguments, "mode");
     if (mode.has_value() && *mode != "soft" && *mode != "hard") {
@@ -2265,9 +2310,30 @@ StepOutcome CoreAccess::disconnect_tool(RunningCall& call, FrameTime now) {
     return post_act(call, now);
 }
 
+// close (owner, MCP 1.0.6: a model may "simply connect and then call
+// program close"): every program window is asked to close, as quitting
+// does, with the program's questions the model's: with no on_unsaved a save
+// question stops the close and the reply names it; on_unsaved answers it.
+// An act: the take came first.
+StepOutcome CoreAccess::close_tool(RunningCall& call, FrameTime now) {
+    ToolReply refusal{};
+    if (call_window(call, refusal) == nullptr) return StepOutcome::finished(std::move(refusal));
+    PreparedAct& act = call.act;
+    act.kind = ActKind::close_windows;
+    core.program_window_handles(act.window_handles);
+    act.summary = "closed every program window; the program is ending";
+    return post_act(call, now);
+}
+
 bool CoreAccess::needs_control(const RunningCall& call) {
     const std::string& tool = call.tool;
-    if (tool == "act" || tool == "pointer" || tool == "keyboard" || tool == "reset") return true;
+    // disconnect is an act (owner, MCP 1.0.6: "the act of messaging in
+    // order to tell it to close, paradoxically is an action"): it takes
+    // control as any act does in the launch's mode, then closes per its mode.
+    if (tool == "act" || tool == "pointer" || tool == "keyboard" || tool == "reset" || tool == "disconnect" ||
+        tool == "close") {
+        return true;
+    }
     if (tool == "text") return call.arguments.find("select") != nullptr;
     if (tool.compare(0U, command_tool_prefix.size(), command_tool_prefix) == 0) return true;
     if (built_in_name(tool)) return false;
@@ -2306,6 +2372,11 @@ StepOutcome CoreAccess::control_gate(RunningCall& call, FrameTime now) {
     }
     // Back with the user: refused, or the question could not be shown.
     const bool answered = control.takes_answered() != call.takes_answered_before;
+    if (answered && !control.last_take_allowed() && control.presenter() != nullptr && call.tool == "disconnect") {
+        return StepOutcome::finished(ToolReply::failure(
+            ToolError::declined, "the user declined to let you take control, so the program stays open",
+            "the program is the user's; your next act, disconnect included, asks again"));
+    }
     if (answered && !control.last_take_allowed() && control.presenter() != nullptr) {
         return StepOutcome::finished(ToolReply::failure(
             ToolError::declined, "the user declined to let you take control of the program",
@@ -2415,13 +2486,14 @@ StepOutcome CoreAccess::first_step(RunningCall& call, FrameTime now) {
     if (tool == "windows") return windows_tool();
     if (tool == "reset") return reset_tool(call, now);
     if (tool == "release_control") return release_control_tool();
-    if (tool == "disconnect") return disconnect_tool(call, now);
     // An act needs control (the owner's control model): its first ask
-    // waits on the user's answer.
+    // waits on the user's answer. disconnect and close are acts.
     if (!call.control_checked && needs_control(call)) {
         StepOutcome gate = control_gate(call, now);
         if (!call.control_checked) return gate;
     }
+    if (tool == "disconnect") return disconnect_tool(call, now);
+    if (tool == "close") return close_tool(call, now);
     if (tool == "batch") return prepare_batch(call, now);
     if (built_in_name(tool)) {
         ToolReply refusal{};
@@ -2771,7 +2843,9 @@ void AutomationCore::finish_reply(RunningCall& call, StepOutcome& outcome) {
         std::vector<gui_forms::detail::ModelQuestion> asked{};
         gui_forms::detail::end_model_questions(call.id.value, asked);
         call.questions_open = false;
-        if (append_model_questions(asked, disconnecting, extra) && disconnecting) {
+        const bool stopped = append_model_questions(asked, disconnecting, extra);
+        if (stopped && call.tool == "close") reply = ToolReply::success("not closed: the program has unsaved work");
+        if (stopped && disconnecting) {
             // A soft disconnect balked: the session goes on.
             reply = ToolReply::success("not disconnected: the program has unsaved work");
         }
@@ -2785,7 +2859,7 @@ void AutomationCore::finish_reply(RunningCall& call, StepOutcome& outcome) {
     if (!notice.empty()) extra += "\nnote: " + notice;
     detail::append_pending_states(extra);
     if (ToolSuccess* const success = reply.success_value()) {
-        if (call.took_control) {
+        if (call.took_control && !disconnecting && call.tool != "close") {
             Window* const window = call.window.get();
             detail::JsonValue none{};
             std::string error{};
@@ -2855,6 +2929,12 @@ CallStart AutomationCore::begin(std::string_view tool, std::string arguments_jso
         start.outcome = step_call(*call, now);
     } catch (const std::exception& failure) {
         start.outcome = StepOutcome::finished(ToolReply::failure(ToolError::internal, failure.what()));
+        // A question scope the failed step opened would answer the program's
+        // questions (a close's save question) for the model from then on.
+        if ((*call).questions_open) {
+            std::vector<gui_forms::detail::ModelQuestion> asked{};
+            gui_forms::detail::end_model_questions((*call).id.value, asked);
+        }
         return start;
     }
     if (start.outcome.done()) finish_reply(*call, start.outcome);

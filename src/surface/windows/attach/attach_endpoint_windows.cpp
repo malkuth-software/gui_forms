@@ -18,6 +18,14 @@
 //   (attach_peer_allowed over the two SIDs' equality); another user's
 //   connection, or one whose user cannot be read, is closed unread.
 // - interrupt() sets the flag and connects once, which ends the wait.
+// - The command folder (CommandDoor, attach_endpoint.hpp): the pipes
+//   \\.\pipe\<id>\in and \out, one instance each, made with
+//   FILE_FLAG_FIRST_PIPE_INSTANCE (no one else's pipe of that name) and a
+//   protected DACL granting only the user's SID, local clients only; `help`
+//   and `info` in %TEMP%\<id>, made private as the run directory is. Each
+//   pipe has its own thread: `in`'s reads each writer to its end and
+//   reconnects; `out`'s waits for a reader and a reply, writes the waiting
+//   replies, flushes and disconnects, so a `type` of it ends after them.
 
 #if !defined(WIN32_LEAN_AND_MEAN)
 #define WIN32_LEAN_AND_MEAN
@@ -38,10 +46,13 @@
 #include <sddl.h>
 
 #include <stxlib/clocks.hpp>
+#include <stxlib/entropy.hpp>
 #include <stxlib/files.hpp>
 #include <stxlib/path.hpp>
 #include <stxlib/text_view.hpp>
 #include <stxlib/threads.hpp>
+#include <stxlib/types.hpp>
+#include <stxlib/view.hpp>
 
 #include <algorithm>
 #include <atomic>
@@ -50,6 +61,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <cstring>
+#include <deque>
 #include <memory>
 #include <string>
 #include <string_view>
@@ -399,6 +411,8 @@ std::unique_ptr<AttachEndpoint> AttachEndpoint::listen(const AttachProgram& prog
     made.entry.name = program.name.empty() ? program.identity : program.name;
     made.entry.process = static_cast<std::int64_t>(GetCurrentProcessId());
     made.entry.executable = program.executable;
+    made.entry.access = program.access;
+    made.entry.door = program.door;
     made.entry.address = made.path;
     if (!write_file_whole(made.info_path, attach_info_text(made.entry))) {
         error = "the discovery entry " + made.info_path + " could not be written: " + host_message(GetLastError());
@@ -514,6 +528,13 @@ std::vector<AttachListing> list_attach_endpoints() {
         if (process == 0) continue;
         const std::string path = directory + "\\" + name;
         if (!process_alive(process)) {
+            // An ended program's command folder goes with its entry.
+            std::string text{};
+            AttachListing ended{};
+            if (info_process != 0 && read_small_file(path, 64U * 1024U, text) && parse_attach_info(text, ended) &&
+                !ended.door.empty()) {
+                remove_door_folder(ended.door, process);
+            }
             stale.push_back(path);
             continue;
         }
@@ -595,6 +616,407 @@ bool connect_attach_endpoint(const std::string& address, AttachStreams& streams,
         return false;
     }
     return true;
+}
+
+
+// ---- the command folder ---------------------------------------------------------------
+
+namespace {
+
+constexpr std::wstring_view pipe_prefix = L"\\\\.\\pipe\\";
+constexpr std::string_view door_files[] = {"help", "info", "help.new", "info.new"};
+constexpr DWORD door_pipe_bytes = 64U * 1024U;
+constexpr DWORD door_write_wait_milliseconds = 5000U;
+
+std::string fresh_door_id() {
+    stxlib::Byte bytes[4] = {};
+    if (stxlib::fill_entropy(stxlib::MutableView<stxlib::Byte>(bytes, 4U)).failed()) return std::string{};
+    constexpr std::string_view digits = "0123456789abcdef";
+    std::string id{};
+    for (const stxlib::Byte byte : bytes) {
+        id += digits[static_cast<std::size_t>(byte >> 4U)];
+        id += digits[static_cast<std::size_t>(byte & 0x0fU)];
+    }
+    return id;
+}
+
+// %TEMP% (the user's own temporary folder), without its last backslash;
+// empty when it cannot be read.
+std::string temporary_folder() {
+    wchar_t buffer[MAX_PATH + 2] = {};
+    const DWORD length = GetTempPathW(MAX_PATH + 1, buffer);
+    if (length == 0U || length > MAX_PATH + 1) return std::string{};
+    std::string folder = narrow(std::wstring_view(buffer, length));
+    while (folder.size() > 3U && folder.back() == '\\') folder.pop_back();
+    return folder;
+}
+
+bool plain_directory(const std::string& path) {
+    const DWORD attributes = GetFileAttributesW(wide(path).c_str());
+    return attributes != INVALID_FILE_ATTRIBUTES && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0U &&
+           (attributes & FILE_ATTRIBUTE_REPARSE_POINT) == 0U;
+}
+
+struct WaitingReply final {
+    std::string text{};
+    ULONGLONG deadline{};
+};
+
+// Waits for an overlapped operation on `handle` or `stop`: true when it
+// completed (with `transferred`), false when it failed, `stop` was set or
+// `milliseconds` passed (the operation is then cancelled).
+bool finish_overlapped(HANDLE handle, OVERLAPPED& overlapped, HANDLE stop, DWORD milliseconds, DWORD& transferred) {
+    const HANDLE events[2] = {overlapped.hEvent, stop};
+    const DWORD waited = WaitForMultipleObjects(2U, events, FALSE, milliseconds);
+    if (waited != WAIT_OBJECT_0) {
+        static_cast<void>(CancelIoEx(handle, &overlapped));
+        static_cast<void>(GetOverlappedResult(handle, &overlapped, &transferred, TRUE));
+        return false;
+    }
+    return GetOverlappedResult(handle, &overlapped, &transferred, FALSE) != 0;
+}
+
+// Connects the pipe's next client: true once one is connected.
+bool connect_client(HANDLE pipe, HANDLE stop) {
+    OVERLAPPED overlapped{};
+    const OwnedHandle event(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+    if (!event.valid()) return false;
+    overlapped.hEvent = event.get();
+    if (ConnectNamedPipe(pipe, &overlapped)) return true;
+    const DWORD failure = GetLastError();
+    if (failure == ERROR_PIPE_CONNECTED) return true;
+    if (failure != ERROR_IO_PENDING) return false;
+    DWORD transferred = 0U;
+    return finish_overlapped(pipe, overlapped, stop, INFINITE, transferred);
+}
+
+void door_reader_main(const stxlib::StopSignal& signal, void* argument) noexcept;
+void door_writer_main(const stxlib::StopSignal& signal, void* argument) noexcept;
+
+} // namespace
+
+struct CommandDoor::State final {
+    std::string id{};
+    std::string folder{};
+    std::wstring in_name{};
+    std::wstring out_name{};
+    HANDLE in_pipe{INVALID_HANDLE_VALUE};
+    HANDLE out_pipe{INVALID_HANDLE_VALUE};
+    // Manual-reset: set when the door closes.
+    HANDLE stop{};
+    // Manual-reset: set by interrupt().
+    HANDLE interrupted{};
+    // Auto-reset: a line arrived; a reply was queued.
+    HANDLE line_ready{};
+    HANDLE reply_ready{};
+    stxlib::Mutex mutex{};
+    // Under mutex: what `in` gave, not yet taken as lines.
+    std::string buffer{};
+    std::deque<WaitingReply> replies{};
+    stxlib::Thread reader{};
+    stxlib::Thread writer{};
+    bool reader_joinable{};
+    bool writer_joinable{};
+};
+
+namespace {
+
+void door_reader_main(const stxlib::StopSignal&, void* argument) noexcept {
+    CommandDoor::State& state = *static_cast<CommandDoor::State*>(argument);
+    const OwnedHandle event(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+    if (!event.valid()) return;
+    for (;;) {
+        if (WaitForSingleObject(state.stop, 0U) == WAIT_OBJECT_0) return;
+        if (!connect_client(state.in_pipe, state.stop)) {
+            if (WaitForSingleObject(state.stop, 50U) == WAIT_OBJECT_0) return;
+            static_cast<void>(DisconnectNamedPipe(state.in_pipe));
+            continue;
+        }
+        char chunk[4096] = {};
+        for (;;) {
+            OVERLAPPED overlapped{};
+            overlapped.hEvent = event.get();
+            static_cast<void>(ResetEvent(event.get()));
+            DWORD transferred = 0U;
+            bool done = ReadFile(state.in_pipe, chunk, sizeof(chunk), &transferred, &overlapped) != 0;
+            if (!done) {
+                if (GetLastError() != ERROR_IO_PENDING) break;
+                done = finish_overlapped(state.in_pipe, overlapped, state.stop, INFINITE, transferred);
+            }
+            if (!done || transferred == 0U) break;
+            {
+                const stxlib::ScopedLock lock(state.mutex);
+                state.buffer.append(chunk, transferred);
+                if (state.buffer.size() > maximum_console_line && state.buffer.find('\n') == std::string::npos) {
+                    state.buffer.clear();
+                }
+            }
+            static_cast<void>(SetEvent(state.line_ready));
+        }
+        static_cast<void>(DisconnectNamedPipe(state.in_pipe));
+    }
+}
+
+void door_writer_main(const stxlib::StopSignal&, void* argument) noexcept {
+    CommandDoor::State& state = *static_cast<CommandDoor::State*>(argument);
+    const OwnedHandle event(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+    if (!event.valid()) return;
+    for (;;) {
+        if (WaitForSingleObject(state.stop, 0U) == WAIT_OBJECT_0) return;
+        if (!connect_client(state.out_pipe, state.stop)) {
+            if (WaitForSingleObject(state.stop, 50U) == WAIT_OBJECT_0) return;
+            static_cast<void>(DisconnectNamedPipe(state.out_pipe));
+            continue;
+        }
+        // A reader is there: wait for a reply.
+        std::deque<WaitingReply> taken{};
+        for (;;) {
+            {
+                const stxlib::ScopedLock lock(state.mutex);
+                const ULONGLONG now = GetTickCount64();
+                while (!state.replies.empty() && state.replies.front().deadline <= now) state.replies.pop_front();
+                taken.swap(state.replies);
+            }
+            if (!taken.empty()) break;
+            const HANDLE events[2] = {state.reply_ready, state.stop};
+            if (WaitForMultipleObjects(2U, events, FALSE, INFINITE) != WAIT_OBJECT_0) return;
+        }
+        for (const WaitingReply& waiting : taken) {
+            OVERLAPPED overlapped{};
+            overlapped.hEvent = event.get();
+            static_cast<void>(ResetEvent(event.get()));
+            DWORD transferred = 0U;
+            bool done = WriteFile(state.out_pipe, waiting.text.data(), static_cast<DWORD>(waiting.text.size()),
+                                  &transferred, &overlapped) != 0;
+            if (!done && GetLastError() == ERROR_IO_PENDING) {
+                done = finish_overlapped(state.out_pipe, overlapped, state.stop, door_write_wait_milliseconds,
+                                         transferred);
+            }
+            if (!done) break;
+        }
+        static_cast<void>(FlushFileBuffers(state.out_pipe));
+        static_cast<void>(DisconnectNamedPipe(state.out_pipe));
+    }
+}
+
+// One end of the door: an overlapped pipe instance of `name`, the first of
+// its name, granting only `sid`.
+HANDLE make_door_pipe(const std::wstring& name, DWORD direction, const std::vector<unsigned char>& sid) {
+    const std::wstring text = L"D:P(A;;GA;;;" + sid_text(sid) + L")";
+    PSECURITY_DESCRIPTOR descriptor = nullptr;
+    if (!ConvertStringSecurityDescriptorToSecurityDescriptorW(text.c_str(), SDDL_REVISION_1, &descriptor, nullptr)) {
+        return INVALID_HANDLE_VALUE;
+    }
+    SECURITY_ATTRIBUTES attributes{};
+    attributes.nLength = sizeof(attributes);
+    attributes.lpSecurityDescriptor = descriptor;
+    attributes.bInheritHandle = FALSE;
+    const HANDLE pipe = CreateNamedPipeW(name.c_str(), direction | FILE_FLAG_OVERLAPPED | FILE_FLAG_FIRST_PIPE_INSTANCE,
+                                         PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
+                                         1U, door_pipe_bytes, door_pipe_bytes, 0U, &attributes);
+    static_cast<void>(LocalFree(descriptor));
+    return pipe;
+}
+
+void close_door_handle(HANDLE& handle) noexcept {
+    if (handle != nullptr && handle != INVALID_HANDLE_VALUE) static_cast<void>(CloseHandle(handle));
+    handle = nullptr;
+}
+
+} // namespace
+
+CommandDoor::CommandDoor(std::unique_ptr<State> state) noexcept : state_(std::move(state)) {}
+
+std::unique_ptr<CommandDoor> CommandDoor::open(std::string& error) {
+    const std::string base = temporary_folder();
+    if (base.empty()) {
+        error = "no temporary folder can be named for this user";
+        return nullptr;
+    }
+    const std::vector<unsigned char> own = token_user(GetCurrentProcess());
+    if (own.empty()) {
+        error = "the user's SID could not be read";
+        return nullptr;
+    }
+    std::unique_ptr<State> state = std::make_unique<State>();
+    for (int attempt = 0; attempt < 16 && (*state).folder.empty(); ++attempt) {
+        const std::string id = fresh_door_id();
+        if (id.empty()) {
+            error = "the host gave no entropy for the command folder's ID";
+            return nullptr;
+        }
+        const std::string folder = base + "\\" + id;
+        if (CreateDirectoryW(wide(folder).c_str(), nullptr)) {
+            (*state).id = id;
+            (*state).folder = folder;
+        } else if (GetLastError() != ERROR_ALREADY_EXISTS) {
+            error = "the command folder " + folder + " could not be made: " + host_message(GetLastError());
+            return nullptr;
+        }
+    }
+    if ((*state).folder.empty()) {
+        error = "no free name for the command folder";
+        return nullptr;
+    }
+    std::unique_ptr<CommandDoor> door(new CommandDoor(std::move(state)));
+    State& made = *(*door).state_;
+    if (!plain_directory(made.folder) || !make_private(made.folder, own)) {
+        error = "the command folder " + made.folder + " could not be made private to this user";
+        static_cast<void>(RemoveDirectoryW(wide(made.folder).c_str()));
+        made.folder.clear();
+        return nullptr;
+    }
+    made.in_name = std::wstring(pipe_prefix) + wide(made.id) + L"\\in";
+    made.out_name = std::wstring(pipe_prefix) + wide(made.id) + L"\\out";
+    made.in_pipe = make_door_pipe(made.in_name, PIPE_ACCESS_INBOUND, own);
+    made.out_pipe = make_door_pipe(made.out_name, PIPE_ACCESS_OUTBOUND, own);
+    made.stop = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    made.interrupted = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    made.line_ready = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    made.reply_ready = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    if (made.in_pipe == INVALID_HANDLE_VALUE || made.out_pipe == INVALID_HANDLE_VALUE || made.stop == nullptr ||
+        made.interrupted == nullptr || made.line_ready == nullptr || made.reply_ready == nullptr) {
+        error = "the command folder's pipes could not be made: " + host_message(GetLastError());
+        return nullptr;
+    }
+    (*door).write_info("");
+    stxlib::OperationResult<stxlib::Thread> reader = stxlib::Thread::start(&door_reader_main, &made);
+    if (reader.failed()) {
+        error = "the command folder's reader thread did not start";
+        return nullptr;
+    }
+    made.reader = std::move(*reader.value());
+    made.reader_joinable = true;
+    stxlib::OperationResult<stxlib::Thread> writer = stxlib::Thread::start(&door_writer_main, &made);
+    if (writer.failed()) {
+        error = "the command folder's writer thread did not start";
+        return nullptr;
+    }
+    made.writer = std::move(*writer.value());
+    made.writer_joinable = true;
+    return door;
+}
+
+CommandDoor::~CommandDoor() {
+    if (!state_) return;
+    State& state = *state_;
+    if (state.stop != nullptr) static_cast<void>(SetEvent(state.stop));
+    if (state.interrupted != nullptr) static_cast<void>(SetEvent(state.interrupted));
+    if (state.reader_joinable) static_cast<void>(state.reader.join());
+    if (state.writer_joinable) static_cast<void>(state.writer.join());
+    close_door_handle(state.in_pipe);
+    close_door_handle(state.out_pipe);
+    close_door_handle(state.stop);
+    close_door_handle(state.interrupted);
+    close_door_handle(state.line_ready);
+    close_door_handle(state.reply_ready);
+    if (state.folder.empty()) return;
+    for (const std::string_view file : door_files) {
+        static_cast<void>(DeleteFileW(wide(state.folder + "\\" + std::string(file)).c_str()));
+    }
+    static_cast<void>(RemoveDirectoryW(wide(state.folder).c_str()));
+}
+
+const std::string& CommandDoor::id() const noexcept {
+    return (*state_).id;
+}
+
+const std::string& CommandDoor::folder() const noexcept {
+    return (*state_).folder;
+}
+
+std::string CommandDoor::send_line(std::string_view command) const {
+    const State& state = *state_;
+    const std::string in = narrow(state.in_name);
+    const std::string out = narrow(state.out_name);
+    std::string line = "echo " + std::string(command) + " > " + in + " & type " + out;
+    return line;
+}
+
+DoorWait CommandDoor::read_command(std::string& line, std::int64_t timeout_milliseconds) {
+    State& state = *state_;
+    const ULONGLONG deadline =
+        GetTickCount64() + static_cast<ULONGLONG>(timeout_milliseconds < 0 ? 0 : timeout_milliseconds);
+    for (;;) {
+        {
+            const stxlib::ScopedLock lock(state.mutex);
+            const std::size_t newline = state.buffer.find('\n');
+            if (newline != std::string::npos) {
+                line.assign(state.buffer, 0U, newline);
+                state.buffer.erase(0U, newline + 1U);
+                if (!line.empty() && line.back() == '\r') line.pop_back();
+                return DoorWait::line;
+            }
+        }
+        if (WaitForSingleObject(state.interrupted, 0U) == WAIT_OBJECT_0) return DoorWait::interrupted;
+        DWORD wait = INFINITE;
+        if (timeout_milliseconds >= 0) {
+            const ULONGLONG now = GetTickCount64();
+            if (deadline <= now) return DoorWait::timed_out;
+            wait = static_cast<DWORD>(std::min<ULONGLONG>(deadline - now, 60000U));
+        }
+        const HANDLE events[2] = {state.line_ready, state.interrupted};
+        const DWORD waited = WaitForMultipleObjects(2U, events, FALSE, wait);
+        if (waited == WAIT_OBJECT_0 + 1U) return DoorWait::interrupted;
+        if (waited == WAIT_FAILED) return DoorWait::failed;
+    }
+}
+
+void CommandDoor::interrupt() noexcept {
+    State& state = *state_;
+    if (state.interrupted != nullptr) static_cast<void>(SetEvent(state.interrupted));
+}
+
+void CommandDoor::reply(std::string framed) {
+    State& state = *state_;
+    {
+        const stxlib::ScopedLock lock(state.mutex);
+        WaitingReply waiting{};
+        waiting.text = std::move(framed);
+        waiting.deadline = GetTickCount64() + static_cast<ULONGLONG>(door_reply_seconds) * 1000U;
+        state.replies.push_back(std::move(waiting));
+        while (state.replies.size() > door_reply_limit) state.replies.pop_front();
+    }
+    static_cast<void>(SetEvent(state.reply_ready));
+}
+
+void CommandDoor::write_help(std::string_view text) {
+    State& state = *state_;
+    const stxlib::ScopedLock lock(state.mutex);
+    static_cast<void>(write_file_whole(state.folder + "\\help", text));
+}
+
+void CommandDoor::write_info(std::string_view text) {
+    State& state = *state_;
+    std::string whole =
+        "id: " + state.id + "\npid: " + std::to_string(static_cast<unsigned long>(GetCurrentProcessId())) + "\n";
+    whole.append(text.data(), text.size());
+    const stxlib::ScopedLock lock(state.mutex);
+    static_cast<void>(write_file_whole(state.folder + "\\info", whole));
+}
+
+std::string door_folder_path(std::string_view id) {
+    const std::string base = temporary_folder();
+    if (base.empty()) return std::string{};
+    return base + "\\" + std::string(id);
+}
+
+void remove_door_folder(std::string_view id, std::int64_t process) noexcept {
+    try {
+        if (!door_id_valid(id) || process <= 0) return;
+        const std::string folder = door_folder_path(id);
+        if (folder.empty() || !plain_directory(folder)) return;
+        std::string text{};
+        if (!read_small_file(folder + "\\info", 64U * 1024U, text)) return;
+        const std::string wanted = "\npid: " + std::to_string(static_cast<long long>(process)) + "\n";
+        if (("\n" + text).find(wanted) == std::string::npos) return;
+        for (const std::string_view file : door_files) {
+            static_cast<void>(DeleteFileW(wide(folder + "\\" + std::string(file)).c_str()));
+        }
+        static_cast<void>(RemoveDirectoryW(wide(folder).c_str()));
+    } catch (...) {
+        // Out of memory: the folder stays for a later listing.
+    }
 }
 
 } // namespace gui_forms::automation

@@ -24,6 +24,12 @@ namespace gui_forms::automation::detail {
 // The launch arguments take_mcp_arguments removed from argv, in order (the
 // launch reader adds them to the process's own arguments).
 [[nodiscard]] std::vector<std::string> taken_mcp_arguments();
+// An act begins collecting the program's effects (report_model_effect),
+// dropping any left over.
+void begin_model_effects();
+// The effects collected since begin_model_effects, in order; collecting
+// stops.
+void take_model_effects(std::vector<std::string>& effects);
 // Appends a line "pending: <what> (<how to settle>)" for each pending
 // state the program declared (set_model_pending_state).
 void append_pending_states(std::string& text);

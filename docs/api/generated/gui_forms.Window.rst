@@ -150,7 +150,7 @@ gui_forms::Window
       **model_veil** : ``bool``
 
       **model_veil_frames** : ``std::uint64_t``, read-only
-         How many times the veil's stripes have moved, for tests.
+         How many frames the veil's stripes have asked for: always 0, since they stand still (kept for the tests that check it).
 
       **is_mdi_container** : ``bool``
          -- the multiple document interface (DK decisions 60 to 63; window_document_area.hpp) -- WinForms' Form surface over the window's docking document area: an MDI child is a document of the area, named by its DockPanelId. The area is bound by the docking workspace's main DockSite while it is attached to this window; without one the children are empty and the calls change nothing (activate_mdi_child and layout_mdi answer false). Whether the window is an MDI container: its document area shows its documents as overlapping frames rather than tabs. Bound, it reads and sets the area's presentation; unbound, it is kept and given to the area that binds, once written. UI thread.
@@ -552,11 +552,11 @@ gui_forms::Window
 
    .. cpp:function:: void set_model_veil(bool shown)
 
-      The automation's AI-mode veil (owner, 2026-11-24), shown while a model holds control: grey barber-pole stripes, the progress bar's marching stripes in grey, over the window's control surfaces (buttons, fields, lists, scroll bars, tabs, menus, toolbars), never over content (a canvas, an image, a document); and the X cursor over the whole window (SurfaceRoot::model_cursor). The stripes move and come to rest under reduced motion, with ambient motion off and while the window is occluded; forced high contrast draws none. Their motion is ambient, so the window still settles. Captures leave the veil out unless asked (WindowCaptureOptions::include_model_sign). UI thread.
+      The automation's AI-mode veil (owner, 2026-11-24), shown while a model holds control: grey barber-pole stripes, the progress bar's marching stripes in grey, over the window's control surfaces (buttons, fields, lists, scroll bars, tabs, menus, toolbars), never over content (a canvas, an image, a document); and the X cursor over the whole window (SurfaceRoot::model_cursor). The stripes stand still (MCP round 4: the sign costs no frames), so the window paints them once when they show and once when they go; forced high contrast draws none. Captures leave the veil out unless asked (WindowCaptureOptions::include_model_sign). UI thread.
 
    .. cpp:function:: std::uint64_t model_veil_frames() const noexcept
 
-      How many times the veil's stripes have moved, for tests.
+      How many frames the veil's stripes have asked for: always 0, since they stand still (kept for the tests that check it).
 
    .. cpp:function:: bool is_mdi_container() const
 

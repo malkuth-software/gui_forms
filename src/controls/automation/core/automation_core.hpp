@@ -58,6 +58,11 @@ struct AutomationSettings final {
     std::chrono::milliseconds poll_interval{8};
     // Idle allows no timer due within this (study 14: 50 ms).
     std::chrono::milliseconds idle_horizon{50};
+    // The longest a program tool whose reply is complete (a registered
+    // tool, a command) waits for its window to settle: its reply says what
+    // it did, so it returns at once and never waits on the window (MCP round
+    // 4: plan_paint_draw timed out over the socket).
+    std::chrono::milliseconds program_settle_limit{100};
     // A wait's default and longest timeout.
     std::chrono::milliseconds default_wait_timeout{5000};
     std::chrono::milliseconds maximum_wait_timeout{60000};
@@ -245,9 +250,14 @@ public:
     void hard_disconnect() noexcept;
     // Whether a disconnect ended the model's session.
     [[nodiscard]] bool session_ended() const noexcept { return ended_; }
-    // Ends the session: control returns to the user and the in-use sign
-    // and the band leave the windows.
+    // Ends the session: the model's question scope closes (a question the
+    // program raises is the user's again), control returns to the user and
+    // the in-use sign and the band leave the windows.
     void end_session() noexcept;
+    // Closes every running call's question scope, and any left open (the
+    // last attach connection closing, end_session): nothing the program
+    // asks afterwards is answered for a model.
+    void drop_model_work() noexcept;
     // Starts a new client's session after end_session (an attach
     // connection, MCP 1.0.5): calls are answered again, and the control
     // starts over (AutomationControl::begin_session). A session that has

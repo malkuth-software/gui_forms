@@ -1,5 +1,6 @@
 # Embeds one text file as C++ arrays (the code-zoom demonstrator's source,
-# demo/code_zoom/code_zoom.cpp): run as
+# demo/code_zoom/code_zoom.cpp; the automation help's documentation pages,
+# src/controls/automation/help/automation_help.cpp): run as
 #   cmake -DSOURCE=<file> -DNAME=<path shown> -DOUTPUT=<file.inc> -P embed_text_file.cmake
 # OUTPUT defines `embedded_source_path`, NAME as a string, and
 # `embedded_source_bytes`, the file's bytes followed by a zero (so the

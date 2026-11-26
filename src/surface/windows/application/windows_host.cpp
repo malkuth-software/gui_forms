@@ -4,8 +4,8 @@
 #include "../../../core/application/application_state.hpp"
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
 #include "../../../runtime/automation/automation_run.hpp"
-#include "../../../core/host/session/session_directory.hpp"
 #endif
+#include "../../../core/host/session/session_directory.hpp"
 #include "../accessibility/windows_accessibility.hpp"
 #include "../services/windows_clipboard_image.hpp"
 #include "../services/windows_clipboard_open.hpp"
@@ -854,10 +854,17 @@ bool user_input_message(UINT message) noexcept {
 bool press_message(const MSG& message) noexcept {
     switch (message.message) {
     case WM_LBUTTONDOWN: case WM_LBUTTONDBLCLK: case WM_RBUTTONDOWN: case WM_RBUTTONDBLCLK:
-    case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK: case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK:
-    case WM_NCLBUTTONDOWN: case WM_NCLBUTTONDBLCLK: case WM_NCRBUTTONDOWN: case WM_NCRBUTTONDBLCLK:
-    case WM_NCMBUTTONDOWN: case WM_NCMBUTTONDBLCLK: case WM_NCXBUTTONDOWN: case WM_NCXBUTTONDBLCLK: return true;
-    case WM_KEYDOWN: case WM_SYSKEYDOWN: return (static_cast<std::uint64_t>(message.lParam) & (1ULL << 30U)) == 0U;
+    case WM_MBUTTONDOWN: case WM_MBUTTONDBLCLK: case WM_XBUTTONDOWN: case WM_XBUTTONDBLCLK: return true;
+    case WM_KEYDOWN: case WM_SYSKEYDOWN: {
+        // A modifier alone (Alt-Tab's Alt) is no press; neither is a click
+        // on the title bar or a frame (the WM_NC* messages): activating a
+        // window never offers the take-back dialog (MCP round 4).
+        const WPARAM virtual_key = message.wParam;
+        const bool modifier = virtual_key == VK_MENU || virtual_key == VK_CONTROL || virtual_key == VK_SHIFT ||
+                              virtual_key == VK_LWIN || virtual_key == VK_RWIN;
+        const bool first = (static_cast<std::uint64_t>(message.lParam) & (1ULL << 30U)) == 0U;
+        return first && !modifier;
+    }
     default: return false;
     }
 }
@@ -4686,7 +4693,7 @@ int run_windows(std::unique_ptr<Window> model, WindowsHostOptions options) {
     }
 
 #if defined(GUI_FORMS_MCP_BUILT) && !defined(GUI_FORMS_HIGH_INTEGRITY)
-    // The automation (--mcp, --mcp-script) as Application::run starts it; it
+    // The automation (--mcp-shared, --mcp-fcfs, --mcp-script) as Application::run starts it; it
     // ends after the window's model and the window's state below.
     const gui_forms::automation::AutomationRunScope automation{};
 #endif

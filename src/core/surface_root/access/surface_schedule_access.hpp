@@ -9,7 +9,8 @@
 // (its single frame request), AnimationTimer (its display-paced timer and
 // the cancellation count),
 // CaretBlinkSchedule (the text controls' resting caret timer), ContentSurface
-// (its watchdog's resting check timer).
+// (its watchdog's resting check timer), the automation's StockPresenter (the
+// end of its band's glint, an ambient wake).
 //
 // Stale use: every token returned is revoked by the root's teardown
 // (release_tree cancels the frame requests) as well as by its holder, so no
@@ -35,6 +36,14 @@ public:
     [[nodiscard]] static FrameRequestToken request_tool_tip_wake(SurfaceRoot& root, FrameTime deadline,
                                                                  std::function<void(FrameTime)> callback) {
         FrameRequestToken result = root.request_tool_tip_wake(deadline, std::move(callback));
+        return result;
+    }
+    // A one-shot ambient wake at `deadline`: it never holds the window from
+    // settling (SurfaceRoot::request_ambient_wake), for decoration such as
+    // the automation's sign.
+    [[nodiscard]] static FrameRequestToken request_ambient_wake(SurfaceRoot& root, FrameTime deadline,
+                                                                std::function<void(FrameTime)> callback) {
+        FrameRequestToken result = root.request_ambient_wake(deadline, std::move(callback));
         return result;
     }
     // A UI timer that rests while the window is occluded, for the caret
