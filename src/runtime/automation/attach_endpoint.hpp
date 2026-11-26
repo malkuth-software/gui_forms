@@ -318,7 +318,7 @@ struct AttachOpening final {
 [[nodiscard]] AttachOpening read_attach_opening(std::string_view line);
 
 enum class ConsoleVerb : std::uint8_t {
-    // A blank line: nothing to do.
+    // A blank line: answered "error: empty command" (every door).
     none,
     help,
     tools,

@@ -120,7 +120,9 @@ A door that could not be made adds a line such as
 - Each reply goes to `out` and ends with a line of its own: `. ok` or
   `. error` (a reply line that begins with `.` gets another). `cat out`
   ends after the reply. A reply waits up to 60 seconds for a reader, so the
-  write and the read can be separate shells.
+  write and the read can be separate shells. An empty or blank line is
+  answered too (`error: empty command`, on the socket console as well), so
+  `cat out` never waits for nothing.
 - One line may chain commands, as a shell does: `a && b` runs `b` only if
   `a` succeeded, `a ; b` always runs it (`&&` and `;` inside quoted values
   or JSON are not separators). The one reply numbers each part (`[1] ...`,

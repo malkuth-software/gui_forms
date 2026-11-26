@@ -382,7 +382,12 @@ void serve_door_line(DoorServer::State& state, const std::string& line) {
     AutomationRun& run = *state.run;
     CommandDoor& door = *state.door;
     const DoorLine read = read_door_line(line);
-    if (read.command.empty()) return;
+    if (read.command.find_first_not_of(" \t\r") == std::string::npos) {
+        // An empty or blank line gets a reply of its own, so a reader's
+        // `cat out` never waits for one that never comes.
+        door.reply(door_reply_frame("error: empty command", read.request, true));
+        return;
+    }
     AttachClient client{};
     client.name = "pipe " + door.id();
     const FlagStop stop(state.stop);

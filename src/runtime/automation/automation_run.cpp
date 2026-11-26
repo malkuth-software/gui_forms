@@ -965,6 +965,10 @@ std::string AutomationRun::console_line(std::string_view line, const CallStop* s
     std::string answer{};
     switch (command.verb) {
     case ConsoleVerb::none:
+        // An empty or blank line (or chained part) is answered, through
+        // every door: nobody waits on a reply that never comes.
+        answer = "error: empty command";
+        failed = true;
         break;
     case ConsoleVerb::help:
         answer = console_help(command.topic);
