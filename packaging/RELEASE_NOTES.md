@@ -869,3 +869,7 @@ One release folds the work queued after 1.0.4.
 - **help in the console:** `help`, `help tools`, `help <tool>`,
   `help mcp` and `help gui.forms`. Tool help comes from the tools'
   descriptions and schemas, and topics from talk-to-a-program.md.
+- **Held alerts hold every press (macOS).** While a model holds control, a
+  click that AppKit's modal session sent to an alert's button on its own,
+  or an accessibility press on one, answered the alert. Such a press is now
+  held at the button too and offers take-back, and the alert stays open.

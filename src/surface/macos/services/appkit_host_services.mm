@@ -125,6 +125,20 @@ using gui_forms::render::SkiaRaster;
 - (BOOL)answerAlertShowHelp:(NSAlert*)alert;
 @end
 
+// The target of an alert's buttons while a model holds control
+// (run_alert_modal). A click or key equivalent that reaches a button while
+// the model holds is the user's press: it offers the take-back dialog and
+// the alert stays open. Otherwise the button answers as NSAlert's own target
+// does in a modal run, stopping the modal session with the button's tag.
+// The caller keeps the target alive until the modal session ends; the
+// buttons only observe it.
+@interface GuiFormsHeldAlertAnswer : NSObject
+- (void)buttonPressed:(NSButton*)sender;
+// The body of this class's native entry: the entry calls its answer
+// through the fail-fast boundary (call_failing_fast).
+- (void)answerButtonPressed:(NSButton*)sender;
+@end
+
 #if !defined(GUI_FORMS_HIGH_INTEGRITY)
 // The source of a drag to other programs (HostServices::start_drag): it
 // offers the request's effects to every destination, inside the program or
@@ -176,6 +190,26 @@ BOOL run_alert_help_alert_show_help(GuiFormsAlertHelp* object, NSAlert* alert) {
     event.keyboard_initiated = false;
     static_cast<void>((*self.services).publish_dialog_help(event));
     return YES;
+}
+@end
+
+namespace {
+// The named target the fail-fast boundary (call_failing_fast) calls for
+// GuiFormsHeldAlertAnswer's native entry: it sends the entry's answer message.
+void run_held_alert_button_pressed(GuiFormsHeldAlertAnswer* object, NSButton* sender) {
+    [object answerButtonPressed:sender];
+}
+} // namespace
+
+@implementation GuiFormsHeldAlertAnswer
+- (void)buttonPressed:(NSButton*)sender {
+    gui_forms::detail::call_failing_fast(
+        "macos.held_alert.buttonPressed:", &run_held_alert_button_pressed, self, sender);
+}
+
+- (void)answerButtonPressed:(NSButton*)sender {
+    if (gui_forms::detail::native_input_held(true)) return;
+    [NSApp stopModalWithCode:sender.tag];
 }
 @end
 
@@ -542,12 +576,25 @@ bool reaches_outside_modality(NSEvent* event, NSWindow* alert_window) {
 // user's, and otherwise passes it on only to the alert, a panel that works
 // when modal, or the application itself, as runModal does. With no model
 // holding control it is [alert runModal].
+//
+// [NSApp runModalSession:] also takes and sends any events waiting in the
+// queue, past the loop's hold: input that arrives while it runs (a click the
+// window server delivers then, or one posted by main-queue work it runs)
+// reaches the alert's buttons directly. So the buttons answer through
+// GuiFormsHeldAlertAnswer, which applies the same hold at the button: such a
+// click offers the take-back dialog instead of answering the alert.
 NSModalResponse run_alert_modal(NSAlert* alert) {
     if (!gui_forms::detail::native_input_held(false)) {
         const NSModalResponse plain = [alert runModal];
         return plain;
     }
     [alert layout];
+    // Kept to the end of the scope: the buttons only observe it.
+    NS_VALID_UNTIL_END_OF_SCOPE GuiFormsHeldAlertAnswer* const answer = [[GuiFormsHeldAlertAnswer alloc] init];
+    for (NSButton* button in alert.buttons) {
+        button.target = answer;
+        button.action = @selector(buttonPressed:);
+    }
     NSWindow* const window = alert.window;
     [window center];
     NSModalSession session = [NSApp beginModalSessionForWindow:window];
