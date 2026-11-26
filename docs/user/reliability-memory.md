@@ -179,10 +179,15 @@ Windows (STXlib `proofs/REPORT.md`).
 
 ### Limits
 
-- **What it serves.** stx_minmallocpp serves the memory STXlib allocates:
-  its containers, text, glyph stores and thread records. GUI.Forms' general
-  heap, its `std::` containers and strings, still goes through the C++
-  library to the host's `malloc`.
+- **What it serves.** stx_minmallocpp serves the memory STXlib allocates
+  (its containers, text, glyph stores and thread records) and GUI.Forms'
+  own types. Whether the `std::` containers and strings get it depends on
+  the route ([reliability](reliability.md)): the C ABI library replaces
+  `operator new` inside its own module, and a program that opts in with
+  `gui_forms_use_library_allocator` (GUI.Forms' own programs do) puts all
+  its C++ allocations on it. A program that links GUI.Forms statically
+  without opting in keeps its own `operator new`, and the `malloc` family,
+  which C code such as the image codecs uses, is never replaced.
 - **Sanitizer builds** use the host allocator, which the sanitizers
   intercept.
 - **What is not proved.** The address-identity rule (every address that is
